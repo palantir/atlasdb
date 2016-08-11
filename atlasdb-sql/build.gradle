@@ -46,7 +46,7 @@ antlr4 {
   destination = file("$projectDir/src/main/java")
 }
 
-// create a single jar with all dependencies
+// make a single jar with all dependencies
 task fatJar(type: Jar) {
   manifest {
     attributes 'Implementation-Title': 'AtlasDB SQL Driver',

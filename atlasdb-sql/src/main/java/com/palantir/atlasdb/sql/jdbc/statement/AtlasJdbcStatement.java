@@ -5,11 +5,9 @@ import java.io.StringWriter;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.sql.grammar.SelectQuery;
 import com.palantir.atlasdb.sql.jdbc.connection.AtlasJdbcConnection;
@@ -17,33 +15,32 @@ import com.palantir.atlasdb.sql.jdbc.results.AtlasJdbcResultSet;
 
 public class AtlasJdbcStatement implements Statement {
 
-    private static final Logger log = LoggerFactory.getLogger(AtlasJdbcStatement.class);
     private final AtlasJdbcConnection conn;
+    private StatementConfig config;
+    private SqlExecutionResult sqlExecutionResult;
     private boolean isClosed = false;
-
-    /**
-     * The warnings chain
-     */
-    private SQLWarning warnings = null;
-
-    /**
-     * Maximum number of rows to return, 0 = unlimited
-     */
-    private int maxRows = 0;
 
     public AtlasJdbcStatement(AtlasJdbcConnection conn) {
         this.conn = conn;
+        this.config = ImmutableStatementConfig.builder().build();
     }
 
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
-        SelectQuery select = SelectQuery.create(sql);
-        return AtlasJdbcResultSet.create(conn.getService(), conn.getTransactionToken(), select, this);
+        execute(sql);
+        if (getResultSet() == null) {
+            throw new SQLException("query did not produce a result set: " + sql);
+        }
+        return getResultSet();
     }
 
     @Override
     public int executeUpdate(String sql) throws SQLException {
-        return 0;
+        execute(sql);
+        if (getUpdateCount() == SqlExecutionResult.NO_UPDATES) {
+            throw new SQLException("query did not produce an update: " + sql);
+        }
+        return getUpdateCount();
     }
 
     @Override
@@ -51,54 +48,30 @@ public class AtlasJdbcStatement implements Statement {
         isClosed = true;
     }
 
-    @Override
-    public boolean isClosed() {
-        return isClosed;
-    }
-
-    private void assertNotClosed() throws SQLException {
-        if (isClosed()) {
-            throw new SQLException("Connection is not allowed to be closed at this time.");
-        }
-    }
-
-    private void methodNotSupported() throws SQLException {
-        StringWriter errors = new StringWriter();
-        final Throwable ignored = new Throwable("Method not supported:");
-        ignored.printStackTrace(new PrintWriter(errors));
-        throw new SQLException("Method not supported:\n" + errors.toString(), ignored);
-    }
+    //----------------------------------------------------------------------
 
     @Override
     public int getMaxFieldSize() throws SQLException {
         assertNotClosed();
-        methodNotSupported();
-        return 0;
+        return config.maxFieldSize();
     }
 
     @Override
     public void setMaxFieldSize(int max) throws SQLException {
         assertNotClosed();
-        if (max < 0) {
-            throw new SQLException("Max field size < 0");
-        }
         methodNotSupported();
     }
 
     @Override
     public int getMaxRows() throws SQLException {
         assertNotClosed();
-        return maxRows;
+        return config.maxRows();
     }
 
     @Override
     public void setMaxRows(int max) throws SQLException {
         assertNotClosed();
-        if (max < 0) {
-            throw new SQLException("Max rows < 0 not allowed");
-        }
-        maxRows = max;
-        log.trace("Max rows set to {}", max);
+        methodNotSupported();
     }
 
     @Override
@@ -132,13 +105,12 @@ public class AtlasJdbcStatement implements Statement {
     @Override
     public SQLWarning getWarnings() throws SQLException {
         assertNotClosed();
-        return warnings;
+        return null;
     }
 
     @Override
     public void clearWarnings() throws SQLException {
         assertNotClosed();
-        warnings = null;
     }
 
     @Override
@@ -147,58 +119,51 @@ public class AtlasJdbcStatement implements Statement {
         methodNotSupported();
     }
 
+    //----------------------- Multiple Results --------------------------
+
     @Override
     public boolean execute(String sql) throws SQLException {
-        // TODO
-        return false;
+        SelectQuery select = SelectQuery.create(sql);
+        ResultSet rset = AtlasJdbcResultSet.create(conn.getService(), conn.getTransactionToken(), select, this);
+        sqlExecutionResult = SqlExecutionResult.fromResult(rset);
+        return getResultSet() != null;
     }
 
     @Override
     public ResultSet getResultSet() throws SQLException {
-        // TODO
-        return null;
+        return sqlExecutionResult.resultSet().orElse(null);
     }
 
     @Override
     public int getUpdateCount() throws SQLException {
         assertNotClosed();
-        methodNotSupported();
-        return 0;
+        return sqlExecutionResult.updateCount();
     }
 
     @Override
     public boolean getMoreResults() throws SQLException {
         assertNotClosed();
-        methodNotSupported();
+        sqlExecutionResult = SqlExecutionResult.empty();
         return false;
     }
+
+    //-------------------------- JDBC 2.0 -----------------------------
 
     @Override
     public void setFetchDirection(int direction) throws SQLException {
         assertNotClosed();
-        switch (direction) {
-            case ResultSet.FETCH_FORWARD:
-            case ResultSet.FETCH_REVERSE:
-            case ResultSet.FETCH_UNKNOWN:
-                methodNotSupported();
-            default:
-                throw new SQLException("Invalid direction provided");
-        }
+        config = ImmutableStatementConfig.builder().from(config).fetchDirection(direction).build();
     }
 
     @Override
     public int getFetchDirection() throws SQLException {
         assertNotClosed();
-        methodNotSupported();
-        return 0;
+        return config.fetchDirection();
     }
 
     @Override
     public void setFetchSize(int rows) throws SQLException {
         assertNotClosed();
-        if (rows < 0) {
-            throw new SQLException("Fetch size < 0 not allowed");
-        }
         methodNotSupported();
     }
 
@@ -237,6 +202,8 @@ public class AtlasJdbcStatement implements Statement {
 
     @Override
     public int[] executeBatch() throws SQLException {
+        assertNotClosed();
+        methodNotSupported();
         return new int[0];
     }
 
@@ -245,9 +212,12 @@ public class AtlasJdbcStatement implements Statement {
         return conn;
     }
 
+    //-------------------------- JDBC 3.0 -----------------------------
+
     @Override
     public boolean getMoreResults(int current) throws SQLException {
-        // TODO
+        assertNotClosed();
+        methodNotSupported();
         return false;
     }
 
@@ -281,19 +251,22 @@ public class AtlasJdbcStatement implements Statement {
 
     @Override
     public boolean execute(String sql, int autoGeneratedKeys) throws SQLException {
-        // TODO
+        assertNotClosed();
+        methodNotSupported();
         return false;
     }
 
     @Override
     public boolean execute(String sql, int[] columnIndexes) throws SQLException {
-        // TODO
+        assertNotClosed();
+        methodNotSupported();
         return false;
     }
 
     @Override
     public boolean execute(String sql, String[] columnNames) throws SQLException {
-        // TODO
+        assertNotClosed();
+        methodNotSupported();
         return false;
     }
 
@@ -305,6 +278,11 @@ public class AtlasJdbcStatement implements Statement {
     }
 
     @Override
+    public boolean isClosed() {
+        return isClosed;
+    }
+
+    @Override
     public void setPoolable(boolean poolable) throws SQLException {
         assertNotClosed();
         methodNotSupported();
@@ -313,8 +291,11 @@ public class AtlasJdbcStatement implements Statement {
     @Override
     public boolean isPoolable() throws SQLException {
         assertNotClosed();
+        methodNotSupported();
         return false;
     }
+
+    //-------------------------- JDBC 4.1 -----------------------------
 
     @Override
     public void closeOnCompletion() throws SQLException {
@@ -324,8 +305,12 @@ public class AtlasJdbcStatement implements Statement {
 
     @Override
     public boolean isCloseOnCompletion() throws SQLException {
+        assertNotClosed();
+        methodNotSupported();
         return false;
     }
+
+    //------------------------- WRAPPERS ------------------------------
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
@@ -339,4 +324,19 @@ public class AtlasJdbcStatement implements Statement {
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return iface.isAssignableFrom(getClass());
     }
+
+    //------------------------- WRAPPERS ------------------------------
+
+    private void assertNotClosed() throws SQLException {
+        if (isClosed()) {
+            throw new SQLException("Connection is not allowed to be closed at this time.");
+        }
+    }
+
+    private void methodNotSupported() throws SQLException {
+        StringWriter errors = new StringWriter();
+        new Throwable().printStackTrace(new PrintWriter(errors));
+        throw new SQLFeatureNotSupportedException("Method not supported:\n" + errors.toString());
+    }
+
 }
