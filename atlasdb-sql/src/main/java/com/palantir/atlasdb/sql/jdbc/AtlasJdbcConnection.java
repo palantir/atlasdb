@@ -55,7 +55,7 @@ public class AtlasJdbcConnection implements Connection {
     }
 
     private void assertConnectionNotInTransaction() throws SQLException {
-        if (token.shouldAutoCommit() || token == emptyTransactionToken()) {
+        if (token == emptyTransactionToken()) {
             throw new SQLException("connection is not allowed to be in transaction at this time.");
         }
     }
@@ -67,6 +67,9 @@ public class AtlasJdbcConnection implements Connection {
 
     @Override
     public PreparedStatement prepareStatement(String sql) throws SQLException {
+        if (token == emptyTransactionToken()) {
+            token = service.startTransaction();
+        }
         return new AtlasJdbcPreparedStatement(this, sql);
     }
 
@@ -85,7 +88,7 @@ public class AtlasJdbcConnection implements Connection {
         if (autoCommit == token.shouldAutoCommit()) {
             return;
         }
-        this.token = autoCommit ? TransactionToken.autoCommit() : service.startTransaction();
+        this.token = autoCommit ? TransactionToken.autoCommit() : emptyTransactionToken();
     }
 
     @Override
@@ -97,16 +100,6 @@ public class AtlasJdbcConnection implements Connection {
     public void commit() throws SQLException {
         service.commit(token);
         this.token = resetTransactionToken();
-
-//        txManager.runTaskThrowOnConflict(new TransactionTask<Void, SQLException>() {
-//            @Override
-//            public Void execute(Transaction t) throws SQLException {
-//                for (AtlasJdbcPreparedStatement statement : preparedStatements) {
-//                    statement.executeQuery();
-//                }
-//                return null;
-//            }
-//        });
     }
 
     @Override

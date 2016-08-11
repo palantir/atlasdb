@@ -1,17 +1,33 @@
 package com.palantir.atlasdb.sql.jdbc;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.atlasdb.sql.grammar.SelectQuery;
 
 public class AtlasJdbcStatement implements Statement {
 
+    private static final Logger log = LoggerFactory.getLogger(AtlasJdbcStatement.class);
     private final AtlasJdbcConnection conn;
     private boolean isClosed = false;
+
+    /**
+     * The warnings chain
+     */
+    private SQLWarning warnings = null;
+
+    /**
+     * Maximum number of rows to return, 0 = unlimited
+     */
+    private int maxRows = 0;
 
     public AtlasJdbcStatement(AtlasJdbcConnection conn) {
         this.conn = conn;
@@ -45,7 +61,10 @@ public class AtlasJdbcStatement implements Statement {
     }
 
     private void methodNotSupported() throws SQLException {
-        throw new SQLException("Method not supported.");
+        StringWriter errors = new StringWriter();
+        final Throwable ignored = new Throwable("Method not supported:");
+        ignored.printStackTrace(new PrintWriter(errors));
+        throw new SQLException("Method not supported:\n" + errors.toString(), ignored);
     }
 
     @Override
@@ -67,8 +86,7 @@ public class AtlasJdbcStatement implements Statement {
     @Override
     public int getMaxRows() throws SQLException {
         assertNotClosed();
-        methodNotSupported();
-        return 0;
+        return maxRows;
     }
 
     @Override
@@ -77,7 +95,8 @@ public class AtlasJdbcStatement implements Statement {
         if (max < 0) {
             throw new SQLException("Max rows < 0 not allowed");
         }
-        methodNotSupported();
+        maxRows = max;
+        log.trace("Max rows set to {}", max);
     }
 
     @Override
@@ -111,14 +130,13 @@ public class AtlasJdbcStatement implements Statement {
     @Override
     public SQLWarning getWarnings() throws SQLException {
         assertNotClosed();
-        methodNotSupported();
-        return null;
+        return warnings;
     }
 
     @Override
     public void clearWarnings() throws SQLException {
         assertNotClosed();
-        methodNotSupported();
+        warnings = null;
     }
 
     @Override
