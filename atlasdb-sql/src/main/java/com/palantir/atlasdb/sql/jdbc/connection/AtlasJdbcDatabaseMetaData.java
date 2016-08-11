@@ -106,42 +106,42 @@ public class AtlasJdbcDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsMixedCaseIdentifiers() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Unsupported method supportsMixedCaseIdentifiers");
+        return false;
     }
 
     @Override
     public boolean storesUpperCaseIdentifiers() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Unsupported method storesUpperCaseIdentifiers");
+        return false;
     }
 
     @Override
     public boolean storesLowerCaseIdentifiers() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Unsupported method storesLowerCaseIdentifiers");
+        return false;
     }
 
     @Override
     public boolean storesMixedCaseIdentifiers() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Unsupported method storesMixedCaseIdentifiers");
+        return true;
     }
 
     @Override
     public boolean supportsMixedCaseQuotedIdentifiers() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Unsupported method supportsMixedCaseQuotedIdentifiers");
+        return false;
     }
 
     @Override
     public boolean storesUpperCaseQuotedIdentifiers() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Unsupported method storesUpperCaseQuotedIdentifiers");
+        return false;
     }
 
     @Override
     public boolean storesLowerCaseQuotedIdentifiers() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Unsupported method storesLowerCaseQuotedIdentifiers");
+        return false;
     }
 
     @Override
     public boolean storesMixedCaseQuotedIdentifiers() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Unsupported method storesMixedCaseQuotedIdentifiers");
+        return true;
     }
 
     @Override
@@ -181,7 +181,7 @@ public class AtlasJdbcDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getExtraNameCharacters() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Unsupported method getExtraNameCharacters");
+        return "";
     }
 
     @Override
