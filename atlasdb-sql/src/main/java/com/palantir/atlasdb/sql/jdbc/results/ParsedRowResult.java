@@ -6,10 +6,13 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.protobuf.Message;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -21,7 +24,7 @@ import com.palantir.common.annotation.Output;
 public class ParsedRowResult {
 
     private final List<MetadataAndValue> result;
-    private final List<String> colLabels;
+    private final Map<String, MetadataAndValue> labelOrNameToResult;
 
     public static ParsedRowResult create(RowResult<byte[]> rawResult, List<JdbcColumnMetadata> columns) {
         if (columns.stream().anyMatch(c -> c.isDynCol())) {
@@ -29,22 +32,24 @@ public class ParsedRowResult {
         }
 
         ImmutableList.Builder<MetadataAndValue> resultBuilder = ImmutableList.builder();
-        ImmutableList.Builder<String> indexBuilder = ImmutableList.builder();
         parseRowComponents(rawResult.getRowName(),
                 columns.stream().filter(JdbcColumnMetadata::isRowComp).collect(Collectors.toList()),
-                resultBuilder,
-                indexBuilder);
+                resultBuilder);
         parseColumns(rawResult,
                 columns.stream().filter(JdbcColumnMetadata::isCol).collect(Collectors.toList()),
-                resultBuilder,
-                indexBuilder);
-        return new ParsedRowResult(resultBuilder.build(), indexBuilder.build());
+                resultBuilder);
+        List<MetadataAndValue> colsMeta = resultBuilder.build();
+        ImmutableMap.Builder<String, MetadataAndValue> indexBuilder = ImmutableMap.builder();
+        indexBuilder.putAll(colsMeta.stream().collect(Collectors.toMap(MetadataAndValue::getName, Function.identity())));
+        indexBuilder.putAll(colsMeta.stream()
+                .filter(m -> !m.getLabel().equals(m.getName()))
+                .collect(Collectors.toMap(MetadataAndValue::getLabel, Function.identity())));
+        return new ParsedRowResult(colsMeta, indexBuilder.build());
     }
 
     private static void parseColumns(RowResult<byte[]> rawResult,
                                      List<JdbcColumnMetadata> colsMeta,
-                                     @Output ImmutableList.Builder<MetadataAndValue> resultBuilder,
-                                     @Output ImmutableList.Builder<String> indexBuilder) {
+                                     @Output ImmutableList.Builder<MetadataAndValue> resultBuilder) {
         Map<ByteBuffer, byte[]> wrappedCols = Maps.newHashMap();
         for(Map.Entry<byte[], byte[]> entry : rawResult.getColumns().entrySet()) {
             wrappedCols.put(ByteBuffer.wrap(entry.getKey()), entry.getValue());
@@ -57,14 +62,12 @@ public class ParsedRowResult {
             } else {
                 resultBuilder.add(MetadataAndValue.create(meta, null));  // put null for missing columns
             }
-            indexBuilder.add(meta.getName());
         }
     }
 
     private static void parseRowComponents(byte[] row,
                                            List<JdbcColumnMetadata> colsMeta,
-                                           @Output ImmutableList.Builder<MetadataAndValue> resultBuilder,
-                                           @Output ImmutableList.Builder<String> indexBuilder) {
+                                           @Output ImmutableList.Builder<MetadataAndValue> resultBuilder) {
         int index = 0;
         for (int i = 0; i < colsMeta.size(); i++) {
             JdbcColumnMetadata meta = colsMeta.get(i);
@@ -82,50 +85,44 @@ public class ParsedRowResult {
             byte[] rowBytes = Arrays.copyOfRange(row, index, index + len);
             index += len;
             resultBuilder.add(new MetadataAndValue(meta, rowBytes));
-            indexBuilder.add(meta.getName());
         }
     }
 
-    public ParsedRowResult(List<MetadataAndValue> result, ImmutableList<String> colLabels) {
+    public ParsedRowResult(List<MetadataAndValue> result, Map<String, MetadataAndValue> labelToResult) {
         this.result = result;
-        this.colLabels = colLabels;
+        this.labelOrNameToResult = labelToResult;
     }
 
-    public Object get(int index, JdbcReturnType returnType) throws SQLException {
-        if (index > result.size()) {
-            throw new SQLException(String.format("given column index %s, but there are only %s columns", index, result.size()));
-        }
-
-        MetadataAndValue r = result.get(index - 1);
+    private Object get(MetadataAndValue res, JdbcReturnType returnType) {
         switch (returnType) {
             case BYTES:
-                return r.getRawValue();
+                return res.getRawValue();
             case OBJECT:
-                switch (r.getFormat()) { // inspired by AtlasSerializers.serialize
+                switch (res.getFormat()) { // inspired by AtlasSerializers.serialize
                     case PROTO:
-                        return r.getValueAsMessage();
+                        return res.getValueAsMessage();
                     case PERSISTABLE:
                         break;
                     case VALUE_TYPE:
                         break;
                     case PERSISTER:
-                        return r.getValueAsSimpleType();
+                        return res.getValueAsSimpleType();
                 }
                 break;
             case STRING:
-                switch (r.getFormat()) {
+                switch (res.getFormat()) {
                     case PERSISTABLE:
                     case PERSISTER:
                         break;
                     case PROTO:
-                        if (r.meta.isCol()) {
-                            Message proto = r.getValueAsMessage();
+                        if (res.meta.isCol()) {
+                            Message proto = res.getValueAsMessage();
                             return ForkedJsonFormat.printToString(proto);
                         } else {
                             throw new UnsupportedOperationException("Cannot (yet) parse a PROTO row component as a string.");
                         }
                     case VALUE_TYPE:
-                        return r.getValueAsSimpleType();
+                        return res.getValueAsSimpleType();
                 }
                 break;
             // TODO implement other types
@@ -139,8 +136,8 @@ public class ParsedRowResult {
                 break;
             case LONG:
                 if (!EnumSet.of(ValueType.STRING, ValueType.VAR_STRING, ValueType.BLOB, ValueType.SHA256HASH, ValueType.SIZED_BLOB, ValueType.UUID)
-                        .contains(r.getValueType())) {
-                    return r.getValueAsSimpleType();
+                        .contains(res.getValueType())) {
+                    return res.getValueAsSimpleType();
                 }
             case FLOAT:
                 break;
@@ -162,26 +159,35 @@ public class ParsedRowResult {
                 break;
         }
 
-        if (r.getFormat() == ColumnValueDescription.Format.VALUE_TYPE) {
+        if (res.getFormat() == ColumnValueDescription.Format.VALUE_TYPE) {
             throw new UnsupportedOperationException(String.format("parsing format %s (%s) as type %s is unsupported",
-                    r.getFormat(),
-                    r.getValueType(),
+                    res.getFormat(),
+                    res.getValueType(),
                     returnType));
         } else {
-            throw new UnsupportedOperationException(String.format("parsing format %s as type %s is unsupported", r.getFormat(), returnType));
+            throw new UnsupportedOperationException(String.format("parsing format %s as type %s is unsupported", res.getFormat(), returnType));
         }
+    }
+
+    public Object get(int index, JdbcReturnType returnType) throws SQLException {
+        if (index > result.size()) {
+            throw new SQLException(String.format("given column index %s, but there are only %s columns", index, result.size()));
+        }
+        return get(result.get(index - 1), returnType);
     }
 
     public Object get(String col, JdbcReturnType returnType) throws SQLException {
-        return get(getIndexFromColumnLabel(col), returnType);
+        if (!labelOrNameToResult.containsKey(col)) {
+            throw new SQLException(String.format("column '%s' is not found in results", col));
+        }
+        return get(labelOrNameToResult.get(col), returnType);
     }
 
     public int getIndexFromColumnLabel(String col) throws SQLException {
-        int index = colLabels.indexOf(col);
-        if (index == -1) {
+        if (!labelOrNameToResult.containsKey(col)) {
             throw new SQLException(String.format("column '%s' is not found in results", col));
         }
-        return index + 1;
+        return result.indexOf(labelOrNameToResult.get(col)) + 1;
     }
 
     private static class MetadataAndValue {
@@ -209,6 +215,14 @@ public class ParsedRowResult {
             return meta.hydrateProto(rawVal);
         }
 
+        String getName() {
+            return meta.getName();
+        }
+
+        String getLabel() {
+            return meta.getLabel();
+        }
+
         public Object getValueAsSimpleType() {
             return getValueType().convertToJava(getRawValue(), 0);
         }
@@ -219,18 +233,18 @@ public class ParsedRowResult {
 
         @Override
         public String toString() {
-            return "{" +
-                    "meta=" + meta +
-                    ", rawVal=" + Arrays.toString(rawVal) +
-                    '}';
+            return MoreObjects.toStringHelper(this)
+                    .add("meta", meta)
+                    .add("rawVal", rawVal)
+                    .toString();
         }
     }
 
     @Override
     public String toString() {
-        return "ParsedRowResult{" +
-                "result=" + result +
-                ", colLabels=" + colLabels +
-                '}';
+        return MoreObjects.toStringHelper(this)
+                .add("result", result)
+                .add("labelOrNameToResult", labelOrNameToResult)
+                .toString();
     }
 }

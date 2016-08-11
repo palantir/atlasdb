@@ -19,12 +19,6 @@ public class ConnectionTest {
         connect("memoryTestConfig.yml");
     }
 
-    // TODO: start postgres in a docker container
-    @Test @Ignore
-    public void testPostgresConnection() throws ClassNotFoundException, SQLException {
-        connect("postgresTestConfig.yml");
-    }
-
     private void connect(String name) throws ClassNotFoundException, SQLException {
         Connection connection = null;
         try {
