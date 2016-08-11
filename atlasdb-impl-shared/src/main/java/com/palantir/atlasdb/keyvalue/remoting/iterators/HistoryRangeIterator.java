@@ -38,9 +38,9 @@ public class HistoryRangeIterator extends RangeIterator<Set<Value>> {
     }
 
     @Override
-    protected ClosableIterator<RowResult<Set<Value>>> getMoreRows(KeyValueService kvs, TableReference tableRef,
-                                                                  RangeRequest newRange, long timestamp) {
-        return kvs.getRangeWithHistory(tableRef, newRange, timestamp);
+    protected ClosableIterator<RowResult<Set<Value>>> getMoreRows(KeyValueService kvs, TableReference tableReference,
+                                                                  RangeRequest newRange, long ts) {
+        return kvs.getRangeWithHistory(tableReference, newRange, ts);
     }
 
 }

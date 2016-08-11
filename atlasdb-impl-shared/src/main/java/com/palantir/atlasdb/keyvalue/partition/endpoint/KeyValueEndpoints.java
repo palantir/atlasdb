@@ -20,14 +20,15 @@ import java.util.UUID;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.partition.PartitionedKeyValueConstants;
 
-public class KeyValueEndpoints {
+public final class KeyValueEndpoints {
     private KeyValueEndpoints() {
+        // Utility class
     }
 
     public static String makeUniqueRackIfNoneSpecified(String rack) {
         if (PartitionedKeyValueConstants.NO_RACK.equals(rack)) {
             return UUID.randomUUID().toString();
         }
-        return Preconditions.checkNotNull(rack);
+        return Preconditions.checkNotNull(rack, "Rack cannot be null");
     }
 }

@@ -21,6 +21,7 @@ import org.junit.After;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.sweep.AbstractSweeperTest;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class InMemorySweeperTest extends AbstractSweeperTest {

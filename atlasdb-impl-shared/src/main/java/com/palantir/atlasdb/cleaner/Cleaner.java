@@ -34,7 +34,8 @@ public interface Cleaner extends Closeable {
      * @param cellToTableRefs Cells that were touched as part of the hard delete transaction
      * @param scrubTimestamp The start timestamp of the hard delete transaction whose
      *        cells need to be scrubbed; at the time queueCellsForScrubbing is called,
-     *        the hard delete transaction will be in the process of committing  @throws exceptions are simply propagated up if something goes wrong.
+     *        the hard delete transaction will be in the process of committing  @throws
+     *        exceptions are simply propagated up if something goes wrong.
      */
     void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs,
                                 long scrubTimestamp);

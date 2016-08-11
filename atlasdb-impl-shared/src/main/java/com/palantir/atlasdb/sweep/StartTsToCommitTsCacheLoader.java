@@ -48,14 +48,14 @@ public class StartTsToCommitTsCacheLoader extends CacheLoader<Long, Long> {
             // TODO: carrino: use the batched version of putUnlessExists when it is available.
             transactionService.putUnlessExists(startTs, TransactionConstants.FAILED_COMMIT_TS);
         } catch (KeyAlreadyExistsException e) {
-            String msg = "Could not roll back transaction with start timestamp " + startTs + "; either" +
-                    " it was already rolled back (by a different transaction), or it committed successfully" +
-                    " before we could roll it back.";
+            String msg = "Could not roll back transaction with start timestamp " + startTs + "; either"
+                    + " it was already rolled back (by a different transaction), or it committed successfully"
+                    + " before we could roll it back.";
             log.warn("This isn't a bug but it should be very infrequent. " + msg,
                     new TransactionFailedRetriableException(msg, e));
         }
 
         commitTs = transactionService.get(startTs);
-        return Preconditions.checkNotNull(commitTs);
+        return Preconditions.checkNotNull(commitTs, "commitTs should not be null");
     }
 }

@@ -41,13 +41,13 @@ public class ThoroughSweeper implements Sweeper {
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getValues(TableReference tableReference, RangeRequest rangeRequest, long timestamp) {
-        return keyValueService.getRange(tableReference, rangeRequest, timestamp);
+    public ClosableIterator<RowResult<Value>> getValues(TableReference table, RangeRequest range, long ts) {
+        return keyValueService.getRange(table, range, ts);
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getCellTimestamps(TableReference tableReference, RangeRequest rangeRequest, long timestamp) {
-        return keyValueService.getRangeOfTimestamps(tableReference, rangeRequest, timestamp);
+    public ClosableIterator<RowResult<Set<Long>>> getCellTimestamps(TableReference table, RangeRequest range, long ts) {
+        return keyValueService.getRangeOfTimestamps(table, range, ts);
     }
 
     @Override

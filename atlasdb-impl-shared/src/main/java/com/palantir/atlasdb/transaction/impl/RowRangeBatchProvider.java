@@ -30,12 +30,16 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 
 public class RowRangeBatchProvider implements BatchProvider<RowResult<Value>> {
-    final KeyValueService keyValueService;
-    final TableReference tableRef;
-    final RangeRequest range;
+    private final KeyValueService keyValueService;
+    private final TableReference tableRef;
+    private final RangeRequest range;
     private final long timestamp;
 
-    public RowRangeBatchProvider(KeyValueService keyValueService, TableReference tableRef, RangeRequest range, long timestamp) {
+    public RowRangeBatchProvider(
+            KeyValueService keyValueService,
+            TableReference tableRef,
+            RangeRequest range,
+            long timestamp) {
         this.keyValueService = keyValueService;
         this.tableRef = tableRef;
         this.range = range;

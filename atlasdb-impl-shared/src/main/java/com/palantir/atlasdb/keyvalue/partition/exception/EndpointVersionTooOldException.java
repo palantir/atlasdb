@@ -27,12 +27,11 @@ import com.palantir.common.annotation.Immutable;
 
     /**
      * Only use if pmsUri has been filled in.
-     *
-     * @param map
      */
     public void pushNewMap(DynamicPartitionMap map) {
         RemotingPartitionMapService.createClientSide(
-                Preconditions.checkNotNull(pmsUri)).updateMapIfNewer(map);
+                Preconditions.checkNotNull(pmsUri, "pmsUri must be set to push a new map"))
+                .updateMapIfNewer(map);
     }
 
     public EndpointVersionTooOldException() {

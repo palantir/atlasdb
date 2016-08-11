@@ -20,7 +20,7 @@ import java.util.NavigableMap;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ForwardingNavigableMap;
 
-public class CycleMap<K, V> extends ForwardingNavigableMap<K, V>{
+public final class CycleMap<K, V> extends ForwardingNavigableMap<K, V> {
     private final NavigableMap<K, V> backingMap;
 
     private CycleMap(NavigableMap<K, V> backingMap) {

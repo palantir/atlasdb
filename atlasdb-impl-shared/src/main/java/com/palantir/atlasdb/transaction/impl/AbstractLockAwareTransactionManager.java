@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
@@ -30,26 +30,30 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 
-public abstract class AbstractLockAwareTransactionManager extends AbstractTransactionManager implements LockAwareTransactionManager {
-
+public abstract class AbstractLockAwareTransactionManager
+        extends AbstractTransactionManager
+        implements LockAwareTransactionManager {
     @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<HeldLocksToken> lockTokens,
-                                                                Supplier<LockRequest> lockSupplier,
-                                                                LockAwareTransactionTask<T, E> task) throws E, InterruptedException {
+    public <T, E extends Exception> T runTaskWithLocksWithRetry(
+            Iterable<HeldLocksToken> lockTokens,
+            Supplier<LockRequest> lockSupplier,
+            LockAwareTransactionTask<T, E> task) throws E, InterruptedException {
         int failureCount = 0;
         while (true) {
             LockRequest lockRequest = lockSupplier.get();
             HeldLocksToken lockToken = null;
             if (lockRequest != null) {
                 Validate.isTrue(lockRequest.getVersionId() == null, "Using a version id is not allowed");
-                HeldLocksToken response = getLockService().lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), lockRequest);
+                HeldLocksToken response = getLockService()
+                        .lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), lockRequest);
                 if (response == null) {
-                    RuntimeException e = new LockAcquisitionException("Failed to lock using the provided lock request: " + lockRequest);
-                    log.warn("Could not lock successfullly", e);
+                    RuntimeException ex = new LockAcquisitionException(
+                            "Failed to lock using the provided lock request: " + lockRequest);
+                    log.warn("Could not lock successfully", ex);
                     failureCount++;
                     if (shouldStopRetrying(failureCount)) {
-                        log.warn("Failing after " + failureCount + " tries", e);
-                        throw e;
+                        log.warn("Failing after " + failureCount + " tries", ex);
+                        throw ex;
                     }
                     sleepForBackoff(failureCount);
                     continue;
@@ -88,15 +92,15 @@ public abstract class AbstractLockAwareTransactionManager extends AbstractTransa
     }
 
     @Override
-    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E {
-        return runTaskWithLocksThrowOnConflict(ImmutableList.<HeldLocksToken>of(), LockAwareTransactionTasks.asLockAware(task));
+    public <T, E extends Exception> T runTaskWithLocksWithRetry(
+            Supplier<LockRequest> lockSupplier,
+            LockAwareTransactionTask<T, E> task)
+            throws E, InterruptedException {
+        return runTaskWithLocksWithRetry(ImmutableList.of(), lockSupplier, task);
     }
 
     @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(Supplier<LockRequest> lockSupplier,
-                                                                LockAwareTransactionTask<T, E> task)
-            throws E, InterruptedException {
-        return runTaskWithLocksWithRetry(ImmutableList.<HeldLocksToken>of(), lockSupplier, task);
+    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E {
+        return runTaskWithLocksThrowOnConflict(ImmutableList.of(), LockAwareTransactionTasks.asLockAware(task));
     }
-
 }

@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -32,7 +33,7 @@ import java.util.concurrent.Future;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
-import org.apache.commons.lang.mutable.MutableLong;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +45,6 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -162,8 +162,7 @@ import com.palantir.util.Pair;
  * Jackson notice: This class has custom serializer and deserializer.
  *
  */
-public class DynamicPartitionMapImpl implements DynamicPartitionMap {
-
+public final class DynamicPartitionMapImpl implements DynamicPartitionMap {
     private static final Logger log = LoggerFactory.getLogger(DynamicPartitionMapImpl.class);
     private static final int MAX_VALUE_SIZE = 1024 * 1024 * 1024;
 
@@ -171,25 +170,17 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
     private final CycleMap<byte[], EndpointWithStatus> ring;
     private final MutableLong version = new MutableLong(0L);
 
-    private transient final Set<KeyValueService> delegates;
-    private transient final ExecutorService executor;
+    private final transient Set<KeyValueService> delegates;
+    private final transient ExecutorService executor;
 
-    private transient final Supplier<Long> versionSupplier = new Supplier<Long>() {
-        @Override
-        public Long get() {
-            return version.longValue();
-        }
-    };
+    private final transient Supplier<Long> versionSupplier = () -> version.longValue();
 
     @GuardedBy("this")
     private long operationsInProgress;
 
-    /*** Creation ********************************************************************************/
+    /* Creation */
     /**
      * This is used for deserialization.
-     *
-     * @param quorumParameters
-     * @param ring
      */
     private DynamicPartitionMapImpl(QuorumParameters quorumParameters,
             CycleMap<byte[], EndpointWithStatus> ring, long version,
@@ -211,11 +202,17 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         }
     }
 
-    private DynamicPartitionMapImpl(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring, ExecutorService executor) {
+    private DynamicPartitionMapImpl(
+            QuorumParameters quorumParameters,
+            NavigableMap<byte[], KeyValueEndpoint> ring,
+            ExecutorService executor) {
         this(quorumParameters, toRing(ring), 0L, 0, executor);
     }
 
-    public static DynamicPartitionMapImpl create(QuorumParameters quorumParameters, NavigableMap<byte[], KeyValueEndpoint> ring, ExecutorService executor) {
+    public static DynamicPartitionMapImpl create(
+            QuorumParameters quorumParameters,
+            NavigableMap<byte[], KeyValueEndpoint> ring,
+            ExecutorService executor) {
         return new DynamicPartitionMapImpl(quorumParameters, ring, executor);
     }
 
@@ -245,39 +242,30 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         }
     }
 
-    /*** Creation helpers ***/
+    /* Creation helpers */
     /**
      * Supply the version of this partition map to all endpoints in the ring.
      *
-     * @param ring
-     * @return The same object as supplied ie. <code>ring</code>.
+     * @return The same object as supplied ie. <code>ring</code>
      */
-    private <T extends Map<byte[], EndpointWithStatus>> T buildRing(T ring) {
-        for (EndpointWithStatus e : ring.values()) {
+    private <T extends Map<byte[], EndpointWithStatus>> T buildRing(T ringToBuild) {
+        for (EndpointWithStatus e : ringToBuild.values()) {
             e.get().registerPartitionMapVersion(versionSupplier);
         }
-        return ring;
+        return ringToBuild;
     }
 
     /**
      * Convert bare endpoints to EndpointsWithNormalStatus.
-     *
-     * @param map
-     * @return
      */
-    private static CycleMap<byte[], EndpointWithStatus> toRing(NavigableMap<byte[], KeyValueEndpoint> map) {
-        NavigableMap<byte[], EndpointWithStatus> transformedMap = Maps.transformValues(map, new Function<KeyValueEndpoint, EndpointWithStatus>() {
-            @Override
-            public EndpointWithStatus apply(@Nullable KeyValueEndpoint input) {
-                return new EndpointWithNormalStatus(input);
-            }
-        });
+    private static CycleMap<byte[], EndpointWithStatus> toRing(NavigableMap<byte[], KeyValueEndpoint> ringMap) {
+        NavigableMap<byte[], EndpointWithStatus> transformedMap = Maps.transformValues(ringMap,
+                input -> new EndpointWithNormalStatus(input));
         // Make a mutable copy of the immutable result.
         return CycleMap.wrap(Maps.newTreeMap(transformedMap));
     }
 
-    /** Helper methods ***************************************************************************/
-    // This is the METHOD
+    /* Helper methods */
     private Set<KeyValueEndpoint> getServicesHavingRow(byte[] key, boolean isWrite) {
         Set<KeyValueEndpoint> result = Sets.newHashSet();
         Set<String> racksToBeExcluded = Sets.newHashSet();
@@ -323,9 +311,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      * Useful for checking that after removing an endpoint
      * the ring still will be valid (before doing the actual
      * removal).
-     *
-     * @param key
-     * @return
      */
     private int numOfRacksWithoutEndpoint(@Nullable byte[] key) {
         final Set<String> racks = Sets.newHashSet();
@@ -337,15 +322,18 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return racks.size();
     }
 
-    private Map<KeyValueEndpoint, Set<Cell>> getServicesForCellsSet(String tableName, Set<Cell> cells, boolean isWrite) {
+    private Map<KeyValueEndpoint, Set<Cell>> getServicesForCellsSet(
+            String tableName,
+            Set<Cell> cells,
+            boolean isWrite) {
         Map<KeyValueEndpoint, Set<Cell>> result = Maps.newHashMap();
         for (Cell cell : cells) {
             Set<KeyValueEndpoint> services = getServicesHavingRow(cell.getRowName(), isWrite);
             for (KeyValueEndpoint kvs : services) {
                 if (!result.containsKey(kvs)) {
-                    result.put(kvs, Sets.<Cell> newHashSet());
+                    result.put(kvs, Sets.newHashSet());
                 }
-                assert result.get(kvs).contains(cell) == false;
+                assert !result.get(kvs).contains(cell);
                 result.get(kvs).add(cell);
             }
         }
@@ -355,14 +343,16 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return result;
     }
 
-    private <ValType> Map<KeyValueEndpoint, Map<Cell, ValType>> getServicesForCellsMap(String tableName,
-                                                                         Map<Cell, ValType> cellMap, boolean isWrite) {
-        Map<KeyValueEndpoint, Map<Cell, ValType>> result = Maps.newHashMap();
-        for (Map.Entry<Cell, ValType> e : cellMap.entrySet()) {
+    private <ValTypeT> Map<KeyValueEndpoint, Map<Cell, ValTypeT>> getServicesForCellsMap(
+            String tableName,
+            Map<Cell, ValTypeT> cellMap,
+            boolean isWrite) {
+        Map<KeyValueEndpoint, Map<Cell, ValTypeT>> result = Maps.newHashMap();
+        for (Map.Entry<Cell, ValTypeT> e : cellMap.entrySet()) {
             Set<KeyValueEndpoint> services = getServicesHavingRow(e.getKey().getRowName(), isWrite);
             for (KeyValueEndpoint kvs : services) {
                 if (!result.containsKey(kvs)) {
-                    result.put(kvs, Maps.<Cell, ValType> newHashMap());
+                    result.put(kvs, Maps.newHashMap());
                 }
                 assert !result.get(kvs).containsKey(e.getKey());
                 result.get(kvs).put(e.getKey(), e.getValue());
@@ -374,14 +364,16 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return result;
     }
 
-    private <ValType> Map<KeyValueEndpoint, Multimap<Cell, ValType>> getServicesForCellsMultimap(String tableName,
-                                                                                                Multimap<Cell, ValType> cellMultimap, boolean isWrite) {
-        Map<KeyValueEndpoint, Multimap<Cell, ValType>> result = Maps.newHashMap();
-        for (Map.Entry<Cell, ValType> e : cellMultimap.entries()) {
+    private <ValTypeT> Map<KeyValueEndpoint, Multimap<Cell, ValTypeT>> getServicesForCellsMultimap(
+            String tableName,
+            Multimap<Cell, ValTypeT> cellMultimap,
+            boolean isWrite) {
+        Map<KeyValueEndpoint, Multimap<Cell, ValTypeT>> result = Maps.newHashMap();
+        for (Map.Entry<Cell, ValTypeT> e : cellMultimap.entries()) {
             Set<KeyValueEndpoint> services = getServicesHavingRow(e.getKey().getRowName(), isWrite);
             for (KeyValueEndpoint kvs : services) {
                 if (!result.containsKey(kvs)) {
-                    result.put(kvs, HashMultimap.<Cell, ValType> create());
+                    result.put(kvs, HashMultimap.create());
                 }
                 assert !result.get(kvs).containsEntry(e.getKey(), e.getValue());
                 result.get(kvs).put(e.getKey(), e.getValue());
@@ -462,53 +454,67 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         return result;
     }
 
-    private static <T> void apply(final Entry<KeyValueEndpoint, ? extends T> entry, final Function<Pair<KeyValueService, T>, Void> task) {
-        task.apply(Pair.<KeyValueService, T>create(entry.getKey().keyValueService(), entry.getValue()));
+    private static <T> void apply(
+            Entry<KeyValueEndpoint, ? extends T> entry,
+            Function<Pair<KeyValueService, T>, Void> task) {
+        task.apply(Pair.create(entry.getKey().keyValueService(), entry.getValue()));
     }
 
     @Override
-    public void runForRowsRead(String tableName, Iterable<byte[]> rows,
-                               final Function<Pair<KeyValueService, Iterable<byte[]>>, Void> task) {
-        for (final Entry<KeyValueEndpoint, NavigableSet<byte[]>> e : getServicesForRowsRead(tableName, rows).entrySet()) {
+    public void runForRowsRead(
+            String tableName,
+            Iterable<byte[]> rows,
+            Function<Pair<KeyValueService, Iterable<byte[]>>, Void> task) {
+        for (Entry<KeyValueEndpoint, NavigableSet<byte[]>> e : getServicesForRowsRead(tableName, rows).entrySet()) {
             apply(e, task);
         }
     }
 
     @Override
-    public void runForCellsRead(String tableName, Set<Cell> cells,
-                                final Function<Pair<KeyValueService, Set<Cell>>, Void> task) {
-        for (final Entry<KeyValueEndpoint, Set<Cell>> e : getServicesForCellsSet(tableName, cells, false).entrySet()) {
+    public void runForCellsRead(
+            String tableName,
+            Set<Cell> cells,
+            Function<Pair<KeyValueService, Set<Cell>>, Void> task) {
+        for (Entry<KeyValueEndpoint, Set<Cell>> e : getServicesForCellsSet(tableName, cells, false).entrySet()) {
             apply(e, task);
         }
     }
 
     @Override
-    public <T> void runForCellsRead(String tableName, Map<Cell, T> cells,
-                                    final Function<Pair<KeyValueService, Map<Cell, T>>, Void> task) {
-        for (final Entry<KeyValueEndpoint, Map<Cell, T>> e : getServicesForCellsMap(tableName, cells, false).entrySet()) {
+    public <T> void runForCellsRead(
+            String tableName, Map<Cell, T> cells,
+            Function<Pair<KeyValueService, Map<Cell, T>>, Void> task) {
+        for (Entry<KeyValueEndpoint, Map<Cell, T>> e : getServicesForCellsMap(tableName, cells, false).entrySet()) {
             apply(e, task);
         }
     }
 
     @Override
-    public void runForCellsWrite(String tableName, Set<Cell> cells,
-                                 final Function<Pair<KeyValueService, Set<Cell>>, Void> task) {
-        for (final Entry<KeyValueEndpoint, Set<Cell>> e : getServicesForCellsSet(tableName, cells, true).entrySet()) {
+    public void runForCellsWrite(
+            String tableName,
+            Set<Cell> cells,
+            Function<Pair<KeyValueService, Set<Cell>>, Void> task) {
+        for (Entry<KeyValueEndpoint, Set<Cell>> e : getServicesForCellsSet(tableName, cells, true).entrySet()) {
             apply(e, task);
         }
     }
 
     @Override
-    public <T> void runForCellsWrite(String tableName, Multimap<Cell, T> cells,
-                                     final Function<Pair<KeyValueService, Multimap<Cell, T>>, Void> task) {
-        for (final Entry<KeyValueEndpoint, Multimap<Cell, T>> e : getServicesForCellsMultimap(tableName, cells, true).entrySet()) {
+    public <T> void runForCellsWrite(
+            String tableName,
+            Multimap<Cell, T> cells,
+            Function<Pair<KeyValueService, Multimap<Cell, T>>, Void> task) {
+        for (Entry<KeyValueEndpoint, Multimap<Cell, T>> e :
+                getServicesForCellsMultimap(tableName, cells, true).entrySet()) {
             apply(e, task);
         }
     }
 
     @Override
-    public <T> void runForCellsWrite(String tableName, Map<Cell, T> cells,
-                                     Function<Pair<KeyValueService, Map<Cell, T>>, Void> task) {
+    public <T> void runForCellsWrite(
+            String tableName,
+            Map<Cell, T> cells,
+            Function<Pair<KeyValueService, Map<Cell, T>>, Void> task) {
         for (Entry<KeyValueEndpoint, Map<Cell, T>> e : getServicesForCellsMap(tableName, cells, true).entrySet()) {
             apply(e, task);
         }
@@ -521,12 +527,9 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
     /**
      * Copies rows within the specified range from all the tables.
-     * @param destKve
-     * @param srcKve
-     * @param rangeToCopy
      */
     private void copyData(KeyValueService destKvs, RangeRequest rangeToCopy) {
-        ImmutableList<PartitionMapService> mapServices = ImmutableList.<PartitionMapService> of(InMemoryPartitionMapService.create(this));
+        List<PartitionMapService> mapServices = ImmutableList.of(InMemoryPartitionMapService.create(this));
         PartitionedKeyValueService pkvs = PartitionedKeyValueService.create(quorumParameters, mapServices);
         for (TableReference tableRef : pkvs.getAllTableNames()) {
             // TODO: getRangeOfTimestamps?
@@ -554,8 +557,6 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
     /**
      * Deletes rows within the specified range from all the tables.
-     * @param kve
-     * @param rangeToDelete
      */
     private void deleteData(KeyValueService kvs, RangeRequest rangeToDelete) {
         for (TableReference tableRef : kvs.getAllTableNames()) {
@@ -584,10 +585,10 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      *
      * @param kveKey Consider endpoint at this key.
      * @param isWrite Are we looking for write or read access?
-     * @return Ranges in order. The first element is the farthest range.
+     * @return Ranges in order. The first element is the farthest range
      */
     private List<RangeRequest> getRangesOperatedByKvs(byte[] kveKey, boolean isWrite) {
-        Preconditions.checkNotNull(ring.get(kveKey));
+        Preconditions.checkNotNull(ring.get(kveKey), "Cannot find the ring for the given key");
         List<RangeRequest> result = Lists.newArrayList();
 
         byte[] startRange = kveKey;
@@ -638,10 +639,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      * Note that this implementation supports at most one addEndpoint or removeEndpoint operation at
      * a time. This method will return <code>false</code> if such operation is already in progress.
      *
-     * @param key
-     * @param kve
-     * @param rack
-     * @return <code>true</code> if the operation has been accepted for execution, <code>false</code> otherwise.
+     * @return <code>true</code> if the operation has been accepted for execution, <code>false</code> otherwise
      * @throws RuntimeException if an update of a crucial endpoint fails.
      */
     @Override
@@ -657,7 +655,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         kve.partitionMapService().updateMap(this);
         kve.registerPartitionMapVersion(versionSupplier);
 
-        ImmutableList<PartitionMapService> mapServices = ImmutableList.<PartitionMapService> of(InMemoryPartitionMapService.create(this));
+        List<PartitionMapService> mapServices = ImmutableList.of(InMemoryPartitionMapService.create(this));
         PartitionedKeyValueService pkvs = PartitionedKeyValueService.create(quorumParameters, mapServices);
         for (TableReference tableRef : pkvs.getAllTableNames()) {
             byte[] metadata = kve.keyValueService().getMetadataForTable(tableRef);
@@ -775,7 +773,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
         try {
             byte[] otherKey = key;
-            for (int i=0; i<quorumParameters.getReplicationFactor(); ++i) {
+            for (int i = 0; i < quorumParameters.getReplicationFactor(); ++i) {
                 otherKey = ring.nextKey(otherKey);
                 ring.get(otherKey).get().partitionMapService().updateMap(this);
             }
@@ -796,7 +794,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 keyToRemove = ring.nextKey(keyToRemove);
             } else {
                 assert i + 1 < ranges.size();
-                assert ranges.get(i+1).getStartInclusive().length == 0;
+                assert ranges.get(i + 1).getStartInclusive().length == 0;
             }
         }
     }
@@ -816,8 +814,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      * Note that this implementation supports at most one addEndpoint or removeEndpoint operation at
      * a time. This method will return <code>false</code> if such operation is already in progress.
      *
-     * @param key
-     * @return <code>true</code> if the operation has been accepted for execution, <code>false</code> otherwise.
+     * @return <code>true</code> if the operation has been accepted for execution, <code>false</code> otherwise
      * @throws RuntimeException if an update of a crucial endpoint fails.
      */
     @Override
@@ -942,7 +939,7 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         byte[] otherKey = key;
         try {
             // TODO: Shouldn't this be +1, or filter based on normal status?
-            for (int i=0; i<quorumParameters.getReplicationFactor(); ++i) {
+            for (int i = 0; i < quorumParameters.getReplicationFactor(); ++i) {
                 otherKey = ring.nextKey(otherKey);
                 ring.get(otherKey).get().partitionMapService().updateMap(this);
             }
@@ -980,27 +977,31 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
      * Directly set the version of this map to <code>version</code> without
      * any other side effects.
      *
-     * @param version
+     * @deprecated Do not use this. It is for test purposes only.
      */
-    @Deprecated @VisibleForTesting
-    public void setVersion(long version) {
-        this.version.setValue(version);
+    @Deprecated
+    public void setVersion(long newVersion) {
+        this.version.setValue(newVersion);
     }
 
-    /*** toString, hashCode and equals ***********************************************************/
     @Override
     public String toString() {
-        return "DynamicPartitionMapImpl (" + version +
-               "): QP=(" + quorumParameters.getReplicationFactor() +
-               "," + quorumParameters.getReadFactor() +
-               "," + quorumParameters.getWriteFactor() + ")\n" +
-               ringDescription();
+        return "DynamicPartitionMapImpl (" + version
+               + "): QP=(" + quorumParameters.getReplicationFactor()
+               + "," + quorumParameters.getReadFactor()
+               + "," + quorumParameters.getWriteFactor() + ")\n"
+               + ringDescription();
     }
 
     private String ringDescription() {
         StringBuilder builder = new StringBuilder();
         for (Entry<byte[], EndpointWithStatus> e : ring.entrySet()) {
-            builder.append(e.getValue().get() + " (" + statusDescription(e.getValue()) + ") @ " + Arrays.toString(e.getKey()) + "\n");
+            builder.append(e.getValue().get())
+                    .append(" (")
+                    .append(statusDescription(e.getValue()))
+                    .append(") @ ")
+                    .append(Arrays.toString(e.getKey()))
+                    .append("\n");
         }
         return builder.toString();
     }
@@ -1018,70 +1019,48 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         throw new IllegalArgumentException("Unsupported EndpointWithStatus instance");
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        DynamicPartitionMapImpl that = (DynamicPartitionMapImpl) obj;
+        return operationsInProgress == that.operationsInProgress
+                && Objects.equals(quorumParameters, that.quorumParameters)
+                && Objects.equals(ring, that.ring)
+                && Objects.equals(version, that.version);
+    }
 
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result
-                + (int) (operationsInProgress ^ (operationsInProgress >>> 32));
-        result = prime * result + ((quorumParameters == null) ? 0
-                : quorumParameters.hashCode());
-        result = prime * result + ((ring == null) ? 0 : ring.hashCode());
-        result = prime * result + ((version == null) ? 0 : version.hashCode());
-        return result;
+        return Objects.hash(quorumParameters, ring, version, operationsInProgress);
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        DynamicPartitionMapImpl other = (DynamicPartitionMapImpl) obj;
-        if (operationsInProgress != other.operationsInProgress)
-            return false;
-        if (quorumParameters == null) {
-            if (other.quorumParameters != null)
-                return false;
-        } else if (!quorumParameters.equals(other.quorumParameters))
-            return false;
-        if (ring == null) {
-            if (other.ring != null)
-                return false;
-        } else if (!ring.equals(other.ring))
-            return false;
-        if (version == null) {
-            if (other.version != null)
-                return false;
-        } else if (!version.equals(other.version))
-            return false;
-        return true;
-    }
-
-
-
-    /*** serialization and deserialization *******************************************************/
+    /* serialization and deserialization *******************************************************/
     public static class Serializer extends JsonSerializer<DynamicPartitionMapImpl> {
         private static final Serializer instance = new Serializer();
-        public static final Serializer instance() { return instance; }
+
+        public static Serializer instance() {
+            return instance;
+        }
 
         @Override
-        public void serialize(DynamicPartitionMapImpl instance,
-                              JsonGenerator gen, SerializerProvider serializers) throws IOException,
-                JsonProcessingException {
+        public void serialize(DynamicPartitionMapImpl partitionMap, JsonGenerator gen, SerializerProvider serializers)
+                throws IOException {
 
             gen.writeStartObject();
-            gen.writeObjectField("quorumParameters", instance.quorumParameters);
-            gen.writeObjectField("version", instance.version.longValue());
-            gen.writeObjectField("operationsInProgress", instance.operationsInProgress);
+            gen.writeObjectField("quorumParameters", partitionMap.quorumParameters);
+            gen.writeObjectField("version", partitionMap.version.longValue());
+            gen.writeObjectField("operationsInProgress", partitionMap.operationsInProgress);
             gen.writeFieldName("ring");
             gen.writeStartArray();
-            for (Entry<byte[], EndpointWithStatus> entry : instance.ring.entrySet()) {
+            for (Entry<byte[], EndpointWithStatus> entry : partitionMap.ring.entrySet()) {
                 if (!(entry.getValue().get() instanceof SimpleKeyValueEndpoint)) {
-                    throw new IllegalArgumentException("DynamicPartitionMapImpl serialization is only supported with SimplKeyValueEndpoint endpoints!");
+                    throw new IllegalArgumentException("DynamicPartitionMapImpl serialization is only"
+                            + " supported with SimplKeyValueEndpoint endpoints!");
                 }
                 gen.writeStartObject();
                 gen.writeBinaryField("key", entry.getKey());
@@ -1093,15 +1072,17 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
         }
     }
 
-    public static class Deserializer extends JsonDeserializer<DynamicPartitionMapImpl>{
-        static final Deserializer instance = new Deserializer();
-        public static final Deserializer instance() { return instance; }
+    public static class Deserializer extends JsonDeserializer<DynamicPartitionMapImpl> {
+        private static final Deserializer instance = new Deserializer();
+
+        public static Deserializer instance() {
+            return instance;
+        }
 
         @Override
-        public DynamicPartitionMapImpl deserialize(JsonParser p, DeserializationContext ctxt)
-                throws IOException, JsonProcessingException {
-
-            JsonNode root = p.getCodec().readTree(p);
+        public DynamicPartitionMapImpl deserialize(JsonParser parser, DeserializationContext context)
+                throws IOException {
+            JsonNode root = parser.getCodec().readTree(parser);
 
             long version = root.get("version").asLong();
             long operationsInProgress = root.get("operationsInProgress").asLong();
@@ -1154,7 +1135,8 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                 byte[] row = "map".getBytes();
                 byte[] col = entry.getKey();
                 if (!(entry.getValue().get() instanceof SimpleKeyValueEndpoint)) {
-                    throw new IllegalArgumentException("DynamicPartitionMapImpl serialization is only supported with SimplKeyValueEndpoint endpoints!");
+                    throw new IllegalArgumentException("DynamicPartitionMapImpl serialization is only"
+                            + " supported with SimplKeyValueEndpoint endpoints!");
                 }
                 byte[] value = RemotingKeyValueService.kvsMapper().writeValueAsBytes(entry.getValue());
                 result.put(Cell.create(row, col), value);
@@ -1184,7 +1166,8 @@ public class DynamicPartitionMapImpl implements DynamicPartitionMap {
                     continue;
                 }
                 byte[] key = entry.getKey().getColumnName();
-                EndpointWithStatus ews = RemotingKeyValueService.kvsMapper().readValue(entry.getValue(), EndpointWithStatus.class);
+                EndpointWithStatus ews = RemotingKeyValueService.kvsMapper()
+                        .readValue(entry.getValue(), EndpointWithStatus.class);
                 ring.put(key, ews);
             }
 

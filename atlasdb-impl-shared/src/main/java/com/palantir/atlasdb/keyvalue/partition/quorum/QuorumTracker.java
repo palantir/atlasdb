@@ -18,68 +18,69 @@ package com.palantir.atlasdb.keyvalue.partition.quorum;
 import java.util.Map;
 import java.util.concurrent.Future;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters.QuorumRequestParameters;
 import com.palantir.common.collect.Maps2;
 
-public class QuorumTracker<FutureReturnType, TrackingUnit> {
+public class QuorumTracker<FutureReturnTypeT, TrackingUnitT> {
 
-    private final Map<TrackingUnit, Integer> numberOfRemainingSuccessesForSuccess;
-    private final Map<TrackingUnit, Integer> numberOfRemainingFailuresForFailure;
-    private final Map<Future<FutureReturnType>, Iterable<TrackingUnit>> unitsByReference;
+    private final Map<TrackingUnitT, Integer> numberOfRemainingSuccessesForSuccess;
+    private final Map<TrackingUnitT, Integer> numberOfRemainingFailuresForFailure;
+    private final Map<Future<FutureReturnTypeT>, Iterable<TrackingUnitT>> unitsByReference;
     private boolean failure;
 
-    public QuorumTracker(Iterable<TrackingUnit> allTrackedUnits,
+    public QuorumTracker(Iterable<TrackingUnitT> allTrackedUnits,
                          QuorumRequestParameters quorumRequestParameters) {
-        numberOfRemainingFailuresForFailure = Maps2.createConstantValueMap(allTrackedUnits, quorumRequestParameters.getFailureFactor());
-        numberOfRemainingSuccessesForSuccess = Maps2.createConstantValueMap(allTrackedUnits, quorumRequestParameters.getSuccessFactor());
+        numberOfRemainingFailuresForFailure = Maps2.createConstantValueMap(
+                allTrackedUnits,
+                quorumRequestParameters.getFailureFactor());
+        numberOfRemainingSuccessesForSuccess = Maps2.createConstantValueMap(
+                allTrackedUnits,
+                quorumRequestParameters.getSuccessFactor());
         unitsByReference = Maps.newHashMap();
         failure = false;
     }
 
-    public QuorumTracker(Iterable<TrackingUnit> allTrackedUnits,
-                         Map<TrackingUnit, QuorumRequestParameters> quorumRequestParameters) {
-        numberOfRemainingFailuresForFailure = Maps.newHashMap(Maps.transformValues(quorumRequestParameters, new Function<QuorumRequestParameters, Integer>() {
-            @Override
-            public Integer apply(QuorumRequestParameters input) {
-                return input.getFailureFactor();
-            }
-        }));
-        numberOfRemainingSuccessesForSuccess = Maps.newHashMap(Maps.transformValues(quorumRequestParameters, new Function<QuorumRequestParameters, Integer> () {
-            @Override
-            public Integer apply(QuorumRequestParameters input) {
-                return input.getSuccessFactor();
-            }
-        }));
-        Preconditions.checkArgument(numberOfRemainingFailuresForFailure.keySet().equals(Sets.newHashSet(allTrackedUnits)));
-        Preconditions.checkArgument(numberOfRemainingSuccessesForSuccess.keySet().equals(Sets.newHashSet(allTrackedUnits)));
+    public QuorumTracker(Iterable<TrackingUnitT> allTrackedUnits,
+                         Map<TrackingUnitT, QuorumRequestParameters> quorumRequestParameters) {
+        numberOfRemainingFailuresForFailure = Maps.newHashMap(Maps.transformValues(quorumRequestParameters,
+                input -> input.getFailureFactor()));
+        numberOfRemainingSuccessesForSuccess = Maps.newHashMap(Maps.transformValues(quorumRequestParameters,
+                input -> input.getSuccessFactor()));
+        Preconditions.checkArgument(numberOfRemainingFailuresForFailure.keySet()
+                .equals(Sets.newHashSet(allTrackedUnits)));
+        Preconditions.checkArgument(numberOfRemainingSuccessesForSuccess.keySet()
+                .equals(Sets.newHashSet(allTrackedUnits)));
         unitsByReference = Maps.newHashMap();
         failure = false;
     }
 
+    /**
+     * Deprecated.
+     * @deprecated Use {@link #of(Iterable, Map)} instead
+     */
     @Deprecated
-    public static <FutureReturnType, TrackingUnit> QuorumTracker<FutureReturnType, TrackingUnit>
-            of(Iterable<TrackingUnit> allTrackedUnits,
+    public static <FutureReturnTypeT, TrackingUnitT> QuorumTracker<FutureReturnTypeT, TrackingUnitT>
+            of(Iterable<TrackingUnitT> allTrackedUnits,
                     QuorumRequestParameters quorumRequestParameters) {
-        return new QuorumTracker<FutureReturnType, TrackingUnit>(
+        return new QuorumTracker<>(
                 allTrackedUnits,
                 quorumRequestParameters);
     }
 
-    public static <FutureReturnType, TrackingUnit> QuorumTracker<FutureReturnType, TrackingUnit>
-            of(Iterable<TrackingUnit> allTrackedUnits,
-                    Map<TrackingUnit, QuorumRequestParameters> quorumRequestParameters) {
+    public static <FutureReturnTypeT, TrackingUnitT> QuorumTracker<FutureReturnTypeT, TrackingUnitT>
+            of(Iterable<TrackingUnitT> allTrackedUnits,
+                    Map<TrackingUnitT, QuorumRequestParameters> quorumRequestParameters) {
         return new QuorumTracker<>(allTrackedUnits, quorumRequestParameters);
     }
 
-    public void handleSuccess(Future<FutureReturnType> ref) {
+    public void handleSuccess(Future<FutureReturnTypeT> ref) {
         Preconditions.checkState(!finished());
         Preconditions.checkArgument(unitsByReference.containsKey(ref));
 
-        for (TrackingUnit unit : unitsByReference.get(ref)) {
+        for (TrackingUnitT unit : unitsByReference.get(ref)) {
             if (numberOfRemainingSuccessesForSuccess.containsKey(unit)) {
                 int newValue = numberOfRemainingSuccessesForSuccess.get(unit) - 1;
                 if (newValue == 0) {
@@ -93,10 +94,10 @@ public class QuorumTracker<FutureReturnType, TrackingUnit> {
         unregisterRef(ref);
     }
 
-    public void handleFailure(Future<FutureReturnType> ref) {
+    public void handleFailure(Future<FutureReturnTypeT> ref) {
         Preconditions.checkState(!finished());
         Preconditions.checkArgument(unitsByReference.containsKey(ref));
-        for (TrackingUnit cell : unitsByReference.get(ref)) {
+        for (TrackingUnitT cell : unitsByReference.get(ref)) {
             if (numberOfRemainingFailuresForFailure.containsKey(cell)) {
                 int newValue = numberOfRemainingFailuresForFailure.get(cell) - 1;
                 if (newValue == 0) {
@@ -110,18 +111,18 @@ public class QuorumTracker<FutureReturnType, TrackingUnit> {
         unregisterRef(ref);
     }
 
-    public void registerRef(Future<FutureReturnType> ref, Iterable<TrackingUnit> items) {
+    public void registerRef(Future<FutureReturnTypeT> ref, Iterable<TrackingUnitT> items) {
         Preconditions.checkState(!finished());
         unitsByReference.put(ref, items);
     }
 
-    public void unregisterRef(Future<FutureReturnType> ref) {
+    public void unregisterRef(Future<FutureReturnTypeT> ref) {
         Preconditions.checkArgument(unitsByReference.containsKey(ref));
         unitsByReference.remove(ref);
     }
 
     public void cancel(boolean mayInterruptIfRunning) {
-        for (Future<FutureReturnType> f : unitsByReference.keySet()) {
+        for (Future<FutureReturnTypeT> f : unitsByReference.keySet()) {
             f.cancel(mayInterruptIfRunning);
         }
     }
