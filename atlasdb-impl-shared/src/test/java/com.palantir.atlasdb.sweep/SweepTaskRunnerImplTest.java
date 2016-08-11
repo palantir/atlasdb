@@ -25,6 +25,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -62,10 +63,16 @@ public class SweepTaskRunnerImplTest {
     private static final long VALID_TIMESTAMP = 123L;
 
     private static final TableReference TABLE_REFERENCE = TableReference.create(Namespace.create("ns"), "testTable");
-    private static final Cell SINGLE_CELL = Cell.create("cellRow".getBytes(), "cellCol".getBytes());
+    private static final Cell SINGLE_CELL = Cell.create(
+            "cellRow".getBytes(StandardCharsets.UTF_8),
+            "cellCol".getBytes(StandardCharsets.UTF_8));
     private static final Set<Cell> SINGLE_CELL_SET = ImmutableSet.of(SINGLE_CELL);
     private static final Multimap<Cell, Long> SINGLE_CELL_TS_PAIR = ImmutableMultimap.<Cell, Long>builder()
-            .putAll(Cell.create("cellPairRow".getBytes(), "cellPairCol".getBytes()), ImmutableSet.of(5L, 10L, 15L, 20L))
+            .putAll(
+                    Cell.create(
+                            "cellPairRow".getBytes(StandardCharsets.UTF_8),
+                            "cellPairCol".getBytes(StandardCharsets.UTF_8)),
+                    ImmutableSet.of(5L, 10L, 15L, 20L))
             .build();
 
     private final KeyValueService mockKvs = mock(KeyValueService.class);

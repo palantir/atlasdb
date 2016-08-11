@@ -97,9 +97,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     public void createTables(Map<TableReference, byte[]> tableNamesToTableMetadata) {
         Map<KeyValueService, Map<TableReference, byte[]>> splitTableNamesToTableMetadata =
                 groupByDelegate(tableNamesToTableMetadata);
-        for (KeyValueService delegate : splitTableNamesToTableMetadata.keySet()) {
-            delegate.createTables(splitTableNamesToTableMetadata.get(delegate));
-        }
+        splitTableNamesToTableMetadata.forEach(KeyValueService::createTables);
     }
 
     private Map<KeyValueService, Map<TableReference, byte[]>> groupByDelegate(
@@ -303,9 +301,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     public void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata) {
         Map<KeyValueService, Map<TableReference, byte[]>> splitTableNameToMetadata =
                 groupByDelegate(tableRefToMetadata);
-        for (KeyValueService delegate : splitTableNameToMetadata.keySet()) {
-            delegate.putMetadataForTables(splitTableNameToMetadata.get(delegate));
-        }
+        splitTableNameToMetadata.forEach(KeyValueService::putMetadataForTables);
     }
 
     @Override
