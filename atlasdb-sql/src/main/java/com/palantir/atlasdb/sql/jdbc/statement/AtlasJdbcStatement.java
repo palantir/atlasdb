@@ -16,13 +16,12 @@ import com.palantir.atlasdb.sql.jdbc.results.AtlasJdbcResultSet;
 public class AtlasJdbcStatement implements Statement {
 
     private final AtlasJdbcConnection conn;
-    private StatementConfig config;
     private SqlExecutionResult sqlExecutionResult;
+
     private boolean isClosed = false;
 
     public AtlasJdbcStatement(AtlasJdbcConnection conn) {
         this.conn = conn;
-        this.config = ImmutableStatementConfig.builder().build();
     }
 
     @Override
@@ -53,7 +52,7 @@ public class AtlasJdbcStatement implements Statement {
     @Override
     public int getMaxFieldSize() throws SQLException {
         assertNotClosed();
-        return config.maxFieldSize();
+        return 0; // unlimited
     }
 
     @Override
@@ -65,7 +64,7 @@ public class AtlasJdbcStatement implements Statement {
     @Override
     public int getMaxRows() throws SQLException {
         assertNotClosed();
-        return config.maxRows();
+        return 0; // unlimited
     }
 
     @Override
@@ -152,13 +151,15 @@ public class AtlasJdbcStatement implements Statement {
     @Override
     public void setFetchDirection(int direction) throws SQLException {
         assertNotClosed();
-        config = ImmutableStatementConfig.builder().from(config).fetchDirection(direction).build();
+        if (direction != ResultSet.FETCH_FORWARD) {
+            throw new SQLException("results sets are only TYPE_FORWARD_ONLY");
+        }
     }
 
     @Override
     public int getFetchDirection() throws SQLException {
         assertNotClosed();
-        return config.fetchDirection();
+        return ResultSet.FETCH_FORWARD;
     }
 
     @Override
