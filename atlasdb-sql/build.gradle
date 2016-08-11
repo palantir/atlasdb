@@ -45,3 +45,14 @@ antlr4 {
   listener = false
   destination = file("$projectDir/src/main/java")
 }
+
+// create a single jar with all dependencies
+task fatJar(type: Jar) {
+  manifest {
+    attributes 'Implementation-Title': 'AtlasDB SQL Driver',
+               'Implementation-Version': rootProject.version
+  }
+  baseName = project.name + '-all'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+  with jar
+}
