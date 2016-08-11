@@ -25,6 +25,7 @@ import com.palantir.atlasdb.cli.services.ServicesConfigModule;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
 import com.palantir.atlasdb.impl.TableMetadataCache;
+import com.palantir.atlasdb.sql.jdbc.connection.AtlasJdbcConnection;
 
 public class AtlasJdbcDriver implements Driver {
     private final Logger log = LoggerFactory.getLogger(AtlasJdbcDriver.class);

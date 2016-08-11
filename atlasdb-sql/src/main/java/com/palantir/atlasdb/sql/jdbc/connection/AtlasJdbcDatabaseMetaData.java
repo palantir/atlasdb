@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.sql.jdbc;
+package com.palantir.atlasdb.sql.jdbc.connection;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -6,7 +6,12 @@ import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
 
+import com.palantir.atlasdb.sql.jdbc.AtlasJdbcDriver;
+
 public class AtlasJdbcDatabaseMetaData implements DatabaseMetaData {
+
+    private static final String USERNAME = "anonymous-user";
+
     private final AtlasJdbcConnection conn;
 
     public AtlasJdbcDatabaseMetaData(AtlasJdbcConnection connection) {
@@ -30,7 +35,7 @@ public class AtlasJdbcDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getUserName() throws SQLException {
-        return conn.getUserName();
+        return USERNAME;
     }
 
     @Override

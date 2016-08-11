@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.sql.jdbc;
+package com.palantir.atlasdb.sql.jdbc.results;
 
 import java.nio.ByteBuffer;
 import java.sql.SQLException;

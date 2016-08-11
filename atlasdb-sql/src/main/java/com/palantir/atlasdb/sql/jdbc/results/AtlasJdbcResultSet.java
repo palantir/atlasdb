@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.sql.jdbc;
+package com.palantir.atlasdb.sql.jdbc.results;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -29,6 +29,7 @@ import com.palantir.atlasdb.api.RangeToken;
 import com.palantir.atlasdb.api.TransactionToken;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.sql.grammar.SelectQuery;
+import com.palantir.atlasdb.sql.jdbc.statement.AtlasJdbcStatement;
 import com.palantir.atlasdb.table.description.TableMetadata;
 
 public class AtlasJdbcResultSet implements ResultSet {

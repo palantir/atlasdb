@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.sql.jdbc;
+package com.palantir.atlasdb.sql.jdbc.statement;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.sql.grammar.SelectQuery;
+import com.palantir.atlasdb.sql.jdbc.connection.AtlasJdbcConnection;
+import com.palantir.atlasdb.sql.jdbc.results.AtlasJdbcResultSet;
 
 public class AtlasJdbcStatement implements Statement {
 

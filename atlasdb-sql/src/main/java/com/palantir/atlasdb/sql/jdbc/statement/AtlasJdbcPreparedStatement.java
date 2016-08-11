@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.sql.jdbc;
+package com.palantir.atlasdb.sql.jdbc.statement;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -20,6 +20,8 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
+
+import com.palantir.atlasdb.sql.jdbc.connection.AtlasJdbcConnection;
 
 public class AtlasJdbcPreparedStatement extends AtlasJdbcStatement implements PreparedStatement {
 

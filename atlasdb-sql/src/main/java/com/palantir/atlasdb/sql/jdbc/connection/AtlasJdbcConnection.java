@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.sql.jdbc;
+package com.palantir.atlasdb.sql.jdbc.connection;
 
 import java.sql.Array;
 import java.sql.Blob;
@@ -21,28 +21,31 @@ import java.util.concurrent.Executor;
 
 import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.api.TransactionToken;
+import com.palantir.atlasdb.sql.jdbc.statement.AtlasJdbcPreparedStatement;
+import com.palantir.atlasdb.sql.jdbc.statement.AtlasJdbcStatement;
 
 public class AtlasJdbcConnection implements Connection {
 
     private final AtlasDbService service;
+    private final String jdbcUrl;
+
     private TransactionToken token = null;
     private boolean isClosed = false;
-    private String creatingURL;
 
-    public AtlasJdbcConnection(AtlasDbService service, String creatingURL) {
+    public AtlasJdbcConnection(AtlasDbService service, String jdbcUrl) {
         this.service = service;
-        this.creatingURL = creatingURL;
+        this.jdbcUrl = jdbcUrl;
         this.token = TransactionToken.autoCommit();
     }
 
-    AtlasDbService getService() {
+    public AtlasDbService getService() {
         return service;
     }
 
     /**  Transaction token is either a sentinel, an autocommit or is in an open transaction.
          The first two mean connection is <b>not</b> in transaction.
      */
-    TransactionToken getTransactionToken() {
+    public TransactionToken getTransactionToken() {
         return token;
     }
 
@@ -58,6 +61,10 @@ public class AtlasJdbcConnection implements Connection {
         if (token == emptyTransactionToken()) {
             throw new SQLException("connection is not allowed to be in transaction at this time.");
         }
+    }
+
+    public String getURL() {
+        return jdbcUrl;
     }
 
     @Override
@@ -348,11 +355,4 @@ public class AtlasJdbcConnection implements Connection {
         return iface.isAssignableFrom(getClass());
     }
 
-    public String getURL() {
-        return creatingURL;
-    }
-
-    public String getUserName() {
-        return "default";
-    }
 }
