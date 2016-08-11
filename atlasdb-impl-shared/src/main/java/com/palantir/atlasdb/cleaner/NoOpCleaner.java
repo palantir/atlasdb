@@ -20,7 +20,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
-final public class NoOpCleaner implements Cleaner {
+public final class NoOpCleaner implements Cleaner {
     public static final NoOpCleaner INSTANCE = new NoOpCleaner();
 
     @Override

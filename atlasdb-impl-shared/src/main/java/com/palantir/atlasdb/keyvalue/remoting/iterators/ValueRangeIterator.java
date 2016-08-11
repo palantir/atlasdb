@@ -36,8 +36,8 @@ public class ValueRangeIterator extends RangeIterator<Value> {
     }
 
     @Override
-    protected ClosableIterator<RowResult<Value>> getMoreRows(KeyValueService kvs, TableReference tableRef,
-                                                             RangeRequest newRange, long timestamp) {
-        return kvs.getRange(tableRef, newRange, timestamp);
+    protected ClosableIterator<RowResult<Value>> getMoreRows(KeyValueService kvs, TableReference tableReference,
+                                                             RangeRequest newRange, long ts) {
+        return kvs.getRange(tableReference, newRange, ts);
     }
 }

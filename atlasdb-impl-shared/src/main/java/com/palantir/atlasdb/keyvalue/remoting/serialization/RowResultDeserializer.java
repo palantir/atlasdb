@@ -21,7 +21,6 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -33,28 +32,36 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 
 @SuppressWarnings("rawtypes")
 public final class RowResultDeserializer extends JsonDeserializer<RowResult> {
+    private static final RowResultDeserializer instance = new RowResultDeserializer();
+
+    private RowResultDeserializer() {
+        // singleton
+    }
+
+    public static RowResultDeserializer instance() {
+        return instance;
+    }
 
     @Override
-    public RowResult deserialize(JsonParser p, DeserializationContext ctxt) throws IOException,
-            JsonProcessingException {
-        JsonNode node = p.getCodec().readTree(p);
+    public RowResult deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+        JsonNode node = parser.getCodec().readTree(parser);
 
         int type = node.get("type").asInt();
         byte[] row = node.get("row").binaryValue();
 
         switch (type) {
-        case RowResultSerializer.VALUE_TYPE_ID:
-            return RowResult.create(row, deserializeWithValue(node, ctxt));
-        case RowResultSerializer.TIMESTAMPS_SET_TYPE_ID:
-            return RowResult.create(row, deserializeWithTimestamps(node, ctxt));
-        case RowResultSerializer.VALUES_SET_TYPE_ID:
-            return RowResult.create(row, deserializeWithValuesSet(node, ctxt));
+            case RowResultSerializer.VALUE_TYPE_ID:
+                return RowResult.create(row, deserializeWithValue(node));
+            case RowResultSerializer.TIMESTAMPS_SET_TYPE_ID:
+                return RowResult.create(row, deserializeWithTimestamps(node));
+            case RowResultSerializer.VALUES_SET_TYPE_ID:
+                return RowResult.create(row, deserializeWithValuesSet(node));
+            default:
+                throw new IllegalArgumentException("Invalid RowResult type!");
         }
-
-        throw new IllegalArgumentException("Invalid RowResult type!");
     }
 
-    private SortedMap<byte[], Value> deserializeWithValue(JsonNode node, DeserializationContext ctxt) throws IOException {
+    private SortedMap<byte[], Value> deserializeWithValue(JsonNode node) throws IOException {
         SortedMap<byte[], Value> result = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         Iterator<JsonNode> it = node.get("columns").elements();
         while (it.hasNext()) {
@@ -67,8 +74,7 @@ public final class RowResultDeserializer extends JsonDeserializer<RowResult> {
         return result;
     }
 
-    private SortedMap<byte[], Set<Long>> deserializeWithTimestamps(JsonNode node,
-                                                                   DeserializationContext ctxt) throws IOException {
+    private SortedMap<byte[], Set<Long>> deserializeWithTimestamps(JsonNode node) throws IOException {
         SortedMap<byte[], Set<Long>> result = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         Iterator<JsonNode> it = node.get("columns").elements();
         while (it.hasNext()) {
@@ -86,9 +92,7 @@ public final class RowResultDeserializer extends JsonDeserializer<RowResult> {
         return result;
     }
 
-    private SortedMap<byte[], Set<Value>> deserializeWithValuesSet(JsonNode node,
-                                                                   DeserializationContext ctxt)
-            throws IOException {
+    private SortedMap<byte[], Set<Value>> deserializeWithValuesSet(JsonNode node) throws IOException {
         SortedMap<byte[], Set<Value>> result = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         Iterator<JsonNode> it = node.get("columns").elements();
         while (it.hasNext()) {
@@ -106,10 +110,4 @@ public final class RowResultDeserializer extends JsonDeserializer<RowResult> {
         }
         return result;
     }
-
-    private static final RowResultDeserializer instance = new RowResultDeserializer();
-    public static RowResultDeserializer instance() {
-        return instance;
-    }
-    private RowResultDeserializer() {}
 }

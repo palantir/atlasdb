@@ -122,7 +122,7 @@ public class TableTasksTest {
         DiffStats stats = new TableTasks.DiffStats(rowsOnlyInSource, rowsPartiallyInCommon, rowsCompletelyInCommon, rowsVisited, cellsOnlyInSource, cellsInCommon);
         TableTasks.diff(txManager, MoreExecutors.newDirectExecutorService(), table1, table2, 10, 1, stats, new TableTasks.DiffVisitor() {
             @Override
-            public void visit(Transaction t, Iterator<Cell> partialDiff) {
+            public void visit(Transaction transaction, Iterator<Cell> partialDiff) {
                 Iterators.size(partialDiff);
             }
         });

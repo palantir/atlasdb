@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Palantir Technologies
+ * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,23 +15,14 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.palantir.lock.LockRefreshToken;
+import java.util.List;
 
-public class RawTransaction extends ForwardingTransaction {
-    private final SnapshotTransaction delegate;
-    private final LockRefreshToken lock;
+import javax.annotation.Nullable;
 
-    public RawTransaction(SnapshotTransaction delegate, LockRefreshToken lock) {
-        this.delegate = delegate;
-        this.lock = lock;
-    }
+import com.palantir.common.base.ClosableIterator;
 
-    @Override
-    public SnapshotTransaction delegate() {
-        return delegate;
-    }
-
-    LockRefreshToken getImmutableTsLock() {
-        return lock;
-    }
+public interface BatchProvider<T> {
+    ClosableIterator<T> getBatch(int batchSize, @Nullable byte[] lastToken);
+    boolean hasNext(byte[] lastToken);
+    byte[] getLastToken(List<T> batch);
 }

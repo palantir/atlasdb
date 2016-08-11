@@ -37,8 +37,8 @@ public class TimestampsRangeIterator extends RangeIterator<Set<Long>> {
     }
 
     @Override
-    protected ClosableIterator<RowResult<Set<Long>>> getMoreRows(KeyValueService kvs, TableReference tableRef,
-                                                                 RangeRequest newRange, long timestamp) {
-        return kvs.getRangeOfTimestamps(tableRef, newRange, timestamp);
+    protected ClosableIterator<RowResult<Set<Long>>> getMoreRows(KeyValueService kvs, TableReference tableReference,
+                                                                 RangeRequest newRange, long ts) {
+        return kvs.getRangeOfTimestamps(tableReference, newRange, ts);
     }
 }

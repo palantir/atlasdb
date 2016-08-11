@@ -20,14 +20,14 @@ import java.util.Arrays;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 
-class MutableRange {
+public class MutableRange {
     private byte[] startRow;
     private final byte[] endRow;
     private final int batchSize;
 
     public MutableRange(byte[] startRow, byte[] endRow, int batchSize) {
-        this.startRow = Preconditions.checkNotNull(startRow);
-        this.endRow = Preconditions.checkNotNull(endRow);
+        this.startRow = Preconditions.checkNotNull(startRow, "startRow cannot be null");
+        this.endRow = Preconditions.checkNotNull(endRow, "endRow cannot be null");
         this.batchSize = batchSize;
     }
 

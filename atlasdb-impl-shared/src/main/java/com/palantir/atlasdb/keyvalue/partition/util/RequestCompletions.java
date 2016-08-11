@@ -32,37 +32,34 @@ import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumTracker;
 import com.palantir.atlasdb.keyvalue.partition.util.EndpointRequestExecutor.EndpointRequestCompletionService;
 import com.palantir.common.base.Throwables;
 
-public class RequestCompletions {
-
+public final class RequestCompletions {
     private static final Logger log = LoggerFactory.getLogger(RequestCompletions.class);
 
+    private RequestCompletions() {
+        // Utility class
+    }
+
     // These exceptions should be thrown immediately
-    private static boolean isNonInterceptableException(Throwable e) {
-        return
-                e instanceof ClientVersionTooOldException ||
-                e instanceof EndpointVersionTooOldException ||
-                e instanceof KeyAlreadyExistsException;
+    private static boolean isNonInterceptableException(Throwable ex) {
+        return ex instanceof ClientVersionTooOldException
+                || ex instanceof EndpointVersionTooOldException
+                || ex instanceof KeyAlreadyExistsException;
     }
 
     /**
      * This will block until success or failure of the request can be concluded.
      * In case of failure it will rethrow the last encountered exception.
-     *
-     * @param tracker
-     * @param execSvc
-     * @param mergeFunction
      */
-    private static <TrackingUnit, FutureReturnType> void completeRequest(
-            QuorumTracker<FutureReturnType, TrackingUnit> tracker,
-            EndpointRequestCompletionService<FutureReturnType> execSvc,
-            Function<FutureReturnType, Void> mergeFunction) {
-
+    private static <TrackingUnitT, FutureReturnTypeT> void completeRequest(
+            QuorumTracker<FutureReturnTypeT, TrackingUnitT> tracker,
+            EndpointRequestCompletionService<FutureReturnTypeT> execSvc,
+            Function<FutureReturnTypeT, Void> mergeFunction) {
         try {
             // Wait until we can conclude success or failure
             while (!tracker.finished()) {
-                Future<FutureReturnType> future = execSvc.take();
+                Future<FutureReturnTypeT> future = execSvc.take();
                 try {
-                    FutureReturnType result = future.get();
+                    FutureReturnTypeT result = future.get();
                     mergeFunction.apply(result);
                     tracker.handleSuccess(future);
                 } catch (ExecutionException e) {
@@ -82,16 +79,11 @@ public class RequestCompletions {
     /**
      * In case of read request we can cancel all remaining threads as soon as completeRequests
      * returns - it means that either success or failure has been concluded.
-     *
-     * @param tracker
-     * @param execSvc
-     * @param mergeFunction
      */
-    public static <TrackingUnit, FutureReturnType> void completeReadRequest(
-            QuorumTracker<FutureReturnType, TrackingUnit> tracker,
-            EndpointRequestCompletionService<FutureReturnType> execSvc,
-            Function<FutureReturnType, Void> mergeFunction) {
-
+    public static <TrackingUnitT, FutureReturnTypeT> void completeReadRequest(
+            QuorumTracker<FutureReturnTypeT, TrackingUnitT> tracker,
+            EndpointRequestCompletionService<FutureReturnTypeT> execSvc,
+            Function<FutureReturnTypeT, Void> mergeFunction) {
         try {
             completeRequest(tracker, execSvc, mergeFunction);
         } finally {
@@ -104,16 +96,12 @@ public class RequestCompletions {
      * concluded.
      * Otherwise we just return as soon as success is concluded but we leave other write
      * tasks running in the background.
-     *
-     * @param tracker
-     * @param execSvc
      */
-    public static <TrackingUnit> void completeWriteRequest(
-            final QuorumTracker<Void, TrackingUnit> tracker,
+    public static <TrackingUnitT> void completeWriteRequest(
+            final QuorumTracker<Void, TrackingUnitT> tracker,
             final EndpointRequestCompletionService<Void> execSvc) {
-
         try {
-            completeRequest(tracker, execSvc, Functions.<Void> identity());
+            completeRequest(tracker, execSvc, Functions.identity());
         } catch (RuntimeException e) {
             tracker.cancel(true);
             throw e;
@@ -123,13 +111,8 @@ public class RequestCompletions {
     /**
      * Keep applying the function <code>fun</code> to items retrieved from <code>iterator</code> until no
      * exception is thrown. Return the result if <code>fun</code>.
-     *
-     * @param iterator
-     * @param fun
-     * @return
      */
     public static <T, U, V extends Iterator<? extends U>> T retryUntilSuccess(V iterator, Function<U, T> fun) {
-
         Preconditions.checkArgument(iterator.hasNext());
 
         while (iterator.hasNext()) {
@@ -153,5 +136,4 @@ public class RequestCompletions {
 
         throw new RuntimeException("This should never happen!");
     }
-
 }

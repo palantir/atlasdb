@@ -22,18 +22,17 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
 public class ShellAwareReadOnlyTransactionManager extends ReadOnlyTransactionManager {
-
-    public ShellAwareReadOnlyTransactionManager(KeyValueService keyValueService,
-                                                TransactionService transactionService,
-                                                AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public ShellAwareReadOnlyTransactionManager(
+            KeyValueService keyValueService,
+            TransactionService transactionService,
+            AtlasDbConstraintCheckingMode constraintCheckingMode) {
         super(keyValueService, transactionService, constraintCheckingMode);
     }
 
     @Override
-    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E,
-            TransactionFailedRetriableException {
-        throw new UnsupportedOperationException("AtlasDB Shell only supports write operations if connected" +
-                " to lock and timestamp servers also.");
+    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task)
+            throws E, TransactionFailedRetriableException {
+        throw new UnsupportedOperationException("AtlasDB Shell only supports write operations if connected"
+                + " to lock and timestamp servers also.");
     }
-
 }

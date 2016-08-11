@@ -19,10 +19,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 
 import com.google.common.base.Function;
 import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
@@ -38,7 +39,9 @@ import com.palantir.common.base.ForwardingClosableIterator;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.util.Pair;
 
-/* package */ class ClosableMergedIterator<T> extends AbstractIterator<RowResult<T>> implements ClosableIterator<RowResult<T>> {
+/* package */ class ClosableMergedIterator<T>
+        extends AbstractIterator<RowResult<T>>
+        implements ClosableIterator<RowResult<T>> {
     private final RangeRequest request;
     private final ClosableIterator<RowResult<T>> primaryIter;
     private final Function<RangeRequest, ClosableIterator<RowResult<T>>> secondaryResultProducer;
@@ -46,7 +49,7 @@ import com.palantir.util.Pair;
     private byte[] nextSecondaryStart;
     private boolean primaryCompleted = false;
 
-    public ClosableMergedIterator(RangeRequest request,
+    ClosableMergedIterator(RangeRequest request,
                                   ClosableIterator<RowResult<T>> primaryIter,
                                   Function<RangeRequest, ClosableIterator<RowResult<T>>> secondaryResultProducer) {
         this.request = request;
@@ -69,7 +72,7 @@ import com.palantir.util.Pair;
         List<RowResult<T>> batch = Lists.newArrayList(Iterators.limit(primaryIter, batchSize));
         byte[] secondaryEndRow;
         if (batch.size() == batchSize) {
-            secondaryEndRow = batch.get(batchSize-1).getRowName();
+            secondaryEndRow = Iterables.getLast(batch).getRowName();
             if (RangeRequests.isTerminalRow(request.isReverse(), secondaryEndRow)) {
                 secondaryEndRow = PtBytes.EMPTY_BYTE_ARRAY;
             } else {
@@ -81,10 +84,15 @@ import com.palantir.util.Pair;
             primaryCompleted = true;
         }
 
-        RangeRequest.Builder requestBuilder = request.getBuilder().startRowInclusive(nextSecondaryStart).endRowExclusive(secondaryEndRow);
+        RangeRequest.Builder requestBuilder = request.getBuilder()
+                .startRowInclusive(nextSecondaryStart)
+                .endRowExclusive(secondaryEndRow);
         nextSecondaryStart = secondaryEndRow;
         ClosableIterator<RowResult<T>> secondaryIter = secondaryResultProducer.apply(requestBuilder.build());
-        mergedIter = new ClosableMergedIterator.ClosableMergedBatchIterator<T>(batch.iterator(), secondaryIter, request.isReverse());
+        mergedIter = new ClosableMergedIterator.ClosableMergedBatchIterator<>(
+                batch.iterator(),
+                secondaryIter,
+                request.isReverse());
         if (!mergedIter.hasNext()) {
             return endOfData();
         }
@@ -101,9 +109,10 @@ import com.palantir.util.Pair;
         private final ClosableIterator<RowResult<T>> secondaryIter;
         private final Iterator<RowResult<T>> mergedIter;
 
-        public ClosableMergedBatchIterator(Iterator<RowResult<T>> primaryIter,
-                                           ClosableIterator<RowResult<T>> secondaryIter,
-                                           boolean isReversed) {
+        ClosableMergedBatchIterator(
+                Iterator<RowResult<T>> primaryIter,
+                ClosableIterator<RowResult<T>> secondaryIter,
+                boolean isReversed) {
             this.secondaryIter = secondaryIter;
             this.mergedIter = mergeIterators(primaryIter, secondaryIter, isReversed);
         }
@@ -138,11 +147,13 @@ import com.palantir.util.Pair;
                         for (Entry<byte[], T> entry : writeResult.getColumns().entrySet()) {
                             T readValue = readResult.getColumns().get(entry.getKey());
                             if (readValue instanceof Value) {
-                                long writeTimestamp = ((Value)entry.getValue()).getTimestamp();
-                                long readTimestamp = ((Value)readValue).getTimestamp();
+                                long writeTimestamp = ((Value) entry.getValue()).getTimestamp();
+                                long readTimestamp = ((Value) readValue).getTimestamp();
                                 if (writeTimestamp < readTimestamp) {
-                                    throw new IllegalArgumentException("The read only kvs has a row with timestamp " + writeTimestamp +
-                                            ", while the same row in the writing kvs has timestamp. " + readTimestamp);
+                                    throw new IllegalArgumentException("The read only kvs has a row with timestamp "
+                                            + writeTimestamp
+                                            + ", while the same row in the writing kvs has timestamp. "
+                                            + readTimestamp);
                                 }
                             }
                         }

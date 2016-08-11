@@ -40,12 +40,13 @@ import com.palantir.common.base.ClosableIterator;
  *
  * @author jweel
  */
-public class KeyValueServicePuncherStore implements PuncherStore {
+public final class KeyValueServicePuncherStore implements PuncherStore {
     private static final byte[] COLUMN = "t".getBytes();
 
     public static KeyValueServicePuncherStore create(KeyValueService keyValueService) {
         keyValueService.createTable(AtlasDbConstants.PUNCH_TABLE, new TableMetadata(
-                NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription("time", ValueType.VAR_LONG, ValueByteOrder.DESCENDING))),
+                NameMetadataDescription.create(ImmutableList.of(
+                        new NameComponentDescription("time", ValueType.VAR_LONG, ValueByteOrder.DESCENDING))),
                 new ColumnMetadataDescription(ImmutableList.of(
                         new NamedColumnDescription("t", "t", ColumnValueDescription.forType(ValueType.VAR_LONG)))),
                         ConflictHandler.IGNORE_ALL).persistToBytes());
@@ -85,7 +86,7 @@ public class KeyValueServicePuncherStore implements PuncherStore {
             result.close();
         }
     }
-    
+
     @Override
     public long getMillisForTimestamp(long timestamp) {
         return getMillisForTimestamp(keyValueService, timestamp);
@@ -97,11 +98,11 @@ public class KeyValueServicePuncherStore implements PuncherStore {
         // scan, which is fine because this table should be really small
         byte[] startRow = EncodingUtils.encodeUnsignedVarLong(Long.MAX_VALUE);
         EncodingUtils.flipAllBitsInPlace(startRow);
-        RangeRequest rangeRequest = 
+        RangeRequest rangeRequest =
                 RangeRequest.builder().startRowInclusive(startRow).batchHint(1).build();
-        ClosableIterator<RowResult<Value>> result = 
+        ClosableIterator<RowResult<Value>> result =
                 kvs.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest, timestampExclusive);
-        
+
         try {
             if (result.hasNext()) {
                 byte[] encodedMillis = result.next().getRowName();

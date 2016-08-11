@@ -25,12 +25,12 @@ public interface Puncher {
 
     /**
      * @return a timestamp smaller than the timestamp of any currently un-timed-out
-     *         transaction
+     *         transaction.
      */
     Supplier<Long> getTimestampSupplier();
 
     /**
-     * Releases resources associated with this Puncher (usually means thread pools)
+     * Releases resources associated with this Puncher (usually means thread pools).
      */
-    public void shutdown();
+    void shutdown();
 }

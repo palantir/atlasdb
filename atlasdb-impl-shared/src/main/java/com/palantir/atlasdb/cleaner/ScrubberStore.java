@@ -24,21 +24,20 @@ import com.palantir.common.base.BatchingVisitable;
 
 /**
  * This is the underlying store used by the scrubber for keeping track in a persistent way of the
- * cells that need to be scrubbed
+ * cells that need to be scrubbed.
  *
  * @author ejin
  */
 public interface ScrubberStore {
-
     void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs, long scrubTimestamp, int batchSize);
 
     void markCellsAsScrubbed(Multimap<Cell, Long> cellToScrubTimestamp, int batchSize);
 
-    BatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>> getBatchingVisitableScrubQueue(int cellsToScrubBatchSize,
-                                                                                                      long maxScrubTimestamp /* exclusive */,
-                                                                                                      byte[] startRow,
-                                                                                                      byte[] endRow);
+    BatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>> getBatchingVisitableScrubQueue(
+            int cellsToScrubBatchSize,
+            long maxScrubTimestamp /* exclusive */,
+            byte[] startRow,
+            byte[] endRow);
 
     int getNumberRemainingScrubCells(int maxCellsToScan);
-
 }

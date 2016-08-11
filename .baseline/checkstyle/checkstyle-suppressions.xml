@@ -21,4 +21,7 @@
     <!-- Generated code should not be subjected to checkstyle. -->
     <suppress files="[/\\].*[/\\]generated_src[/\\]" checks="." />
     <suppress files="[/\\].*[/\\]generated_testSrc[/\\]" checks="." />
+
+    <!-- Temporarily suppress abbreviations in files that have KV in their name (examples: TransactionKVSWrapper, KVTableMappingService). -->
+    <suppress files="KV.*\.java$" checks="AbbreviationAsWordInName" />
 </suppressions>

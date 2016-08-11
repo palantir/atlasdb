@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.schema;
 
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -101,8 +100,8 @@ public class KeyValueServiceMigrator {
         KeyValueServiceMigrators.processMessage(messageProcessor, string, level);
     }
 
-    private void processMessage(String string, Throwable t, KvsMigrationMessageLevel level) {
-        KeyValueServiceMigrators.processMessage(messageProcessor, string, t, level);
+    private void processMessage(String string, Throwable ex, KvsMigrationMessageLevel level) {
+        KeyValueServiceMigrators.processMessage(messageProcessor, string, ex, level);
     }
 
     /**
@@ -141,7 +140,7 @@ public class KeyValueServiceMigrator {
          * KVS, even if they don't get populated. That's why this method is subtly different from
          * getMigratableTableNames().
          */
-        HashSet<TableReference> tableNames = Sets.newHashSet(kvs.getAllTableNames());
+        Set<TableReference> tableNames = Sets.newHashSet(kvs.getAllTableNames());
         tableNames.removeAll(AtlasDbConstants.ATOMIC_TABLES);
         tableNames.removeAll(unmigratableTables);
         return tableNames;

@@ -24,7 +24,7 @@ import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public class StaticTableMappingService extends AbstractTableMappingService {
+public final class StaticTableMappingService extends AbstractTableMappingService {
     private final KeyValueService kv;
 
     public static TableMappingService create(KeyValueService kv) {

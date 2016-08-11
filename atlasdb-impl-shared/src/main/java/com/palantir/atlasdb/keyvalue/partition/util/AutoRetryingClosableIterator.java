@@ -34,11 +34,8 @@ import com.palantir.common.base.ClosableIterator;
  * thus are not retried but instead cause a crash if version mismatch exception is thrown.
  *
  * @author htarasiuk
- *
- * @param <T>
  */
-public class AutoRetryingClosableIterator<T> implements ClosableIterator<RowResult<T>> {
-
+public final class AutoRetryingClosableIterator<T> implements ClosableIterator<RowResult<T>> {
     private static final Logger log = LoggerFactory.getLogger(AutoRetryingClosableIterator.class);
 
     private final RangeRequest originalRange;
