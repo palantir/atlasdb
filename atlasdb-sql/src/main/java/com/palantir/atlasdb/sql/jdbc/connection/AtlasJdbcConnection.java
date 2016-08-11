@@ -63,7 +63,7 @@ public class AtlasJdbcConnection implements Connection {
         }
     }
 
-    public String getURL() {
+    String getURL() {
         return jdbcUrl;
     }
 
