@@ -266,12 +266,11 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public SQLWarning getWarnings() throws SQLException {
-        return null; // TODO implement
+        return null;
     }
 
     @Override
     public void clearWarnings() throws SQLException {
-        // TODO implement
     }
 
     @Override
@@ -281,7 +280,7 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
-        return null; // TODO implement
+        return AtlasJdbcResultSetMetaData.create(metadata);
     }
 
     @Override

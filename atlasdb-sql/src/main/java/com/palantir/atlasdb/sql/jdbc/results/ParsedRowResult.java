@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
@@ -47,7 +46,7 @@ public class ParsedRowResult {
         for (NamedColumnDescription col : columns.getNamedColumns()) {
             ByteBuffer bytes = ByteBuffer.wrap(col.getShortName().getBytes());
             Preconditions.checkState(wrappedCols.containsKey(bytes), String.format("column %s is missing from results", col.getLongName()));
-            resultBuilder.add(MetadataAndValue.create(col, wrappedCols.get(bytes)));
+            resultBuilder.add(new MetadataAndValue(JdbcColumnMetadata.create(col), wrappedCols.get(bytes)));
             indexBuilder.add(col.getLongName());
         }
     }
@@ -69,7 +68,7 @@ public class ParsedRowResult {
             }
             byte[] rowBytes = Arrays.copyOfRange(row, index, index + len);
             index += len;
-            resultBuilder.add(MetadataAndValue.create(rowComp, rowBytes));
+            resultBuilder.add(new MetadataAndValue(JdbcColumnMetadata.create(rowComp), rowBytes));
             indexBuilder.add(rowComp.getComponentName());
         }
     }
@@ -80,12 +79,11 @@ public class ParsedRowResult {
     }
 
     public Object get(int index, JdbcReturnType returnType) throws SQLException {
-        if (index >= result.size()) {
+        if (index > result.size()) {
             throw new SQLException(String.format("given column index %s, but there are only %s columns", index, result.size()));
         }
 
-        MetadataAndValue r = result.get(index);
-
+        MetadataAndValue r = result.get(index - 1);
         switch (returnType) {
             case BYTES:
                 return r.getValue();
@@ -156,39 +154,20 @@ public class ParsedRowResult {
     }
 
     private static class MetadataAndValue {
-        private final Optional<NameComponentDescription> rowComp;
-        private final Optional<NamedColumnDescription> col;
+        private final JdbcColumnMetadata meta;
         private final byte[] val;
 
-        static MetadataAndValue create(NameComponentDescription col, byte[] val) {
-            return new MetadataAndValue(Optional.of(col), Optional.absent(), val);
-        }
-
-        static MetadataAndValue create(NamedColumnDescription col, byte[] val) {
-            return new MetadataAndValue(Optional.absent(), Optional.of(col), val);
-        }
-
-        MetadataAndValue(Optional<NameComponentDescription> rowComp, Optional<NamedColumnDescription> col, byte[] val) {
-            Preconditions.checkArgument(rowComp.isPresent() ^ col.isPresent(), "only one description should be present");
-            this.rowComp = rowComp;
-            this.col = col;
+        MetadataAndValue(JdbcColumnMetadata meta, byte[] val) {
+            this.meta = meta;
             this.val = val;
         }
 
-        boolean isRowComp() {
-            return rowComp.isPresent();
-        }
-
-        boolean isCol() {
-            return col.isPresent();
-        }
-
         ColumnValueDescription.Format getFormat() {
-            return isRowComp() ? ColumnValueDescription.Format.VALUE_TYPE : col.get().getValue().getFormat();
+            return meta.getFormat();
         }
 
         ValueType getValueType() {
-            return isRowComp() ? rowComp.get().getType() : col.get().getValue().getValueType();
+            return meta.getValueType();
         }
 
         byte[] getValue() {
