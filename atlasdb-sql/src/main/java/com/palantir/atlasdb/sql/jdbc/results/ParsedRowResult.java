@@ -52,11 +52,8 @@ public class ParsedRowResult {
         for (JdbcColumnMetadata meta : colsMeta) {
             Preconditions.checkState(meta.isCol(), "all metadata here is expected to be for columns");
             ByteBuffer shortName = ByteBuffer.wrap(meta.getName().getBytes());
-            ByteBuffer longName = ByteBuffer.wrap(meta.getLabel().getBytes());
             if (wrappedCols.containsKey(shortName)) {
                 resultBuilder.add(MetadataAndValue.create(meta, wrappedCols.get(shortName)));
-            } else if (wrappedCols.containsKey(longName)) {
-                resultBuilder.add(MetadataAndValue.create(meta, wrappedCols.get(longName)));
             } else {
                 resultBuilder.add(MetadataAndValue.create(meta, null));  // put null for missing columns
             }
@@ -103,10 +100,23 @@ public class ParsedRowResult {
         switch (returnType) {
             case BYTES:
                 return r.getRawValue();
+            case OBJECT:
+                switch (r.getFormat()) { // inspired by AtlasSerializers.serialize
+                    case PROTO:
+                        return r.getValueAsMessage();
+                    case PERSISTABLE:
+                        break;
+                    case VALUE_TYPE:
+                        break;
+                    case PERSISTER:
+                        return r.getValueAsSimpleType();
+                }
+                break;
             case STRING:
                 switch (r.getFormat()) {
                     case PERSISTABLE:
                     case PERSISTER:
+                        break;
                     case PROTO:
                         if (r.meta.isCol()) {
                             Message proto = r.getValueAsMessage();
@@ -128,7 +138,8 @@ public class ParsedRowResult {
             case INT:
                 break;
             case LONG:
-                if (!EnumSet.of(ValueType.STRING, ValueType.VAR_STRING).contains(r.getValueType())) {
+                if (!EnumSet.of(ValueType.STRING, ValueType.VAR_STRING, ValueType.BLOB, ValueType.SHA256HASH, ValueType.SIZED_BLOB, ValueType.UUID)
+                        .contains(r.getValueType())) {
                     return r.getValueAsSimpleType();
                 }
             case FLOAT:
@@ -136,18 +147,6 @@ public class ParsedRowResult {
             case DOUBLE:
                 break;
             case BIG_DECIMAL:
-                break;
-            case OBJECT:
-                switch (r.getFormat()) { // inspired by AtlasSerializers.serialize
-                    case PROTO:
-                        return r.getValueAsSimpleType();
-                    case PERSISTABLE:
-                        break;
-                    case VALUE_TYPE:
-                        break;
-                    case PERSISTER:
-                        return r.getValueAsSimpleType();
-                }
                 break;
             case TIME:
                 break;

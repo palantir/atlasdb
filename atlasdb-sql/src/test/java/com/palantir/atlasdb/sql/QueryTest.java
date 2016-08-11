@@ -31,8 +31,10 @@ public class QueryTest {
 
     private static final String ROW_COMP = "row";
     private static final String COL_NAME = "col";
+    private static final String COL_LABEL = "col_name";
     private static final byte[] COLUMN_NAME_IN_BYTES = COL_NAME.getBytes();
     private static final TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, "test_table");
+    public static final String CONFIG_FILENAME = "memoryTestConfig.yml";
 
     @Before
     public void setup() throws SQLException, ClassNotFoundException {
@@ -46,7 +48,7 @@ public class QueryTest {
             rowName();
             rowComponent(ROW_COMP, ValueType.STRING);
             columns();
-            column(COL_NAME, COL_NAME, ValueType.STRING);
+            column(COL_LABEL, COL_NAME, ValueType.STRING);
             conflictHandler(ConflictHandler.IGNORE_ALL);
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
         }};
@@ -139,7 +141,7 @@ public class QueryTest {
 
     private Connection getConnection() throws ClassNotFoundException, SQLException {
         Class.forName(AtlasJdbcDriver.class.getName());
-        final String configFilePath = ConnectionTest.class.getClassLoader().getResource("memoryTestConfig.yml").getFile();
+        final String configFilePath = ConnectionTest.class.getClassLoader().getResource(CONFIG_FILENAME).getFile();
         final String uri = "jdbc:atlas?configFile=" + configFilePath;
         return DriverManager.getConnection(uri);
     }

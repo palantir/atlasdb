@@ -39,9 +39,11 @@ public class ProtobufQueryTest {
             .setIsGroup(false).build();
     public static final String TEST_OBJECT_JSON = "{\"id\": 11,\"type\": 543,\"is_group\": false,\"deleted\": 0,\"data_event_id\": 123}";
 
-    public static final String COL_NAME = "base_object";
+    public static final String COL_NAME = "b";
+    public static final String COL_LABEL = "base_object";
     public static final String ROW_NAME = "object_id";
     public static final String KEY1 = "key1";
+    public static final String KEY2 = "key2";
     public static final String CONFIG_FILENAME = "memoryTestConfig.yml";
 
     @Before
@@ -69,17 +71,17 @@ public class ProtobufQueryTest {
     public void teardown() throws SQLException, ClassNotFoundException {
     }
 
-    public void validateResults(ResultSet results, String rowName, String row, String colName, Object value) throws SQLException {
+    public void validateResults(ResultSet results, String rowName, String row, String colName, Object expectedValue) throws SQLException {
         Preconditions.checkArgument(results.getString(rowName).equals(row));
-        if (value != null) {
-            if (value instanceof String) {
-                Preconditions.checkArgument(Arrays.equals(results.getBytes(colName), ((String)value).getBytes()));
-                Preconditions.checkArgument(results.getString(colName).equals(value));
-            } else if (value instanceof Long) {
-                Preconditions.checkArgument(Arrays.equals(results.getBytes(colName), ValueType.VAR_LONG.convertFromJava(value)));
-                Preconditions.checkArgument(results.getLong(colName) == (Long) value);
-            } else if (value instanceof TestPersistence.TestObject) {
-                Preconditions.checkArgument(value.equals(results.getObject(COL_NAME)));
+        if (expectedValue != null) {
+            if (expectedValue instanceof String) {
+                Preconditions.checkArgument(Arrays.equals(results.getBytes(colName), ((String)expectedValue).getBytes()));
+                Preconditions.checkArgument(results.getString(colName).equals(expectedValue));
+            } else if (expectedValue instanceof Long) {
+                Preconditions.checkArgument(Arrays.equals(results.getBytes(colName), ValueType.VAR_LONG.convertFromJava(expectedValue)));
+                Preconditions.checkArgument(results.getLong(colName) == (Long) expectedValue);
+            } else if (expectedValue instanceof TestPersistence.TestObject) {
+                assertThat(expectedValue, equalTo(results.getObject(COL_NAME)));
             }
         } else {
             Preconditions.checkArgument(results.getBytes(colName) == null);
