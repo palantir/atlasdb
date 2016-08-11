@@ -15,15 +15,7 @@ public class AtlasJdbcResultSetMetaData implements ResultSetMetaData {
 
     private final List<JdbcColumnMetadata> cols;
 
-    public static AtlasJdbcResultSetMetaData create(TableMetadata metadata) {
-        List<JdbcColumnMetadata> cols = Lists.newArrayList();
-        cols.addAll(metadata.getRowMetadata().getRowParts().stream()
-                .map(JdbcColumnMetadata::create).collect(Collectors.toList()));
-        cols.addAll(metadata.getColumns().getNamedColumns().stream()
-                .map(JdbcColumnMetadata::create).collect(Collectors.toList()));
-        if (metadata.getColumns().getDynamicColumn() != null) {
-            cols.add(JdbcColumnMetadata.create(metadata.getColumns().getDynamicColumn()));
-        }
+    public static AtlasJdbcResultSetMetaData create(List<JdbcColumnMetadata> cols) {
         return new AtlasJdbcResultSetMetaData(ImmutableList.copyOf(cols));
     }
 

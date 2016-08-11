@@ -122,7 +122,7 @@ public class AtlasJdbcStatement implements Statement {
 
     @Override
     public boolean execute(String sql) throws SQLException {
-        SelectQuery select = SelectQuery.create(sql);
+        SelectQuery select = SelectQuery.create(sql, conn.getService());
         ResultSet rset = AtlasJdbcResultSet.create(conn.getService(), conn.getTransactionToken(), select, this);
         sqlExecutionResult = SqlExecutionResult.fromResult(rset);
         return getResultSet() != null;

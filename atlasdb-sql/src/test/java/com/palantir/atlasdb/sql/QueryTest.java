@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.Before;
@@ -67,9 +68,18 @@ public class QueryTest {
 
     @Test
     public void testSelect() {
+        testFindsAllData(String.format("select row,col from %s", tableRef.getQualifiedName()));
+    }
+
+    @Test
+    public void testSelectAll() {
+        testFindsAllData(String.format("select * from %s", tableRef.getQualifiedName()));
+    }
+
+    private void testFindsAllData(String sql) {
         try (Connection c = getConnection()) {
             Statement stmt = c.createStatement();
-            ResultSet results = stmt.executeQuery(String.format("select col from %s", tableRef.getQualifiedName()));
+            ResultSet results = stmt.executeQuery(sql);
             results.next();
             Preconditions.checkArgument(results.getString(ROW_COMP).equals("key1"));
             Preconditions.checkArgument(Arrays.equals(results.getBytes(COL_NAME), "value1".getBytes()));
@@ -81,7 +91,50 @@ public class QueryTest {
             Preconditions.checkArgument(!results.next());
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException("Failure running select.", e);
-        };
+        }
+    }
+
+    @Test
+    public void testSelectRowComp() {
+        try (Connection c = getConnection()) {
+            Statement stmt = c.createStatement();
+            ResultSet results = stmt.executeQuery(String.format("select row from %s", tableRef.getQualifiedName()));
+            results.next();
+            Preconditions.checkArgument(results.getString(ROW_COMP).equals("key1"));
+            Preconditions.checkArgument(fails(() -> results.getString(COL_NAME).equals("value1")));
+            results.next();
+            Preconditions.checkArgument(results.getString(ROW_COMP).equals("key2"));
+            Preconditions.checkArgument(fails(() -> results.getString(COL_NAME).equals("value2")));
+            Preconditions.checkArgument(!results.next());
+        } catch (ClassNotFoundException | SQLException e) {
+            throw new RuntimeException("Failure running select.", e);
+        }
+    }
+
+    @Test
+    public void testSelectCol() {
+        try (Connection c = getConnection()) {
+            Statement stmt = c.createStatement();
+            ResultSet results = stmt.executeQuery(String.format("select col from %s", tableRef.getQualifiedName()));
+            results.next();
+            Preconditions.checkArgument(fails(() -> results.getString(ROW_COMP).equals("key1")));
+            Preconditions.checkArgument(results.getString(COL_NAME).equals("value1"));
+            results.next();
+            Preconditions.checkArgument(fails(() -> results.getString(ROW_COMP).equals("key2")));
+            Preconditions.checkArgument(results.getString(COL_NAME).equals("value2"));
+            Preconditions.checkArgument(!results.next());
+        } catch (ClassNotFoundException | SQLException e) {
+            throw new RuntimeException("Failure running select.", e);
+        }
+    }
+
+    private boolean fails(Callable<?> c) {
+        try {
+            c.call();
+            return false;
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     private Connection getConnection() throws ClassNotFoundException, SQLException {

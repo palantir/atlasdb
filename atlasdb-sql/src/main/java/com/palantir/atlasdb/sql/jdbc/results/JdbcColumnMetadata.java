@@ -8,53 +8,61 @@ import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.ValueType;
 
-class JdbcColumnMetadata {
+public class JdbcColumnMetadata {
     static final String DYNAMIC_COLUMN_LABEL = "dyn";
 
     private final Optional<NameComponentDescription> rowComp;
     private final Optional<NamedOrDynamicColumnDescription> col;
 
-    static JdbcColumnMetadata create(NameComponentDescription rowComp) {
+    public static JdbcColumnMetadata create(NameComponentDescription rowComp) {
         return new JdbcColumnMetadata(Optional.of(rowComp), Optional.absent());
     }
 
-    static JdbcColumnMetadata create(NamedColumnDescription col) {
+    public static JdbcColumnMetadata create(NamedColumnDescription col) {
         return new JdbcColumnMetadata(Optional.absent(),
                 Optional.of(new NamedOrDynamicColumnDescription(col.getLongName(), col.getShortName(), col.getValue())));
     }
 
-    static JdbcColumnMetadata create(DynamicColumnDescription col) {
+    public static JdbcColumnMetadata create(DynamicColumnDescription col) {
         return new JdbcColumnMetadata(Optional.absent(),
                 Optional.of(new NamedOrDynamicColumnDescription(DYNAMIC_COLUMN_LABEL, DYNAMIC_COLUMN_LABEL, col.getValue())));
     }
 
-    JdbcColumnMetadata(Optional<NameComponentDescription> rowComp, Optional<NamedOrDynamicColumnDescription> col) {
+    private JdbcColumnMetadata(Optional<NameComponentDescription> rowComp, Optional<NamedOrDynamicColumnDescription> col) {
         Preconditions.checkArgument(rowComp.isPresent() ^ col.isPresent(), "only one description should be present");
         this.rowComp = rowComp;
         this.col = col;
     }
 
-    boolean isRowComp() {
+    public boolean isRowComp() {
         return rowComp.isPresent();
     }
 
-    boolean isCol() {
+    public boolean isCol() {
         return col.isPresent();
     }
 
-    ColumnValueDescription.Format getFormat() {
+    public boolean isNamedCol() {
+        return !isDynCol();
+    }
+
+    public boolean isDynCol() {
+        return isCol() && col.get().longName.equals(DYNAMIC_COLUMN_LABEL);
+    }
+
+    public ColumnValueDescription.Format getFormat() {
         return isRowComp() ? ColumnValueDescription.Format.VALUE_TYPE : col.get().desc.getFormat();
     }
 
-    ValueType getValueType() {
+    public ValueType getValueType() {
         return isRowComp() ? rowComp.get().getType() : col.get().desc.getValueType();
     }
 
-    String getLabel() {
+    public String getLabel() {
         return isRowComp() ? rowComp.get().getComponentName() : col.get().longName;
     }
 
-    String getName() {
+    public String getName() {
         return isRowComp() ? rowComp.get().getComponentName() : col.get().shortName;
     }
 

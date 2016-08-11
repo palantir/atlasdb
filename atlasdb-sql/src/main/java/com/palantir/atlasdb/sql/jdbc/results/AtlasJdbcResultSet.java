@@ -22,6 +22,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import com.palantir.atlasdb.api.AtlasDbService;
@@ -38,6 +39,7 @@ public class AtlasJdbcResultSet implements ResultSet {
     private final TransactionToken transactionToken;
     private final TableMetadata metadata;
     private final AtlasJdbcStatement stmt;
+    private final List<JdbcColumnMetadata> columns;
 
     private RangeToken rangeToken;
     private Iterator<RowResult<byte[]>> curIter;
@@ -49,18 +51,20 @@ public class AtlasJdbcResultSet implements ResultSet {
                                    AtlasJdbcStatement stmt) {
         RangeToken rangeToken = service.getRange(transactionToken, select.tableRange());
         TableMetadata metadata = service.getTableMetadata(rangeToken.getResults().getTableName());
-        return new AtlasJdbcResultSet(service, transactionToken, metadata, stmt, rangeToken);
+        return new AtlasJdbcResultSet(service, transactionToken, metadata, stmt, select.columns(), rangeToken);
     }
 
     private AtlasJdbcResultSet(AtlasDbService service,
                                TransactionToken transactionToken,
                                TableMetadata metadata,
                                AtlasJdbcStatement stmt,
+                               List<JdbcColumnMetadata> columns,
                                RangeToken rangeToken) {
         this.service = service;
         this.transactionToken = transactionToken;
         this.metadata = metadata;
         this.stmt = stmt;
+        this.columns = columns;
         this.rangeToken = rangeToken;
         this.curIter = rangeToken.getResults().getResults().iterator();
         this.curResult = null;
@@ -73,7 +77,7 @@ public class AtlasJdbcResultSet implements ResultSet {
         }
 
         if (curIter.hasNext()) {
-            curResult = ParsedRowResult.create(curIter.next(), metadata);
+            curResult = ParsedRowResult.create(curIter.next(), columns);
             return true;
         } else { // page to the next range
             if (rangeToken.hasMoreResults()) {
@@ -280,7 +284,7 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
-        return AtlasJdbcResultSetMetaData.create(metadata);
+        return AtlasJdbcResultSetMetaData.create(columns);
     }
 
     @Override
