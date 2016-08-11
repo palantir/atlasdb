@@ -15,10 +15,10 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheLoader;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -56,6 +56,6 @@ public class StartTsToCommitTsCacheLoader extends CacheLoader<Long, Long> {
         }
 
         commitTs = transactionService.get(startTs);
-        return Preconditions.checkNotNull(commitTs, "commitTs should not be null");
+        return Validate.notNull(commitTs, "commitTs should not be null");
     }
 }

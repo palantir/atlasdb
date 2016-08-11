@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.partition.map;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -767,7 +768,7 @@ public final class DynamicPartitionMapImpl implements DynamicPartitionMap {
 
         // First push the map to crucial endpoints
         // This is to ensure that no garbage is left behind
-        ring.put(key,  ring.get(key).asNormal());
+        ring.put(key, ring.get(key).asNormal());
         version.increment();
         operationsInProgress = 0;
 
@@ -1050,7 +1051,6 @@ public final class DynamicPartitionMapImpl implements DynamicPartitionMap {
         @Override
         public void serialize(DynamicPartitionMapImpl partitionMap, JsonGenerator gen, SerializerProvider serializers)
                 throws IOException {
-
             gen.writeStartObject();
             gen.writeObjectField("quorumParameters", partitionMap.quorumParameters);
             gen.writeObjectField("version", partitionMap.version.longValue());
@@ -1109,30 +1109,43 @@ public final class DynamicPartitionMapImpl implements DynamicPartitionMap {
         }
     }
 
-    private static final Cell REPF_CELL = Cell.create("quorumParameters".getBytes(), "repf".getBytes());
-    private static final Cell READF_CELL = Cell.create("quorumParameters".getBytes(), "readf".getBytes());
-    private static final Cell WRITEF_CELL = Cell.create("quorumParameters".getBytes(), "writef".getBytes());
-    private static final Cell VERSION_CELL = Cell.create("version".getBytes(), "version".getBytes());
-    private static final Cell OPS_IN_PROGRESS_CELL = Cell.create("operations".getBytes(), "inProgress".getBytes());
+    private static final Cell REPF_CELL = Cell.create(
+            "quorumParameters".getBytes(StandardCharsets.UTF_8),
+            "repf".getBytes(StandardCharsets.UTF_8));
+    private static final Cell READF_CELL = Cell.create(
+            "quorumParameters".getBytes(StandardCharsets.UTF_8),
+            "readf".getBytes(StandardCharsets.UTF_8));
+    private static final Cell WRITEF_CELL = Cell.create(
+            "quorumParameters".getBytes(StandardCharsets.UTF_8),
+            "writef".getBytes(StandardCharsets.UTF_8));
+    private static final Cell VERSION_CELL = Cell.create(
+            "version".getBytes(StandardCharsets.UTF_8),
+            "version".getBytes(StandardCharsets.UTF_8));
+    private static final Cell OPS_IN_PROGRESS_CELL = Cell.create(
+            "operations".getBytes(StandardCharsets.UTF_8),
+            "inProgress".getBytes(StandardCharsets.UTF_8));
 
     public Map<Cell, byte[]> toTable() {
         try {
             Map<Cell, byte[]> result = Maps.newHashMap();
 
             // Store the quorum parameters
-            result.put(REPF_CELL, Integer.toString(quorumParameters.getReplicationFactor()).getBytes());
-            result.put(READF_CELL, Integer.toString(quorumParameters.getReadFactor()).getBytes());
-            result.put(WRITEF_CELL, Integer.toString(quorumParameters.getWriteFactor()).getBytes());
+            result.put(REPF_CELL, Integer.toString(quorumParameters.getReplicationFactor())
+                    .getBytes(StandardCharsets.UTF_8));
+            result.put(READF_CELL, Integer.toString(quorumParameters.getReadFactor())
+                    .getBytes(StandardCharsets.UTF_8));
+            result.put(WRITEF_CELL, Integer.toString(quorumParameters.getWriteFactor())
+                    .getBytes(StandardCharsets.UTF_8));
 
             // Store the map version
-            result.put(VERSION_CELL, Long.toString(version.longValue()).getBytes());
+            result.put(VERSION_CELL, Long.toString(version.longValue()).getBytes(StandardCharsets.UTF_8));
 
             // Store no of operations in progress
-            result.put(OPS_IN_PROGRESS_CELL, Long.toString(operationsInProgress).getBytes());
+            result.put(OPS_IN_PROGRESS_CELL, Long.toString(operationsInProgress).getBytes(StandardCharsets.UTF_8));
 
             // Store the map
             for (Entry<byte[], EndpointWithStatus> entry : ring.entrySet()) {
-                byte[] row = "map".getBytes();
+                byte[] row = "map".getBytes(StandardCharsets.UTF_8);
                 byte[] col = entry.getKey();
                 if (!(entry.getValue().get() instanceof SimpleKeyValueEndpoint)) {
                     throw new IllegalArgumentException("DynamicPartitionMapImpl serialization is only"
@@ -1152,17 +1165,18 @@ public final class DynamicPartitionMapImpl implements DynamicPartitionMap {
     public static DynamicPartitionMapImpl fromTable(Map<Cell, byte[]> table) {
         try {
 
-            int repf = Integer.parseInt(new String(table.get(REPF_CELL)));
-            int readf = Integer.parseInt(new String(table.get(READF_CELL)));
-            int writef = Integer.parseInt(new String(table.get(WRITEF_CELL)));
-            long version = Long.parseLong(new String(table.get(VERSION_CELL)));
-            long operationsInProgress = Long.parseLong(new String(table.get(OPS_IN_PROGRESS_CELL)));
+            int repf = Integer.parseInt(new String(table.get(REPF_CELL), StandardCharsets.UTF_8));
+            int readf = Integer.parseInt(new String(table.get(READF_CELL), StandardCharsets.UTF_8));
+            int writef = Integer.parseInt(new String(table.get(WRITEF_CELL), StandardCharsets.UTF_8));
+            long version = Long.parseLong(new String(table.get(VERSION_CELL), StandardCharsets.UTF_8));
+            long operationsInProgress =
+                    Long.parseLong(new String(table.get(OPS_IN_PROGRESS_CELL), StandardCharsets.UTF_8));
             QuorumParameters parameters = new QuorumParameters(repf, readf, writef);
             NavigableMap<byte[], EndpointWithStatus> ring =
                     Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
 
             for (Entry<Cell, byte[]> entry : table.entrySet()) {
-                if (!Arrays.equals(entry.getKey().getRowName(), "map".getBytes())) {
+                if (!Arrays.equals(entry.getKey().getRowName(), "map".getBytes(StandardCharsets.UTF_8))) {
                     continue;
                 }
                 byte[] key = entry.getKey().getColumnName();

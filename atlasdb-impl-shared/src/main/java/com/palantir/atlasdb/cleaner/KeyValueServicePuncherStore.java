@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.cleaner;
 
+import java.nio.charset.StandardCharsets;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -41,7 +43,7 @@ import com.palantir.common.base.ClosableIterator;
  * @author jweel
  */
 public final class KeyValueServicePuncherStore implements PuncherStore {
-    private static final byte[] COLUMN = "t".getBytes();
+    private static final byte[] COLUMN = "t".getBytes(StandardCharsets.UTF_8);
 
     public static KeyValueServicePuncherStore create(KeyValueService keyValueService) {
         keyValueService.createTable(AtlasDbConstants.PUNCH_TABLE, new TableMetadata(

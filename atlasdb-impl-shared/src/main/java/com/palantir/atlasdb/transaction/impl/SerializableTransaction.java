@@ -420,12 +420,15 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private void verifyRows(Transaction ro) {
-        for (TableReference table : rowsRead.keySet()) {
+        for (Map.Entry<TableReference, Set<RowRead>> tableAndRowsEntry : rowsRead.entrySet()) {
+            TableReference table = tableAndRowsEntry.getKey();
+            Set<RowRead> rows = tableAndRowsEntry.getValue();
+
             ConcurrentNavigableMap<Cell, byte[]> readsForTable = getReadsForTable(table);
             Multimap<ColumnSelection, byte[]> rowsReadByColumns = Multimaps.newSortedSetMultimap(
                     Maps.newHashMap(),
                     () -> Sets.newTreeSet(UnsignedBytes.lexicographicalComparator()));
-            for (RowRead r : rowsRead.get(table)) {
+            for (RowRead r : rows) {
                 rowsReadByColumns.putAll(r.cols, r.rows);
             }
             for (ColumnSelection cols : rowsReadByColumns.keySet()) {
@@ -509,9 +512,12 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private void verifyCells(Transaction readOnlyTransaction) {
-        for (TableReference table : cellsRead.keySet()) {
+        for (Entry<TableReference, Set<Cell>> tableAndCellsEntry : cellsRead.entrySet()) {
+            TableReference table = tableAndCellsEntry.getKey();
+            Set<Cell> cells = tableAndCellsEntry.getValue();
+
             final ConcurrentNavigableMap<Cell, byte[]> readsForTable = getReadsForTable(table);
-            for (Iterable<Cell> batch : Iterables.partition(cellsRead.get(table), 1000)) {
+            for (Iterable<Cell> batch : Iterables.partition(cells, 1000)) {
                 // We don't want to verify any reads that we wrote to cause we will just read our own values.
                 // NB: If the value has changed between read and write, our normal SI checking handles this case
                 Iterable<Cell> batchWithoutWrites = writesByTable.get(table) != null
@@ -534,10 +540,14 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private void verifyRanges(Transaction readOnlyTransaction) {
         // verify each set of reads to ensure they are the same.
-        for (TableReference table : rangeEndByTable.keySet()) {
-            for (Entry<RangeRequest, byte[]> e : rangeEndByTable.get(table).entrySet()) {
-                RangeRequest range = e.getKey();
-                byte[] rangeEnd = e.getValue();
+        for (Entry<TableReference, ConcurrentMap<RangeRequest, byte[]>> tableAndRange : rangeEndByTable.entrySet()) {
+            TableReference table = tableAndRange.getKey();
+            Map<RangeRequest, byte[]> rangeEnds = tableAndRange.getValue();
+
+            for (Entry<RangeRequest, byte[]> rangeAndRangeEndEntry : rangeEnds.entrySet()) {
+                RangeRequest range = rangeAndRangeEndEntry.getKey();
+                byte[] rangeEnd = rangeAndRangeEndEntry.getValue();
+
                 if (rangeEnd.length != 0 && !RangeRequests.isTerminalRow(range.isReverse(), rangeEnd)) {
                     range = range.getBuilder()
                             .endRowExclusive(RangeRequests.getNextStartRow(range.isReverse(), rangeEnd))
@@ -587,11 +597,19 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private void verifyColumnRanges(Transaction readOnlyTransaction) {
         // verify each set of reads to ensure they are the same.
-        for (TableReference table : columnRangeEndsByTable.keySet()) {
-            final ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(table);
+        for (Entry<TableReference, ConcurrentMap<byte[], ConcurrentMap<ColumnRangeSelection, byte[]>>> tableAndRange :
+                columnRangeEndsByTable.entrySet()) {
+            TableReference table = tableAndRange.getKey();
+            Map<byte[], ConcurrentMap<ColumnRangeSelection, byte[]>> columnRangeEnds = tableAndRange.getValue();
+
+            Map<Cell, byte[]> writes = writesByTable.get(table);
             Map<ColumnRangeSelection, List<byte[]>> rangesToRows = Maps.newHashMap();
-            for (byte[] row : columnRangeEndsByTable.get(table).keySet()) {
-                for (Entry<ColumnRangeSelection, byte[]> e : columnRangeEndsByTable.get(table).get(row).entrySet()) {
+            for (Entry<byte[], ConcurrentMap<ColumnRangeSelection, byte[]>> rowAndRangeEnds :
+                    columnRangeEnds.entrySet()) {
+                byte[] row = rowAndRangeEnds.getKey();
+                Map<ColumnRangeSelection, byte[]> rangeEnds = columnRangeEnds.get(row);
+
+                for (Entry<ColumnRangeSelection, byte[]> e : rangeEnds.entrySet()) {
                     ColumnRangeSelection range = e.getKey();
                     byte[] rangeEnd = e.getValue();
                     if (rangeEnd.length != 0 && !RangeRequests.isTerminalRow(false, rangeEnd)) {
@@ -603,7 +621,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                     if (rangesToRows.get(range) != null) {
                         rangesToRows.get(range).add(row);
                     } else {
-                        rangesToRows.put(range, Lists.newArrayList(row));
+                        rangesToRows.put(range, ImmutableList.of(row));
                     }
                 }
             }
@@ -633,7 +651,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private List<Entry<Cell, ByteBuffer>> filterWritesFromCells(
             Iterable<Entry<Cell, byte[]>> cells,
-            ConcurrentNavigableMap<Cell, byte[]> writes) {
+            Map<Cell, byte[]> writes) {
         List<Entry<Cell, ByteBuffer>> cellsWithoutWrites = Lists.newArrayList();
         for (Entry<Cell, byte[]> cell : cells) {
             // NB: We filter our write set out here because our normal SI
@@ -647,7 +665,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private List<Entry<Cell, ByteBuffer>> filterWritesFromRows(
             Iterable<RowResult<byte[]>> rows,
-            ConcurrentNavigableMap<Cell, byte[]> writes) {
+            Map<Cell, byte[]> writes) {
         List<Entry<Cell, ByteBuffer>> rowsWithoutWrites = Lists.newArrayList();
         for (RowResult<byte[]> row : rows) {
             rowsWithoutWrites.addAll(filterWritesFromCells(row.getCells(), writes));
@@ -664,7 +682,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         if (range.getEndExclusive().length != 0) {
             reads = reads.headMap(Cells.createSmallestCellForRow(range.getEndExclusive()), false);
         }
-        ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(table);
+        Map<Cell, byte[]> writes = writesByTable.get(table);
         if (writes != null) {
             reads = Maps.filterKeys(reads, Predicates.not(Predicates.in(writes.keySet())));
         }

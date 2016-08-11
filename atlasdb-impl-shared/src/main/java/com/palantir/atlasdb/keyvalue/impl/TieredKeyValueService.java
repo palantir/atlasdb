@@ -600,9 +600,7 @@ public final class TieredKeyValueService implements KeyValueService {
             }
         }
 
-        for (KeyValueService kvs : delegateToTableMetadata.keySet()) {
-            kvs.createTables(delegateToTableMetadata.get(kvs));
-        }
+        delegateToTableMetadata.forEach(KeyValueService::createTables);
     }
 
     @Override
@@ -658,9 +656,8 @@ public final class TieredKeyValueService implements KeyValueService {
                 delegateToTablenameToMetadata.put(secondary, splitTableToMetadata);
             }
         }
-        for (KeyValueService kvs : delegateToTablenameToMetadata.keySet()) {
-            kvs.putMetadataForTables(delegateToTablenameToMetadata.get(kvs));
-        }
+
+        delegateToTablenameToMetadata.forEach(KeyValueService::putMetadataForTables);
     }
 
     @Override
