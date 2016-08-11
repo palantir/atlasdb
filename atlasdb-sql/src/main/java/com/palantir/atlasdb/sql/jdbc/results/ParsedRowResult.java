@@ -87,6 +87,7 @@ public class ParsedRowResult {
         switch (returnType) {
             case BYTES:
                 return r.getValue();
+            case OBJECT:
             case STRING:
                 switch (r.getFormat()) {
                     case PERSISTABLE:
@@ -114,8 +115,6 @@ public class ParsedRowResult {
             case DOUBLE:
                 break;
             case BIG_DECIMAL:
-                break;
-            case OBJECT:
                 break;
             case TIME:
                 break;
