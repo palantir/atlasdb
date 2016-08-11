@@ -149,7 +149,7 @@ public class ParsedRowResult {
         if (index == -1) {
             throw new SQLException(String.format("column '%s' is not found in results", col));
         }
-        return index;
+        return index + 1;
     }
 
     private static class MetadataAndValue {
