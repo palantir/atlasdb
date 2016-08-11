@@ -1079,4 +1079,14 @@ public class AtlasJdbcResultSet implements ResultSet {
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return iface.isAssignableFrom(getClass());
     }
+
+    @Override
+    public String toString() {
+        return "AtlasJdbcResultSet{" +
+                "transactionToken=" + transactionToken +
+                ", metadata=" + metadata +
+                ", rangeToken=" + rangeToken +
+                ", curResult=" + curResult +
+                '}';
+    }
 }

@@ -179,5 +179,14 @@ public class ParsedRowResult {
         byte[] getValue() {
             return val;
         }
+
+    }
+
+    @Override
+    public String toString() {
+        return "ParsedRowResult{" +
+                "result=" + result +
+                ", colLabels=" + colLabels +
+                '}';
     }
 }
