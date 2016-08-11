@@ -102,7 +102,7 @@ public class ParsedRowResult {
         MetadataAndValue r = result.get(index - 1);
         switch (returnType) {
             case BYTES:
-                return r.getValueAsMessage();
+                return r.getRawValue();
             case STRING:
                 switch (r.getFormat()) {
                     case PERSISTABLE:
@@ -115,7 +115,7 @@ public class ParsedRowResult {
                             throw new UnsupportedOperationException("Cannot (yet) parse a PROTO row component as a string.");
                         }
                     case VALUE_TYPE:
-                        return r.getValueType().convertToJava(r.getRawValue(), 0);
+                        return r.getValueAsSimpleType();
                 }
                 break;
             // TODO implement other types
@@ -129,7 +129,7 @@ public class ParsedRowResult {
                 break;
             case LONG:
                 if (!EnumSet.of(ValueType.STRING, ValueType.VAR_STRING).contains(r.getValueType())) {
-                    return r.getValueType().convertToJava(r.getRawValue(), 0);
+                    return r.getValueAsSimpleType();
                 }
             case FLOAT:
                 break;
@@ -140,13 +140,13 @@ public class ParsedRowResult {
             case OBJECT:
                 switch (r.getFormat()) { // inspired by AtlasSerializers.serialize
                     case PROTO:
-                        return r.getValueAsMessage();
+                        return r.getValueAsSimpleType();
                     case PERSISTABLE:
                         break;
                     case VALUE_TYPE:
                         break;
                     case PERSISTER:
-                        return r.getValueAsMessage();
+                        return r.getValueAsSimpleType();
                 }
                 break;
             case TIME:

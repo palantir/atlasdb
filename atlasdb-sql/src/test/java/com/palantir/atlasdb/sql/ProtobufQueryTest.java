@@ -92,7 +92,7 @@ public class ProtobufQueryTest {
         ResultSet results = null;
         try (Connection c = getConnection(CONFIG_FILENAME)) {
             stmt = c.createStatement();
-            results = stmt.executeQuery(String.format("select col from %s", TestSchema.ONLY_TABLE.getQualifiedName()));
+            results = stmt.executeQuery(String.format("select * from %s", TestSchema.ONLY_TABLE.getQualifiedName()));
             results.next();
             assertThat(results.getString(COL_NAME), equalTo(TEST_OBJECT_JSON));
             validateResults(results, ROW_NAME, KEY1, COL_NAME, TEST_OBJECT);
