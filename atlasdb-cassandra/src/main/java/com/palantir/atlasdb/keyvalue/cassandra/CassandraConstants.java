@@ -39,11 +39,6 @@ public class CassandraConstants {
     static final int ABSOLUTE_MINIMUM_NUMBER_OF_TOKENS_PER_NODE = 32;
     static final long TS_SIZE = 4L;
 
-    static final String ROW_NAME = "key";
-    static final String COL_NAME_COL = "column1";
-    static final String TS_COL = "column2";
-    static final String VALUE_COL = "value";
-
     static final String DEFAULT_COMPRESSION_TYPE = "LZ4Compressor";
     static final String SSTABLE_SIZE_IN_MB = "80";
     static final double DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.1;

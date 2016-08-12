@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -33,7 +34,7 @@ public class CQLStatementCache {
             .build(new CacheLoader<String, PreparedStatement>() {
                 @Override
                 public PreparedStatement load(String query) {
-                    return session.prepare(query);
+                    return prepareSessionWithErrorHandling(session, query);
                 }
             });
 
@@ -42,7 +43,20 @@ public class CQLStatementCache {
             .build(new CacheLoader<String, PreparedStatement>() {
                 @Override
                 public PreparedStatement load(String query) {
-                    return longRunningQuerySession.prepare(query);
+                    return prepareSessionWithErrorHandling(longRunningQuerySession, query);
                 }
             });
+
+    private PreparedStatement prepareSessionWithErrorHandling(Session currentSession, String query) {
+        try {
+            return currentSession.prepare(query);
+        } catch (NoHostAvailableException e) {
+            if (currentSession.isClosed()) {
+                currentSession = currentSession.getCluster().newSession();
+                return currentSession.prepare(query);
+            } else {
+                throw e;
+            }
+        }
+    }
 }
