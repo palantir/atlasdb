@@ -49,41 +49,27 @@ where_clause
    ;
 
 expression
-   : simple_expression ( expr_op simple_expression )*
-   ;
-
-simple_expression
-   : left_element relational_op right_element | target_element between_op left_element AND right_element | target_element is_or_is_not NULL
-   ;
-
-element
-   : USER_VAR | ID | ( '|' ID '|' ) | INT | column_name
-   ;
-
-right_element
-   : element
-   ;
-
-left_element
-   : element
-   ;
-
-target_element
-   : element
+   : left=expression relational_op right=expression
+   | left=expression AND right=expression
+   | bool
+   | DECIMAL
+   | ID
    ;
 
 relational_op
-   : EQ | LTH | GTH | NOT_EQ | LET | GET
-   ;
-
-expr_op
-   : AND | XOR | OR | NOT
-   ;
-
-between_op
-   : BETWEEN
+   : EQ
+   | LTH
+   | GTH
+   | LET
+   | GET
+   | NOT_EQ
    ;
 
 is_or_is_not
    : IS | IS NOT
+   ;
+
+bool
+   : TRUE
+   | FALSE
    ;

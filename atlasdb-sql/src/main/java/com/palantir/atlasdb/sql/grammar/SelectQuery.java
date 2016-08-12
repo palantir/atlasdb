@@ -1,13 +1,21 @@
 package com.palantir.atlasdb.sql.grammar;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.RuleContext;
 import org.immutables.value.Value;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.api.TableRange;
@@ -15,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLLexer;
 import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParser;
 import com.palantir.atlasdb.sql.jdbc.results.JdbcColumnMetadata;
+import com.palantir.atlasdb.sql.jdbc.results.ParsedRowResult;
 import com.palantir.atlasdb.table.description.TableMetadata;
 
 @Value.Immutable
@@ -29,24 +38,19 @@ public abstract class SelectQuery {
 
         String table = query.table_reference().getText();
         TableMetadata metadata = service.getTableMetadata(table);
+        List<JdbcColumnMetadata> allCols = makeAllColumns(metadata);
+        List<JdbcColumnMetadata> selectedCols = makeSelectedColumns(query.column_clause().column_list(), allCols);
+        Map<String, JdbcColumnMetadata> indexMap = makeLabelOrNameToMetadata(selectedCols);
 
-        ImmutableSelectQuery.Builder builder = ImmutableSelectQuery.builder();
-        builder.table(table);
-        builder.rangeRequest(RangeRequest.all());
-
-        List<JdbcColumnMetadata> allCols = getAllColumns(metadata);
-        if (query.column_clause().column_list() != null) {
-            List<String> requestedCols =
-                    query.column_clause().column_list().column_name().stream().map(c -> c.getText()).collect(Collectors.toList());
-            builder.columns(allCols.stream().filter(c -> requestedCols.contains(c.getName())).collect(Collectors.toList()));
-        } else {
-            builder.columns(allCols);
-        }
-
-        return builder.build();
+        return ImmutableSelectQuery.builder()
+                .table(table)
+                .rangeRequest(RangeRequest.all())
+                .columns(selectedCols)
+                .postfilterPredicate(makePostfilterPredicate(query.where_clause(), selectedCols, indexMap)::apply)
+                .build();
     }
 
-    private static List<JdbcColumnMetadata> getAllColumns(TableMetadata metadata) {
+    private static List<JdbcColumnMetadata> makeAllColumns(TableMetadata metadata) {
         List<JdbcColumnMetadata> allCols = Lists.newArrayList();
         allCols.addAll(metadata.getRowMetadata().getRowParts().stream()
                 .map(JdbcColumnMetadata::create).collect(Collectors.toList()));
@@ -56,6 +60,34 @@ public abstract class SelectQuery {
             allCols.add(JdbcColumnMetadata.create(metadata.getColumns().getDynamicColumn()));
         }
         return allCols;
+    }
+
+    private static List<JdbcColumnMetadata> makeSelectedColumns(@Nullable AtlasSQLParser.Column_listContext colListCtx,
+                                                                List<JdbcColumnMetadata> allCols) {
+        if (colListCtx == null) {
+            return allCols;
+        }
+        List<String> requestedCols =
+                colListCtx.column_name().stream().map(RuleContext::getText).collect(Collectors.toList());
+        return allCols.stream().filter(c -> requestedCols.contains(c.getName())).collect(Collectors.toList());
+    }
+
+    public static Map<String, JdbcColumnMetadata> makeLabelOrNameToMetadata(List<JdbcColumnMetadata> selectedCols) {
+        ImmutableMap.Builder<String, JdbcColumnMetadata> builder = ImmutableMap.builder();
+        selectedCols.stream().collect(Collectors.toMap(JdbcColumnMetadata::getName, Function.identity()));
+        selectedCols.stream()
+                .filter(m -> !m.getLabel().equals(m.getName()))
+                .collect(Collectors.toMap(JdbcColumnMetadata::getLabel, Function.identity()));
+        return builder.build();
+    }
+
+    private static Predicate<ParsedRowResult> makePostfilterPredicate(@Nullable AtlasSQLParser.Where_clauseContext whereCtx,
+                                                                      List<JdbcColumnMetadata> cols,
+                                                                      Map<String, JdbcColumnMetadata> indexMap) {
+        if (whereCtx == null) {
+            return Predicates.alwaysTrue();
+        }
+        return (Predicate<ParsedRowResult>) new WhereClauseVisitor().visit(whereCtx);
     }
 
     @Value.Derived
@@ -75,10 +107,15 @@ public abstract class SelectQuery {
     public abstract String table();
     public abstract RangeRequest rangeRequest();
     public abstract List<JdbcColumnMetadata> columns();
+    public abstract Map<String, JdbcColumnMetadata> labelOrNameToMetadata();
+    public abstract Predicate<ParsedRowResult> postfilterPredicate();
 
     @Value.Default
     public int batchSize() {
         return 2000;
     }
 
+    private enum BooleanOp {
+        AND, OR
+    }
 }

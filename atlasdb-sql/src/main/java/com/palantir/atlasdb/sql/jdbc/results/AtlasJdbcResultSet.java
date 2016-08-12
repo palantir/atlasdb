@@ -22,13 +22,12 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.api.RangeToken;
 import com.palantir.atlasdb.api.TransactionToken;
-import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.sql.grammar.SelectQuery;
 import com.palantir.atlasdb.sql.jdbc.statement.AtlasJdbcStatement;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -37,37 +36,42 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     private final AtlasDbService service;
     private final TransactionToken transactionToken;
-    private final TableMetadata metadata;
     private final AtlasJdbcStatement stmt;
-    private final List<JdbcColumnMetadata> columns;
+    private final SelectQuery query;
 
     private RangeToken rangeToken;
-    private Iterator<RowResult<byte[]>> curIter;
+    private Iterator<ParsedRowResult> curIter;
     private ParsedRowResult curResult;
 
     public static ResultSet create(AtlasDbService service,
                                    TransactionToken transactionToken,
-                                   SelectQuery select,
+                                   SelectQuery query,
                                    AtlasJdbcStatement stmt) {
-        RangeToken rangeToken = service.getRange(transactionToken, select.tableRange());
+        RangeToken rangeToken = service.getRange(transactionToken, query.tableRange());
         TableMetadata metadata = service.getTableMetadata(rangeToken.getResults().getTableName());
-        return new AtlasJdbcResultSet(service, transactionToken, metadata, stmt, select.columns(), rangeToken);
+        return new AtlasJdbcResultSet(service, transactionToken, stmt, query, rangeToken);
     }
 
     private AtlasJdbcResultSet(AtlasDbService service,
                                TransactionToken transactionToken,
-                               TableMetadata metadata,
                                AtlasJdbcStatement stmt,
-                               List<JdbcColumnMetadata> columns,
+                               SelectQuery query,
                                RangeToken rangeToken) {
         this.service = service;
         this.transactionToken = transactionToken;
-        this.metadata = metadata;
         this.stmt = stmt;
-        this.columns = columns;
+        this.query = query;
         this.rangeToken = rangeToken;
-        this.curIter = rangeToken.getResults().getResults().iterator();
+        this.curIter = makeIter(rangeToken, query);
         this.curResult = null;
+    }
+
+    private static Iterator<ParsedRowResult> makeIter(RangeToken rangeToken, SelectQuery query) {
+        return Iterables.filter(
+                Iterables.transform(
+                        rangeToken.getResults().getResults(),
+                        it -> ParsedRowResult.create(it, query.columns())),
+                query.postfilterPredicate()).iterator();
     }
 
     @Override
@@ -77,12 +81,12 @@ public class AtlasJdbcResultSet implements ResultSet {
         }
 
         if (curIter.hasNext()) {
-            curResult = ParsedRowResult.create(curIter.next(), columns);
+            curResult = curIter.next();
             return true;
         } else { // page to the next range
             if (rangeToken.hasMoreResults()) {
                 rangeToken = service.getRange(transactionToken, rangeToken.getNextRange());
-                curIter = rangeToken.getResults().getResults().iterator();
+                curIter = makeIter(rangeToken, query);
                 return next();
             } else { // all done
                 rangeToken = null;
@@ -284,7 +288,7 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
-        return AtlasJdbcResultSetMetaData.create(columns);
+        return AtlasJdbcResultSetMetaData.create(query.columns());
     }
 
     @Override

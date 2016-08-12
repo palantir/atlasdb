@@ -130,6 +130,29 @@ public class QueryTest {
         }
     }
 
+    @Test
+    public void testSelectWhere1() {
+        testSelectWhere("key1", "value1");
+    }
+
+    @Test
+    public void testSelectWhere2() {
+        testSelectWhere("key2", "value2");
+    }
+
+    private void testSelectWhere(String row, String val) {
+        try (Connection c = getConnection()) {
+            Statement stmt = c.createStatement();
+            ResultSet results = stmt.executeQuery(String.format("select * from %s where %s = %s", tableRef.getQualifiedName(), COL_NAME, val));
+            results.next();
+            Preconditions.checkArgument(results.getString(ROW_COMP).equals(row));
+            Preconditions.checkArgument(results.getString(COL_NAME).equals(val));
+            Preconditions.checkArgument(!results.next());
+        } catch (ClassNotFoundException | SQLException e) {
+            throw new RuntimeException("Failure running select.", e);
+        }
+    }
+
     private boolean fails(Callable<?> c) {
         try {
             c.call();

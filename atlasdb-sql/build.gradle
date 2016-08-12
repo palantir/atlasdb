@@ -41,7 +41,7 @@ configurations.matching({ it.name in ['compile', 'runtime'] }).all {
 
 antlr4 {
   version = '4.5'
-  visitor = false
+  visitor = true
   listener = false
   destination = file("$projectDir/src/main/java")
 }
