@@ -102,10 +102,8 @@ public class ParsedRowResult {
                     case PROTO:
                         return res.getValueAsMessage();
                     case PERSISTABLE:
-                        break;
-                    case VALUE_TYPE:
-                        return res.getValueAsSimpleType();
                     case PERSISTER:
+                    case VALUE_TYPE:
                         return res.getValueAsSimpleType();
                 }
                 break;
@@ -211,10 +209,6 @@ public class ParsedRowResult {
             return meta.getValueType();
         }
 
-        public Message getValueAsMessage() {
-            return meta.hydrateProto(rawVal);
-        }
-
         String getName() {
             return meta.getName();
         }
@@ -223,11 +217,15 @@ public class ParsedRowResult {
             return meta.getLabel();
         }
 
-        public Object getValueAsSimpleType() {
+        Message getValueAsMessage() {
+            return meta.hydrateProto(rawVal);
+        }
+
+        Object getValueAsSimpleType() {
             return getValueType().convertToJava(getRawValue(), 0);
         }
 
-        public byte[] getRawValue() {
+        byte[] getRawValue() {
             return rawVal;
         }
 
