@@ -60,7 +60,7 @@ public class ParsedRowResult {
             if (wrappedCols.containsKey(shortName)) {
                 resultBuilder.add(JdbcColumnMetadataAndValue.create(meta, wrappedCols.get(shortName)));
             } else {
-                resultBuilder.add(JdbcColumnMetadataAndValue.create(meta, null));  // put null for missing columns
+                resultBuilder.add(JdbcColumnMetadataAndValue.create(meta, new byte[0]));  // empty byte[] for missing columns
             }
         }
     }

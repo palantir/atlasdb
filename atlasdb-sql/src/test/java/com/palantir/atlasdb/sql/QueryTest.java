@@ -30,10 +30,13 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 public class QueryTest {
 
     private static final String ROW_COMP = "row";
-    private static final String COL_NAME = "col";
-    private static final String COL_LABEL = "col_name";
-    private static final byte[] COLUMN_NAME_IN_BYTES = COL_NAME.getBytes();
-    private static final TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, "test_table");
+    private static final String COL1_NAME = "col1";
+    private static final byte[] COL1_IN_BYTES = COL1_NAME.getBytes();
+    private static final String COL1_LABEL = "first";
+    private static final String COL2_NAME = "col2";
+    private static final byte[] COL2_IN_BYTES = COL2_NAME.getBytes();
+
+    private static final TableReference TABLE = TableReference.create(Namespace.DEFAULT_NAMESPACE, "table");
     public static final String CONFIG_FILENAME = "memoryTestConfig.yml";
 
     @Before
@@ -44,19 +47,23 @@ public class QueryTest {
         AtlasDbServices services = AtlasJdbcDriver.getLastKnownAtlasServices();
         TransactionManager txm = services.getTransactionManager();
         KeyValueService kvs = services.getKeyValueService();
+
         TableDefinition tableDef = new TableDefinition() {{
             rowName();
             rowComponent(ROW_COMP, ValueType.STRING);
             columns();
-            column(COL_LABEL, COL_NAME, ValueType.STRING);
+            column(COL1_LABEL, COL1_NAME, ValueType.STRING);
+            column(COL2_NAME, COL2_NAME, ValueType.STRING);
             conflictHandler(ConflictHandler.IGNORE_ALL);
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
         }};
-        kvs.createTable(tableRef, tableDef.toTableMetadata().persistToBytes());
-        kvs.putMetadataForTable(tableRef, tableDef.toTableMetadata().persistToBytes());
+        kvs.createTable(TABLE, tableDef.toTableMetadata().persistToBytes());
+        kvs.putMetadataForTable(TABLE, tableDef.toTableMetadata().persistToBytes());
         txm.runTaskThrowOnConflict((TransactionTask<Void, RuntimeException>) t -> {
-            t.put(tableRef, ImmutableMap.of(Cell.create("key1".getBytes(), COLUMN_NAME_IN_BYTES), "value1".getBytes()));
-            t.put(tableRef, ImmutableMap.of(Cell.create("key2".getBytes(), COLUMN_NAME_IN_BYTES), "value2".getBytes()));
+            t.put(TABLE, ImmutableMap.of(
+                    Cell.create("key1".getBytes(), COL1_IN_BYTES), "value1".getBytes(),
+                    Cell.create("key1".getBytes(), COL2_IN_BYTES), "value3".getBytes(),
+                    Cell.create("key2".getBytes(), COL1_IN_BYTES), "value2".getBytes()));
             return null;
         });
     }
@@ -65,17 +72,17 @@ public class QueryTest {
     public void teardown() throws SQLException, ClassNotFoundException {
         AtlasDbServices services = AtlasJdbcDriver.getLastKnownAtlasServices();
         KeyValueService kvs = services.getKeyValueService();
-        kvs.truncateTable(tableRef);
+        kvs.dropTable(TABLE);
     }
 
     @Test
     public void testSelect() {
-        testFindsAllData(String.format("select row,col from %s", tableRef.getQualifiedName()));
+        testFindsAllData(String.format("select %s,%s from %s", ROW_COMP, COL1_NAME, TABLE.getQualifiedName()));
     }
 
     @Test
     public void testSelectAll() {
-        testFindsAllData(String.format("select * from %s", tableRef.getQualifiedName()));
+        testFindsAllData(String.format("select * from %s", TABLE.getQualifiedName()));
     }
 
     private void testFindsAllData(String sql) {
@@ -84,12 +91,12 @@ public class QueryTest {
             ResultSet results = stmt.executeQuery(sql);
             results.next();
             Preconditions.checkArgument(results.getString(ROW_COMP).equals("key1"));
-            Preconditions.checkArgument(Arrays.equals(results.getBytes(COL_NAME), "value1".getBytes()));
-            Preconditions.checkArgument(results.getString(COL_NAME).equals("value1"));
+            Preconditions.checkArgument(Arrays.equals(results.getBytes(COL1_NAME), "value1".getBytes()));
+            Preconditions.checkArgument(results.getString(COL1_NAME).equals("value1"));
             results.next();
             Preconditions.checkArgument(results.getString(ROW_COMP).equals("key2"));
-            Preconditions.checkArgument(Arrays.equals(results.getBytes(COL_NAME), "value2".getBytes()));
-            Preconditions.checkArgument(results.getString(COL_NAME).equals("value2"));
+            Preconditions.checkArgument(Arrays.equals(results.getBytes(COL1_NAME), "value2".getBytes()));
+            Preconditions.checkArgument(results.getString(COL1_NAME).equals("value2"));
             Preconditions.checkArgument(!results.next());
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException("Failure running select.", e);
@@ -100,13 +107,13 @@ public class QueryTest {
     public void testSelectRowComp() {
         try (Connection c = getConnection()) {
             Statement stmt = c.createStatement();
-            ResultSet results = stmt.executeQuery(String.format("select row from %s", tableRef.getQualifiedName()));
+            ResultSet results = stmt.executeQuery(String.format("select %s from %s", ROW_COMP, TABLE.getQualifiedName()));
             results.next();
             Preconditions.checkArgument(results.getString(ROW_COMP).equals("key1"));
-            Preconditions.checkArgument(fails(() -> results.getString(COL_NAME).equals("value1")));
+            Preconditions.checkArgument(fails(() -> results.getString(COL1_NAME).equals("value1")));
             results.next();
             Preconditions.checkArgument(results.getString(ROW_COMP).equals("key2"));
-            Preconditions.checkArgument(fails(() -> results.getString(COL_NAME).equals("value2")));
+            Preconditions.checkArgument(fails(() -> results.getString(COL1_NAME).equals("value2")));
             Preconditions.checkArgument(!results.next());
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException("Failure running select.", e);
@@ -117,13 +124,13 @@ public class QueryTest {
     public void testSelectCol() {
         try (Connection c = getConnection()) {
             Statement stmt = c.createStatement();
-            ResultSet results = stmt.executeQuery(String.format("select col from %s", tableRef.getQualifiedName()));
+            ResultSet results = stmt.executeQuery(String.format("select %s from %s", COL1_NAME, TABLE.getQualifiedName()));
             results.next();
             Preconditions.checkArgument(fails(() -> results.getString(ROW_COMP).equals("key1")));
-            Preconditions.checkArgument(results.getString(COL_NAME).equals("value1"));
+            Preconditions.checkArgument(results.getString(COL1_NAME).equals("value1"));
             results.next();
             Preconditions.checkArgument(fails(() -> results.getString(ROW_COMP).equals("key2")));
-            Preconditions.checkArgument(results.getString(COL_NAME).equals("value2"));
+            Preconditions.checkArgument(results.getString(COL1_NAME).equals("value2"));
             Preconditions.checkArgument(!results.next());
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException("Failure running select.", e);
@@ -143,10 +150,25 @@ public class QueryTest {
     private void testSelectWhere(String row, String val) {
         try (Connection c = getConnection()) {
             Statement stmt = c.createStatement();
-            ResultSet results = stmt.executeQuery(String.format("select * from %s where %s = %s", tableRef.getQualifiedName(), COL_NAME, val));
+            ResultSet results = stmt.executeQuery(String.format("select * from %s where %s = %s", TABLE.getQualifiedName(), COL1_NAME, val));
             results.next();
             Preconditions.checkArgument(results.getString(ROW_COMP).equals(row));
-            Preconditions.checkArgument(results.getString(COL_NAME).equals(val));
+            Preconditions.checkArgument(results.getString(COL1_NAME).equals(val));
+            Preconditions.checkArgument(!results.next());
+        } catch (ClassNotFoundException | SQLException e) {
+            throw new RuntimeException("Failure running select.", e);
+        }
+    }
+
+    @Test
+    public void testSelectEmptyCol() {
+        try (Connection c = getConnection()) {
+            Statement stmt = c.createStatement();
+            ResultSet results = stmt.executeQuery(String.format("select * from %s", TABLE.getQualifiedName()));
+            results.next();
+            Preconditions.checkArgument(results.getString(COL2_NAME).equals("value3"));
+            results.next();
+            Preconditions.checkArgument(results.getBytes(COL2_NAME).length == 0);
             Preconditions.checkArgument(!results.next());
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException("Failure running select.", e);
