@@ -115,7 +115,4 @@ public abstract class SelectQuery {
         return 2000;
     }
 
-    private enum BooleanOp {
-        AND, OR
-    }
 }
