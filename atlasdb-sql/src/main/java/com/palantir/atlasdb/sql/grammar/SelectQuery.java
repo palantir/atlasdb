@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -14,8 +15,6 @@ import org.antlr.v4.runtime.RuleContext;
 import org.immutables.value.Value;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.api.AtlasDbService;
@@ -49,7 +48,7 @@ public abstract class SelectQuery {
                 .table(table)
                 .rangeRequest(RangeRequest.all())
                 .columns(selectedCols)
-                .postfilterPredicate(makePostfilterPredicate(query.where_clause(), selectedCols, indexMap)::apply)
+                .postfilterPredicate(makePostfilterPredicate(query.where_clause()))
                 .build();
     }
 
@@ -84,11 +83,9 @@ public abstract class SelectQuery {
         return builder.build();
     }
 
-    private static Predicate<ParsedRowResult> makePostfilterPredicate(@Nullable AtlasSQLParser.Where_clauseContext whereCtx,
-                                                                      List<JdbcColumnMetadata> cols,
-                                                                      Map<String, JdbcColumnMetadata> indexMap) {
+    private static Predicate<ParsedRowResult> makePostfilterPredicate(@Nullable AtlasSQLParser.Where_clauseContext whereCtx) {
         if (whereCtx == null) {
-            return Predicates.alwaysTrue();
+            return parsedRowResult -> true;
         }
         return (Predicate<ParsedRowResult>) new WhereClauseVisitor().visit(whereCtx);
     }

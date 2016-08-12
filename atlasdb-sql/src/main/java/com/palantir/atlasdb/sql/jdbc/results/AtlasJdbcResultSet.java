@@ -23,27 +23,26 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
-import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.api.RangeToken;
 import com.palantir.atlasdb.api.TransactionToken;
 import com.palantir.atlasdb.sql.grammar.SelectQuery;
 import com.palantir.atlasdb.sql.jdbc.statement.AtlasJdbcStatement;
-import com.palantir.atlasdb.table.description.TableMetadata;
 
+
+/** An implementation of the JDBC API to access cells.
+ *
+ *  This is an iterator over {@link ParsedRowResult} responsible for all Atlas-aware implementation details.
+ */
 public class AtlasJdbcResultSet implements ResultSet {
 
     private final AtlasDbService service;
     private final TransactionToken transactionToken;
     private final AtlasJdbcStatement stmt;
     private final SelectQuery query;
-
     private RangeToken rangeToken;
     private Iterator<ParsedRowResult> curIter;
-
     private ParsedRowResult curResult;
 
     public static ResultSet create(AtlasDbService service,
@@ -64,18 +63,8 @@ public class AtlasJdbcResultSet implements ResultSet {
         this.stmt = stmt;
         this.query = query;
         this.rangeToken = rangeToken;
-        this.curIter = makeIter(rangeToken, query);
+        this.curIter = ParsedRowResult.makeIterator(rangeToken.getResults().getResults(), query.postfilterPredicate(), query.columns());
         this.curResult = null;
-    }
-
-    private static Iterator<ParsedRowResult> makeIter(RangeToken rangeToken, SelectQuery query) {
-        return StreamSupport.stream(StreamSupport.stream(rangeToken.getResults().getResults().spliterator(), false)
-                                    .map(it -> ParsedRowResult.create(it, query.columns()))
-                                    .collect(Collectors.toList())
-                                    .spliterator(), false)
-                .filter(query.postfilterPredicate()::apply)
-                .collect(Collectors.toList())
-                .iterator();
     }
 
     @Override
@@ -89,7 +78,7 @@ public class AtlasJdbcResultSet implements ResultSet {
         } else { // page to the next range
             if (rangeToken.hasMoreResults()) {
                 rangeToken = service.getRange(transactionToken, rangeToken.getNextRange());
-                curIter = makeIter(rangeToken, query);
+                curIter = ParsedRowResult.makeIterator(rangeToken.getResults().getResults(), query.postfilterPredicate(), query.columns());
                 return next();
             } else { // all done
                 rangeToken = null;

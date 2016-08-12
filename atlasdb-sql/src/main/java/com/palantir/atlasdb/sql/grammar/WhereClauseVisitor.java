@@ -2,11 +2,10 @@ package com.palantir.atlasdb.sql.grammar;
 
 import java.sql.SQLException;
 import java.util.EnumSet;
+import java.util.function.Predicate;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParser;
 import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParserBaseVisitor;
 import com.palantir.atlasdb.sql.jdbc.results.JdbcReturnType;
@@ -16,7 +15,7 @@ public class WhereClauseVisitor extends AtlasSQLParserBaseVisitor<Object> {
 
     @Override public Object visitExpression(AtlasSQLParser.ExpressionContext ctx) {
         if (ctx.AND() != null) {
-            return Predicates.and((Predicate<ParsedRowResult>) visit(ctx.left), (Predicate<ParsedRowResult>) visit(ctx.right));
+            return ((Predicate<ParsedRowResult>) visit(ctx.left)).and((Predicate<ParsedRowResult>) visit(ctx.right));
         } else if (ctx.relational_op() != null) {
             String left = (String) visit(ctx.left);
             String right = (String) visit(ctx.right);

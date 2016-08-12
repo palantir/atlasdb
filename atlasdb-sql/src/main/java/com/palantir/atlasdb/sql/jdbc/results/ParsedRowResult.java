@@ -3,10 +3,12 @@ package com.palantir.atlasdb.sql.jdbc.results;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
@@ -17,23 +19,41 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.annotation.Output;
 
+/**  A row of results.
+ *
+ */
 public class ParsedRowResult {
 
     private final List<JdbcColumnMetadataAndValue> result;
     private final Map<String, JdbcColumnMetadataAndValue> labelOrNameToResult;
 
+    static Iterator<ParsedRowResult> makeIterator(Iterable<RowResult<byte[]>> results,
+                                                  java.util.function.Predicate<ParsedRowResult> predicate,
+                                                  List<JdbcColumnMetadata> columns) {
+        return StreamSupport.stream(StreamSupport.stream(results.spliterator(), false)
+                                                 .map(it -> create(it, columns))
+                                                 .collect(Collectors.toList())
+                                                 .spliterator(), false)
+                            .filter(predicate)
+                            .collect(Collectors.toList())
+                            .iterator();
+    }
+
     public static ParsedRowResult create(RowResult<byte[]> rawResult, List<JdbcColumnMetadata> columns) {
         if (columns.stream().anyMatch(JdbcColumnMetadata::isDynCol)) {
-            throw new UnsupportedOperationException("dynamic columns are not currently supported");
+
+
+
+
         }
 
         ImmutableList.Builder<JdbcColumnMetadataAndValue> resultBuilder = ImmutableList.builder();
         parseRowComponents(rawResult.getRowName(),
-                columns.stream().filter(JdbcColumnMetadata::isRowComp).collect(Collectors.toList()),
-                resultBuilder);
+                           columns.stream().filter(JdbcColumnMetadata::isRowComp).collect(Collectors.toList()),
+                           resultBuilder);
         parseColumns(rawResult,
-                columns.stream().filter(JdbcColumnMetadata::isCol).collect(Collectors.toList()),
-                resultBuilder);
+                     columns.stream().filter(JdbcColumnMetadata::isCol).collect(Collectors.toList()),
+                     resultBuilder);
         List<JdbcColumnMetadataAndValue> colsMeta = resultBuilder.build();
         return new ParsedRowResult(colsMeta, buildIndex(colsMeta));
     }
@@ -42,8 +62,8 @@ public class ParsedRowResult {
         ImmutableMap.Builder<String, JdbcColumnMetadataAndValue> indexBuilder = ImmutableMap.builder();
         indexBuilder.putAll(colsMeta.stream().collect(Collectors.toMap(JdbcColumnMetadataAndValue::getName, Function.identity())));
         indexBuilder.putAll(colsMeta.stream()
-                .filter(m -> !m.getLabel().equals(m.getName()))
-                .collect(Collectors.toMap(JdbcColumnMetadataAndValue::getLabel, Function.identity())));
+                                    .filter(m -> !m.getLabel().equals(m.getName()))
+                                    .collect(Collectors.toMap(JdbcColumnMetadataAndValue::getLabel, Function.identity())));
         return indexBuilder.build();
     }
 
