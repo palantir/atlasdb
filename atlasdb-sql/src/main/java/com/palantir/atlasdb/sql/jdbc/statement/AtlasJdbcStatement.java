@@ -9,9 +9,11 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 
+import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.sql.grammar.SelectQuery;
 import com.palantir.atlasdb.sql.jdbc.connection.AtlasJdbcConnection;
 import com.palantir.atlasdb.sql.jdbc.results.AtlasJdbcResultSet;
+import com.palantir.atlasdb.table.description.TableMetadata;
 
 public class AtlasJdbcStatement implements Statement {
 
@@ -19,6 +21,8 @@ public class AtlasJdbcStatement implements Statement {
     private SqlExecutionResult sqlExecutionResult;
 
     private boolean isClosed = false;
+
+    private TableMetadata tableMetadata = null;
 
     public AtlasJdbcStatement(AtlasJdbcConnection conn) {
         this.conn = conn;
@@ -122,8 +126,10 @@ public class AtlasJdbcStatement implements Statement {
 
     @Override
     public boolean execute(String sql) throws SQLException {
-        SelectQuery select = SelectQuery.create(sql, conn.getService());
-        ResultSet rset = AtlasJdbcResultSet.create(conn.getService(), conn.getTransactionToken(), select, this);
+        final AtlasDbService service = conn.getService();
+        SelectQuery select = SelectQuery.create(sql, service);
+        tableMetadata = service.getTableMetadata(select.table());
+        ResultSet rset = AtlasJdbcResultSet.create(service, conn.getTransactionToken(), select, this);
         sqlExecutionResult = SqlExecutionResult.fromResult(rset);
         return getResultSet() != null;
     }
@@ -340,4 +346,11 @@ public class AtlasJdbcStatement implements Statement {
         throw new SQLFeatureNotSupportedException("Method not supported:\n" + errors.toString());
     }
 
+    public TableMetadata getTableMetadata() {
+        return tableMetadata;
+    }
+
+    public void setMetadata(TableMetadata tableMetadata) {
+        this.tableMetadata = tableMetadata;
+    }
 }

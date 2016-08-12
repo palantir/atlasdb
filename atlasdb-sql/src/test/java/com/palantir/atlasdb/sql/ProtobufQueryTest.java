@@ -31,19 +31,11 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 
 public class ProtobufQueryTest {
 
-    public static final TestPersistence.TestObject TEST_OBJECT = TestPersistence.TestObject.newBuilder()
-            .setId(11L)
-            .setDeleted(0L)
-            .setDataEventId(123L)
-            .setType(543L)
-            .setIsGroup(false).build();
-    public static final String TEST_OBJECT_JSON = "{\"id\": 11,\"type\": 543,\"is_group\": false,\"deleted\": 0,\"data_event_id\": 123}";
+    public static final String TEST_OBJECT_JSON = "{\"id\": 11,\"type\": 543,\"is_group\": false,\"deleted\": 0,\"data_event_id\": 100}";
 
     public static final String COL_NAME = "b";
     public static final String COL_LABEL = "base_object";
     public static final String ROW_NAME = "object_id";
-    public static final String KEY1 = "key1";
-    public static final String KEY2 = "key2";
     public static final String CONFIG_FILENAME = "memoryTestConfig.yml";
 
     @Before
@@ -55,6 +47,11 @@ public class ProtobufQueryTest {
         TransactionManager txm = services.getTransactionManager();
         KeyValueService kvs = services.getKeyValueService();
 
+        fillSimpleTable(txm, kvs);
+        fillDynTable(txm, kvs);
+    }
+
+    private void fillSimpleTable(TransactionManager txm, KeyValueService kvs) {
         final TableReference tableRef = TestSchema.ONLY_TABLE;
         final TableDefinition tableDef = TestSchema.INSTANCE.getLatestSchema().getTableDefinition(tableRef);
         final TableMetadata tableMetadata = tableDef.toTableMetadata();
@@ -62,10 +59,46 @@ public class ProtobufQueryTest {
         kvs.putMetadataForTable(tableRef, tableMetadata.persistToBytes());
         kvs.truncateTable(tableRef);
         txm.runTaskThrowOnConflict((TransactionTask<Void, RuntimeException>) t -> {
-            t.put(tableRef, ImmutableMap.of(Cell.create(KEY1.getBytes(), COL_NAME.getBytes()), TEST_OBJECT.toByteArray()));
+            t.put(tableRef, ImmutableMap.of(Cell.create(key(1), COL_NAME.getBytes()), obj(1).toByteArray()));
             return null;
         });
     }
+
+    /** Dummy table with dynamic columns
+     */
+    private void fillDynTable(TransactionManager txm, KeyValueService kvs) {
+        final TableReference tableRef = TestSchema.DYNAMIC_COLUMN_TABLE;
+        final TableDefinition tableDef = TestSchema.INSTANCE.getLatestSchema().getTableDefinition(tableRef);
+        final TableMetadata tableMetadata = tableDef.toTableMetadata();
+        kvs.createTable(tableRef, tableMetadata.persistToBytes());
+        kvs.putMetadataForTable(tableRef, tableMetadata.persistToBytes());
+        kvs.truncateTable(tableRef);
+        txm.runTaskThrowOnConflict((TransactionTask<Void, RuntimeException>) t -> {
+            t.put(tableRef, ImmutableMap.of(Cell.create(key(1), col(1)), obj(1).toByteArray(),
+                                            Cell.create(key(1), col(2)), obj(2).toByteArray()));
+            t.put(tableRef, ImmutableMap.of(Cell.create(key(2), col(3)), obj(3).toByteArray()));
+            return null;
+        });
+    }
+
+    private byte[] key(int i) {
+        return ("key" + i).getBytes();
+    }
+
+    private byte[] col(int i) {
+        return ("col" + i).getBytes();
+    }
+
+    private TestPersistence.TestObject obj(int i) {
+        return TestPersistence.TestObject.newBuilder()
+                .setId(10L + i)
+                .setDeleted(0L)
+                .setDataEventId(100L * i)
+                .setType(543L)
+                .setIsGroup(false)
+                .build();
+    }
+
 
     @After
     public void teardown() throws SQLException, ClassNotFoundException {
@@ -89,7 +122,7 @@ public class ProtobufQueryTest {
     }
 
     @Test
-    public void testSelect() throws SQLException {
+    public void testSelectNamed() throws SQLException {
         Statement stmt = null;
         ResultSet results = null;
         try (Connection c = getConnection(CONFIG_FILENAME)) {
@@ -97,7 +130,7 @@ public class ProtobufQueryTest {
             results = stmt.executeQuery(String.format("select * from %s", TestSchema.ONLY_TABLE.getQualifiedName()));
             results.next();
             assertThat(results.getString(COL_NAME), equalTo(TEST_OBJECT_JSON));
-            validateResults(results, ROW_NAME, KEY1, COL_NAME, TEST_OBJECT);
+            validateResults(results, ROW_NAME, "key1", COL_NAME, obj(1));
             Preconditions.checkArgument(!results.next());
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException("Failure running select.", e);
@@ -111,7 +144,28 @@ public class ProtobufQueryTest {
         }
     }
 
-    public static Connection getConnection(String configFilename) throws ClassNotFoundException, SQLException {
+    @Test
+    public void testSelectDynamic() throws SQLException {
+        Statement stmt = null;
+        ResultSet results = null;
+        try (Connection c = getConnection(CONFIG_FILENAME)) {
+            stmt = c.createStatement();
+            results = stmt.executeQuery(String.format("select * from %s", TestSchema.DYNAMIC_COLUMN_TABLE.getQualifiedName()));
+            results.next();
+            System.out.println(results);
+        } catch (ClassNotFoundException | SQLException e) {
+            throw new RuntimeException("Failure running select.", e);
+        } finally {
+            if (results != null) {
+                results.close();
+            }
+            if (stmt != null) {
+                stmt.close();
+            }
+        }
+    }
+
+    private static Connection getConnection(String configFilename) throws ClassNotFoundException, SQLException {
         Class.forName(AtlasJdbcDriver.class.getName());
         final String configFilePath = ConnectionTest.class.getClassLoader().getResource(configFilename).getFile();
         final String uri = "jdbc:atlas?configFile=" + configFilePath;

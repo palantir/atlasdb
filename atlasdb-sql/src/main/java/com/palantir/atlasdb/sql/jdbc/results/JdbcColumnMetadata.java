@@ -75,6 +75,11 @@ public class JdbcColumnMetadata {
         }
     }
 
+    @Override
+    public String toString() {
+        return isCol() ? (isDynCol() ? DYNAMIC_COLUMN_LABEL : "col") : "rowComp";
+    }
+
     private static class NamedOrDynamicColumnDescription {
         final String longName;
         final String shortName;

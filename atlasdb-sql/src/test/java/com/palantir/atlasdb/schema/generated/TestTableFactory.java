@@ -38,16 +38,26 @@ public final class TestTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
+    public DynamicTableTable getDynamicTableTable(Transaction t, DynamicTableTable.DynamicTableTrigger... triggers) {
+        return DynamicTableTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
     public OnlyTableTable getOnlyTableTable(Transaction t, OnlyTableTable.OnlyTableTrigger... triggers) {
         return OnlyTableTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
     public interface SharedTriggers extends
+            DynamicTableTable.DynamicTableTrigger,
             OnlyTableTable.OnlyTableTrigger {
         /* empty */
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
+        @Override
+        public void putDynamicTable(Multimap<DynamicTableTable.DynamicTableRow, ? extends DynamicTableTable.DynamicTableColumnValue> newRows) {
+            // do nothing
+        }
+
         @Override
         public void putOnlyTable(Multimap<OnlyTableTable.OnlyTableRow, ? extends OnlyTableTable.OnlyTableNamedColumnValue<?>> newRows) {
             // do nothing

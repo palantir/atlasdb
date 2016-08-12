@@ -39,9 +39,8 @@ public abstract class SelectQuery {
 
         String table = query.table_reference().getText();
         TableMetadata metadata = service.getTableMetadata(table);
-        if (metadata == null) {
-            throw new SQLException("Could not get table metadata for table " + table);
-        }
+        Preconditions.checkState(metadata != null, "Could not get table metadata for table " + table);
+
         List<JdbcColumnMetadata> allCols = makeAllColumns(metadata);
         List<JdbcColumnMetadata> selectedCols = makeSelectedColumns(query.column_clause().column_list(), allCols);
         Map<String, JdbcColumnMetadata> indexMap = makeLabelOrNameToMetadata(selectedCols);

@@ -11,12 +11,14 @@ import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public enum TestSchema implements AtlasSchema {
     INSTANCE;
 
     private static final Namespace NAMESPACE = Namespace.create("test");
     public static final TableReference ONLY_TABLE =  TableReference.create(NAMESPACE, "only_table");
+    public static final TableReference DYNAMIC_COLUMN_TABLE =  TableReference.create(NAMESPACE, "dynamic_table");
     private static final Supplier<Schema> SCHEMA = Suppliers.memoize(TestSchema::generateSchema);
 
     private static Schema generateSchema() {
@@ -32,6 +34,18 @@ public enum TestSchema implements AtlasSchema {
                 columns();
                 column("base_object", "b", TestPersistence.TestObject.class, ColumnValueDescription.Compression.NONE);
             }});
+
+        schema.addTableDefinition(DYNAMIC_COLUMN_TABLE.getTablename(), new TableDefinition() {
+            {
+                rowName();
+                rowComponent("rowComp1",      ValueType.FIXED_LONG);
+                rowComponent("rowComp2", ValueType.STRING);
+                dynamicColumns();
+                columnComponent("colComp1",       ValueType.FIXED_LONG);
+                value(TestPersistence.TestObject.class);
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+            }});
+
         /* Schema definition end */
 
         schema.validate(); // ensure that the schema as constructed is valid.

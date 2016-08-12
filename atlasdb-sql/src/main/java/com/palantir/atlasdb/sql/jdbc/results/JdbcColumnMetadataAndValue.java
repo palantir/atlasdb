@@ -1,5 +1,7 @@
 package com.palantir.atlasdb.sql.jdbc.results;
 
+import java.util.Arrays;
+
 import com.google.common.base.MoreObjects;
 import com.google.protobuf.Message;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -50,7 +52,7 @@ public class JdbcColumnMetadataAndValue {
     public String toString() {
         return MoreObjects.toStringHelper(this)
                 .add("meta", meta)
-                .add("rawVal", rawVal)
+                .add("rawVal", Arrays.toString(rawVal))
                 .toString();
     }
 }

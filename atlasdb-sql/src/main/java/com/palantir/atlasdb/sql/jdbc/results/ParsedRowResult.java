@@ -35,12 +35,16 @@ public class ParsedRowResult {
                 columns.stream().filter(JdbcColumnMetadata::isCol).collect(Collectors.toList()),
                 resultBuilder);
         List<JdbcColumnMetadataAndValue> colsMeta = resultBuilder.build();
+        return new ParsedRowResult(colsMeta, buildIndex(colsMeta));
+    }
+
+    private static ImmutableMap<String, JdbcColumnMetadataAndValue> buildIndex(List<JdbcColumnMetadataAndValue> colsMeta) {
         ImmutableMap.Builder<String, JdbcColumnMetadataAndValue> indexBuilder = ImmutableMap.builder();
         indexBuilder.putAll(colsMeta.stream().collect(Collectors.toMap(JdbcColumnMetadataAndValue::getName, Function.identity())));
         indexBuilder.putAll(colsMeta.stream()
                 .filter(m -> !m.getLabel().equals(m.getName()))
                 .collect(Collectors.toMap(JdbcColumnMetadataAndValue::getLabel, Function.identity())));
-        return new ParsedRowResult(colsMeta, indexBuilder.build());
+        return indexBuilder.build();
     }
 
     private static void parseColumns(RowResult<byte[]> rawResult,
@@ -112,6 +116,10 @@ public class ParsedRowResult {
             throw new SQLException(String.format("column '%s' is not found in results", col));
         }
         return result.indexOf(labelOrNameToResult.get(col)) + 1;
+    }
+
+    public List<JdbcColumnMetadataAndValue> getResults() {
+        return result;
     }
 
     @Override

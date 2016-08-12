@@ -1,25 +1,13 @@
 // Generated from /Volumes/git/code/atlasdb/atlasdb-sql/src/main/antlr4/com/palantir/atlasdb/sql/grammar/generated/AtlasSQLParser.g4 by ANTLR 4.5
 package com.palantir.atlasdb.sql.grammar.generated;
-
-import java.util.List;
-
-import org.antlr.v4.runtime.FailedPredicateException;
-import org.antlr.v4.runtime.NoViableAltException;
-import org.antlr.v4.runtime.Parser;
-import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.RuleContext;
-import org.antlr.v4.runtime.RuntimeMetaData;
-import org.antlr.v4.runtime.TokenStream;
-import org.antlr.v4.runtime.Vocabulary;
-import org.antlr.v4.runtime.VocabularyImpl;
-import org.antlr.v4.runtime.atn.ATN;
-import org.antlr.v4.runtime.atn.ATNDeserializer;
-import org.antlr.v4.runtime.atn.ParserATNSimulator;
-import org.antlr.v4.runtime.atn.PredictionContextCache;
+import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
-import org.antlr.v4.runtime.tree.ParseTreeVisitor;
-import org.antlr.v4.runtime.tree.TerminalNode;
+import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.misc.*;
+import org.antlr.v4.runtime.tree.*;
+import java.util.List;
+import java.util.Iterator;
+import java.util.ArrayList;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast"})
 public class AtlasSQLParser extends Parser {
@@ -29,47 +17,47 @@ public class AtlasSQLParser extends Parser {
 	protected static final PredictionContextCache _sharedContextCache =
 		new PredictionContextCache();
 	public static final int
-		SELECT=1, FROM=2, STAR=3, WHERE=4, AND=5, OR=6, XOR=7, IS=8, NULL=9, LIKE=10,
-		IN=11, EXISTS=12, ALL=13, ANY=14, TRUE=15, FALSE=16, DIVIDE=17, MOD=18,
-		BETWEEN=19, REGEXP=20, PLUS=21, MINUS=22, NEGATION=23, VERTBAR=24, BITAND=25,
-		POWER_OP=26, BINARY=27, SHIFT_LEFT=28, SHIFT_RIGHT=29, ESCAPE=30, RPAREN=31,
-		LPAREN=32, RBRACK=33, LBRACK=34, COLON=35, ALL_FIELDS=36, EQ=37, LTH=38,
-		GTH=39, NOT_EQ=40, NOT=41, LET=42, GET=43, SEMI=44, COMMA=45, DOT=46,
-		COLLATE=47, INNER=48, OUTER=49, JOIN=50, CROSS=51, USING=52, INDEX=53,
-		KEY=54, ORDER=55, GROUP=56, BY=57, FOR=58, USE=59, IGNORE=60, PARTITION=61,
-		STRAIGHT_JOIN=62, NATURAL=63, LEFT=64, RIGHT=65, OJ=66, ON=67, ID=68,
+		SELECT=1, FROM=2, STAR=3, WHERE=4, AND=5, OR=6, XOR=7, IS=8, NULL=9, LIKE=10, 
+		IN=11, EXISTS=12, ALL=13, ANY=14, TRUE=15, FALSE=16, DIVIDE=17, MOD=18, 
+		BETWEEN=19, REGEXP=20, PLUS=21, MINUS=22, NEGATION=23, VERTBAR=24, BITAND=25, 
+		POWER_OP=26, BINARY=27, SHIFT_LEFT=28, SHIFT_RIGHT=29, ESCAPE=30, RPAREN=31, 
+		LPAREN=32, RBRACK=33, LBRACK=34, COLON=35, ALL_FIELDS=36, EQ=37, LTH=38, 
+		GTH=39, NOT_EQ=40, NOT=41, LET=42, GET=43, SEMI=44, COMMA=45, DOT=46, 
+		COLLATE=47, INNER=48, OUTER=49, JOIN=50, CROSS=51, USING=52, INDEX=53, 
+		KEY=54, ORDER=55, GROUP=56, BY=57, FOR=58, USE=59, IGNORE=60, PARTITION=61, 
+		STRAIGHT_JOIN=62, NATURAL=63, LEFT=64, RIGHT=65, OJ=66, ON=67, ID=68, 
 		INT=69, DECIMAL=70, NEWLINE=71, WS=72, USER_VAR=73;
 	public static final int
-		RULE_query = 0, RULE_select_query = 1, RULE_table_reference = 2, RULE_keyspace = 3,
-		RULE_table_name = 4, RULE_column_clause = 5, RULE_all_columns = 6, RULE_column_list = 7,
-		RULE_column_name = 8, RULE_where_clause = 9, RULE_expression = 10, RULE_relational_op = 11,
+		RULE_query = 0, RULE_select_query = 1, RULE_table_reference = 2, RULE_keyspace = 3, 
+		RULE_table_name = 4, RULE_column_clause = 5, RULE_all_columns = 6, RULE_column_list = 7, 
+		RULE_column_name = 8, RULE_where_clause = 9, RULE_expression = 10, RULE_relational_op = 11, 
 		RULE_is_or_is_not = 12, RULE_bool = 13;
 	public static final String[] ruleNames = {
-		"query", "select_query", "table_reference", "keyspace", "table_name",
-		"column_clause", "all_columns", "column_list", "column_name", "where_clause",
+		"query", "select_query", "table_reference", "keyspace", "table_name", 
+		"column_clause", "all_columns", "column_list", "column_name", "where_clause", 
 		"expression", "relational_op", "is_or_is_not", "bool"
 	};
 
 	private static final String[] _LITERAL_NAMES = {
-		null, "'select'", "'from'", "'*'", "'where'", null, null, "'xor'", "'is'",
-		"'null'", "'like'", "'in'", "'exists'", "'all'", "'any'", "'true'", "'false'",
-		null, null, "'between'", "'regexp'", "'+'", "'-'", "'~'", "'|'", "'&'",
-		"'^'", "'binary'", "'<<'", "'>>'", "'escape'", "')'", "'('", "']'", "'['",
-		"':'", "'.*'", "'='", "'<'", "'>'", "'!='", "'not'", "'<='", "'>='", "';'",
-		"','", "'.'", "'collate'", "'inner'", "'outer'", "'join'", "'cross'",
-		"'using'", "'index'", "'key'", "'order'", "'group'", "'by'", "'for'",
-		"'use'", "'ignore'", "'partition'", "'straight_join'", "'natural'", "'left'",
+		null, "'select'", "'from'", "'*'", "'where'", null, null, "'xor'", "'is'", 
+		"'null'", "'like'", "'in'", "'exists'", "'all'", "'any'", "'true'", "'false'", 
+		null, null, "'between'", "'regexp'", "'+'", "'-'", "'~'", "'|'", "'&'", 
+		"'^'", "'binary'", "'<<'", "'>>'", "'escape'", "')'", "'('", "']'", "'['", 
+		"':'", "'.*'", "'='", "'<'", "'>'", "'!='", "'not'", "'<='", "'>='", "';'", 
+		"','", "'.'", "'collate'", "'inner'", "'outer'", "'join'", "'cross'", 
+		"'using'", "'index'", "'key'", "'order'", "'group'", "'by'", "'for'", 
+		"'use'", "'ignore'", "'partition'", "'straight_join'", "'natural'", "'left'", 
 		"'right'", "'oj'", "'on'"
 	};
 	private static final String[] _SYMBOLIC_NAMES = {
-		null, "SELECT", "FROM", "STAR", "WHERE", "AND", "OR", "XOR", "IS", "NULL",
-		"LIKE", "IN", "EXISTS", "ALL", "ANY", "TRUE", "FALSE", "DIVIDE", "MOD",
-		"BETWEEN", "REGEXP", "PLUS", "MINUS", "NEGATION", "VERTBAR", "BITAND",
-		"POWER_OP", "BINARY", "SHIFT_LEFT", "SHIFT_RIGHT", "ESCAPE", "RPAREN",
-		"LPAREN", "RBRACK", "LBRACK", "COLON", "ALL_FIELDS", "EQ", "LTH", "GTH",
-		"NOT_EQ", "NOT", "LET", "GET", "SEMI", "COMMA", "DOT", "COLLATE", "INNER",
-		"OUTER", "JOIN", "CROSS", "USING", "INDEX", "KEY", "ORDER", "GROUP", "BY",
-		"FOR", "USE", "IGNORE", "PARTITION", "STRAIGHT_JOIN", "NATURAL", "LEFT",
+		null, "SELECT", "FROM", "STAR", "WHERE", "AND", "OR", "XOR", "IS", "NULL", 
+		"LIKE", "IN", "EXISTS", "ALL", "ANY", "TRUE", "FALSE", "DIVIDE", "MOD", 
+		"BETWEEN", "REGEXP", "PLUS", "MINUS", "NEGATION", "VERTBAR", "BITAND", 
+		"POWER_OP", "BINARY", "SHIFT_LEFT", "SHIFT_RIGHT", "ESCAPE", "RPAREN", 
+		"LPAREN", "RBRACK", "LBRACK", "COLON", "ALL_FIELDS", "EQ", "LTH", "GTH", 
+		"NOT_EQ", "NOT", "LET", "GET", "SEMI", "COMMA", "DOT", "COLLATE", "INNER", 
+		"OUTER", "JOIN", "CROSS", "USING", "INDEX", "KEY", "ORDER", "GROUP", "BY", 
+		"FOR", "USE", "IGNORE", "PARTITION", "STRAIGHT_JOIN", "NATURAL", "LEFT", 
 		"RIGHT", "OJ", "ON", "ID", "INT", "DECIMAL", "NEWLINE", "WS", "USER_VAR"
 	};
 	public static final Vocabulary VOCABULARY = new VocabularyImpl(_LITERAL_NAMES, _SYMBOLIC_NAMES);
@@ -664,7 +652,7 @@ public class AtlasSQLParser extends Parser {
 						}
 						break;
 					}
-					}
+					} 
 				}
 				setState(84);
 				_errHandler.sync(this);

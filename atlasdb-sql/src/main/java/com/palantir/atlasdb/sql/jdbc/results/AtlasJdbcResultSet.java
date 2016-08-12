@@ -23,6 +23,8 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.api.AtlasDbService;
@@ -41,6 +43,7 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     private RangeToken rangeToken;
     private Iterator<ParsedRowResult> curIter;
+
     private ParsedRowResult curResult;
 
     public static ResultSet create(AtlasDbService service,
@@ -48,7 +51,6 @@ public class AtlasJdbcResultSet implements ResultSet {
                                    SelectQuery query,
                                    AtlasJdbcStatement stmt) {
         RangeToken rangeToken = service.getRange(transactionToken, query.tableRange());
-        TableMetadata metadata = service.getTableMetadata(rangeToken.getResults().getTableName());
         return new AtlasJdbcResultSet(service, transactionToken, stmt, query, rangeToken);
     }
 
@@ -67,11 +69,13 @@ public class AtlasJdbcResultSet implements ResultSet {
     }
 
     private static Iterator<ParsedRowResult> makeIter(RangeToken rangeToken, SelectQuery query) {
-        return Iterables.filter(
-                Iterables.transform(
-                        rangeToken.getResults().getResults(),
-                        it -> ParsedRowResult.create(it, query.columns())),
-                query.postfilterPredicate()).iterator();
+        return StreamSupport.stream(StreamSupport.stream(rangeToken.getResults().getResults().spliterator(), false)
+                                    .map(it -> ParsedRowResult.create(it, query.columns()))
+                                    .collect(Collectors.toList())
+                                    .spliterator(), false)
+                .filter(query.postfilterPredicate()::apply)
+                .collect(Collectors.toList())
+                .iterator();
     }
 
     @Override
@@ -79,7 +83,6 @@ public class AtlasJdbcResultSet implements ResultSet {
         if (rangeToken == null) {
             return false;
         }
-
         if (curIter.hasNext()) {
             curResult = curIter.next();
             return true;
@@ -96,9 +99,15 @@ public class AtlasJdbcResultSet implements ResultSet {
         }
     }
 
+    public ParsedRowResult getCurResult() {
+        return curResult;
+    }
+
     @Override
     public void close() throws SQLException {
-        // TODO implement
+        rangeToken = null;
+        curIter = null;
+        curResult = null;
     }
 
     @Override
