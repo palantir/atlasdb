@@ -21,4 +21,7 @@
     <!-- Generated code should not be subjected to checkstyle. -->
     <suppress files="[/\\].*[/\\]generated_src[/\\]" checks="." />
     <suppress files="[/\\].*[/\\]generated_testSrc[/\\]" checks="." />
+
+    <!-- Temporarily suppress abbreviations. -->
+    <suppress files="[/\\](CQL.*KeyValueServices?|CQLStatementCache|StorageServiceMBean)\.java$" checks="AbbreviationAsWordInName" />
 </suppressions>

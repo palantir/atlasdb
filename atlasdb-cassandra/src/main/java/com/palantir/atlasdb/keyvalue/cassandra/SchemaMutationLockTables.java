@@ -66,12 +66,17 @@ public class SchemaMutationLockTables {
 
     private String getUniqueSuffix() {
         // We replace '-' with '_' as hyphens are forbidden in Cassandra table names.
-        return UUID.randomUUID().toString().replace('-','_');
+        return UUID.randomUUID().toString().replace('-', '_');
     }
 
     private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
-        CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), CassandraKeyValueService.internalTableName(tableRef));
+        CfDef cf = CassandraConstants.getStandardCfDef(
+                config.keyspace(),
+                CassandraKeyValueService.internalTableName(tableRef));
         client.system_add_column_family(cf);
-        CassandraKeyValueServices.waitForSchemaVersions(client, tableRef.getQualifiedName(), config.schemaMutationTimeoutMillis());
+        CassandraKeyValueServices.waitForSchemaVersions(
+                client,
+                tableRef.getQualifiedName(),
+                config.schemaMutationTimeoutMillis());
     }
 }
