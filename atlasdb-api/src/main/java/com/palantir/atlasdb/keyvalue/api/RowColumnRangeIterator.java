@@ -20,7 +20,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-@JsonTypeInfo(use=JsonTypeInfo.Id.CLASS, property="@class")
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@class")
 public interface RowColumnRangeIterator extends Iterator<Map.Entry<Cell, Value>> {
     //
 }

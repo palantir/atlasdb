@@ -22,14 +22,14 @@ public enum AtlasDbConstraintCheckingMode {
     PERFORMANCE_OPTIMAL_CONSTRAINT_CHECKING_LOGS_EXCEPTIONS(ShouldThrowException.NO),
     NO_CONSTRAINT_CHECKING(ShouldThrowException.NO);
 
-    private static enum ShouldThrowException {
+    private enum ShouldThrowException {
         YES,
         NO
     }
 
     private final ShouldThrowException shouldThrowException;
 
-    private AtlasDbConstraintCheckingMode(ShouldThrowException shouldThrowException) {
+    AtlasDbConstraintCheckingMode(ShouldThrowException shouldThrowException) {
         this.shouldThrowException = shouldThrowException;
     }
 

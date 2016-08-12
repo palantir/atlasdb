@@ -25,10 +25,13 @@ public class TransactionSerializableConflictException extends TransactionFailedR
         super(message);
     }
 
-    public static TransactionSerializableConflictException create(TableReference tableRef, long timestamp, long elapsedMillis) {
-        String msg = String.format("There was a read-write conflict on table %s.  This means that this table was " +
-                "marked as Serializable and another transacton wrote a different value than this transaction read.  " +
-                "startTs: %d  elapsedMillis: %d", tableRef.getQualifiedName(), timestamp, elapsedMillis);
+    public static TransactionSerializableConflictException create(
+            TableReference tableRef,
+            long timestamp,
+            long elapsedMillis) {
+        String msg = String.format("There was a read-write conflict on table %s.  This means that this table was "
+                + "marked as Serializable and another transacton wrote a different value than this transaction read.  "
+                + "startTs: %d  elapsedMillis: %d", tableRef.getQualifiedName(), timestamp, elapsedMillis);
         return new TransactionSerializableConflictException(msg);
     }
 

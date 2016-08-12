@@ -26,13 +26,15 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 /**
  * Thrown if there is a conflict detected when a transaction is committed.
- * If two concurrent transactions make calls to {@link Transaction#put(com.palantir.atlasdb.keyvalue.api.TableReference, java.util.Map)} or
- * {@link Transaction#delete(com.palantir.atlasdb.keyvalue.api.TableReference, Set)} for the same <code>Cell</code>, then this is a write-write conflict.
+ * If two concurrent transactions make calls to
+ * {@link Transaction#put(com.palantir.atlasdb.keyvalue.api.TableReference, java.util.Map)} or
+ * {@link Transaction#delete(com.palantir.atlasdb.keyvalue.api.TableReference, Set)} for the same <code>Cell</code>,
+ * then this is a write-write conflict.
  * <p>
  * The error message should be detailed about what caused the failure and what other transaction
  * conflicted with this one.
  */
-public class TransactionConflictException extends TransactionFailedRetriableException {
+public final class TransactionConflictException extends TransactionFailedRetriableException {
     private static final long serialVersionUID = 1L;
 
     public static class CellConflict implements Serializable {
@@ -59,17 +61,13 @@ public class TransactionConflictException extends TransactionFailedRetriableExce
 
         @Override
         public String toString() {
-            return "CellConflict [cell=" + cellString + ", theirStart=" + theirStart + ", theirCommit=" +
-                theirCommit + "]";
+            return "CellConflict [cell=" + cellString
+                    + ", theirStart=" + theirStart
+                    + ", theirCommit=" + theirCommit + "]";
         }
 
         public static Function<CellConflict, Cell> getCellFunction() {
-            return new Function<TransactionConflictException.CellConflict, Cell>() {
-                @Override
-                public Cell apply(CellConflict input) {
-                    return input.cell;
-                }
-            };
+            return input -> input.cell;
         }
     }
 
@@ -78,7 +76,6 @@ public class TransactionConflictException extends TransactionFailedRetriableExce
 
     /**
      * These conflicts had a start timestamp before our start and a commit timestamp after our start.
-     * @return
      */
     public Collection<CellConflict> getSpanningWrites() {
         return spanningWrites;
@@ -92,11 +89,20 @@ public class TransactionConflictException extends TransactionFailedRetriableExce
         return dominatingWrites;
     }
 
-    public static TransactionConflictException create(TableReference tableRef, long timestamp,
-                                                      Collection<CellConflict> spanningWrites, Collection<CellConflict> dominatingWrites, long elapsedMillis) {
+    public static TransactionConflictException create(
+            TableReference tableRef,
+            long timestamp,
+            Collection<CellConflict> spanningWrites,
+            Collection<CellConflict> dominatingWrites,
+            long elapsedMillis) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Transaction Conflict after " + elapsedMillis + " ms for table: "
-            + tableRef.getQualifiedName() + " with start timestamp: " + timestamp + "\n");
+        sb.append("Transaction Conflict after ")
+                .append(elapsedMillis)
+                .append(" ms for table: ")
+                .append(tableRef.getQualifiedName())
+                .append(" with start timestamp: ")
+                .append(timestamp)
+                .append('\n');
         if (!spanningWrites.isEmpty()) {
             sb.append("Another transaction wrote values before our start timestamp and committed after. Cells:\n");
             formatConflicts(spanningWrites, sb);
@@ -104,8 +110,8 @@ public class TransactionConflictException extends TransactionFailedRetriableExce
         }
 
         if (!dominatingWrites.isEmpty()) {
-            sb.append("Another transaction wrote and committed between our start and end ts. " +
-                "It is possible we are a long running transaction. Cells:\n");
+            sb.append("Another transaction wrote and committed between our start and end ts.")
+                    .append(" It is possible we are a long running transaction. Cells:\n");
             formatConflicts(dominatingWrites, sb);
             sb.append('\n');
         }

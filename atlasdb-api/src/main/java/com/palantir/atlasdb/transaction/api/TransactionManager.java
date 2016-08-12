@@ -43,7 +43,8 @@ public interface TransactionManager {
     <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E;
 
     /**
-     * {@link #runTaskWithRetry(TransactionTask)} should be preferred over {@link #runTaskThrowOnConflict(TransactionTask)}
+     * {@link #runTaskWithRetry(TransactionTask)} should be preferred over
+     * {@link #runTaskThrowOnConflict(TransactionTask)}.
      * This method should be used unless {@link #runTaskWithRetry(TransactionTask)} cannot be used becuase the arguments
      * passed are not immutable and will be modified by the transaction so doing automatic retry is unsafe.
      *
@@ -62,7 +63,8 @@ public interface TransactionManager {
      *
      * @throws TransactionConflictException if a write-write conflict occurs
      */
-    <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
+    <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task)
+            throws E, TransactionFailedRetriableException;
 
     /**
      * Most atlasdb TransactionManagers will provide {@link Transaction} objects that have less than full
