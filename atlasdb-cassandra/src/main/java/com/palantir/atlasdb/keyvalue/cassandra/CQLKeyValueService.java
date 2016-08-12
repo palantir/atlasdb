@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -64,6 +65,7 @@ import com.datastax.driver.core.policies.TokenAwarePolicy;
 import com.datastax.driver.core.policies.WhiteListPolicy;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -84,6 +86,8 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.TreeMultimap;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -343,18 +347,20 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                                                     final Iterable<byte[]> rows,
                                                     final long startTs) throws Exception {
         int rowCount = 0;
-        String getRowsQuery = "SELECT * FROM " + getFullTableName(tableRef) + " WHERE " + fieldName.row() + " = ?";
         Map<Cell, Value> result = Maps.newHashMap();
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         int fetchBatchCount = config.fetchBatchCount();
         for (final List<byte[]> batch : Iterables.partition(rows, fetchBatchCount)) {
             rowCount += batch.size();
             List<ResultSetFuture> resultSetFutures = Lists.newArrayListWithExpectedSize(rowCount);
+            String getRowsQuery = "SELECT * FROM " + getFullTableName(tableRef) + " WHERE " + fieldName.row() + " IN ("
+                    + Joiner.on(",").join(Iterables.limit(Iterables.cycle("?"), batch.size())) + ")";
             PreparedStatement preparedStatement = getPreparedStatement(tableRef, getRowsQuery, session);
-            for (byte[] row : batch) {
-                BoundStatement boundStatement = preparedStatement.bind(ByteBuffer.wrap(row));
-                resultSetFutures.add(session.executeAsync(boundStatement));
+            Object[] args = new Object[batch.size()];
+            for (int i = 0; i < batch.size(); i++) {
+                args[i] = ByteBuffer.wrap(batch.get(i));
             }
+            resultSetFutures.add(session.executeAsync(preparedStatement.bind(args)));
             for (ResultSetFuture resultSetFuture : resultSetFutures) {
                 ResultSet resultSet;
                 try {
@@ -417,30 +423,44 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                             boolean loadAllTs,
                             final Visitor<Multimap<Cell, Value>> v,
                             final ConsistencyLevel consistency) throws Exception {
-        final String loadWithTsQuery = "SELECT * FROM " + getFullTableName(tableRef) + " "
-                + "WHERE " + fieldName.row() + " = ? AND " + fieldName.column() + " = ? AND " + fieldName.timestamp()
-                + " > ?" + (!loadAllTs ? " LIMIT 1" : "");
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        if (cells.size() > config.fetchBatchCount()) {
-            log.warn("A call to " + tableRef
-                    + " is performing a multiget " + cells.size()
-                    + " cells; this may indicate overly-large batching on a higher level.\n"
-                    + CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
-        }
-        final PreparedStatement preparedStatement = getPreparedStatement(tableRef, loadWithTsQuery, session).setConsistencyLevel(consistency);
+
         List<ResultSetFuture> resultSetFutures = Lists.newArrayListWithCapacity(cells.size());
-
+        TreeMultimap<byte[], Cell> cellsByCol =
+                TreeMultimap.create(UnsignedBytes.lexicographicalComparator(), Ordering.natural());
         for (Cell cell : cells) {
-            ResultSetFuture resultSetFuture = session.executeAsync(
-                    preparedStatement.bind(
-                            ByteBuffer.wrap(cell.getRowName()),
-                            ByteBuffer.wrap(cell.getColumnName()),
-                            ~startTs));
-            resultSetFutures.add(resultSetFuture);
+            cellsByCol.put(cell.getColumnName(), cell);
+        }
+        for (Entry<byte[], SortedSet<Cell>> entry : Multimaps.asMap(cellsByCol).entrySet()) {
+            if (entry.getValue().size() > config.fetchBatchCount()) {
+                log.warn("A call to " + tableRef
+                        + " is performing a multiget " + entry.getValue().size()
+                        + " cells; this may indicate overly-large batching on a higher level.\n"
+                        + CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
+            }
+            for (List<Cell> batch : Iterables.partition(entry.getValue(), config.fetchBatchCount())) {
+                String rowBinds = Joiner.on(",").join(Iterables.limit(Iterables.cycle('?'), batch.size()));
+                final String loadWithTsQuery = "SELECT * FROM " + getFullTableName(tableRef) + " "
+                        + "WHERE " + fieldName.row() + " IN (" + rowBinds + ") AND " + fieldName.column()
+                        + " = ? AND " + fieldName.timestamp() + " > ?" + (!loadAllTs ? " LIMIT 1" : "");
+                final PreparedStatement preparedStatement = getPreparedStatement(tableRef, loadWithTsQuery, session).setConsistencyLevel(consistency);
+                Object[] args = new Object[batch.size() + 2];
+                for (int i = 0; i < batch.size(); i++) {
+                    args[i] = ByteBuffer.wrap(batch.get(i).getRowName());
+                }
+                args[batch.size()] = ByteBuffer.wrap(entry.getKey());
+                args[batch.size() + 1] = ~startTs;
+                ResultSetFuture resultSetFuture = session.executeAsync(
+                        preparedStatement.bind(args));
+                resultSetFutures.add(resultSetFuture);
+            }
         }
 
+        String loggedLoadWithTsQuery = "SELECT * FROM " + getFullTableName(tableRef) + " "
+                + "WHERE " + fieldName.row() + " IN (?, ...) AND " + fieldName.column()
+                + " = ? AND " + fieldName.timestamp() + " > ?" + (!loadAllTs ? " LIMIT 1" : "");
         for (ResultSetFuture rsf : resultSetFutures) {
-            visitResults(rsf.getUninterruptibly(), v, loadWithTsQuery, loadAllTs);
+            visitResults(rsf.getUninterruptibly(), v, loggedLoadWithTsQuery, loadAllTs);
         }
     }
 
