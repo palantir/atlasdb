@@ -26,8 +26,6 @@ public class WhereClauseVisitor extends AtlasSQLParserBaseVisitor<Object> {
                 String r = lookupIfPossible(right, res);
                 return fuzzyCompare(l, r, rel);
             };
-        } else if (ctx.bool() != null) {
-
         } else if (ctx.DECIMAL() != null || ctx.bool() != null || ctx.ID() != null) {
             return ctx.getText();
         }
