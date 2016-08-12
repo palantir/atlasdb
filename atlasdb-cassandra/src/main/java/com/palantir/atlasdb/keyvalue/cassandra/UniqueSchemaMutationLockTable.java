@@ -29,6 +29,8 @@ import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class UniqueSchemaMutationLockTable {
     private static final Logger log = LoggerFactory.getLogger(UniqueSchemaMutationLockTable.class);
     private final SchemaMutationLockTables schemaMutationLockTables;
@@ -55,6 +57,7 @@ public class UniqueSchemaMutationLockTable {
         }
     }
 
+    @SuppressFBWarnings("SWL_SLEEP_WITH_LOCK_HELD")
     private synchronized TableReference waitForSomeoneElseToCreateLockTable() throws TException {
         while (schemaMutationLockTables.getAllLockTables().isEmpty()) {
             try {

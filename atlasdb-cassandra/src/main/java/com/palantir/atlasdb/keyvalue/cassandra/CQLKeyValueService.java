@@ -19,7 +19,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -30,6 +29,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLContext;
 
@@ -1030,16 +1030,10 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     private void createKeyspace(String keyspaceName, Set<String> dcsInCluster) {
         String createKeyspace = "create keyspace if not exists %s with replication = %s and durable_writes = true";
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        String replication;
-        replication = "{ 'class' : 'NetworkTopologyStrategy', ";
-        for (Iterator<String> iter = dcsInCluster.iterator(); iter.hasNext(); ) {
-            String datacenter = iter.next();
-            replication += "'" + datacenter + "' : " + config.replicationFactor();
-            if (iter.hasNext()) {
-                replication += ", ";
-            }
-        }
-        replication += "} ";
+
+        String replication = dcsInCluster.stream()
+                .map(datacenter -> "'" + datacenter + "' : " + config.replicationFactor())
+                .collect(Collectors.joining(", ", "{ 'class' : 'NetworkTopologyStrategy', ", "} "));
 
         longRunningQuerySession.execute(
                 getPreparedStatement(CassandraConstants.NO_TABLE,

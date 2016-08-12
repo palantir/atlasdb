@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -104,6 +105,23 @@ public class CassandraClientPool {
         @Override
         public int compareTo(LightweightOppToken other) {
             return UnsignedBytes.lexicographicalComparator().compare(this.bytes, other.bytes);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null || getClass() != obj.getClass()) {
+                return false;
+            }
+            LightweightOppToken that = (LightweightOppToken) obj;
+            return Arrays.equals(bytes, that.bytes);
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(bytes);
         }
 
         @Override
