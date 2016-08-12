@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.sql.grammar;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -29,7 +30,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 @Value.Immutable
 public abstract class SelectQuery {
 
-    public static SelectQuery create(String sql, AtlasDbService service) {
+    public static SelectQuery create(String sql, AtlasDbService service) throws SQLException {
         AtlasSQLLexer lexer = new AtlasSQLLexer(new ANTLRInputStream(sql.toLowerCase()));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         AtlasSQLParser parser = new AtlasSQLParser(tokens);
@@ -38,6 +39,9 @@ public abstract class SelectQuery {
 
         String table = query.table_reference().getText();
         TableMetadata metadata = service.getTableMetadata(table);
+        if (metadata == null) {
+            throw new SQLException("Could not get table metadata for table " + table);
+        }
         List<JdbcColumnMetadata> allCols = makeAllColumns(metadata);
         List<JdbcColumnMetadata> selectedCols = makeSelectedColumns(query.column_clause().column_list(), allCols);
         Map<String, JdbcColumnMetadata> indexMap = makeLabelOrNameToMetadata(selectedCols);

@@ -104,7 +104,7 @@ public class ParsedRowResult {
                     case PERSISTABLE:
                         break;
                     case VALUE_TYPE:
-                        break;
+                        return res.getValueAsSimpleType();
                     case PERSISTER:
                         return res.getValueAsSimpleType();
                 }
