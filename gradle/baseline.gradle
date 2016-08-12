@@ -16,7 +16,6 @@ List<String> blacklistedBaselineProjects = [
         'atlasdb-ete-test-utils',
         'atlasdb-ete-tests',
         'atlasdb-exec',
-        'atlasdb-hikari',
         'atlasdb-impl-shared',
         'atlasdb-jdbc',
         'atlasdb-jdbc-tests',
