@@ -47,7 +47,8 @@ public class UniqueSchemaMutationLockTable {
                 case SOMEONE_ELSE_IS_THE_LOCK_LEADER:
                     return waitForSomeoneElseToCreateLockTable();
                 default:
-                    throw new RuntimeException("We encountered an unknown lock leader status, please contact the AtlasDB team");
+                    throw new RuntimeException(
+                            "We encountered an unknown lock leader status, please contact the AtlasDB team");
             }
         } catch (TException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
@@ -80,15 +81,13 @@ public class UniqueSchemaMutationLockTable {
         Set<TableReference> lockTables = schemaMutationLockTables.getAllLockTables();
 
         if (lockTables.size() > 1) {
-            throw new IllegalStateException(
-                    "Multiple schema mutation lock tables have been created.\n" +
-                            "This happens when multiple nodes have themselves as lockLeader in the configuration.\n" +
-                            "Please ensure the lockLeader is the same for each node, stop all Atlas clients using " +
-                            "this keyspace, restart your cassandra cluster and delete all created schema mutation lock tables.\n" +
-                            "The tables that clashed were: " + lockTables);
+            throw new IllegalStateException("Multiple schema mutation lock tables have been created.\n"
+                    + "This happens when multiple nodes have themselves as lockLeader in the configuration.\n"
+                    + "Please ensure the lockLeader is the same for each node, stop all Atlas clients using this "
+                    + "keyspace, restart your cassandra cluster and delete all created schema mutation lock tables.\n"
+                    + "The tables that clashed were: " + lockTables);
         }
 
         return Iterables.getOnlyElement(lockTables);
     }
-
 }

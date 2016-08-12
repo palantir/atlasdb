@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
@@ -43,12 +42,13 @@ import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.common.base.Throwables;
 
 
-public class CQLExpiringKeyValueService extends CQLKeyValueService implements ExpiringKeyValueService {
+public final class CQLExpiringKeyValueService extends CQLKeyValueService implements ExpiringKeyValueService {
 
     public static CQLExpiringKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
         Preconditions.checkState(!configManager.getConfig().servers().isEmpty(), "address list was empty");
 
-        Optional<CassandraJmxCompactionManager> compactionManager = CassandraJmxCompaction.createJmxCompactionManager(configManager);
+        Optional<CassandraJmxCompactionManager> compactionManager =
+                CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CQLExpiringKeyValueService kvs = new CQLExpiringKeyValueService(configManager, compactionManager);
         kvs.initializeConnectionPool();
         kvs.performInitialSetup();
@@ -61,25 +61,37 @@ public class CQLExpiringKeyValueService extends CQLKeyValueService implements Ex
     }
 
     @Override
-    public void put(final TableReference tableRef, final Map<Cell, byte[]> values, final long timestamp, final long time, final TimeUnit unit) {
+    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp, long time, TimeUnit unit) {
         try {
-            putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp), TransactionType.NONE, CassandraKeyValueServices.convertTtl(time, unit), false);
+            putInternal(
+                    tableRef,
+                    KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp),
+                    TransactionType.NONE,
+                    CassandraKeyValueServices.convertTtl(time, unit), false);
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
     }
 
     @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values, final long time, final TimeUnit unit) {
+    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values, long time, TimeUnit unit) {
         try {
-            putInternal(tableRef, values.entries(), TransactionType.NONE, CassandraKeyValueServices.convertTtl(time, unit), false);
+            putInternal(
+                    tableRef,
+                    values.entries(),
+                    TransactionType.NONE,
+                    CassandraKeyValueServices.convertTtl(time, unit), false);
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp, final long time, final TimeUnit unit) throws KeyAlreadyExistsException {
+    public void multiPut(
+            Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
+            long timestamp,
+            long time,
+            TimeUnit unit) throws KeyAlreadyExistsException {
         Map<ResultSetFuture, TableReference> resultSetFutures = Maps.newHashMap();
         for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
             final TableReference table = e.getKey();
@@ -87,17 +99,22 @@ public class CQLExpiringKeyValueService extends CQLKeyValueService implements Ex
             NavigableMap<Cell, byte[]> sortedMap = ImmutableSortedMap.copyOf(e.getValue());
 
 
-            Iterable<List<Entry<Cell, byte[]>>> partitions = partitionByCountAndBytes(sortedMap.entrySet(),
-                    getMultiPutBatchCount(), getMultiPutBatchSizeBytes(), table, CQLKeyValueServices.MULTIPUT_ENTRY_SIZING_FUNCTION);
+            Iterable<List<Entry<Cell, byte[]>>> partitions = partitionByCountAndBytes(
+                    sortedMap.entrySet(),
+                    getMultiPutBatchCount(),
+                    getMultiPutBatchSizeBytes(),
+                    table,
+                    CQLKeyValueServices.MULTIPUT_ENTRY_SIZING_FUNCTION);
 
 
             for (final List<Entry<Cell, byte[]>> p : partitions) {
-                List<Entry<Cell, Value>> partition = Lists.transform(p, new Function<Entry<Cell, byte[]>, Entry<Cell, Value>>() {
-                    @Override
-                    public Entry<Cell, Value> apply(Entry<Cell, byte[]> input) {
-                        return Maps.immutableEntry(input.getKey(), Value.create(input.getValue(), timestamp));
-                    }});
-                resultSetFutures.put(getPutPartitionResultSetFuture(table, partition, TransactionType.NONE,  CassandraKeyValueServices.convertTtl(time, unit)), table);
+                List<Entry<Cell, Value>> partition = Lists.transform(p,
+                        input -> Maps.immutableEntry(input.getKey(), Value.create(input.getValue(), timestamp)));
+                resultSetFutures.put(getPutPartitionResultSetFuture(
+                        table,
+                        partition,
+                        TransactionType.NONE,
+                        CassandraKeyValueServices.convertTtl(time, unit)), table);
             }
         }
 
@@ -109,7 +126,12 @@ public class CQLExpiringKeyValueService extends CQLKeyValueService implements Ex
             } catch (Throwable t) {
                 throw Throwables.throwUncheckedException(t);
             }
-            cqlKeyValueServices.logTracedQuery(getPutQuery(result.getValue(), CassandraKeyValueServices.convertTtl(time, unit)), resultSet, session, cqlStatementCache.NORMAL_QUERY);
+            cqlKeyValueServices.logTracedQuery(getPutQuery(
+                    result.getValue(),
+                    CassandraKeyValueServices.convertTtl(time, unit)),
+                    resultSet,
+                    session,
+                    cqlStatementCache.normalQuery);
         }
     }
 

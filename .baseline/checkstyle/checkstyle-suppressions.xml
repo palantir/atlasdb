@@ -22,6 +22,6 @@
     <suppress files="[/\\].*[/\\]generated_src[/\\]" checks="." />
     <suppress files="[/\\].*[/\\]generated_testSrc[/\\]" checks="." />
 
-    <!-- Temporarily suppress abbreviations in files that have KV in their name (examples: TransactionKVSWrapper, KVTableMappingService). -->
-    <suppress files="KV.*\.java$" checks="AbbreviationAsWordInName" />
+    <!-- Temporarily suppress abbreviations. -->
+    <suppress files="[/\\](.*KV.*|CQL.*KeyValueServices?|CQLStatementCache|StorageServiceMBean)\.java$" checks="AbbreviationAsWordInName" />
 </suppressions>
