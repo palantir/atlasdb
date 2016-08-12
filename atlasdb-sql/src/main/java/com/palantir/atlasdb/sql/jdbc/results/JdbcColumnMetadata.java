@@ -1,6 +1,7 @@
 package com.palantir.atlasdb.sql.jdbc.results;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
+
 import com.google.common.base.Preconditions;
 import com.google.protobuf.Message;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -16,17 +17,17 @@ public class JdbcColumnMetadata {
     private final Optional<NamedOrDynamicColumnDescription> col;
 
     public static JdbcColumnMetadata create(NameComponentDescription rowComp) {
-        return new JdbcColumnMetadata(Optional.of(rowComp), Optional.absent());
+        return new JdbcColumnMetadata(Optional.of(rowComp), Optional.empty());
     }
 
     public static JdbcColumnMetadata create(NamedColumnDescription col) {
-        return new JdbcColumnMetadata(Optional.absent(),
-                Optional.of(new NamedOrDynamicColumnDescription(col.getLongName(), col.getShortName(), col.getValue())));
+        return new JdbcColumnMetadata(Optional.empty(),
+                                      Optional.of(new NamedOrDynamicColumnDescription(col.getLongName(), col.getShortName(), col.getValue())));
     }
 
     public static JdbcColumnMetadata create(DynamicColumnDescription col) {
-        return new JdbcColumnMetadata(Optional.absent(),
-                Optional.of(new NamedOrDynamicColumnDescription(DYNAMIC_COLUMN_LABEL, DYNAMIC_COLUMN_LABEL, col.getValue())));
+        return new JdbcColumnMetadata(Optional.empty(),
+                                      Optional.of(new NamedOrDynamicColumnDescription(DYNAMIC_COLUMN_LABEL, DYNAMIC_COLUMN_LABEL, col.getValue())));
     }
 
     private JdbcColumnMetadata(Optional<NameComponentDescription> rowComp, Optional<NamedOrDynamicColumnDescription> col) {

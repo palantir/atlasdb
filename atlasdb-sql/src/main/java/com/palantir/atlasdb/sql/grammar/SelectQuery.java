@@ -55,9 +55,11 @@ public abstract class SelectQuery {
     private static List<JdbcColumnMetadata> makeAllColumns(TableMetadata metadata) {
         List<JdbcColumnMetadata> allCols = Lists.newArrayList();
         allCols.addAll(metadata.getRowMetadata().getRowParts().stream()
-                .map(JdbcColumnMetadata::create).collect(Collectors.toList()));
-        allCols.addAll(metadata.getColumns().getNamedColumns().stream()
-                .map(JdbcColumnMetadata::create).collect(Collectors.toList()));
+                               .map(JdbcColumnMetadata::create).collect(Collectors.toList()));
+        if (metadata.getColumns().getNamedColumns() != null) {
+            allCols.addAll(metadata.getColumns().getNamedColumns().stream()
+                                   .map(JdbcColumnMetadata::create).collect(Collectors.toList()));
+        }
         if (metadata.getColumns().getDynamicColumn() != null) {
             allCols.add(JdbcColumnMetadata.create(metadata.getColumns().getDynamicColumn()));
         }

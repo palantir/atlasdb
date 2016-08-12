@@ -42,9 +42,6 @@ public class ParsedRowResult {
     public static ParsedRowResult create(RowResult<byte[]> rawResult, List<JdbcColumnMetadata> columns) {
         if (columns.stream().anyMatch(JdbcColumnMetadata::isDynCol)) {
 
-
-
-
         }
 
         ImmutableList.Builder<JdbcColumnMetadataAndValue> resultBuilder = ImmutableList.builder();

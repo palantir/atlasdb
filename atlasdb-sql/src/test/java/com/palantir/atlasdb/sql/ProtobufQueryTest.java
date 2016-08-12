@@ -99,7 +99,6 @@ public class ProtobufQueryTest {
                 .build();
     }
 
-
     @After
     public void teardown() throws SQLException, ClassNotFoundException {
     }
