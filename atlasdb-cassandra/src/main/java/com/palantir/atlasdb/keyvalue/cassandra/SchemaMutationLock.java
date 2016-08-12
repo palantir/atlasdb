@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -240,7 +241,7 @@ public class SchemaMutationLock {
     private Column lockColumnWithValue(byte[] value) {
         return new Column()
                 .setName(CassandraKeyValueServices.makeCompositeBuffer(
-                        CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(),
+                        CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8),
                         AtlasDbConstants.TRANSACTION_TS).array())
                 .setValue(value) // expected previous
                 .setTimestamp(AtlasDbConstants.TRANSACTION_TS);

@@ -1474,20 +1474,24 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         try {
             clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
                 KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
-                Set<TableReference> tablesToCreate = tableNamesToTableMetadata.keySet();
                 Set<TableReference> existingTablesLowerCased = Sets.newHashSet();
 
                 for (CfDef cf : ks.getCf_defs()) {
                     existingTablesLowerCased.add(fromInternalTableName(cf.getName().toLowerCase()));
                 }
 
-                for (TableReference table : tablesToCreate) {
+
+                Set<Entry<TableReference, byte[]>> tablesToCreate = tableNamesToTableMetadata.entrySet();
+                for (Entry<TableReference, byte[]> tableAndMetadataPair : tablesToCreate) {
+                    TableReference table = tableAndMetadataPair.getKey();
+                    byte[] metadata = tableAndMetadataPair.getValue();
+
                     CassandraVerifier.sanityCheckTableName(table);
 
                     TableReference tableRefLowerCased = TableReference
                             .createUnsafe(table.getQualifiedName().toLowerCase());
                     if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
-                        client.system_add_column_family(getCfForTable(table, tableNamesToTableMetadata.get(table)));
+                        client.system_add_column_family(getCfForTable(table, metadata));
                     } else {
                         log.warn("Ignored call to create a table ({}) that already existed (case insensitive).", table);
                     }
@@ -1556,14 +1560,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public Map<TableReference, byte[]> getMetadataForTables() {
         Map<TableReference, byte[]> tableToMetadataContents = Maps.newHashMap();
         try (ClosableIterator<RowResult<Value>> range =
-                getRange(AtlasDbConstants.METADATA_TABLE, RangeRequest.all(), Long.MAX_VALUE);) {
+                getRange(AtlasDbConstants.METADATA_TABLE, RangeRequest.all(), Long.MAX_VALUE)) {
             while (range.hasNext()) {
                 RowResult<Value> valueRow = range.next();
                 Iterable<Entry<Cell, Value>> cells = valueRow.getCells();
 
                 for (Entry<Cell, Value> entry : cells) {
                     Value value = entry.getValue();
-                    TableReference tableRef = TableReference.createUnsafe(new String(entry.getKey().getRowName()));
+                    TableReference tableRef = tableReferenceFromBytes(entry.getKey().getRowName());
                     byte[] contents;
                     if (value == null) {
                         contents = AtlasDbConstants.EMPTY_TABLE_METADATA;
@@ -1579,12 +1583,21 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return tableToMetadataContents;
     }
 
-    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
-    private Cell getMetadataCell(TableReference tableRef) {
+    private static Cell getMetadataCell(TableReference tableRef) {
         // would have preferred an explicit charset, but thrift uses default internally
         return Cell.create(
-                tableRef.getQualifiedName().getBytes(Charset.defaultCharset()),
+                tableReferenceToBytes(tableRef),
                 "m".getBytes(StandardCharsets.UTF_8));
+    }
+
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
+    private static TableReference tableReferenceFromBytes(byte[] name) {
+        return TableReference.createUnsafe(new String(name, Charset.defaultCharset()));
+    }
+
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
+    private static byte[] tableReferenceToBytes(TableReference tableRef) {
+        return tableRef.getQualifiedName().getBytes(Charset.defaultCharset());
     }
 
     @Override
@@ -1597,6 +1610,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         internalPutMetadataForTables(tableRefToMetadata, true);
     }
 
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
     private void internalPutMetadataForTables(
             Map<TableReference, byte[]> unfilteredTableNameToMetadata,
             boolean possiblyNeedToPerformSettingsChanges) {
@@ -1627,7 +1641,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             if (val == null || !Arrays.equals(val.getContents(), entry.getValue())) {
                 newMetadata.put(entry.getKey(), entry.getValue());
                 updatedCfs.add(getCfForTable(
-                        TableReference.createUnsafe(new String(entry.getKey().getRowName())),
+                        tableReferenceFromBytes(entry.getKey().getRowName()),
                         entry.getValue()));
             }
         }

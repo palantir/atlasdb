@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetAddress;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -55,6 +57,8 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.visitor.Visitor;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public final class CQLKeyValueServices {
     private static final Logger log = LoggerFactory.getLogger(CQLKeyValueService.class); // not a typo
 
@@ -82,6 +86,7 @@ public final class CQLKeyValueServices {
     private static final int MAX_TRIES = 20;
     private static final long TRACE_RETRIEVAL_MS_BETWEEN_TRIES = 500;
 
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
     public void logTracedQuery(
             String tracedQuery,
             ResultSet resultSet,
@@ -155,6 +160,7 @@ public final class CQLKeyValueServices {
         }
     }
 
+    @SuppressFBWarnings("URF_UNREAD_FIELD")
     static class Peer {
         InetAddress peer;
         String dataCenter;
@@ -186,6 +192,7 @@ public final class CQLKeyValueServices {
         return peers;
     }
 
+    @SuppressFBWarnings("URF_UNREAD_FIELD")
     static class Local {
         String dataCenter;
         String rack;
@@ -410,7 +417,10 @@ public final class CQLKeyValueServices {
         }
     }
 
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
     static Cell getMetadataCell(TableReference tableRef) {
-        return Cell.create(tableRef.getQualifiedName().getBytes(), "m".getBytes());
+        return Cell.create(
+                tableRef.getQualifiedName().getBytes(Charset.defaultCharset()),
+                "m".getBytes(StandardCharsets.UTF_8));
     }
 }
