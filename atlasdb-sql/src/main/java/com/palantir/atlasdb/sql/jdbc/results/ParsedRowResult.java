@@ -33,11 +33,10 @@ public class ParsedRowResult {
 
     static Iterator<ParsedRowResult> makeIterator(Iterable<RowResult<byte[]>> results,
                                                   Predicate<ParsedRowResult> predicate,
-                                                  List<JdbcColumnMetadata> selectedColumns,
                                                   List<JdbcColumnMetadata> allColumns,
-                                                  Map<String, JdbcColumnMetadataAndValue> index) {
+                                                  List<JdbcColumnMetadata> selectedColumns) {
         return StreamSupport.stream(StreamSupport.stream(results.spliterator(), false)
-                                                 .flatMap(it -> create(it, selectedColumns, allColumns, index).stream())
+                                                 .flatMap(it -> create(it, allColumns, selectedColumns).stream())
                                                  .collect(Collectors.toList())
                                                  .spliterator(), false)
                             .filter(predicate)
@@ -49,8 +48,8 @@ public class ParsedRowResult {
      * or empty, if the columns are dynamic.
      */
     private static List<ParsedRowResult> parseDynamic(RowResult<byte[]> rawResult,
-                                                      List<JdbcColumnMetadata> selectedColumns,
-                                                      List<JdbcColumnMetadata> allColumns) {
+                                                      List<JdbcColumnMetadata> allColumns,
+                                                      List<JdbcColumnMetadata> selectedColumns) {
         ImmutableList.Builder<JdbcColumnMetadataAndValue> rowBuilder = ImmutableList.builder();
         parseComponents(rawResult.getRowName(),
                         selectedColumns.stream().filter(JdbcColumnMetadata::isRowComp).collect(Collectors.toList()),
@@ -76,12 +75,11 @@ public class ParsedRowResult {
      * or empty, if the columns are dynamic.
      */
     private static List<ParsedRowResult> create(RowResult<byte[]> rawResult,
-                                                List<JdbcColumnMetadata> selectedColumns,
                                                 List<JdbcColumnMetadata> allColumns,
-                                                Map<String, JdbcColumnMetadataAndValue> index) {
+                                                List<JdbcColumnMetadata> selectedColumns) {
 
         if (selectedColumns.size() == 0 || JdbcColumnMetadata.anyDynamicColumns(selectedColumns)) {
-            return parseDynamic(rawResult, selectedColumns, allColumns);
+            return parseDynamic(rawResult, allColumns, selectedColumns);
         } else {
             return parseStandard(rawResult, selectedColumns);
         }

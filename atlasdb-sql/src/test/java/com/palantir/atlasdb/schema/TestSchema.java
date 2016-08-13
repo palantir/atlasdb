@@ -28,20 +28,20 @@ public enum TestSchema implements AtlasSchema {
         schema.addTableDefinition(ONLY_TABLE.getTablename(), new TableDefinition() {
             {
                 rowName();
-                rowComponent("object_id", ValueType.STRING);
+                    rowComponent("object_id", ValueType.STRING);
                 columns();
-                column("base_object", "b", TestPersistence.TestObject.class, ColumnValueDescription.Compression.NONE);
+                    column("base_object", "b", TestPersistence.TestObject.class, ColumnValueDescription.Compression.NONE);
             }});
 
         schema.addTableDefinition(DYNAMIC_COLUMN_TABLE.getTablename(), new TableDefinition() {
             {
                 rowName();
-                rowComponent("rowComp1",    ValueType.FIXED_LONG);
-                rowComponent("rowComp2",    ValueType.STRING);
+                    rowComponent("rowComp1",    ValueType.FIXED_LONG);
+                    rowComponent("rowComp2",    ValueType.STRING);
                 dynamicColumns();
-                columnComponent("colComp1", ValueType.FIXED_LONG);
-                columnComponent("colComp2", ValueType.STRING);
-                value(TestPersistence.TestObject.class);
+                    columnComponent("colComp1", ValueType.FIXED_LONG);
+                    columnComponent("colComp2", ValueType.STRING);
+                    value(TestPersistence.TestObject.class);
                 conflictHandler(ConflictHandler.IGNORE_ALL);
             }});
 
