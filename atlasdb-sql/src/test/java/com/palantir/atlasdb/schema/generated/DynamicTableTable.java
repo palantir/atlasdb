@@ -238,22 +238,29 @@ public final class DynamicTableTable implements
      * <pre>
      * DynamicTableColumn {
      *   {@literal Long colComp1};
+     *   {@literal Long colComp2};
      * }
      * </pre>
      */
     public static final class DynamicTableColumn implements Persistable, Comparable<DynamicTableColumn> {
         private final long colComp1;
+        private final long colComp2;
 
-        public static DynamicTableColumn of(long colComp1) {
-            return new DynamicTableColumn(colComp1);
+        public static DynamicTableColumn of(long colComp1, long colComp2) {
+            return new DynamicTableColumn(colComp1, colComp2);
         }
 
-        private DynamicTableColumn(long colComp1) {
+        private DynamicTableColumn(long colComp1, long colComp2) {
             this.colComp1 = colComp1;
+            this.colComp2 = colComp2;
         }
 
         public long getColComp1() {
             return colComp1;
+        }
+
+        public long getColComp2() {
+            return colComp2;
         }
 
         public static Function<DynamicTableColumn, Long> getColComp1Fun() {
@@ -265,11 +272,11 @@ public final class DynamicTableTable implements
             };
         }
 
-        public static Function<Long, DynamicTableColumn> fromColComp1Fun() {
-            return new Function<Long, DynamicTableColumn>() {
+        public static Function<DynamicTableColumn, Long> getColComp2Fun() {
+            return new Function<DynamicTableColumn, Long>() {
                 @Override
-                public DynamicTableColumn apply(Long row) {
-                    return DynamicTableColumn.of(row);
+                public Long apply(DynamicTableColumn row) {
+                    return row.colComp2;
                 }
             };
         }
@@ -277,7 +284,8 @@ public final class DynamicTableTable implements
         @Override
         public byte[] persistToBytes() {
             byte[] colComp1Bytes = PtBytes.toBytes(Long.MIN_VALUE ^ colComp1);
-            return EncodingUtils.add(colComp1Bytes);
+            byte[] colComp2Bytes = PtBytes.toBytes(Long.MIN_VALUE ^ colComp2);
+            return EncodingUtils.add(colComp1Bytes, colComp2Bytes);
         }
 
         public static final Hydrator<DynamicTableColumn> BYTES_HYDRATOR = new Hydrator<DynamicTableColumn>() {
@@ -286,14 +294,27 @@ public final class DynamicTableTable implements
                 int __index = 0;
                 Long colComp1 = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                return new DynamicTableColumn(colComp1);
+                Long colComp2 = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                __index += 8;
+                return new DynamicTableColumn(colComp1, colComp2);
             }
         };
+
+        public static ColumnRangeSelection createPrefixRange(long colComp1, int batchSize) {
+            byte[] colComp1Bytes = PtBytes.toBytes(Long.MIN_VALUE ^ colComp1);
+            return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(colComp1Bytes), batchSize);
+        }
+
+        public static Prefix prefix(long colComp1) {
+            byte[] colComp1Bytes = PtBytes.toBytes(Long.MIN_VALUE ^ colComp1);
+            return new Prefix(EncodingUtils.add(colComp1Bytes));
+        }
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("colComp1", colComp1)
+                .add("colComp2", colComp2)
                 .toString();
         }
 
@@ -309,18 +330,19 @@ public final class DynamicTableTable implements
                 return false;
             }
             DynamicTableColumn other = (DynamicTableColumn) obj;
-            return Objects.equal(colComp1, other.colComp1);
+            return Objects.equal(colComp1, other.colComp1) && Objects.equal(colComp2, other.colComp2);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(colComp1);
+            return Arrays.deepHashCode(new Object[]{ colComp1, colComp2 });
         }
 
         @Override
         public int compareTo(DynamicTableColumn o) {
             return ComparisonChain.start()
                 .compare(this.colComp1, o.colComp1)
+                .compare(this.colComp2, o.colComp2)
                 .result();
         }
     }
@@ -333,6 +355,7 @@ public final class DynamicTableTable implements
      * <pre>
      * Column name description {
      *   {@literal Long colComp1};
+     *   {@literal Long colComp2};
      * }
      * Column value description {
      *   type: com.palantir.atlasdb.protos.generated.TestPersistence.TestObject;
@@ -798,5 +821,5 @@ public final class DynamicTableTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "zwNMinvMHyl8uMdX9lwPdg==";
+    static String __CLASS_HASH = "xAQdpIk5qH+7rRCc9DC5cg==";
 }

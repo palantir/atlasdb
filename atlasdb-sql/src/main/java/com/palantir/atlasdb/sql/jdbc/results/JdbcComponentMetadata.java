@@ -2,6 +2,7 @@ package com.palantir.atlasdb.sql.jdbc.results;
 
 import com.google.protobuf.Message;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.DynamicColumnDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -53,7 +54,6 @@ public final class JdbcComponentMetadata {
     public static class NamedCol implements JdbcColumnMetadata {
         private final NamedColumnDescription namedCol;
 
-
         public NamedCol(NamedColumnDescription namedCol) {
             this.namedCol = namedCol;
         }
@@ -96,6 +96,65 @@ public final class JdbcComponentMetadata {
         @Override
         public boolean isNamedCol() {
             return true;
+        }
+
+        @Override
+        public boolean isRowComp() {
+            return false;
+        }
+
+        @Override
+        public boolean isColComp() {
+            return false;
+        }
+    }
+
+    public static class DynCol implements JdbcColumnMetadata {
+        static final String DYNAMIC_COLUMN_LABEL = "dyn";
+
+        private final DynamicColumnDescription dynCol;
+
+        public DynCol(DynamicColumnDescription dynCol) {
+            this.dynCol = dynCol;
+        }
+
+        @Override
+        public String getLabel() {
+            return DYNAMIC_COLUMN_LABEL;
+        }
+
+        @Override
+        public String getName() {
+            return DYNAMIC_COLUMN_LABEL;
+        }
+
+        @Override
+        public ColumnValueDescription.Format getFormat() {
+            return dynCol.getValue().getFormat();
+        }
+
+        @Override
+        public ValueType getValueType() {
+            return dynCol.getValue().getValueType();
+        }
+
+        @Override
+        public Message hydrateProto(byte[] val) {
+            return dynCol.getValue().hydrateProto(Thread.currentThread().getContextClassLoader(), val);
+        }
+        @Override
+        public String toString() {
+            return "dynCol";
+        }
+
+        @Override
+        public boolean isDynCol() {
+            return true;
+        }
+
+        @Override
+        public boolean isNamedCol() {
+            return false;
         }
 
         @Override
@@ -154,7 +213,7 @@ public final class JdbcComponentMetadata {
 
         @Override
         public boolean isDynCol() {
-            return false;
+            return true;
         }
 
         @Override

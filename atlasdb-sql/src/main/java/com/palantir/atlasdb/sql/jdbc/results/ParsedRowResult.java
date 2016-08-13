@@ -33,10 +33,11 @@ public class ParsedRowResult {
 
     static Iterator<ParsedRowResult> makeIterator(Iterable<RowResult<byte[]>> results,
                                                   Predicate<ParsedRowResult> predicate,
-                                                  List<JdbcColumnMetadata> columns,
-                                                  Map<String, JdbcColumnMetadataAndValue> labelOrNameToResult) {
+                                                  List<JdbcColumnMetadata> selectedColumns,
+                                                  List<JdbcColumnMetadata> allColumns,
+                                                  Map<String, JdbcColumnMetadataAndValue> index) {
         return StreamSupport.stream(StreamSupport.stream(results.spliterator(), false)
-                                                 .flatMap(it -> create(it, columns, labelOrNameToResult).stream())
+                                                 .flatMap(it -> create(it, selectedColumns, allColumns, index).stream())
                                                  .collect(Collectors.toList())
                                                  .spliterator(), false)
                             .filter(predicate)
@@ -47,33 +48,55 @@ public class ParsedRowResult {
     /** Create a result from a raw result. {@code columns} is a list of selected columns (or all columns, if the columns are specified),
      * or empty, if the columns are dynamic.
      */
+    private static List<ParsedRowResult> parseDynamic(RowResult<byte[]> rawResult,
+                                                      List<JdbcColumnMetadata> selectedColumns,
+                                                      List<JdbcColumnMetadata> allColumns) {
+        ImmutableList.Builder<JdbcColumnMetadataAndValue> rowBuilder = ImmutableList.builder();
+        parseComponents(rawResult.getRowName(),
+                        selectedColumns.stream().filter(JdbcColumnMetadata::isRowComp).collect(Collectors.toList()),
+                        rowBuilder);
+        final ImmutableList.Builder<ParsedRowResult> resultBuilder = ImmutableList.builder();
+        for (Map.Entry<byte[], byte[]> entry : rawResult.getColumns().entrySet()) {
+
+            ImmutableList.Builder<JdbcColumnMetadataAndValue> colsBuilder = ImmutableList.builder();
+            colsBuilder.addAll(rowBuilder.build());
+            // unpack all available column *components*
+            parseComponents(entry.getKey(),
+                            allColumns.stream().filter(JdbcColumnMetadata::isColComp).collect(Collectors.toList()),
+                            colsBuilder);
+            // add value
+            colsBuilder.add(new JdbcColumnMetadataAndValue(new JdbcComponentMetadata.DynCol(null), entry.getValue()));
+            final ImmutableList<JdbcColumnMetadataAndValue> cols = colsBuilder.build();
+            resultBuilder.add(new ParsedRowResult(cols, buildIndex(cols)));
+        }
+        return resultBuilder.build();
+    }
+
+    /** Create a result from a raw result. {@code columns} is a list of selected columns (or all columns, if the columns are specified),
+     * or empty, if the columns are dynamic.
+     */
     private static List<ParsedRowResult> create(RowResult<byte[]> rawResult,
                                                 List<JdbcColumnMetadata> selectedColumns,
+                                                List<JdbcColumnMetadata> allColumns,
                                                 Map<String, JdbcColumnMetadataAndValue> index) {
-        ImmutableList.Builder<JdbcColumnMetadataAndValue> rowBuilder = ImmutableList.builder();
-        parseRowComponents(rawResult.getRowName(),
-                           selectedColumns.stream().filter(JdbcColumnMetadata::isRowComp).collect(Collectors.toList()),
-                           rowBuilder);
-        if (selectedColumns.size() == 0) { // dynamic columns
-            // unwrap dynamic column: row + each component of rawResult.columns().
-            final ImmutableList.Builder<ParsedRowResult> resultBuilder = ImmutableList.builder();
-            for (Map.Entry<byte[], byte[]> entry : rawResult.getColumns().entrySet()) {
-                ImmutableList.Builder<JdbcColumnMetadataAndValue> colsBuilder = ImmutableList.builder();
-                colsBuilder.addAll(rowBuilder.build());
-                // unpack the column *components*
-                parseColumns(null, rawResult.getColumns(), colsBuilder);
-                final ImmutableList<JdbcColumnMetadataAndValue> cols = rowBuilder.build();
-                resultBuilder.add(new ParsedRowResult(cols, buildIndex(cols)));
-            }
-            return resultBuilder.build();
-        } else {
 
-            parseColumns(
-                    selectedColumns.stream().filter(JdbcColumnMetadata::isNamedCol).collect(Collectors.toList()),
-                    rawResult.getColumns(), rowBuilder);
-            List<JdbcColumnMetadataAndValue> colsMeta = rowBuilder.build();
-            return Collections.singletonList(new ParsedRowResult(colsMeta, buildIndex(colsMeta)));
+        if (selectedColumns.size() == 0 || JdbcColumnMetadata.anyDynamicColumns(selectedColumns)) {
+            return parseDynamic(rawResult, selectedColumns, allColumns);
+        } else {
+            return parseStandard(rawResult, selectedColumns);
         }
+    }
+
+    private static List<ParsedRowResult> parseStandard(RowResult<byte[]> rawResult, List<JdbcColumnMetadata> selectedColumns) {
+        ImmutableList.Builder<JdbcColumnMetadataAndValue> rowBuilder = ImmutableList.builder();
+        parseComponents(rawResult.getRowName(),
+                        selectedColumns.stream().filter(JdbcColumnMetadata::isRowComp).collect(Collectors.toList()),
+                        rowBuilder);
+        parseColumns(
+                selectedColumns.stream().filter(JdbcColumnMetadata::isNamedCol).collect(Collectors.toList()),
+                rawResult.getColumns(), rowBuilder);
+        List<JdbcColumnMetadataAndValue> colsMeta = rowBuilder.build();
+        return Collections.singletonList(new ParsedRowResult(colsMeta, buildIndex(colsMeta)));
     }
 
     private static ImmutableMap<String, JdbcColumnMetadataAndValue> buildIndex(List<JdbcColumnMetadataAndValue> colsMeta) {
@@ -103,20 +126,12 @@ public class ParsedRowResult {
         }
     }
 
-    private static void parseColumnComponents(RowResult<byte[]> rawResult,
-                                              List<JdbcColumnMetadata> colsMeta,
-                                              @Output ImmutableList.Builder<JdbcColumnMetadataAndValue> resultBuilder) {
-        //TODO
-    }
-
-    private static void parseRowComponents(byte[] row,
-                                           List<JdbcColumnMetadata> colsMeta,
-                                           @Output ImmutableList.Builder<JdbcColumnMetadataAndValue> resultBuilder) {
+    private static void parseComponents(byte[] row,
+                                        List<JdbcColumnMetadata> colsMeta,
+                                        @Output ImmutableList.Builder<JdbcColumnMetadataAndValue> resultBuilder) {
         int index = 0;
         for (int i = 0; i < colsMeta.size(); i++) {
             JdbcColumnMetadata meta = colsMeta.get(i);
-            Preconditions.checkState(meta.isRowComp(), "all metadata here is expected to be for rows components");
-
             ValueType type = meta.getValueType();
             Object val = type.convertToJava(row, index);
             int len = type.sizeOf(val);

@@ -175,7 +175,7 @@ public class QueryTest {
         }
     }
 
-    private boolean fails(Callable<?> c) {
+    static boolean fails(Callable<?> c) {
         try {
             c.call();
             return false;

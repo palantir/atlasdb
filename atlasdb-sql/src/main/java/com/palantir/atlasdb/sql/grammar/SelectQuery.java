@@ -12,7 +12,6 @@ import javax.annotation.Nullable;
 import org.antlr.v4.runtime.RuleContext;
 import org.immutables.value.Value;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.api.TableRange;
@@ -56,6 +55,7 @@ public abstract class SelectQuery {
         if (metadata.getColumns().getDynamicColumn() != null) {
             allCols.addAll(metadata.getColumns().getDynamicColumn().getColumnNameDesc().getRowParts()
                                    .stream().map(JdbcComponentMetadata.ColComp::new).collect(Collectors.toList()));
+            allCols.add(new JdbcComponentMetadata.DynCol(metadata.getColumns().getDynamicColumn()));
         }
         return allCols;
     }
@@ -64,7 +64,8 @@ public abstract class SelectQuery {
                                                                 List<JdbcColumnMetadata> allCols) {
         if (colListCtx == null) {
             if (JdbcColumnMetadata.anyDynamicColumns(allCols)) {
-                return ImmutableList.of(); // we want all columns when dynamic
+                // when dynamic columns are requested, the retainColumns clause must be empty. Return only rowComps!
+                return allCols.stream().filter(JdbcColumnMetadata::isRowComp).collect(Collectors.toList());
             } else {
                 return allCols;
             }
@@ -93,7 +94,7 @@ public abstract class SelectQuery {
 
     @Value.Derived
     public TableRange tableRange() {
-        List<byte[]> cols = allColumns()
+        List<byte[]> cols = selectedColumns()
                 .stream()
                 .filter(JdbcColumnMetadata::isNamedCol)
                 .map(c -> c.getName().getBytes())
