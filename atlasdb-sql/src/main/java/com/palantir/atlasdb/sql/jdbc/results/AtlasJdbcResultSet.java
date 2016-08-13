@@ -65,7 +65,7 @@ public class AtlasJdbcResultSet implements ResultSet {
         this.rangeToken = rangeToken;
         this.curIter = ParsedRowResult.makeIterator(rangeToken.getResults().getResults(),
                                                     query.postfilterPredicate(),
-                                                    query.selectedColumns());
+                                                    query.selectedColumns(), labelOrNameToResult);
         this.curResult = null;
     }
 
@@ -82,7 +82,7 @@ public class AtlasJdbcResultSet implements ResultSet {
                 rangeToken = service.getRange(transactionToken, rangeToken.getNextRange());
                 curIter = ParsedRowResult.makeIterator(rangeToken.getResults().getResults(),
                                                        query.postfilterPredicate(),
-                                                       query.selectedColumns());
+                                                       query.selectedColumns(), labelOrNameToResult);
                 return next();
             } else { // all done
                 rangeToken = null;
