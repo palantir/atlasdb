@@ -45,31 +45,43 @@ column_name
 
 
 where_clause
-   : WHERE expression
+   : WHERE expr
    ;
 
-expression
-   : left=expression relational_op right=expression
-   | left=expression AND right=expression
-   | bool
-   | DECIMAL
-   | ID
+expr
+   : LPAREN expr RPAREN                             # parenExpr
+   | left=expr AND right=expr                       # boolAndExpr
+   | left=expr OR  right=expr                       # boolOrExpr
+   | left=term_expr relational_op right=term_expr   # relationalExpr
+   | term_expr                                      # terminalExpr
+   ;
+
+term_expr
+   : literal
+   | identifier
+   ;
+
+literal
+   : DECIMAL
+   | BOOLEAN
+   | string_literal
+   ;
+
+string_literal
+   : SINGLE_QUOTE ID SINGLE_QUOTE
+   | DOUBLE_QUOTE ID DOUBLE_QUOTE
+   ;
+
+identifier
+   : ID
    ;
 
 relational_op
    : EQ
+   | NOT_EQ
    | LTH
    | GTH
    | LET
    | GET
-   | NOT_EQ
    ;
 
-is_or_is_not
-   : IS | IS NOT
-   ;
-
-bool
-   : TRUE
-   | FALSE
-   ;

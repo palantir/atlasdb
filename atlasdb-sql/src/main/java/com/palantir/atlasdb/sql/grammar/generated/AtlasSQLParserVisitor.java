@@ -1,4 +1,4 @@
-// Generated from /Volumes/git/code/atlasdb/atlasdb-sql/src/main/antlr4/com/palantir/atlasdb/sql/grammar/generated/AtlasSQLParser.g4 by ANTLR 4.5
+// Generated from /Volumes/git/atlasdb-2/atlasdb-sql/src/main/antlr4/com/palantir/atlasdb/sql/grammar/generated/AtlasSQLParser.g4 by ANTLR 4.5
 package com.palantir.atlasdb.sql.grammar.generated;
 import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
@@ -72,27 +72,68 @@ public interface AtlasSQLParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitWhere_clause(AtlasSQLParser.Where_clauseContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link AtlasSQLParser#expression}.
+	 * Visit a parse tree produced by the {@code boolOrExpr}
+	 * labeled alternative in {@link AtlasSQLParser#expr}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitExpression(AtlasSQLParser.ExpressionContext ctx);
+	T visitBoolOrExpr(AtlasSQLParser.BoolOrExprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code terminalExpr}
+	 * labeled alternative in {@link AtlasSQLParser#expr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTerminalExpr(AtlasSQLParser.TerminalExprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code relationalExpr}
+	 * labeled alternative in {@link AtlasSQLParser#expr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitRelationalExpr(AtlasSQLParser.RelationalExprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code parenExpr}
+	 * labeled alternative in {@link AtlasSQLParser#expr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitParenExpr(AtlasSQLParser.ParenExprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code boolAndExpr}
+	 * labeled alternative in {@link AtlasSQLParser#expr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBoolAndExpr(AtlasSQLParser.BoolAndExprContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AtlasSQLParser#term_expr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTerm_expr(AtlasSQLParser.Term_exprContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AtlasSQLParser#literal}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLiteral(AtlasSQLParser.LiteralContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AtlasSQLParser#string_literal}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitString_literal(AtlasSQLParser.String_literalContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AtlasSQLParser#identifier}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitIdentifier(AtlasSQLParser.IdentifierContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link AtlasSQLParser#relational_op}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitRelational_op(AtlasSQLParser.Relational_opContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link AtlasSQLParser#is_or_is_not}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitIs_or_is_not(AtlasSQLParser.Is_or_is_notContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link AtlasSQLParser#bool}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitBool(AtlasSQLParser.BoolContext ctx);
 }

@@ -1,4 +1,4 @@
-// Generated from /Volumes/git/code/atlasdb/atlasdb-sql/src/main/antlr4/com/palantir/atlasdb/sql/grammar/generated/AtlasSQLParser.g4 by ANTLR 4.5
+// Generated from /Volumes/git/atlasdb-2/atlasdb-sql/src/main/antlr4/com/palantir/atlasdb/sql/grammar/generated/AtlasSQLParser.g4 by ANTLR 4.5
 package com.palantir.atlasdb.sql.grammar.generated;
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
@@ -17,48 +17,29 @@ public class AtlasSQLParser extends Parser {
 	protected static final PredictionContextCache _sharedContextCache =
 		new PredictionContextCache();
 	public static final int
-		SELECT=1, FROM=2, STAR=3, WHERE=4, AND=5, OR=6, XOR=7, IS=8, NULL=9, LIKE=10, 
-		IN=11, EXISTS=12, ALL=13, ANY=14, TRUE=15, FALSE=16, DIVIDE=17, MOD=18, 
-		BETWEEN=19, REGEXP=20, PLUS=21, MINUS=22, NEGATION=23, VERTBAR=24, BITAND=25, 
-		POWER_OP=26, BINARY=27, SHIFT_LEFT=28, SHIFT_RIGHT=29, ESCAPE=30, RPAREN=31, 
-		LPAREN=32, RBRACK=33, LBRACK=34, COLON=35, ALL_FIELDS=36, EQ=37, LTH=38, 
-		GTH=39, NOT_EQ=40, NOT=41, LET=42, GET=43, SEMI=44, COMMA=45, DOT=46, 
-		COLLATE=47, INNER=48, OUTER=49, JOIN=50, CROSS=51, USING=52, INDEX=53, 
-		KEY=54, ORDER=55, GROUP=56, BY=57, FOR=58, USE=59, IGNORE=60, PARTITION=61, 
-		STRAIGHT_JOIN=62, NATURAL=63, LEFT=64, RIGHT=65, OJ=66, ON=67, ID=68, 
-		INT=69, DECIMAL=70, NEWLINE=71, WS=72, USER_VAR=73;
+		SELECT=1, FROM=2, WHERE=3, STAR=4, COMMA=5, DOT=6, SINGLE_QUOTE=7, DOUBLE_QUOTE=8, 
+		LPAREN=9, RPAREN=10, AND=11, OR=12, EQ=13, LTH=14, GTH=15, NOT_EQ=16, 
+		NOT=17, LET=18, GET=19, ID=20, DECIMAL=21, BOOLEAN=22, NEWLINE=23, WS=24;
 	public static final int
 		RULE_query = 0, RULE_select_query = 1, RULE_table_reference = 2, RULE_keyspace = 3, 
 		RULE_table_name = 4, RULE_column_clause = 5, RULE_all_columns = 6, RULE_column_list = 7, 
-		RULE_column_name = 8, RULE_where_clause = 9, RULE_expression = 10, RULE_relational_op = 11, 
-		RULE_is_or_is_not = 12, RULE_bool = 13;
+		RULE_column_name = 8, RULE_where_clause = 9, RULE_expr = 10, RULE_term_expr = 11, 
+		RULE_literal = 12, RULE_string_literal = 13, RULE_identifier = 14, RULE_relational_op = 15;
 	public static final String[] ruleNames = {
 		"query", "select_query", "table_reference", "keyspace", "table_name", 
 		"column_clause", "all_columns", "column_list", "column_name", "where_clause", 
-		"expression", "relational_op", "is_or_is_not", "bool"
+		"expr", "term_expr", "literal", "string_literal", "identifier", "relational_op"
 	};
 
 	private static final String[] _LITERAL_NAMES = {
-		null, "'select'", "'from'", "'*'", "'where'", null, null, "'xor'", "'is'", 
-		"'null'", "'like'", "'in'", "'exists'", "'all'", "'any'", "'true'", "'false'", 
-		null, null, "'between'", "'regexp'", "'+'", "'-'", "'~'", "'|'", "'&'", 
-		"'^'", "'binary'", "'<<'", "'>>'", "'escape'", "')'", "'('", "']'", "'['", 
-		"':'", "'.*'", "'='", "'<'", "'>'", "'!='", "'not'", "'<='", "'>='", "';'", 
-		"','", "'.'", "'collate'", "'inner'", "'outer'", "'join'", "'cross'", 
-		"'using'", "'index'", "'key'", "'order'", "'group'", "'by'", "'for'", 
-		"'use'", "'ignore'", "'partition'", "'straight_join'", "'natural'", "'left'", 
-		"'right'", "'oj'", "'on'"
+		null, "'select'", "'from'", "'where'", "'*'", "','", "'.'", "'''", "'\"'", 
+		"'('", "')'", null, null, "'='", "'<'", "'>'", null, "'not'", "'<='", 
+		"'>='"
 	};
 	private static final String[] _SYMBOLIC_NAMES = {
-		null, "SELECT", "FROM", "STAR", "WHERE", "AND", "OR", "XOR", "IS", "NULL", 
-		"LIKE", "IN", "EXISTS", "ALL", "ANY", "TRUE", "FALSE", "DIVIDE", "MOD", 
-		"BETWEEN", "REGEXP", "PLUS", "MINUS", "NEGATION", "VERTBAR", "BITAND", 
-		"POWER_OP", "BINARY", "SHIFT_LEFT", "SHIFT_RIGHT", "ESCAPE", "RPAREN", 
-		"LPAREN", "RBRACK", "LBRACK", "COLON", "ALL_FIELDS", "EQ", "LTH", "GTH", 
-		"NOT_EQ", "NOT", "LET", "GET", "SEMI", "COMMA", "DOT", "COLLATE", "INNER", 
-		"OUTER", "JOIN", "CROSS", "USING", "INDEX", "KEY", "ORDER", "GROUP", "BY", 
-		"FOR", "USE", "IGNORE", "PARTITION", "STRAIGHT_JOIN", "NATURAL", "LEFT", 
-		"RIGHT", "OJ", "ON", "ID", "INT", "DECIMAL", "NEWLINE", "WS", "USER_VAR"
+		null, "SELECT", "FROM", "WHERE", "STAR", "COMMA", "DOT", "SINGLE_QUOTE", 
+		"DOUBLE_QUOTE", "LPAREN", "RPAREN", "AND", "OR", "EQ", "LTH", "GTH", "NOT_EQ", 
+		"NOT", "LET", "GET", "ID", "DECIMAL", "BOOLEAN", "NEWLINE", "WS"
 	};
 	public static final Vocabulary VOCABULARY = new VocabularyImpl(_LITERAL_NAMES, _SYMBOLIC_NAMES);
 
@@ -130,7 +111,7 @@ public class AtlasSQLParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(28);
+			setState(32);
 			select_query();
 			}
 		}
@@ -175,19 +156,19 @@ public class AtlasSQLParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(30);
+			setState(34);
 			match(SELECT);
-			setState(31);
-			column_clause();
-			setState(32);
-			match(FROM);
-			setState(33);
-			table_reference();
 			setState(35);
+			column_clause();
+			setState(36);
+			match(FROM);
+			setState(37);
+			table_reference();
+			setState(39);
 			_la = _input.LA(1);
 			if (_la==WHERE) {
 				{
-				setState(34);
+				setState(38);
 				where_clause();
 				}
 			}
@@ -230,18 +211,18 @@ public class AtlasSQLParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(40);
+			setState(44);
 			switch ( getInterpreter().adaptivePredict(_input,1,_ctx) ) {
 			case 1:
 				{
-				setState(37);
+				setState(41);
 				keyspace();
-				setState(38);
+				setState(42);
 				match(DOT);
 				}
 				break;
 			}
-			setState(42);
+			setState(46);
 			table_name();
 			}
 		}
@@ -275,7 +256,7 @@ public class AtlasSQLParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(44);
+			setState(48);
 			match(ID);
 			}
 		}
@@ -309,7 +290,7 @@ public class AtlasSQLParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(46);
+			setState(50);
 			match(ID);
 			}
 		}
@@ -346,19 +327,19 @@ public class AtlasSQLParser extends Parser {
 		Column_clauseContext _localctx = new Column_clauseContext(_ctx, getState());
 		enterRule(_localctx, 10, RULE_column_clause);
 		try {
-			setState(50);
+			setState(54);
 			switch (_input.LA(1)) {
 			case STAR:
 				enterOuterAlt(_localctx, 1);
 				{
-				setState(48);
+				setState(52);
 				all_columns();
 				}
 				break;
 			case ID:
 				enterOuterAlt(_localctx, 2);
 				{
-				setState(49);
+				setState(53);
 				column_list();
 				}
 				break;
@@ -396,7 +377,7 @@ public class AtlasSQLParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(52);
+			setState(56);
 			match(STAR);
 			}
 		}
@@ -440,21 +421,21 @@ public class AtlasSQLParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(54);
+			setState(58);
 			column_name();
-			setState(59);
+			setState(63);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
 			while (_la==COMMA) {
 				{
 				{
-				setState(55);
+				setState(59);
 				match(COMMA);
-				setState(56);
+				setState(60);
 				column_name();
 				}
 				}
-				setState(61);
+				setState(65);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
 			}
@@ -490,7 +471,7 @@ public class AtlasSQLParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(62);
+			setState(66);
 			match(ID);
 			}
 		}
@@ -507,8 +488,8 @@ public class AtlasSQLParser extends Parser {
 
 	public static class Where_clauseContext extends ParserRuleContext {
 		public TerminalNode WHERE() { return getToken(AtlasSQLParser.WHERE, 0); }
-		public ExpressionContext expression() {
-			return getRuleContext(ExpressionContext.class,0);
+		public ExprContext expr() {
+			return getRuleContext(ExprContext.class,0);
 		}
 		public Where_clauseContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -527,10 +508,10 @@ public class AtlasSQLParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(64);
+			setState(68);
 			match(WHERE);
-			setState(65);
-			expression(0);
+			setState(69);
+			expr(0);
 			}
 		}
 		catch (RecognitionException re) {
@@ -544,76 +525,151 @@ public class AtlasSQLParser extends Parser {
 		return _localctx;
 	}
 
-	public static class ExpressionContext extends ParserRuleContext {
-		public ExpressionContext left;
-		public ExpressionContext right;
-		public BoolContext bool() {
-			return getRuleContext(BoolContext.class,0);
+	public static class ExprContext extends ParserRuleContext {
+		public ExprContext(ParserRuleContext parent, int invokingState) {
+			super(parent, invokingState);
 		}
-		public TerminalNode DECIMAL() { return getToken(AtlasSQLParser.DECIMAL, 0); }
-		public TerminalNode ID() { return getToken(AtlasSQLParser.ID, 0); }
+		@Override public int getRuleIndex() { return RULE_expr; }
+	 
+		public ExprContext() { }
+		public void copyFrom(ExprContext ctx) {
+			super.copyFrom(ctx);
+		}
+	}
+	public static class BoolOrExprContext extends ExprContext {
+		public ExprContext left;
+		public ExprContext right;
+		public TerminalNode OR() { return getToken(AtlasSQLParser.OR, 0); }
+		public List<ExprContext> expr() {
+			return getRuleContexts(ExprContext.class);
+		}
+		public ExprContext expr(int i) {
+			return getRuleContext(ExprContext.class,i);
+		}
+		public BoolOrExprContext(ExprContext ctx) { copyFrom(ctx); }
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof AtlasSQLParserVisitor ) return ((AtlasSQLParserVisitor<? extends T>)visitor).visitBoolOrExpr(this);
+			else return visitor.visitChildren(this);
+		}
+	}
+	public static class TerminalExprContext extends ExprContext {
+		public Term_exprContext term_expr() {
+			return getRuleContext(Term_exprContext.class,0);
+		}
+		public TerminalExprContext(ExprContext ctx) { copyFrom(ctx); }
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof AtlasSQLParserVisitor ) return ((AtlasSQLParserVisitor<? extends T>)visitor).visitTerminalExpr(this);
+			else return visitor.visitChildren(this);
+		}
+	}
+	public static class RelationalExprContext extends ExprContext {
+		public Term_exprContext left;
+		public Term_exprContext right;
 		public Relational_opContext relational_op() {
 			return getRuleContext(Relational_opContext.class,0);
 		}
-		public List<ExpressionContext> expression() {
-			return getRuleContexts(ExpressionContext.class);
+		public List<Term_exprContext> term_expr() {
+			return getRuleContexts(Term_exprContext.class);
 		}
-		public ExpressionContext expression(int i) {
-			return getRuleContext(ExpressionContext.class,i);
+		public Term_exprContext term_expr(int i) {
+			return getRuleContext(Term_exprContext.class,i);
 		}
-		public TerminalNode AND() { return getToken(AtlasSQLParser.AND, 0); }
-		public ExpressionContext(ParserRuleContext parent, int invokingState) {
-			super(parent, invokingState);
-		}
-		@Override public int getRuleIndex() { return RULE_expression; }
+		public RelationalExprContext(ExprContext ctx) { copyFrom(ctx); }
 		@Override
 		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof AtlasSQLParserVisitor ) return ((AtlasSQLParserVisitor<? extends T>)visitor).visitExpression(this);
+			if ( visitor instanceof AtlasSQLParserVisitor ) return ((AtlasSQLParserVisitor<? extends T>)visitor).visitRelationalExpr(this);
+			else return visitor.visitChildren(this);
+		}
+	}
+	public static class ParenExprContext extends ExprContext {
+		public TerminalNode LPAREN() { return getToken(AtlasSQLParser.LPAREN, 0); }
+		public ExprContext expr() {
+			return getRuleContext(ExprContext.class,0);
+		}
+		public TerminalNode RPAREN() { return getToken(AtlasSQLParser.RPAREN, 0); }
+		public ParenExprContext(ExprContext ctx) { copyFrom(ctx); }
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof AtlasSQLParserVisitor ) return ((AtlasSQLParserVisitor<? extends T>)visitor).visitParenExpr(this);
+			else return visitor.visitChildren(this);
+		}
+	}
+	public static class BoolAndExprContext extends ExprContext {
+		public ExprContext left;
+		public ExprContext right;
+		public TerminalNode AND() { return getToken(AtlasSQLParser.AND, 0); }
+		public List<ExprContext> expr() {
+			return getRuleContexts(ExprContext.class);
+		}
+		public ExprContext expr(int i) {
+			return getRuleContext(ExprContext.class,i);
+		}
+		public BoolAndExprContext(ExprContext ctx) { copyFrom(ctx); }
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof AtlasSQLParserVisitor ) return ((AtlasSQLParserVisitor<? extends T>)visitor).visitBoolAndExpr(this);
 			else return visitor.visitChildren(this);
 		}
 	}
 
-	public final ExpressionContext expression() throws RecognitionException {
-		return expression(0);
+	public final ExprContext expr() throws RecognitionException {
+		return expr(0);
 	}
 
-	private ExpressionContext expression(int _p) throws RecognitionException {
+	private ExprContext expr(int _p) throws RecognitionException {
 		ParserRuleContext _parentctx = _ctx;
 		int _parentState = getState();
-		ExpressionContext _localctx = new ExpressionContext(_ctx, _parentState);
-		ExpressionContext _prevctx = _localctx;
+		ExprContext _localctx = new ExprContext(_ctx, _parentState);
+		ExprContext _prevctx = _localctx;
 		int _startState = 20;
-		enterRecursionRule(_localctx, 20, RULE_expression, _p);
+		enterRecursionRule(_localctx, 20, RULE_expr, _p);
 		try {
 			int _alt;
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(71);
-			switch (_input.LA(1)) {
-			case TRUE:
-			case FALSE:
+			setState(81);
+			switch ( getInterpreter().adaptivePredict(_input,4,_ctx) ) {
+			case 1:
 				{
-				setState(68);
-				bool();
+				_localctx = new ParenExprContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
+
+				setState(72);
+				match(LPAREN);
+				setState(73);
+				expr(0);
+				setState(74);
+				match(RPAREN);
 				}
 				break;
-			case DECIMAL:
+			case 2:
 				{
-				setState(69);
-				match(DECIMAL);
+				_localctx = new RelationalExprContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
+				setState(76);
+				((RelationalExprContext)_localctx).left = term_expr();
+				setState(77);
+				relational_op();
+				setState(78);
+				((RelationalExprContext)_localctx).right = term_expr();
 				}
 				break;
-			case ID:
+			case 3:
 				{
-				setState(70);
-				match(ID);
+				_localctx = new TerminalExprContext(_localctx);
+				_ctx = _localctx;
+				_prevctx = _localctx;
+				setState(80);
+				term_expr();
 				}
 				break;
-			default:
-				throw new NoViableAltException(this);
 			}
 			_ctx.stop = _input.LT(-1);
-			setState(82);
+			setState(91);
 			_errHandler.sync(this);
 			_alt = getInterpreter().adaptivePredict(_input,6,_ctx);
 			while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER ) {
@@ -621,40 +677,38 @@ public class AtlasSQLParser extends Parser {
 					if ( _parseListeners!=null ) triggerExitRuleEvent();
 					_prevctx = _localctx;
 					{
-					setState(80);
+					setState(89);
 					switch ( getInterpreter().adaptivePredict(_input,5,_ctx) ) {
 					case 1:
 						{
-						_localctx = new ExpressionContext(_parentctx, _parentState);
-						_localctx.left = _prevctx;
-						_localctx.left = _prevctx;
-						pushNewRecursionContext(_localctx, _startState, RULE_expression);
-						setState(73);
-						if (!(precpred(_ctx, 5))) throw new FailedPredicateException(this, "precpred(_ctx, 5)");
-						setState(74);
-						relational_op();
-						setState(75);
-						((ExpressionContext)_localctx).right = expression(6);
+						_localctx = new BoolAndExprContext(new ExprContext(_parentctx, _parentState));
+						((BoolAndExprContext)_localctx).left = _prevctx;
+						pushNewRecursionContext(_localctx, _startState, RULE_expr);
+						setState(83);
+						if (!(precpred(_ctx, 4))) throw new FailedPredicateException(this, "precpred(_ctx, 4)");
+						setState(84);
+						match(AND);
+						setState(85);
+						((BoolAndExprContext)_localctx).right = expr(5);
 						}
 						break;
 					case 2:
 						{
-						_localctx = new ExpressionContext(_parentctx, _parentState);
-						_localctx.left = _prevctx;
-						_localctx.left = _prevctx;
-						pushNewRecursionContext(_localctx, _startState, RULE_expression);
-						setState(77);
-						if (!(precpred(_ctx, 4))) throw new FailedPredicateException(this, "precpred(_ctx, 4)");
-						setState(78);
-						match(AND);
-						setState(79);
-						((ExpressionContext)_localctx).right = expression(5);
+						_localctx = new BoolOrExprContext(new ExprContext(_parentctx, _parentState));
+						((BoolOrExprContext)_localctx).left = _prevctx;
+						pushNewRecursionContext(_localctx, _startState, RULE_expr);
+						setState(86);
+						if (!(precpred(_ctx, 3))) throw new FailedPredicateException(this, "precpred(_ctx, 3)");
+						setState(87);
+						match(OR);
+						setState(88);
+						((BoolOrExprContext)_localctx).right = expr(4);
 						}
 						break;
 					}
 					} 
 				}
-				setState(84);
+				setState(93);
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,6,_ctx);
 			}
@@ -671,13 +725,227 @@ public class AtlasSQLParser extends Parser {
 		return _localctx;
 	}
 
+	public static class Term_exprContext extends ParserRuleContext {
+		public LiteralContext literal() {
+			return getRuleContext(LiteralContext.class,0);
+		}
+		public IdentifierContext identifier() {
+			return getRuleContext(IdentifierContext.class,0);
+		}
+		public Term_exprContext(ParserRuleContext parent, int invokingState) {
+			super(parent, invokingState);
+		}
+		@Override public int getRuleIndex() { return RULE_term_expr; }
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof AtlasSQLParserVisitor ) return ((AtlasSQLParserVisitor<? extends T>)visitor).visitTerm_expr(this);
+			else return visitor.visitChildren(this);
+		}
+	}
+
+	public final Term_exprContext term_expr() throws RecognitionException {
+		Term_exprContext _localctx = new Term_exprContext(_ctx, getState());
+		enterRule(_localctx, 22, RULE_term_expr);
+		try {
+			setState(96);
+			switch (_input.LA(1)) {
+			case SINGLE_QUOTE:
+			case DOUBLE_QUOTE:
+			case DECIMAL:
+			case BOOLEAN:
+				enterOuterAlt(_localctx, 1);
+				{
+				setState(94);
+				literal();
+				}
+				break;
+			case ID:
+				enterOuterAlt(_localctx, 2);
+				{
+				setState(95);
+				identifier();
+				}
+				break;
+			default:
+				throw new NoViableAltException(this);
+			}
+		}
+		catch (RecognitionException re) {
+			_localctx.exception = re;
+			_errHandler.reportError(this, re);
+			_errHandler.recover(this, re);
+		}
+		finally {
+			exitRule();
+		}
+		return _localctx;
+	}
+
+	public static class LiteralContext extends ParserRuleContext {
+		public TerminalNode DECIMAL() { return getToken(AtlasSQLParser.DECIMAL, 0); }
+		public TerminalNode BOOLEAN() { return getToken(AtlasSQLParser.BOOLEAN, 0); }
+		public String_literalContext string_literal() {
+			return getRuleContext(String_literalContext.class,0);
+		}
+		public LiteralContext(ParserRuleContext parent, int invokingState) {
+			super(parent, invokingState);
+		}
+		@Override public int getRuleIndex() { return RULE_literal; }
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof AtlasSQLParserVisitor ) return ((AtlasSQLParserVisitor<? extends T>)visitor).visitLiteral(this);
+			else return visitor.visitChildren(this);
+		}
+	}
+
+	public final LiteralContext literal() throws RecognitionException {
+		LiteralContext _localctx = new LiteralContext(_ctx, getState());
+		enterRule(_localctx, 24, RULE_literal);
+		try {
+			setState(101);
+			switch (_input.LA(1)) {
+			case DECIMAL:
+				enterOuterAlt(_localctx, 1);
+				{
+				setState(98);
+				match(DECIMAL);
+				}
+				break;
+			case BOOLEAN:
+				enterOuterAlt(_localctx, 2);
+				{
+				setState(99);
+				match(BOOLEAN);
+				}
+				break;
+			case SINGLE_QUOTE:
+			case DOUBLE_QUOTE:
+				enterOuterAlt(_localctx, 3);
+				{
+				setState(100);
+				string_literal();
+				}
+				break;
+			default:
+				throw new NoViableAltException(this);
+			}
+		}
+		catch (RecognitionException re) {
+			_localctx.exception = re;
+			_errHandler.reportError(this, re);
+			_errHandler.recover(this, re);
+		}
+		finally {
+			exitRule();
+		}
+		return _localctx;
+	}
+
+	public static class String_literalContext extends ParserRuleContext {
+		public List<TerminalNode> SINGLE_QUOTE() { return getTokens(AtlasSQLParser.SINGLE_QUOTE); }
+		public TerminalNode SINGLE_QUOTE(int i) {
+			return getToken(AtlasSQLParser.SINGLE_QUOTE, i);
+		}
+		public TerminalNode ID() { return getToken(AtlasSQLParser.ID, 0); }
+		public List<TerminalNode> DOUBLE_QUOTE() { return getTokens(AtlasSQLParser.DOUBLE_QUOTE); }
+		public TerminalNode DOUBLE_QUOTE(int i) {
+			return getToken(AtlasSQLParser.DOUBLE_QUOTE, i);
+		}
+		public String_literalContext(ParserRuleContext parent, int invokingState) {
+			super(parent, invokingState);
+		}
+		@Override public int getRuleIndex() { return RULE_string_literal; }
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof AtlasSQLParserVisitor ) return ((AtlasSQLParserVisitor<? extends T>)visitor).visitString_literal(this);
+			else return visitor.visitChildren(this);
+		}
+	}
+
+	public final String_literalContext string_literal() throws RecognitionException {
+		String_literalContext _localctx = new String_literalContext(_ctx, getState());
+		enterRule(_localctx, 26, RULE_string_literal);
+		try {
+			setState(109);
+			switch (_input.LA(1)) {
+			case SINGLE_QUOTE:
+				enterOuterAlt(_localctx, 1);
+				{
+				setState(103);
+				match(SINGLE_QUOTE);
+				setState(104);
+				match(ID);
+				setState(105);
+				match(SINGLE_QUOTE);
+				}
+				break;
+			case DOUBLE_QUOTE:
+				enterOuterAlt(_localctx, 2);
+				{
+				setState(106);
+				match(DOUBLE_QUOTE);
+				setState(107);
+				match(ID);
+				setState(108);
+				match(DOUBLE_QUOTE);
+				}
+				break;
+			default:
+				throw new NoViableAltException(this);
+			}
+		}
+		catch (RecognitionException re) {
+			_localctx.exception = re;
+			_errHandler.reportError(this, re);
+			_errHandler.recover(this, re);
+		}
+		finally {
+			exitRule();
+		}
+		return _localctx;
+	}
+
+	public static class IdentifierContext extends ParserRuleContext {
+		public TerminalNode ID() { return getToken(AtlasSQLParser.ID, 0); }
+		public IdentifierContext(ParserRuleContext parent, int invokingState) {
+			super(parent, invokingState);
+		}
+		@Override public int getRuleIndex() { return RULE_identifier; }
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof AtlasSQLParserVisitor ) return ((AtlasSQLParserVisitor<? extends T>)visitor).visitIdentifier(this);
+			else return visitor.visitChildren(this);
+		}
+	}
+
+	public final IdentifierContext identifier() throws RecognitionException {
+		IdentifierContext _localctx = new IdentifierContext(_ctx, getState());
+		enterRule(_localctx, 28, RULE_identifier);
+		try {
+			enterOuterAlt(_localctx, 1);
+			{
+			setState(111);
+			match(ID);
+			}
+		}
+		catch (RecognitionException re) {
+			_localctx.exception = re;
+			_errHandler.reportError(this, re);
+			_errHandler.recover(this, re);
+		}
+		finally {
+			exitRule();
+		}
+		return _localctx;
+	}
+
 	public static class Relational_opContext extends ParserRuleContext {
 		public TerminalNode EQ() { return getToken(AtlasSQLParser.EQ, 0); }
+		public TerminalNode NOT_EQ() { return getToken(AtlasSQLParser.NOT_EQ, 0); }
 		public TerminalNode LTH() { return getToken(AtlasSQLParser.LTH, 0); }
 		public TerminalNode GTH() { return getToken(AtlasSQLParser.GTH, 0); }
 		public TerminalNode LET() { return getToken(AtlasSQLParser.LET, 0); }
 		public TerminalNode GET() { return getToken(AtlasSQLParser.GET, 0); }
-		public TerminalNode NOT_EQ() { return getToken(AtlasSQLParser.NOT_EQ, 0); }
 		public Relational_opContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
 		}
@@ -691,104 +959,14 @@ public class AtlasSQLParser extends Parser {
 
 	public final Relational_opContext relational_op() throws RecognitionException {
 		Relational_opContext _localctx = new Relational_opContext(_ctx, getState());
-		enterRule(_localctx, 22, RULE_relational_op);
+		enterRule(_localctx, 30, RULE_relational_op);
 		int _la;
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(85);
+			setState(113);
 			_la = _input.LA(1);
 			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << EQ) | (1L << LTH) | (1L << GTH) | (1L << NOT_EQ) | (1L << LET) | (1L << GET))) != 0)) ) {
-			_errHandler.recoverInline(this);
-			} else {
-				consume();
-			}
-			}
-		}
-		catch (RecognitionException re) {
-			_localctx.exception = re;
-			_errHandler.reportError(this, re);
-			_errHandler.recover(this, re);
-		}
-		finally {
-			exitRule();
-		}
-		return _localctx;
-	}
-
-	public static class Is_or_is_notContext extends ParserRuleContext {
-		public TerminalNode IS() { return getToken(AtlasSQLParser.IS, 0); }
-		public TerminalNode NOT() { return getToken(AtlasSQLParser.NOT, 0); }
-		public Is_or_is_notContext(ParserRuleContext parent, int invokingState) {
-			super(parent, invokingState);
-		}
-		@Override public int getRuleIndex() { return RULE_is_or_is_not; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof AtlasSQLParserVisitor ) return ((AtlasSQLParserVisitor<? extends T>)visitor).visitIs_or_is_not(this);
-			else return visitor.visitChildren(this);
-		}
-	}
-
-	public final Is_or_is_notContext is_or_is_not() throws RecognitionException {
-		Is_or_is_notContext _localctx = new Is_or_is_notContext(_ctx, getState());
-		enterRule(_localctx, 24, RULE_is_or_is_not);
-		try {
-			setState(90);
-			switch ( getInterpreter().adaptivePredict(_input,7,_ctx) ) {
-			case 1:
-				enterOuterAlt(_localctx, 1);
-				{
-				setState(87);
-				match(IS);
-				}
-				break;
-			case 2:
-				enterOuterAlt(_localctx, 2);
-				{
-				setState(88);
-				match(IS);
-				setState(89);
-				match(NOT);
-				}
-				break;
-			}
-		}
-		catch (RecognitionException re) {
-			_localctx.exception = re;
-			_errHandler.reportError(this, re);
-			_errHandler.recover(this, re);
-		}
-		finally {
-			exitRule();
-		}
-		return _localctx;
-	}
-
-	public static class BoolContext extends ParserRuleContext {
-		public TerminalNode TRUE() { return getToken(AtlasSQLParser.TRUE, 0); }
-		public TerminalNode FALSE() { return getToken(AtlasSQLParser.FALSE, 0); }
-		public BoolContext(ParserRuleContext parent, int invokingState) {
-			super(parent, invokingState);
-		}
-		@Override public int getRuleIndex() { return RULE_bool; }
-		@Override
-		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-			if ( visitor instanceof AtlasSQLParserVisitor ) return ((AtlasSQLParserVisitor<? extends T>)visitor).visitBool(this);
-			else return visitor.visitChildren(this);
-		}
-	}
-
-	public final BoolContext bool() throws RecognitionException {
-		BoolContext _localctx = new BoolContext(_ctx, getState());
-		enterRule(_localctx, 26, RULE_bool);
-		int _la;
-		try {
-			enterOuterAlt(_localctx, 1);
-			{
-			setState(92);
-			_la = _input.LA(1);
-			if ( !(_la==TRUE || _la==FALSE) ) {
 			_errHandler.recoverInline(this);
 			} else {
 				consume();
@@ -809,44 +987,49 @@ public class AtlasSQLParser extends Parser {
 	public boolean sempred(RuleContext _localctx, int ruleIndex, int predIndex) {
 		switch (ruleIndex) {
 		case 10:
-			return expression_sempred((ExpressionContext)_localctx, predIndex);
+			return expr_sempred((ExprContext)_localctx, predIndex);
 		}
 		return true;
 	}
-	private boolean expression_sempred(ExpressionContext _localctx, int predIndex) {
+	private boolean expr_sempred(ExprContext _localctx, int predIndex) {
 		switch (predIndex) {
 		case 0:
-			return precpred(_ctx, 5);
-		case 1:
 			return precpred(_ctx, 4);
+		case 1:
+			return precpred(_ctx, 3);
 		}
 		return true;
 	}
 
 	public static final String _serializedATN =
-		"\3\u0430\ud6d1\u8206\uad2d\u4417\uaef1\u8d80\uaadd\3Ka\4\2\t\2\4\3\t\3"+
-		"\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7\4\b\t\b\4\t\t\t\4\n\t\n\4\13\t\13\4\f"+
-		"\t\f\4\r\t\r\4\16\t\16\4\17\t\17\3\2\3\2\3\3\3\3\3\3\3\3\3\3\5\3&\n\3"+
-		"\3\4\3\4\3\4\5\4+\n\4\3\4\3\4\3\5\3\5\3\6\3\6\3\7\3\7\5\7\65\n\7\3\b\3"+
-		"\b\3\t\3\t\3\t\7\t<\n\t\f\t\16\t?\13\t\3\n\3\n\3\13\3\13\3\13\3\f\3\f"+
-		"\3\f\3\f\5\fJ\n\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\7\fS\n\f\f\f\16\fV\13\f"+
-		"\3\r\3\r\3\16\3\16\3\16\5\16]\n\16\3\17\3\17\3\17\2\3\26\20\2\4\6\b\n"+
-		"\f\16\20\22\24\26\30\32\34\2\4\4\2\'*,-\3\2\21\22[\2\36\3\2\2\2\4 \3\2"+
-		"\2\2\6*\3\2\2\2\b.\3\2\2\2\n\60\3\2\2\2\f\64\3\2\2\2\16\66\3\2\2\2\20"+
-		"8\3\2\2\2\22@\3\2\2\2\24B\3\2\2\2\26I\3\2\2\2\30W\3\2\2\2\32\\\3\2\2\2"+
-		"\34^\3\2\2\2\36\37\5\4\3\2\37\3\3\2\2\2 !\7\3\2\2!\"\5\f\7\2\"#\7\4\2"+
-		"\2#%\5\6\4\2$&\5\24\13\2%$\3\2\2\2%&\3\2\2\2&\5\3\2\2\2\'(\5\b\5\2()\7"+
-		"\60\2\2)+\3\2\2\2*\'\3\2\2\2*+\3\2\2\2+,\3\2\2\2,-\5\n\6\2-\7\3\2\2\2"+
-		"./\7F\2\2/\t\3\2\2\2\60\61\7F\2\2\61\13\3\2\2\2\62\65\5\16\b\2\63\65\5"+
-		"\20\t\2\64\62\3\2\2\2\64\63\3\2\2\2\65\r\3\2\2\2\66\67\7\5\2\2\67\17\3"+
-		"\2\2\28=\5\22\n\29:\7/\2\2:<\5\22\n\2;9\3\2\2\2<?\3\2\2\2=;\3\2\2\2=>"+
-		"\3\2\2\2>\21\3\2\2\2?=\3\2\2\2@A\7F\2\2A\23\3\2\2\2BC\7\6\2\2CD\5\26\f"+
-		"\2D\25\3\2\2\2EF\b\f\1\2FJ\5\34\17\2GJ\7H\2\2HJ\7F\2\2IE\3\2\2\2IG\3\2"+
-		"\2\2IH\3\2\2\2JT\3\2\2\2KL\f\7\2\2LM\5\30\r\2MN\5\26\f\bNS\3\2\2\2OP\f"+
-		"\6\2\2PQ\7\7\2\2QS\5\26\f\7RK\3\2\2\2RO\3\2\2\2SV\3\2\2\2TR\3\2\2\2TU"+
-		"\3\2\2\2U\27\3\2\2\2VT\3\2\2\2WX\t\2\2\2X\31\3\2\2\2Y]\7\n\2\2Z[\7\n\2"+
-		"\2[]\7+\2\2\\Y\3\2\2\2\\Z\3\2\2\2]\33\3\2\2\2^_\t\3\2\2_\35\3\2\2\2\n"+
-		"%*\64=IRT\\";
+		"\3\u0430\ud6d1\u8206\uad2d\u4417\uaef1\u8d80\uaadd\3\32v\4\2\t\2\4\3\t"+
+		"\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7\4\b\t\b\4\t\t\t\4\n\t\n\4\13\t\13\4"+
+		"\f\t\f\4\r\t\r\4\16\t\16\4\17\t\17\4\20\t\20\4\21\t\21\3\2\3\2\3\3\3\3"+
+		"\3\3\3\3\3\3\5\3*\n\3\3\4\3\4\3\4\5\4/\n\4\3\4\3\4\3\5\3\5\3\6\3\6\3\7"+
+		"\3\7\5\79\n\7\3\b\3\b\3\t\3\t\3\t\7\t@\n\t\f\t\16\tC\13\t\3\n\3\n\3\13"+
+		"\3\13\3\13\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f\5\fT\n\f\3\f\3\f\3"+
+		"\f\3\f\3\f\3\f\7\f\\\n\f\f\f\16\f_\13\f\3\r\3\r\5\rc\n\r\3\16\3\16\3\16"+
+		"\5\16h\n\16\3\17\3\17\3\17\3\17\3\17\3\17\5\17p\n\17\3\20\3\20\3\21\3"+
+		"\21\3\21\2\3\26\22\2\4\6\b\n\f\16\20\22\24\26\30\32\34\36 \2\3\4\2\17"+
+		"\22\24\25q\2\"\3\2\2\2\4$\3\2\2\2\6.\3\2\2\2\b\62\3\2\2\2\n\64\3\2\2\2"+
+		"\f8\3\2\2\2\16:\3\2\2\2\20<\3\2\2\2\22D\3\2\2\2\24F\3\2\2\2\26S\3\2\2"+
+		"\2\30b\3\2\2\2\32g\3\2\2\2\34o\3\2\2\2\36q\3\2\2\2 s\3\2\2\2\"#\5\4\3"+
+		"\2#\3\3\2\2\2$%\7\3\2\2%&\5\f\7\2&\'\7\4\2\2\')\5\6\4\2(*\5\24\13\2)("+
+		"\3\2\2\2)*\3\2\2\2*\5\3\2\2\2+,\5\b\5\2,-\7\b\2\2-/\3\2\2\2.+\3\2\2\2"+
+		"./\3\2\2\2/\60\3\2\2\2\60\61\5\n\6\2\61\7\3\2\2\2\62\63\7\26\2\2\63\t"+
+		"\3\2\2\2\64\65\7\26\2\2\65\13\3\2\2\2\669\5\16\b\2\679\5\20\t\28\66\3"+
+		"\2\2\28\67\3\2\2\29\r\3\2\2\2:;\7\6\2\2;\17\3\2\2\2<A\5\22\n\2=>\7\7\2"+
+		"\2>@\5\22\n\2?=\3\2\2\2@C\3\2\2\2A?\3\2\2\2AB\3\2\2\2B\21\3\2\2\2CA\3"+
+		"\2\2\2DE\7\26\2\2E\23\3\2\2\2FG\7\5\2\2GH\5\26\f\2H\25\3\2\2\2IJ\b\f\1"+
+		"\2JK\7\13\2\2KL\5\26\f\2LM\7\f\2\2MT\3\2\2\2NO\5\30\r\2OP\5 \21\2PQ\5"+
+		"\30\r\2QT\3\2\2\2RT\5\30\r\2SI\3\2\2\2SN\3\2\2\2SR\3\2\2\2T]\3\2\2\2U"+
+		"V\f\6\2\2VW\7\r\2\2W\\\5\26\f\7XY\f\5\2\2YZ\7\16\2\2Z\\\5\26\f\6[U\3\2"+
+		"\2\2[X\3\2\2\2\\_\3\2\2\2][\3\2\2\2]^\3\2\2\2^\27\3\2\2\2_]\3\2\2\2`c"+
+		"\5\32\16\2ac\5\36\20\2b`\3\2\2\2ba\3\2\2\2c\31\3\2\2\2dh\7\27\2\2eh\7"+
+		"\30\2\2fh\5\34\17\2gd\3\2\2\2ge\3\2\2\2gf\3\2\2\2h\33\3\2\2\2ij\7\t\2"+
+		"\2jk\7\26\2\2kp\7\t\2\2lm\7\n\2\2mn\7\26\2\2np\7\n\2\2oi\3\2\2\2ol\3\2"+
+		"\2\2p\35\3\2\2\2qr\7\26\2\2r\37\3\2\2\2st\t\2\2\2t!\3\2\2\2\f).8AS[]b"+
+		"go";
 	public static final ATN _ATN =
 		new ATNDeserializer().deserialize(_serializedATN.toCharArray());
 	static {

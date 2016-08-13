@@ -3,387 +3,110 @@ lexer grammar AtlasSQLLexer;
 @ header { 
  }
 
+// syntax markers
+
 SELECT
    : 'select'
    ;
 
-
 FROM
    : 'from'
-   ;
-
-
-STAR
-   : '*'
    ;
 
 WHERE
    : 'where'
    ;
 
+// useful tokens
 
-AND
-   : 'and' | '&&'
+STAR
+   : '*'
    ;
-
-
-OR
-   : 'or' | '||'
-   ;
-
-
-XOR
-   : 'xor'
-   ;
-
-
-IS
-   : 'is'
-   ;
-
-
-NULL
-   : 'null'
-   ;
-
-
-LIKE
-   : 'like'
-   ;
-
-
-IN
-   : 'in'
-   ;
-
-
-EXISTS
-   : 'exists'
-   ;
-
-
-ALL
-   : 'all'
-   ;
-
-
-ANY
-   : 'any'
-   ;
-
-
-TRUE
-   : 'true'
-   ;
-
-
-FALSE
-   : 'false'
-   ;
-
-
-DIVIDE
-   : 'div' | '/'
-   ;
-
-
-MOD
-   : 'mod' | '%'
-   ;
-
-
-BETWEEN
-   : 'between'
-   ;
-
-
-REGEXP
-   : 'regexp'
-   ;
-
-
-PLUS
-   : '+'
-   ;
-
-
-MINUS
-   : '-'
-   ;
-
-
-NEGATION
-   : '~'
-   ;
-
-
-VERTBAR
-   : '|'
-   ;
-
-
-BITAND
-   : '&'
-   ;
-
-
-POWER_OP
-   : '^'
-   ;
-
-
-BINARY
-   : 'binary'
-   ;
-
-
-SHIFT_LEFT
-   : '<<'
-   ;
-
-
-SHIFT_RIGHT
-   : '>>'
-   ;
-
-
-ESCAPE
-   : 'escape'
-   ;
-
-
-
-
-RPAREN
-   : ')'
-   ;
-
-
-LPAREN
-   : '('
-   ;
-
-
-RBRACK
-   : ']'
-   ;
-
-
-LBRACK
-   : '['
-   ;
-
-
-COLON
-   : ':'
-   ;
-
-
-ALL_FIELDS
-   : '.*'
-   ;
-
-
-EQ
-   : '='
-   ;
-
-
-LTH
-   : '<'
-   ;
-
-
-GTH
-   : '>'
-   ;
-
-
-NOT_EQ
-   : '!='
-   ;
-
-
-NOT
-   : 'not'
-   ;
-
-
-LET
-   : '<='
-   ;
-
-
-GET
-   : '>='
-   ;
-
-
-SEMI
-   : ';'
-   ;
-
 
 COMMA
    : ','
    ;
 
-
 DOT
    : '.'
    ;
 
-
-COLLATE
-   : 'collate'
+SINGLE_QUOTE
+   : '\''
    ;
 
-
-INNER
-   : 'inner'
+DOUBLE_QUOTE
+   : '"'
    ;
 
-
-OUTER
-   : 'outer'
+LPAREN
+   : '('
    ;
 
-
-JOIN
-   : 'join'
+RPAREN
+   : ')'
    ;
 
+// boolean ops
 
-CROSS
-   : 'cross'
+AND
+   : 'and' | '&&'
    ;
 
-
-USING
-   : 'using'
+OR
+   : 'or' | '||'
    ;
 
+// expression ops
 
-INDEX
-   : 'index'
+EQ
+   : '='
    ;
 
-
-KEY
-   : 'key'
+LTH
+   : '<'
    ;
 
-
-ORDER
-   : 'order'
+GTH
+   : '>'
    ;
 
-
-GROUP
-   : 'group'
+NOT_EQ
+   : '<>' | '!='
    ;
 
-
-BY
-   : 'by'
+NOT
+   : 'not'
    ;
 
-
-FOR
-   : 'for'
+LET
+   : '<='
    ;
 
-
-USE
-   : 'use'
+GET
+   : '>='
    ;
 
-
-IGNORE
-   : 'ignore'
-   ;
-
-
-PARTITION
-   : 'partition'
-   ;
-
-
-STRAIGHT_JOIN
-   : 'straight_join'
-   ;
-
-
-NATURAL
-   : 'natural'
-   ;
-
-
-LEFT
-   : 'left'
-   ;
-
-
-RIGHT
-   : 'right'
-   ;
-
-
-OJ
-   : 'oj'
-   ;
-
-
-ON
-   : 'on'
-   ;
-
+// identifier and literals
 
 ID
    : ( 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' )+
    ;
 
-
-INT
-   : '0' .. '9'+
-   ;
-
-
 DECIMAL
    : '-'? [0-9]+ ( '.' [0-9]+ )?
    ;
 
+BOOLEAN
+   : ('true'|'false')
+   ;
+
+// skip tokens
 
 NEWLINE
    : '\r'? '\n' -> skip
    ;
 
-
 WS
    : ( ' ' | '\t' | '\n' | '\r' )+ -> skip
-   ;
-
-
-USER_VAR
-   : '@' ( USER_VAR_SUBFIX1 | USER_VAR_SUBFIX2 | USER_VAR_SUBFIX3 | USER_VAR_SUBFIX4 )
-   ;
-
-
-fragment USER_VAR_SUBFIX1
-   : ( '`' ( ~ '`' )+ '`' )
-   ;
-
-
-fragment USER_VAR_SUBFIX2
-   : ( '\'' ( ~ '\'' )+ '\'' )
-   ;
-
-
-fragment USER_VAR_SUBFIX3
-   : ( '\"' ( ~ '\"' )+ '\"' )
-   ;
-
-
-fragment USER_VAR_SUBFIX4
-   : ( 'A' .. 'Z' | 'a' .. 'z' | '_' | '$' | '0' .. '9' | DOT )+
    ;

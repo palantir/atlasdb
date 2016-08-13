@@ -1,18 +1,15 @@
 package com.palantir.atlasdb.sql;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
 
-import static com.palantir.atlasdb.sql.QueryTest.fails;
+import static com.palantir.atlasdb.sql.QueryTests.fails;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.function.Function;
 
 import org.junit.After;
 import org.junit.Before;

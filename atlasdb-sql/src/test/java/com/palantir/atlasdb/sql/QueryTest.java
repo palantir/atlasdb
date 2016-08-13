@@ -1,12 +1,17 @@
 package com.palantir.atlasdb.sql;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+
+import static com.palantir.atlasdb.sql.QueryTests.count;
+import static com.palantir.atlasdb.sql.QueryTests.fails;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
-import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.Before;
@@ -138,19 +143,15 @@ public class QueryTest {
     }
 
     @Test
-    public void testSelectWhere1() {
+    public void testSelectWhere() {
         testSelectWhere("key1", "value1");
-    }
-
-    @Test
-    public void testSelectWhere2() {
         testSelectWhere("key2", "value2");
     }
 
     private void testSelectWhere(String row, String val) {
         try (Connection c = getConnection()) {
             Statement stmt = c.createStatement();
-            ResultSet results = stmt.executeQuery(String.format("select * from %s where %s = %s", TABLE.getQualifiedName(), COL1_NAME, val));
+            ResultSet results = stmt.executeQuery(String.format("select * from %s where %s = \"%s\"", TABLE.getQualifiedName(), COL1_NAME, val));
             results.next();
             Preconditions.checkArgument(results.getString(ROW_COMP).equals(row));
             Preconditions.checkArgument(results.getString(COL1_NAME).equals(val));
@@ -175,12 +176,36 @@ public class QueryTest {
         }
     }
 
-    static boolean fails(Callable<?> c) {
-        try {
-            c.call();
-            return false;
-        } catch (Exception e) {
-            return true;
+    @Test
+    public void testSelectWhereRowFiltering() {
+        countRowsFromRowFilteringQuery("key1", "=", 1);
+        countRowsFromRowFilteringQuery("key1", ">=", 2);
+        countRowsFromRowFilteringQuery("key1", "<=", 1);
+        countRowsFromRowFilteringQuery("key1", ">", 1);
+        countRowsFromRowFilteringQuery("key1", "<", 0);
+        countRowsFromRowFilteringQuery("key1", "!=", 1);
+
+        countRowsFromRowFilteringQuery("key2", "=", 1);
+        countRowsFromRowFilteringQuery("key2", ">=", 1);
+        countRowsFromRowFilteringQuery("key2", "<=", 2);
+        countRowsFromRowFilteringQuery("key2", ">", 0);
+        countRowsFromRowFilteringQuery("key2", "<", 1);
+        countRowsFromRowFilteringQuery("key2", "<>", 1);
+
+        countRowsFromRowFilteringQuery("key", ">", 0);
+        countRowsFromRowFilteringQuery("key", "<", 0);
+        countRowsFromRowFilteringQuery("key50", "<", 2);
+        countRowsFromRowFilteringQuery("key50", ">", 0);
+    }
+
+    public void countRowsFromRowFilteringQuery(String key, String op, int expectedCount) {
+         try (Connection c = getConnection()) {
+            Statement stmt = c.createStatement();
+            ResultSet results = stmt.executeQuery(
+                    String.format("select * from %s where %s %s \"%s\"", TABLE.getQualifiedName(), ROW_COMP, op, key));
+            assertThat(count(results), equalTo(expectedCount));
+        } catch (ClassNotFoundException | SQLException e) {
+            throw new RuntimeException("Failure running select.", e);
         }
     }
 
