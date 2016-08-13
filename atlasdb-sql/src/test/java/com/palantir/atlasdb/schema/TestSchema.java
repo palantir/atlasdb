@@ -1,7 +1,5 @@
 package com.palantir.atlasdb.schema;
 
-import java.io.File;
-
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -61,10 +59,6 @@ public enum TestSchema implements AtlasSchema {
     @Override
     public Namespace getNamespace() {
         return NAMESPACE;
-    }
-
-    public static void main(String[] args) throws Exception {
-        SCHEMA.get().renderTables(new File("atlasdb-sql/src/test/java"));
     }
 
 }
