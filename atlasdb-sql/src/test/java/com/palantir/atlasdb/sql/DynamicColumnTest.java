@@ -26,7 +26,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 
 public class DynamicColumnTest {
-    public static final String CONFIG_FILENAME = "dispatchTestConfig.yml";
+    public static final String CONFIG_FILENAME = "memoryTestConfig.yml";
 
     @Before
     public void setup() throws SQLException, ClassNotFoundException {

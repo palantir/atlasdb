@@ -69,7 +69,7 @@ public class ParsedRowResult {
         } else {
 
             parseColumns(
-                    selectedColumns.stream().filter(JdbcColumnMetadata::isCol).collect(Collectors.toList()),
+                    selectedColumns.stream().filter(JdbcColumnMetadata::isNamedCol).collect(Collectors.toList()),
                     rawResult.getColumns(), rowBuilder);
             List<JdbcColumnMetadataAndValue> colsMeta = rowBuilder.build();
             return Collections.singletonList(new ParsedRowResult(colsMeta, buildIndex(colsMeta)));
@@ -93,7 +93,7 @@ public class ParsedRowResult {
             wrappedCols.put(ByteBuffer.wrap(entry.getKey()), entry.getValue());
         }
         for (JdbcColumnMetadata column : colsMeta) {
-            Preconditions.checkState(column.isCol(), "all metadata here is expected to be for columns");
+            Preconditions.checkState(column.isNamedCol(), "all metadata here is expected to be for columns");
             ByteBuffer shortName = ByteBuffer.wrap(column.getName().getBytes());
             if (wrappedCols.containsKey(shortName)) {
                 resultBuilder.add(JdbcColumnMetadataAndValue.create(column, wrappedCols.get(shortName)));

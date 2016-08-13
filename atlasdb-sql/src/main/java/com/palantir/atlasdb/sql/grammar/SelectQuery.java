@@ -19,6 +19,7 @@ import com.palantir.atlasdb.api.TableRange;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParser;
 import com.palantir.atlasdb.sql.jdbc.results.JdbcColumnMetadata;
+import com.palantir.atlasdb.sql.jdbc.results.JdbcComponentMetadata;
 import com.palantir.atlasdb.sql.jdbc.results.ParsedRowResult;
 import com.palantir.atlasdb.table.description.TableMetadata;
 
@@ -29,7 +30,7 @@ public abstract class SelectQuery {
                                      AtlasSQLParser.Select_queryContext query) throws SQLException {
         List<JdbcColumnMetadata> allCols = makeAllColumns(metadata);
         List<JdbcColumnMetadata> selectedCols = makeSelectedColumns(query.column_clause().column_list(), allCols);
-        Map<String, JdbcColumnMetadata> indexMap = makeLabelOrNameToMetadata(allCols);
+        Map<String, JdbcColumnMetadata> indexMap = makeIndex(allCols);
         return ImmutableSelectQuery.builder()
                                    .table(getTableName(query))
                                    .rangeRequest(RangeRequest.all())
@@ -47,13 +48,14 @@ public abstract class SelectQuery {
     private static List<JdbcColumnMetadata> makeAllColumns(TableMetadata metadata) {
         List<JdbcColumnMetadata> allCols = Lists.newArrayList();
         allCols.addAll(metadata.getRowMetadata().getRowParts().stream()
-                               .map(JdbcColumnMetadata::create).collect(Collectors.toList()));
+                               .map(JdbcComponentMetadata.RowComp::new).collect(Collectors.toList()));
         if (metadata.getColumns().getNamedColumns() != null) {
             allCols.addAll(metadata.getColumns().getNamedColumns().stream()
-                                   .map(JdbcColumnMetadata::create).collect(Collectors.toList()));
+                                   .map(JdbcComponentMetadata.NamedCol::new).collect(Collectors.toList()));
         }
         if (metadata.getColumns().getDynamicColumn() != null) {
-            allCols.add(JdbcColumnMetadata.create(metadata.getColumns().getDynamicColumn()));
+            allCols.addAll(metadata.getColumns().getDynamicColumn().getColumnNameDesc().getRowParts()
+                                   .stream().map(JdbcComponentMetadata.ColComp::new).collect(Collectors.toList()));
         }
         return allCols;
     }
@@ -72,13 +74,13 @@ public abstract class SelectQuery {
         return allCols.stream().filter(c -> requestedCols.contains(c.getName())).collect(Collectors.toList());
     }
 
-    private static Map<String, JdbcColumnMetadata> makeLabelOrNameToMetadata(List<JdbcColumnMetadata> selectedCols) {
+    private static Map<String, JdbcColumnMetadata> makeIndex(List<JdbcColumnMetadata> cols) {
         ImmutableMap.Builder<String, JdbcColumnMetadata> builder = ImmutableMap.builder();
-        builder.putAll(selectedCols.stream()
-                                   .collect(Collectors.toMap(JdbcColumnMetadata::getName, Function.identity())));
-        builder.putAll(selectedCols.stream()
-                                   .filter(m -> !m.getLabel().equals(m.getName()))
-                                   .collect(Collectors.toMap(JdbcColumnMetadata::getLabel, Function.identity())));
+        builder.putAll(cols.stream()
+                           .collect(Collectors.toMap(JdbcColumnMetadata::getName, Function.identity())));
+        builder.putAll(cols.stream()
+                           .filter(m -> !m.getLabel().equals(m.getName()))
+                           .collect(Collectors.toMap(JdbcColumnMetadata::getLabel, Function.identity())));
         return builder.build();
     }
 

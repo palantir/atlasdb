@@ -128,13 +128,19 @@ public class AtlasJdbcStatement implements Statement {
 
     //----------------------- Multiple Results --------------------------
 
-    private AtlasSQLParser.Select_queryContext getQueryContext(String sql) {
+    private AtlasSQLParser.Select_queryContext getQueryContext(String sql) throws SQLException {
         AtlasSQLLexer lexer = new AtlasSQLLexer(new ANTLRInputStream(sql.toLowerCase()));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         AtlasSQLParser parser = new AtlasSQLParser(tokens);
         AtlasSQLParser.Select_queryContext query = parser.query().select_query();
-        Preconditions.checkState(query != null, "Given sql does not parse as a select query: " + sql);
+        checkState(query != null, "Given sql does not parse as a select query: " + sql);
         return query;
+    }
+
+    private void checkState(boolean condition, String message) throws SQLException {
+        if (!condition) {
+            throw new SQLException(message);
+        }
     }
 
     @Override
@@ -143,7 +149,8 @@ public class AtlasJdbcStatement implements Statement {
         AtlasSQLParser.Select_queryContext query = getQueryContext(sql);
         String table = SelectQuery.getTableName(query);
         TableMetadata metadata = service.getTableMetadata(table);
-        Preconditions.checkState(metadata != null, "Could not get table metadata for table " + table);
+        checkState(metadata != null, "Could not get table metadata for table " + table);
+
         SelectQuery select = SelectQuery.create(metadata, query);
         ResultSet rset = AtlasJdbcResultSet.create(service, conn.getTransactionToken(), select, this);
         sqlExecutionResult = SqlExecutionResult.fromResult(rset);
