@@ -3,21 +3,20 @@ package com.palantir.atlasdb.sql;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
+import static com.palantir.atlasdb.sql.QueryTests.IN_MEMORY_TEST_CONFIG;
 import static com.palantir.atlasdb.sql.QueryTests.count;
-import static com.palantir.atlasdb.sql.QueryTests.fails;
+import static com.palantir.atlasdb.sql.QueryTests.assertFails;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -42,7 +41,6 @@ public class QueryTest {
     private static final byte[] COL2_IN_BYTES = COL2_NAME.getBytes();
 
     private static final TableReference TABLE = TableReference.create(Namespace.DEFAULT_NAMESPACE, "table");
-    public static final String CONFIG_FILENAME = "memoryTestConfig.yml";
 
     @Before
     public void setup() throws SQLException, ClassNotFoundException {
@@ -95,14 +93,14 @@ public class QueryTest {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(sql);
             results.next();
-            Preconditions.checkArgument(results.getString(ROW_COMP).equals("key1"));
-            Preconditions.checkArgument(Arrays.equals(results.getBytes(COL1_NAME), "value1".getBytes()));
-            Preconditions.checkArgument(results.getString(COL1_NAME).equals("value1"));
+            assertThat(results.getString(ROW_COMP), equalTo("key1"));
+            assertThat(results.getBytes(COL1_NAME), equalTo("value1".getBytes()));
+            assertThat(results.getString(COL1_NAME), equalTo("value1"));
             results.next();
-            Preconditions.checkArgument(results.getString(ROW_COMP).equals("key2"));
-            Preconditions.checkArgument(Arrays.equals(results.getBytes(COL1_NAME), "value2".getBytes()));
-            Preconditions.checkArgument(results.getString(COL1_NAME).equals("value2"));
-            Preconditions.checkArgument(!results.next());
+            assertThat(results.getString(ROW_COMP), equalTo("key2"));
+            assertThat(results.getBytes(COL1_NAME), equalTo("value2".getBytes()));
+            assertThat(results.getString(COL1_NAME), equalTo("value2"));
+            assertThat(results.next(), equalTo(false));
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException("Failure running select.", e);
         }
@@ -114,12 +112,12 @@ public class QueryTest {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(String.format("select %s from %s", ROW_COMP, TABLE.getQualifiedName()));
             results.next();
-            Preconditions.checkArgument(results.getString(ROW_COMP).equals("key1"));
-            Preconditions.checkArgument(fails(() -> results.getString(COL1_NAME).equals("value1")));
+            assertThat(results.getString(ROW_COMP), equalTo("key1"));
+            assertFails(() -> results.getString(COL1_NAME));
             results.next();
-            Preconditions.checkArgument(results.getString(ROW_COMP).equals("key2"));
-            Preconditions.checkArgument(fails(() -> results.getString(COL1_NAME).equals("value2")));
-            Preconditions.checkArgument(!results.next());
+            assertThat(results.getString(ROW_COMP), equalTo("key2"));
+            assertFails(() -> results.getString(COL1_NAME));
+            assertThat(results.next(), equalTo(false));
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException("Failure running select.", e);
         }
@@ -131,12 +129,12 @@ public class QueryTest {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(String.format("select %s from %s", COL1_NAME, TABLE.getQualifiedName()));
             results.next();
-            Preconditions.checkArgument(fails(() -> results.getString(ROW_COMP).equals("key1")));
-            Preconditions.checkArgument(results.getString(COL1_NAME).equals("value1"));
+            assertFails(() -> results.getString(ROW_COMP));
+            assertThat(results.getString(COL1_NAME), equalTo("value1"));
             results.next();
-            Preconditions.checkArgument(fails(() -> results.getString(ROW_COMP).equals("key2")));
-            Preconditions.checkArgument(results.getString(COL1_NAME).equals("value2"));
-            Preconditions.checkArgument(!results.next());
+            assertFails(() -> results.getString(ROW_COMP));
+            assertThat(results.getString(COL1_NAME), equalTo("value2"));
+            assertThat(results.next(), equalTo(false));
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException("Failure running select.", e);
         }
@@ -153,9 +151,9 @@ public class QueryTest {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(String.format("select * from %s where %s = \"%s\"", TABLE.getQualifiedName(), COL1_NAME, val));
             results.next();
-            Preconditions.checkArgument(results.getString(ROW_COMP).equals(row));
-            Preconditions.checkArgument(results.getString(COL1_NAME).equals(val));
-            Preconditions.checkArgument(!results.next());
+            assertThat(results.getString(ROW_COMP), equalTo(row));
+            assertThat(results.getString(COL1_NAME), equalTo(val));
+            assertThat(results.next(), equalTo(false));
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException("Failure running select.", e);
         }
@@ -167,10 +165,10 @@ public class QueryTest {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(String.format("select * from %s", TABLE.getQualifiedName()));
             results.next();
-            Preconditions.checkArgument(results.getString(COL2_NAME).equals("value3"));
+            assertThat(results.getString(COL2_NAME), equalTo("value3"));
             results.next();
-            Preconditions.checkArgument(results.getBytes(COL2_NAME).length == 0);
-            Preconditions.checkArgument(!results.next());
+            assertThat(results.getBytes(COL2_NAME).length, equalTo(0));
+            assertThat(results.next(), equalTo(false));
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException("Failure running select.", e);
         }
@@ -198,7 +196,7 @@ public class QueryTest {
         countRowsFromRowFilteringQuery("key50", ">", 0);
     }
 
-    public void countRowsFromRowFilteringQuery(String key, String op, int expectedCount) {
+    private void countRowsFromRowFilteringQuery(String key, String op, int expectedCount) {
          try (Connection c = getConnection()) {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(
@@ -211,7 +209,7 @@ public class QueryTest {
 
     private Connection getConnection() throws ClassNotFoundException, SQLException {
         Class.forName(AtlasJdbcDriver.class.getName());
-        final String configFilePath = ConnectionTest.class.getClassLoader().getResource(CONFIG_FILENAME).getFile();
+        final String configFilePath = ConnectionTest.class.getClassLoader().getResource(IN_MEMORY_TEST_CONFIG).getFile();
         final String uri = "jdbc:atlas?configFile=" + configFilePath;
         return DriverManager.getConnection(uri);
     }

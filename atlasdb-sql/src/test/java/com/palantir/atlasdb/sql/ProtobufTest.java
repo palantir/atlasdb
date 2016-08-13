@@ -28,18 +28,16 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 
-public class ProtobufQueryTest {
+public class ProtobufTest {
 
     public static final String TEST_OBJECT_JSON = "{\"id\": 11,\"type\": 543,\"is_group\": false,\"deleted\": 0,\"data_event_id\": 100}";
 
     public static final String COL_NAME = "b";
-    public static final String COL_LABEL = "base_object";
     public static final String ROW_NAME = "object_id";
-    public static final String CONFIG_FILENAME = "memoryTestConfig.yml";
 
     @Before
     public void setup() throws SQLException, ClassNotFoundException {
-        try (Connection c = TestConnection.create(CONFIG_FILENAME)) {
+        try (Connection c = QueryTests.connect(QueryTests.IN_MEMORY_TEST_CONFIG)) {
             // hack to populate AtlasJdbcDriver.getLastKnownAtlasServices()
         }
         AtlasDbServices services = AtlasJdbcDriver.getLastKnownAtlasServices();
@@ -105,7 +103,7 @@ public class ProtobufQueryTest {
     public void testSelectNamed() throws SQLException {
         Statement stmt = null;
         ResultSet results = null;
-        try (Connection c = TestConnection.create(CONFIG_FILENAME)) {
+        try (Connection c = QueryTests.connect(QueryTests.IN_MEMORY_TEST_CONFIG)) {
             stmt = c.createStatement();
             results = stmt.executeQuery(String.format("select * from %s", TestSchema.ONLY_TABLE.getQualifiedName()));
             results.next();

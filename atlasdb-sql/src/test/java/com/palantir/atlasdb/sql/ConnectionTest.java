@@ -12,26 +12,14 @@ import org.slf4j.LoggerFactory;
 import com.palantir.atlasdb.sql.jdbc.AtlasJdbcDriver;
 
 public class ConnectionTest {
-    private Logger log = LoggerFactory.getLogger(ConnectionTest.class);
-
     @Test
     public void testInMemoryConnection() throws ClassNotFoundException, SQLException {
-        connect("memoryTestConfig.yml");
+        connect(QueryTests.IN_MEMORY_TEST_CONFIG);
     }
 
     private void connect(String name) throws ClassNotFoundException, SQLException {
-        Connection connection = null;
-        try {
-            Class.forName(AtlasJdbcDriver.class.getName());
-            final java.net.URL resource = ConnectionTest.class.getClassLoader().getResource(name);
-            assert resource != null;
-            final String URL = "jdbc:atlas?configFile=" + resource.getFile();
-            log.debug("url {}", URL);
-            connection = DriverManager.getConnection(URL);
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+        try (Connection c = QueryTests.connect(name)) {
+            // success
         }
     }
 }

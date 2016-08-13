@@ -4,7 +4,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 
-import static com.palantir.atlasdb.sql.QueryTests.fails;
+import static com.palantir.atlasdb.sql.QueryTests.assertFails;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -32,7 +32,6 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 
 public class DynamicColumnTest {
-    public static final String CONFIG_FILENAME = "memoryTestConfig.yml";
     private static final String ROW_COMP1 = "rowComp1";  //long
     private static final String ROW_COMP2 = "rowComp2";  //string
     private static final String COL_COMP1 = "colComp1";  //long
@@ -41,7 +40,7 @@ public class DynamicColumnTest {
 
     @Before
     public void setup() throws SQLException, ClassNotFoundException {
-        try (Connection c = TestConnection.create(CONFIG_FILENAME)) {
+        try (Connection c = QueryTests.connect(QueryTests.IN_MEMORY_TEST_CONFIG)) {
             // hack to populate AtlasJdbcDriver.getLastKnownAtlasServices()
         }
         AtlasDbServices services = AtlasJdbcDriver.getLastKnownAtlasServices();
@@ -52,7 +51,7 @@ public class DynamicColumnTest {
 
     @Test
     public void testSelectDynamicAll() throws SQLException, ClassNotFoundException {
-        try (Connection c = TestConnection.create(CONFIG_FILENAME);
+        try (Connection c = QueryTests.connect(QueryTests.IN_MEMORY_TEST_CONFIG);
              Statement stmt = c.createStatement();
              ResultSet results = stmt.executeQuery(String.format("select * from %s", TestSchema.DYNAMIC_COLUMN_TABLE.getQualifiedName()))) {
             results.next();
@@ -67,29 +66,29 @@ public class DynamicColumnTest {
 
     @Test
     public void testSelectDynamicRowComponent() throws SQLException, ClassNotFoundException {
-        try (Connection c = TestConnection.create(CONFIG_FILENAME);
+        try (Connection c = QueryTests.connect(QueryTests.IN_MEMORY_TEST_CONFIG);
              Statement stmt = c.createStatement();
              ResultSet results = stmt.executeQuery(String.format("select %s from %s", ROW_COMP2,
                                                                  TestSchema.DYNAMIC_COLUMN_TABLE.getQualifiedName()))) {
             results.next();
-            fails(() -> results.getLong(ROW_COMP1));
+            assertFails(() -> results.getLong(ROW_COMP1));
             assertThat(results.getString(ROW_COMP2), equalTo(rowComp2(1)));
-            fails(() -> results.getLong(COL_COMP1));
-            fails(() -> results.getString(COL_COMP2));
+            assertFails(() -> results.getLong(COL_COMP1));
+            assertFails(() -> results.getString(COL_COMP2));
             assertThat(results.getObject(DYN), equalTo(obj(1))); // ??
         }
     }
 
     @Test
     public void testSelectDynamicColComponent() throws SQLException, ClassNotFoundException {
-        try (Connection c = TestConnection.create(CONFIG_FILENAME);
+        try (Connection c = QueryTests.connect(QueryTests.IN_MEMORY_TEST_CONFIG);
              Statement stmt = c.createStatement();
              ResultSet results = stmt.executeQuery(String.format("select %s from %s", COL_COMP2,
                                                                  TestSchema.DYNAMIC_COLUMN_TABLE.getQualifiedName()))) {
             results.next();
-            fails(() -> results.getLong(ROW_COMP1));
-            fails(() -> results.getString(ROW_COMP2));
-            fails(() -> results.getLong(COL_COMP1));
+            assertFails(() -> results.getLong(ROW_COMP1));
+            assertFails(() -> results.getString(ROW_COMP2));
+            assertFails(() -> results.getLong(COL_COMP1));
             assertThat(results.getString(COL_COMP2), equalTo(colComp2(1)));
             assertThat(results.getObject(DYN), equalTo(obj(1))); // ??
         }
@@ -97,14 +96,14 @@ public class DynamicColumnTest {
 
     @Test
     public void testSelectDynamicColComponentWhere() throws SQLException, ClassNotFoundException {
-        try (Connection c = TestConnection.create(CONFIG_FILENAME);
+        try (Connection c = QueryTests.connect(QueryTests.IN_MEMORY_TEST_CONFIG);
              Statement stmt = c.createStatement();
              ResultSet results = stmt.executeQuery(String.format("select %s, %s, %s from %s where %s=%s", ROW_COMP1, COL_COMP1, COL_COMP2,
                                                                  TestSchema.DYNAMIC_COLUMN_TABLE.getQualifiedName(), ROW_COMP1, 111))) {
             results.next();
             assertThat(results.getLong(ROW_COMP1), equalTo(rowComp1(2)));
-            fails(() -> results.getString(ROW_COMP2));
-            fails(() -> results.getLong(COL_COMP1));
+            assertFails(() -> results.getString(ROW_COMP2));
+            assertFails(() -> results.getLong(COL_COMP1));
             assertThat(results.getString(COL_COMP2), equalTo(colComp2(2)));
             assertThat(results.getObject(DYN), equalTo(obj(1))); // ??
             assertFalse(results.next());
