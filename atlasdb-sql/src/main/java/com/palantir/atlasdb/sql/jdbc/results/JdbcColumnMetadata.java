@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.sql.jdbc.results;
 
+import java.util.Collection;
 import java.util.Optional;
 
 import com.google.common.base.Preconditions;
@@ -30,6 +31,10 @@ public class JdbcColumnMetadata {
                                       Optional.of(new NamedOrDynamicColumnDescription(DYNAMIC_COLUMN_LABEL, DYNAMIC_COLUMN_LABEL, col.getValue())));
     }
 
+    public static boolean anyDynamicColumns(Collection<JdbcColumnMetadata> allCols) {
+        return allCols.stream().anyMatch(JdbcColumnMetadata::isDynCol);
+    }
+
     private JdbcColumnMetadata(Optional<NameComponentDescription> rowComp, Optional<NamedOrDynamicColumnDescription> col) {
         Preconditions.checkArgument(rowComp.isPresent() ^ col.isPresent(), "only one description should be present");
         this.rowComp = rowComp;
@@ -45,7 +50,7 @@ public class JdbcColumnMetadata {
     }
 
     public boolean isNamedCol() {
-        return !isDynCol();
+        return isCol() && !col.get().longName.equals(DYNAMIC_COLUMN_LABEL);
     }
 
     public boolean isDynCol() {

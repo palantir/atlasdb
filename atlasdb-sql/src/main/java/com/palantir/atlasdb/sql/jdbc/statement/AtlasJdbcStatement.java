@@ -9,8 +9,14 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 
+import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CommonTokenStream;
+
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.sql.grammar.SelectQuery;
+import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLLexer;
+import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParser;
 import com.palantir.atlasdb.sql.jdbc.connection.AtlasJdbcConnection;
 import com.palantir.atlasdb.sql.jdbc.results.AtlasJdbcResultSet;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -19,9 +25,7 @@ public class AtlasJdbcStatement implements Statement {
 
     private final AtlasJdbcConnection conn;
     private SqlExecutionResult sqlExecutionResult;
-
     private boolean isClosed = false;
-
     private TableMetadata tableMetadata = null;
 
     public AtlasJdbcStatement(AtlasJdbcConnection conn) {
@@ -124,11 +128,23 @@ public class AtlasJdbcStatement implements Statement {
 
     //----------------------- Multiple Results --------------------------
 
+    private AtlasSQLParser.Select_queryContext getQueryContext(String sql) {
+        AtlasSQLLexer lexer = new AtlasSQLLexer(new ANTLRInputStream(sql.toLowerCase()));
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        AtlasSQLParser parser = new AtlasSQLParser(tokens);
+        AtlasSQLParser.Select_queryContext query = parser.query().select_query();
+        Preconditions.checkState(query != null, "Given sql does not parse as a select query: " + sql);
+        return query;
+    }
+
     @Override
     public boolean execute(String sql) throws SQLException {
         final AtlasDbService service = conn.getService();
-        SelectQuery select = SelectQuery.create(sql, service);
-        tableMetadata = service.getTableMetadata(select.table());
+        AtlasSQLParser.Select_queryContext query = getQueryContext(sql);
+        String table = SelectQuery.getTableName(query);
+        TableMetadata metadata = service.getTableMetadata(table);
+        Preconditions.checkState(metadata != null, "Could not get table metadata for table " + table);
+        SelectQuery select = SelectQuery.create(metadata, query);
         ResultSet rset = AtlasJdbcResultSet.create(service, conn.getTransactionToken(), select, this);
         sqlExecutionResult = SqlExecutionResult.fromResult(rset);
         return getResultSet() != null;

@@ -63,7 +63,9 @@ public class AtlasJdbcResultSet implements ResultSet {
         this.stmt = stmt;
         this.query = query;
         this.rangeToken = rangeToken;
-        this.curIter = ParsedRowResult.makeIterator(rangeToken.getResults().getResults(), query.postfilterPredicate(), query.columns());
+        this.curIter = ParsedRowResult.makeIterator(rangeToken.getResults().getResults(),
+                                                    query.postfilterPredicate(),
+                                                    query.selectedColumns());
         this.curResult = null;
     }
 
@@ -78,7 +80,9 @@ public class AtlasJdbcResultSet implements ResultSet {
         } else { // page to the next range
             if (rangeToken.hasMoreResults()) {
                 rangeToken = service.getRange(transactionToken, rangeToken.getNextRange());
-                curIter = ParsedRowResult.makeIterator(rangeToken.getResults().getResults(), query.postfilterPredicate(), query.columns());
+                curIter = ParsedRowResult.makeIterator(rangeToken.getResults().getResults(),
+                                                       query.postfilterPredicate(),
+                                                       query.selectedColumns());
                 return next();
             } else { // all done
                 rangeToken = null;
@@ -286,7 +290,7 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
-        return AtlasJdbcResultSetMetaData.create(query.columns());
+        return AtlasJdbcResultSetMetaData.create(query.allColumns());
     }
 
     @Override

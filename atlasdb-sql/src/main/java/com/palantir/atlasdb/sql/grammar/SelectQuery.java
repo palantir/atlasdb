@@ -9,18 +9,14 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.antlr.v4.runtime.ANTLRInputStream;
-import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RuleContext;
 import org.immutables.value.Value;
 
-import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.api.TableRange;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLLexer;
 import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParser;
 import com.palantir.atlasdb.sql.jdbc.results.JdbcColumnMetadata;
 import com.palantir.atlasdb.sql.jdbc.results.ParsedRowResult;
@@ -29,27 +25,23 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 @Value.Immutable
 public abstract class SelectQuery {
 
-    public static SelectQuery create(String sql, AtlasDbService service) throws SQLException {
-        AtlasSQLLexer lexer = new AtlasSQLLexer(new ANTLRInputStream(sql.toLowerCase()));
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-        AtlasSQLParser parser = new AtlasSQLParser(tokens);
-        AtlasSQLParser.Select_queryContext query = parser.query().select_query();
-        Preconditions.checkState(query != null, "Given sql does not parse as a select query: " + sql);
-
-        String table = query.table_reference().getText();
-        TableMetadata metadata = service.getTableMetadata(table);
-        Preconditions.checkState(metadata != null, "Could not get table metadata for table " + table);
-
+    public static SelectQuery create(TableMetadata metadata,
+                                     AtlasSQLParser.Select_queryContext query) throws SQLException {
         List<JdbcColumnMetadata> allCols = makeAllColumns(metadata);
         List<JdbcColumnMetadata> selectedCols = makeSelectedColumns(query.column_clause().column_list(), allCols);
-        Map<String, JdbcColumnMetadata> indexMap = makeLabelOrNameToMetadata(selectedCols);
-
+        Map<String, JdbcColumnMetadata> indexMap = makeLabelOrNameToMetadata(allCols);
         return ImmutableSelectQuery.builder()
-                .table(table)
-                .rangeRequest(RangeRequest.all())
-                .columns(selectedCols)
-                .postfilterPredicate(makePostfilterPredicate(query.where_clause()))
-                .build();
+                                   .table(getTableName(query))
+                                   .rangeRequest(RangeRequest.all())
+                                   .allColumns(allCols)
+                                   .selectedColumns(selectedCols)
+                                   .index(indexMap)
+                                   .postfilterPredicate(makePostfilterPredicate(query.where_clause()))
+                                   .build();
+    }
+
+    public static String getTableName(AtlasSQLParser.Select_queryContext query) {
+        return query.table_reference().getText();
     }
 
     private static List<JdbcColumnMetadata> makeAllColumns(TableMetadata metadata) {
@@ -69,19 +61,24 @@ public abstract class SelectQuery {
     private static List<JdbcColumnMetadata> makeSelectedColumns(@Nullable AtlasSQLParser.Column_listContext colListCtx,
                                                                 List<JdbcColumnMetadata> allCols) {
         if (colListCtx == null) {
-            return allCols;
+            if (JdbcColumnMetadata.anyDynamicColumns(allCols)) {
+                return ImmutableList.of(); // we want all columns when dynamic
+            } else {
+                return allCols;
+            }
         }
         List<String> requestedCols =
                 colListCtx.column_name().stream().map(RuleContext::getText).collect(Collectors.toList());
         return allCols.stream().filter(c -> requestedCols.contains(c.getName())).collect(Collectors.toList());
     }
 
-    public static Map<String, JdbcColumnMetadata> makeLabelOrNameToMetadata(List<JdbcColumnMetadata> selectedCols) {
+    private static Map<String, JdbcColumnMetadata> makeLabelOrNameToMetadata(List<JdbcColumnMetadata> selectedCols) {
         ImmutableMap.Builder<String, JdbcColumnMetadata> builder = ImmutableMap.builder();
-        selectedCols.stream().collect(Collectors.toMap(JdbcColumnMetadata::getName, Function.identity()));
-        selectedCols.stream()
-                .filter(m -> !m.getLabel().equals(m.getName()))
-                .collect(Collectors.toMap(JdbcColumnMetadata::getLabel, Function.identity()));
+        builder.putAll(selectedCols.stream()
+                                   .collect(Collectors.toMap(JdbcColumnMetadata::getName, Function.identity())));
+        builder.putAll(selectedCols.stream()
+                                   .filter(m -> !m.getLabel().equals(m.getName()))
+                                   .collect(Collectors.toMap(JdbcColumnMetadata::getLabel, Function.identity())));
         return builder.build();
     }
 
@@ -94,9 +91,9 @@ public abstract class SelectQuery {
 
     @Value.Derived
     public TableRange tableRange() {
-        List<byte[]> cols = columns()
+        List<byte[]> cols = allColumns()
                 .stream()
-                .filter(JdbcColumnMetadata::isCol)
+                .filter(JdbcColumnMetadata::isNamedCol)
                 .map(c -> c.getName().getBytes())
                 .collect(Collectors.toList());
         return new TableRange(table(),
@@ -108,8 +105,9 @@ public abstract class SelectQuery {
 
     public abstract String table();
     public abstract RangeRequest rangeRequest();
-    public abstract List<JdbcColumnMetadata> columns();
-    public abstract Map<String, JdbcColumnMetadata> labelOrNameToMetadata();
+    public abstract List<JdbcColumnMetadata> allColumns();
+    public abstract List<JdbcColumnMetadata> selectedColumns();
+    public abstract Map<String, JdbcColumnMetadata> index();
     public abstract Predicate<ParsedRowResult> postfilterPredicate();
 
     @Value.Default

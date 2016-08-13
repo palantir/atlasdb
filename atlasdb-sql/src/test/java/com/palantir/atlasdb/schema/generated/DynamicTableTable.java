@@ -134,74 +134,74 @@ public final class DynamicTableTable implements
     /**
      * <pre>
      * DynamicTableRow {
-     *   {@literal Long resyncContextId};
-     *   {@literal String extOrResolvesToKey};
+     *   {@literal Long rowComp1};
+     *   {@literal String rowComp2};
      * }
      * </pre>
      */
     public static final class DynamicTableRow implements Persistable, Comparable<DynamicTableRow> {
-        private final long resyncContextId;
-        private final String extOrResolvesToKey;
+        private final long rowComp1;
+        private final String rowComp2;
 
-        public static DynamicTableRow of(long resyncContextId, String extOrResolvesToKey) {
-            return new DynamicTableRow(resyncContextId, extOrResolvesToKey);
+        public static DynamicTableRow of(long rowComp1, String rowComp2) {
+            return new DynamicTableRow(rowComp1, rowComp2);
         }
 
-        private DynamicTableRow(long resyncContextId, String extOrResolvesToKey) {
-            this.resyncContextId = resyncContextId;
-            this.extOrResolvesToKey = extOrResolvesToKey;
+        private DynamicTableRow(long rowComp1, String rowComp2) {
+            this.rowComp1 = rowComp1;
+            this.rowComp2 = rowComp2;
         }
 
-        public long getResyncContextId() {
-            return resyncContextId;
+        public long getRowComp1() {
+            return rowComp1;
         }
 
-        public String getExtOrResolvesToKey() {
-            return extOrResolvesToKey;
+        public String getRowComp2() {
+            return rowComp2;
         }
 
-        public static Function<DynamicTableRow, Long> getResyncContextIdFun() {
+        public static Function<DynamicTableRow, Long> getRowComp1Fun() {
             return new Function<DynamicTableRow, Long>() {
                 @Override
                 public Long apply(DynamicTableRow row) {
-                    return row.resyncContextId;
+                    return row.rowComp1;
                 }
             };
         }
 
-        public static Function<DynamicTableRow, String> getExtOrResolvesToKeyFun() {
+        public static Function<DynamicTableRow, String> getRowComp2Fun() {
             return new Function<DynamicTableRow, String>() {
                 @Override
                 public String apply(DynamicTableRow row) {
-                    return row.extOrResolvesToKey;
+                    return row.rowComp2;
                 }
             };
         }
 
         @Override
         public byte[] persistToBytes() {
-            byte[] resyncContextIdBytes = PtBytes.toBytes(Long.MIN_VALUE ^ resyncContextId);
-            byte[] extOrResolvesToKeyBytes = PtBytes.toBytes(extOrResolvesToKey);
-            return EncodingUtils.add(resyncContextIdBytes, extOrResolvesToKeyBytes);
+            byte[] rowComp1Bytes = PtBytes.toBytes(Long.MIN_VALUE ^ rowComp1);
+            byte[] rowComp2Bytes = PtBytes.toBytes(rowComp2);
+            return EncodingUtils.add(rowComp1Bytes, rowComp2Bytes);
         }
 
         public static final Hydrator<DynamicTableRow> BYTES_HYDRATOR = new Hydrator<DynamicTableRow>() {
             @Override
             public DynamicTableRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long resyncContextId = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                Long rowComp1 = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                String extOrResolvesToKey = PtBytes.toString(__input, __index, __input.length-__index);
+                String rowComp2 = PtBytes.toString(__input, __index, __input.length-__index);
                 __index += 0;
-                return new DynamicTableRow(resyncContextId, extOrResolvesToKey);
+                return new DynamicTableRow(rowComp1, rowComp2);
             }
         };
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("resyncContextId", resyncContextId)
-                .add("extOrResolvesToKey", extOrResolvesToKey)
+                .add("rowComp1", rowComp1)
+                .add("rowComp2", rowComp2)
                 .toString();
         }
 
@@ -217,19 +217,19 @@ public final class DynamicTableTable implements
                 return false;
             }
             DynamicTableRow other = (DynamicTableRow) obj;
-            return Objects.equal(resyncContextId, other.resyncContextId) && Objects.equal(extOrResolvesToKey, other.extOrResolvesToKey);
+            return Objects.equal(rowComp1, other.rowComp1) && Objects.equal(rowComp2, other.rowComp2);
         }
 
         @Override
         public int hashCode() {
-            return Arrays.deepHashCode(new Object[]{ resyncContextId, extOrResolvesToKey });
+            return Arrays.deepHashCode(new Object[]{ rowComp1, rowComp2 });
         }
 
         @Override
         public int compareTo(DynamicTableRow o) {
             return ComparisonChain.start()
-                .compare(this.resyncContextId, o.resyncContextId)
-                .compare(this.extOrResolvesToKey, o.extOrResolvesToKey)
+                .compare(this.rowComp1, o.rowComp1)
+                .compare(this.rowComp2, o.rowComp2)
                 .result();
         }
     }
@@ -237,84 +237,63 @@ public final class DynamicTableTable implements
     /**
      * <pre>
      * DynamicTableColumn {
-     *   {@literal Long dataChunkId};
-     *   {@literal String externalKey};
+     *   {@literal Long colComp1};
      * }
      * </pre>
      */
     public static final class DynamicTableColumn implements Persistable, Comparable<DynamicTableColumn> {
-        private final long dataChunkId;
-        private final String externalKey;
+        private final long colComp1;
 
-        public static DynamicTableColumn of(long dataChunkId, String externalKey) {
-            return new DynamicTableColumn(dataChunkId, externalKey);
+        public static DynamicTableColumn of(long colComp1) {
+            return new DynamicTableColumn(colComp1);
         }
 
-        private DynamicTableColumn(long dataChunkId, String externalKey) {
-            this.dataChunkId = dataChunkId;
-            this.externalKey = externalKey;
+        private DynamicTableColumn(long colComp1) {
+            this.colComp1 = colComp1;
         }
 
-        public long getDataChunkId() {
-            return dataChunkId;
+        public long getColComp1() {
+            return colComp1;
         }
 
-        public String getExternalKey() {
-            return externalKey;
-        }
-
-        public static Function<DynamicTableColumn, Long> getDataChunkIdFun() {
+        public static Function<DynamicTableColumn, Long> getColComp1Fun() {
             return new Function<DynamicTableColumn, Long>() {
                 @Override
                 public Long apply(DynamicTableColumn row) {
-                    return row.dataChunkId;
+                    return row.colComp1;
                 }
             };
         }
 
-        public static Function<DynamicTableColumn, String> getExternalKeyFun() {
-            return new Function<DynamicTableColumn, String>() {
+        public static Function<Long, DynamicTableColumn> fromColComp1Fun() {
+            return new Function<Long, DynamicTableColumn>() {
                 @Override
-                public String apply(DynamicTableColumn row) {
-                    return row.externalKey;
+                public DynamicTableColumn apply(Long row) {
+                    return DynamicTableColumn.of(row);
                 }
             };
         }
 
         @Override
         public byte[] persistToBytes() {
-            byte[] dataChunkIdBytes = PtBytes.toBytes(Long.MIN_VALUE ^ dataChunkId);
-            byte[] externalKeyBytes = PtBytes.toBytes(externalKey);
-            return EncodingUtils.add(dataChunkIdBytes, externalKeyBytes);
+            byte[] colComp1Bytes = PtBytes.toBytes(Long.MIN_VALUE ^ colComp1);
+            return EncodingUtils.add(colComp1Bytes);
         }
 
         public static final Hydrator<DynamicTableColumn> BYTES_HYDRATOR = new Hydrator<DynamicTableColumn>() {
             @Override
             public DynamicTableColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long dataChunkId = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                Long colComp1 = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                String externalKey = PtBytes.toString(__input, __index, __input.length-__index);
-                __index += 0;
-                return new DynamicTableColumn(dataChunkId, externalKey);
+                return new DynamicTableColumn(colComp1);
             }
         };
-
-        public static ColumnRangeSelection createPrefixRange(long dataChunkId, int batchSize) {
-            byte[] dataChunkIdBytes = PtBytes.toBytes(Long.MIN_VALUE ^ dataChunkId);
-            return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(dataChunkIdBytes), batchSize);
-        }
-
-        public static Prefix prefix(long dataChunkId) {
-            byte[] dataChunkIdBytes = PtBytes.toBytes(Long.MIN_VALUE ^ dataChunkId);
-            return new Prefix(EncodingUtils.add(dataChunkIdBytes));
-        }
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("dataChunkId", dataChunkId)
-                .add("externalKey", externalKey)
+                .add("colComp1", colComp1)
                 .toString();
         }
 
@@ -330,19 +309,18 @@ public final class DynamicTableTable implements
                 return false;
             }
             DynamicTableColumn other = (DynamicTableColumn) obj;
-            return Objects.equal(dataChunkId, other.dataChunkId) && Objects.equal(externalKey, other.externalKey);
+            return Objects.equal(colComp1, other.colComp1);
         }
 
         @Override
         public int hashCode() {
-            return Arrays.deepHashCode(new Object[]{ dataChunkId, externalKey });
+            return Objects.hashCode(colComp1);
         }
 
         @Override
         public int compareTo(DynamicTableColumn o) {
             return ComparisonChain.start()
-                .compare(this.dataChunkId, o.dataChunkId)
-                .compare(this.externalKey, o.externalKey)
+                .compare(this.colComp1, o.colComp1)
                 .result();
         }
     }
@@ -354,8 +332,7 @@ public final class DynamicTableTable implements
     /**
      * <pre>
      * Column name description {
-     *   {@literal Long dataChunkId};
-     *   {@literal String externalKey};
+     *   {@literal Long colComp1};
      * }
      * Column value description {
      *   type: com.palantir.atlasdb.protos.generated.TestPersistence.TestObject;
@@ -821,5 +798,5 @@ public final class DynamicTableTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "3+5J0ZAj4vnQbkRgvqPNMw==";
+    static String __CLASS_HASH = "zwNMinvMHyl8uMdX9lwPdg==";
 }

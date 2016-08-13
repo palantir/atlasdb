@@ -38,10 +38,10 @@ public enum TestSchema implements AtlasSchema {
         schema.addTableDefinition(DYNAMIC_COLUMN_TABLE.getTablename(), new TableDefinition() {
             {
                 rowName();
-                rowComponent("rowComp1",      ValueType.FIXED_LONG);
-                rowComponent("rowComp2", ValueType.STRING);
+                rowComponent("rowComp1",    ValueType.FIXED_LONG);
+                rowComponent("rowComp2",    ValueType.STRING);
                 dynamicColumns();
-                columnComponent("colComp1",       ValueType.FIXED_LONG);
+                columnComponent("colComp1", ValueType.FIXED_LONG);
                 value(TestPersistence.TestObject.class);
                 conflictHandler(ConflictHandler.IGNORE_ALL);
             }});
