@@ -69,7 +69,7 @@ public class DynamicColumnTest {
         try (Connection c = QueryTests.connect(QueryTests.IN_MEMORY_TEST_CONFIG);
              Statement stmt = c.createStatement();
              ResultSet results = stmt.executeQuery(String.format("select %s from %s", ROW_COMP2,
-                                                                 TestSchema.DYNAMIC_COLUMN_TABLE.getQualifiedName()))) {
+                     TestSchema.DYNAMIC_COLUMN_TABLE.getQualifiedName()))) {
             results.next();
             assertFails(() -> results.getLong(ROW_COMP1));
             assertThat(results.getString(ROW_COMP2), equalTo(rowComp2(1)));
@@ -84,7 +84,7 @@ public class DynamicColumnTest {
         try (Connection c = QueryTests.connect(QueryTests.IN_MEMORY_TEST_CONFIG);
              Statement stmt = c.createStatement();
              ResultSet results = stmt.executeQuery(String.format("select %s from %s", COL_COMP2,
-                                                                 TestSchema.DYNAMIC_COLUMN_TABLE.getQualifiedName()))) {
+                     TestSchema.DYNAMIC_COLUMN_TABLE.getQualifiedName()))) {
             results.next();
             assertFails(() -> results.getLong(ROW_COMP1));
             assertFails(() -> results.getString(ROW_COMP2));
@@ -98,8 +98,8 @@ public class DynamicColumnTest {
     public void testSelectDynamicColComponentWhere() throws SQLException, ClassNotFoundException {
         try (Connection c = QueryTests.connect(QueryTests.IN_MEMORY_TEST_CONFIG);
              Statement stmt = c.createStatement();
-             ResultSet results = stmt.executeQuery(String.format("select %s, %s, %s from %s where %s=%s", ROW_COMP1, COL_COMP1, COL_COMP2,
-                                                                 TestSchema.DYNAMIC_COLUMN_TABLE.getQualifiedName(), ROW_COMP1, 111))) {
+             ResultSet results = stmt.executeQuery(String.format("select %s, %s, %s from %s where %s=\"%s\"", ROW_COMP1, COL_COMP1, COL_COMP2,
+                     TestSchema.DYNAMIC_COLUMN_TABLE.getQualifiedName(), ROW_COMP1, 111))) {
             results.next();
             assertThat(results.getLong(ROW_COMP1), equalTo(rowComp1(2)));
             assertFails(() -> results.getString(ROW_COMP2));
@@ -134,7 +134,7 @@ public class DynamicColumnTest {
         kvs.truncateTable(tableRef);
         txm.runTaskThrowOnConflict((TransactionTask<Void, RuntimeException>) t -> {
             t.put(tableRef, ImmutableMap.of(Cell.create(row(1), col(1)), obj(1).toByteArray(),
-                                            Cell.create(row(1), col(2)), obj(2).toByteArray()));
+                    Cell.create(row(1), col(2)), obj(2).toByteArray()));
             t.put(tableRef, ImmutableMap.of(Cell.create(row(2), col(3)), obj(3).toByteArray()));
             return null;
         });
@@ -166,12 +166,12 @@ public class DynamicColumnTest {
 
     private TestPersistence.TestObject obj(int i) {
         return TestPersistence.TestObject.newBuilder()
-                                         .setId(10L + i)
-                                         .setDeleted(0L)
-                                         .setDataEventId(100L * i)
-                                         .setType(543L)
-                                         .setIsGroup(false)
-                                         .build();
+                .setId(10L + i)
+                .setDeleted(0L)
+                .setDataEventId(100L * i)
+                .setType(543L)
+                .setIsGroup(false)
+                .build();
     }
 
 }

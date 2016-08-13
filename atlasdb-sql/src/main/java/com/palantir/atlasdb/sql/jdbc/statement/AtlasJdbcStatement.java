@@ -129,7 +129,7 @@ public class AtlasJdbcStatement implements Statement {
     //----------------------- Multiple Results --------------------------
 
     private AtlasSQLParser.Select_queryContext getQueryContext(String sql) throws SQLException {
-        AtlasSQLLexer lexer = new AtlasSQLLexer(new ANTLRInputStream(sql.toLowerCase()));
+        AtlasSQLLexer lexer = new AtlasSQLLexer(new ANTLRInputStream(sql));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         AtlasSQLParser parser = new AtlasSQLParser(tokens);
         AtlasSQLParser.Select_queryContext query = parser.query().select_query();

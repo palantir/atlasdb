@@ -32,9 +32,8 @@ public class AtlasSQLParser extends Parser {
 	};
 
 	private static final String[] _LITERAL_NAMES = {
-		null, "'select'", "'from'", "'where'", "'*'", "','", "'.'", "'''", "'\"'", 
-		"'('", "')'", null, null, "'='", "'<'", "'>'", null, "'not'", "'<='", 
-		"'>='"
+		null, null, null, null, "'*'", "','", "'.'", "'''", "'\"'", "'('", "')'", 
+		null, null, "'='", "'<'", "'>'", null, null, "'<='", "'>='"
 	};
 	private static final String[] _SYMBOLIC_NAMES = {
 		null, "SELECT", "FROM", "WHERE", "STAR", "COMMA", "DOT", "SINGLE_QUOTE", 

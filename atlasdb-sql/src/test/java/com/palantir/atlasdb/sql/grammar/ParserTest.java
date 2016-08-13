@@ -13,7 +13,7 @@ public class ParserTest {
     @Test
     public void testSelectClause() {
         AtlasSQLLexer lexer = new AtlasSQLLexer(
-                new ANTLRInputStream("SELECT col1, col2 FROM keyspace.table WHERE col3 = 50 AND 4.5 > col4".toLowerCase()));
+                new ANTLRInputStream("SELECT col1, col2 FROM keyspace.table WHERE col3 = 50 AND 4.5 > col4"));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         AtlasSQLParser parser = new AtlasSQLParser(tokens);
         AtlasSQLParser.Select_queryContext select = parser.select_query();
