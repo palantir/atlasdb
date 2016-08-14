@@ -7,7 +7,10 @@ import java.sql.RowIdLifetime;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 
+import com.palantir.atlasdb.cli.services.AtlasDbServices;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sql.jdbc.AtlasJdbcDriver;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class AtlasJdbcDatabaseMetaData implements DatabaseMetaData {
 
@@ -690,8 +693,20 @@ public class AtlasJdbcDatabaseMetaData implements DatabaseMetaData {
     }
 
     @Override
-    public ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique, boolean approximate) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Unsupported method getIndexInfo");
+    public ResultSet getIndexInfo(String catalog, String schemaName, String tableName, boolean unique, boolean approximate) throws SQLException {
+        AtlasDbServices services = AtlasJdbcDriver.getLastKnownAtlasServices();
+        TransactionManager txm = services.getTransactionManager();
+        KeyValueService kvs = services.getKeyValueService();
+        /*final AtlasDbService service = conn.getService();
+        service.
+        conn.getSchema();
+        TableMetadata metadata = service.getTableMetadata(tableName);
+        metadata.get
+
+        ResultSet rset = AtlasJdbcResultSet.create(services, conn.getTransactionToken(), select, this);
+        sqlExecutionResult = SqlExecutionResult.fromResult(rset);
+        return getResultSet() != null;*/
+        return null;
     }
 
     @Override

@@ -39,6 +39,7 @@ import com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.TwoColumns
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class IndexTest extends AtlasDbTestCase {
 
@@ -48,8 +49,7 @@ public class IndexTest extends AtlasDbTestCase {
         Schemas.createTablesAndIndexes(IndexTestSchema.getSchema(), keyValueService);
     }
 
-    @Test
-    public void testAddDelete() {
+    public static void populateDataTableAndIndices(TransactionManager txManager) {
         txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
             @Override
             public Void execute(Transaction t) {
@@ -71,6 +71,11 @@ public class IndexTest extends AtlasDbTestCase {
                 return null;
             }
         });
+    }
+
+    @Test
+    public void testAddDelete() {
+        populateDataTableAndIndices(txManager);
         txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
             @Override
             public Void execute(Transaction t) {
@@ -131,6 +136,19 @@ public class IndexTest extends AtlasDbTestCase {
 
     @Test
     public void testTwoColumns() {
+        populateTwoColumnTableWithIndices(txManager);
+        txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
+            @Override
+            public Void execute(Transaction t) {
+                FooToIdIdxTable index = FooToIdIdxTable.of(getTableFactory().getTwoColumnsTable(t));
+                List<FooToIdIdxRowResult> result = index.getAllRowsUnordered().immutableCopy();
+                Assert.assertEquals(2L, Iterables.getOnlyElement(result).getRowName().getFoo());
+                return null;
+            }
+        });
+    }
+
+    public static void populateTwoColumnTableWithIndices(TransactionManager txManager) {
         txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
             @Override
             public Void execute(Transaction t) {
@@ -151,18 +169,9 @@ public class IndexTest extends AtlasDbTestCase {
                 return null;
             }
         });
-        txManager.runTaskWithRetry(new RuntimeTransactionTask<Void>() {
-            @Override
-            public Void execute(Transaction t) {
-                FooToIdIdxTable index = FooToIdIdxTable.of(getTableFactory().getTwoColumnsTable(t));
-                List<FooToIdIdxRowResult> result = index.getAllRowsUnordered().immutableCopy();
-                Assert.assertEquals(2L, Iterables.getOnlyElement(result).getRowName().getFoo());
-                return null;
-            }
-        });
     }
 
-    private IndexTestTableFactory getTableFactory() {
+    private static IndexTestTableFactory getTableFactory() {
         return IndexTestTableFactory.of();
     }
 }

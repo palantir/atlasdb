@@ -39,7 +39,7 @@ public class DynamicColumnTest {
 
     @BeforeClass
     public static void setup() throws SQLException, ClassNotFoundException {
-        try (Connection c = QueryTests.connect(QueryTests.IN_MEMORY_TEST_CONFIG)) {
+        try (Connection ignored = QueryTests.connect(QueryTests.IN_MEMORY_TEST_CONFIG)) {
             // hack to populate AtlasJdbcDriver.getLastKnownAtlasServices()
         }
         AtlasDbServices services = AtlasJdbcDriver.getLastKnownAtlasServices();
@@ -123,7 +123,6 @@ public class DynamicColumnTest {
 
     /** Dummy table with dynamic columns
      */
-
     private static void fillDynTable(TransactionManager txm, KeyValueService kvs) {
         final TableReference tableRef = TestSchema.DYNAMIC_COLUMN_TABLE;
         final TableDefinition tableDef = TestSchema.INSTANCE.getLatestSchema().getTableDefinition(tableRef);

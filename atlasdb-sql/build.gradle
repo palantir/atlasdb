@@ -20,8 +20,8 @@ dependencies {
   compile "org.jooq:jooq:3.6.4"
   compile "org.antlr:antlr4:4.5"
   compile 'com.google.guava:guava:' + libVersions.guava
-
   processor "org.immutables:value:" + libVersions.immutables
+  testCompile(project(":atlasdb-tests-shared"))
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {

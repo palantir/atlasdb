@@ -8,12 +8,10 @@ import static com.palantir.atlasdb.sql.QueryTests.assertFails;
 import static com.palantir.atlasdb.sql.QueryTests.count;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -38,16 +36,14 @@ public class QueryTest {
     private static final String ROW_COMP1 = "row1";
     private static final String ROW_COMP2 = "row2";
     private static final String COL1_NAME = "col1";
-    private static final byte[] COL1_IN_BYTES = COL1_NAME.getBytes();
     private static final String COL1_LABEL = "first";
     private static final String COL2_NAME = "col2";
-    private static final byte[] COL2_IN_BYTES = COL2_NAME.getBytes();
 
     private static final TableReference TABLE = TableReference.create(Namespace.create("test"), "table");
 
     @BeforeClass
     public static void setup() throws SQLException, ClassNotFoundException {
-        try (Connection c = getConnection()) {
+        try (Connection ignored = QueryTests.connect(IN_MEMORY_TEST_CONFIG)) {
             // hack to populate AtlasJdbcDriver.getLastKnownAtlasServices()
         }
         AtlasDbServices services = AtlasJdbcDriver.getLastKnownAtlasServices();
@@ -106,7 +102,7 @@ public class QueryTest {
     }
 
     private void testFindsAllData(String sql) {
-        try (Connection c = getConnection()) {
+        try (Connection c = QueryTests.connect(IN_MEMORY_TEST_CONFIG)) {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(sql);
             results.next();
@@ -125,7 +121,7 @@ public class QueryTest {
 
     @Test
     public void testSelectRowComp() {
-        try (Connection c = getConnection()) {
+        try (Connection c = QueryTests.connect(IN_MEMORY_TEST_CONFIG)) {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(String.format("select %s from %s", ROW_COMP2, TABLE.getQualifiedName()));
             results.next();
@@ -142,7 +138,7 @@ public class QueryTest {
 
     @Test
     public void testSelectCol() {
-        try (Connection c = getConnection()) {
+        try (Connection c = QueryTests.connect(IN_MEMORY_TEST_CONFIG)) {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(String.format("select %s from %s", COL1_NAME, TABLE.getQualifiedName()));
             results.next();
@@ -158,13 +154,26 @@ public class QueryTest {
     }
 
     @Test
+    public void testSelectCount() {
+        try (Connection c = QueryTests.connect(IN_MEMORY_TEST_CONFIG)) {
+            Statement stmt = c.createStatement();
+            ResultSet results = stmt.executeQuery(String.format("select count(*) from %s", TABLE.getQualifiedName()));
+            results.next();
+            assertThat(results.getString(COL1_NAME), equalTo("value1"));
+            assertThat(results.next(), equalTo(false));
+        } catch (ClassNotFoundException | SQLException e) {
+            throw new RuntimeException("Failure running select.", e);
+        }
+    }
+
+    @Test
     public void testSelectWhere() {
         testSelectWhere(key(1), "value1");
         testSelectWhere(key(2), "value2");
     }
 
     private void testSelectWhere(String row, String val) {
-        try (Connection c = getConnection()) {
+        try (Connection c = QueryTests.connect(IN_MEMORY_TEST_CONFIG)) {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(String.format("select * from %s where %s = \"%s\"", TABLE.getQualifiedName(), COL1_NAME, val));
             results.next();
@@ -178,7 +187,7 @@ public class QueryTest {
 
     @Test
     public void testSelectEmptyCol() {
-        try (Connection c = getConnection()) {
+        try (Connection c = QueryTests.connect(IN_MEMORY_TEST_CONFIG)) {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(String.format("select * from %s", TABLE.getQualifiedName()));
             results.next();
@@ -214,7 +223,7 @@ public class QueryTest {
     }
 
     private void countRowsFromRowFilteringQuery(String key, String op, int expectedCount) {
-         try (Connection c = getConnection()) {
+        try (Connection c = QueryTests.connect(IN_MEMORY_TEST_CONFIG)) {
              Statement stmt = c.createStatement();
              ResultSet results = stmt.executeQuery(
                      String.format("select * from %s where %s %s \"%s\"", TABLE.getQualifiedName(), ROW_COMP2, op, key));
@@ -222,13 +231,6 @@ public class QueryTest {
          } catch (ClassNotFoundException | SQLException e) {
              throw new RuntimeException("Failure running select.", e);
          }
-    }
-
-    private static Connection getConnection() throws ClassNotFoundException, SQLException {
-        Class.forName(AtlasJdbcDriver.class.getName());
-        final String configFilePath = ConnectionTest.class.getClassLoader().getResource(IN_MEMORY_TEST_CONFIG).getFile();
-        final String uri = "jdbc:atlas?configFile=" + configFilePath;
-        return DriverManager.getConnection(uri);
     }
 
 }

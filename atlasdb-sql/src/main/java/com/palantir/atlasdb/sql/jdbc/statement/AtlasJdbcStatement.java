@@ -25,7 +25,6 @@ public class AtlasJdbcStatement implements Statement {
     private final AtlasJdbcConnection conn;
     private SqlExecutionResult sqlExecutionResult;
     private boolean isClosed = false;
-    private TableMetadata tableMetadata = null;
 
     public AtlasJdbcStatement(AtlasJdbcConnection conn) {
         this.conn = conn;
