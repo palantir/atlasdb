@@ -46,6 +46,10 @@ antlr4 {
   destination = file("$projectDir/src/main/java")
 }
 
+// generate the antlr source when building for an IDE
+tasks.idea.dependsOn tasks.antlr4
+tasks.eclipse.dependsOn tasks.antlr4
+
 // make a single jar with all dependencies
 task fatJar(type: Jar) {
   manifest {
