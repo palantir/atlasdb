@@ -12,7 +12,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -94,19 +93,22 @@ public class DynamicColumnTest {
         }
     }
 
-    @Ignore
     @Test
     public void testSelectDynamicColComponentWhere() throws SQLException, ClassNotFoundException {
         try (Connection c = QueryTests.connect(QueryTests.IN_MEMORY_TEST_CONFIG);
              Statement stmt = c.createStatement();
-             ResultSet results = stmt.executeQuery(String.format("select %s, %s, %s from %s where %s=\"%s\"", ROW_COMP1, COL_COMP1, COL_COMP2,
-                     TestSchema.DYNAMIC_COLUMN_TABLE.getQualifiedName(), ROW_COMP1, 111))) {
+             ResultSet results = stmt.executeQuery(String.format("select %s, %s, %s from %s where %s = %s", ROW_COMP1, COL_COMP1, COL_COMP2,
+                     TestSchema.DYNAMIC_COLUMN_TABLE.getQualifiedName(), ROW_COMP1, rowComp1(1)))) {
             results.next();
-            assertThat(results.getLong(ROW_COMP1), equalTo(rowComp1(2)));
+            assertThat(results.getLong(ROW_COMP1), equalTo(rowComp1(1)));
             assertFails(() -> results.getString(ROW_COMP2));
-            assertFails(() -> results.getLong(COL_COMP1));
+            assertThat(results.getLong(COL_COMP1), equalTo(colComp1(1)));
+            assertThat(results.getString(COL_COMP2), equalTo(colComp2(1)));
+            assertFails(() -> results.getObject(DYN_VALUE_NAME));
+            results.next();
+            assertThat(results.getLong(ROW_COMP1), equalTo(rowComp1(1)));
+            assertThat(results.getLong(COL_COMP1), equalTo(colComp1(2)));
             assertThat(results.getString(COL_COMP2), equalTo(colComp2(2)));
-            assertThat(results.getObject(DYN_VALUE_NAME), equalTo(obj(1)));
             assertFalse(results.next());
         }
     }

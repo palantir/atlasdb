@@ -27,10 +27,10 @@ public abstract class QueryTests {
     public static void assertFails(Callable<?> c) {
         try {
             c.call();
-            throw new RuntimeException("the call did not fail");
         } catch (Exception e) {
-            // success
+            return; // success
         }
+        throw new RuntimeException("the call did not fail");
     }
 
     public static Connection connect(String configFilename) throws ClassNotFoundException, SQLException {

@@ -38,7 +38,7 @@ public class WhereClausePostfilterVisitor extends AtlasSQLParserBaseVisitor<Pred
 
     private String lookup(String rowComp, ParsedRowResult res) {
         try {
-            return (String) res.get(rowComp, JdbcReturnType.STRING);
+            return res.get(rowComp, JdbcReturnType.STRING).toString();
         } catch (SQLException e) {
             throw new RuntimeException(String.format("identifier %s not found in results", rowComp));
         }

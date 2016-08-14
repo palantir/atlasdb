@@ -90,12 +90,16 @@ GET
 // identifier and literals
 
 ID
-   : ( 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' )+
+   : NON_DIGIT_ID ( DIGIT | NON_DIGIT_ID ) *
+   | DIGIT+ NON_DIGIT_ID ( DIGIT | NON_DIGIT_ID ) *
    ;
 
 DECIMAL
-   : '-'? [0-9]+ ( '.' [0-9]+ )?
+   : DIGIT+ ( DOT DIGIT+ )?
    ;
+
+fragment DIGIT : ( '0' .. '9' ) ;
+fragment NON_DIGIT_ID : ( 'a' .. 'z' | 'A' .. 'Z' | '_' )+ ;
 
 BOOLEAN
    : T R U E | F A L S E
