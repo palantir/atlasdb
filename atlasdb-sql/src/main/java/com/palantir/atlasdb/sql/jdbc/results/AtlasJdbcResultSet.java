@@ -23,6 +23,7 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.api.RangeToken;
@@ -65,8 +66,7 @@ public class AtlasJdbcResultSet implements ResultSet {
         this.rangeToken = rangeToken;
         this.curIter = ParsedRowResult.makeIterator(rangeToken.getResults().getResults(),
                                                     query.postfilterPredicate(),
-                                                    query.allColumns(),
-                                                    query.selectedColumns());
+                                                    query.columns());
         this.curResult = null;
     }
 
@@ -83,8 +83,7 @@ public class AtlasJdbcResultSet implements ResultSet {
                 rangeToken = service.getRange(transactionToken, rangeToken.getNextRange());
                 curIter = ParsedRowResult.makeIterator(rangeToken.getResults().getResults(),
                                                        query.postfilterPredicate(),
-                                                       query.allColumns(),
-                                                       query.selectedColumns());
+                                                       query.columns());
 
                 return next();
             } else { // all done
@@ -93,10 +92,6 @@ public class AtlasJdbcResultSet implements ResultSet {
                 return false;
             }
         }
-    }
-
-    public ParsedRowResult getCurResult() {
-        return curResult;
     }
 
     @Override
@@ -293,7 +288,10 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
-        return AtlasJdbcResultSetMetaData.create(query.allColumns());
+        return AtlasJdbcResultSetMetaData.create(query.columns()
+                .stream()
+                .map(c -> c.getMetadata())
+                .collect(Collectors.toList()));
     }
 
     @Override
