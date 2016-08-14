@@ -4,8 +4,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import static com.palantir.atlasdb.sql.QueryTests.IN_MEMORY_TEST_CONFIG;
-import static com.palantir.atlasdb.sql.QueryTests.count;
 import static com.palantir.atlasdb.sql.QueryTests.assertFails;
+import static com.palantir.atlasdb.sql.QueryTests.count;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -13,8 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -40,10 +39,10 @@ public class QueryTest {
     private static final String COL2_NAME = "col2";
     private static final byte[] COL2_IN_BYTES = COL2_NAME.getBytes();
 
-    private static final TableReference TABLE = TableReference.create(Namespace.DEFAULT_NAMESPACE, "table");
+    private static final TableReference TABLE = TableReference.create(Namespace.create("test"), "table");
 
-    @Before
-    public void setup() throws SQLException, ClassNotFoundException {
+    @BeforeClass
+    public static void setup() throws SQLException, ClassNotFoundException {
         try (Connection c = getConnection()) {
             // hack to populate AtlasJdbcDriver.getLastKnownAtlasServices()
         }
@@ -69,13 +68,6 @@ public class QueryTest {
                     Cell.create("key2".getBytes(), COL1_IN_BYTES), "value2".getBytes()));
             return null;
         });
-    }
-
-    @After
-    public void teardown() throws SQLException, ClassNotFoundException {
-        AtlasDbServices services = AtlasJdbcDriver.getLastKnownAtlasServices();
-        KeyValueService kvs = services.getKeyValueService();
-        kvs.dropTable(TABLE);
     }
 
     @Test
@@ -207,7 +199,7 @@ public class QueryTest {
         }
     }
 
-    private Connection getConnection() throws ClassNotFoundException, SQLException {
+    private static Connection getConnection() throws ClassNotFoundException, SQLException {
         Class.forName(AtlasJdbcDriver.class.getName());
         final String configFilePath = ConnectionTest.class.getClassLoader().getResource(IN_MEMORY_TEST_CONFIG).getFile();
         final String uri = "jdbc:atlas?configFile=" + configFilePath;

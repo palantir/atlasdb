@@ -11,8 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -39,8 +38,8 @@ public class DynamicColumnTest {
     private static final String COL_COMP2 = "colComp2";  //string
     public static final String DYN_VALUE_NAME = "value";
 
-    @Before
-    public void setup() throws SQLException, ClassNotFoundException {
+    @BeforeClass
+    public static void setup() throws SQLException, ClassNotFoundException {
         try (Connection c = QueryTests.connect(QueryTests.IN_MEMORY_TEST_CONFIG)) {
             // hack to populate AtlasJdbcDriver.getLastKnownAtlasServices()
         }
@@ -120,14 +119,10 @@ public class DynamicColumnTest {
         assertThat(results.getObject(DYN_VALUE_NAME), equalTo(obj(col)));
     }
 
-    @After
-    public void teardown() throws SQLException, ClassNotFoundException {
-    }
-
     /** Dummy table with dynamic columns
      */
 
-    private void fillDynTable(TransactionManager txm, KeyValueService kvs) {
+    private static void fillDynTable(TransactionManager txm, KeyValueService kvs) {
         final TableReference tableRef = TestSchema.DYNAMIC_COLUMN_TABLE;
         final TableDefinition tableDef = TestSchema.INSTANCE.getLatestSchema().getTableDefinition(tableRef);
         final TableMetadata tableMetadata = tableDef.toTableMetadata();
@@ -142,31 +137,31 @@ public class DynamicColumnTest {
         });
     }
 
-    private byte[] row(int i) {
+    private static byte[] row(int i) {
         return EncodingUtils.add(ValueType.FIXED_LONG.convertFromJava(rowComp1(i)), PtBytes.toBytes(rowComp2(i)));
     }
 
-    private long rowComp1(int i) {
+    private static long rowComp1(int i) {
         return i * 1000;
     }
 
-    private String rowComp2(int i) {
+    private static String rowComp2(int i) {
         return "key" + i;
     }
 
-    private byte[] col(int i) {
+    private static byte[] col(int i) {
         return EncodingUtils.add(ValueType.FIXED_LONG.convertFromJava(colComp1(i)), PtBytes.toBytes(colComp2(i)));
     }
 
-    private long colComp1(int i) {
+    private static long colComp1(int i) {
         return 111L * i;
     }
 
-    private String colComp2(int i) {
+    private static String colComp2(int i) {
         return "colComp" + i;
     }
 
-    private TestPersistence.TestObject obj(int i) {
+    private static TestPersistence.TestObject obj(int i) {
         return TestPersistence.TestObject.newBuilder()
                 .setId(10L + i)
                 .setDeleted(0L)
