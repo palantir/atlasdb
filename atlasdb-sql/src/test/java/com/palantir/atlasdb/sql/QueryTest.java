@@ -13,16 +13,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sql.jdbc.AtlasJdbcDriver;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -32,7 +35,8 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 
 public class QueryTest {
 
-    private static final String ROW_COMP = "row";
+    private static final String ROW_COMP1 = "row1";
+    private static final String ROW_COMP2 = "row2";
     private static final String COL1_NAME = "col1";
     private static final byte[] COL1_IN_BYTES = COL1_NAME.getBytes();
     private static final String COL1_LABEL = "first";
@@ -52,7 +56,8 @@ public class QueryTest {
 
         TableDefinition tableDef = new TableDefinition() {{
             rowName();
-            rowComponent(ROW_COMP, ValueType.STRING);
+            rowComponent(ROW_COMP1, ValueType.FIXED_LONG);
+            rowComponent(ROW_COMP2, ValueType.STRING);
             columns();
             column(COL1_LABEL, COL1_NAME, ValueType.STRING);
             column(COL2_NAME, COL2_NAME, ValueType.STRING);
@@ -63,16 +68,36 @@ public class QueryTest {
         kvs.putMetadataForTable(TABLE, tableDef.toTableMetadata().persistToBytes());
         txm.runTaskThrowOnConflict((TransactionTask<Void, RuntimeException>) t -> {
             t.put(TABLE, ImmutableMap.of(
-                    Cell.create("key1".getBytes(), COL1_IN_BYTES), "value1".getBytes(),
-                    Cell.create("key1".getBytes(), COL2_IN_BYTES), "value3".getBytes(),
-                    Cell.create("key2".getBytes(), COL1_IN_BYTES), "value2".getBytes()));
+                    Cell.create(row(1), colName(1).getBytes()), "value1".getBytes(),
+                    Cell.create(row(1), colName(2).getBytes()), "value3".getBytes(),
+                    Cell.create(row(2), colName(1).getBytes()), "value2".getBytes()));
             return null;
         });
     }
 
+    private String key(int i) {
+        return "key" + i;
+    }
+
+    private static byte[] row(int i) {
+        return EncodingUtils.add(PtBytes.toBytes(Long.MIN_VALUE ^ rowComp1(i)), PtBytes.toBytes(rowComp2(i)));
+    }
+
+    private static long rowComp1(int i) {
+        return 11L * i;
+    }
+
+    private static String rowComp2(int i) {
+        return "key" + i;
+    }
+
+    private static String colName(int i) {
+        return "col" + i;
+    }
+
     @Test
     public void testSelect() {
-        testFindsAllData(String.format("select %s,%s from %s", ROW_COMP, COL1_NAME, TABLE.getQualifiedName()));
+        testFindsAllData(String.format("select %s,%s from %s", ROW_COMP2, COL1_NAME, TABLE.getQualifiedName()));
     }
 
     @Test
@@ -85,11 +110,11 @@ public class QueryTest {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(sql);
             results.next();
-            assertThat(results.getString(ROW_COMP), equalTo("key1"));
+            assertThat(results.getString(ROW_COMP2), equalTo(key(1)));
             assertThat(results.getBytes(COL1_NAME), equalTo("value1".getBytes()));
             assertThat(results.getString(COL1_NAME), equalTo("value1"));
             results.next();
-            assertThat(results.getString(ROW_COMP), equalTo("key2"));
+            assertThat(results.getString(ROW_COMP2), equalTo(key(2)));
             assertThat(results.getBytes(COL1_NAME), equalTo("value2".getBytes()));
             assertThat(results.getString(COL1_NAME), equalTo("value2"));
             assertThat(results.next(), equalTo(false));
@@ -102,12 +127,12 @@ public class QueryTest {
     public void testSelectRowComp() {
         try (Connection c = getConnection()) {
             Statement stmt = c.createStatement();
-            ResultSet results = stmt.executeQuery(String.format("select %s from %s", ROW_COMP, TABLE.getQualifiedName()));
+            ResultSet results = stmt.executeQuery(String.format("select %s from %s", ROW_COMP2, TABLE.getQualifiedName()));
             results.next();
-            assertThat(results.getString(ROW_COMP), equalTo("key1"));
+            assertThat(results.getString(ROW_COMP2), equalTo(key(1)));
             assertFails(() -> results.getString(COL1_NAME));
             results.next();
-            assertThat(results.getString(ROW_COMP), equalTo("key2"));
+            assertThat(results.getString(ROW_COMP2), equalTo(key(2)));
             assertFails(() -> results.getString(COL1_NAME));
             assertThat(results.next(), equalTo(false));
         } catch (ClassNotFoundException | SQLException e) {
@@ -121,10 +146,10 @@ public class QueryTest {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(String.format("select %s from %s", COL1_NAME, TABLE.getQualifiedName()));
             results.next();
-            assertFails(() -> results.getString(ROW_COMP));
+            assertFails(() -> results.getString(ROW_COMP2));
             assertThat(results.getString(COL1_NAME), equalTo("value1"));
             results.next();
-            assertFails(() -> results.getString(ROW_COMP));
+            assertFails(() -> results.getString(ROW_COMP2));
             assertThat(results.getString(COL1_NAME), equalTo("value2"));
             assertThat(results.next(), equalTo(false));
         } catch (ClassNotFoundException | SQLException e) {
@@ -134,8 +159,8 @@ public class QueryTest {
 
     @Test
     public void testSelectWhere() {
-        testSelectWhere("key1", "value1");
-        testSelectWhere("key2", "value2");
+        testSelectWhere(key(1), "value1");
+        testSelectWhere(key(2), "value2");
     }
 
     private void testSelectWhere(String row, String val) {
@@ -143,7 +168,7 @@ public class QueryTest {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(String.format("select * from %s where %s = \"%s\"", TABLE.getQualifiedName(), COL1_NAME, val));
             results.next();
-            assertThat(results.getString(ROW_COMP), equalTo(row));
+            assertThat(results.getString(ROW_COMP2), equalTo(row));
             assertThat(results.getString(COL1_NAME), equalTo(val));
             assertThat(results.next(), equalTo(false));
         } catch (ClassNotFoundException | SQLException e) {
@@ -168,35 +193,35 @@ public class QueryTest {
 
     @Test
     public void testSelectWhereRowFiltering() {
-        countRowsFromRowFilteringQuery("key1", "=", 1);
-        countRowsFromRowFilteringQuery("key1", ">=", 2);
-        countRowsFromRowFilteringQuery("key1", "<=", 1);
-        countRowsFromRowFilteringQuery("key1", ">", 1);
-        countRowsFromRowFilteringQuery("key1", "<", 0);
-        countRowsFromRowFilteringQuery("key1", "!=", 1);
+        countRowsFromRowFilteringQuery(key(1), "=", 1);
+        countRowsFromRowFilteringQuery(key(1), ">=", 2);
+        countRowsFromRowFilteringQuery(key(1), "<=", 1);
+        countRowsFromRowFilteringQuery(key(1), ">", 1);
+        countRowsFromRowFilteringQuery(key(1), "<", 0);
+        countRowsFromRowFilteringQuery(key(1), "!=", 1);
 
-        countRowsFromRowFilteringQuery("key2", "=", 1);
-        countRowsFromRowFilteringQuery("key2", ">=", 1);
-        countRowsFromRowFilteringQuery("key2", "<=", 2);
-        countRowsFromRowFilteringQuery("key2", ">", 0);
-        countRowsFromRowFilteringQuery("key2", "<", 1);
-        countRowsFromRowFilteringQuery("key2", "<>", 1);
+        countRowsFromRowFilteringQuery(key(2), "=", 1);
+        countRowsFromRowFilteringQuery(key(2), ">=", 1);
+        countRowsFromRowFilteringQuery(key(2), "<=", 2);
+        countRowsFromRowFilteringQuery(key(2), ">", 0);
+        countRowsFromRowFilteringQuery(key(2), "<", 1);
+        countRowsFromRowFilteringQuery(key(2), "<>", 1);
 
-        countRowsFromRowFilteringQuery("key", ">", 0);
+        countRowsFromRowFilteringQuery("key", ">", 2);
         countRowsFromRowFilteringQuery("key", "<", 0);
-        countRowsFromRowFilteringQuery("key50", "<", 2);
-        countRowsFromRowFilteringQuery("key50", ">", 0);
+        countRowsFromRowFilteringQuery(key(50), "<", 2);
+        countRowsFromRowFilteringQuery(key(50), ">", 0);
     }
 
     private void countRowsFromRowFilteringQuery(String key, String op, int expectedCount) {
          try (Connection c = getConnection()) {
-            Statement stmt = c.createStatement();
-            ResultSet results = stmt.executeQuery(
-                    String.format("select * from %s where %s %s \"%s\"", TABLE.getQualifiedName(), ROW_COMP, op, key));
-            assertThat(count(results), equalTo(expectedCount));
-        } catch (ClassNotFoundException | SQLException e) {
-            throw new RuntimeException("Failure running select.", e);
-        }
+             Statement stmt = c.createStatement();
+             ResultSet results = stmt.executeQuery(
+                     String.format("select * from %s where %s %s \"%s\"", TABLE.getQualifiedName(), ROW_COMP2, op, key));
+             assertThat(count(results), equalTo(expectedCount));
+         } catch (ClassNotFoundException | SQLException e) {
+             throw new RuntimeException("Failure running select.", e);
+         }
     }
 
     private static Connection getConnection() throws ClassNotFoundException, SQLException {
