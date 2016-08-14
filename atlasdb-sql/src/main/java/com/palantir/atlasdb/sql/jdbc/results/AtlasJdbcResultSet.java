@@ -290,7 +290,8 @@ public class AtlasJdbcResultSet implements ResultSet {
     public ResultSetMetaData getMetaData() throws SQLException {
         return AtlasJdbcResultSetMetaData.create(query.columns()
                 .stream()
-                .map(c -> c.getMetadata())
+                .filter(SelectableJdbcColumnMetadata::isSelected)
+                .map(SelectableJdbcColumnMetadata::getMetadata)
                 .collect(Collectors.toList()));
     }
 

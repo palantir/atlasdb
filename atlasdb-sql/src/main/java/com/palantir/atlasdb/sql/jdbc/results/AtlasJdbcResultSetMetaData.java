@@ -3,11 +3,8 @@ package com.palantir.atlasdb.sql.jdbc.results;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.palantir.atlasdb.table.description.TableMetadata;
 
 public class AtlasJdbcResultSetMetaData implements ResultSetMetaData {
 
