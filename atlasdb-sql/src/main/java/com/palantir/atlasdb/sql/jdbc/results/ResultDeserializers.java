@@ -76,12 +76,14 @@ public abstract class ResultDeserializers {
         }
 
         if (res.getFormat() == ColumnValueDescription.Format.VALUE_TYPE) {
-            throw new UnsupportedOperationException(String.format("parsing format %s (%s) as type %s is unsupported",
-                    res.getFormat(),
-                    res.getValueType(),
-                    returnType));
+            throw new UnsupportedOperationException(
+                    String.format("Parsing format %s (%s) as type %s is unsupported.",
+                            res.getFormat(),
+                            res.getValueType(),
+                            returnType));
         } else {
-            throw new UnsupportedOperationException(String.format("parsing format %s as type %s is unsupported", res.getFormat(), returnType));
+            throw new UnsupportedOperationException(
+                    String.format("Parsing format %s as type %s is unsupported.", res.getFormat(), returnType));
         }
     }
 

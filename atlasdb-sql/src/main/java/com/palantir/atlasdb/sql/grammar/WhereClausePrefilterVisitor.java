@@ -2,6 +2,8 @@ package com.palantir.atlasdb.sql.grammar;
 
 import java.util.Arrays;
 
+import org.antlr.v4.runtime.tree.ParseTree;
+
 import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParser;
 import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParserBaseVisitor;
 import com.palantir.atlasdb.sql.jdbc.results.JdbcColumnMetadata;
@@ -29,7 +31,7 @@ public class WhereClausePrefilterVisitor extends AtlasSQLParserBaseVisitor<RowCo
                 return createConstraint(op, parseLiteral(r.literal()));
             }
         } else if (l.identifier() != null && r.identifier() != null) {
-            throw new UnsupportedOperationException("comparing two identifiers indicates some kind of join and we do not support joins");
+            throw new UnsupportedOperationException("Joins are not yet supported (cannot put two identifiers in a WHERE clause).");
         }
         return BYTE_ARRAY_BOUNDS_UNBOUNDED;
     }
@@ -55,7 +57,7 @@ public class WhereClausePrefilterVisitor extends AtlasSQLParserBaseVisitor<RowCo
                 // do not prefilter by NOT_EQ since that will give you the world anyways
                 return BYTE_ARRAY_BOUNDS_UNBOUNDED;
         }
-        throw new IllegalArgumentException("unknown operation type: " + op);
+        throw new IllegalArgumentException("unknown operation type " + op);
     }
 
     private byte[] addOneByte(byte[] bytes) {
@@ -65,7 +67,7 @@ public class WhereClausePrefilterVisitor extends AtlasSQLParserBaseVisitor<RowCo
                 return newBytes;
             }
         }
-        throw new RuntimeException("overflow incrementing byte array");
+        throw new RuntimeException("Overflow incrementing byte array.");
     }
 
     private String parseLiteral(AtlasSQLParser.LiteralContext literal) {
@@ -84,9 +86,23 @@ public class WhereClausePrefilterVisitor extends AtlasSQLParserBaseVisitor<RowCo
         RowComponentConstraint l = visit(ctx.left);
         RowComponentConstraint r = visit(ctx.right);
         if (!l.isUnbounded() || !r.isUnbounded()) {
-            throw new UnsupportedOperationException("you cannot restrict row components in OR clauses: " + ctx.getText());
+            throw new UnsupportedOperationException(
+                    String.format("Queries potentially requiring multiple range request are not allowed " +
+                            "(you cannot restrict row components in OR clauses): '%s'.", addSpaces(ctx)));
         }
         return l;
+    }
+
+    private String addSpaces(ParseTree tree) {
+        if (tree.getChildCount() == 0) {
+            return tree.getText();
+        }
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < tree.getChildCount(); i++) {
+            b.append(addSpaces(tree.getChild(i))).append(' ');
+        }
+        b.deleteCharAt(b.length() - 1);
+        return b.toString();
     }
 
     @Override public RowComponentConstraint visitParenExpr(AtlasSQLParser.ParenExprContext ctx) {

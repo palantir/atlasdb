@@ -29,7 +29,7 @@ enum RelationalOp {
         if (lookup.containsKey(str)) {
             return lookup.get(str);
         }
-        throw new IllegalArgumentException("unknown relational operation for operation " + str);
+        throw new IllegalArgumentException(String.format("Unknown relational operation '%s'.", str));
     }
 
     private static final Map<String,RelationalOp> lookup = Maps.newHashMap();

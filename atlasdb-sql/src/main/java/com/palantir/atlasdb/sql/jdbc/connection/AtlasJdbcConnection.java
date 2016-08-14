@@ -59,7 +59,13 @@ public class AtlasJdbcConnection implements Connection {
 
     private void assertConnectionNotInTransaction() throws SQLException {
         if (token == emptyTransactionToken()) {
-            throw new SQLException("connection is not allowed to be in transaction at this time.");
+            throw new SQLException("Connection is still in a transaction.");
+        }
+    }
+
+    private void assertConnectionNotClosed() throws SQLException {
+        if (isClosed()) {
+            throw new SQLException("Connection is closed.");
         }
     }
 
@@ -123,12 +129,6 @@ public class AtlasJdbcConnection implements Connection {
     @Override
     public boolean isClosed() throws SQLException {
         return isClosed;
-    }
-
-    private void assertConnectionNotClosed() throws SQLException {
-        if (isClosed()) {
-            throw new SQLException("Connection is not allowed to be closed at this time.");
-        }
     }
 
     @Override

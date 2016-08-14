@@ -12,7 +12,6 @@ import java.sql.Statement;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.sql.grammar.SelectQuery;
 import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLLexer;
@@ -36,7 +35,7 @@ public class AtlasJdbcStatement implements Statement {
     public ResultSet executeQuery(String sql) throws SQLException {
         execute(sql);
         if (getResultSet() == null) {
-            throw new SQLException("query did not produce a result set: " + sql);
+            throw new SQLException("Query did not produce a result set.");
         }
         return getResultSet();
     }
@@ -45,7 +44,7 @@ public class AtlasJdbcStatement implements Statement {
     public int executeUpdate(String sql) throws SQLException {
         execute(sql);
         if (getUpdateCount() == SqlExecutionResult.NO_UPDATES) {
-            throw new SQLException("query did not produce an update: " + sql);
+            throw new SQLException("Query did not produce an update.");
         }
         return getUpdateCount();
     }
@@ -145,16 +144,20 @@ public class AtlasJdbcStatement implements Statement {
 
     @Override
     public boolean execute(String sql) throws SQLException {
-        final AtlasDbService service = conn.getService();
-        AtlasSQLParser.Select_queryContext query = getQueryContext(sql);
-        String table = SelectQuery.getTableName(query);
-        TableMetadata metadata = service.getTableMetadata(table);
-        checkState(metadata != null, "Could not get table metadata for table " + table);
+        try {
+            final AtlasDbService service = conn.getService();
+            AtlasSQLParser.Select_queryContext query = getQueryContext(sql);
+            String table = SelectQuery.getTableName(query);
+            TableMetadata metadata = service.getTableMetadata(table);
+            checkState(metadata != null, "Could not get table metadata for table " + table);
 
-        SelectQuery select = SelectQuery.create(metadata, query);
-        ResultSet rset = AtlasJdbcResultSet.create(service, conn.getTransactionToken(), select, this);
-        sqlExecutionResult = SqlExecutionResult.fromResult(rset);
-        return getResultSet() != null;
+            SelectQuery select = SelectQuery.create(metadata, query);
+            ResultSet rset = AtlasJdbcResultSet.create(service, conn.getTransactionToken(), select, this);
+            sqlExecutionResult = SqlExecutionResult.fromResult(rset);
+            return getResultSet() != null;
+        } catch (Throwable t) {
+            throw new SQLException(t.getMessage(), t);
+        }
     }
 
     @Override
@@ -355,11 +358,11 @@ public class AtlasJdbcStatement implements Statement {
         return iface.isAssignableFrom(getClass());
     }
 
-    //------------------------- WRAPPERS ------------------------------
+    //------------------------- HELPERS ------------------------------
 
     private void assertNotClosed() throws SQLException {
         if (isClosed()) {
-            throw new SQLException("Connection is not allowed to be closed at this time.");
+            throw new SQLException("Connection is closed.");
         }
     }
 
@@ -369,11 +372,4 @@ public class AtlasJdbcStatement implements Statement {
         throw new SQLFeatureNotSupportedException("Method not supported:\n" + errors.toString());
     }
 
-    public TableMetadata getTableMetadata() {
-        return tableMetadata;
-    }
-
-    public void setMetadata(TableMetadata tableMetadata) {
-        this.tableMetadata = tableMetadata;
-    }
 }

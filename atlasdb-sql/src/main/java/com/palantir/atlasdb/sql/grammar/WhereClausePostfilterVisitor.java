@@ -22,10 +22,10 @@ public class WhereClausePostfilterVisitor extends AtlasSQLParserBaseVisitor<Pred
         } else if (l.identifier() != null && r.literal() != null) {
             return res -> fuzzyCompare(lookup(l.identifier().getText(), res), parseLiteral(r.literal()), op);
         } else if (l.identifier() != null && r.identifier() != null) {
-            throw new UnsupportedOperationException("comparing two identifiers indicates some kind of join and we do not support joins");
+            throw new UnsupportedOperationException("Joins are not yet supported (cannot put two identifiers in a WHERE clause).");
         }
         throw new UnsupportedOperationException(
-                String.format("found an unknown combination of terminal expressions: '%s' and '%s'", l.getText(), r.getText()));
+                String.format("Found an unknown combination of terminal expressions: '%s' and '%s'.", l.getText(), r.getText()));
     }
 
     private String parseLiteral(AtlasSQLParser.LiteralContext literal) {
@@ -40,7 +40,7 @@ public class WhereClausePostfilterVisitor extends AtlasSQLParserBaseVisitor<Pred
         try {
             return res.get(rowComp, JdbcReturnType.STRING).toString();
         } catch (SQLException e) {
-            throw new RuntimeException(String.format("identifier %s not found in results", rowComp));
+            throw new RuntimeException(String.format("Identifier '%s' not found in selected tables.", rowComp));
         }
     }
 

@@ -36,7 +36,7 @@ public final class JdbcComponentMetadata {
 
         @Override
         public Message hydrateProto(byte[] val) {
-            throw new UnsupportedOperationException("Only columns can contain PROTO");
+            throw new UnsupportedOperationException("Only columns can contain protobufs protocol buffer.");
         }
 
         @Override
@@ -80,11 +80,6 @@ public final class JdbcComponentMetadata {
         @Override
         public Message hydrateProto(byte[] val) {
             return namedCol.getValue().hydrateProto(Thread.currentThread().getContextClassLoader(), val);
-        }
-
-        @Override
-        public String toString() {
-            return "namedCol";
         }
 
         @Override
@@ -141,10 +136,6 @@ public final class JdbcComponentMetadata {
         public Message hydrateProto(byte[] val) {
             return valDesc.hydrateProto(Thread.currentThread().getContextClassLoader(), val);
         }
-        @Override
-        public String toString() {
-            return "valCol";
-        }
 
         @Override
         public boolean isNamedCol() {
@@ -168,7 +159,6 @@ public final class JdbcComponentMetadata {
     }
 
     public static class RowComp extends JdbcComponentMetadata.Component {
-
         public RowComp(NameComponentDescription comp) {
             super(comp);
         }
@@ -182,15 +172,9 @@ public final class JdbcComponentMetadata {
         public boolean isColComp() {
             return false;
         }
-
-        @Override
-        public String toString() {
-            return "rowComp";
-        }
     }
 
     public static class ColComp extends JdbcComponentMetadata.Component {
-
         public ColComp(NameComponentDescription comp) {
             super(comp);
         }
@@ -203,11 +187,6 @@ public final class JdbcComponentMetadata {
         @Override
         public boolean isColComp() {
             return true;
-        }
-
-        @Override
-        public String toString() {
-            return "colComp";
         }
 
         @Override

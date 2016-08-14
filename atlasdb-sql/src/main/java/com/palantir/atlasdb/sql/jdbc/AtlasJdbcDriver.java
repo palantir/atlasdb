@@ -46,7 +46,7 @@ public class AtlasJdbcDriver implements Driver {
         try {
             DriverManager.registerDriver(new AtlasJdbcDriver());
         } catch (SQLException e) {
-            throw new RuntimeException("init failed: " + e.getMessage());
+            throw new RuntimeException("AtlasDB JDBC Driver initialization failed: " + e.getMessage(), e);
         }
     }
 
@@ -62,13 +62,12 @@ public class AtlasJdbcDriver implements Driver {
 
         addQueryStringsToProperties(url, info);
 
-        log.debug("info: {}", info);
         AtlasDbService service = createAtlasDbService(new File((String) info.get(CONFIG_FILE_KEY)));
         knownServiceEndpoints.put(url.hashCode(), service);
         return new AtlasJdbcConnection(service, url);
     }
 
-    private AtlasDbService createAtlasDbService(File configFile) {
+    private AtlasDbService createAtlasDbService(File configFile) throws SQLException {
         try {
             lastKnownAtlasServices = DaggerAtlasDbServices.builder()
                     .servicesConfigModule(ServicesConfigModule.create(configFile, AtlasDbConfigs.ATLASDB_CONFIG_ROOT))
@@ -77,7 +76,7 @@ public class AtlasJdbcDriver implements Driver {
                     lastKnownAtlasServices.getTransactionManager(),
                     new TableMetadataCache(lastKnownAtlasServices.getKeyValueService()));
         } catch (IOException e) {
-            throw new RuntimeException("Problem reading atlas configuration file: " + configFile.getAbsolutePath());
+            throw new SQLException(String.format("Problem reading AtlasDB configuration file '%s'.", configFile.getAbsolutePath()), e);
         }
     }
 
@@ -134,6 +133,6 @@ public class AtlasJdbcDriver implements Driver {
 
     @Override
     public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
-        throw new SQLFeatureNotSupportedException("not supported");
+        throw new SQLFeatureNotSupportedException("getParentLogger() not supported");
     }
 }

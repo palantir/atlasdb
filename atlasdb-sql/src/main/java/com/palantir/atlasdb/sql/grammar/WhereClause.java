@@ -49,7 +49,7 @@ public abstract class WhereClause {
             }
             return out.toByteArray();
         } catch (IOException e) {
-            throw new RuntimeException("problem writing bytes", e);
+            throw new RuntimeException("Problem writing bytes to combine constraint bounds.", e);
         }
     }
 
