@@ -8,8 +8,6 @@ import com.google.common.collect.ImmutableList;
 
 public class AtlasJdbcResultSetMetaData implements ResultSetMetaData {
 
-    private static final int DEFAULT_COLUMN_CHAR_WIDTH = 8;
-
     private final List<JdbcColumnMetadata> cols;
 
     public static AtlasJdbcResultSetMetaData create(List<JdbcColumnMetadata> cols) {
@@ -57,7 +55,8 @@ public class AtlasJdbcResultSetMetaData implements ResultSetMetaData {
 
     @Override
     public int getColumnDisplaySize(int column) throws SQLException {
-        return DEFAULT_COLUMN_CHAR_WIDTH;
+        JdbcColumnMetadata col = cols.get(column - 1);
+        return Math.max(col.getLabel().length(), ValueTypes.maxDisplaySize(col.getValueType()));
     }
 
     @Override
