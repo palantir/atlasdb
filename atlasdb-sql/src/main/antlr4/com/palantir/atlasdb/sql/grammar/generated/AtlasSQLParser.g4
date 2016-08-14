@@ -28,11 +28,15 @@ table_name
 
 
 column_clause
-    : all_columns | column_list
+    : all_columns | aggregate_column_clause | column_list
     ;
 
 all_columns
     : STAR
+    ;
+
+aggregate_column_clause
+    : aggregate_function LPAREN column_name RPAREN
     ;
 
 column_list
@@ -43,6 +47,11 @@ column_name
    : ID
    ;
 
+aggregate_function
+    : COUNT
+    | MAX
+    | MIN
+    ;
 
 where_clause
    : WHERE expr

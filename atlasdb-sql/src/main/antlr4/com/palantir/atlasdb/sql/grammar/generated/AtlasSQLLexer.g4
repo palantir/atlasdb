@@ -1,6 +1,6 @@
 
 lexer grammar AtlasSQLLexer;
-@ header { 
+@ header {
  }
 
 // syntax markers
@@ -77,6 +77,18 @@ NOT_EQ
 
 NOT
    : N O T
+   ;
+
+MAX
+   : M A X
+   ;
+
+MIN
+   : M I N
+   ;
+
+COUNT
+   : C O U N T
    ;
 
 LET
