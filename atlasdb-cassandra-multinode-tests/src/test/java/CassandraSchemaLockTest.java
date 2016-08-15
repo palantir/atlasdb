@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static java.util.stream.Collectors.toList;
 
@@ -52,6 +51,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.docker.compose.DockerComposition;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
@@ -137,7 +137,7 @@ public class CassandraSchemaLockTest {
     }
 
     private Matcher<File> containsFiles(Matcher<Iterable<File>> fileMatcher) {
-        return new FeatureMatcher<File, List<File>>(fileMatcher, "Directory with files such that", "Directory contents") {
+        return new FeatureMatcher<File, List<File>>(fileMatcher, "Directory with files such that", "Directory contains") {
             @Override
             protected List<File> featureValueOf(File actual) {
                 return Lists.newArrayList(actual.listFiles());
