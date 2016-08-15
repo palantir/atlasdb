@@ -24,6 +24,7 @@ import com.palantir.atlasdb.protos.generated.TestPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.schema.TestSchema;
 import com.palantir.atlasdb.sql.jdbc.AtlasJdbcDriver;
+import com.palantir.atlasdb.sql.jdbc.results.JdbcComponentMetadata;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -74,7 +75,7 @@ public class DynamicColumnTest {
             assertThat(results.getString(ROW_COMP2), equalTo(rowComp2(1)));
             assertFails(() -> results.getLong(COL_COMP1));
             assertFails(() -> results.getString(COL_COMP2));
-            assertThat(results.getObject(DYN_VALUE_NAME), equalTo(obj(1)));
+            assertThat(results.getObject(JdbcComponentMetadata.ValueCol.VALUE_COLUMN_LABEL), equalTo(obj(1)));
         }
     }
 

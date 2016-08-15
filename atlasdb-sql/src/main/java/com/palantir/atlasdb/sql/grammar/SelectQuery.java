@@ -4,12 +4,12 @@ import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BinaryOperator;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.api.TableRange;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -43,7 +43,7 @@ public abstract class SelectQuery {
         } else {
             // * means selectedColumns are empty.
         }
-        Map<String, JdbcColumnMetadata> allCols = makeAllColumnsIndex(metadata);
+        LinkedHashMap<String, JdbcColumnMetadata> allCols = makeAllColumnsIndex(metadata);
         List<SelectableJdbcColumnMetadata> columns = makeSelectedColumns(allCols, selectedColumnsIndex);
         WhereClause where = WhereClause.create(
                 query.where_clause(),
@@ -69,27 +69,42 @@ public abstract class SelectQuery {
         return query.table_reference().getText();
     }
 
-    private static ImmutableMap<String, JdbcColumnMetadata> makeAllColumnsIndex(TableMetadata metadata) {
-        ImmutableMap.Builder<String, JdbcColumnMetadata> allCols = ImmutableMap.builder();
+    private static LinkedHashMap<String, JdbcColumnMetadata> makeAllColumnsIndex(TableMetadata metadata) {
+        LinkedHashMap<String, JdbcColumnMetadata> allCols = Maps.newLinkedHashMap();
         allCols.putAll(metadata.getRowMetadata().getRowParts()
                                .stream()
                                .collect(Collectors.toMap(NameComponentDescription::getComponentName,
-                                                         JdbcComponentMetadata.RowComp::new)));
+                                                         JdbcComponentMetadata.RowComp::new,
+                                                         throwingMerger(),
+                                                         LinkedHashMap::new)));
         if (metadata.getColumns().getNamedColumns() != null) {
             allCols.putAll(metadata.getColumns().getNamedColumns()
                                    .stream()
-                                   .collect(Collectors.toMap(NamedColumnDescription::getShortName, JdbcComponentMetadata.NamedCol::new)));
+                                   .collect(Collectors.toMap(NamedColumnDescription::getShortName,
+                                                             JdbcComponentMetadata.NamedCol::new,
+                                                             throwingMerger(),
+                                                             LinkedHashMap::new)));
         }
         if (metadata.getColumns().getDynamicColumn() != null) {
             allCols.putAll(metadata.getColumns().getDynamicColumn().getColumnNameDesc().getRowParts()
                                    .stream()
-                                   .collect(Collectors.toMap(NameComponentDescription::getComponentName, JdbcComponentMetadata.ColComp::new)));
+                                   .collect(Collectors.toMap(NameComponentDescription::getComponentName,
+                                                             JdbcComponentMetadata.ColComp::new,
+                                                             throwingMerger(),
+                                                             LinkedHashMap::new)));
             allCols.put(JdbcComponentMetadata.ValueCol.VALUE_COLUMN_LABEL,
                         new JdbcComponentMetadata.ValueCol(metadata.getColumns()
                                                                    .getDynamicColumn()
                                                                    .getValue()));
         }
-        return allCols.build();
+        return allCols;
+    }
+
+
+    /*  Copied from Collectors to allow collection to an order-preserving LinkedHashMap.
+     */
+    private static <T> BinaryOperator<T> throwingMerger() {
+        return (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); };
     }
 
     private static List<SelectableJdbcColumnMetadata> makeSelectedColumns(Map<String, JdbcColumnMetadata> allCols,
@@ -136,7 +151,7 @@ public abstract class SelectQuery {
     public abstract String table();
     public abstract RangeRequest rangeRequest();
     public abstract List<SelectableJdbcColumnMetadata> columns();
-    public abstract Map<String, JdbcColumnMetadata> labelOrNameToMetadata();
+    public abstract LinkedHashMap<String, JdbcColumnMetadata> labelOrNameToMetadata();
     public abstract RowComponentConstraint prefilterConstraint();
     public abstract Predicate<ParsedRowResult> postfilterPredicate();
 

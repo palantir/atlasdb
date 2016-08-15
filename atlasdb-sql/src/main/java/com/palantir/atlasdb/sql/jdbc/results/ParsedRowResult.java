@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,7 +33,7 @@ public class ParsedRowResult {
     static Stream<ParsedRowResult> parseRowResults(Iterable<RowResult<byte[]>> results,
                                                    Predicate<ParsedRowResult> predicate,
                                                    List<SelectableJdbcColumnMetadata> selectedCols,
-                                                   Map<String, JdbcColumnMetadata> allCols) {
+                                                   LinkedHashMap<String, JdbcColumnMetadata> allCols) {
         final Aggregator aggregator = new Aggregator(selectedCols);
         Stream<ParsedRowResult> stream = StreamSupport.stream(StreamSupport.stream(results.spliterator(), false)
                                                                            .flatMap(it -> create(it, selectedCols, allCols).stream())
@@ -53,7 +54,7 @@ public class ParsedRowResult {
      */
     private static List<ParsedRowResult> create(RowResult<byte[]> rawResult,
                                                 List<SelectableJdbcColumnMetadata> selectedCols,
-                                                Map<String, JdbcColumnMetadata> allCols) {
+                                                LinkedHashMap<String, JdbcColumnMetadata> allCols) {
         Map<JdbcColumnMetadata, byte[]> rowComps
                 = parseComponents(rawResult.getRowName(),
                                   allCols.values().stream()
@@ -66,8 +67,9 @@ public class ParsedRowResult {
             List<Map<JdbcColumnMetadata, byte[]>> dynCols
                     = parseColumnComponents(rawResult.getColumns(),
                                             selectedCols,
-                                            allCols.values().stream()
-                                                   .filter(JdbcColumnMetadata::isColComp)
+                                            allCols.entrySet().stream()
+                                                   .filter(it -> it.getValue().isColComp())
+                                                   .map(Map.Entry::getValue)
                                                    .collect(Collectors.toList()));
             return dynCols.stream()
                     .map(cols -> createParsedRowResult(selectedCols, rowComps, cols))
