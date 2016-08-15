@@ -154,12 +154,60 @@ public class QueryTest {
     }
 
     @Test
+    public void testSelectMultipleCol() {
+        try (Connection c = QueryTests.connect(IN_MEMORY_TEST_CONFIG)) {
+            Statement stmt = c.createStatement();
+            ResultSet results = stmt.executeQuery(String.format("select %s, %s from %s", COL1_NAME, COL1_NAME, TABLE.getQualifiedName()));
+            results.next();
+            assertFails(() -> results.getString(ROW_COMP2));
+            assertThat(results.getString(COL1_NAME), equalTo("value1"));  // although this does not disambiguate between identical entries
+            results.next();
+            assertFails(() -> results.getString(ROW_COMP2));
+            assertThat(results.getString(COL1_NAME), equalTo("value2"));
+            assertThat(results.next(), equalTo(false));
+        } catch (ClassNotFoundException | SQLException e) {
+            throw new RuntimeException("Failure running select.", e);
+        }
+    }
+
+    /**  NB: Currently, COUNT works only for numeric columns. In general, type switching is not permitted.
+     *   Aggregate columns should be aliased separately.
+     */
+    @Test
     public void testSelectCount() {
         try (Connection c = QueryTests.connect(IN_MEMORY_TEST_CONFIG)) {
             Statement stmt = c.createStatement();
             ResultSet results = stmt.executeQuery(String.format("select count(%s) from %s", ROW_COMP1, TABLE.getQualifiedName()));
             results.next();
-            assertThat(results.getString(COL1_NAME), equalTo("value1"));
+            assertThat(results.getLong(ROW_COMP1), equalTo(2L));
+            assertThat(results.next(), equalTo(false));
+        } catch (ClassNotFoundException | SQLException e) {
+            throw new RuntimeException("Failure running select.", e);
+        }
+    }
+
+    @Test
+    public void testSelectMax() {
+        try (Connection c = QueryTests.connect(IN_MEMORY_TEST_CONFIG)) {
+            Statement stmt = c.createStatement();
+            ResultSet results = stmt.executeQuery(String.format("select max(%s) from %s", ROW_COMP1, TABLE
+                    .getQualifiedName()));
+            results.next();
+            assertThat(results.getLong(ROW_COMP1), equalTo(22L));
+            assertThat(results.next(), equalTo(false));
+        } catch (ClassNotFoundException | SQLException e) {
+            throw new RuntimeException("Failure running select.", e);
+        }
+    }
+
+    @Test
+    public void testSelectMin() {
+        try (Connection c = QueryTests.connect(IN_MEMORY_TEST_CONFIG)) {
+            Statement stmt = c.createStatement();
+            ResultSet results = stmt.executeQuery(String.format("select min(%s) from %s", ROW_COMP1, TABLE
+                    .getQualifiedName()));
+            results.next();
+            assertThat(results.getLong(ROW_COMP1), equalTo(11L));
             assertThat(results.next(), equalTo(false));
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException("Failure running select.", e);

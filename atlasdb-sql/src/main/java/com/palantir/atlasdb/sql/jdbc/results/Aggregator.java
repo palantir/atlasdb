@@ -115,14 +115,13 @@ class Aggregator implements BinaryOperator<ParsedRowResult> {
                 case COUNT:
                     accumulator = new BinaryOperator<Object>() {
                         @Override
-                        public Object apply(Object o, Object o2) {
-                            return null;
+                        public Object apply(Object o, Object o2) {  // assume Longs
+                            return (Long)o + 1L;
                         }
                     };
                     break;
                 case MAX:
                     switch (metadata.getMetadata().getValueType()) {
-
                         case VAR_LONG:
                         case VAR_SIGNED_LONG:
                         case FIXED_LONG:
@@ -131,21 +130,15 @@ class Aggregator implements BinaryOperator<ParsedRowResult> {
                             accumulator = new BinaryOperator<Object>() {
                                 @Override
                                 public Object apply(Object o, Object o2) {
-                                    return null;
+                                    return Math.max((Long)o, (Long)o2);
                                 }
                             };
                             break;
-
                         case VAR_STRING:
                         case STRING:
-
-                            break;
                         case SHA256HASH:
-                            break;
                         case BLOB:
-                            break;
                         case SIZED_BLOB:
-                            break;
                         case UUID:
                             break;
                     }
@@ -155,7 +148,7 @@ class Aggregator implements BinaryOperator<ParsedRowResult> {
                     accumulator = new BinaryOperator<Object>() {
                         @Override
                         public Object apply(Object o, Object o2) {
-                            return null;
+                            return Math.min((Long)o, (Long)o2);
                         }
                     };
                     break;

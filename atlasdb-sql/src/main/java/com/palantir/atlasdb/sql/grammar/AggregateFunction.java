@@ -14,9 +14,9 @@ public enum AggregateFunction {
         if (context.COUNT() != null) {
             aggregateFunction = AggregateFunction.COUNT;
         } else if (context.MAX() != null) {
-            aggregateFunction = AggregateFunction.MIN;
-        } else if (context.MIN() != null) {
             aggregateFunction = AggregateFunction.MAX;
+        } else if (context.MIN() != null) {
+            aggregateFunction = AggregateFunction.MIN;
         } else {
             aggregateFunction = AggregateFunction.IDENTITY;
         }
