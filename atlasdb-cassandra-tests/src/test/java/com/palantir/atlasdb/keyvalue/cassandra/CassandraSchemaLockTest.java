@@ -15,28 +15,34 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static java.util.stream.Collectors.toList;
+
+import static org.hamcrest.CoreMatchers.everyItem;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.hamcrest.Description;
+import org.hamcrest.FeatureMatcher;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -127,24 +133,42 @@ public class CassandraSchemaLockTest {
         executorService.shutdown();
         executorService.awaitTermination(5L, TimeUnit.MINUTES);
 
-        checkErrorInCassandraLogs();
+        assertThat(new File("container-logs-multinode"), containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())));
     }
 
-    private void checkErrorInCassandraLogs() {
-        File logsDirectory = new File("container-logs-multinode");
-        boolean anyFileContainsError = Arrays.stream(logsDirectory.listFiles()).anyMatch(file -> {
-            try {
-                return containsErrorLine(file);
-            } catch (IOException e) {
-                e.printStackTrace();
+    private Matcher<File> containsFiles(Matcher<Iterable<File>> fileMatcher) {
+        return new FeatureMatcher<File, List<File>>(fileMatcher, "Directory with contents", "Directory contents") {
+            @Override
+            protected List<File> featureValueOf(File actual) {
+                return Lists.newArrayList(actual.listFiles());
             }
-            return false;
-        });
-        assertThat(anyFileContainsError, is(false));
+        };
     }
 
-    private boolean containsErrorLine(File file) throws IOException {
-        return Files.lines(Paths.get(file.getAbsolutePath())).anyMatch(line -> line.contains("Column family ID mismatch"));
+    private Matcher<File> doesNotContainTheColumnFamilyIdMismatchError() {
+        return new TypeSafeDiagnosingMatcher<File>() {
+            @Override
+            protected boolean matchesSafely(File file, Description mismatchDescription) {
+                try {
+                    List<String> badLines = Files.lines(Paths.get(file.getAbsolutePath()))
+                            .filter(line -> line.contains("Column family ID mismatch"))
+                            .collect(toList());
+
+                    mismatchDescription
+                            .appendText("File called " + file.getAbsolutePath() + " contains lines")
+                            .appendValueList("\n", "\n", "", badLines);
+
+                    return badLines.isEmpty();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("a file with no column family ID mismatch errors");
+            }
+        };
     }
 
     private static Callable<Boolean> canCreateKeyValueService() {
