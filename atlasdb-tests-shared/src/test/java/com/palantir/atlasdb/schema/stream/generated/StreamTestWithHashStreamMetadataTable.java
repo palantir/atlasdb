@@ -100,6 +100,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
     private final List<StreamTestWithHashStreamMetadataTrigger> triggers;
     private final static String rawTableName = "stream_test_with_hash_stream_metadata";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = getColumnSelection(StreamTestWithHashStreamMetadataNamedColumn.values());
 
     static StreamTestWithHashStreamMetadataTable of(Transaction t, Namespace namespace) {
         return new StreamTestWithHashStreamMetadataTable(t, namespace, ImmutableList.<StreamTestWithHashStreamMetadataTrigger>of());
@@ -507,7 +508,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
 
     @Override
     public Optional<StreamTestWithHashStreamMetadataRowResult> getRow(StreamTestWithHashStreamMetadataRow row) {
-        return getRow(row, ColumnSelection.all());
+        return getRow(row, allColumns);
     }
 
     @Override
@@ -523,7 +524,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
 
     @Override
     public List<StreamTestWithHashStreamMetadataRowResult> getRows(Iterable<StreamTestWithHashStreamMetadataRow> rows) {
-        return getRows(rows, ColumnSelection.all());
+        return getRows(rows, allColumns);
     }
 
     @Override
@@ -538,7 +539,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
 
     @Override
     public List<StreamTestWithHashStreamMetadataRowResult> getAsyncRows(Iterable<StreamTestWithHashStreamMetadataRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, ColumnSelection.all(), exec);
+        return getAsyncRows(rows, allColumns, exec);
     }
 
     @Override
@@ -555,7 +556,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
 
     @Override
     public List<StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowColumns(StreamTestWithHashStreamMetadataRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -575,7 +576,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
 
     @Override
     public Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestWithHashStreamMetadataRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -585,7 +586,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
 
     @Override
     public Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<StreamTestWithHashStreamMetadataRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -641,7 +642,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
     }
 
     public BatchingVisitableView<StreamTestWithHashStreamMetadataRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<StreamTestWithHashStreamMetadataRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -753,5 +754,5 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "65OOJc0kd2pBMu/LBfUjcg==";
+    static String __CLASS_HASH = "6TxIbSu1jMtQmRISOb/WSw==";
 }

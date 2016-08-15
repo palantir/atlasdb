@@ -100,6 +100,7 @@ public final class DataTable implements
     private final List<DataTrigger> triggers;
     private final static String rawTableName = "data";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = getColumnSelection(DataNamedColumn.values());
 
     static DataTable of(Transaction t, Namespace namespace) {
         return new DataTable(t, namespace, ImmutableList.<DataTrigger>of());
@@ -613,7 +614,7 @@ public final class DataTable implements
 
     @Override
     public Optional<DataRowResult> getRow(DataRow row) {
-        return getRow(row, ColumnSelection.all());
+        return getRow(row, allColumns);
     }
 
     @Override
@@ -629,7 +630,7 @@ public final class DataTable implements
 
     @Override
     public List<DataRowResult> getRows(Iterable<DataRow> rows) {
-        return getRows(rows, ColumnSelection.all());
+        return getRows(rows, allColumns);
     }
 
     @Override
@@ -644,7 +645,7 @@ public final class DataTable implements
 
     @Override
     public List<DataRowResult> getAsyncRows(Iterable<DataRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, ColumnSelection.all(), exec);
+        return getAsyncRows(rows, allColumns, exec);
     }
 
     @Override
@@ -661,7 +662,7 @@ public final class DataTable implements
 
     @Override
     public List<DataNamedColumnValue<?>> getRowColumns(DataRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -681,7 +682,7 @@ public final class DataTable implements
 
     @Override
     public Multimap<DataRow, DataNamedColumnValue<?>> getRowsMultimap(Iterable<DataRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -691,7 +692,7 @@ public final class DataTable implements
 
     @Override
     public Multimap<DataRow, DataNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<DataRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -837,7 +838,7 @@ public final class DataTable implements
     }
 
     public BatchingVisitableView<DataRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<DataRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -873,6 +874,7 @@ public final class DataTable implements
         private final List<Index1IdxTrigger> triggers;
         private final static String rawTableName = "index1_idx";
         private final TableReference tableRef;
+        private final static ColumnSelection allColumns = ColumnSelection.all();
 
         public static Index1IdxTable of(DataTable table) {
             return new Index1IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index1IdxTrigger>of());
@@ -1393,7 +1395,7 @@ public final class DataTable implements
 
         @Override
         public List<Index1IdxColumnValue> getRowColumns(Index1IdxRow row) {
-            return getRowColumns(row, ColumnSelection.all());
+            return getRowColumns(row, allColumns);
         }
 
         @Override
@@ -1415,7 +1417,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index1IdxRow, Index1IdxColumnValue> getRowsMultimap(Iterable<Index1IdxRow> rows) {
-            return getRowsMultimapInternal(rows, ColumnSelection.all());
+            return getRowsMultimapInternal(rows, allColumns);
         }
 
         @Override
@@ -1425,7 +1427,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index1IdxRow, Index1IdxColumnValue> getAsyncRowsMultimap(Iterable<Index1IdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+            return getAsyncRowsMultimap(rows, allColumns, exec);
         }
 
         @Override
@@ -1488,7 +1490,7 @@ public final class DataTable implements
 
         public BatchingVisitableView<Index1IdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
-                range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
+                range = range.getBuilder().retainColumns(allColumns).build();
             }
             return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, Index1IdxRowResult>() {
                 @Override
@@ -1559,6 +1561,7 @@ public final class DataTable implements
         private final List<Index2IdxTrigger> triggers;
         private final static String rawTableName = "index2_idx";
         private final TableReference tableRef;
+        private final static ColumnSelection allColumns = ColumnSelection.all();
 
         public static Index2IdxTable of(DataTable table) {
             return new Index2IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index2IdxTrigger>of());
@@ -2067,7 +2070,7 @@ public final class DataTable implements
 
         @Override
         public List<Index2IdxColumnValue> getRowColumns(Index2IdxRow row) {
-            return getRowColumns(row, ColumnSelection.all());
+            return getRowColumns(row, allColumns);
         }
 
         @Override
@@ -2089,7 +2092,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index2IdxRow, Index2IdxColumnValue> getRowsMultimap(Iterable<Index2IdxRow> rows) {
-            return getRowsMultimapInternal(rows, ColumnSelection.all());
+            return getRowsMultimapInternal(rows, allColumns);
         }
 
         @Override
@@ -2099,7 +2102,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index2IdxRow, Index2IdxColumnValue> getAsyncRowsMultimap(Iterable<Index2IdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+            return getAsyncRowsMultimap(rows, allColumns, exec);
         }
 
         @Override
@@ -2162,7 +2165,7 @@ public final class DataTable implements
 
         public BatchingVisitableView<Index2IdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
-                range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
+                range = range.getBuilder().retainColumns(allColumns).build();
             }
             return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, Index2IdxRowResult>() {
                 @Override
@@ -2233,6 +2236,7 @@ public final class DataTable implements
         private final List<Index3IdxTrigger> triggers;
         private final static String rawTableName = "index3_idx";
         private final TableReference tableRef;
+        private final static ColumnSelection allColumns = ColumnSelection.all();
 
         public static Index3IdxTable of(DataTable table) {
             return new Index3IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index3IdxTrigger>of());
@@ -2719,7 +2723,7 @@ public final class DataTable implements
 
         @Override
         public List<Index3IdxColumnValue> getRowColumns(Index3IdxRow row) {
-            return getRowColumns(row, ColumnSelection.all());
+            return getRowColumns(row, allColumns);
         }
 
         @Override
@@ -2741,7 +2745,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index3IdxRow, Index3IdxColumnValue> getRowsMultimap(Iterable<Index3IdxRow> rows) {
-            return getRowsMultimapInternal(rows, ColumnSelection.all());
+            return getRowsMultimapInternal(rows, allColumns);
         }
 
         @Override
@@ -2751,7 +2755,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index3IdxRow, Index3IdxColumnValue> getAsyncRowsMultimap(Iterable<Index3IdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+            return getAsyncRowsMultimap(rows, allColumns, exec);
         }
 
         @Override
@@ -2814,7 +2818,7 @@ public final class DataTable implements
 
         public BatchingVisitableView<Index3IdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
-                range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
+                range = range.getBuilder().retainColumns(allColumns).build();
             }
             return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, Index3IdxRowResult>() {
                 @Override
@@ -2885,6 +2889,7 @@ public final class DataTable implements
         private final List<Index4IdxTrigger> triggers;
         private final static String rawTableName = "index4_idx";
         private final TableReference tableRef;
+        private final static ColumnSelection allColumns = ColumnSelection.all();
 
         public static Index4IdxTable of(DataTable table) {
             return new Index4IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index4IdxTrigger>of());
@@ -3393,7 +3398,7 @@ public final class DataTable implements
 
         @Override
         public List<Index4IdxColumnValue> getRowColumns(Index4IdxRow row) {
-            return getRowColumns(row, ColumnSelection.all());
+            return getRowColumns(row, allColumns);
         }
 
         @Override
@@ -3415,7 +3420,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index4IdxRow, Index4IdxColumnValue> getRowsMultimap(Iterable<Index4IdxRow> rows) {
-            return getRowsMultimapInternal(rows, ColumnSelection.all());
+            return getRowsMultimapInternal(rows, allColumns);
         }
 
         @Override
@@ -3425,7 +3430,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index4IdxRow, Index4IdxColumnValue> getAsyncRowsMultimap(Iterable<Index4IdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+            return getAsyncRowsMultimap(rows, allColumns, exec);
         }
 
         @Override
@@ -3488,7 +3493,7 @@ public final class DataTable implements
 
         public BatchingVisitableView<Index4IdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
-                range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
+                range = range.getBuilder().retainColumns(allColumns).build();
             }
             return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, Index4IdxRowResult>() {
                 @Override
@@ -3635,5 +3640,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "vQhZ7n6MA5+BcFHaD0VhXA==";
+    static String __CLASS_HASH = "bu/78yTACPIaL2LbY8z/7g==";
 }

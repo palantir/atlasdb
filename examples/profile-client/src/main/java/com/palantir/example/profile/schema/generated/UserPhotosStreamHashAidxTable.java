@@ -98,6 +98,7 @@ public final class UserPhotosStreamHashAidxTable implements
     private final List<UserPhotosStreamHashAidxTrigger> triggers;
     private final static String rawTableName = "user_photos_stream_hash_aidx";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = ColumnSelection.all();
 
     static UserPhotosStreamHashAidxTable of(Transaction t, Namespace namespace) {
         return new UserPhotosStreamHashAidxTable(t, namespace, ImmutableList.<UserPhotosStreamHashAidxTrigger>of());
@@ -561,7 +562,7 @@ public final class UserPhotosStreamHashAidxTable implements
 
     @Override
     public List<UserPhotosStreamHashAidxColumnValue> getRowColumns(UserPhotosStreamHashAidxRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -583,7 +584,7 @@ public final class UserPhotosStreamHashAidxTable implements
 
     @Override
     public Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> getRowsMultimap(Iterable<UserPhotosStreamHashAidxRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -593,7 +594,7 @@ public final class UserPhotosStreamHashAidxTable implements
 
     @Override
     public Multimap<UserPhotosStreamHashAidxRow, UserPhotosStreamHashAidxColumnValue> getAsyncRowsMultimap(Iterable<UserPhotosStreamHashAidxRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -655,7 +656,7 @@ public final class UserPhotosStreamHashAidxTable implements
     }
 
     public BatchingVisitableView<UserPhotosStreamHashAidxRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<UserPhotosStreamHashAidxRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -767,5 +768,5 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "j3Dvk22e1w2rrqrlXFEFgA==";
+    static String __CLASS_HASH = "O4eCL3RGxcpBQ5YfbkwD4w==";
 }

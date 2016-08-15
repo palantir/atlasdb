@@ -100,6 +100,7 @@ public final class UserPhotosStreamValueTable implements
     private final List<UserPhotosStreamValueTrigger> triggers;
     private final static String rawTableName = "user_photos_stream_value";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = getColumnSelection(UserPhotosStreamValueNamedColumn.values());
 
     static UserPhotosStreamValueTable of(Transaction t, Namespace namespace) {
         return new UserPhotosStreamValueTable(t, namespace, ImmutableList.<UserPhotosStreamValueTrigger>of());
@@ -486,7 +487,7 @@ public final class UserPhotosStreamValueTable implements
 
     @Override
     public Optional<UserPhotosStreamValueRowResult> getRow(UserPhotosStreamValueRow row) {
-        return getRow(row, ColumnSelection.all());
+        return getRow(row, allColumns);
     }
 
     @Override
@@ -502,7 +503,7 @@ public final class UserPhotosStreamValueTable implements
 
     @Override
     public List<UserPhotosStreamValueRowResult> getRows(Iterable<UserPhotosStreamValueRow> rows) {
-        return getRows(rows, ColumnSelection.all());
+        return getRows(rows, allColumns);
     }
 
     @Override
@@ -517,7 +518,7 @@ public final class UserPhotosStreamValueTable implements
 
     @Override
     public List<UserPhotosStreamValueRowResult> getAsyncRows(Iterable<UserPhotosStreamValueRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, ColumnSelection.all(), exec);
+        return getAsyncRows(rows, allColumns, exec);
     }
 
     @Override
@@ -534,7 +535,7 @@ public final class UserPhotosStreamValueTable implements
 
     @Override
     public List<UserPhotosStreamValueNamedColumnValue<?>> getRowColumns(UserPhotosStreamValueRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -554,7 +555,7 @@ public final class UserPhotosStreamValueTable implements
 
     @Override
     public Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<UserPhotosStreamValueRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -564,7 +565,7 @@ public final class UserPhotosStreamValueTable implements
 
     @Override
     public Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<UserPhotosStreamValueRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -620,7 +621,7 @@ public final class UserPhotosStreamValueTable implements
     }
 
     public BatchingVisitableView<UserPhotosStreamValueRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<UserPhotosStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -732,5 +733,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "SmYVPLCQ6NADnMM6IzLoPg==";
+    static String __CLASS_HASH = "t58IjZtpdGvphNV/ppNVQg==";
 }

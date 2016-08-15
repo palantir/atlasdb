@@ -98,6 +98,7 @@ public final class StreamTestStreamIdxTable implements
     private final List<StreamTestStreamIdxTrigger> triggers;
     private final static String rawTableName = "stream_test_stream_idx";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = ColumnSelection.all();
 
     static StreamTestStreamIdxTable of(Transaction t, Namespace namespace) {
         return new StreamTestStreamIdxTable(t, namespace, ImmutableList.<StreamTestStreamIdxTrigger>of());
@@ -561,7 +562,7 @@ public final class StreamTestStreamIdxTable implements
 
     @Override
     public List<StreamTestStreamIdxColumnValue> getRowColumns(StreamTestStreamIdxRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -583,7 +584,7 @@ public final class StreamTestStreamIdxTable implements
 
     @Override
     public Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue> getRowsMultimap(Iterable<StreamTestStreamIdxRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -593,7 +594,7 @@ public final class StreamTestStreamIdxTable implements
 
     @Override
     public Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue> getAsyncRowsMultimap(Iterable<StreamTestStreamIdxRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -655,7 +656,7 @@ public final class StreamTestStreamIdxTable implements
     }
 
     public BatchingVisitableView<StreamTestStreamIdxRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<StreamTestStreamIdxRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -767,5 +768,5 @@ public final class StreamTestStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "fGF+HZPBf/jGX/5AE2V53A==";
+    static String __CLASS_HASH = "jJyGwP1HCiEW0sggTP2biw==";
 }

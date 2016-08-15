@@ -98,6 +98,7 @@ public final class UserPhotosStreamIdxTable implements
     private final List<UserPhotosStreamIdxTrigger> triggers;
     private final static String rawTableName = "user_photos_stream_idx";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = ColumnSelection.all();
 
     static UserPhotosStreamIdxTable of(Transaction t, Namespace namespace) {
         return new UserPhotosStreamIdxTable(t, namespace, ImmutableList.<UserPhotosStreamIdxTrigger>of());
@@ -561,7 +562,7 @@ public final class UserPhotosStreamIdxTable implements
 
     @Override
     public List<UserPhotosStreamIdxColumnValue> getRowColumns(UserPhotosStreamIdxRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -583,7 +584,7 @@ public final class UserPhotosStreamIdxTable implements
 
     @Override
     public Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getRowsMultimap(Iterable<UserPhotosStreamIdxRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -593,7 +594,7 @@ public final class UserPhotosStreamIdxTable implements
 
     @Override
     public Multimap<UserPhotosStreamIdxRow, UserPhotosStreamIdxColumnValue> getAsyncRowsMultimap(Iterable<UserPhotosStreamIdxRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -655,7 +656,7 @@ public final class UserPhotosStreamIdxTable implements
     }
 
     public BatchingVisitableView<UserPhotosStreamIdxRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<UserPhotosStreamIdxRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -767,5 +768,5 @@ public final class UserPhotosStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "9v0vi9AmhdiX2ItOgN27FA==";
+    static String __CLASS_HASH = "XmdcAN5v22Mf16umAb6afA==";
 }

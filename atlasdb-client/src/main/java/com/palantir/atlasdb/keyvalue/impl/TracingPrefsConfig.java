@@ -53,7 +53,7 @@ public class TracingPrefsConfig implements Runnable {
                     tracingMinDurationToTraceMillis = Integer.parseInt(tracingPrefConfig.getProperty("min_duration_to_log_ms", "0"));
                     String tableString = tracingPrefConfig.getProperty("tables_to_trace", "");
                     tracedTables = ImmutableSet.copyOf(Splitter.on(",").trimResults().split(tableString));
-                    if (loadedConfig == false) { // only log leading edge event
+                    if (tracingEnabled && !loadedConfig) { // only log leading edge event
                         log.error("Successfully loaded an " + TRACING_PREF_FILENAME
                                 + " file. This is usually a large performance hit and should only be used for periods of debugging. "
                                 + "[tracing_enabled = " + tracingEnabled

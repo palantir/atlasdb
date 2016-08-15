@@ -234,7 +234,7 @@ public class TableRenderer {
                 line("                                    ", Table, ".", ColumnValue, ",");
                 line("                                    ", Table, ".", RowResult, "> {");
             } {
-                fields();
+                fields(isDynamic(table));
                 line();
                 staticFactories();
                 line();
@@ -377,13 +377,14 @@ public class TableRenderer {
             renderGetRowsColumnRange(true);
         }
 
-        private void fields() {
+        private void fields(boolean isDynamic) {
             line("private final Transaction t;");
             line("private final List<", Trigger, "> triggers;");
             if (!isGeneric) {
                 line("private final static String rawTableName = \"" + raw_table_name + "\";");
             }
             line("private final TableReference tableRef;");
+            line("private final static ColumnSelection allColumns = ", isDynamic ? "ColumnSelection.all();" : "getColumnSelection(" + Column + ".values());");
         }
 
         private void staticFactories() {
@@ -620,7 +621,7 @@ public class TableRenderer {
         private void renderGetRowColumns(boolean isDynamic) {
             line("@Override");
             line("public List<", ColumnValue, "> getRowColumns(", Row, " row) {"); {
-                line("return getRowColumns(row, ColumnSelection.all());");
+                line("return getRowColumns(row, allColumns);");
             } line("}");
             line();
             line("@Override");
@@ -957,7 +958,7 @@ public class TableRenderer {
         private void renderGetRange() {
             line("public BatchingVisitableView<", RowResult, "> getRange(RangeRequest range) {"); {
                 line("if (range.getColumnNames().isEmpty()) {"); {
-                    line("range = range.getBuilder().retainColumns(ColumnSelection.all()).build();");
+                    line("range = range.getBuilder().retainColumns(allColumns).build();");
                 } line("}");
                 line("return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, ", RowResult, ">() {"); {
                     line("@Override");
@@ -1026,7 +1027,7 @@ public class TableRenderer {
 
         private void renderGetAllRowsUnordered() {
             line("public BatchingVisitableView<", RowResult, "> getAllRowsUnordered() {"); {
-                line("return getAllRowsUnordered(ColumnSelection.all());");
+                line("return getAllRowsUnordered(allColumns);");
             } line("}");
             line();
             line("public BatchingVisitableView<", RowResult, "> getAllRowsUnordered(ColumnSelection columns) {"); {
@@ -1043,7 +1044,7 @@ public class TableRenderer {
         private void renderNamedGetRow() {
             line("@Override");
             line("public Optional<", RowResult, "> getRow(", Row, " row) {"); {
-                line("return getRow(row, ColumnSelection.all());");
+                line("return getRow(row, allColumns);");
             } line("}");
             line();
             line("@Override");
@@ -1061,7 +1062,7 @@ public class TableRenderer {
         private void renderNamedGetRows() {
             line("@Override");
             line("public List<", RowResult, "> getRows(Iterable<", Row, "> rows) {"); {
-                line("return getRows(rows, ColumnSelection.all());");
+                line("return getRows(rows, allColumns);");
             } line("}");
             line();
             line("@Override");
@@ -1076,7 +1077,7 @@ public class TableRenderer {
             line();
             line("@Override");
             line("public List<", RowResult, "> getAsyncRows(Iterable<", Row, "> rows, ExecutorService exec) {"); {
-                line("return getAsyncRows(rows, ColumnSelection.all(), exec);");
+                line("return getAsyncRows(rows, allColumns, exec);");
             } line("}");
             line();
             line("@Override");
@@ -1125,7 +1126,7 @@ public class TableRenderer {
         private void renderGetRowsMultimap(boolean isDynamic) {
             line("@Override");
             line("public Multimap<", Row, ", ", ColumnValue, "> getRowsMultimap(Iterable<", Row, "> rows) {"); {
-                line("return getRowsMultimapInternal(rows, ColumnSelection.all());");
+                line("return getRowsMultimapInternal(rows, allColumns);");
             } line("}");
             line();
             line("@Override");
@@ -1135,7 +1136,7 @@ public class TableRenderer {
             line();
             line("@Override");
             line("public Multimap<", Row, ", ", ColumnValue, "> getAsyncRowsMultimap(Iterable<", Row, "> rows, ExecutorService exec) {"); {
-                line("return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);");
+                line("return getAsyncRowsMultimap(rows, allColumns, exec);");
             } line("}");
             line();
             line("@Override");
@@ -1251,7 +1252,7 @@ public class TableRenderer {
             line();
             line("@Override");
             line("public void addUnlessExists(Set<", Row, "> rows", params, ") {"); {
-                line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), ColumnSelection.all());");
+                line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), allColumns);");
                 line("Map<", Row, ", ", ColumnValue, "> map = Maps.newHashMapWithExpectedSize(rows.size() - results.size());");
                 line(ColumnValue, " col = Exists.of(0L);");
                 line("for (", Row, " row : rows) {"); {

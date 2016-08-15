@@ -100,6 +100,7 @@ public final class SweepProgressTable implements
     private final List<SweepProgressTrigger> triggers;
     private final static String rawTableName = "progress";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = getColumnSelection(SweepProgressNamedColumn.values());
 
     static SweepProgressTable of(Transaction t, Namespace namespace) {
         return new SweepProgressTable(t, namespace, ImmutableList.<SweepProgressTrigger>of());
@@ -1030,7 +1031,7 @@ public final class SweepProgressTable implements
 
     @Override
     public Optional<SweepProgressRowResult> getRow(SweepProgressRow row) {
-        return getRow(row, ColumnSelection.all());
+        return getRow(row, allColumns);
     }
 
     @Override
@@ -1046,7 +1047,7 @@ public final class SweepProgressTable implements
 
     @Override
     public List<SweepProgressRowResult> getRows(Iterable<SweepProgressRow> rows) {
-        return getRows(rows, ColumnSelection.all());
+        return getRows(rows, allColumns);
     }
 
     @Override
@@ -1061,7 +1062,7 @@ public final class SweepProgressTable implements
 
     @Override
     public List<SweepProgressRowResult> getAsyncRows(Iterable<SweepProgressRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, ColumnSelection.all(), exec);
+        return getAsyncRows(rows, allColumns, exec);
     }
 
     @Override
@@ -1078,7 +1079,7 @@ public final class SweepProgressTable implements
 
     @Override
     public List<SweepProgressNamedColumnValue<?>> getRowColumns(SweepProgressRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -1098,7 +1099,7 @@ public final class SweepProgressTable implements
 
     @Override
     public Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>> getRowsMultimap(Iterable<SweepProgressRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -1108,7 +1109,7 @@ public final class SweepProgressTable implements
 
     @Override
     public Multimap<SweepProgressRow, SweepProgressNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<SweepProgressRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -1164,7 +1165,7 @@ public final class SweepProgressTable implements
     }
 
     public BatchingVisitableView<SweepProgressRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<SweepProgressRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -1276,5 +1277,5 @@ public final class SweepProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "eA9xPlFxqwQ9Zp7cbLx8+A==";
+    static String __CLASS_HASH = "3NhV7T+1e3EXI7uWohqaCQ==";
 }

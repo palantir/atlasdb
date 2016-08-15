@@ -100,6 +100,7 @@ public final class SweepPriorityTable implements
     private final List<SweepPriorityTrigger> triggers;
     private final static String rawTableName = "priority";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = getColumnSelection(SweepPriorityNamedColumn.values());
 
     static SweepPriorityTable of(Transaction t, Namespace namespace) {
         return new SweepPriorityTable(t, namespace, ImmutableList.<SweepPriorityTrigger>of());
@@ -1030,7 +1031,7 @@ public final class SweepPriorityTable implements
 
     @Override
     public Optional<SweepPriorityRowResult> getRow(SweepPriorityRow row) {
-        return getRow(row, ColumnSelection.all());
+        return getRow(row, allColumns);
     }
 
     @Override
@@ -1046,7 +1047,7 @@ public final class SweepPriorityTable implements
 
     @Override
     public List<SweepPriorityRowResult> getRows(Iterable<SweepPriorityRow> rows) {
-        return getRows(rows, ColumnSelection.all());
+        return getRows(rows, allColumns);
     }
 
     @Override
@@ -1061,7 +1062,7 @@ public final class SweepPriorityTable implements
 
     @Override
     public List<SweepPriorityRowResult> getAsyncRows(Iterable<SweepPriorityRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, ColumnSelection.all(), exec);
+        return getAsyncRows(rows, allColumns, exec);
     }
 
     @Override
@@ -1078,7 +1079,7 @@ public final class SweepPriorityTable implements
 
     @Override
     public List<SweepPriorityNamedColumnValue<?>> getRowColumns(SweepPriorityRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -1098,7 +1099,7 @@ public final class SweepPriorityTable implements
 
     @Override
     public Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> getRowsMultimap(Iterable<SweepPriorityRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -1108,7 +1109,7 @@ public final class SweepPriorityTable implements
 
     @Override
     public Multimap<SweepPriorityRow, SweepPriorityNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<SweepPriorityRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -1164,7 +1165,7 @@ public final class SweepPriorityTable implements
     }
 
     public BatchingVisitableView<SweepPriorityRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<SweepPriorityRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -1276,5 +1277,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "gcP1pv/XGUGjzFgodmC/Yg==";
+    static String __CLASS_HASH = "GxCYqoJ/e6qtTWpXb+zeIQ==";
 }

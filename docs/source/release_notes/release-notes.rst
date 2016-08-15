@@ -1,3 +1,5 @@
+.. _change-log:
+
 *********
 Changelog
 *********
@@ -43,6 +45,9 @@ v0.12.0
          - If you do not specify a leader block in your config, AtlasDB will now still try to register the timestamp and lock endpoints necessary for other clients or CLIs to run in the same keyspace.
            This may require changes in setup logic for applications that have previously only ever run with no leader block.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/708>`__)
+    *    - |fixed|
+         - DB passwords are no longer output as part of the connection configuration ``toString()`` methods.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/755>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -97,6 +102,10 @@ v0.11.1
          - Removed a check enforcing a leader block config when one was not required.
            This prevents AtlasDB 0.11.0 clients from starting if a leader configuration is not specified (i.e. single node clusters).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/741>`__)
+
+    *    - |improved|
+         - Updated schema table generation to optimize reads with no ColumnSelection specified against tables with fixed columns.  To benefit from this improvement you will need to re-generate your schemas.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/713>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

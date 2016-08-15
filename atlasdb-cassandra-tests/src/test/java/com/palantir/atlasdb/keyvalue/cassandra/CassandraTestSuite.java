@@ -34,7 +34,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.docker.compose.DockerComposition;
+import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
@@ -54,7 +54,8 @@ public class CassandraTestSuite {
 
     public static final int THRIFT_PORT_NUMBER = 9160;
     @ClassRule
-    public static final DockerComposition composition = DockerComposition.of("src/test/resources/docker-compose.yml")
+    public static final DockerComposeRule docker = DockerComposeRule.builder()
+            .file("src/test/resources/docker-compose.yml")
             .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen())
             .saveLogsTo("container-logs")
             .build();
@@ -69,7 +70,7 @@ public class CassandraTestSuite {
 
     @BeforeClass
     public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {
-        DockerPort port = composition.hostNetworkedPort(THRIFT_PORT_NUMBER);
+        DockerPort port = docker.hostNetworkedPort(THRIFT_PORT_NUMBER);
         String hostname = port.getIp();
         CASSANDRA_THRIFT_ADDRESS = new InetSocketAddress(hostname, port.getExternalPort());
 
