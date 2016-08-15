@@ -18,9 +18,11 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,12 +38,16 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CASResult;
+import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnParent;
+import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.CqlRow;
 import org.apache.cassandra.thrift.Deletion;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KeyRange;
@@ -55,6 +61,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
@@ -1176,13 +1183,140 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     @Idempotent
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
-        return getRangeWithPageCreator(tableRef, rangeRequest, timestamp, deleteConsistency, TimestampExtractor.SUPPLIER);
+        return getTimestampsWithPageCreator(tableRef, rangeRequest, timestamp, deleteConsistency, TimestampExtractor.SUPPLIER);
     }
 
     @Override
     @Idempotent
     public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         return getRangeWithPageCreator(tableRef, rangeRequest, timestamp, deleteConsistency, HistoryExtractor.SUPPLIER);
+    }
+
+    public <T, U> ClosableIterator<RowResult<U>> getTimestampsWithPageCreator(final TableReference tableRef,
+                                                                         final RangeRequest rangeRequest,
+                                                                         final long timestamp,
+                                                                         final ConsistencyLevel consistency,
+                                                                         final Supplier<ResultsExtractor<T, U>> resultsExtractor) {
+        if (rangeRequest.isReverse()) {
+            throw new UnsupportedOperationException();
+        }
+        if (rangeRequest.isEmptyRange()) {
+            return ClosableIterators.wrap(ImmutableList.<RowResult<U>>of().iterator());
+        }
+        final int batchHint = rangeRequest.getBatchHint() == null ? 100 : rangeRequest.getBatchHint();
+        SliceRange slice = new SliceRange(ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), false, 1);
+        final SlicePredicate pred = new SlicePredicate();
+        pred.setSlice_range(slice);
+
+        final ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
+        final ColumnSelection selection = rangeRequest.getColumnNames().isEmpty() ? ColumnSelection.all()
+                : ColumnSelection.create(rangeRequest.getColumnNames());
+
+        AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>> rowResults = new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
+            @Override
+            protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage() throws Exception {
+                return getSinglePage(rangeRequest.getStartInclusive());
+            }
+
+            @Override
+            protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous) throws Exception {
+                return getSinglePage(previous.getTokenForNextPage());
+            }
+
+            TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(final byte[] startKey) throws Exception {
+                InetSocketAddress host = clientPool.getRandomHostForKey(startKey);
+
+                final byte[] endExclusive = rangeRequest.getEndExclusive();
+
+                KeyRange keyRange = new KeyRange(batchHint);
+                keyRange.setStart_key(startKey);
+                if (endExclusive.length == 0) {
+                    keyRange.setEnd_key(endExclusive);
+                } else {
+                    // We need the previous name because this is inclusive, not exclusive
+                    keyRange.setEnd_key(RangeRequests.previousLexicographicName(endExclusive));
+                }
+
+                List<KeySlice> firstPage = clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, List<KeySlice>, Exception>() {
+                    @Override
+                    public List<KeySlice> apply(Client client) throws Exception {
+                        try {
+                            return run(client, tableRef,
+                                    () -> client.get_range_slices(colFam, pred, keyRange, consistency));
+                        } catch (UnavailableException e) {
+                            if (consistency.equals(ConsistencyLevel.ALL)) {
+                                throw new InsufficientConsistencyException("This operation requires all Cassandra nodes to be up and available.", e);
+                            } else {
+                                throw e;
+                            }
+                        }
+                    }
+
+                    @Override
+                    public String toString() {
+                        return "get_range_slices(" + colFam + ")";
+                    }
+                });
+
+                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(firstPage);
+
+                Set<ByteBuffer> rows = colsByKey.keySet();
+
+
+                // we'll write into this
+                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey2 = new HashMap<>();
+
+                for (ByteBuffer row : rows) {
+
+                    String rowAsByteString = new String(row.array(), Charsets.UTF_8); // TODO this might not work, we might need a string starting with 0x...
+                    String tableName = tableRef.getQualifiedName();
+                    String query = "select column1, column2 from " + tableName + " where key = " + rowAsByteString;
+                    ByteBuffer queryBytes = ByteBuffer.wrap(query.getBytes(Charsets.UTF_8));
+
+                    CqlResult cqlResult = clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, CqlResult, Exception>() {
+                        @Override
+                        public CqlResult apply(Client client) throws Exception {
+                            return client.execute_cql_query(queryBytes, Compression.NONE);
+                        }
+                    });
+
+
+                    List<ColumnOrSuperColumn> columns = new ArrayList<>();
+                    for (CqlRow cqlRow : cqlResult.getRows()) {
+                        byte[] columnName = cqlRow.getColumns().get(0).getValue();
+                        byte[] timestampAsBytes = cqlRow.getColumns().get(1).getValue();
+
+                        ColumnOrSuperColumn columnOrSuperColumn = makeColumnOrSuperColumn(columnName, timestampAsBytes);
+                        columns.add(columnOrSuperColumn);
+                    }
+                    colsByKey2.put(row, columns);
+                }
+
+
+
+                TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
+                        resultsExtractor.get().getPageFromRangeResults(colsByKey2, timestamp, selection, endExclusive);
+                if (page.moreResultsAvailable() && firstPage.size() < batchHint) {
+                    // If get_range_slices didn't return the full number of results, there's no
+                    // point to trying to get another page
+                    page = SimpleTokenBackedResultsPage.create(endExclusive, page.getResults(), false);
+                }
+                return page;
+            }
+
+        };
+
+        return ClosableIterators.wrap(rowResults.iterator());
+    }
+
+    public ColumnOrSuperColumn makeColumnOrSuperColumn(byte[] columnName, byte[] timestamp) {
+
+        long timestampLong = ~PtBytes.toLong(timestamp);
+        Column col = new Column()
+                .setName(CassandraKeyValueServices.makeCompositeBuffer(columnName, timestampLong));
+        ColumnOrSuperColumn cosc = new ColumnOrSuperColumn().setColumn(col);
+
+        return cosc;
     }
 
     public <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(final TableReference tableRef,
