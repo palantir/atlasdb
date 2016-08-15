@@ -45,15 +45,12 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.docker.compose.DockerComposition;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
-@Ignore // Used to detect duplicate tables (the "Cassandra table creation bug"), but currently requires manual verification.
 public class CassandraSchemaLockTest {
 
     public static final int THRIFT_PORT_NUMBER = 9160;
@@ -68,8 +65,6 @@ public class CassandraSchemaLockTest {
     static ImmutableCassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG;
 
     static Optional<LeaderConfig> LEADER_CONFIG;
-    private final Cell TABLE_CELL = Cell.create(PtBytes.toBytes("row0"), PtBytes.toBytes("col0"));
-    private final byte[] TABLE_VALUE = PtBytes.toBytes("xyz");
     private final ExecutorService executorService = Executors.newFixedThreadPool(32);
     static private CassandraKeyValueServiceConfigManager CONFIG_MANAGER;
 
