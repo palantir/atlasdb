@@ -28,9 +28,9 @@ public abstract class SelectQuery {
 
     public static SelectQuery create(TableMetadata metadata,
                                      AtlasSQLParser.Select_queryContext query) throws SQLException {
-        LinkedHashMap<String, AggregationType> aggregatedColNames = createSelectedColumnsIndex(query.column_clause());
-        LinkedHashMap<String, JdbcColumnMetadata> allCols = makeAllColumnsIndex(metadata);
-        List<QueryColumnMetadata> columns = makeSelectedColumns(allCols, aggregatedColNames);
+        LinkedHashMap<String, AggregationType> colSelectionNames = createColumnSelectionIndex(query.column_clause());
+        LinkedHashMap<String, JdbcColumnMetadata> jdbcCols = makeJdbcColumnsIndex(metadata);
+        List<QueryColumnMetadata> columns = makeQueryColumns(jdbcCols, colSelectionNames);
         WhereClause where = WhereClause.create(
                 query.where_clause(),
                 columns.stream().map(QueryColumnMetadata::getMetadata).collect(Collectors.toList()));
@@ -42,7 +42,7 @@ public abstract class SelectQuery {
                 .build();
     }
 
-    private static LinkedHashMap<String, AggregationType> createSelectedColumnsIndex(AtlasSQLParser.Column_clauseContext columnCtx) {
+    private static LinkedHashMap<String, AggregationType> createColumnSelectionIndex(AtlasSQLParser.Column_clauseContext columnCtx) {
         if (columnCtx.column_list() != null && columnCtx.all_columns() == null) {
             return columnCtx.column_list().column_or_aggregate()
                     .stream()
@@ -68,7 +68,7 @@ public abstract class SelectQuery {
         return query.table_reference().getText();
     }
 
-    private static LinkedHashMap<String, JdbcColumnMetadata> makeAllColumnsIndex(TableMetadata metadata) {
+    private static LinkedHashMap<String, JdbcColumnMetadata> makeJdbcColumnsIndex(TableMetadata metadata) {
         LinkedHashMap<String, JdbcColumnMetadata> allCols = Maps.newLinkedHashMap();
         allCols.putAll(metadata.getRowMetadata().getRowParts()
                                .stream()
@@ -99,12 +99,12 @@ public abstract class SelectQuery {
         return allCols;
     }
 
-    private static List<QueryColumnMetadata> makeSelectedColumns(Map<String, JdbcColumnMetadata> allCols,
-                                                                 LinkedHashMap<String, AggregationType> aggregatedColNames) {
+    private static List<QueryColumnMetadata> makeQueryColumns(Map<String, JdbcColumnMetadata> allCols,
+                                                              LinkedHashMap<String, AggregationType> colSelectionNames) {
         // select only given column names
-        if (!aggregatedColNames.isEmpty()) {
+        if (!colSelectionNames.isEmpty()) {
             return allCols.entrySet().stream()
-                    .map(entry -> createSelectedColumn(entry, aggregatedColNames))
+                    .map(entry -> createSelectedColumn(entry, colSelectionNames))
                     .collect(Collectors.toList());
         }
         // select all columns
@@ -114,11 +114,11 @@ public abstract class SelectQuery {
     }
 
     private static QueryColumnMetadata createSelectedColumn(Map.Entry<String, JdbcColumnMetadata> entry,
-                                                            LinkedHashMap<String, AggregationType> aggregatedColNames) {
+                                                            LinkedHashMap<String, AggregationType> colSelectionNames) {
         String col = entry.getKey();
         JdbcColumnMetadata metadata = entry.getValue();
-        if (aggregatedColNames.containsKey(col)) {
-            return new QueryColumnMetadata(metadata, aggregatedColNames.get(col));
+        if (colSelectionNames.containsKey(col)) {
+            return new QueryColumnMetadata(metadata, colSelectionNames.get(col));
         }
         return new QueryColumnMetadata(metadata);
     }

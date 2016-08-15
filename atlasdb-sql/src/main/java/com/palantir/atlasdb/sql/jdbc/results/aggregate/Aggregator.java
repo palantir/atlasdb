@@ -13,7 +13,7 @@ import com.palantir.atlasdb.sql.jdbc.results.parsed.ParsedRowResult;
 import com.palantir.atlasdb.table.description.ValueType;
 
 public class Aggregator implements BinaryOperator<ParsedRowResult> {
-    private final LinkedHashMap<QueryColumnMetadata, BinaryOperator> colToAggregator;
+    private final LinkedHashMap<QueryColumnMetadata, BinaryOperator> colToAggregate;
 
     public static Aggregator create(List<QueryColumnMetadata> columnMetadatas) {
         LinkedHashMap<QueryColumnMetadata, BinaryOperator> colsToAggregator =
@@ -28,13 +28,13 @@ public class Aggregator implements BinaryOperator<ParsedRowResult> {
         return new Aggregator(colsToAggregator);
     }
 
-    public Aggregator(LinkedHashMap<QueryColumnMetadata, BinaryOperator> colToAggregator) {
-        this.colToAggregator = colToAggregator;
+    public Aggregator(LinkedHashMap<QueryColumnMetadata, BinaryOperator> colToAggregate) {
+        this.colToAggregate = colToAggregate;
     }
 
     @Override
     public ParsedRowResult apply(ParsedRowResult result1, ParsedRowResult result2) {
-        final List<QueryColumn> results = colToAggregator.entrySet().stream()
+        final List<QueryColumn> results = colToAggregate.entrySet().stream()
                 .map(entry -> {
                     try {
                         QueryColumnMetadata colMeta = entry.getKey();
@@ -55,7 +55,7 @@ public class Aggregator implements BinaryOperator<ParsedRowResult> {
     }
 
     ParsedRowResult empty() {
-        return ParsedRowResult.create(colToAggregator.entrySet().stream()
+        return ParsedRowResult.create(colToAggregate.entrySet().stream()
                 .map(entry -> {
                     QueryColumnMetadata colMeta = entry.getKey();
                     final ValueType valueType = colMeta.getMetadata().getValueType();
