@@ -1208,34 +1208,33 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
                     @Override
                     protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage() throws Exception {
-                        return page(rangeRequest.getStartInclusive());
+                        return getSinglePage(rangeRequest.getStartInclusive());
                     }
 
                     @Override
                     protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous) throws Exception {
-                        return page(previous.getTokenForNextPage());
+                        return getSinglePage(previous.getTokenForNextPage());
                     }
 
-                    TokenBackedBasicResultsPage<RowResult<U>, byte[]> page(final byte[] startKey) throws Exception {
+                    TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(final byte[] startKey) throws Exception {
                         InetSocketAddress host = clientPool.getRandomHostForKey(startKey);
-                        return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, TokenBackedBasicResultsPage<RowResult<U>, byte[]>, Exception>() {
+
+                        final byte[] endExclusive = rangeRequest.getEndExclusive();
+
+                        KeyRange keyRange = new KeyRange(batchHint);
+                        keyRange.setStart_key(startKey);
+                        if (endExclusive.length == 0) {
+                            keyRange.setEnd_key(endExclusive);
+                        } else {
+                            // We need the previous name because this is inclusive, not exclusive
+                            keyRange.setEnd_key(RangeRequests.previousLexicographicName(endExclusive));
+                        }
+
+                        List<KeySlice> firstPage = clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, List<KeySlice>, Exception>() {
                             @Override
-                            public TokenBackedBasicResultsPage<RowResult<U>, byte[]> apply(Client client) throws Exception {
-                                final byte[] endExclusive = rangeRequest.getEndExclusive();
-
-                                KeyRange keyRange = new KeyRange(batchHint);
-                                keyRange.setStart_key(startKey);
-                                if (endExclusive.length == 0) {
-                                    keyRange.setEnd_key(endExclusive);
-                                } else {
-                                    // We need the previous name because this is inclusive, not exclusive
-                                    keyRange.setEnd_key(RangeRequests.previousLexicographicName(endExclusive));
-                                }
-
-                                List<KeySlice> firstPage;
-
+                            public List<KeySlice> apply(Client client) throws Exception {
                                 try {
-                                    firstPage = run(client, tableRef,
+                                    return run(client, tableRef,
                                             () -> client.get_range_slices(colFam, pred, keyRange, consistency));
                                 } catch (UnavailableException e) {
                                     if (consistency.equals(ConsistencyLevel.ALL)) {
@@ -1244,16 +1243,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                         throw e;
                                     }
                                 }
-
-                                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(firstPage);
-                                TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
-                                        resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
-                                if (page.moreResultsAvailable() && firstPage.size() < batchHint) {
-                                    // If get_range_slices didn't return the full number of results, there's no
-                                    // point to trying to get another page
-                                    page = SimpleTokenBackedResultsPage.create(endExclusive, page.getResults(), false);
-                                }
-                                return page;
                             }
 
                             @Override
@@ -1261,6 +1250,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                 return "get_range_slices(" + colFam + ")";
                             }
                         });
+
+                        Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(firstPage);
+                        TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
+                                resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
+                        if (page.moreResultsAvailable() && firstPage.size() < batchHint) {
+                            // If get_range_slices didn't return the full number of results, there's no
+                            // point to trying to get another page
+                            page = SimpleTokenBackedResultsPage.create(endExclusive, page.getResults(), false);
+                        }
+                        return page;
                     }
 
                 }.iterator());
