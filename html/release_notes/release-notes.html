@@ -236,6 +236,10 @@ This means that products can add default truststore and keystore configuration t
 This prevents AtlasDB 0.11.0 clients from starting if a leader configuration is not specified (i.e. single node clusters).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/741">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Updated schema table generation to optimize reads with no ColumnSelection specified against tables with fixed columns.  To benefit from this improvement you will need to re-generate your schemas.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/713">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>

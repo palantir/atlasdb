@@ -103,6 +103,10 @@ v0.11.1
            This prevents AtlasDB 0.11.0 clients from starting if a leader configuration is not specified (i.e. single node clusters).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/741>`__)
 
+    *    - |improved|
+         - Updated schema table generation to optimize reads with no ColumnSelection specified against tables with fixed columns.  To benefit from this improvement you will need to re-generate your schemas.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/713>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
