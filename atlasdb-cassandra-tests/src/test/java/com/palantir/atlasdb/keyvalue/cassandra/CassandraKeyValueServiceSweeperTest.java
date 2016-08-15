@@ -15,14 +15,41 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import org.apache.commons.lang.RandomStringUtils;
+import org.junit.Ignore;
+import org.junit.Test;
+
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cleaner.AbstractSweeperTest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 
 public class CassandraKeyValueServiceSweeperTest extends AbstractSweeperTest {
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), CassandraTestSuite.LEADER_CONFIG);
+    }
+
+    @Ignore
+    @Test
+    public void should_not_oom_when_there_are_many_large_values_to_sweep() {
+        createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+
+        int numInsertions = 100;
+        insertMultipleValues(numInsertions);
+
+        completeSweep(numInsertions);
+    }
+
+    private void insertMultipleValues(int numInsertions) {
+        for (int ts = 0; ts < numInsertions; ts++) {
+            System.out.println("putting with ts = " + ts);
+            put("row1", makeLongRandomString(), ts);
+        }
+    }
+
+    private String makeLongRandomString() {
+        return RandomStringUtils.random(1_000_000);
     }
 }

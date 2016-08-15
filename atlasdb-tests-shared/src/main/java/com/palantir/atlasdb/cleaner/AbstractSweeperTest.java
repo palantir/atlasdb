@@ -534,7 +534,7 @@ public abstract class AbstractSweeperTest {
         }
     }
 
-    private SweepResults completeSweep(long ts) {
+    protected SweepResults completeSweep(long ts) {
         SweepResults results = sweep(ts, DEFAULT_BATCH_SIZE);
         Assert.assertFalse(results.getNextStartRow().isPresent());
         return results;
@@ -562,7 +562,7 @@ public abstract class AbstractSweeperTest {
         return ImmutableSet.copyOf(kvs.getAllTimestamps(TABLE_NAME, ImmutableSet.of(cell), Long.MAX_VALUE).get(cell));
     }
 
-    private void put(final String row, final String val, final long ts) {
+    protected void put(final String row, final String val, final long ts) {
         Cell cell = Cell.create(row.getBytes(), COL.getBytes());
         kvs.put(TABLE_NAME, ImmutableMap.of(cell, val.getBytes()), ts);
         txService.putUnlessExists(ts, ts);
@@ -573,7 +573,7 @@ public abstract class AbstractSweeperTest {
         kvs.put(TABLE_NAME, ImmutableMap.of(cell, val.getBytes()), ts);
     }
 
-    private void createTable(final SweepStrategy sweepStrategy) {
+    protected void createTable(final SweepStrategy sweepStrategy) {
         kvs.createTable(TABLE_NAME,
                 new TableDefinition() {{
                     rowName();
