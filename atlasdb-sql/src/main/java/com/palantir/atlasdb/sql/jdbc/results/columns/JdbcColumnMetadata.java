@@ -1,6 +1,4 @@
-package com.palantir.atlasdb.sql.jdbc.results;
-
-import java.util.Collection;
+package com.palantir.atlasdb.sql.jdbc.results.columns;
 
 import com.google.protobuf.Message;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -24,8 +22,4 @@ public interface JdbcColumnMetadata {
     boolean isNamedCol(); // named (not dynamic) column
     boolean isColComp();  // dynamic column components
     boolean isValueCol(); // dynamic column's value
-
-    static boolean anyDynamicColumns(Collection<JdbcColumnMetadata> allCols) {
-        return allCols.stream().anyMatch(JdbcColumnMetadata::isColComp);
-    }
 }

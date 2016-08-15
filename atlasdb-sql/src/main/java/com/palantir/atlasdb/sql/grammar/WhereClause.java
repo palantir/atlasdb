@@ -11,8 +11,8 @@ import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParser;
-import com.palantir.atlasdb.sql.jdbc.results.JdbcColumnMetadata;
-import com.palantir.atlasdb.sql.jdbc.results.ParsedRowResult;
+import com.palantir.atlasdb.sql.jdbc.results.columns.JdbcColumnMetadata;
+import com.palantir.atlasdb.sql.jdbc.results.parsed.ParsedRowResult;
 
 @Value.Immutable
 public abstract class WhereClause {

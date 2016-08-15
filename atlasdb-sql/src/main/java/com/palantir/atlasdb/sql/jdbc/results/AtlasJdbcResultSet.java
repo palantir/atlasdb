@@ -1,5 +1,6 @@
 package com.palantir.atlasdb.sql.jdbc.results;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -21,14 +22,17 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.api.AtlasDbService;
-import com.palantir.atlasdb.api.RangeToken;
 import com.palantir.atlasdb.api.TransactionToken;
 import com.palantir.atlasdb.sql.grammar.SelectQuery;
+import com.palantir.atlasdb.sql.jdbc.results.aggregate.Aggregators;
+import com.palantir.atlasdb.sql.jdbc.results.columns.QueryColumnMetadata;
+import com.palantir.atlasdb.sql.jdbc.results.parsed.IterableParsedRowResults;
+import com.palantir.atlasdb.sql.jdbc.results.parsed.ParsedRowResult;
+import com.palantir.atlasdb.sql.jdbc.results.parsed.ParsedRowResultsIterator;
 import com.palantir.atlasdb.sql.jdbc.statement.AtlasJdbcStatement;
 
 
@@ -38,103 +42,53 @@ import com.palantir.atlasdb.sql.jdbc.statement.AtlasJdbcStatement;
  */
 public class AtlasJdbcResultSet implements ResultSet {
 
-    private final AtlasDbService service;
-    private final TransactionToken transactionToken;
     private final AtlasJdbcStatement stmt;
-    private final SelectQuery query;
-    private RangeToken rangeToken;
-    private Iterator<ParsedRowResult> curIter;
-    private ParsedRowResult curResult;
+    private final ResultSetMetaData metadata;
+    private final ParsedRowResultsIterator iter;
 
     public static ResultSet create(AtlasDbService service,
                                    TransactionToken transactionToken,
                                    SelectQuery query,
                                    AtlasJdbcStatement stmt) {
-        RangeToken rangeToken = service.getRange(transactionToken, query.tableRange());
-        return new AtlasJdbcResultSet(service, transactionToken, stmt, query, rangeToken);
+        ResultSetMetaData metadata = AtlasJdbcResultSetMetaData.create(query.columns()
+                .stream()
+                .filter(QueryColumnMetadata::isSelected)
+                .map(QueryColumnMetadata::getMetadata)
+                .collect(Collectors.toList()));
+        ParsedRowResultsIterator iter =
+                Aggregators.aggreate(
+                        new IterableParsedRowResults(service, transactionToken, query),
+                        query.columns());
+        return new AtlasJdbcResultSet(stmt, metadata, iter);
     }
 
-    private AtlasJdbcResultSet(AtlasDbService service,
-                               TransactionToken transactionToken,
-                               AtlasJdbcStatement stmt,
-                               SelectQuery query,
-                               RangeToken rangeToken) {
-        this.service = service;
-        this.transactionToken = transactionToken;
+    private AtlasJdbcResultSet(AtlasJdbcStatement stmt,
+                               ResultSetMetaData metadata,
+                               ParsedRowResultsIterator iter) {
         this.stmt = stmt;
-        this.query = query;
-        this.rangeToken = rangeToken; // selected columns vs requested columns
-        this.curIter = ParsedRowResult.parseRowResults(rangeToken.getResults().getResults(),
-                                                       query.postfilterPredicate(),
-                                                       query.columns(),
-                                                       query.labelOrNameToMetadata())
-                                      .iterator();
-        this.curResult = null;
+        this.metadata = metadata;
+        this.iter = iter;
     }
-/*
-
-    private static void aggregate(AggregateFunction aggregateFunction,
-                                  final List<SelectableJdbcColumnMetadata> columns,
-                                  Stream<ParsedRowResult> stream) {
-        switch (aggregateFunction) {
-            case IDENTITY:
-                return stream.collect(Collectors.toList())
-                             .iterator();
-            case MAX:
-                assert columns.size() == 1;
-                return optionalToIterator(stream.max(new Comparator<ParsedRowResult>() {
-                    @Override
-                    public int compare(ParsedRowResult o1, ParsedRowResult o2) {
-                        final String col = columns.get(0).getMetadata().getName();
-                        final JdbcColumnMetadataAndValue c1 = o1.index.get(col);
-                        final JdbcColumnMetadataAndValue c2 = o2.index.get(col);
-                        return c1.getValueAsSimpleType() < c2.getValueAsSimpleType() ? -1 : 1;
-                    }
-                }));
-            break;
-            case MIN:
-                assert columns.size() == 1;
-                break;
-            case COUNT:
-                break;
-        }
-    }
-
-
-    private static Iterator<ParsedRowResult> optionalToIterator(Optional<ParsedRowResult> result) {
-        return result.isPresent() ? Iterators.singletonIterator(result.get()) : Collections.emptyIterator();
-    }
-*/
 
     @Override
     public boolean next() throws SQLException {
-        if (rangeToken == null) {
+        if (iter.isClosed()) {
             return false;
         }
-        if (curIter.hasNext()) {
-            curResult = curIter.next();
+        if (iter.hasNext()) {
+            iter.next();
             return true;
-        } else { // page to the next range
-            if (rangeToken.hasMoreResults()) {
-                rangeToken = service.getRange(transactionToken, rangeToken.getNextRange());
-                curIter = ParsedRowResult.parseRowResults(rangeToken.getResults().getResults(),
-                                                          query.postfilterPredicate(),
-                                                          query.columns(), query.labelOrNameToMetadata()).iterator();
-
-                return next();
-            } else { // all done
-                rangeToken = null;
-                curIter = null;
-                return false;
-            }
         }
+        return false;
     }
 
     @Override
     public void close() throws SQLException {
-        rangeToken = null;
-        curIter = null;
-        curResult = null;
+        try {
+            iter.close();
+        } catch (IOException e) {
+            throw new SQLException("Problem closing underlying results source.", e);
+        }
     }
 
     @Override
@@ -144,44 +98,53 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     // Methods for accessing results by column index
 
+    private ParsedRowResult getCurrent() throws SQLException {
+        if (iter.isClosed()) {
+            throw new SQLException("Result set is already closed.");
+        } else if (iter.current() == null)  {
+            throw new SQLException("There is no current result.");
+        }
+        return iter.current();
+    }
+
     @Override
     public String getString(int columnIndex) throws SQLException {
-        return curResult.get(columnIndex, JdbcReturnType.STRING).toString();
+        return getCurrent().get(columnIndex, JdbcReturnType.STRING).toString();
     }
 
     @Override
     public boolean getBoolean(int columnIndex) throws SQLException {
-        return (Boolean) curResult.get(columnIndex, JdbcReturnType.BOOLEAN);
+        return (Boolean) getCurrent().get(columnIndex, JdbcReturnType.BOOLEAN);
     }
 
     @Override
     public byte getByte(int columnIndex) throws SQLException {
-        return (Byte) curResult.get(columnIndex, JdbcReturnType.BYTE);
+        return (Byte) getCurrent().get(columnIndex, JdbcReturnType.BYTE);
     }
 
     @Override
     public short getShort(int columnIndex) throws SQLException {
-        return (Short) curResult.get(columnIndex, JdbcReturnType.SHORT);
+        return (Short) getCurrent().get(columnIndex, JdbcReturnType.SHORT);
     }
 
     @Override
     public int getInt(int columnIndex) throws SQLException {
-        return (Integer) curResult.get(columnIndex, JdbcReturnType.INT);
+        return (Integer) getCurrent().get(columnIndex, JdbcReturnType.INT);
     }
 
     @Override
     public long getLong(int columnIndex) throws SQLException {
-        return (Long) curResult.get(columnIndex, JdbcReturnType.LONG);
+        return (Long) getCurrent().get(columnIndex, JdbcReturnType.LONG);
     }
 
     @Override
     public float getFloat(int columnIndex) throws SQLException {
-        return (Float) curResult.get(columnIndex, JdbcReturnType.FLOAT);
+        return (Float) getCurrent().get(columnIndex, JdbcReturnType.FLOAT);
     }
 
     @Override
     public double getDouble(int columnIndex) throws SQLException {
-        return (Double) curResult.get(columnIndex, JdbcReturnType.DOUBLE);
+        return (Double) getCurrent().get(columnIndex, JdbcReturnType.DOUBLE);
     }
 
     @Override
@@ -191,27 +154,27 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public byte[] getBytes(int columnIndex) throws SQLException {
-        return (byte[]) curResult.get(columnIndex, JdbcReturnType.BYTES);
+        return (byte[]) getCurrent().get(columnIndex, JdbcReturnType.BYTES);
     }
 
     @Override
     public Date getDate(int columnIndex) throws SQLException {
-        return (Date) curResult.get(columnIndex, JdbcReturnType.DATE);
+        return (Date) getCurrent().get(columnIndex, JdbcReturnType.DATE);
     }
 
     @Override
     public Time getTime(int columnIndex) throws SQLException {
-        return (Time) curResult.get(columnIndex, JdbcReturnType.TIME);
+        return (Time) getCurrent().get(columnIndex, JdbcReturnType.TIME);
     }
 
     @Override
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
-        return (Timestamp) curResult.get(columnIndex, JdbcReturnType.TIMESTAMP);
+        return (Timestamp) getCurrent().get(columnIndex, JdbcReturnType.TIMESTAMP);
     }
 
     @Override
     public InputStream getAsciiStream(int columnIndex) throws SQLException {
-        return (InputStream) curResult.get(columnIndex, JdbcReturnType.ASCII_STREAM);
+        return (InputStream) getCurrent().get(columnIndex, JdbcReturnType.ASCII_STREAM);
     }
 
     @Override
@@ -221,49 +184,49 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public InputStream getBinaryStream(int columnIndex) throws SQLException {
-        return (InputStream) curResult.get(columnIndex, JdbcReturnType.BINARY_STREAM);
+        return (InputStream) getCurrent().get(columnIndex, JdbcReturnType.BINARY_STREAM);
     }
 
     // Methods for accessing results by column label
 
     @Override
     public String getString(String columnLabel) throws SQLException {
-        return curResult.get(columnLabel, JdbcReturnType.STRING).toString();
+        return getCurrent().get(columnLabel, JdbcReturnType.STRING).toString();
     }
 
     @Override
     public boolean getBoolean(String columnLabel) throws SQLException {
-        return (Boolean) curResult.get(columnLabel, JdbcReturnType.BOOLEAN);
+        return (Boolean) getCurrent().get(columnLabel, JdbcReturnType.BOOLEAN);
     }
 
     @Override
     public byte getByte(String columnLabel) throws SQLException {
-        return (Byte) curResult.get(columnLabel, JdbcReturnType.BYTE);
+        return (Byte) getCurrent().get(columnLabel, JdbcReturnType.BYTE);
     }
 
     @Override
     public short getShort(String columnLabel) throws SQLException {
-        return (Short) curResult.get(columnLabel, JdbcReturnType.SHORT);
+        return (Short) getCurrent().get(columnLabel, JdbcReturnType.SHORT);
     }
 
     @Override
     public int getInt(String columnLabel) throws SQLException {
-        return (Integer) curResult.get(columnLabel, JdbcReturnType.INT);
+        return (Integer) getCurrent().get(columnLabel, JdbcReturnType.INT);
     }
 
     @Override
     public long getLong(String columnLabel) throws SQLException {
-        return (Long) curResult.get(columnLabel, JdbcReturnType.LONG);
+        return (Long) getCurrent().get(columnLabel, JdbcReturnType.LONG);
     }
 
     @Override
     public float getFloat(String columnLabel) throws SQLException {
-        return (Float) curResult.get(columnLabel, JdbcReturnType.FLOAT);
+        return (Float) getCurrent().get(columnLabel, JdbcReturnType.FLOAT);
     }
 
     @Override
     public double getDouble(String columnLabel) throws SQLException {
-        return (Double) curResult.get(columnLabel, JdbcReturnType.DOUBLE);
+        return (Double) getCurrent().get(columnLabel, JdbcReturnType.DOUBLE);
     }
 
     @Override
@@ -273,27 +236,27 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public byte[] getBytes(String columnLabel) throws SQLException {
-        return (byte[]) curResult.get(columnLabel, JdbcReturnType.BYTES);
+        return (byte[]) getCurrent().get(columnLabel, JdbcReturnType.BYTES);
     }
 
     @Override
     public Date getDate(String columnLabel) throws SQLException {
-        return (Date) curResult.get(columnLabel, JdbcReturnType.DATE);
+        return (Date) getCurrent().get(columnLabel, JdbcReturnType.DATE);
     }
 
     @Override
     public Time getTime(String columnLabel) throws SQLException {
-        return (Time) curResult.get(columnLabel, JdbcReturnType.TIME);
+        return (Time) getCurrent().get(columnLabel, JdbcReturnType.TIME);
     }
 
     @Override
     public Timestamp getTimestamp(String columnLabel) throws SQLException {
-        return (Timestamp) curResult.get(columnLabel, JdbcReturnType.TIMESTAMP);
+        return (Timestamp) getCurrent().get(columnLabel, JdbcReturnType.TIMESTAMP);
     }
 
     @Override
     public InputStream getAsciiStream(String columnLabel) throws SQLException {
-        return (InputStream) curResult.get(columnLabel, JdbcReturnType.ASCII_STREAM);
+        return (InputStream) getCurrent().get(columnLabel, JdbcReturnType.ASCII_STREAM);
     }
 
     @Override
@@ -303,7 +266,7 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public InputStream getBinaryStream(String columnLabel) throws SQLException {
-        return (InputStream) curResult.get(columnLabel, JdbcReturnType.BINARY_STREAM);
+        return (InputStream) getCurrent().get(columnLabel, JdbcReturnType.BINARY_STREAM);
     }
 
     // Advanced features:
@@ -324,28 +287,24 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
-        return AtlasJdbcResultSetMetaData.create(query.columns()
-                .stream()
-                .filter(SelectableJdbcColumnMetadata::isSelected)
-                .map(SelectableJdbcColumnMetadata::getMetadata)
-                .collect(Collectors.toList()));
+        return metadata;
     }
 
     @Override
     public Object getObject(int columnIndex) throws SQLException {
-        return curResult.get(columnIndex, JdbcReturnType.OBJECT);
+        return getCurrent().get(columnIndex, JdbcReturnType.OBJECT);
     }
 
     @Override
     public Object getObject(String columnLabel) throws SQLException {
-        return curResult.get(columnLabel, JdbcReturnType.OBJECT);
+        return getCurrent().get(columnLabel, JdbcReturnType.OBJECT);
     }
 
     //----------------------------------------------------------------
 
     @Override
     public int findColumn(String columnLabel) throws SQLException {
-        return curResult.getIndexFromColumnLabel(columnLabel);
+        return getCurrent().getIndexFromColumnLabel(columnLabel);
     }
 
     //--------------------------JDBC 2.0-----------------------------------
@@ -356,22 +315,22 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public Reader getCharacterStream(int columnIndex) throws SQLException {
-        return (Reader) curResult.get(columnIndex, JdbcReturnType.CHAR_STREAM);
+        return (Reader) getCurrent().get(columnIndex, JdbcReturnType.CHAR_STREAM);
     }
 
     @Override
     public Reader getCharacterStream(String columnLabel) throws SQLException {
-        return (Reader) curResult.get(columnLabel, JdbcReturnType.CHAR_STREAM);
+        return (Reader) getCurrent().get(columnLabel, JdbcReturnType.CHAR_STREAM);
     }
 
     @Override
     public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
-        return (BigDecimal) curResult.get(columnIndex, JdbcReturnType.BIG_DECIMAL);
+        return (BigDecimal) getCurrent().get(columnIndex, JdbcReturnType.BIG_DECIMAL);
     }
 
     @Override
     public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
-        return (BigDecimal) curResult.get(columnLabel, JdbcReturnType.BIG_DECIMAL);
+        return (BigDecimal) getCurrent().get(columnLabel, JdbcReturnType.BIG_DECIMAL);
     }
 
     //---------------------------------------------------------------------
@@ -775,32 +734,32 @@ public class AtlasJdbcResultSet implements ResultSet {
 
     @Override
     public Date getDate(int columnIndex, Calendar cal) throws SQLException {
-        return (Date) curResult.get(columnIndex, JdbcReturnType.DATE);
+        return (Date) getCurrent().get(columnIndex, JdbcReturnType.DATE);
     }
 
     @Override
     public Date getDate(String columnLabel, Calendar cal) throws SQLException {
-        return (Date) curResult.get(columnLabel, JdbcReturnType.DATE);
+        return (Date) getCurrent().get(columnLabel, JdbcReturnType.DATE);
     }
 
     @Override
     public Time getTime(int columnIndex, Calendar cal) throws SQLException {
-        return (Time) curResult.get(columnIndex, JdbcReturnType.TIME);
+        return (Time) getCurrent().get(columnIndex, JdbcReturnType.TIME);
     }
 
     @Override
     public Time getTime(String columnLabel, Calendar cal) throws SQLException {
-        return (Time) curResult.get(columnLabel, JdbcReturnType.TIME);
+        return (Time) getCurrent().get(columnLabel, JdbcReturnType.TIME);
     }
 
     @Override
     public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
-        return (Timestamp) curResult.get(columnIndex, JdbcReturnType.TIMESTAMP);
+        return (Timestamp) getCurrent().get(columnIndex, JdbcReturnType.TIMESTAMP);
     }
 
     @Override
     public Timestamp getTimestamp(String columnLabel, Calendar cal) throws SQLException {
-        return (Timestamp) curResult.get(columnLabel, JdbcReturnType.TIMESTAMP);
+        return (Timestamp) getCurrent().get(columnLabel, JdbcReturnType.TIMESTAMP);
     }
 
     //-------------------------- JDBC 3.0 ----------------------------------------
@@ -1122,14 +1081,5 @@ public class AtlasJdbcResultSet implements ResultSet {
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return iface.isAssignableFrom(getClass());
-    }
-
-    @Override
-    public String toString() {
-        return "AtlasJdbcResultSet{" +
-                "transactionToken=" + transactionToken +
-                ", rangeToken=" + rangeToken +
-                ", curResult=" + curResult +
-                '}';
     }
 }

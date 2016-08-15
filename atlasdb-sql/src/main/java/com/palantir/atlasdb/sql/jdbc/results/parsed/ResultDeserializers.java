@@ -1,9 +1,11 @@
-package com.palantir.atlasdb.sql.jdbc.results;
+package com.palantir.atlasdb.sql.jdbc.results.parsed;
 
 import java.util.Arrays;
 import java.util.EnumSet;
 
 import com.palantir.atlasdb.proto.fork.ForkedJsonFormat;
+import com.palantir.atlasdb.sql.jdbc.results.JdbcReturnType;
+import com.palantir.atlasdb.sql.jdbc.results.columns.QueryColumn;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.ValueType;
 
@@ -13,7 +15,7 @@ public abstract class ResultDeserializers {
         // uninstantiable
     }
 
-    public static Object convert(JdbcColumnMetadataAndValue res, JdbcReturnType returnType) {
+    public static Object convert(QueryColumn res, JdbcReturnType returnType) {
         switch (returnType) {
             case BYTES:
                 return res.getRawValue();

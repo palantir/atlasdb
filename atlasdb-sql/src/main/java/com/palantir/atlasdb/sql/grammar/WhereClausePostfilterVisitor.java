@@ -7,7 +7,7 @@ import java.util.function.Predicate;
 import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParser;
 import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParserBaseVisitor;
 import com.palantir.atlasdb.sql.jdbc.results.JdbcReturnType;
-import com.palantir.atlasdb.sql.jdbc.results.ParsedRowResult;
+import com.palantir.atlasdb.sql.jdbc.results.parsed.ParsedRowResult;
 
 public class WhereClausePostfilterVisitor extends AtlasSQLParserBaseVisitor<Predicate<ParsedRowResult>> {
 

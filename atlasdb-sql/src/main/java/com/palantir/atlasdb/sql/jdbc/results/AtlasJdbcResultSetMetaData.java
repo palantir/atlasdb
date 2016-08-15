@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.sql.jdbc.results.columns.JdbcColumnMetadata;
 
 public class AtlasJdbcResultSetMetaData implements ResultSetMetaData {
 

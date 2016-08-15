@@ -1,4 +1,4 @@
-package com.palantir.atlasdb.sql.jdbc.results;
+package com.palantir.atlasdb.sql.jdbc.results.columns;
 
 import com.google.protobuf.Message;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;

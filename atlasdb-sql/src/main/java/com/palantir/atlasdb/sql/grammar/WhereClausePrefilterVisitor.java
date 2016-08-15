@@ -6,7 +6,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 
 import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParser;
 import com.palantir.atlasdb.sql.grammar.generated.AtlasSQLParserBaseVisitor;
-import com.palantir.atlasdb.sql.jdbc.results.JdbcColumnMetadata;
+import com.palantir.atlasdb.sql.jdbc.results.columns.JdbcColumnMetadata;
 
 public class WhereClausePrefilterVisitor extends AtlasSQLParserBaseVisitor<RowComponentConstraint> {
 

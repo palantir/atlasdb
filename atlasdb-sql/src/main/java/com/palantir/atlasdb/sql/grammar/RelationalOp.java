@@ -32,7 +32,7 @@ enum RelationalOp {
         throw new IllegalArgumentException(String.format("Unknown relational operation '%s'.", str));
     }
 
-    private static final Map<String,RelationalOp> lookup = Maps.newHashMap();
+    private static final Map<String, RelationalOp> lookup = Maps.newHashMap();
     static {
         for(RelationalOp op : EnumSet.allOf(RelationalOp.class)) {
             for (String strRep : op.getStringReps()) {

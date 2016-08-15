@@ -24,7 +24,7 @@ import com.palantir.atlasdb.protos.generated.TestPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.schema.TestSchema;
 import com.palantir.atlasdb.sql.jdbc.AtlasJdbcDriver;
-import com.palantir.atlasdb.sql.jdbc.results.JdbcComponentMetadata;
+import com.palantir.atlasdb.sql.jdbc.results.columns.JdbcComponentMetadata;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
