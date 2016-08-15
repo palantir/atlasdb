@@ -137,7 +137,7 @@ public class CassandraSchemaLockTest {
     }
 
     private Matcher<File> containsFiles(Matcher<Iterable<File>> fileMatcher) {
-        return new FeatureMatcher<File, List<File>>(fileMatcher, "Directory with contents", "Directory contents") {
+        return new FeatureMatcher<File, List<File>>(fileMatcher, "Directory with files such that", "Directory contents") {
             @Override
             protected List<File> featureValueOf(File actual) {
                 return Lists.newArrayList(actual.listFiles());
@@ -155,7 +155,7 @@ public class CassandraSchemaLockTest {
                             .collect(toList());
 
                     mismatchDescription
-                            .appendText("File called " + file.getAbsolutePath() + " contains lines")
+                            .appendText("file called " + file.getAbsolutePath() + " which contains lines")
                             .appendValueList("\n", "\n", "", badLines);
 
                     return badLines.isEmpty();
