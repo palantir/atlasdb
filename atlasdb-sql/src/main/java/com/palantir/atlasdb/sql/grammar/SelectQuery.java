@@ -36,9 +36,7 @@ public abstract class SelectQuery {
                 columns.stream().map(QueryColumnMetadata::getMetadata).collect(Collectors.toList()));
         return ImmutableSelectQuery.builder()
                 .table(getTableName(query))
-                .rangeRequest(RangeRequest.all())
                 .columns(columns)
-                .labelOrNameToMetadata(allCols)
                 .prefilterConstraint(where.prefilterConstraints())
                 .postfilterPredicate(where.postfilterPredicate())
                 .build();
@@ -155,9 +153,7 @@ public abstract class SelectQuery {
     }
 
     public abstract String table();
-    public abstract RangeRequest rangeRequest();
     public abstract List<QueryColumnMetadata> columns();
-    public abstract LinkedHashMap<String, JdbcColumnMetadata> labelOrNameToMetadata();
     public abstract RowComponentConstraint prefilterConstraint();
     public abstract Predicate<ParsedRowResult> postfilterPredicate();
 
