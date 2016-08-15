@@ -28,20 +28,25 @@ table_name
 
 
 column_clause
-    : all_columns | aggregate_column_clause | column_list
+    : all_columns | column_list
     ;
 
 all_columns
     : STAR
     ;
 
-aggregate_column_clause
-    : aggregate_function LPAREN column_name RPAREN
+column_list
+   : column_or_aggregate ( COMMA column_or_aggregate )*
+   ;
+
+column_or_aggregate
+    : aggregate_column
+    | column_name
     ;
 
-column_list
-   : column_name ( COMMA column_name )*
-   ;
+aggregate_column
+    : aggregate_function LPAREN column_name RPAREN
+    ;
 
 column_name
    : ID

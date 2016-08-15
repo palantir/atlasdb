@@ -75,6 +75,8 @@ NOT_EQ
    : '<>' | '!='
    ;
 
+// aggregate functions
+
 NOT
    : N O T
    ;

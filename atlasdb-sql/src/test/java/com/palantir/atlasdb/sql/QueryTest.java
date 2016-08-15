@@ -157,7 +157,7 @@ public class QueryTest {
     public void testSelectCount() {
         try (Connection c = QueryTests.connect(IN_MEMORY_TEST_CONFIG)) {
             Statement stmt = c.createStatement();
-            ResultSet results = stmt.executeQuery(String.format("select count(*) from %s", TABLE.getQualifiedName()));
+            ResultSet results = stmt.executeQuery(String.format("select count(%s) from %s", ROW_COMP1, TABLE.getQualifiedName()));
             results.next();
             assertThat(results.getString(COL1_NAME), equalTo("value1"));
             assertThat(results.next(), equalTo(false));

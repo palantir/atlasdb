@@ -104,7 +104,7 @@ public final class JdbcComponentMetadata {
     }
 
     public static class ValueCol implements JdbcColumnMetadata {
-        static final String VALUE_COLUMN_LABEL = "value";
+        public static final String VALUE_COLUMN_LABEL = "value";
 
         private final ColumnValueDescription valDesc;
 

@@ -1,21 +1,30 @@
 package com.palantir.atlasdb.sql.jdbc.results;
 
+import com.palantir.atlasdb.sql.grammar.AggregateFunction;
+
 public class SelectableJdbcColumnMetadata {
 
-    private final JdbcColumnMetadata metadata;
-    private final boolean selected;
+    protected final JdbcColumnMetadata metadata;
+    private final AggregateFunction aggregateFunction;
 
-    public SelectableJdbcColumnMetadata(JdbcColumnMetadata metadata, boolean selected) {
+    public SelectableJdbcColumnMetadata(JdbcColumnMetadata metadata, AggregateFunction aggregateFunction) {
         this.metadata = metadata;
-        this.selected = selected;
+        this.aggregateFunction = aggregateFunction;
     }
 
     public JdbcColumnMetadata getMetadata() {
         return metadata;
     }
 
-    public boolean isSelected() {
-        return selected;
+    public AggregateFunction getAggregateFunction() {
+        return aggregateFunction;
     }
-    
+
+    public boolean isSelected() {
+        return aggregateFunction != AggregateFunction.NULL;
+    }
+
+    public boolean isAggregate() {
+        return aggregateFunction != AggregateFunction.NULL && aggregateFunction != AggregateFunction.IDENTITY;
+    }
 }

@@ -17,8 +17,8 @@ public class ParserTest {
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         AtlasSQLParser parser = new AtlasSQLParser(tokens);
         AtlasSQLParser.Select_queryContext select = parser.select_query();
-        Preconditions.checkState(select.column_clause().column_list().column_name(0).getText().equals("col1"));
-        Preconditions.checkState(select.column_clause().column_list().column_name(1).getText().equals("col2"));
+        Preconditions.checkState(select.column_clause().column_list().column_or_aggregate().get(0).column_name().getText().equals("col1"));
+        Preconditions.checkState(select.column_clause().column_list().column_or_aggregate().get(1).column_name().getText().equals("col2"));
         Preconditions.checkState(select.table_reference().keyspace().getText().equals("keyspace"));
         Preconditions.checkState(select.table_reference().table_name().getText().equals("table"));
     }

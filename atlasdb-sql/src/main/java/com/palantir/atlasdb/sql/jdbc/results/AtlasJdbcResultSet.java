@@ -63,12 +63,48 @@ public class AtlasJdbcResultSet implements ResultSet {
         this.transactionToken = transactionToken;
         this.stmt = stmt;
         this.query = query;
-        this.rangeToken = rangeToken;
-        this.curIter = ParsedRowResult.makeIterator(rangeToken.getResults().getResults(),
-                                                    query.postfilterPredicate(),
-                                                    query.columns());
+        this.rangeToken = rangeToken; // selected columns vs requested columns
+        this.curIter = ParsedRowResult.parseRowResults(rangeToken.getResults().getResults(),
+                                                       query.postfilterPredicate(),
+                                                       query.columns(),
+                                                       query.labelOrNameToMetadata())
+                                      .iterator();
         this.curResult = null;
     }
+/*
+
+    private static void aggregate(AggregateFunction aggregateFunction,
+                                  final List<SelectableJdbcColumnMetadata> columns,
+                                  Stream<ParsedRowResult> stream) {
+        switch (aggregateFunction) {
+            case IDENTITY:
+                return stream.collect(Collectors.toList())
+                             .iterator();
+            case MAX:
+                assert columns.size() == 1;
+                return optionalToIterator(stream.max(new Comparator<ParsedRowResult>() {
+                    @Override
+                    public int compare(ParsedRowResult o1, ParsedRowResult o2) {
+                        final String col = columns.get(0).getMetadata().getName();
+                        final JdbcColumnMetadataAndValue c1 = o1.index.get(col);
+                        final JdbcColumnMetadataAndValue c2 = o2.index.get(col);
+                        return c1.getValueAsSimpleType() < c2.getValueAsSimpleType() ? -1 : 1;
+                    }
+                }));
+            break;
+            case MIN:
+                assert columns.size() == 1;
+                break;
+            case COUNT:
+                break;
+        }
+    }
+
+
+    private static Iterator<ParsedRowResult> optionalToIterator(Optional<ParsedRowResult> result) {
+        return result.isPresent() ? Iterators.singletonIterator(result.get()) : Collections.emptyIterator();
+    }
+*/
 
     @Override
     public boolean next() throws SQLException {
@@ -81,9 +117,9 @@ public class AtlasJdbcResultSet implements ResultSet {
         } else { // page to the next range
             if (rangeToken.hasMoreResults()) {
                 rangeToken = service.getRange(transactionToken, rangeToken.getNextRange());
-                curIter = ParsedRowResult.makeIterator(rangeToken.getResults().getResults(),
-                                                       query.postfilterPredicate(),
-                                                       query.columns());
+                curIter = ParsedRowResult.parseRowResults(rangeToken.getResults().getResults(),
+                                                          query.postfilterPredicate(),
+                                                          query.columns(), query.labelOrNameToMetadata()).iterator();
 
                 return next();
             } else { // all done
