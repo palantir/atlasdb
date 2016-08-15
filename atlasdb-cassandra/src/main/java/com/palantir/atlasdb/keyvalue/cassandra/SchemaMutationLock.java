@@ -27,6 +27,8 @@ import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
@@ -39,6 +41,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 
 public class SchemaMutationLock {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SchemaMutationLock.class);
     private boolean supportsCAS;
 
     private final CassandraKeyValueServiceConfigManager configManager;
@@ -91,6 +94,7 @@ public class SchemaMutationLock {
 
         try {
             if (!supportsCAS) {
+                LOGGER.info("Because your version of Cassandra does not support check and set, we will use a java level lock to synchronise schema mutations. If this is a clustered service, this could lead to corruption.");
                 String message = "AtlasDB was unable to get a lock on Cassandra system schema mutations for your cluster. Likely cause: Service(s) performing heavy schema mutations in parallel, or extremely heavy Cassandra cluster load.";
                 try {
                     if (!schemaMutationLockForEarlierVersionsOfCassandra.tryLock(configManager.getConfig().schemaMutationTimeoutMillis(), TimeUnit.MILLISECONDS)) {

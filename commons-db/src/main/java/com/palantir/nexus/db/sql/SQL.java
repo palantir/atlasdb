@@ -128,7 +128,7 @@ public abstract class SQL extends BasicSQL {
             try {
                 blobHandler = getJdbcHandler().createBlob(c);
             } catch (SQLException e){
-                sqlExceptionlog.info("Caught SQLException", e); //$NON-NLS-1$
+                sqlExceptionlog.debug("Caught SQLException", e); //$NON-NLS-1$
                 throw PalantirSqlException.create(e);
             }
             OutputStream os = null;

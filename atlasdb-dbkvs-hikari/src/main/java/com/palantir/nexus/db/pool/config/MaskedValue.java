@@ -13,20 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete.todo;
+package com.palantir.nexus.db.pool.config;
 
-import org.junit.ClassRule;
-import org.junit.rules.RuleChain;
+import org.immutables.value.Value;
 
-import com.palantir.atlasdb.ete.EteSetup;
-import com.palantir.timestamp.TimestampService;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-public class DbKvsTodoEteTest extends TodoEteTest {
-    @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("dbkvs", "docker-compose.dbkvs.yml");
-
+@JsonDeserialize(as = ImmutableMaskedValue.class)
+@JsonSerialize(as = ImmutableMaskedValue.class)
+@Value.Immutable(builder = false)
+public abstract class MaskedValue {
+    @Value.Parameter
+    abstract String value();
     @Override
-    protected TimestampService createTimestampClient() {
-        return createClientToMultipleNodes(TimestampService.class, "ete1", "ete2", "ete3");
+    public String toString() { return "<REDACTED>"; }
+
+    public String unmasked() {
+        return value();
     }
 }

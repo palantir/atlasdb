@@ -1,3 +1,5 @@
+.. _change-log:
+
 *********
 Changelog
 *********
@@ -29,7 +31,46 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-v0.11.0
+v0.12.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |breaking|
+         - If you do not specify a leader block in your config, AtlasDB will now still try to register the timestamp and lock endpoints necessary for other clients or CLIs to run in the same keyspace.
+           This may require changes in setup logic for applications that have previously only ever run with no leader block.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/708>`__)
+    *    - |fixed|
+         - DB passwords are no longer output as part of the connection configuration ``toString()`` methods.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/755>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.11.4
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Correctly checks the Cassandra client version that determines if Cassandra supports Check And Set operations.
+           This is a critical bug fix that ensures we actually use our implementation from `#436 <https://github.com/palantir/atlasdb/pull/436>`__, which prevents the Cassandra concurrent table creation bug described in `#431 <https://github.com/palantir/atlasdb/issues/431>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/751>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.11.2
 =======
 
 .. list-table::
@@ -40,30 +81,77 @@ v0.11.0
          - Change
 
     *    - |changed|
+         - The ``ssl`` property now takes precedence over the new ``sslConfiguration`` block to better allow back-compatibility.
+           This means that products can add default truststore and keystore configuration to their AtlasDB config without overriding previously made SSL decisions (setting ``ssl: false`` should cause SSL to not be used).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/745>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.11.1
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Removed a check enforcing a leader block config when one was not required.
+           This prevents AtlasDB 0.11.0 clients from starting if a leader configuration is not specified (i.e. single node clusters).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/741>`__)
+
+    *    - |improved|
+         - Updated schema table generation to optimize reads with no ColumnSelection specified against tables with fixed columns.  To benefit from this improvement you will need to re-generate your schemas.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/713>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.11.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
          - Clarified the logging when multiple timestamp servers are running to state that CLIs could be causing the issue.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/719>`__)
 
     *    - |changed|
-         - Updated our cassandra client from 2.2.1 to 2.2.7 (this corresponds to a bump of our cassandra docker testing version from 2.2.6 to 2.2.7).
+         - Updated cassandra client from 2.2.1 to 2.2.7 and cassandra docker testing version from 2.2.6 to 2.2.7.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/699>`__)
 
     *    - |fixed|
-         - The Leader config now contains a new "lockCreator" option. Full details for configuring this are in `the cassandra configuration docs <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html>`__
-           This field helps us to determine a single node to create the necessary locks table for performing schema mutations without corruption. This safety will still be in place if you have no leader block.
-           Changing your config to explicitly use this option is advised, but it is backwards compatible with old configurations. Please see `the cassandra configuration docs <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html>`__
-           for details on how this works.
+         - The leader config now contains a new ``lockCreator`` option, which specifies the single node that creates the locks table when starting your cluster for the very first time.
+           This configuration prevents an extremely unlikely race condition where multiple clients can create the locks table simultaneously.
+           Full details on the failure scenario can be found on `#444 <https://github.com/palantir/atlasdb/issues/444#issuecomment-221612886>`__.
+
+           If left blank, ``lockCreator`` will default to the first host in the ``leaders`` list, but we recommend setting this explicitly to ensure that the lockCreater is the same value across all your clients for a specific service.
+           This configuration is only relevant for new clusters and does not affect existing AtlasDB clusters.
+
+           Full details for configuring the leader block, see `cassandra configuration <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/594>`__)
 
     *    - |fixed|
-         - A utility method was removed in the previous release, breaking an internal product that relied on it. This method has now been added back.
+         - A utility method was removed in the previous release, breaking an internal product that relied on it.
+           This method has now been added back.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/661>`__)
 
     *    - |fixed|
-         - Remove unnecessary error message for missing _timestamp metadata table.
+         - Removed unnecessary error message for missing _timestamp metadata table.
+           _timestamp is a hidden table, and it is expected that _timestamp metadata should not be retrievable from public API.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/716>`__)
 
     *    - |improved|
-         - Trace logging for cassandra is now used in more places. To enable trace logging for Cassandra, add the following line to your log.properties: ``log4j.logger.com.palantir.atlasdb.keyvalue.cassandra=TRACE``
+         - Trace logging is more informative and will log all failed calls.
+           To enable trace logging, see `Enabling Cassandra Tracing <https://palantir.github.io/atlasdb/html/configuration/enabling_cassandra_tracing.html#enabling-cassandra-tracing>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/700>`__)
 
     *    - |deprecated|
@@ -109,9 +197,9 @@ v0.10.0
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-=======
+======
 v0.9.0
-=======
+======
 
 .. list-table::
     :widths: 5 40
@@ -164,9 +252,9 @@ v0.9.0
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-=======
+======
 v0.8.0
-=======
+======
 
 .. list-table::
     :widths: 5 40
@@ -181,9 +269,9 @@ v0.8.0
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-=======
+======
 v0.7.0
-=======
+======
 
 .. list-table::
     :widths: 5 40
@@ -212,9 +300,9 @@ v0.7.0
 
 .. <<<<------------------------------------------------------------------------------------------------------------>>>>
 
-=======
+======
 v0.6.0
-=======
+======
 
 .. list-table::
     :widths: 5 40
@@ -238,9 +326,9 @@ v0.6.0
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-=======
+======
 v0.5.0
-=======
+======
 
 .. list-table::
     :widths: 5 40
@@ -254,9 +342,9 @@ v0.5.0
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-=======
+======
 v0.4.1
-=======
+======
 
 .. list-table::
     :widths: 5 40

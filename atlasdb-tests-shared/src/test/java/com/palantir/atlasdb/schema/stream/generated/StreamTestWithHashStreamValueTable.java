@@ -98,6 +98,7 @@ public final class StreamTestWithHashStreamValueTable implements
     private final List<StreamTestWithHashStreamValueTrigger> triggers;
     private final static String rawTableName = "stream_test_with_hash_stream_value";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = getColumnSelection(StreamTestWithHashStreamValueNamedColumn.values());
 
     static StreamTestWithHashStreamValueTable of(Transaction t, Namespace namespace) {
         return new StreamTestWithHashStreamValueTable(t, namespace, ImmutableList.<StreamTestWithHashStreamValueTrigger>of());
@@ -232,7 +233,7 @@ public final class StreamTestWithHashStreamValueTable implements
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(firstComponentHash, id, blockId);
+            return Arrays.deepHashCode(new Object[]{ firstComponentHash, id, blockId });
         }
 
         @Override
@@ -493,7 +494,7 @@ public final class StreamTestWithHashStreamValueTable implements
 
     @Override
     public Optional<StreamTestWithHashStreamValueRowResult> getRow(StreamTestWithHashStreamValueRow row) {
-        return getRow(row, ColumnSelection.all());
+        return getRow(row, allColumns);
     }
 
     @Override
@@ -509,7 +510,7 @@ public final class StreamTestWithHashStreamValueTable implements
 
     @Override
     public List<StreamTestWithHashStreamValueRowResult> getRows(Iterable<StreamTestWithHashStreamValueRow> rows) {
-        return getRows(rows, ColumnSelection.all());
+        return getRows(rows, allColumns);
     }
 
     @Override
@@ -524,7 +525,7 @@ public final class StreamTestWithHashStreamValueTable implements
 
     @Override
     public List<StreamTestWithHashStreamValueRowResult> getAsyncRows(Iterable<StreamTestWithHashStreamValueRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, ColumnSelection.all(), exec);
+        return getAsyncRows(rows, allColumns, exec);
     }
 
     @Override
@@ -541,7 +542,7 @@ public final class StreamTestWithHashStreamValueTable implements
 
     @Override
     public List<StreamTestWithHashStreamValueNamedColumnValue<?>> getRowColumns(StreamTestWithHashStreamValueRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -561,7 +562,7 @@ public final class StreamTestWithHashStreamValueTable implements
 
     @Override
     public Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestWithHashStreamValueRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -571,7 +572,7 @@ public final class StreamTestWithHashStreamValueTable implements
 
     @Override
     public Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<StreamTestWithHashStreamValueRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -617,7 +618,7 @@ public final class StreamTestWithHashStreamValueTable implements
     }
 
     public BatchingVisitableView<StreamTestWithHashStreamValueRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<StreamTestWithHashStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -727,5 +728,5 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "1stR3tMnOrHAcs/RD1L8UQ==";
+    static String __CLASS_HASH = "vqKEwTLtv87YzkkG1tKtSg==";
 }

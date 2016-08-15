@@ -15,15 +15,19 @@
  */
 package com.palantir.atlasdb.ete;
 
+import static java.util.stream.Collectors.toList;
+
+import java.util.Collection;
+
 import javax.net.ssl.SSLSocketFactory;
 
 import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.todo.TodoResource;
-import com.palantir.docker.compose.DockerComposition;
+import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
@@ -34,26 +38,35 @@ public class EteSetup {
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
     private static final int ETE_PORT = 3828;
 
-    private static DockerComposition dockerComposition;
+    private static DockerComposeRule docker;
 
-    protected <T> T createClient(Class<T> clazz) {
-        try {
-            DockerPort port = dockerComposition.portOnContainerWithInternalMapping("ete1", ETE_PORT);
-            return createClientFor(clazz, port);
-        } catch (Exception e) {
-            throw Throwables.propagate(e);
-        }
+    protected <T> T createClientToSingleNode(Class<T> clazz) {
+        return createClientFor(clazz, asPort("ete1"));
     }
 
-    protected static RuleChain setupComposition(String composeFile) {
-        dockerComposition = DockerComposition.of(composeFile)
+    public <T> T createClientToMultipleNodes(Class<T> clazz, String... nodeNames) {
+        Collection<String> uris = ImmutableList.copyOf(nodeNames).stream()
+                .map(node -> asPort(node))
+                .map(port -> port.inFormat("http://$HOST:$EXTERNAL_PORT"))
+                .collect(toList());
+
+        return AtlasDbHttpClients.createProxyWithFailover(NO_SSL, uris, clazz);
+    }
+
+    private DockerPort asPort(String node) {
+        return docker.containers().container(node).port(ETE_PORT);
+    }
+
+    protected static RuleChain setupComposition(String name, String composeFile) {
+        docker = DockerComposeRule.builder()
+                .file(composeFile)
                 .waitingForService("ete1", toBeReady())
-                .saveLogsTo("container-logs")
+                .saveLogsTo("container-logs/" + name)
                 .build();
 
         return RuleChain
                 .outerRule(GRADLE_PREPARE_TASK)
-                .around(dockerComposition);
+                .around(docker);
     }
 
     private static <T> T createClientFor(Class<T> clazz, Container container) {

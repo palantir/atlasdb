@@ -98,6 +98,7 @@ public final class UserProfileTable implements
     private final List<UserProfileTrigger> triggers;
     private final static String rawTableName = "user_profile";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = getColumnSelection(UserProfileNamedColumn.values());
 
     static UserProfileTable of(Transaction t, Namespace namespace) {
         return new UserProfileTable(t, namespace, ImmutableList.<UserProfileTrigger>of());
@@ -1010,7 +1011,7 @@ public final class UserProfileTable implements
 
     @Override
     public Optional<UserProfileRowResult> getRow(UserProfileRow row) {
-        return getRow(row, ColumnSelection.all());
+        return getRow(row, allColumns);
     }
 
     @Override
@@ -1026,7 +1027,7 @@ public final class UserProfileTable implements
 
     @Override
     public List<UserProfileRowResult> getRows(Iterable<UserProfileRow> rows) {
-        return getRows(rows, ColumnSelection.all());
+        return getRows(rows, allColumns);
     }
 
     @Override
@@ -1041,7 +1042,7 @@ public final class UserProfileTable implements
 
     @Override
     public List<UserProfileRowResult> getAsyncRows(Iterable<UserProfileRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, ColumnSelection.all(), exec);
+        return getAsyncRows(rows, allColumns, exec);
     }
 
     @Override
@@ -1058,7 +1059,7 @@ public final class UserProfileTable implements
 
     @Override
     public List<UserProfileNamedColumnValue<?>> getRowColumns(UserProfileRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -1078,7 +1079,7 @@ public final class UserProfileTable implements
 
     @Override
     public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getRowsMultimap(Iterable<UserProfileRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -1088,7 +1089,7 @@ public final class UserProfileTable implements
 
     @Override
     public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<UserProfileRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -1204,7 +1205,7 @@ public final class UserProfileTable implements
     }
 
     public BatchingVisitableView<UserProfileRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<UserProfileRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -1240,6 +1241,7 @@ public final class UserProfileTable implements
         private final List<CookiesIdxTrigger> triggers;
         private final static String rawTableName = "cookies_idx";
         private final TableReference tableRef;
+        private final static ColumnSelection allColumns = ColumnSelection.all();
 
         public static CookiesIdxTable of(UserProfileTable table) {
             return new CookiesIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<CookiesIdxTrigger>of());
@@ -1760,7 +1762,7 @@ public final class UserProfileTable implements
 
         @Override
         public List<CookiesIdxColumnValue> getRowColumns(CookiesIdxRow row) {
-            return getRowColumns(row, ColumnSelection.all());
+            return getRowColumns(row, allColumns);
         }
 
         @Override
@@ -1782,7 +1784,7 @@ public final class UserProfileTable implements
 
         @Override
         public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getRowsMultimap(Iterable<CookiesIdxRow> rows) {
-            return getRowsMultimapInternal(rows, ColumnSelection.all());
+            return getRowsMultimapInternal(rows, allColumns);
         }
 
         @Override
@@ -1792,7 +1794,7 @@ public final class UserProfileTable implements
 
         @Override
         public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getAsyncRowsMultimap(Iterable<CookiesIdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+            return getAsyncRowsMultimap(rows, allColumns, exec);
         }
 
         @Override
@@ -1843,7 +1845,7 @@ public final class UserProfileTable implements
 
         public BatchingVisitableView<CookiesIdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
-                range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
+                range = range.getBuilder().retainColumns(allColumns).build();
             }
             return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, CookiesIdxRowResult>() {
                 @Override
@@ -1914,6 +1916,7 @@ public final class UserProfileTable implements
         private final List<CreatedIdxTrigger> triggers;
         private final static String rawTableName = "created_idx";
         private final TableReference tableRef;
+        private final static ColumnSelection allColumns = ColumnSelection.all();
 
         public static CreatedIdxTable of(UserProfileTable table) {
             return new CreatedIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<CreatedIdxTrigger>of());
@@ -2434,7 +2437,7 @@ public final class UserProfileTable implements
 
         @Override
         public List<CreatedIdxColumnValue> getRowColumns(CreatedIdxRow row) {
-            return getRowColumns(row, ColumnSelection.all());
+            return getRowColumns(row, allColumns);
         }
 
         @Override
@@ -2456,7 +2459,7 @@ public final class UserProfileTable implements
 
         @Override
         public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getRowsMultimap(Iterable<CreatedIdxRow> rows) {
-            return getRowsMultimapInternal(rows, ColumnSelection.all());
+            return getRowsMultimapInternal(rows, allColumns);
         }
 
         @Override
@@ -2466,7 +2469,7 @@ public final class UserProfileTable implements
 
         @Override
         public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getAsyncRowsMultimap(Iterable<CreatedIdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+            return getAsyncRowsMultimap(rows, allColumns, exec);
         }
 
         @Override
@@ -2517,7 +2520,7 @@ public final class UserProfileTable implements
 
         public BatchingVisitableView<CreatedIdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
-                range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
+                range = range.getBuilder().retainColumns(allColumns).build();
             }
             return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, CreatedIdxRowResult>() {
                 @Override
@@ -2588,6 +2591,7 @@ public final class UserProfileTable implements
         private final List<UserBirthdaysIdxTrigger> triggers;
         private final static String rawTableName = "user_birthdays_idx";
         private final TableReference tableRef;
+        private final static ColumnSelection allColumns = ColumnSelection.all();
 
         public static UserBirthdaysIdxTable of(UserProfileTable table) {
             return new UserBirthdaysIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<UserBirthdaysIdxTrigger>of());
@@ -3108,7 +3112,7 @@ public final class UserProfileTable implements
 
         @Override
         public List<UserBirthdaysIdxColumnValue> getRowColumns(UserBirthdaysIdxRow row) {
-            return getRowColumns(row, ColumnSelection.all());
+            return getRowColumns(row, allColumns);
         }
 
         @Override
@@ -3130,7 +3134,7 @@ public final class UserProfileTable implements
 
         @Override
         public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getRowsMultimap(Iterable<UserBirthdaysIdxRow> rows) {
-            return getRowsMultimapInternal(rows, ColumnSelection.all());
+            return getRowsMultimapInternal(rows, allColumns);
         }
 
         @Override
@@ -3140,7 +3144,7 @@ public final class UserProfileTable implements
 
         @Override
         public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getAsyncRowsMultimap(Iterable<UserBirthdaysIdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+            return getAsyncRowsMultimap(rows, allColumns, exec);
         }
 
         @Override
@@ -3191,7 +3195,7 @@ public final class UserProfileTable implements
 
         public BatchingVisitableView<UserBirthdaysIdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
-                range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
+                range = range.getBuilder().retainColumns(allColumns).build();
             }
             return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, UserBirthdaysIdxRowResult>() {
                 @Override
@@ -3336,5 +3340,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "BiDcVNGqiMrQA7BDTvVhng==";
+    static String __CLASS_HASH = "bsX4j+YZsGdVXg0UYcXoJA==";
 }
