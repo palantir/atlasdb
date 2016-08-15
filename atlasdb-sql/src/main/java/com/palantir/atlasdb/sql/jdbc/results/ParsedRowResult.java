@@ -62,7 +62,7 @@ public class ParsedRowResult {
                                          .collect(Collectors.toList())).build();
         if (selectedCols.stream()
                         .map(SelectableJdbcColumnMetadata::getMetadata)
-                        .anyMatch(JdbcColumnMetadata::isColComp)) {
+                        .anyMatch(it -> it.isColComp() || it.isValueCol())) {
 
             List<Map<JdbcColumnMetadata, byte[]>> dynCols
                     = parseColumnComponents(rawResult.getColumns(),
