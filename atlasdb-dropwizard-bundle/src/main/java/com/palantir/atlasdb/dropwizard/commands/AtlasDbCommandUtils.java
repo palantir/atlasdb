@@ -35,7 +35,6 @@ import com.palantir.atlasdb.config.ServerListConfig;
 
 public final class AtlasDbCommandUtils {
     public static final Object ZERO_ARITY_ARG_CONSTANT = "<ZERO ARITY ARG CONSTANT>";
-
     private static final ObjectMapper OBJECT_MAPPER;
 
     static {
