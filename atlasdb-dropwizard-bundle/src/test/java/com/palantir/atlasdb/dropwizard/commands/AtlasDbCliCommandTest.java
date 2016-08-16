@@ -17,11 +17,16 @@ package com.palantir.atlasdb.dropwizard.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.mockito.stubbing.Answer;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -31,6 +36,9 @@ import io.airlift.airline.OptionType;
 import io.airlift.airline.model.ArgumentsMetadata;
 import io.airlift.airline.model.CommandMetadata;
 import io.airlift.airline.model.OptionMetadata;
+import net.sourceforge.argparse4j.impl.Arguments;
+import net.sourceforge.argparse4j.inf.Argument;
+import net.sourceforge.argparse4j.inf.Subparser;
 
 public class AtlasDbCliCommandTest {
     private static final String GLOBAL_OPTION_LONG_NAME = "--global";
@@ -82,6 +90,117 @@ public class AtlasDbCliCommandTest {
         assertThat(actualOptionsToCommandType).containsOnlyKeys(GLOBAL_OPTION_LONG_NAME);
     }
 
+    @Test
+    public void helpIsSetOnArgument() {
+        String expectedDescription = "description";
+
+        OptionMetadata metadata = new OptionMetadata(
+                OptionType.COMMAND,
+                ImmutableSet.of("arg"),
+                "name",
+                expectedDescription,
+                0,
+                false,
+                false,
+                ImmutableSet.of(),
+                getOptionFields());
+        Argument argument = getArgumentMockFromAddOptionToParser(metadata, "arg");
+
+        verify(argument).help(expectedDescription);
+    }
+
+    @Test
+    public void requiredIsSetOnArgument() {
+        boolean expectedRequired = true;
+
+        OptionMetadata metadata = new OptionMetadata(
+                OptionType.COMMAND,
+                ImmutableSet.of("arg"),
+                "name",
+                "description",
+                0,
+                expectedRequired,
+                false,
+                ImmutableSet.of(),
+                getOptionFields());
+        Argument argument = getArgumentMockFromAddOptionToParser(metadata, "arg");
+
+        verify(argument).required(expectedRequired);
+    }
+
+    @Test
+    public void zeroArityConstantIsSetOnArgumentWhenThereArentAnyExpectedArguments() {
+        OptionMetadata metadata = new OptionMetadata(
+                OptionType.COMMAND,
+                ImmutableSet.of("arg"),
+                "name",
+                "description",
+                0,
+                false,
+                false,
+                ImmutableSet.of(),
+                getOptionFields());
+        Argument argument = getArgumentMockFromAddOptionToParser(metadata, "arg");
+
+        verify(argument).action(Arguments.storeConst());
+        verify(argument).setConst(AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT);
+    }
+
+    @Test
+    public void nargsIsSetOnArgumentWhenThereAreExpectedArguments() {
+        int expectedArity = 5;
+
+        OptionMetadata metadata = new OptionMetadata(
+                OptionType.COMMAND,
+                ImmutableSet.of("arg"),
+                "name",
+                "description",
+                expectedArity,
+                false,
+                false,
+                ImmutableSet.of(),
+                getOptionFields());
+        Argument argument = getArgumentMockFromAddOptionToParser(metadata, "arg");
+
+        verify(argument).nargs(5);
+    }
+
+    @Test
+    public void destIsSetToLongestArg() {
+        String expectedDest = "long string here";
+
+        OptionMetadata metadata = new OptionMetadata(
+                OptionType.COMMAND,
+                ImmutableSet.of("arg", "longer arg", expectedDest),
+                "name",
+                "description",
+                0,
+                false,
+                false,
+                ImmutableSet.of(),
+                getOptionFields());
+        Argument argument = getArgumentMockFromAddOptionToParser(metadata, "arg", "longer arg", expectedDest);
+
+        verify(argument).dest(expectedDest);
+    }
+
+    private static Argument getArgumentMockFromAddOptionToParser(OptionMetadata metadata, String... argNames) {
+        Subparser parser = mock(Subparser.class);
+        Argument argument = mock(Argument.class, (Answer<Object>) (invocation) -> {
+            Object mock = invocation.getMock();
+            if (invocation.getMethod().getReturnType().isInstance(mock)) {
+                return mock;
+            } else {
+                return Mockito.RETURNS_DEFAULTS.answer(invocation);
+            }
+        });
+        when(parser.addArgument(argNames))
+                .thenReturn(argument);
+        AtlasDbCliCommand.addOptionToParser(parser, metadata);
+
+        return argument;
+    }
+
     private static CommandMetadata createCommand(Iterable<OptionMetadata> globalOptions, Iterable<OptionMetadata> groupOptions, Iterable<OptionMetadata> commandOptions) {
         return new CommandMetadata(
                 "test", "A test command", false,
@@ -91,13 +210,6 @@ public class AtlasDbCliCommandTest {
     }
 
     private static OptionMetadata createOption(OptionType optionType, Iterable<String> options) {
-        Field optionField;
-        try {
-            optionField = AtlasDbCliCommandTest.class.getDeclaredField("optionField");
-        } catch (NoSuchFieldException e) {
-            throw Throwables.propagate(e);
-        }
-
         return new OptionMetadata(
                 optionType,
                 options,
@@ -107,6 +219,14 @@ public class AtlasDbCliCommandTest {
                 false,
                 false,
                 ImmutableSet.of(),
-                ImmutableSet.of(optionField));
+                getOptionFields());
+    }
+
+    private static Set<Field> getOptionFields() {
+        try {
+            return ImmutableSet.of(AtlasDbCliCommandTest.class.getDeclaredField("optionField"));
+        } catch (NoSuchFieldException e) {
+            throw Throwables.propagate(e);
+        }
     }
 }

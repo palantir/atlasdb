@@ -88,36 +88,36 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
                 .description(subCommand.getDescription())
                 .setDefault(COMMAND_NAME_ATTR, ImmutableList.builder().addAll(commandRoot).add(subCommand.getName()).build());
 
-        List<OptionMetadata> commandOptions = ImmutableList.<OptionMetadata>builder()
-                .addAll(subCommand.getCommandOptions())
-                .addAll(subCommand.getGroupOptions())
-                .build();
-
-        for (OptionMetadata option : commandOptions) {
-            if (option.isHidden()) {
-                continue;
-            }
-
-            List<String> sortedOptions = option.getOptions().stream()
-                    .sorted((a, b) -> Integer.compareUnsigned(a.length(), b.length()))
-                    .collect(Collectors.toList());
-
-            String longOption = Iterables.getLast(sortedOptions);
-
-            Argument arg = parser.addArgument(sortedOptions.toArray(new String[] {}))
-                    .required(option.isRequired())
-                    .help(option.getDescription())
-                    .dest(longOption);
-
-            if(option.getArity() == 0) {
-                arg.action(Arguments.storeConst());
-                arg.setConst(ZERO_ARITY_ARG_CONSTANT);
-            } else {
-                arg.nargs(option.getArity());
-            }
+        for (OptionMetadata option : Iterables.concat(subCommand.getCommandOptions(), subCommand.getGroupOptions())) {
+            addOptionToParser(parser, option);
         }
 
         super.configure(parser);
+    }
+
+    @VisibleForTesting
+    static void addOptionToParser(Subparser parser, OptionMetadata option) {
+        if (option.isHidden()) {
+            return;
+        }
+
+        List<String> sortedOptions = option.getOptions().stream()
+                .sorted((a, b) -> Integer.compareUnsigned(a.length(), b.length()))
+                .collect(Collectors.toList());
+
+        String longOption = Iterables.getLast(sortedOptions);
+
+        Argument arg = parser.addArgument(sortedOptions.toArray(new String[] {}))
+                .required(option.isRequired())
+                .help(option.getDescription())
+                .dest(longOption);
+
+        if(option.getArity() == 0) {
+            arg.action(Arguments.storeConst());
+            arg.setConst(ZERO_ARITY_ARG_CONSTANT);
+        } else {
+            arg.nargs(option.getArity());
+        }
     }
 
     @Override
