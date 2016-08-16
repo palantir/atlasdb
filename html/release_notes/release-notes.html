@@ -211,7 +211,7 @@ This is a critical bug fix that ensures we actually use our implementation from 
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
-<td>The <code class="docutils literal"><span class="pre">ssl</span></code> property now takes precedence over the new <code class="docutils literal"><span class="pre">sslConfiguration</span></code> block to better allow back-compatibility.
+<td>The <code class="docutils literal"><span class="pre">ssl</span></code> property now takes precedence over the new <code class="docutils literal"><span class="pre">sslConfiguration</span></code> block to allow back-compatibility.
 This means that products can add default truststore and keystore configuration to their AtlasDB config without overriding previously made SSL decisions (setting <code class="docutils literal"><span class="pre">ssl:</span> <span class="pre">false</span></code> should cause SSL to not be used).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/745">Pull Request</a>)</td>
 </tr>
