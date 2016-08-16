@@ -1268,18 +1268,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                 for (ByteBuffer row : rows) {
 
-                    String rowAsByteString = new String(row.array(), Charsets.UTF_8); // TODO this might not work, we might need a string starting with 0x...
+                    String rowAsByteString = "0x" + PtBytes.encodeHexString(row.array()); //new String(row.array(), Charsets.UTF_8); // TODO this might not work, we might need a string starting with 0x...
                     String tableName = tableRef.getQualifiedName();
-                    String query = "select column1, column2 from " + tableName + " where key = " + rowAsByteString;
+                    String query = "select column1, column2 from " + tableName + " where key = " + rowAsByteString + ";";
                     ByteBuffer queryBytes = ByteBuffer.wrap(query.getBytes(Charsets.UTF_8));
 
                     CqlResult cqlResult = clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, CqlResult, Exception>() {
                         @Override
                         public CqlResult apply(Client client) throws Exception {
-                            return client.execute_cql_query(queryBytes, Compression.NONE);
+                            return client.execute_cql3_query(queryBytes, Compression.NONE, consistency);
                         }
                     });
-
 
                     List<ColumnOrSuperColumn> columns = new ArrayList<>();
                     for (CqlRow cqlRow : cqlResult.getRows()) {
