@@ -15,13 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsEqual.equalTo;
+
 import org.apache.commons.lang.RandomStringUtils;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cleaner.AbstractSweeperTest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 
 public class CassandraKeyValueServiceSweeperTest extends AbstractSweeperTest {
@@ -35,14 +38,17 @@ public class CassandraKeyValueServiceSweeperTest extends AbstractSweeperTest {
     public void should_not_oom_when_there_are_many_large_values_to_sweep() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
 
-        int numInsertions = 100;
+        long numInsertions = 100;
         insertMultipleValues(numInsertions);
 
-        completeSweep(numInsertions);
+        long sweepTimestamp = numInsertions + 1;
+        SweepResults sweepResults = completeSweep(sweepTimestamp);
+
+        assertThat(sweepResults.getCellsDeleted(), equalTo(numInsertions - 1));
     }
 
-    private void insertMultipleValues(int numInsertions) {
-        for (int ts = 0; ts < numInsertions; ts++) {
+    private void insertMultipleValues(long numInsertions) {
+        for (int ts = 1; ts <= numInsertions; ts++) {
             System.out.println("putting with ts = " + ts);
             put("row1", makeLongRandomString(), ts);
         }
