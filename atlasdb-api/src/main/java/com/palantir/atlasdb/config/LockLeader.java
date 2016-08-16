@@ -17,5 +17,9 @@ package com.palantir.atlasdb.config;
 
 public enum LockLeader {
     SOMEONE_ELSE_IS_THE_LOCK_LEADER,
-    I_AM_THE_LOCK_LEADER
+    I_AM_THE_LOCK_LEADER;
+
+    public static LockLeader fromBoolean(boolean isLockLeader) {
+        return isLockLeader ? LockLeader.I_AM_THE_LOCK_LEADER : LockLeader.SOMEONE_ELSE_IS_THE_LOCK_LEADER;
+    }
 }
