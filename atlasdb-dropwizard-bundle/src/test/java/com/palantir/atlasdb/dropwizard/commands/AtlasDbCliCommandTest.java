@@ -43,13 +43,16 @@ import net.sourceforge.argparse4j.inf.Subparser;
 public class AtlasDbCliCommandTest {
     private static final String GLOBAL_OPTION_LONG_NAME = "--global";
     private static final String GLOBAL_OPTION_SHORT_NAME = "-g";
-    private static final OptionMetadata GLOBAL_OPTION = createOption(OptionType.GLOBAL, ImmutableSet.of(GLOBAL_OPTION_SHORT_NAME, GLOBAL_OPTION_LONG_NAME));
+    private static final OptionMetadata GLOBAL_OPTION =
+            createOption(OptionType.GLOBAL, ImmutableSet.of(GLOBAL_OPTION_SHORT_NAME, GLOBAL_OPTION_LONG_NAME));
 
     private static final String GROUP_OPTION_NAME = "--group";
-    private static final OptionMetadata GROUP_OPTION = createOption(OptionType.GROUP, ImmutableSet.of(GROUP_OPTION_NAME));
+    private static final OptionMetadata GROUP_OPTION =
+            createOption(OptionType.GROUP, ImmutableSet.of(GROUP_OPTION_NAME));
 
     private static final String COMMAND_OPTION_NAME = "--command";
-    private static final OptionMetadata COMMAND_OPTION = createOption(OptionType.COMMAND, ImmutableSet.of(COMMAND_OPTION_NAME));
+    private static final OptionMetadata COMMAND_OPTION =
+            createOption(OptionType.COMMAND, ImmutableSet.of(COMMAND_OPTION_NAME));
 
     // This is only used for passing in a valid field when creating an option
     @SuppressWarnings("unused")
@@ -75,7 +78,8 @@ public class AtlasDbCliCommandTest {
 
     @Test
     public void globalOptionMapsToGlobalType() {
-        Map<String, OptionType> expectedOptionsToCommandType = ImmutableMap.of(GLOBAL_OPTION_LONG_NAME, OptionType.GLOBAL);
+        Map<String, OptionType> expectedOptionsToCommandType =
+                ImmutableMap.of(GLOBAL_OPTION_LONG_NAME, OptionType.GLOBAL);
         Map<String, OptionType> actualOptionsToCommandType = AtlasDbCliCommand.getOptionTypesForCommandMetadata(
                 createCommand(ImmutableSet.of(GLOBAL_OPTION), ImmutableSet.of(), ImmutableSet.of()));
 
@@ -201,7 +205,10 @@ public class AtlasDbCliCommandTest {
         return argument;
     }
 
-    private static CommandMetadata createCommand(Iterable<OptionMetadata> globalOptions, Iterable<OptionMetadata> groupOptions, Iterable<OptionMetadata> commandOptions) {
+    private static CommandMetadata createCommand(
+            Iterable<OptionMetadata> globalOptions,
+            Iterable<OptionMetadata> groupOptions,
+            Iterable<OptionMetadata> commandOptions) {
         return new CommandMetadata(
                 "test", "A test command", false,
                 globalOptions, groupOptions, commandOptions,

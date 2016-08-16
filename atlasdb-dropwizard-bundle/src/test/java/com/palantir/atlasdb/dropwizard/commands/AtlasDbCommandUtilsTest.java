@@ -80,7 +80,8 @@ public class AtlasDbCommandUtilsTest {
 
     @Test
     public void argumentsWithoutTwoHyphensAtTheBeginningAreFilteredOut() {
-        List<String> gatheredArgs = AtlasDbCommandUtils.gatherPassedInArguments(ImmutableMap.of("unrelated-arg", "some-value"));
+        List<String> gatheredArgs = AtlasDbCommandUtils.gatherPassedInArguments(
+                ImmutableMap.of("unrelated-arg", "some-value"));
 
         assertThat(gatheredArgs).isEmpty();
     }
@@ -97,21 +98,24 @@ public class AtlasDbCommandUtilsTest {
 
     @Test
     public void argumentsWhichDontHaveNullValuesAreKept() {
-        List<String> gatheredArgs = AtlasDbCommandUtils.gatherPassedInArguments(ImmutableMap.of("--non-null-arg", "123"));
+        List<String> gatheredArgs = AtlasDbCommandUtils.gatherPassedInArguments(
+                ImmutableMap.of("--non-null-arg", "123"));
 
         assertThat(gatheredArgs).containsExactly("--non-null-arg", "123");
     }
 
     @Test
     public void argumentsWhichAreListsAreInlined() {
-        List<String> gatheredArgs = AtlasDbCommandUtils.gatherPassedInArguments(ImmutableMap.of("--list-arg", ImmutableList.of("123", "456")));
+        List<String> gatheredArgs = AtlasDbCommandUtils.gatherPassedInArguments(
+                ImmutableMap.of("--list-arg", ImmutableList.of("123", "456")));
 
         assertThat(gatheredArgs).containsExactly("--list-arg", "123", "456");
     }
 
     @Test
     public void argumentsWithTheZeroArityStringHaveOnlyTheKeyKept() {
-        List<String> gatheredArgs = AtlasDbCommandUtils.gatherPassedInArguments(ImmutableMap.of("--zero-arity-arg", AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT));
+        List<String> gatheredArgs = AtlasDbCommandUtils.gatherPassedInArguments(
+                ImmutableMap.of("--zero-arity-arg", AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT));
 
         assertThat(gatheredArgs).containsExactly("--zero-arity-arg");
     }
