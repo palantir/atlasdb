@@ -157,7 +157,7 @@ characteristics, among other things. The supported types are:
   encoded in a manner which stores negative numbers more efficiently than
   VAR\_LONG.
   In particular, 0 to 127 are 1 byte for VAR\_LONG and -64 to 63 are 1 byte for
-  SIGNED\_VAR\_LONG. VAR\_LONG will always use 10 bytes to encode negative
+  VAR\_SIGNED\_LONG. VAR\_LONG will always use 10 bytes to encode negative
   numbers.
 
 .. [2]
