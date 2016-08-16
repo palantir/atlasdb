@@ -38,4 +38,3 @@ jacocoTestReport {
         html.destination "${buildDir}/jacocoHtml"
     }
 }
-

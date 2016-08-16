@@ -33,5 +33,3 @@ services:
     environment:
       - CASSANDRA_SEEDS=seed
       - LOCAL_JMX=no
-
-

@@ -60,7 +60,6 @@ import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 public class CassandraSchemaLockTest {
-
     public static final int THRIFT_PORT_NUMBER = 9160;
     public static final DockerComposition composition = DockerComposition.of("src/test/resources/docker-compose-multinode.yml")
             .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen())
@@ -79,7 +78,6 @@ public class CassandraSchemaLockTest {
     static Optional<LeaderConfig> LEADER_CONFIG;
     private final ExecutorService executorService = Executors.newFixedThreadPool(32);
     static private CassandraKeyValueServiceConfigManager CONFIG_MANAGER;
-
 
     @BeforeClass
     public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {
