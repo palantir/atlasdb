@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -162,11 +163,13 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
         return ImmutableMap.copyOf(optionTypes);
     }
 
-    private static Map<String, OptionType> getOptionTypesForCommandMetadata(CommandMetadata subCommand) {
+    @VisibleForTesting
+    static Map<String, OptionType> getOptionTypesForCommandMetadata(CommandMetadata subCommand) {
         Map<String, OptionType> optionTypes = new HashMap<>();
         List<OptionMetadata> commandOptions = ImmutableList.<OptionMetadata>builder()
                 .addAll(subCommand.getCommandOptions())
                 .addAll(subCommand.getGroupOptions())
+                .addAll(subCommand.getGlobalOptions())
                 .build();
 
         for (OptionMetadata option : commandOptions) {
