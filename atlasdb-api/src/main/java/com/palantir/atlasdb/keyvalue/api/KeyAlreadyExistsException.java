@@ -25,16 +25,16 @@ public class KeyAlreadyExistsException extends PalantirRuntimeException {
 
     private final ImmutableList<Cell> existingKeys;
 
-    public KeyAlreadyExistsException(String msg, Throwable n) {
-        this(msg, n, ImmutableList.<Cell>of());
+    public KeyAlreadyExistsException(String msg, Throwable ex) {
+        this(msg, ex, ImmutableList.of());
     }
 
     public KeyAlreadyExistsException(String msg) {
-        this(msg, ImmutableList.<Cell>of());
+        this(msg, ImmutableList.of());
     }
 
-    public KeyAlreadyExistsException(String msg, Throwable n, Iterable<Cell> keys) {
-        super(msg, n);
+    public KeyAlreadyExistsException(String msg, Throwable ex, Iterable<Cell> keys) {
+        super(msg, ex);
         existingKeys = ImmutableList.copyOf(keys);
     }
 

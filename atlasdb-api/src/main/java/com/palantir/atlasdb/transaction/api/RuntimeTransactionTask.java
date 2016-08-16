@@ -17,5 +17,5 @@ package com.palantir.atlasdb.transaction.api;
 
 public interface RuntimeTransactionTask<T> extends TransactionTask<T, RuntimeException> {
     @Override
-    T execute(Transaction t);
+    T execute(Transaction transaction);
 }

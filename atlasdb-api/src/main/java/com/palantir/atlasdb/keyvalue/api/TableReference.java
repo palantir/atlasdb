@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
+import java.util.Objects;
+
 import org.apache.commons.lang3.StringUtils;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -22,14 +24,16 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 
-public class TableReference {
+public final class TableReference {
     private final Namespace namespace;
     private final String tablename;
 
     public static TableReference createFromFullyQualifiedName(String fullTableName) {
         int index = fullTableName.indexOf('.');
         Preconditions.checkArgument(index > 0, "Table name %s is not a fully qualified table name.");
-        return create(Namespace.create(fullTableName.substring(0, index), Namespace.UNCHECKED_NAME), fullTableName.substring(index + 1));
+        return create(
+                Namespace.create(fullTableName.substring(0, index), Namespace.UNCHECKED_NAME),
+                fullTableName.substring(index + 1));
     }
 
     public static TableReference create(Namespace namespace, String tablename) {
@@ -41,15 +45,15 @@ public class TableReference {
     }
 
     public static TableReference createUnsafe(String fullTableName) {
-        return fullTableName.indexOf('.') < 0 ? createWithEmptyNamespace(fullTableName) : createFromFullyQualifiedName(fullTableName);
-    }
-
-    public static boolean isFullyQualifiedName(String tableName) {
-        return tableName.contains(".");
+        return fullTableName.indexOf('.') < 0
+                ? createWithEmptyNamespace(fullTableName)
+                : createFromFullyQualifiedName(fullTableName);
     }
 
     @JsonCreator
-    private TableReference(@JsonProperty("namespace") Namespace namespace, @JsonProperty("tablename") String tablename) {
+    private TableReference(
+            @JsonProperty("namespace") Namespace namespace,
+            @JsonProperty("tablename") String tablename) {
         this.namespace = namespace;
         this.tablename = tablename;
     }
@@ -64,7 +68,13 @@ public class TableReference {
 
     @JsonIgnore
     public String getQualifiedName() {
-        return namespace.isEmptyNamespace() || namespace.getName().equals("met") ? tablename : namespace.getName() + "." + tablename;
+        return namespace.isEmptyNamespace() || namespace.getName().equals("met")
+                ? tablename
+                : namespace.getName() + "." + tablename;
+    }
+
+    public static boolean isFullyQualifiedName(String tableName) {
+        return tableName.contains(".");
     }
 
     @JsonIgnore
@@ -73,34 +83,21 @@ public class TableReference {
     }
 
     @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((namespace == null) ? 0 : namespace.hashCode());
-        result = prime * result + ((tablename == null) ? 0 : tablename.hashCode());
-        return result;
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        TableReference that = (TableReference) obj;
+        return Objects.equals(namespace, that.namespace)
+                && Objects.equals(tablename, that.tablename);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        TableReference other = (TableReference) obj;
-        if (namespace == null) {
-            if (other.namespace != null)
-                return false;
-        } else if (!namespace.equals(other.namespace))
-            return false;
-        if (tablename == null) {
-            if (other.tablename != null)
-                return false;
-        } else if (!tablename.equals(other.tablename))
-            return false;
-        return true;
+    public int hashCode() {
+        return Objects.hash(namespace, tablename);
     }
 
     @Override
@@ -108,14 +105,14 @@ public class TableReference {
         return getQualifiedName();
     }
 
-    public static TableReference fromString(String s) {
-        int dotCount = StringUtils.countMatches(s, ".");
+    public static TableReference fromString(String tableReferenceAsString) {
+        int dotCount = StringUtils.countMatches(tableReferenceAsString, ".");
         if (dotCount == 0) {
-            return TableReference.createWithEmptyNamespace(s);
-        } else if (dotCount == 1){
-            return TableReference.createFromFullyQualifiedName(s);
+            return TableReference.createWithEmptyNamespace(tableReferenceAsString);
+        } else if (dotCount == 1) {
+            return TableReference.createFromFullyQualifiedName(tableReferenceAsString);
         } else {
-            throw new IllegalArgumentException(s + " is not a valid table reference.");
+            throw new IllegalArgumentException(tableReferenceAsString + " is not a valid table reference.");
         }
     }
 

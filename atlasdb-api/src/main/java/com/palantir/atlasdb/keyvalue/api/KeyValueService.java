@@ -105,10 +105,11 @@ public interface KeyValueService extends AutoCloseable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    Map<byte[], RowColumnRangeIterator> getRowsColumnRange(@QueryParam("tableRef") TableReference tableRef,
-                                                           Iterable<byte[]> rows,
-                                                           @QueryParam("columnRangeSelection") ColumnRangeSelection columnRangeSelection,
-                                                           @QueryParam("timestamp") long timestamp);
+    Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+            @QueryParam("tableRef") TableReference tableRef,
+            Iterable<byte[]> rows,
+            @QueryParam("columnRangeSelection") ColumnRangeSelection columnRangeSelection,
+            @QueryParam("timestamp") long timestamp);
 
     /**
      * Gets values from the key-value store.
@@ -163,7 +164,7 @@ public interface KeyValueService extends AutoCloseable {
      * try {@link #delete(TableReference, Multimap)}.
      * <p>
      * May throw KeyAlreadyExistsException, if storing a different value to existing key,
-     * but this is not guaranteed even if the key exists - see {@link putUnlessExists}.
+     * but this is not guaranteed even if the key exists - see {@link #putUnlessExists}}.
      * <p>
      * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
      *  @param tableRef the name of the table to put values into.
@@ -191,7 +192,7 @@ public interface KeyValueService extends AutoCloseable {
      * try {@link #delete(TableReference, Multimap)}.
      * <p>
      * May throw KeyAlreadyExistsException, if storing a different value to existing key,
-     * but this is not guaranteed even if the key exists - see {@link putUnlessExists}.
+     * but this is not guaranteed even if the key exists - see {@link #putUnlessExists}.
      * <p>
      * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
      *  @param valuesByTable map containing the key-value entries to put by table.
@@ -220,7 +221,7 @@ public interface KeyValueService extends AutoCloseable {
      * try {@link #delete(TableReference, Multimap)}.
      * <p>
      * May throw KeyAlreadyExistsException, if storing a different value to existing key,
-     * but this is not guaranteed even if the key exists - see {@link putUnlessExists}.
+     * but this is not guaranteed even if the key exists - see {@link #putUnlessExists}.
      * <p>
      * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
      *  @param tableRef the name of the table to put values into.
@@ -246,7 +247,8 @@ public interface KeyValueService extends AutoCloseable {
      * <p>
      * If the call completes successfully then you know that your value was written and no other value was written
      * first.  If a {@link KeyAlreadyExistsException} is thrown it may be because the underlying call did a retry and
-     * your value was actually put successfully.  It is recommended that you check the stored value to account for this case.
+     * your value was actually put successfully.  It is recommended that you check the stored value to account
+     * for this case.
      * <p>
      * Retry should be done by the underlying implementation to ensure that other exceptions besides
      * {@link KeyAlreadyExistsException} are not thrown spuriously.
@@ -326,7 +328,6 @@ public interface KeyValueService extends AutoCloseable {
      * timestamp.
      *
      * Remember to close any {@link ClosableIterator}s you get in a finally block.
-     *  @param tableRef
      * @param rangeRequest the range to load.
      * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each rows's
      */
@@ -346,7 +347,6 @@ public interface KeyValueService extends AutoCloseable {
      * This has the same consistency guarantees that {@link #getRangeOfTimestamps(TableReference, RangeRequest, long)}.
      * <p>
      * Remember to close any {@link ClosableIterator}s you get in a finally block.
-     *  @param tableRef
      * @param rangeRequest the range to load.
      * @param timestamp specifies the maximum timestamp (exclusive) at which to
      */
@@ -380,9 +380,10 @@ public interface KeyValueService extends AutoCloseable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(@QueryParam("tableRef") TableReference tableRef,
-                                                                RangeRequest rangeRequest,
-                                                                @QueryParam("timestamp") long timestamp) throws InsufficientConsistencyException;
+    ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
+            @QueryParam("tableRef") TableReference tableRef,
+            RangeRequest rangeRequest,
+            @QueryParam("timestamp") long timestamp) throws InsufficientConsistencyException;
 
     /**
      * For each range passed in the result will have the first page of results for that range.
@@ -405,7 +406,8 @@ public interface KeyValueService extends AutoCloseable {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(@QueryParam("tableRef") TableReference tableRef,
+    Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
+            @QueryParam("tableRef") TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             @QueryParam("timestamp") long timestamp);
 
@@ -415,7 +417,6 @@ public interface KeyValueService extends AutoCloseable {
 
     /**
      * Drop the table, and also delete its table metadata.
-     * @param tableRef
      */
     @DELETE
     @Path("drop-table")
@@ -429,8 +430,6 @@ public interface KeyValueService extends AutoCloseable {
      * Drops many tables in idempotent fashion. If you are dropping many tables at once,
      * use this call as the implementation can be much faster/less error-prone on some KVSs.
      * Also deletes corresponding table metadata.
-     *
-     * @param tableRefs
      */
     @DELETE
     @Path("drop-tables")
@@ -442,21 +441,18 @@ public interface KeyValueService extends AutoCloseable {
     /**
      * Creates a table with the specified name. If the table already exists, no action is performed
      * (the table is left in its current state).
-     *  @param tableRef
-     * @param tableMetadata
      */
     @POST
     @Path("create-table")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void createTable(@QueryParam("tableRef") TableReference tableRef, byte[] tableMetadata) throws InsufficientConsistencyException;
+    void createTable(@QueryParam("tableRef") TableReference tableRef, byte[] tableMetadata)
+            throws InsufficientConsistencyException;
 
     /**
      * Creates many tables in idempotent fashion. If you are making many tables at once,
      * use this call as the implementation can be much faster/less error-prone on some KVSs.
-     *
-     * @param tableRefToTableMetadata
      */
     @POST
     @Path("create-tables")
@@ -483,7 +479,6 @@ public interface KeyValueService extends AutoCloseable {
      *
      * @return a byte array representing the metadata for the table. Array is empty if no table
      * with the given name exists. Consider {@link TableMetadata#BYTES_HYDRATOR} for hydrating.
-     * @param tableRef
      */
     @Idempotent
     @POST
@@ -555,7 +550,6 @@ public interface KeyValueService extends AutoCloseable {
      * deletions are performed.
      *
      * This call must be implemented so that it completes synchronously.
-     * @param tableRef
      */
     @POST
     @Path("compact-internally")

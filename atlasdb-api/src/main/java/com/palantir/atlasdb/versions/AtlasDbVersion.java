@@ -19,8 +19,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.io.CharStreams;
@@ -44,7 +44,10 @@ public final class AtlasDbVersion {
     }
 
     public static String ensureVersionReported(PrintStream writer) {
-        if (!versionPrinted && Boolean.parseBoolean(System.getProperty(REPORT_VERSION_PROPERTY, REPORT_VERSION_DEFAULT))) {
+        boolean shouldReportVersion = Boolean.parseBoolean(System.getProperty(
+                REPORT_VERSION_PROPERTY,
+                REPORT_VERSION_DEFAULT));
+        if (!versionPrinted && shouldReportVersion) {
             writer.println("AtlasDB Version: " + version.get());
             versionPrinted = true;
         }
@@ -56,7 +59,7 @@ public final class AtlasDbVersion {
             if (is == null) {
                 return VERSION_UNKNOWN_STRING;
             }
-            return CharStreams.toString(new InputStreamReader(is, Charsets.UTF_8)).trim();
+            return CharStreams.toString(new InputStreamReader(is, StandardCharsets.UTF_8)).trim();
         } catch (IOException e) {
             return VERSION_UNKNOWN_STRING;
         }
