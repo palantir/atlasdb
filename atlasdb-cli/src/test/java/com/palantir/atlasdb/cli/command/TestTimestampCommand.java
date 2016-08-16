@@ -81,6 +81,9 @@ public class TestTimestampCommand {
                         .build();
             }
         };
+        if (TIMESTAMP_FILE.exists()) {
+            assert TIMESTAMP_FILE.delete();
+        }
     }
 
     @Parameterized.Parameter(value = 0)
@@ -173,11 +176,6 @@ public class TestTimestampCommand {
     private void runAndVerify(SingleBackendCliTestRunner runner, TimestampService tss,
             boolean immutable, long immutableTs, long lastFreshTs,
             long prePunch, long postPunch) throws IOException {
-        // prep
-        if (isToFile && TIMESTAMP_FILE.exists()) {
-            TIMESTAMP_FILE.delete();
-        }
-
         // run the stuff
         Scanner scanner = new Scanner(runner.run(true, false));
         // get timestamp from stdout
