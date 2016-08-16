@@ -82,7 +82,7 @@ public class TestTimestampCommand {
             }
         };
         if (TIMESTAMP_FILE.exists()) {
-            assert TIMESTAMP_FILE.delete();
+            TIMESTAMP_FILE.delete();
         }
     }
 
