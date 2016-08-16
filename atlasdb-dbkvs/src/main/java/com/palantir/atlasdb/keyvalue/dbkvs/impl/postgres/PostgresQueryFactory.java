@@ -45,15 +45,35 @@ public class PostgresQueryFactory implements DbQueryFactory {
                                        long ts,
                                        ColumnSelection columns,
                                        boolean includeValue) {
+        if (columns.allColumnsSelected() || columns.getSelectedColumns().size() > 50) {
+            return getLatestRowQueryWithAllOrManyColumns(row, ts, columns, includeValue);
+        } else {
+
+            String query = "SELECT cells.row_name, cells.col_name, data.ts, data.val " +
+                    "FROM (SELECT t1.row_name AS row_name, t2.col_name AS col_name " +
+                    "      FROM (SELECT unnest(array[?]) AS row_name) t1, (SELECT unnest(array[" + nParamsWithoutBrackets(Iterables.size(columns.getSelectedColumns())) + "]) AS col_name) t2) cells " +
+                    "INNER JOIN LATERAL (SELECT ts, val FROM " + prefixedTableName() + " tbl " +
+                    "WHERE tbl.row_name = cells.row_name " +
+                    "    AND tbl.col_name = cells.col_name " +
+                    "    AND tbl.ts < ? " +
+                    "    ORDER BY tbl.ts " +
+                    "    DESC LIMIT 1) data " +
+                    "ON true";
+
+            return new FullQuery(query).withArg(row).withArgs(columns.getSelectedColumns()).withArg(ts);
+        }
+    }
+
+    private FullQuery getLatestRowQueryWithAllOrManyColumns(byte[] row, long ts, ColumnSelection columns, boolean includeValue) {
         String query =
                 " /* GET_LATEST_ROW_INNER (" + tableName + ") */ " +
-                " SELECT m.row_name, m.col_name, max(m.ts) as ts " +
-                "   FROM " + prefixedTableName() + " m " +
-                "  WHERE m.row_name = ? " +
-                "    AND m.ts < ? " +
-                (columns.allColumnsSelected() ? "" :
-                    "    AND m.col_name IN " + nParams(Iterables.size(columns.getSelectedColumns()))) +
-                " GROUP BY m.row_name, m.col_name";
+                        " SELECT m.row_name, m.col_name, max(m.ts) as ts " +
+                        "   FROM " + prefixedTableName() + " m " +
+                        "  WHERE m.row_name = ? " +
+                        "    AND m.ts < ? " +
+                        (columns.allColumnsSelected() ? "" :
+                                "    AND m.col_name IN " + nParams(Iterables.size(columns.getSelectedColumns()))) +
+                        " GROUP BY m.row_name, m.col_name";
         query = wrapQueryWithIncludeValue("GET_LATEST_ROW", query, includeValue);
         FullQuery fullQuery = new FullQuery(query).withArgs(row, ts);
         return columns.allColumnsSelected() ? fullQuery : fullQuery.withArgs(columns.getSelectedColumns());
@@ -256,6 +276,12 @@ public class PostgresQueryFactory implements DbQueryFactory {
     @Override
     public Collection<FullQuery> getOverflowQueries(Collection<OverflowValue> overflowIds) {
         throw new IllegalStateException("postgres tables don't have overflow fields");
+    }
+
+    private String nParamsWithoutBrackets(int numParams) {
+        StringBuilder builder = new StringBuilder(2*numParams - 1);
+        Joiner.on(',').appendTo(builder, Iterables.limit(Iterables.cycle('?'), numParams));
+        return builder.toString();
     }
 
     private String nParams(int numParams) {
