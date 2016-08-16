@@ -5,6 +5,7 @@ apply plugin: 'checkstyle'
 apply plugin: 'jacoco-coverage'
 apply plugin: 'com.github.hierynomus.license'
 
+apply from: "${rootDir}/gradle/versions.gradle"
 apply from: "${rootDir}/gradle/baseline.gradle"
 apply from: "${rootDir}/gradle/publish.gradle"
 
@@ -21,15 +22,14 @@ repositories {
 }
 
 checkstyle {
-    toolVersion = 6.18
+    toolVersion = libVersions.checkstyle
     configFile rootProject.file('config/checkstyle/checkstyle.xml')
 }
 
-apply from: rootProject.file('gradle/versions.gradle')
 libsDirName = file('build/artifacts')
 
 dependencies {
-    checkstyle 'com.puppycrawl.tools:checkstyle:6.18'
+    checkstyle group: 'com.puppycrawl.tools', name: 'checkstyle', version: libVersions.checkstyle
     testCompile group: 'junit', name: 'junit', version: libVersions.junit
 }
 
