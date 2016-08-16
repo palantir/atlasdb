@@ -1267,27 +1267,39 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey2 = new HashMap<>();
 
                 for (ByteBuffer row : rows) {
+                    List<ColumnOrSuperColumn> columns = new ArrayList<>();
 
                     String rowAsByteString = "0x" + PtBytes.encodeHexString(row.array()); //new String(row.array(), Charsets.UTF_8); // TODO this might not work, we might need a string starting with 0x...
                     String tableName = tableRef.getQualifiedName();
-                    String query = "select column1, column2 from " + tableName + " where key = " + rowAsByteString + ";";
-                    ByteBuffer queryBytes = ByteBuffer.wrap(query.getBytes(Charsets.UTF_8));
+                    String columnNameStr = "0x00";
+                    String query = "select column1, column2 from " + tableName + " where key = " + rowAsByteString + " AND column1 > " + columnNameStr + " LIMIT 10;";
+                    System.out.println("query (first): " + query);
 
-                    CqlResult cqlResult = clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, CqlResult, Exception>() {
-                        @Override
-                        public CqlResult apply(Client client) throws Exception {
-                            return client.execute_cql3_query(queryBytes, Compression.NONE, consistency);
+                    while (true) {
+                        ByteBuffer queryBytes = ByteBuffer.wrap(query.getBytes(Charsets.UTF_8));
+
+                        CqlResult cqlResult = clientPool.runWithRetryOnHost(host, client -> client.execute_cql3_query(queryBytes, Compression.NONE, consistency));
+
+                        long timestamp = 0;
+                        for (CqlRow cqlRow : cqlResult.getRows()) {
+                            byte[] columnName = cqlRow.getColumns().get(0).getValue();
+                            byte[] timestampAsBytes = cqlRow.getColumns().get(1).getValue();
+                            timestamp = PtBytes.toLong(timestampAsBytes);
+                            columnNameStr = "0x" + PtBytes.encodeHexString(columnName);
+
+                            ColumnOrSuperColumn columnOrSuperColumn = makeColumnOrSuperColumn(columnName, timestampAsBytes);
+                            columns.add(columnOrSuperColumn);
                         }
-                    });
 
-                    List<ColumnOrSuperColumn> columns = new ArrayList<>();
-                    for (CqlRow cqlRow : cqlResult.getRows()) {
-                        byte[] columnName = cqlRow.getColumns().get(0).getValue();
-                        byte[] timestampAsBytes = cqlRow.getColumns().get(1).getValue();
 
-                        ColumnOrSuperColumn columnOrSuperColumn = makeColumnOrSuperColumn(columnName, timestampAsBytes);
-                        columns.add(columnOrSuperColumn);
+                        if (cqlResult.getRows().size() < 10) {
+                            break;
+                        }
+                        query = "select column1, column2 from " + tableName + " where key = " + rowAsByteString + " AND column1 = " + columnNameStr + " AND column2 > " + timestamp + " LIMIT 10;";
+                        System.out.println("query: " + query);
                     }
+
+
                     colsByKey2.put(row, columns);
                 }
 

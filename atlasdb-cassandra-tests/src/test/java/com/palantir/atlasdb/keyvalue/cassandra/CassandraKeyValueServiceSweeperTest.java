@@ -31,7 +31,6 @@ public class CassandraKeyValueServiceSweeperTest extends AbstractSweeperTest {
                 CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), CassandraTestSuite.LEADER_CONFIG);
     }
 
-    @Ignore
     @Test
     public void should_not_oom_when_there_are_many_large_values_to_sweep() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
