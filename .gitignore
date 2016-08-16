@@ -6,7 +6,6 @@ Thumbs.db
 *.swo
 *.swn
 *.log
-*.prefs
 *.class
 *.profile
 *.iml
