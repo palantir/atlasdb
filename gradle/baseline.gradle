@@ -1,0 +1,54 @@
+List<String> blacklistedBaselineProjects = [
+        'atlasdb-api',
+        'atlasdb-cassandra',
+        'atlasdb-cassandra-tests',
+        'atlasdb-cli',
+        'atlasdb-client',
+        'atlasdb-client-protobufs',
+        'atlasdb-commons',
+        'atlasdb-config',
+        'atlasdb-console',
+        'atlasdb-dbkvs',
+        'atlasdb-dbkvs-hikari',
+        'atlasdb-dbkvs-tests',
+        'atlasdb-dropwizard-tests',
+        'atlasdb-ete-test-utils',
+        'atlasdb-ete-tests',
+        'atlasdb-exec',
+        'atlasdb-impl-shared',
+        'atlasdb-jdbc',
+        'atlasdb-jdbc-tests',
+        'atlasdb-lock-api',
+        'atlasdb-partition-manager',
+        'atlasdb-rocksdb',
+        'atlasdb-rocksdb-tests',
+        'atlasdb-server',
+        'atlasdb-server-dropwizard',
+        'atlasdb-tests-shared',
+        'atlasdb-timelock-ete',
+        'atlasdb-timelock-server',
+        'cassandra-partitioner',
+        'commons-annotations',
+        'commons-api',
+        'commons-db',
+        'commons-executors',
+        'commons-proxy',
+        'leader-election-api',
+        'leader-election-api-protobufs',
+        'leader-election-impl',
+        'lock-api',
+        'lock-impl',
+        'papaya',
+        'profile-client',
+        'profile-client-protobufs',
+        'timestamp-api',
+        'timestamp-impl']
+
+
+if (!blacklistedBaselineProjects.contains(project.name)) {
+    apply plugin: 'com.palantir.baseline-checkstyle'
+    apply plugin: 'com.palantir.baseline-findbugs'
+}
+
+apply plugin: 'com.palantir.baseline-eclipse'
+apply plugin: 'com.palantir.baseline-idea'
