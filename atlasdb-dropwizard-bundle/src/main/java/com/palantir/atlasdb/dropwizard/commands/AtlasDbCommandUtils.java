@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-
 package com.palantir.atlasdb.dropwizard.commands;
 
 import java.util.List;
@@ -34,7 +33,7 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 
-public class AtlasDbCommandUtils {
+public final class AtlasDbCommandUtils {
     public static final Object ZERO_ARITY_ARG_CONSTANT = "<ZERO ARITY ARG CONSTANT>";
 
     private static final ObjectMapper OBJECT_MAPPER;
@@ -51,7 +50,8 @@ public class AtlasDbCommandUtils {
     }
 
     public static AtlasDbConfig convertServerConfigToClientConfig(AtlasDbConfig serverConfig) {
-        Preconditions.checkArgument(serverConfig.leader().isPresent(), "Only server configurations with a leader block can be converted to client configurations");
+        Preconditions.checkArgument(serverConfig.leader().isPresent(),
+                "Only server configurations with a leader block can be converted to client configurations");
 
         ServerListConfig leaders = ImmutableServerListConfig.builder()
                 .servers(serverConfig.leader().get().leaders())

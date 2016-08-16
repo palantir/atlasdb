@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.dropwizard.commands;
 
-import static com.palantir.atlasdb.dropwizard.commands.AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +25,6 @@ import java.util.stream.Collectors;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cli.AtlasCli;
@@ -74,7 +71,10 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
         Subparser parser = subparser.addSubparsers()
                 .addParser(subCommand.getName())
                 .description(subCommand.getDescription())
-                .setDefault(COMMAND_NAME_ATTR, ImmutableList.builder().addAll(commandRoot).add(subCommand.getName()).build());
+                .setDefault(COMMAND_NAME_ATTR, ImmutableList.builder()
+                        .addAll(commandRoot)
+                        .add(subCommand.getName())
+                        .build());
 
         for (OptionMetadata option : Iterables.concat(subCommand.getCommandOptions(), subCommand.getGroupOptions())) {
             addOptionToParser(parser, option);
@@ -90,7 +90,7 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
         }
 
         List<String> sortedOptions = option.getOptions().stream()
-                .sorted((a, b) -> Integer.compareUnsigned(a.length(), b.length()))
+                .sorted((first, second) -> Integer.compareUnsigned(first.length(), second.length()))
                 .collect(Collectors.toList());
 
         String longOption = Iterables.getLast(sortedOptions);
@@ -100,9 +100,9 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
                 .help(option.getDescription())
                 .dest(longOption);
 
-        if(option.getArity() == 0) {
+        if (option.getArity() == 0) {
             arg.action(Arguments.storeConst());
-            arg.setConst(ZERO_ARITY_ARG_CONSTANT);
+            arg.setConst(AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT);
         } else {
             arg.nargs(option.getArity());
         }
@@ -110,19 +110,28 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
 
     @Override
     protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
-        AtlasDbConfig cliConfiguration = AtlasDbCommandUtils.convertServerConfigToClientConfig(configuration.getAtlasDbConfig());
+        AtlasDbConfig cliConfiguration = AtlasDbCommandUtils.convertServerConfigToClientConfig(
+                configuration.getAtlasDbConfig());
 
         Map<String, OptionType> optionTypes = getCliOptionTypes();
 
-        Map<String, Object> globalAttrs = Maps.filterKeys(namespace.getAttrs(), (key) -> optionTypes.get(key) == OptionType.GLOBAL);
-        Map<String, Object> groupAttrs = Maps.filterKeys(namespace.getAttrs(), (key) -> optionTypes.get(key) == OptionType.GROUP);
-        Map<String, Object> commandAttrs = Maps.filterKeys(namespace.getAttrs(), (key) -> optionTypes.get(key) == OptionType.COMMAND);
+        Map<String, Object> globalAttrs = Maps.filterKeys(namespace.getAttrs(),
+                key -> optionTypes.get(key) == OptionType.GLOBAL);
+        Map<String, Object> groupAttrs = Maps.filterKeys(namespace.getAttrs(),
+                key -> optionTypes.get(key) == OptionType.GROUP);
+        Map<String, Object> commandAttrs = Maps.filterKeys(namespace.getAttrs(),
+                key -> optionTypes.get(key) == OptionType.COMMAND);
 
         Iterable<String> groups = Iterables.limit(namespace.getList(COMMAND_NAME_ATTR), 1);
         Iterable<String> commands = Iterables.skip(namespace.getList(COMMAND_NAME_ATTR), 1);
 
+        List<String> offlineArg =
+                Objects.equals(namespace.getString("runCliOffline"), AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT)
+                        ? ImmutableList.of("--offline")
+                        : ImmutableList.of();
+
         List<String> allArgs = ImmutableList.<String>builder()
-                .addAll(Objects.equals(namespace.getString("runCliOffline"), ZERO_ARITY_ARG_CONSTANT) ? ImmutableSet.of("--offline") : ImmutableSet.of())
+                .addAll(offlineArg)
                 .add("--inline-config")
                 .add(AtlasDbCommandUtils.serialiseConfiguration(cliConfiguration))
                 .addAll(AtlasDbCommandUtils.gatherPassedInArguments(globalAttrs))
@@ -166,7 +175,7 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
             }
 
             List<String> sortedOptions = option.getOptions().stream()
-                    .sorted((a, b) -> Integer.compareUnsigned(a.length(), b.length()))
+                    .sorted((first, second) -> Integer.compareUnsigned(first.length(), second.length()))
                     .collect(Collectors.toList());
 
             String longOption = Iterables.getLast(sortedOptions);
