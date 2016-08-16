@@ -169,7 +169,7 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    public void testSweepManyColumnsConservative() {
+    public void testSweepManyValuesConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         put("foo", "bar", 50);
         putUncommitted("foo", "bad", 75);
@@ -251,7 +251,7 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    public void testSweepManyColumnsThorough() {
+    public void testSweepManyValuesThorough() {
         createTable(SweepStrategy.THOROUGH);
         put("foo", "bar", 50);
         putUncommitted("foo", "bad", 75);
