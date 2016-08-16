@@ -96,6 +96,9 @@ public abstract class ConnectionConfig {
         return 45;
     }
 
+    /**
+     * This is JsonIgnore'd because it doesn't serialise. Serialisation is needed for atlasdb-dropwizard-bundle.
+     */
     @JsonIgnore
     @Value.Default
     public Visitor<Connection> getOnAcquireConnectionVisitor() {
