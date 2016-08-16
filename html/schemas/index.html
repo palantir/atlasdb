@@ -251,25 +251,27 @@ java classes for creating, accessing, and manipulating these tables.</p>
 buffer GeneratedMessages, and palantir Persistables.</p>
 <div class="section" id="primitive-valuetypes">
 <h4>Primitive ValueTypes<a class="headerlink" href="#primitive-valuetypes" title="Permalink to this headline">¶</a></h4>
-<p>For simple data types, AtlasDB represents them by ValueType. Note that a
-java primitive type can have multiple ValueTypes associated with it.
+<p>AtlasDB represents simple data types by ValueType. Note that a
+Java primitive type can have multiple ValueTypes associated with it.
 Each ValueType represents a different method of storing that type in the
 database, and thus affects storage efficiency and search
-characteristics, among others. The types are:</p>
+characteristics, among other things. The supported types are:</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="32%" />
-<col width="14%" />
-<col width="15%" />
-<col width="22%" />
+<col width="36%" />
 <col width="16%" />
+<col width="17%" />
+<col width="19%" />
+<col width="12%" />
 </colgroup>
 <thead valign="bottom">
 <tr class="row-odd"><th class="head">Name</th>
 <th class="head">Java Type</th>
 <th class="head">Format</th>
-<th class="head">Anywhere in table?</th>
-<th class="head">Range Scans?</th>
+<th class="head">Anywhere in
+table?</th>
+<th class="head">Range
+Scans?</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -279,7 +281,8 @@ characteristics, among others. The types are:</p>
 <td>YES</td>
 <td>YES</td>
 </tr>
-<tr class="row-odd"><td>FIXED_LONG_LITTLE_ENDIAN</td>
+<tr class="row-odd"><td>FIXED_LONG_LITTLE_ENDIAN
+<a class="footnote-reference" href="#id8" id="id1">[3]</a></td>
 <td>long</td>
 <td>byte[8]</td>
 <td>YES</td>
@@ -293,41 +296,47 @@ characteristics, among others. The types are:</p>
 </tr>
 <tr class="row-odd"><td>VAR_LONG</td>
 <td>long</td>
-<td>byte[len]*</td>
+<td>byte[len] <a class="footnote-reference" href="#id6" id="id2">[1]</a></td>
 <td>YES</td>
 <td>YES</td>
 </tr>
 <tr class="row-even"><td>VAR_SIGNED_LONG</td>
 <td>long</td>
-<td>byte[len*]</td>
+<td>byte[len] <a class="footnote-reference" href="#id6" id="id3">[1]</a></td>
 <td>YES</td>
 <td>YES</td>
 </tr>
-<tr class="row-odd"><td>SHA_256_HASH</td>
+<tr class="row-odd"><td>UUID</td>
+<td>UUID</td>
+<td>byte[16]</td>
+<td>YES</td>
+<td>YES</td>
+</tr>
+<tr class="row-even"><td>SHA_256_HASH</td>
 <td>Sha256Hash</td>
 <td>byte[32]</td>
 <td>YES</td>
 <td>YES</td>
 </tr>
-<tr class="row-even"><td>STRING</td>
+<tr class="row-odd"><td>STRING</td>
 <td>String</td>
 <td>byte[]</td>
-<td>NO**</td>
+<td>NO <a class="footnote-reference" href="#id7" id="id4">[2]</a></td>
 <td>YES</td>
 </tr>
-<tr class="row-odd"><td>VAR_STRING</td>
+<tr class="row-even"><td>VAR_STRING</td>
 <td>String</td>
 <td>byte[len]</td>
 <td>YES</td>
 <td>NO</td>
 </tr>
-<tr class="row-even"><td>BLOB</td>
+<tr class="row-odd"><td>BLOB</td>
 <td>byte[]</td>
 <td>byte[]</td>
-<td>NO**</td>
+<td>NO <a class="footnote-reference" href="#id7" id="id5">[2]</a></td>
 <td>YES</td>
 </tr>
-<tr class="row-odd"><td>SIZED_BLOB</td>
+<tr class="row-even"><td>SIZED_BLOB</td>
 <td>byte[]</td>
 <td>byte[len]</td>
 <td>YES</td>
@@ -335,16 +344,32 @@ characteristics, among others. The types are:</p>
 </tr>
 </tbody>
 </table>
-<p>note: * var long: the smaller the value, the fewer bytes used. For
-signed, the closer to zero, the fewer bytes used. negative values for
-VAR_LONG are always 10 bytes. 0 to 127 are 1 byte for VAR_LONG. -64 to
-63 are 1 byte or SIGNED_VAR_LONG</p>
-<p>note: ** can only be a row or column component if it is the last
-component of the component list.</p>
-<p>Note that all long data types are signed, but VAR_SIGNED_LONG is
+<table class="docutils footnote" frame="void" id="id6" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[1]</td><td><em>(<a class="fn-backref" href="#id2">1</a>, <a class="fn-backref" href="#id3">2</a>)</em> All long data types are signed, but VAR_SIGNED_LONG is
 encoded in a manner which stores negative numbers more efficiently than
-VAR_LONG. (The latter will always use 10 bytes to encode negative
-values, but the former will not.)</p>
+VAR_LONG.
+In particular, 0 to 127 are 1 byte for VAR_LONG and -64 to 63 are 1 byte for
+VAR_SIGNED_LONG. VAR_LONG will always use 10 bytes to encode negative
+numbers.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id7" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[2]</td><td><em>(<a class="fn-backref" href="#id4">1</a>, <a class="fn-backref" href="#id5">2</a>)</em> A STRING or BLOB can only be a row or column component
+if it is the last component of the component list.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id8" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[3]</a></td><td>This type can be useful on some key value stores because keys next
+to each other won&#8217;t be written next to each other.  This can be good because
+it will spread out the load of writes to many different ranges.</td></tr>
+</tbody>
+</table>
 </div>
 <div class="section" id="protobufs-and-persistables">
 <h4>Protobufs and Persistables<a class="headerlink" href="#protobufs-and-persistables" title="Permalink to this headline">¶</a></h4>
