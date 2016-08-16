@@ -66,7 +66,7 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
 Communicating Over SSL
 ======================
 
-Atlas currently supports two different ways of specifying SSL options in the Cassandra KVS configuration: The ``sslConfiguration`` block and the ``ssl`` property.  Both means are supported but ``sslConfiguration`` is preferred and will always be respected in favor of ``ssl`` when both are specified.  In the future, support for ``ssl`` will be removed.
+Atlas currently supports two different ways of specifying SSL options in the Cassandra KVS configuration: The ``sslConfiguration`` block and the ``ssl`` property.  Both means are supported but ``ssl`` is preferred and will always be respected in favor of ``sslConfiguration`` when both are specified.
 
 The following table summarizes whether SSL is enabled:
 
@@ -94,11 +94,11 @@ This property is a boolean value saying whether or not to use ssl.  When ``true`
 Leader
 ======
 
-The leader block is where you specify the leaders(all hosts that participate in leader election) for paxos and a lockCreator for creating the locks table.
+The leader block is where you specify the leaders (all hosts that participate in leader election) for paxos and a lockCreator for creating the schema mutation lock table.
 
 Required parameters:
 
-- ``quorumSize`` : Number of hosts that form majority. This number must be greater than half of the total number of hosts.
+- ``quorumSize`` : Number of hosts that form a majority. This number must be greater than half of the total number of hosts.
 - ``leaders`` : A list of all hosts. The protocol must be http/https depending on if ssl is configured.
 - ``localhost`` : The ``protocol://hostname:port`` eg: ``https://myhost:3828`` of the host on which this config exists.
 
@@ -106,7 +106,7 @@ Optional parameters:
 
 - ``learnerLogDir`` : Path to the paxos learner logs (defaults to var/data/paxos/learner)
 - ``acceptorLogDir`` : Path to the paxos acceptor logs (defaults to var/data/paxos/acceptor)
-- ``lockCreator`` : The host responsible for creation of the lock table. If specified, this must be same across all hosts. (defaults to the first host in the leaders list, the first host must be same across all the hosts for this to work)
+- ``lockCreator`` : The host responsible for creation of the schema mutation lock table. If specified, this must be same across all hosts. (defaults to the first host in the leaders list, the first host must be same across all the hosts for this to work)
 - ``pingRateMs`` : defaults to 5000
 - ``randomWaitBeforeProposingLeadershipMs`` : defaults to 1000
 - ``leaderPingResponseWaitMs`` : defaults to 5000
