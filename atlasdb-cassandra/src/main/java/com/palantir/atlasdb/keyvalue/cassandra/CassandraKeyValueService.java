@@ -1242,7 +1242,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     List<ColumnOrSuperColumn> columns = new ArrayList<>();
 
                     String rowAsByteString = "0x" + PtBytes.encodeHexString(row.array()); //new String(row.array(), Charsets.UTF_8); // TODO this might not work, we might need a string starting with 0x...
-                    String tableName = tableRef.getQualifiedName();
+                    String tableName = internalTableName(tableRef);
                     String columnNameStr = "0x00";
                     String query = "select column1, column2 from " + tableName + " where key = " + rowAsByteString + " AND column1 > " + columnNameStr + " LIMIT 10;";
                     System.out.println("query (first): " + query);
