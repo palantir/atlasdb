@@ -77,27 +77,27 @@ Sample Schema File
         private BlankSchema() {
             //private
         }
-     
+
         private static final Schema SCHEMA = generateSchema();
-     
+
         private static Schema generateSchema() {
             // Define the prefix and package for generated code
             Schema schema = new Schema("BlankSchema", "com.palantir.atlasdb.blankschema");
-             
+
             /* Schema definition start */
             schema.addTableDefinition("TableName", new TableDefinition() {{
                 ...
             }});
-     
+
             schema.addIndexDefinition("IndexName", new IndexDefinition() {{
                 ..
             }});
             /* Schema definition end */
-     
+
             schema.validate() // ensure that the schema as constructed is valid.
             return schema;
         }
-     
+
         public static void main (String[] args) {
             // generate the java classes, and write them to the specified source folder.
             SCHEMA.renderTablesWithNamespace(new File("src"), Namespace.create("pt_met"));
@@ -118,48 +118,56 @@ buffer GeneratedMessages, and palantir Persistables.
 Primitive ValueTypes
 ~~~~~~~~~~~~~~~~~~~~
 
-For simple data types, AtlasDB represents them by ValueType. Note that a
-java primitive type can have multiple ValueTypes associated with it.
+AtlasDB represents simple data types by ValueType. Note that a
+Java primitive type can have multiple ValueTypes associated with it.
 Each ValueType represents a different method of storing that type in the
 database, and thus affects storage efficiency and search
-characteristics, among others. The types are:
+characteristics, among other things. The supported types are:
 
-+-------------------------------+--------------+---------------+----------------------+----------------+
-| Name                          | Java Type    | Format        | Anywhere in table?   | Range Scans?   |
-+===============================+==============+===============+======================+================+
-| FIXED\_LONG                   | long         | byte[8]       | YES                  | YES            |
-+-------------------------------+--------------+---------------+----------------------+----------------+
-| FIXED\_LONG\_LITTLE\_ENDIAN   | long         | byte[8]       | YES                  | NO             |
-+-------------------------------+--------------+---------------+----------------------+----------------+
-| NULLABLE\_FIXED\_LONG         | long         | byte[9]       | YES                  | YES            |
-+-------------------------------+--------------+---------------+----------------------+----------------+
-| VAR\_LONG                     | long         | byte[len]\*   | YES                  | YES            |
-+-------------------------------+--------------+---------------+----------------------+----------------+
-| VAR\_SIGNED\_LONG             | long         | byte[len\*]   | YES                  | YES            |
-+-------------------------------+--------------+---------------+----------------------+----------------+
-| SHA\_256\_HASH                | Sha256Hash   | byte[32]      | YES                  | YES            |
-+-------------------------------+--------------+---------------+----------------------+----------------+
-| STRING                        | String       | byte[]        | NO\*\*               | YES            |
-+-------------------------------+--------------+---------------+----------------------+----------------+
-| VAR\_STRING                   | String       | byte[len]     | YES                  | NO             |
-+-------------------------------+--------------+---------------+----------------------+----------------+
-| BLOB                          | byte[]       | byte[]        | NO\*\*               | YES            |
-+-------------------------------+--------------+---------------+----------------------+----------------+
-| SIZED\_BLOB                   | byte[]       | byte[len]     | YES                  | NO             |
-+-------------------------------+--------------+---------------+----------------------+----------------+
++-------------------------------+--------------+---------------+----------------+----------+
+| Name                          | Java Type    | Format        | Anywhere in    | Range    |
+|                               |              |               | table?         | Scans?   |
++===============================+==============+===============+================+==========+
+| FIXED\_LONG                   | long         | byte[8]       | YES            | YES      |
++-------------------------------+--------------+---------------+----------------+----------+
+| FIXED\_LONG\_LITTLE\_ENDIAN   | long         | byte[8]       | YES            | NO       |
+| [3]_                          |              |               |                |          |
++-------------------------------+--------------+---------------+----------------+----------+
+| NULLABLE\_FIXED\_LONG         | long         | byte[9]       | YES            | YES      |
++-------------------------------+--------------+---------------+----------------+----------+
+| VAR\_LONG                     | long         | byte[len] [1]_| YES            | YES      |
++-------------------------------+--------------+---------------+----------------+----------+
+| VAR\_SIGNED\_LONG             | long         | byte[len] [1]_| YES            | YES      |
++-------------------------------+--------------+---------------+----------------+----------+
+| UUID                          | UUID         | byte[16]      | YES            | YES      |
++-------------------------------+--------------+---------------+----------------+----------+
+| SHA\_256\_HASH                | Sha256Hash   | byte[32]      | YES            | YES      |
++-------------------------------+--------------+---------------+----------------+----------+
+| STRING                        | String       | byte[]        | NO [2]_        | YES      |
++-------------------------------+--------------+---------------+----------------+----------+
+| VAR\_STRING                   | String       | byte[len]     | YES            | NO       |
++-------------------------------+--------------+---------------+----------------+----------+
+| BLOB                          | byte[]       | byte[]        | NO [2]_        | YES      |
++-------------------------------+--------------+---------------+----------------+----------+
+| SIZED\_BLOB                   | byte[]       | byte[len]     | YES            | NO       |
++-------------------------------+--------------+---------------+----------------+----------+
 
-note: \* var long: the smaller the value, the fewer bytes used. For
-signed, the closer to zero, the fewer bytes used. negative values for
-VAR\_LONG are always 10 bytes. 0 to 127 are 1 byte for VAR\_LONG. -64 to
-63 are 1 byte or SIGNED\_VAR\_LONG
+.. [1]
+  All long data types are signed, but VAR\_SIGNED\_LONG is
+  encoded in a manner which stores negative numbers more efficiently than
+  VAR\_LONG.
+  In particular, 0 to 127 are 1 byte for VAR\_LONG and -64 to 63 are 1 byte for
+  VAR\_SIGNED\_LONG. VAR\_LONG will always use 10 bytes to encode negative
+  numbers.
 
-note: \*\* can only be a row or column component if it is the last
-component of the component list.
+.. [2]
+  A STRING or BLOB can only be a row or column component
+  if it is the last component of the component list.
 
-Note that all long data types are signed, but VAR\_SIGNED\_LONG is
-encoded in a manner which stores negative numbers more efficiently than
-VAR\_LONG. (The latter will always use 10 bytes to encode negative
-values, but the former will not.)
+.. [3]
+  This type can be useful on some key value stores because keys next
+  to each other won't be written next to each other.  This can be good because
+  it will spread out the load of writes to many different ranges.
 
 Protobufs and Persistables
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
