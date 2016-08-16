@@ -27,7 +27,8 @@ import io.dropwizard.setup.Bootstrap;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 
-public class AtlasDbConfiguredCommand<T extends Configuration & AtlasDbConfigurationProvider> extends ConfiguredCommand<T> {
+public class AtlasDbConfiguredCommand<T extends Configuration & AtlasDbConfigurationProvider>
+        extends ConfiguredCommand<T> {
     private static final String COMMAND_NAME_ATTR = "subCommand";
 
     private final Class<T> configurationClass;
