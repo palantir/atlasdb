@@ -45,6 +45,12 @@ import io.airlift.airline.SingleCommand;
 /**
  * The Atlas Perf(ormance) CLI is a tool for making and running AtlasDB performance tests.
  *
+ *
+ * Note, you must have a docker machine running, and put the environment variables in your run configuration (if you are in an IDE).
+ * Something like this:
+ * DOCKER_TLS_VERIFY=1;DOCKER_HOST=tcp://192.168.99.100:2376;DOCKER_CERT_PATH=/Users/dcohen/.docker/machine/machines/atlas;DOCKER_MACHINE_NAME=atlas
+ * Check these against your actual env, e.g. "docker-machine env atlas"
+ *
  * @author mwakerman, bullman
  */
 @Command(name = "atlasdb-perf", description = "The AtlasDB performance benchmark CLI.")
