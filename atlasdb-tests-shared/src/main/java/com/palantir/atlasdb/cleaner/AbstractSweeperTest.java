@@ -168,7 +168,7 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    public void testSweepManyConservative() {
+    public void testSweepManyColumnsConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         put("foo", "bar", 50);
         putUncommitted("foo", "bad", 75);
@@ -181,6 +181,20 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals("buzz", get("foo", 200));
         Assert.assertEquals("", get("foo", 124));
         Assert.assertEquals(ImmutableSet.of(-1L, 125L), getAllTs("foo"));
+    }
+
+    @Test
+    public void testSweepManyRowsConservative() {
+        createTable(SweepStrategy.CONSERVATIVE);
+        put("foo", "bar1", 5);
+        put("foo", "bar2", 10);
+        put("baz", "bar3", 15);
+        put("baz", "bar4", 20);
+
+        SweepResults results = completeSweep(175);
+
+        Assert.assertEquals(2, results.getCellsDeleted());
+        Assert.assertEquals(2, results.getCellsExamined());
     }
 
     @Test
