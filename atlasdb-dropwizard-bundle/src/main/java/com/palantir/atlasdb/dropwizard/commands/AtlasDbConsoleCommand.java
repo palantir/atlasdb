@@ -20,10 +20,7 @@ import java.util.List;
 
 import org.apache.commons.cli.Option;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -38,15 +35,6 @@ import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 
 public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfigurationProvider> extends AtlasDbCommand<T> {
-    private static final ObjectMapper OBJECT_MAPPER;
-
-    static {
-        YAMLFactory yamlFactory = new YAMLFactory();
-        yamlFactory.configure(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID, false);
-        OBJECT_MAPPER = new ObjectMapper(yamlFactory);
-        OBJECT_MAPPER.registerModule(new GuavaModule());
-    }
-
     public AtlasDbConsoleCommand(Class<T> configurationClass) {
         super("console", "Open an AtlasDB console", configurationClass);
     }
@@ -73,7 +61,7 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
     }
 
     @Override
-    protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws Exception {
+    protected void run(Bootstrap<T> bootstrap, Namespace namespace, T configuration) throws JsonProcessingException {
         AtlasDbConfig cliConfiguration = AtlasDbCommandUtils.convertServerConfigToClientConfig(configuration.getAtlasDbConfig());
 
         // We do this here because there's no flag to connect to an offline cluster in atlasdb-console (since this is passed in through bind)
@@ -89,7 +77,7 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
         List<String> allArgs = ImmutableList.<String>builder()
                 .add("--bind")
                 .add("dropwizardAtlasDb")
-                .add(OBJECT_MAPPER.writeValueAsString(cliConfiguration))
+                .add(AtlasDbCommandUtils.serialiseConfiguration(cliConfiguration))
                 .add("--evaluate")
                 .add("connectInline dropwizardAtlasDb")
                 .addAll(AtlasDbCommandUtils.gatherPassedInArguments(namespace.getAttrs()))

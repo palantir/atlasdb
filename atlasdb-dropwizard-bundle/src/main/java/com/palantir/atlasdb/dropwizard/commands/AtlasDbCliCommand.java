@@ -24,10 +24,6 @@ import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -53,14 +49,6 @@ import net.sourceforge.argparse4j.inf.Subparser;
 public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationProvider> extends AtlasDbCommand<T> {
     private static final String COMMAND_NAME_ATTR = "airlineSubCommand";
     private static final Cli<Callable> CLI = AtlasCli.buildCli();
-    private static final ObjectMapper OBJECT_MAPPER;
-
-    static {
-        YAMLFactory yamlFactory = new YAMLFactory();
-        yamlFactory.configure(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID, false);
-        OBJECT_MAPPER = new ObjectMapper(yamlFactory);
-        OBJECT_MAPPER.registerModule(new GuavaModule());
-    }
 
     public AtlasDbCliCommand(Class<T> configurationClass) {
         super(CLI.getMetadata().getName(), CLI.getMetadata().getDescription(), configurationClass);
@@ -136,7 +124,7 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
         List<String> allArgs = ImmutableList.<String>builder()
                 .addAll(Objects.equals(namespace.getString("runCliOffline"), ZERO_ARITY_ARG_CONSTANT) ? ImmutableSet.of("--offline") : ImmutableSet.of())
                 .add("--inline-config")
-                .add(OBJECT_MAPPER.writeValueAsString(cliConfiguration))
+                .add(AtlasDbCommandUtils.serialiseConfiguration(cliConfiguration))
                 .addAll(AtlasDbCommandUtils.gatherPassedInArguments(globalAttrs))
                 .addAll(groups)
                 .addAll(AtlasDbCommandUtils.gatherPassedInArguments(groupAttrs))
