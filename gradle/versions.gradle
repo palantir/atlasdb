@@ -18,6 +18,7 @@ ext.libVersions =
     immutables: '2.2.8',
     jackson: '2.5.1',
     jackson_annotation: '2.5.0',
+    jacoco: '0.7.7.201606060606',
     cassandra: '2.2.7',
     cassandra_driver_core: '2.2.0-rc3',
     groovy: '2.4.4',
