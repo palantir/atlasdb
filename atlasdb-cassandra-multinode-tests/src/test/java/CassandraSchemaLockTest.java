@@ -38,6 +38,7 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
@@ -50,6 +51,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.ete.Gradle;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.docker.compose.DockerComposition;
@@ -60,11 +62,15 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 public class CassandraSchemaLockTest {
 
     public static final int THRIFT_PORT_NUMBER = 9160;
-    @ClassRule
     public static final DockerComposition composition = DockerComposition.of("src/test/resources/docker-compose-multinode.yml")
             .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen())
             .saveLogsTo("container-logs-multinode")
             .build();
+
+    public static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
+
+    @ClassRule
+    public static final RuleChain CASSANDRA_DOCKER_SET_UP = RuleChain.outerRule(GRADLE_PREPARE_TASK).around(composition);
 
     static InetSocketAddress CASSANDRA_THRIFT_ADDRESS;
 
