@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -81,9 +81,7 @@ public class TestTimestampCommand {
                         .build();
             }
         };
-        if (TIMESTAMP_FILE.exists()) {
-            TIMESTAMP_FILE.delete();
-        }
+        cleanUpTimestampFile();
     }
 
     @Parameterized.Parameter(value = 0)
@@ -102,8 +100,12 @@ public class TestTimestampCommand {
         });
     }
 
-    @AfterClass
-    public static void cleanUp() {
+    @After
+    public void cleanUp() {
+        cleanUpTimestampFile();
+    }
+
+    private static void cleanUpTimestampFile() {
         if (TIMESTAMP_FILE.exists()){
             TIMESTAMP_FILE.delete();
         }
