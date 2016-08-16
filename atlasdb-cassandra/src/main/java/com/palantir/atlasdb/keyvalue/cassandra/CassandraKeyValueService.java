@@ -1203,12 +1203,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         if (rangeRequest.isEmptyRange()) {
             return ClosableIterators.wrap(ImmutableList.<RowResult<U>>of().iterator());
         }
+
         final int batchHint = rangeRequest.getBatchHint() == null ? 100 : rangeRequest.getBatchHint();
         SliceRange slice = new SliceRange(ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), false, 1);
         final SlicePredicate pred = new SlicePredicate();
         pred.setSlice_range(slice);
 
-        final ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
         final ColumnSelection selection = rangeRequest.getColumnNames().isEmpty() ? ColumnSelection.all()
                 : ColumnSelection.create(rangeRequest.getColumnNames());
 
@@ -1225,38 +1225,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
             TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(final byte[] startKey) throws Exception {
                 InetSocketAddress host = clientPool.getRandomHostForKey(startKey);
-
                 final byte[] endExclusive = rangeRequest.getEndExclusive();
 
-                KeyRange keyRange = new KeyRange(batchHint);
-                keyRange.setStart_key(startKey);
-                if (endExclusive.length == 0) {
-                    keyRange.setEnd_key(endExclusive);
-                } else {
-                    // We need the previous name because this is inclusive, not exclusive
-                    keyRange.setEnd_key(RangeRequests.previousLexicographicName(endExclusive));
-                }
-
-                List<KeySlice> firstPage = clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, List<KeySlice>, Exception>() {
-                    @Override
-                    public List<KeySlice> apply(Client client) throws Exception {
-                        try {
-                            return run(client, tableRef,
-                                    () -> client.get_range_slices(colFam, pred, keyRange, consistency));
-                        } catch (UnavailableException e) {
-                            if (consistency.equals(ConsistencyLevel.ALL)) {
-                                throw new InsufficientConsistencyException("This operation requires all Cassandra nodes to be up and available.", e);
-                            } else {
-                                throw e;
-                            }
-                        }
-                    }
-
-                    @Override
-                    public String toString() {
-                        return "get_range_slices(" + colFam + ")";
-                    }
-                });
+                KeyRange keyRange = getKeyRange(startKey, endExclusive, batchHint);
+                List<KeySlice> firstPage = getRangeSlices(host, tableRef, keyRange, pred, consistency);
 
                 Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(firstPage);
 
@@ -1320,6 +1292,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return ClosableIterators.wrap(rowResults.iterator());
     }
 
+    private KeyRange getKeyRange(byte[] startKey, byte[] endExclusive, int batchHint) {
+        KeyRange keyRange = new KeyRange(batchHint);
+        keyRange.setStart_key(startKey);
+        if (endExclusive.length == 0) {
+            keyRange.setEnd_key(endExclusive);
+        } else {
+            // We need the previous name because this is inclusive, not exclusive
+            keyRange.setEnd_key(RangeRequests.previousLexicographicName(endExclusive));
+        }
+        return keyRange;
+    }
+
     public ColumnOrSuperColumn makeColumnOrSuperColumn(byte[] columnName, byte[] timestamp) {
 
         long timestampLong = ~PtBytes.toLong(timestamp);
@@ -1342,11 +1326,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             return ClosableIterators.wrap(ImmutableList.<RowResult<U>>of().iterator());
         }
         final int batchHint = rangeRequest.getBatchHint() == null ? 100 : rangeRequest.getBatchHint();
+
         SliceRange slice = new SliceRange(ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), false, Integer.MAX_VALUE);
         final SlicePredicate pred = new SlicePredicate();
         pred.setSlice_range(slice);
 
-        final ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
         final ColumnSelection selection = rangeRequest.getColumnNames().isEmpty() ? ColumnSelection.all()
                 : ColumnSelection.create(rangeRequest.getColumnNames());
 
@@ -1366,35 +1350,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                 final byte[] endExclusive = rangeRequest.getEndExclusive();
 
-                KeyRange keyRange = new KeyRange(batchHint);
-                keyRange.setStart_key(startKey);
-                if (endExclusive.length == 0) {
-                    keyRange.setEnd_key(endExclusive);
-                } else {
-                    // We need the previous name because this is inclusive, not exclusive
-                    keyRange.setEnd_key(RangeRequests.previousLexicographicName(endExclusive));
-                }
+                KeyRange keyRange = getKeyRange(startKey, endExclusive, batchHint);
 
-                List<KeySlice> firstPage = clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, List<KeySlice>, Exception>() {
-                    @Override
-                    public List<KeySlice> apply(Client client) throws Exception {
-                        try {
-                            return run(client, tableRef,
-                                    () -> client.get_range_slices(colFam, pred, keyRange, consistency));
-                        } catch (UnavailableException e) {
-                            if (consistency.equals(ConsistencyLevel.ALL)) {
-                                throw new InsufficientConsistencyException("This operation requires all Cassandra nodes to be up and available.", e);
-                            } else {
-                                throw e;
-                            }
-                        }
-                    }
-
-                    @Override
-                    public String toString() {
-                        return "get_range_slices(" + colFam + ")";
-                    }
-                });
+                List<KeySlice> firstPage = getRangeSlices(host, tableRef, keyRange, pred, consistency);
 
                 Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(firstPage);
                 TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
@@ -1410,6 +1368,35 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         };
 
         return ClosableIterators.wrap(rowResults.iterator());
+    }
+
+    private List<KeySlice> getRangeSlices(
+            InetSocketAddress host,
+            final TableReference tableRef,
+            final KeyRange keyRange,
+            final SlicePredicate pred,
+            final ConsistencyLevel consistency) throws Exception {
+        final ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
+        return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, List<KeySlice>, Exception>() {
+            @Override
+            public List<KeySlice> apply(Client client) throws Exception {
+                try {
+                    return run(client, tableRef,
+                            () -> client.get_range_slices(colFam, pred, keyRange, consistency));
+                } catch (UnavailableException e) {
+                    if (consistency.equals(ConsistencyLevel.ALL)) {
+                        throw new InsufficientConsistencyException("This operation requires all Cassandra nodes to be up and available.", e);
+                    } else {
+                        throw e;
+                    }
+                }
+            }
+
+            @Override
+            public String toString() {
+                return "get_range_slices(" + colFam + ")";
+            }
+        });
     }
 
     @Override
