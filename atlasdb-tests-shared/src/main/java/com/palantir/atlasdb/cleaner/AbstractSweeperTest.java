@@ -39,6 +39,7 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
@@ -185,16 +186,7 @@ public abstract class AbstractSweeperTest {
 
     @Test
     public void testSweepManyRowsConservative() {
-        createTable(SweepStrategy.CONSERVATIVE);
-        put("foo", "bar1", 5);
-        put("foo", "bar2", 10);
-        put("baz", "bar3", 15);
-        put("baz", "bar4", 20);
-
-        SweepResults results = completeSweep(175);
-
-        Assert.assertEquals(2, results.getCellsDeleted());
-        Assert.assertEquals(2, results.getCellsExamined());
+        testSweepManyRows(SweepStrategy.CONSERVATIVE);
     }
 
     @Test
@@ -259,7 +251,7 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    public void testSweepManyThorough() {
+    public void testSweepManyColumnsThorough() {
         createTable(SweepStrategy.THOROUGH);
         put("foo", "bar", 50);
         putUncommitted("foo", "bad", 75);
@@ -272,6 +264,11 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals("buzz", get("foo", 200));
         Assert.assertEquals(null, get("foo", 124));
         Assert.assertEquals(ImmutableSet.of(125L), getAllTs("foo"));
+    }
+
+    @Test
+    public void testSweepManyRowsThorough() {
+        testSweepManyRows(SweepStrategy.THOROUGH);
     }
 
     @Test
@@ -525,6 +522,19 @@ public abstract class AbstractSweeperTest {
         SweepResults results = completeSweep(175);
 
         Assert.assertEquals(results, SweepResults.createEmptySweepResult(0L));
+    }
+
+    private void testSweepManyRows(SweepStrategy strategy) {
+        createTable(strategy);
+        put("foo", "bar1", 5);
+        put("foo", "bar2", 10);
+        put("baz", "bar3", 15);
+        put("baz", "bar4", 20);
+
+        SweepResults results = completeSweep(175);
+
+        Assert.assertEquals(2, results.getCellsDeleted());
+        Assert.assertEquals(2, results.getCellsExamined());
     }
 
     private List<SweepProgressRowResult> getProgressTable() {
