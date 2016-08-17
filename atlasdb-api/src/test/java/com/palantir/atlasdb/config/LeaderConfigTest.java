@@ -47,16 +47,15 @@ public class LeaderConfigTest {
         assertThat(config.whoIsTheLockLeader(), is(LockLeader.SOMEONE_ELSE_IS_THE_LOCK_LEADER));
     }
 
-
     @Test
-    public void lockLeaderDefaultsToBeTheFirstLeader() {
+    public void lockLeaderDefaultsToBeTheFirstSortedLeader() {
         ImmutableLeaderConfig config = ImmutableLeaderConfig.builder()
                 .localServer("me")
                 .addLeaders("not me", "me")
                 .quorumSize(2)
                 .build();
 
-        assertThat(config.lockCreator(), is("not me"));
+        assertThat(config.lockCreator(), is("me"));
     }
 
     @Test(expected = IllegalStateException.class)
