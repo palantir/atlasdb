@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.dropwizard.commands;
 
-import static org.apache.commons.cli.Option.UNINITIALIZED;
-import static org.apache.commons.cli.Option.UNLIMITED_VALUES;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -62,16 +59,16 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
 
         for (Option option : (Collection<Option>) AtlasConsoleMain.OPTIONS.getOptions()) {
             int numArgs = option.getArgs();
-            if(option.getOpt().equals("h")) {
+            if (option.getOpt().equals("h")) {
                 continue;
             }
             Argument arg = subparser.addArgument("-" + option.getOpt(), "--" + option.getLongOpt())
                     .required(option.isRequired())
                     .help(option.getDescription())
                     .dest("--" + option.getLongOpt());
-            if (numArgs == UNLIMITED_VALUES) {
+            if (numArgs == Option.UNLIMITED_VALUES) {
                 arg.nargs("+");
-            } else if (numArgs != UNINITIALIZED) {
+            } else if (numArgs != Option.UNINITIALIZED) {
                 arg.nargs(numArgs);
             }
         }
@@ -88,7 +85,7 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
                 .filter(entry -> entry.getKey().startsWith("--"))
                 .filter(entry -> entry.getValue() != null)
                 .flatMap(entry -> {
-                    if(entry.getValue() instanceof List) {
+                    if (entry.getValue() instanceof List) {
                         return Stream.concat(Stream.of(entry.getKey()), ((List<String>) entry.getValue()).stream());
                     } else {
                         return Stream.of(entry.getKey(), (String) entry.getValue());

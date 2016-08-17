@@ -38,7 +38,7 @@ public class TransactionCommitFailedException extends TransactionFailedException
     }
 
     @Override
-    final public boolean canTransactionBeRetried() {
+    public final boolean canTransactionBeRetried() {
         return false;
     }
 }

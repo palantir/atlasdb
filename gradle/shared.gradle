@@ -2,7 +2,7 @@ apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: 'checkstyle'
-apply plugin: 'jacoco-coverage'
+apply plugin: 'com.palantir.jacoco-coverage'
 apply plugin: 'com.github.hierynomus.license'
 
 apply from: "${rootDir}/gradle/versions.gradle"
@@ -24,6 +24,10 @@ repositories {
 checkstyle {
     toolVersion = libVersions.checkstyle
     configFile rootProject.file('config/checkstyle/checkstyle.xml')
+}
+
+jacoco {
+    toolVersion = libVersions.jacoco
 }
 
 libsDirName = file('build/artifacts')

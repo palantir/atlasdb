@@ -33,14 +33,14 @@ public final class Namespace {
      * <p>
      * This will not protect you from creating namespace that are incompatible with your underlying datastore.
      * <p>
-     * Use {@link Namespace.LOOSELY_CHECKED_NAME} or {@link Namespace.STRICTLY_CHECKED_NAME} if possible.
+     * Use {@link Namespace#LOOSELY_CHECKED_NAME} or {@link Namespace#STRICTLY_CHECKED_NAME} if possible.
      */
     public static final Pattern UNCHECKED_NAME = Pattern.compile("^[^\\.\\s]+$");
 
     /**
      * Less restrictive name pattern (letters, numbers, underscores, and hyphens).
      * <p>
-     * Use {@link Namespace.STRICTLY_CHECKED_NAME} if possible.
+     * Use {@link Namespace#STRICTLY_CHECKED_NAME} if possible.
      */
     public static final Pattern LOOSELY_CHECKED_NAME = Pattern.compile("^[\\w-]+$");
 
@@ -55,10 +55,11 @@ public final class Namespace {
         return create(name, STRICTLY_CHECKED_NAME);
     }
 
-    public static Namespace create(String name, Pattern p) {
+    public static Namespace create(String name, Pattern pattern) {
         Validate.notEmpty(name, "namespace name cannot be empty (see Namespace.EMPTY_NAMESPACE instead).");
         Validate.isTrue(!name.contains("."), "namespace cannot contain dots (atlas reserved).");
-        Validate.isTrue(p.matcher(name).matches(), "'" + name + "' does not match namespace pattern '" + p + "'.");
+        Validate.isTrue(pattern.matcher(name).matches(),
+                "'" + name + "' does not match namespace pattern '" + pattern + "'.");
         return new Namespace(name);
     }
 

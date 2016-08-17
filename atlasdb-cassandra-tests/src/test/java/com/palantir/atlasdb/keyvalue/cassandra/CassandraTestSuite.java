@@ -68,6 +68,8 @@ public class CassandraTestSuite {
 
     static InetSocketAddress CASSANDRA_THRIFT_ADDRESS;
 
+    static ImmutableCassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG_NO_LOCK_LEADER;
+
     static ImmutableCassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG;
 
     static Optional<LeaderConfig> LEADER_CONFIG;
