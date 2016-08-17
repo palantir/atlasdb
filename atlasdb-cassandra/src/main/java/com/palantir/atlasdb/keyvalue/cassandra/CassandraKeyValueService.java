@@ -18,11 +18,9 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,16 +36,12 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnParent;
-import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.CqlResult;
-import org.apache.cassandra.thrift.CqlRow;
 import org.apache.cassandra.thrift.Deletion;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KeyRange;
@@ -61,7 +55,6 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
@@ -1231,51 +1224,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 List<KeySlice> firstPage = getRangeSlices(host, tableRef, keyRange, pred, consistency);
 
                 Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(firstPage);
-
                 Set<ByteBuffer> rows = colsByKey.keySet();
 
-
-                // we'll write into this
-                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey2 = new HashMap<>();
-
-                for (ByteBuffer row : rows) {
-                    List<ColumnOrSuperColumn> columns = new ArrayList<>();
-
-                    String rowAsByteString = "0x" + PtBytes.encodeHexString(row.array()); //new String(row.array(), Charsets.UTF_8); // TODO this might not work, we might need a string starting with 0x...
-                    String tableName = internalTableName(tableRef);
-                    String columnNameStr = "0x00";
-                    String query = "select column1, column2 from " + tableName + " where key = " + rowAsByteString + " AND column1 > " + columnNameStr + " LIMIT 10;";
-                    System.out.println("query (first): " + query);
-
-                    while (true) {
-                        ByteBuffer queryBytes = ByteBuffer.wrap(query.getBytes(Charsets.UTF_8));
-
-                        CqlResult cqlResult = clientPool.runWithRetryOnHost(host, client -> client.execute_cql3_query(queryBytes, Compression.NONE, consistency));
-
-                        long timestamp = 0;
-                        for (CqlRow cqlRow : cqlResult.getRows()) {
-                            byte[] columnName = cqlRow.getColumns().get(0).getValue();
-                            byte[] timestampAsBytes = cqlRow.getColumns().get(1).getValue();
-                            timestamp = PtBytes.toLong(timestampAsBytes);
-                            columnNameStr = "0x" + PtBytes.encodeHexString(columnName);
-
-                            ColumnOrSuperColumn columnOrSuperColumn = makeColumnOrSuperColumn(columnName, timestampAsBytes);
-                            columns.add(columnOrSuperColumn);
-                        }
-
-
-                        if (cqlResult.getRows().size() < 10) {
-                            break;
-                        }
-                        query = "select column1, column2 from " + tableName + " where key = " + rowAsByteString + " AND column1 = " + columnNameStr + " AND column2 > " + timestamp + " LIMIT 10;";
-                        System.out.println("query: " + query);
-                    }
-
-
-                    colsByKey2.put(row, columns);
-                }
-
-
+                CellPager cellPager = new CellPager(clientPool, host);
+                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey2 = cellPager.getColsByKeyWithPaging(rows, tableRef, consistency);
 
                 TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
                         resultsExtractor.get().getPageFromRangeResults(colsByKey2, timestamp, selection, endExclusive);
@@ -1302,16 +1254,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             keyRange.setEnd_key(RangeRequests.previousLexicographicName(endExclusive));
         }
         return keyRange;
-    }
-
-    public ColumnOrSuperColumn makeColumnOrSuperColumn(byte[] columnName, byte[] timestamp) {
-
-        long timestampLong = ~PtBytes.toLong(timestamp);
-        Column col = new Column()
-                .setName(CassandraKeyValueServices.makeCompositeBuffer(columnName, timestampLong));
-        ColumnOrSuperColumn cosc = new ColumnOrSuperColumn().setColumn(col);
-
-        return cosc;
     }
 
     public <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(final TableReference tableRef,
