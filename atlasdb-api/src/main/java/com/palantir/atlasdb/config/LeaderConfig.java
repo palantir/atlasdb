@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.config;
 
 import java.io.File;
-import java.util.Set;
+import java.util.List;
 
 import javax.validation.constraints.Size;
 
@@ -26,6 +26,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 @JsonDeserialize(as = ImmutableLeaderConfig.class)
 @JsonSerialize(as = ImmutableLeaderConfig.class)
@@ -47,15 +49,13 @@ public abstract class LeaderConfig {
     public abstract String localServer();
 
     @Size(min = 1)
-    public abstract Set<String> leaders();
+    public abstract List<String> leaders();
 
     @JsonProperty("lockCreator")
     @Value.Default
     public String lockCreator() {
-        if (leaders().isEmpty()) {
-            throw new IllegalStateException("The leaders block cannot be empty");
-        }
-        return leaders().iterator().next();
+        Preconditions.checkState(!leaders().isEmpty(), "The leaders block cannot be empty");
+        return Iterables.getFirst(leaders(), null);
     }
 
     @Value.Default
@@ -75,6 +75,10 @@ public abstract class LeaderConfig {
 
     @Value.Check
     protected final void check() {
+        Preconditions.checkState(ImmutableSet.copyOf(leaders()).size() == leaders().size(),
+                "There must be no duplicates in the leader entries %s.", leaders());
+        Preconditions.checkState(quorumSize() > leaders().size() / 2,
+                "The quorumSize '%d' must be over half the amount of the leaders entries %s.", quorumSize(), leaders());
         Preconditions.checkArgument(leaders().contains(localServer()),
                 "The localServer '%s' must included in the leader entries %s.", localServer(), leaders());
         Preconditions.checkArgument(learnerLogDir().exists() || learnerLogDir().mkdirs(),

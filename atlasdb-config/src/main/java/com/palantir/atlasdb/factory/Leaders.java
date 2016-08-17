@@ -27,6 +27,7 @@ import javax.net.ssl.SSLSocketFactory;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -57,8 +58,9 @@ public class Leaders {
         PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor(config.acceptorLogDir().getPath());
         PaxosLearner ourLearner = PaxosLearnerImpl.newLearner(config.learnerLogDir().getPath());
 
-        Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
-        remoteLeaderUris.remove(config.localServer());
+        Set<String> remoteLeaderUris = Sets.difference(
+                ImmutableSet.copyOf(config.leaders()),
+                ImmutableSet.of(config.localServer()));
 
         List<PaxosLearner> learners =
                 AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosLearner.class);

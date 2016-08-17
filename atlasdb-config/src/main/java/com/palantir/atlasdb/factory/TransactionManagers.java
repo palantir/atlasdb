@@ -210,9 +210,10 @@ public class TransactionManagers {
             warnIf(config.lock().isPresent(), "Ignoring lock server configuration because leadership election is enabled");
             warnIf(config.timestamp().isPresent(), "Ignoring timestamp server configuration because leadership election is enabled");
 
+            Set<String> leaders = ImmutableSet.copyOf(config.leader().get().leaders());
             return ImmutableLockAndTimestampServices.builder()
-                    .lock(createService(sslSocketFactory, config.leader().get().leaders(), RemoteLockService.class))
-                    .time(createService(sslSocketFactory, config.leader().get().leaders(), TimestampService.class))
+                    .lock(createService(sslSocketFactory, leaders, RemoteLockService.class))
+                    .time(createService(sslSocketFactory, leaders, TimestampService.class))
                     .build();
         } else {
             warnIf(config.lock().isPresent() != config.timestamp().isPresent(), "Using embedded instances for one (but not both) of lock and timestamp services");
