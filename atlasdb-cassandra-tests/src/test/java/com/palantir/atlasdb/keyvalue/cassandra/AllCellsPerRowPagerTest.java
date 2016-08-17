@@ -18,6 +18,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.StringEndsWith.endsWith;
@@ -34,6 +35,7 @@ import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -81,11 +83,25 @@ public class AllCellsPerRowPagerTest {
 
     @Test
     public void getFirstPageShouldExecuteQueryLimitedToPageSize() {
+        verifyFirstPageQueryMatches(endsWith(String.format("LIMIT %s;", pageSize)));
+    }
+
+    @Test
+    public void getFirstPageShouldFireCqlRequestWithCorrectTableName() {
+        verifyFirstPageQueryMatches(containsString(String.format("FROM %s ", "tr")));
+    }
+
+    @Test
+    public void getFirstPageShouldFireCqlRequestWithCorrectRow() {
+        verifyFirstPageQueryMatches(containsString(String.format("WHERE key = %s ", encodeAsHex(rowKey.array()))));
+    }
+
+    private void verifyFirstPageQueryMatches(Matcher<String> matcher) {
         allQueriesReturn(ImmutableList.of());
 
         pager.getFirstPage();
 
-        verify(executor).execute(argThat(endsWith(String.format("LIMIT %s;", pageSize))));
+        verify(executor).execute(argThat(matcher));
     }
 
     private CqlRow makeCqlRow(String columnName, long timestamp) {
@@ -114,5 +130,10 @@ public class AllCellsPerRowPagerTest {
     private ByteBuffer toByteBuffer(String str) {
         return ByteBuffer.wrap(str.getBytes());
     }
+
+    private String encodeAsHex(byte[] array) {
+        return "0x" + PtBytes.encodeHexString(array);
+    }
+
 
 }

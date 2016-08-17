@@ -47,7 +47,7 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
     @Override
     public List<ColumnOrSuperColumn> getFirstPage() {
         String query = String.format(
-                "select column1, column2 from %s where key = %s LIMIT %s;",
+                "SELECT column1, column2 FROM %s WHERE key = %s LIMIT %s;",
                 getTableName(),
                 row,
                 pageSize);
@@ -64,7 +64,7 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
         long timestamp = ~nameAndTimestamp.getRhSide();
 
         String query = String.format(
-                "select column1, column2 from %s where key = %s AND column1 = %s AND column2 > %s LIMIT 10;",
+                "SELECT column1, column2 from %s WHERE key = %s AND column1 = %s AND column2 > %s LIMIT 10;",
                 getTableName(),
                 row,
                 columnNameStr,
