@@ -16,6 +16,7 @@
 package com.palantir.cassandra.multinode;
 
 import static org.hamcrest.Matchers.everyItem;
+import static org.junit.Assert.assertThat;
 
 import java.io.File;
 import java.io.IOException;
@@ -143,7 +144,7 @@ public class CassandraSchemaLockTest {
             executorService.awaitTermination(5L, TimeUnit.MINUTES);
         }
 
-        MatcherAssert.assertThat(new File("container-logs-multinode"),
+        assertThat(new File("container-logs-multinode"),
                 containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())));
     }
 
