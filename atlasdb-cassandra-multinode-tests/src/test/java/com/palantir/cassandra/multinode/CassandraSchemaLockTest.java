@@ -68,12 +68,13 @@ public class CassandraSchemaLockTest {
     private static final int THRIFT_PORT_NUMBER_2 = 9161;
     private static final int THRIFT_PORT_NUMBER_3 = 9162;
 
+    private static final String CONTAINER_LOGS_DIRECTORY = "container-logs";
     private static final DockerComposeRule CASSANDRA_DOCKER_SETUP = DockerComposeRule.builder()
             .file("src/test/resources/docker-compose-multinode.yml")
             .waitingForService("cassandra1", Container::areAllPortsOpen)
             .waitingForService("cassandra2", Container::areAllPortsOpen)
             .waitingForService("cassandra3", Container::areAllPortsOpen)
-            .saveLogsTo("container-logs")
+            .saveLogsTo(CONTAINER_LOGS_DIRECTORY)
             .build();
 
     private static final Gradle GRADLE_PREPARE_TASK =
@@ -117,7 +118,7 @@ public class CassandraSchemaLockTest {
     @After
     public void shutdownExecutor() throws InterruptedException {
         executorService.shutdown();
-        executorService.awaitTermination(5L, TimeUnit.MINUTES);
+        executorService.awaitTermination(3L, TimeUnit.MINUTES);
     }
 
     @Test
@@ -134,7 +135,7 @@ public class CassandraSchemaLockTest {
                 return null;
             });
         }
-        assertThat(new File("container-logs-multinode"),
+        assertThat(new File(CONTAINER_LOGS_DIRECTORY),
                 containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())));
     }
 
