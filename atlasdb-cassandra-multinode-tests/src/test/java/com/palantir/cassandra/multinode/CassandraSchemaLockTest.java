@@ -34,19 +34,20 @@ import java.util.stream.Collectors;
 import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
-import org.hamcrest.MatcherAssert;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
@@ -55,73 +56,68 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.ete.Gradle;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import com.palantir.docker.compose.DockerComposition;
+import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
-import com.palantir.docker.compose.connection.waiting.HealthCheck;
-import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CassandraSchemaLockTest {
-    public static final int THRIFT_PORT_NUMBER = 9160;
-    public static final DockerComposition composition =
-            DockerComposition.of("src/test/resources/docker-compose-multinode.yml")
-            .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen())
+    private static final String LOCAL_SERVER_ADDRESS = "http://localhost:3828";
+    private static final int THRIFT_PORT_NUMBER_1 = 9160;
+    private static final int THRIFT_PORT_NUMBER_2 = 9161;
+    private static final int THRIFT_PORT_NUMBER_3 = 9162;
+
+    private static final DockerComposeRule CASSANDRA_DOCKER_SETUP = DockerComposeRule.builder()
+            .file("src/test/resources/docker-compose-multinode.yml")
+            .waitingForService("cassandra1", Container::areAllPortsOpen)
+            .waitingForService("cassandra2", Container::areAllPortsOpen)
+            .waitingForService("cassandra3", Container::areAllPortsOpen)
             .saveLogsTo("container-logs-multinode")
             .build();
 
-    public static final Gradle GRADLE_PREPARE_TASK =
+    private static final Gradle GRADLE_PREPARE_TASK =
             Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
-
     @ClassRule
-    public static final RuleChain CASSANDRA_DOCKER_SET_UP =
-            RuleChain.outerRule(GRADLE_PREPARE_TASK).around(composition);
+    public static final RuleChain CASSANDRA_DOCKER_SET_UP = RuleChain
+            .outerRule(GRADLE_PREPARE_TASK)
+            .around(CASSANDRA_DOCKER_SETUP);
 
-    static InetSocketAddress cassandraThriftAddress;
+    private static final CassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
+            .addServers(getCassandraThriftAddressFromPort(THRIFT_PORT_NUMBER_1))
+            .addServers(getCassandraThriftAddressFromPort(THRIFT_PORT_NUMBER_2))
+            .addServers(getCassandraThriftAddressFromPort(THRIFT_PORT_NUMBER_3))
+            .keyspace("atlasdb")
+            .replicationFactor(1)
+            .credentials(ImmutableCassandraCredentialsConfig.builder()
+                    .username("cassandra")
+                    .password("cassandra")
+                    .build())
+            .build();
 
-    static ImmutableCassandraKeyValueServiceConfig cassandraKvsConfig;
+    private static final Optional<LeaderConfig> leaderConfig = Optional.of(ImmutableLeaderConfig.builder()
+            .quorumSize(1)
+            .localServer(LOCAL_SERVER_ADDRESS)
+            .leaders(ImmutableSet.of(LOCAL_SERVER_ADDRESS))
+            .build());
 
-    static Optional<LeaderConfig> leaderConfig;
-    private static CassandraKeyValueServiceConfigManager configManager;
+    private static final CassandraKeyValueServiceConfigManager CONFIG_MANAGER = CassandraKeyValueServiceConfigManager
+            .createSimpleManager(KVS_CONFIG);
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(32);
 
     @BeforeClass
     public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {
-        DockerPort port = composition.hostNetworkedPort(THRIFT_PORT_NUMBER);
-        String hostname = port.getIp();
-        cassandraThriftAddress = new InetSocketAddress(hostname, port.getExternalPort());
-
-        cassandraKvsConfig = ImmutableCassandraKeyValueServiceConfig.builder()
-                .addServers(cassandraThriftAddress)
-                .poolSize(20)
-                .keyspace("atlasdb")
-                .credentials(ImmutableCassandraCredentialsConfig.builder()
-                        .username("cassandra")
-                        .password("cassandra")
-                        .build())
-                .ssl(false)
-                .replicationFactor(1)
-                .mutationBatchCount(10000)
-                .mutationBatchSizeBytes(10000000)
-                .fetchBatchCount(1000)
-                .safetyDisabled(false)
-                .autoRefreshNodes(false)
-                .build();
-
-        configManager = CassandraKeyValueServiceConfigManager.createSimpleManager(cassandraKvsConfig);
-
-        leaderConfig = Optional.of(ImmutableLeaderConfig
-                .builder()
-                .quorumSize(1)
-                .localServer(hostname)
-                .leaders(ImmutableSet.of(hostname))
-                .build());
-
         Awaitility.await()
                 .atMost(Duration.TWO_MINUTES)
                 .pollInterval(Duration.ONE_SECOND)
                 .until(canCreateKeyValueService());
+    }
+
+    @After
+    public void shutdownExecutor() throws InterruptedException {
+        executorService.shutdown();
+        executorService.awaitTermination(5L, TimeUnit.MINUTES);
     }
 
     @Test
@@ -129,38 +125,37 @@ public class CassandraSchemaLockTest {
         TableReference table1 = TableReference.createFromFullyQualifiedName("ns.table1");
 
         CyclicBarrier barrier = new CyclicBarrier(32);
-        try {
-            for (int i = 0; i < 32; i++) {
-                async(() -> {
-                    CassandraKeyValueService keyValueService =
-                            CassandraKeyValueService.create(configManager, Optional.absent());
-                    barrier.await();
-                    keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
-                    return null;
-                });
-            }
-        } finally {
-            executorService.shutdown();
-            executorService.awaitTermination(5L, TimeUnit.MINUTES);
+        for (int i = 0; i < 32; i++) {
+            async(() -> {
+                CassandraKeyValueService keyValueService =
+                        CassandraKeyValueService.create(CONFIG_MANAGER, Optional.absent());
+                barrier.await();
+                keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
+                return null;
+            });
         }
-
         assertThat(new File("container-logs-multinode"),
                 containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())));
     }
 
-    private Matcher<File> containsFiles(Matcher<Iterable<File>> fileMatcher) {
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
+    private void async(Callable callable) {
+        executorService.submit(callable);
+    }
+
+    private static Matcher<File> containsFiles(Matcher<Iterable<File>> fileMatcher) {
         return new FeatureMatcher<File, List<File>>(
                 fileMatcher,
                 "Directory with files such that",
                 "Directory contains") {
             @Override
             protected List<File> featureValueOf(File actual) {
-                return Lists.newArrayList(actual.listFiles());
+                return ImmutableList.copyOf(actual.listFiles());
             }
         };
     }
 
-    private Matcher<File> doesNotContainTheColumnFamilyIdMismatchError() {
+    private static Matcher<File> doesNotContainTheColumnFamilyIdMismatchError() {
         return new TypeSafeDiagnosingMatcher<File>() {
             @Override
             protected boolean matchesSafely(File file, Description mismatchDescription) {
@@ -189,8 +184,9 @@ public class CassandraSchemaLockTest {
     private static Callable<Boolean> canCreateKeyValueService() {
         return () -> {
             try {
-                CassandraKeyValueService.create(CassandraKeyValueServiceConfigManager.createSimpleManager(
-                        cassandraKvsConfig), leaderConfig);
+                CassandraKeyValueService.create(
+                        CassandraKeyValueServiceConfigManager.createSimpleManager(KVS_CONFIG),
+                        leaderConfig);
                 return true;
             } catch (Exception e) {
                 return false;
@@ -198,12 +194,9 @@ public class CassandraSchemaLockTest {
         };
     }
 
-    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
-    protected void async(Callable callable) {
-        executorService.submit(callable);
-    }
-
-    private static HealthCheck<DockerPort> toBeOpen() {
-        return port -> SuccessOrFailure.fromBoolean(port.isListeningNow(), "" + "" + port + " was not open");
+    private static InetSocketAddress getCassandraThriftAddressFromPort(int port) {
+        DockerPort dockerPort = CASSANDRA_DOCKER_SETUP.hostNetworkedPort(port);
+        String hostname = dockerPort.getIp();
+        return new InetSocketAddress(hostname, dockerPort.getExternalPort());
     }
 }
