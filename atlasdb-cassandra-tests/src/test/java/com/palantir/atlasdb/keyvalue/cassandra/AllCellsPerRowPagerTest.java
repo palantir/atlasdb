@@ -20,8 +20,11 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.core.StringEndsWith.endsWith;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.ByteBuffer;
@@ -40,36 +43,59 @@ import com.palantir.util.Pair;
 
 public class AllCellsPerRowPagerTest {
 
+    CqlExecutor executor = mock(CqlExecutor.class);
+    ByteBuffer rowKey = toByteBuffer("row");
+    int pageSize = 20;
+
+    AllCellsPerRowPager pager = new AllCellsPerRowPager(
+            executor,
+            rowKey,
+            TableReference.fromString("tr"),
+            pageSize
+    );
+
     @Test
     public void testGetFirstPage() {
-        CqlExecutor executor = mock(CqlExecutor.class);
-        ByteBuffer rowKey = toByteBuffer("row");
-        AllCellsPerRowPager pager = new AllCellsPerRowPager(
-                executor,
-                rowKey,
-                TableReference.fromString("tr"),
-                10
-        );
-
-        List<Column> columns = ImmutableList.of(new Column().setValue("col1".getBytes()),
+        String columnName = "col1";
+        List<Column> columns = ImmutableList.of(
+                new Column().setValue(columnName.getBytes()),
                 new Column().setValue(PtBytes.toBytes(-2L)));
         CqlRow row = new CqlRow(rowKey, columns);
 
-        CqlResult cqlResult = mock(CqlResult.class);
-        when(cqlResult.getRows()).thenReturn(ImmutableList.of(row));
-        when(executor.execute(anyString())).thenReturn(cqlResult);
+        allQueriesReturn(ImmutableList.of(row));
 
         List<ColumnOrSuperColumn> firstPage = pager.getFirstPage();
 
         assertThat(firstPage, hasSize(1));
-        ColumnOrSuperColumn columnOrSuperColumn = firstPage.get(0);
+        assertColumnOrSuperColumnHasCorrectNameAndTimestamp(firstPage.get(0), columnName, 1L);
+    }
+
+    @Test
+    public void getFirstPageShouldExecuteQueryLimitedToPageSize() {
+        allQueriesReturn(ImmutableList.of());
+
+        pager.getFirstPage();
+
+        verify(executor).execute(argThat(endsWith(String.format("LIMIT %s;", pageSize))));
+    }
+
+    private void allQueriesReturn(List<CqlRow> rows) {
+        CqlResult cqlResult = mock(CqlResult.class);
+        when(cqlResult.getRows()).thenReturn(rows);
+        when(executor.execute(anyString())).thenReturn(cqlResult);
+    }
+
+
+    private void assertColumnOrSuperColumnHasCorrectNameAndTimestamp(ColumnOrSuperColumn columnOrSuperColumn, String expectedName, long expectedTs) {
         Pair<byte[], Long> nameAndTimestamp = CassandraKeyValueServices.decomposeName(columnOrSuperColumn.getColumn());
         String colName = PtBytes.toString(nameAndTimestamp.getLhSide());
-        assertThat(colName, equalTo("col1"));
+        assertThat(colName, equalTo(expectedName));
 
         long timestamp = nameAndTimestamp.getRhSide();
-        assertThat(timestamp, equalTo(1L));
-   }
+        assertThat(timestamp, equalTo(expectedTs));
+
+    }
+
 
     private ByteBuffer toByteBuffer(String str) {
         return ByteBuffer.wrap(str.getBytes());

@@ -47,9 +47,10 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
     @Override
     public List<ColumnOrSuperColumn> getFirstPage() {
         String query = String.format(
-                "select column1, column2 from %s where key = %s LIMIT 10;",
+                "select column1, column2 from %s where key = %s LIMIT %s;",
                 getTableName(),
-                row);
+                row,
+                pageSize);
 
         return getColumns(query);
     }
