@@ -113,7 +113,7 @@ public class CassandraSchemaLockTest {
                 .build());
 
         Awaitility.await()
-                .atMost(Duration.ONE_MINUTE)
+                .atMost(Duration.FIVE_MINUTES)
                 .pollInterval(Duration.ONE_SECOND)
                 .until(canCreateKeyValueService());
     }
