@@ -17,6 +17,7 @@ package com.palantir.cassandra.multinode;
 
 import static org.hamcrest.Matchers.everyItem;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,13 +36,13 @@ import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
-import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.jayway.awaitility.Awaitility;
@@ -115,25 +116,24 @@ public class CassandraSchemaLockTest {
                 .until(canCreateKeyValueService());
     }
 
-    @After
-    public void shutdownExecutor() throws InterruptedException {
-        executorService.shutdown();
-        executorService.awaitTermination(3L, TimeUnit.MINUTES);
-    }
-
     @Test
     public void shouldCreateTablesConsistentlyWithMultipleCassandraNodes() throws Exception {
         TableReference table1 = TableReference.createFromFullyQualifiedName("ns.table1");
 
-        CyclicBarrier barrier = new CyclicBarrier(32);
-        for (int i = 0; i < 32; i++) {
-            async(() -> {
-                CassandraKeyValueService keyValueService =
-                        CassandraKeyValueService.create(CONFIG_MANAGER, Optional.absent());
-                barrier.await();
-                keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
-                return null;
-            });
+        try {
+            CyclicBarrier barrier = new CyclicBarrier(32);
+            for (int i = 0; i < 32; i++) {
+                async(() -> {
+                    CassandraKeyValueService keyValueService =
+                            CassandraKeyValueService.create(CONFIG_MANAGER, Optional.absent());
+                    barrier.await();
+                    keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
+                    return null;
+                });
+            }
+        } finally {
+            executorService.shutdown();
+            assertTrue(executorService.awaitTermination(3L, TimeUnit.MINUTES));
         }
         assertThat(new File(CONTAINER_LOGS_DIRECTORY),
                 containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())));
@@ -171,7 +171,7 @@ public class CassandraSchemaLockTest {
 
                     return badLines.isEmpty();
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    throw Throwables.propagate(e);
                 }
             }
 
