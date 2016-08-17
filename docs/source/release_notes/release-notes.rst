@@ -50,6 +50,7 @@ v0.12.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/755>`__)
     *    - |improved|
          - Docs for cassandra_KVS_configuration now have correct information on ``ssl`` and ``sslConfiguration`` parameters. Also, documentation for leader block is now added.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/787>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

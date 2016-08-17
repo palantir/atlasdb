@@ -63,6 +63,8 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
 
 .. _cass-config-ssl:
 
+For more details on the leader block, see `leader-config <leader_config.html>`__.
+
 Communicating Over SSL
 ======================
 
@@ -91,22 +93,3 @@ ssl
 
 This property is a boolean value saying whether or not to use ssl.  When ``true``, it will use java system properties that are passed in as jvm arguments to determine how to set up the ssl connection.  For example, you would use the jvm option ``-Djavax.net.ssl.trustStore=<path-to-truststore>`` to tell atlas where to find the truststore to use.
 
-Leader
-======
-
-The leader block is where you specify the leaders (all hosts that participate in leader election) for paxos and a lockCreator for creating the schema mutation lock table.
-
-Required parameters:
-
-- ``quorumSize`` : Number of hosts that form a majority. This number must be greater than half of the total number of hosts.
-- ``leaders`` : A list of all hosts. The protocol must be http/https depending on if ssl is configured.
-- ``localhost`` : The ``protocol://hostname:port`` eg: ``https://myhost:3828`` of the host on which this config exists.
-
-Optional parameters:
-
-- ``learnerLogDir`` : Path to the paxos learner logs (defaults to var/data/paxos/learner)
-- ``acceptorLogDir`` : Path to the paxos acceptor logs (defaults to var/data/paxos/acceptor)
-- ``lockCreator`` : The host responsible for creation of the schema mutation lock table. If specified, this must be same across all hosts. (defaults to the first host in the leaders list, the first host must be same across all the hosts for this to work)
-- ``pingRateMs`` : defaults to 5000
-- ``randomWaitBeforeProposingLeadershipMs`` : defaults to 1000
-- ``leaderPingResponseWaitMs`` : defaults to 5000
