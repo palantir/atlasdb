@@ -11,6 +11,7 @@ Thumbs.db
 *.iml
 *.ipr
 *.iws
+.idea
 fix-ivy.py
 .classpath
 .ecbuild
