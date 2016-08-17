@@ -49,14 +49,15 @@ public class AllCellsPerRowPagerTest {
     ByteBuffer rowKey = toByteBuffer("row");
     int pageSize = 20;
 
+    private static final TableReference DEFAULT_TABLE = TableReference.fromString("tr");
+    private static final String DEFAULT_COLUMN_NAME = "col1";
+
     AllCellsPerRowPager pager = new AllCellsPerRowPager(
             executor,
             rowKey,
-            TableReference.fromString("tr"),
+            DEFAULT_TABLE,
             pageSize
     );
-
-    private static final String DEFAULT_COLUMN_NAME = "col1";
 
     @Test
     public void testGetFirstPage() {
@@ -88,12 +89,12 @@ public class AllCellsPerRowPagerTest {
 
     @Test
     public void getFirstPageShouldFireCqlRequestWithCorrectTableName() {
-        verifyFirstPageQueryMatches(containsString(String.format("FROM %s ", "tr")));
+        verifyFirstPageQueryMatches(containsString(String.format("FROM %s ", DEFAULT_TABLE.getQualifiedName())));
     }
 
     @Test
     public void getFirstPageShouldFireCqlRequestWithCorrectRow() {
-        verifyFirstPageQueryMatches(containsString(String.format("WHERE key = %s ", encodeAsHex(rowKey.array()))));
+        verifyFirstPageQueryMatches(containsString(String.format("WHERE key = %s LIMIT", encodeAsHex(rowKey.array()))));
     }
 
     private void verifyFirstPageQueryMatches(Matcher<String> matcher) {
@@ -134,6 +135,4 @@ public class AllCellsPerRowPagerTest {
     private String encodeAsHex(byte[] array) {
         return "0x" + PtBytes.encodeHexString(array);
     }
-
-
 }
