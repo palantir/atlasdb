@@ -133,7 +133,7 @@ public class CassandraSchemaLockTest {
             }
         } finally {
             executorService.shutdown();
-            assertTrue(executorService.awaitTermination(3L, TimeUnit.MINUTES));
+            assertTrue(executorService.awaitTermination(10, TimeUnit.MINUTES));
         }
         assertThat(new File(CONTAINER_LOGS_DIRECTORY),
                 containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())));
