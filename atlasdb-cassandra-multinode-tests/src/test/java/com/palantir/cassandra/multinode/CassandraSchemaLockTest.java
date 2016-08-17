@@ -73,7 +73,7 @@ public class CassandraSchemaLockTest {
             .waitingForService("cassandra1", Container::areAllPortsOpen)
             .waitingForService("cassandra2", Container::areAllPortsOpen)
             .waitingForService("cassandra3", Container::areAllPortsOpen)
-            .saveLogsTo("container-logs-multinode")
+            .saveLogsTo("container-logs")
             .build();
 
     private static final Gradle GRADLE_PREPARE_TASK =

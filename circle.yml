@@ -15,7 +15,8 @@ general:
   artifacts:
     - "build/reports/profile"
     - "atlasdb-ete-tests/container-logs"
-    - "atlasdb-cassandra-multinode-tests/container-logs-multinode"
+    - "atlasdb-cassandra-tests/container-logs"
+    - "atlasdb-cassandra-multinode-tests/container-logs"
 
 dependencies:
   pre:
