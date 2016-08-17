@@ -16,9 +16,9 @@ dependencies {
   compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: '0.17.2'
   compile group: 'ch.qos.logback', name: 'logback-classic', version: libVersions.logback
 
-  compile group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.13'
+  compile group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.12'
   processor 'org.immutables:value:2.0.21'
-  processor(group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.13') {
+  processor(group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.12') {
       // We need to explicitly exclude these so that intellij does not label them as provided
       if(gradle.startParameter.taskNames.contains('idea')) {
           exclude group: 'org.openjdk.jmh', module: 'jmh-core'
