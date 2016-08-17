@@ -48,6 +48,9 @@ v0.12.0
     *    - |fixed|
          - DB passwords are no longer output as part of the connection configuration ``toString()`` methods.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/755>`__)
+    *    - |improved|
+         - Docs for cassandra_KVS_configuration now have correct information on ``ssl`` and ``sslConfiguration`` parameters. Also, documentation for leader block is now added.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/787>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

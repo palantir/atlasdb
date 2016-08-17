@@ -36,7 +36,7 @@
   
     <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
         <link rel="up" title="Configuration" href="index.html"/>
-        <link rel="next" title="Cluster Management" href="../cluster_management/index.html"/>
+        <link rel="next" title="Leader configuration" href="leader_config.html"/>
         <link rel="prev" title="Postgres Key Value Service Configuration" href="postgres_key_value_service_config.html"/> 
 
   
@@ -95,6 +95,7 @@
 <li class="toctree-l2"><a class="reference internal" href="enabling_cassandra_tracing.html">Enabling Cassandra Tracing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="postgres_key_value_service_config.html">Postgres Key Value Service Configuration</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Cassandra Key Value Service Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="leader_config.html">Leader configuration</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a></li>
@@ -162,7 +163,7 @@
 </div>
 <div class="section" id="configuring-a-running-application-to-use-cassandra">
 <h2>Configuring a Running Application to Use Cassandra<a class="headerlink" href="#configuring-a-running-application-to-use-cassandra" title="Permalink to this headline">¶</a></h2>
-<p>A minimal atlas configuration for running against cassandra will look like the below.</p>
+<p>A minimal AtlasDB configuration for running against cassandra will look like the below.</p>
 <p>Importantly - your lock creator must be consistent across all nodes. If you do not provide a lock creator, it will default to the first host
 in the leaders list. If you do not specify a lock creator, the leaders block should be exactly the same across all nodes.</p>
 <div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
@@ -176,7 +177,7 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
       <span class="l l-Scalar l-Scalar-Plain">username</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
       <span class="l l-Scalar l-Scalar-Plain">password</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">cassandra</span>
     <span class="l l-Scalar l-Scalar-Plain">sslConfiguration</span><span class="p p-Indicator">:</span>
-        <span class="l l-Scalar l-Scalar-Plain">trustStorePath</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
+      <span class="l l-Scalar l-Scalar-Plain">trustStorePath</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
     <span class="l l-Scalar l-Scalar-Plain">replicationFactor</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">1</span>
     <span class="l l-Scalar l-Scalar-Plain">mutationBatchCount</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">10000</span>
     <span class="l l-Scalar l-Scalar-Plain">mutationBatchSizeBytes</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">10000000</span>
@@ -189,21 +190,52 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
     <span class="l l-Scalar l-Scalar-Plain">quorumSize</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">2</span>
     <span class="l l-Scalar l-Scalar-Plain">learnerLogDir</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
     <span class="l l-Scalar l-Scalar-Plain">acceptorLogDir</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
-    <span class="c1"># This should be different for every node</span>
-    <span class="l l-Scalar l-Scalar-Plain">localServer</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">http://&lt;yourhost&gt;:3828</span>
-    <span class="c1"># This should be the same for every node</span>
-    <span class="l l-Scalar l-Scalar-Plain">lockCreator</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">http://host1:3828</span>
+    <span class="c1"># This should be different for every node. If ssl is not enabled, then the host must be specified as http</span>
+    <span class="l l-Scalar l-Scalar-Plain">localServer</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">https://&lt;yourhost&gt;:3828</span>
+    <span class="c1"># This should be the same for every node. If ssl is not enabled, then the host must be specified as http</span>
+    <span class="l l-Scalar l-Scalar-Plain">lockCreator</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span>
     <span class="c1"># This should be the same for every node</span>
     <span class="l l-Scalar l-Scalar-Plain">leaders</span><span class="p p-Indicator">:</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">http://host1:3828</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">http://host2:3828</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">http://host3:3828</span>
+      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span> <span class="c1"># If ssl is not enabled, then the hosts must be specified as http</span>
+      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host2:3828</span>
+      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host3:3828</span>
 </pre></div>
 </div>
+<p id="cass-config-ssl">For more details on the leader block, see <a class="reference internal" href="leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a>.</p>
 </div>
 <div class="section" id="communicating-over-ssl">
-<span id="cass-config-ssl"></span><h2>Communicating Over SSL<a class="headerlink" href="#communicating-over-ssl" title="Permalink to this headline">¶</a></h2>
-<p>Atlas currently supports two different ways of specifying SSL options in the Cassandra KVS configuration: The <code class="docutils literal"><span class="pre">sslConfiguration</span></code> block and the deprecated <code class="docutils literal"><span class="pre">ssl</span></code> property.  Both means are supported but <code class="docutils literal"><span class="pre">sslConfiguration</span></code> is preferred and will always be respected in favor of <code class="docutils literal"><span class="pre">ssl</span></code> when both are specified.  In the future, support for <code class="docutils literal"><span class="pre">ssl</span></code> will be removed.</p>
+<h2>Communicating Over SSL<a class="headerlink" href="#communicating-over-ssl" title="Permalink to this headline">¶</a></h2>
+<p>Atlas currently supports two different ways of specifying SSL options in the Cassandra KVS configuration: The <code class="docutils literal"><span class="pre">sslConfiguration</span></code> block and the <code class="docutils literal"><span class="pre">ssl</span></code> property.  Both means are supported but <code class="docutils literal"><span class="pre">ssl</span></code> is preferred and will always be respected in favor of <code class="docutils literal"><span class="pre">sslConfiguration</span></code> when both are specified.</p>
+<p>The following table summarizes whether SSL is enabled:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="35%" />
+<col width="33%" />
+<col width="31%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">&nbsp;</th>
+<th class="head">sslConfiguration
+not present</th>
+<th class="head">sslConfiguration
+present</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>ssl not present</td>
+<td>no</td>
+<td>yes</td>
+</tr>
+<tr class="row-odd"><td>ssl is true</td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr class="row-even"><td>ssl is false</td>
+<td>no</td>
+<td>no</td>
+</tr>
+</tbody>
+</table>
 <div class="section" id="sslconfiguration">
 <h3>sslConfiguration<a class="headerlink" href="#sslconfiguration" title="Permalink to this headline">¶</a></h3>
 <p>This object is specified according to the <a class="reference external" href="https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java">palantir/http-remoting</a> library. It directly specifies all aspects of the ssl configuration, instead of reading them from system properties.  The only required property is <code class="docutils literal"><span class="pre">trustStorePath</span></code>, as seen in the example above.  In order to configure 2-way SSL, you would also have to set the optional properties <code class="docutils literal"><span class="pre">keyStorePath</span></code> and <code class="docutils literal"><span class="pre">keyStorePassword</span></code>.</p>
@@ -222,7 +254,7 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../cluster_management/index.html" class="btn btn-neutral float-right" title="Cluster Management" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="leader_config.html" class="btn btn-neutral float-right" title="Leader configuration" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="postgres_key_value_service_config.html" class="btn btn-neutral" title="Postgres Key Value Service Configuration" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
