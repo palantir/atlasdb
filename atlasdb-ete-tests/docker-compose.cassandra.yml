@@ -12,7 +12,7 @@ services:
 
   ete1:
     build: .
-    command: bash -c 'cp var/conf/atlasdb-ete.cassandra.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://cassandra:9160 && service/bin/init.sh console'
+    command: bash -c 'cp var/conf/atlasdb-ete.cassandra.yml var/conf/atlasdb-ete.yml && service/bin/init.sh console'
     environment:
       - ME=ete1
     ports:
@@ -20,21 +20,17 @@ services:
 
   ete2:
     build: .
-    command: bash -c 'cp var/conf/atlasdb-ete.cassandra.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://ete1:3828 && service/bin/init.sh console'
+    command: bash -c 'cp var/conf/atlasdb-ete.cassandra.yml var/conf/atlasdb-ete.yml && service/bin/init.sh console'
     environment:
       - ME=ete2
-    depends_on:
-      - ete1
     ports:
       - "3828"
 
   ete3:
     build: .
-    command: bash -c 'cp var/conf/atlasdb-ete.cassandra.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://ete1:3828 && service/bin/init.sh console'
+    command: bash -c 'cp var/conf/atlasdb-ete.cassandra.yml var/conf/atlasdb-ete.yml && service/bin/init.sh console'
     environment:
       - ME=ete3
-    depends_on:
-      - ete1
     ports:
       - "3828"
 
