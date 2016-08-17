@@ -22,32 +22,27 @@ import java.util.List;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-public abstract class Pager<T> {
+public class Pager<T> {
+    private final PageGetter<T> pageGetter;
 
-    protected int pageSize;
-
-    protected Pager(int pageSize) {
-        this.pageSize = pageSize;
+    public Pager(PageGetter<T> pageGetter) {
+        this.pageGetter = pageGetter;
     }
 
     public List<T> getPages() {
         List<T> pages = Lists.newArrayList();
-        List<T> currentPage = getFirstPage();
+        List<T> currentPage = pageGetter.getFirstPage();
         pages.addAll(currentPage);
         while (hasNextPage(currentPage)) {
-            currentPage = getNextPage(ImmutableList.copyOf(currentPage));
+            currentPage = pageGetter.getNextPage(ImmutableList.copyOf(currentPage));
             pages.addAll(currentPage);
         }
 
         return pages;
     }
 
-    public abstract List<T> getFirstPage();
-
-    public abstract List<T> getNextPage(List<T> currentPage);
-
     public boolean hasNextPage(List<T> currentPage) {
-        return currentPage.size() >= pageSize;
+        return currentPage.size() >= pageGetter.getPageSize();
     }
 }
 

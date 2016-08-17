@@ -20,7 +20,6 @@ package com.palantir.util.paging;
 import static java.lang.Math.min;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 
 import java.util.List;
@@ -31,11 +30,12 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 public class PagerTest {
-    private class SimplePager extends Pager<Integer> {
+    private class SimplePager implements PageGetter<Integer> {
+        private final int pageSize;
         private final int limit;
 
         protected SimplePager(int pageSize, int limit) {
-            super(pageSize);
+            this.pageSize = pageSize;
             this.limit = limit;
         }
 
@@ -47,6 +47,11 @@ public class PagerTest {
         @Override
         public List<Integer> getNextPage(List<Integer> currentPage) {
             return getIntegers(Iterables.getLast(currentPage, 0) + 1);
+        }
+
+        @Override
+        public int getPageSize() {
+            return pageSize;
         }
 
         private List<Integer> getIntegers(int start) {
@@ -84,7 +89,7 @@ public class PagerTest {
     }
 
     private void assertGetsResultsUpTo(int limit) {
-        SimplePager pager = new SimplePager(10, limit);
+        Pager<Integer> pager = new Pager<Integer>(new SimplePager(10, limit));
         List<Integer> pages = pager.getPages();
         assertThat(pages, hasSize(limit));
     }
