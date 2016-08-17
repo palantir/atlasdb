@@ -15,10 +15,7 @@
  */
 package com.palantir.cassandra.multinode;
 
-import static java.util.stream.Collectors.toList;
-
-import static org.hamcrest.CoreMatchers.everyItem;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.everyItem;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,10 +28,12 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
+import org.hamcrest.MatcherAssert;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -60,34 +59,40 @@ import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class CassandraSchemaLockTest {
     public static final int THRIFT_PORT_NUMBER = 9160;
-    public static final DockerComposition composition = DockerComposition.of("src/test/resources/docker-compose-multinode.yml")
+    public static final DockerComposition composition =
+            DockerComposition.of("src/test/resources/docker-compose-multinode.yml")
             .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen())
             .saveLogsTo("container-logs-multinode")
             .build();
 
-    public static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
+    public static final Gradle GRADLE_PREPARE_TASK =
+            Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
 
     @ClassRule
-    public static final RuleChain CASSANDRA_DOCKER_SET_UP = RuleChain.outerRule(GRADLE_PREPARE_TASK).around(composition);
+    public static final RuleChain CASSANDRA_DOCKER_SET_UP =
+            RuleChain.outerRule(GRADLE_PREPARE_TASK).around(composition);
 
-    static InetSocketAddress CASSANDRA_THRIFT_ADDRESS;
+    static InetSocketAddress cassandraThriftAddress;
 
-    static ImmutableCassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG;
+    static ImmutableCassandraKeyValueServiceConfig cassandraKvsConfig;
 
-    static Optional<LeaderConfig> LEADER_CONFIG;
+    static Optional<LeaderConfig> leaderConfig;
+    private static CassandraKeyValueServiceConfigManager configManager;
+
     private final ExecutorService executorService = Executors.newFixedThreadPool(32);
-    static private CassandraKeyValueServiceConfigManager CONFIG_MANAGER;
 
     @BeforeClass
     public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {
         DockerPort port = composition.hostNetworkedPort(THRIFT_PORT_NUMBER);
         String hostname = port.getIp();
-        CASSANDRA_THRIFT_ADDRESS = new InetSocketAddress(hostname, port.getExternalPort());
+        cassandraThriftAddress = new InetSocketAddress(hostname, port.getExternalPort());
 
-        CASSANDRA_KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-                .addServers(CASSANDRA_THRIFT_ADDRESS)
+        cassandraKvsConfig = ImmutableCassandraKeyValueServiceConfig.builder()
+                .addServers(cassandraThriftAddress)
                 .poolSize(20)
                 .keyspace("atlasdb")
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
@@ -103,9 +108,9 @@ public class CassandraSchemaLockTest {
                 .autoRefreshNodes(false)
                 .build();
 
-        CONFIG_MANAGER = CassandraKeyValueServiceConfigManager.createSimpleManager(CASSANDRA_KVS_CONFIG);
+        configManager = CassandraKeyValueServiceConfigManager.createSimpleManager(cassandraKvsConfig);
 
-        LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
+        leaderConfig = Optional.of(ImmutableLeaderConfig
                 .builder()
                 .quorumSize(1)
                 .localServer(hostname)
@@ -124,25 +129,29 @@ public class CassandraSchemaLockTest {
 
         CyclicBarrier barrier = new CyclicBarrier(32);
         try {
-            for(int i=0; i < 32; i++) {
+            for (int i = 0; i < 32; i++) {
                 async(() -> {
-                    CassandraKeyValueService keyValueService = CassandraKeyValueService.create(CONFIG_MANAGER, Optional.absent());
+                    CassandraKeyValueService keyValueService =
+                            CassandraKeyValueService.create(configManager, Optional.absent());
                     barrier.await();
                     keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
                     return null;
                 });
             }
-        } catch (Exception e) {
-            throw e;
+        } finally {
+            executorService.shutdown();
+            executorService.awaitTermination(5L, TimeUnit.MINUTES);
         }
-        executorService.shutdown();
-        executorService.awaitTermination(5L, TimeUnit.MINUTES);
 
-        assertThat(new File("container-logs-multinode"), containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())));
+        MatcherAssert.assertThat(new File("container-logs-multinode"),
+                containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())));
     }
 
     private Matcher<File> containsFiles(Matcher<Iterable<File>> fileMatcher) {
-        return new FeatureMatcher<File, List<File>>(fileMatcher, "Directory with files such that", "Directory contains") {
+        return new FeatureMatcher<File, List<File>>(
+                fileMatcher,
+                "Directory with files such that",
+                "Directory contains") {
             @Override
             protected List<File> featureValueOf(File actual) {
                 return Lists.newArrayList(actual.listFiles());
@@ -157,7 +166,7 @@ public class CassandraSchemaLockTest {
                 try {
                     List<String> badLines = Files.lines(Paths.get(file.getAbsolutePath()))
                             .filter(line -> line.contains("Column family ID mismatch"))
-                            .collect(toList());
+                            .collect(Collectors.toList());
 
                     mismatchDescription
                             .appendText("file called " + file.getAbsolutePath() + " which contains lines")
@@ -179,7 +188,8 @@ public class CassandraSchemaLockTest {
     private static Callable<Boolean> canCreateKeyValueService() {
         return () -> {
             try {
-                CassandraKeyValueService.create(CassandraKeyValueServiceConfigManager.createSimpleManager(CASSANDRA_KVS_CONFIG), LEADER_CONFIG);
+                CassandraKeyValueService.create(CassandraKeyValueServiceConfigManager.createSimpleManager(
+                        cassandraKvsConfig), leaderConfig);
                 return true;
             } catch (Exception e) {
                 return false;
@@ -187,6 +197,7 @@ public class CassandraSchemaLockTest {
         };
     }
 
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
     protected void async(Callable callable) {
         executorService.submit(callable);
     }
