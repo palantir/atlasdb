@@ -21,6 +21,9 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,11 +32,11 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Supplier;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -48,6 +51,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.common.collect.IterableView;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
@@ -66,38 +70,49 @@ public class DbKvsGetRanges {
     private static final OperationTimer logTimer = LoggingOperationTimer.create(log);
     private static final byte[] SMALLEST_NAME = Cells.createSmallestCellForRow(new byte[] {0}).getColumnName();
     private static final byte[] LARGEST_NAME = Cells.createLargestCellForRow(new byte[] {0}).getColumnName();
-
     private final DbKvs kvs;
     private final DdlConfig config;
     private final DBType dbType;
     private final Supplier<SqlConnection> connectionSupplier;
 
-    public DbKvsGetRanges(
-            DbKvs kvs,
-            DdlConfig config,
-            DBType dbType,
-            Supplier<SqlConnection> connectionSupplier) {
+    private static final ExecutorService service = PTExecutors.newFixedThreadPool(100);
+
+    public DbKvsGetRanges(DbKvs kvs,
+                          DdlConfig config,
+                          DBType dbType,
+                          Supplier<SqlConnection> connectionSupplier) {
         this.kvs = kvs;
         this.config = config;
         this.dbType = dbType;
         this.connectionSupplier = connectionSupplier;
     }
 
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            TableReference tableRef,
-            Iterable<RangeRequest> rangeRequests,
-            long timestamp) {
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(final TableReference tableRef,
+                                                                                                           Iterable<RangeRequest> rangeRequests,
+                                                                                                           final long timestamp) {
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> results = Maps.newHashMap();
-        for (List<RangeRequest> batch : Iterables.partition(rangeRequests, 500)) {
-            results.putAll(getFirstPages(tableRef, batch, timestamp));
+
+        // ADDING A PERFORMANCE REGRESSION FOR TEST PURPOSES, DO NOT MERGE INTO DEVELOP
+
+        List<Future<Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>>> futures = Lists.newArrayList();
+        for (List<RangeRequest> batch : Iterables.partition(rangeRequests, 1)) {
+            futures.add(service.submit(() ->
+                    getFirstPages(tableRef, batch, timestamp)));
         }
+
+        futures.forEach(f -> {
+            try {
+                results.putAll(f.get());
+            } catch (InterruptedException | ExecutionException e) {
+                throw Throwables.propagate(e);
+            }
+        });
         return results;
     }
 
-    private Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstPages(
-            TableReference tableRef,
-            List<RangeRequest> requests,
-            long timestamp) {
+    private Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstPages(TableReference tableRef,
+                                                                                                   List<RangeRequest> requests,
+                                                                                                   long timestamp) {
         List<String> subQueries = Lists.newArrayList();
         List<Object> argsList = Lists.newArrayList();
         for (int i = 0; i < requests.size(); i++) {
@@ -125,14 +140,13 @@ public class DbKvsGetRanges {
         }
     }
 
-    private Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstPagesFromDb(
-            TableReference tableRef,
-            List<RangeRequest> requests,
-            long timestamp,
-            final SqlConnection conn,
-            String query,
-            Object[] args) {
-        SortedSetMultimap<Integer, byte[]> rowsForBatches = getRowsForBatches(conn, query, args);
+    private Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstPagesFromDb(TableReference tableRef,
+                                                                                                         List<RangeRequest> requests,
+                                                                                                         long timestamp,
+                                                                                                         final SqlConnection conn,
+                                                                                                         String query,
+                                                                                                         Object[] args) {
+        TreeMultimap<Integer, byte[]> rowsForBatches = getRowsForBatches(conn, query, args);
         Map<Cell, Value> cells = kvs.getRows(tableRef, rowsForBatches.values(),
                 ColumnSelection.all(), timestamp);
         NavigableMap<byte[], SortedMap<byte[], Value>> cellsByRow = Cells.breakCellsUpByRow(cells);
@@ -140,12 +154,9 @@ public class DbKvsGetRanges {
         return breakUpByBatch(requests, rowsForBatches, cellsByRow);
     }
 
-    private static SortedSetMultimap<Integer, byte[]> getRowsForBatches(
-            SqlConnection connection,
-            String query,
-            Object[] args) {
-        AgnosticResultSet results = connection.selectResultSetUnregisteredQuery(query, args);
-        SortedSetMultimap<Integer, byte[]> ret = TreeMultimap.create(
+    private static TreeMultimap<Integer, byte[]> getRowsForBatches(SqlConnection c, String query, Object[] args) {
+        AgnosticResultSet results = c.selectResultSetUnregisteredQuery(query, args);
+        TreeMultimap<Integer, byte[]> ret = TreeMultimap.create(
                 Ordering.natural(),
                 UnsignedBytes.lexicographicalComparator());
         for (AgnosticResultRow row : results.rows()) {
@@ -159,13 +170,20 @@ public class DbKvsGetRanges {
         return ret;
     }
 
-    private Pair<String, List<Object>> getRangeQueryAndArgs(
-            String tableName,
-            byte[] startRow,
-            byte[] endRow,
-            boolean reverse,
-            int numRowsToGet,
-            int queryNum) {
+    private Pair<String, List<Object>> getRangeQueryAndArgs(String tableName,
+                                                            byte[] startRow,
+                                                            byte[] endRow,
+                                                            boolean reverse,
+                                                            int numRowsToGet,
+                                                            int queryNum) {
+        if (startRow.length == 0) {
+            if (reverse) {
+                startRow = LARGEST_NAME;
+            } else {
+                startRow = SMALLEST_NAME;
+            }
+        }
+
         String extraWhere;
         List<Object> args = Lists.newArrayList();
         args.add(queryNum);
@@ -174,11 +192,7 @@ public class DbKvsGetRanges {
         } else {
             extraWhere = " t.row_name >= ? ";
         }
-        if (startRow.length > 0) {
-            args.add(startRow);
-        } else {
-            args.add(reverse ? LARGEST_NAME : SMALLEST_NAME);
-        }
+        args.add(startRow);
 
         if (endRow.length > 0) {
             if (reverse) {
@@ -213,10 +227,9 @@ public class DbKvsGetRanges {
      * This tablehod expects the input to be sorted by rowname ASC for both rowsForBatches and
      * cellsByRow.
      */
-    private Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> breakUpByBatch(
-            List<RangeRequest> requests,
-            SortedSetMultimap<Integer, byte[]> rowsForBatches,
-            NavigableMap<byte[], SortedMap<byte[], Value>>   cellsByRow) {
+    private Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> breakUpByBatch(List<RangeRequest> requests,
+                                                                                                    TreeMultimap<Integer, byte[]> rowsForBatches,
+                                                                                                    NavigableMap<byte[], SortedMap<byte[], Value>>   cellsByRow) {
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ret = Maps.newHashMap();
         for (int i = 0; i < requests.size(); i++) {
             RangeRequest request = requests.get(i);
@@ -227,13 +240,7 @@ public class DbKvsGetRanges {
             SortedMap<byte[], SortedMap<byte[], Value>> cellsForBatch = Maps.filterKeys(
                     request.isReverse() ? cellsByRow.descendingMap() : cellsByRow,
                     Predicates.in(rowNames));
-
-            validateRowNames(
-                    cellsForBatch.keySet(),
-                    request.getStartInclusive(),
-                    request.getEndExclusive(),
-                    request.isReverse());
-
+            validateRowNames(cellsForBatch.keySet(), request.getStartInclusive(), request.getEndExclusive(), request.isReverse());
             IterableView<RowResult<Value>> rows = RowResults.viewOfMap(cellsForBatch);
             if (!request.getColumnNames().isEmpty()) {
                 rows = filterColumnSelection(rows, request);
@@ -263,25 +270,20 @@ public class DbKvsGetRanges {
         for (byte[] row : rows) {
             if (reverse) {
                 AssertUtils.assertAndLog(startInclusive.length == 0
-                        || UnsignedBytes.lexicographicalComparator().compare(startInclusive, row) >= 0,
-                        "row was out of range");
+                        || UnsignedBytes.lexicographicalComparator().compare(startInclusive, row) >= 0, "row was out of range");
                 AssertUtils.assertAndLog(endExclusive.length == 0
-                        || UnsignedBytes.lexicographicalComparator().compare(row, endExclusive) > 0,
-                        "row was out of range");
+                        || UnsignedBytes.lexicographicalComparator().compare(row, endExclusive) > 0, "row was out of range");
             } else {
                 AssertUtils.assertAndLog(startInclusive.length == 0
-                        || UnsignedBytes.lexicographicalComparator().compare(startInclusive, row) <= 0,
-                        "row was out of range");
+                        || UnsignedBytes.lexicographicalComparator().compare(startInclusive, row) <= 0, "row was out of range");
                 AssertUtils.assertAndLog(endExclusive.length == 0
-                        || UnsignedBytes.lexicographicalComparator().compare(row, endExclusive) < 0,
-                        "row was out of range");
+                        || UnsignedBytes.lexicographicalComparator().compare(row, endExclusive) < 0, "row was out of range");
             }
         }
     }
 
-    private IterableView<RowResult<Value>> filterColumnSelection(
-            IterableView<RowResult<Value>> rows,
-            RangeRequest request) {
+    private IterableView<RowResult<Value>> filterColumnSelection(IterableView<RowResult<Value>> rows,
+                                                                 final RangeRequest request) {
         return rows.transform(RowResults.<Value>createFilterColumns(new Predicate<byte[]>() {
             @Override
             public boolean apply(byte[] col) {
@@ -301,11 +303,7 @@ public class DbKvsGetRanges {
         }
     }
 
-    private String getSimpleRowSelectOneQueryPostgres(
-            String tableName,
-            String minMax,
-            String extraWhere,
-            String order) {
+    private String getSimpleRowSelectOneQueryPostgres(String tableName, String minMax, String extraWhere, String order) {
         return String.format(
                 SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE,
                 tableName,
@@ -315,11 +313,10 @@ public class DbKvsGetRanges {
                 order);
     }
 
-    private String getSimpleRowSelectOneQueryOracle(
-            String tableName,
-            String minMax,
-            String extraWhere,
-            String order) {
+    private String getSimpleRowSelectOneQueryOracle(String tableName,
+                                                    String minMax,
+                                                    String extraWhere,
+                                                    String order) {
         return String.format(
                 SIMPLE_ROW_SELECT_ONE_ORACLE_TEMPLATE,
                 tableName,
@@ -334,25 +331,25 @@ public class DbKvsGetRanges {
     }
 
     private static final String SIMPLE_ROW_SELECT_TEMPLATE =
-            " /* SIMPLE_ROW_SELECT_TEMPLATE (%s) */ "
-            + " SELECT /*+ INDEX(t pk_%s) */ "
-            + "   DISTINCT row_name, ? as batch_num "
-            + " FROM %s t "
-            + " WHERE %s "
-            + " ORDER BY row_name %s ";
+            " /* SIMPLE_ROW_SELECT_TEMPLATE (%s) */ " +
+                    " SELECT /*+ INDEX(t pk_%s) */ " +
+                    "   DISTINCT row_name, ? as batch_num " +
+                    " FROM %s t " +
+                    " WHERE %s " +
+                    " ORDER BY row_name %s ";
 
     private static final String SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE =
-            " /* SIMPLE_ROW_SELECT_ONE_TEMPLATE_PSQL (%s) */ "
-            + " SELECT /*+ INDEX(t pk_%s) */ "
-            + "   DISTINCT row_name, ? as batch_num "
-            + " FROM %s t "
-            + " WHERE %s "
-            + " ORDER BY row_name %s LIMIT 1";
+            " /* SIMPLE_ROW_SELECT_ONE_TEMPLATE_PSQL (%s) */ " +
+                    " SELECT /*+ INDEX(t pk_%s) */ " +
+                    "   DISTINCT row_name, ? as batch_num " +
+                    " FROM %s t " +
+                    " WHERE %s " +
+                    " ORDER BY row_name %s LIMIT 1";
 
     private static final String SIMPLE_ROW_SELECT_ONE_ORACLE_TEMPLATE =
-            " /* SIMPLE_ROW_SELECT_ONE_TEMPLATE_ORA (%s) */ "
-            + " SELECT /*+ INDEX(t pk_%s) */ "
-            + "   %s(row_name) as row_name, ? as batch_num "
-            + " FROM %s t "
-            + " WHERE %s";
+            " /* SIMPLE_ROW_SELECT_ONE_TEMPLATE_ORA (%s) */ " +
+                    " SELECT /*+ INDEX(t pk_%s) */ " +
+                    "   %s(row_name) as row_name, ? as batch_num " +
+                    " FROM %s t " +
+                    " WHERE %s";
 }
