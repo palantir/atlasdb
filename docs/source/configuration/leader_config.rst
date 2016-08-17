@@ -1,8 +1,10 @@
+.. _leader-config:
+
 ====================
 Leader configuration
 ====================
 
-A minimal atlas configuration for the leader block will look like :
+A minimal AtlasDB configuration for the leader block will look like :
 
 .. code-block:: yaml
 

@@ -20,7 +20,7 @@ e.g.
 Configuring a Running Application to Use Cassandra
 ==================================================
 
-A minimal atlas configuration for running against cassandra will look like the below.
+A minimal AtlasDB configuration for running against cassandra will look like the below.
 
 Importantly - your lock creator must be consistent across all nodes. If you do not provide a lock creator, it will default to the first host
 in the leaders list. If you do not specify a lock creator, the leaders block should be exactly the same across all nodes.
@@ -38,7 +38,7 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
           username: cassandra
           password: cassandra
         sslConfiguration:
-            trustStorePath: var/security/truststore.jks
+          trustStorePath: var/security/truststore.jks
         replicationFactor: 1
         mutationBatchCount: 10000
         mutationBatchSizeBytes: 10000000
@@ -63,7 +63,7 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
 
 .. _cass-config-ssl:
 
-For more details on the leader block, see `leader-config <leader_config.html>`__.
+For more details on the leader block, see :ref:`Leader Configuration <leader-config>`.
 
 Communicating Over SSL
 ======================

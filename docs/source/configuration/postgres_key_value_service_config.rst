@@ -20,21 +20,22 @@ e.g.
 Configuring a Running Application to Use Postgres
 =================================================
 
-A minimal atlas configuration for running against postgres will look like :
+A minimal AtlasDB configuration for running against postgres will look like :
 
 .. code-block:: yaml
 
-  keyValueService:
-    type: relational
-    ddl:
-      type: postgres
-    connection:
-      type: postgres
-      host: dbhost
-      port: 5432
-      dbName: atlas
-      dbLogin: palantir
-      dbPassword: palantir
+  atlasdb:
+    keyValueService:
+      type: relational
+      ddl:
+        type: postgres
+      connection:
+        type: postgres
+        host: dbhost
+        port: 5432
+        dbName: atlas
+        dbLogin: palantir
+        dbPassword: palantir
 
     leader:
         # This should be at least half the number of nodes in your cluster
@@ -52,4 +53,4 @@ A minimal atlas configuration for running against postgres will look like :
           - https://host3:3828
 
 
-For more details on the leader block, see `leader-config <leader_config.html>`__.
+For more details on the leader block, see :ref:`Leader Configuration <leader-config>`.
