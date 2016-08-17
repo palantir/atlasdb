@@ -14,28 +14,7 @@ dependencies {
     testCompile group: 'com.google.code.findbugs', name: 'annotations', version: '2.0.3'
 }
 
-jacoco {
-    toolVersion = libVersions.jacoco
-    reportsDir = file("$buildDir/customJacocoReportDir")
-}
-
 test {
-    jacoco {
-        append = false
-        destinationFile = file("$buildDir/jacoco/jacocoTest.exec")
-        classDumpFile = file("$buildDir/jacoco/classpathdumps")
-    }
-    maxHeapSize = "1024m"
     include '**/CassandraSchemaLockTest.class'
-    maxParallelForks 2
     dependsOn ':atlasdb-ete-test-utils:buildCassandraImage'
-}
-
-jacocoTestReport {
-    reports {
-        xml.enabled true
-        csv.enabled false
-        html.enabled true
-        html.destination "${buildDir}/jacocoHtml"
-    }
 }
