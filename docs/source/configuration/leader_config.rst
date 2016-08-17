@@ -38,7 +38,7 @@ Optional parameters:
 
 - ``learnerLogDir`` : Path to the paxos learner logs (defaults to var/data/paxos/learner)
 - ``acceptorLogDir`` : Path to the paxos acceptor logs (defaults to var/data/paxos/acceptor)
-- ``lockCreator`` : The host responsible for creation of the schema mutation lock table. If specified, this must be same across all hosts. (defaults to the first host in the leaders list, the first host must be same across all the hosts for this to work)
+- ``lockCreator`` : The host responsible for creation of the schema mutation lock table. If specified, this must be same across all hosts. (defaults to the first host in the sorted leaders list)
 - ``pingRateMs`` : defaults to 5000
 - ``randomWaitBeforeProposingLeadershipMs`` : defaults to 1000
 - ``leaderPingResponseWaitMs`` : defaults to 5000
