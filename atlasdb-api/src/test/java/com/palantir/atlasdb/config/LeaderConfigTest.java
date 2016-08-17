@@ -66,4 +66,13 @@ public class LeaderConfigTest {
                 .quorumSize(0)
                 .build();
     }
+
+    @Test(expected = IllegalStateException.class)
+    public void cannotCreateALeaderConfigWithQuorumSizeNotBeingAMajorityOfTheLeaders() {
+        ImmutableLeaderConfig.builder()
+                .localServer("me")
+                .addLeaders("not me", "me")
+                .quorumSize(1)
+                .build();
+    }
 }
