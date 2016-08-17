@@ -1,0 +1,91 @@
+/*
+ * Copyright 2016 Palantir Technologies
+ *
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+package com.palantir.util.paging;
+
+import static java.lang.Math.min;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
+
+import java.util.List;
+
+import org.junit.Test;
+
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+
+public class PagerTest {
+    private class SimplePager extends Pager<Integer> {
+        private final int limit;
+
+        protected SimplePager(int pageSize, int limit) {
+            super(pageSize);
+            this.limit = limit;
+        }
+
+        @Override
+        public List<Integer> getFirstPage() {
+            return getIntegers(1);
+        }
+
+        @Override
+        public List<Integer> getNextPage(List<Integer> currentPage) {
+            return getIntegers(Iterables.getLast(currentPage, 0) + 1);
+        }
+
+        private List<Integer> getIntegers(int start) {
+            List<Integer> page = Lists.newArrayList();
+            for (Integer i = start; i <= min(i + pageSize, limit); i++) {
+                page.add(i);
+            }
+            return page;
+        }
+    }
+
+    @Test
+    public void getsEmptyListIfNoResults() {
+        assertGetsResultsUpTo(0);
+    }
+
+    @Test
+    public void getsOnePartialPage() {
+        assertGetsResultsUpTo(5);
+    }
+
+    @Test
+    public void getsOneFullPage() {
+        assertGetsResultsUpTo(10);
+    }
+
+    @Test
+    public void getsMultiplePagesWithLastOnePartial() {
+        assertGetsResultsUpTo(23);
+    }
+
+    @Test
+    public void getsMultiplePagesWithLastOneComplete() {
+        assertGetsResultsUpTo(30);
+    }
+
+    private void assertGetsResultsUpTo(int limit) {
+        SimplePager pager = new SimplePager(10, limit);
+        List<Integer> pages = pager.getPages();
+        assertThat(pages, hasSize(limit));
+    }
+}
