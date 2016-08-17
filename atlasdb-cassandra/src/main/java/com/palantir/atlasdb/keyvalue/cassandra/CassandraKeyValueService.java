@@ -1223,14 +1223,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 KeyRange keyRange = getKeyRange(startKey, endExclusive, batchHint);
                 List<KeySlice> firstPage = getRangeSlices(host, tableRef, keyRange, pred, consistency);
 
-                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(firstPage);
-                Set<ByteBuffer> rows = colsByKey.keySet();
+                Set<ByteBuffer> rows = getRows(firstPage);
 
                 CellPager cellPager = new CellPager(clientPool, host);
-                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey2 = cellPager.getColsByKeyWithPaging(rows, tableRef, consistency);
+                Map<ByteBuffer, List<ColumnOrSuperColumn>> columnsByRow = cellPager.getColsByKeyWithPaging(rows, tableRef, consistency);
 
                 TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
-                        resultsExtractor.get().getPageFromRangeResults(colsByKey2, timestamp, selection, endExclusive);
+                        resultsExtractor.get().getPageFromRangeResults(columnsByRow, timestamp, selection, endExclusive);
                 if (page.moreResultsAvailable() && firstPage.size() < batchHint) {
                     // If get_range_slices didn't return the full number of results, there's no
                     // point to trying to get another page
@@ -1242,6 +1241,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         };
 
         return ClosableIterators.wrap(rowResults.iterator());
+    }
+
+    private Set<ByteBuffer> getRows(List<KeySlice> firstPage) {
+        Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(firstPage);
+        return colsByKey.keySet();
     }
 
     private KeyRange getKeyRange(byte[] startKey, byte[] endExclusive, int batchHint) {
