@@ -43,8 +43,8 @@ public class CellPager {
         Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = new HashMap<>();
 
         for (ByteBuffer row : rows) {
-
-            AllCellsPerRowPager allCellsPerRowPager = new AllCellsPerRowPager(clientPool, host, row, tableRef, consistency, 10);
+            CqlExecutor cqlExecutor = new CqlExecutor(clientPool, host, consistency);
+            AllCellsPerRowPager allCellsPerRowPager = new AllCellsPerRowPager(cqlExecutor, row, tableRef, 10);
             List<ColumnOrSuperColumn> columns = new Pager<>(allCellsPerRowPager).getPages();
             colsByKey.put(row, columns);
         }

@@ -15,42 +15,32 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.Compression;
-import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
-import org.apache.thrift.TException;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.PageGetter;
 
 public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
 
-    private CassandraClientPool clientPool;
-    private InetSocketAddress host;
+    private CqlExecutor cqlExecutor;
     private String row;
     private TableReference tableRef;
-    private ConsistencyLevel consistency;
     private int pageSize;
 
-    public AllCellsPerRowPager(CassandraClientPool clientPool, InetSocketAddress host, ByteBuffer row, TableReference tableRef, ConsistencyLevel consistency, int pageSize) {
-        this.clientPool = clientPool;
-        this.host = host;
+    public AllCellsPerRowPager(CqlExecutor executor, ByteBuffer row, TableReference tableRef, int pageSize) {
+        this.cqlExecutor = executor;
         this.row = encodeAsHex(row.array());
         this.tableRef = tableRef;
-        this.consistency = consistency;
         this.pageSize = pageSize;
     }
 
@@ -96,18 +86,8 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
     }
 
     private List<ColumnOrSuperColumn> getColumns(String query) {
-        ByteBuffer queryBytes = ByteBuffer.wrap(query.getBytes(Charsets.UTF_8));
-        CqlResult cqlResult = executeQuery(queryBytes);
-
+        CqlResult cqlResult = cqlExecutor.execute(query);
         return getColumns(cqlResult);
-    }
-
-    private CqlResult executeQuery(ByteBuffer queryBytes) {
-        try {
-            return clientPool.runWithRetryOnHost(host, client -> client.execute_cql3_query(queryBytes, Compression.NONE, consistency));
-        } catch (TException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
     }
 
     private List<ColumnOrSuperColumn> getColumns(CqlResult cqlResult) {
