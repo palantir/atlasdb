@@ -54,20 +54,29 @@ public class AllCellsPerRowPagerTest {
             pageSize
     );
 
+    private static final String DEFAULT_COLUMN_NAME = "col1";
+
     @Test
     public void testGetFirstPage() {
-        String columnName = "col1";
-        List<Column> columns = ImmutableList.of(
-                new Column().setValue(columnName.getBytes()),
-                new Column().setValue(PtBytes.toBytes(-2L)));
-        CqlRow row = new CqlRow(rowKey, columns);
-
+        long timestamp = 1L;
+        CqlRow row = makeCqlRow(DEFAULT_COLUMN_NAME, timestamp);
         allQueriesReturn(ImmutableList.of(row));
 
         List<ColumnOrSuperColumn> firstPage = pager.getFirstPage();
 
         assertThat(firstPage, hasSize(1));
-        assertColumnOrSuperColumnHasCorrectNameAndTimestamp(firstPage.get(0), columnName, 1L);
+        assertColumnOrSuperColumnHasCorrectNameAndTimestamp(firstPage.get(0), DEFAULT_COLUMN_NAME, timestamp);
+    }
+
+    @Test
+    public void getFirstPageShouldReturnMultipleResults() {
+        CqlRow row1 = makeCqlRow(DEFAULT_COLUMN_NAME, 1L);
+        CqlRow row2 = makeCqlRow(DEFAULT_COLUMN_NAME, 2L);
+        allQueriesReturn(ImmutableList.of(row1, row2));
+
+        List<ColumnOrSuperColumn> firstPage = pager.getFirstPage();
+
+        assertThat(firstPage, hasSize(2));
     }
 
     @Test
@@ -79,12 +88,18 @@ public class AllCellsPerRowPagerTest {
         verify(executor).execute(argThat(endsWith(String.format("LIMIT %s;", pageSize))));
     }
 
+    private CqlRow makeCqlRow(String columnName, long timestamp) {
+        List<Column> columns = ImmutableList.of(
+                new Column().setValue(columnName.getBytes()),
+                new Column().setValue(PtBytes.toBytes(~timestamp)));
+        return new CqlRow(rowKey, columns);
+    }
+
     private void allQueriesReturn(List<CqlRow> rows) {
         CqlResult cqlResult = mock(CqlResult.class);
         when(cqlResult.getRows()).thenReturn(rows);
         when(executor.execute(anyString())).thenReturn(cqlResult);
     }
-
 
     private void assertColumnOrSuperColumnHasCorrectNameAndTimestamp(ColumnOrSuperColumn columnOrSuperColumn, String expectedName, long expectedTs) {
         Pair<byte[], Long> nameAndTimestamp = CassandraKeyValueServices.decomposeName(columnOrSuperColumn.getColumn());
@@ -95,7 +110,6 @@ public class AllCellsPerRowPagerTest {
         assertThat(timestamp, equalTo(expectedTs));
 
     }
-
 
     private ByteBuffer toByteBuffer(String str) {
         return ByteBuffer.wrap(str.getBytes());
