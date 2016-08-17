@@ -46,7 +46,7 @@ public abstract class LeaderConfig {
 
     public abstract String localServer();
 
-    @Size(min=1)
+    @Size(min = 1)
     public abstract Set<String> leaders();
 
     @JsonProperty("lockCreator")
@@ -60,17 +60,17 @@ public abstract class LeaderConfig {
 
     @Value.Default
     public long pingRateMs() {
-        return 5000l;
+        return 5000L;
     }
 
     @Value.Default
     public long randomWaitBeforeProposingLeadershipMs() {
-        return 1000l;
+        return 1000L;
     }
 
     @Value.Default
     public long leaderPingResponseWaitMs() {
-        return 5000l;
+        return 5000L;
     }
 
     @Value.Check
@@ -85,6 +85,6 @@ public abstract class LeaderConfig {
 
     @Value.Derived
     public LockLeader whoIsTheLockLeader() {
-        return LockLeader.iAmTheLockLeader(lockCreator().equals(localServer()));
+        return LockLeader.fromBoolean(lockCreator().equals(localServer()));
     }
 }

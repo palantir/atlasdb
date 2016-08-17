@@ -28,7 +28,7 @@ public class InsufficientConsistencyException extends PalantirRuntimeException {
         super(msg);
     }
 
-    public InsufficientConsistencyException(String msg, Throwable t) {
-        super(msg, t);
+    public InsufficientConsistencyException(String msg, Throwable ex) {
+        super(msg, ex);
     }
 }

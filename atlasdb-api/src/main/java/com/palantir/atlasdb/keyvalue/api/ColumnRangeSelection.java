@@ -17,11 +17,13 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Joiner;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 
@@ -38,16 +40,8 @@ public class ColumnRangeSelection implements Serializable {
     public ColumnRangeSelection(@JsonProperty("startInclusive") byte[] startCol,
                                 @JsonProperty("endExclusive") byte[] endCol,
                                 @JsonProperty("batchHint") int batchHint) {
-        if (startCol == null) {
-            this.startCol = PtBytes.EMPTY_BYTE_ARRAY;
-        } else {
-            this.startCol = startCol;
-        }
-        if (endCol == null) {
-            this.endCol = PtBytes.EMPTY_BYTE_ARRAY;
-        } else {
-            this.endCol = endCol;
-        }
+        this.startCol = MoreObjects.firstNonNull(startCol, PtBytes.EMPTY_BYTE_ARRAY);
+        this.endCol = MoreObjects.firstNonNull(endCol, PtBytes.EMPTY_BYTE_ARRAY);
         this.batchHint = batchHint;
     }
 
@@ -64,24 +58,22 @@ public class ColumnRangeSelection implements Serializable {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ColumnRangeSelection that = (ColumnRangeSelection) o;
-
-        if (batchHint != that.batchHint) return false;
-        if (!Arrays.equals(startCol, that.startCol)) return false;
-        return Arrays.equals(endCol, that.endCol);
-
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        ColumnRangeSelection that = (ColumnRangeSelection) obj;
+        return batchHint == that.batchHint
+                && Arrays.equals(startCol, that.startCol)
+                && Arrays.equals(endCol, that.endCol);
     }
 
     @Override
     public int hashCode() {
-        int result = Arrays.hashCode(startCol);
-        result = 31 * result + Arrays.hashCode(endCol);
-        result = 31 * result + batchHint;
-        return result;
+        return Objects.hash(Arrays.hashCode(startCol), Arrays.hashCode(endCol), batchHint);
     }
 
     private static final Pattern deserializeRegex = Pattern.compile("\\s*,\\s*");
@@ -90,7 +82,7 @@ public class ColumnRangeSelection implements Serializable {
         String[] split = deserializeRegex.split(serialized);
         byte[] startCol = PtBytes.decodeBase64(split[0]);
         byte[] endCol = PtBytes.decodeBase64(split[1]);
-        int batchHint = Integer.valueOf(split[2]);
+        int batchHint = Integer.parseInt(split[2]);
         return new ColumnRangeSelection(startCol, endCol, batchHint);
     }
 

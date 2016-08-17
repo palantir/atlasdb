@@ -59,7 +59,7 @@ public final class Cell implements Serializable, Comparable<Cell> {
     }
 
     public static boolean isNameValid(byte[] name) {
-        return name != null && name.length >0 && name.length <= MAX_NAME_LENGTH;
+        return name != null && name.length > 0 && name.length <= MAX_NAME_LENGTH;
     }
 
     public static void validateNameValid(byte[] name) {
@@ -116,18 +116,15 @@ public final class Cell implements Serializable, Comparable<Cell> {
         }
     }
 
-    public static final Function<Cell, Boolean> IS_EXPIRING = new Function<Cell, Boolean>() {
-        @Override
-        public Boolean apply(Cell from) {
-            return from.getTtlDurationMillis() != INVALID_TTL;
-        }
-    };
+    public static final Function<Cell, Boolean> IS_EXPIRING = from -> from.getTtlDurationMillis() != INVALID_TTL;
 
     @Override
-    public int compareTo(Cell o) {
-        int cmp = UnsignedBytes.lexicographicalComparator().compare(rowName, o.rowName);
-        if (cmp != 0) { return cmp; }
-        return UnsignedBytes.lexicographicalComparator().compare(columnName, o.columnName);
+    public int compareTo(Cell other) {
+        int cmp = UnsignedBytes.lexicographicalComparator().compare(rowName, other.rowName);
+        if (cmp != 0) {
+            return cmp;
+        }
+        return UnsignedBytes.lexicographicalComparator().compare(columnName, other.columnName);
     }
 
     @Override
@@ -135,7 +132,7 @@ public final class Cell implements Serializable, Comparable<Cell> {
         if (!(obj instanceof Cell)) {
             return false;
         }
-        Cell other = (Cell)obj;
+        Cell other = (Cell) obj;
         return Arrays.equals(rowName, other.rowName)
                 && Arrays.equals(columnName, other.columnName);
     }
@@ -158,7 +155,7 @@ public final class Cell implements Serializable, Comparable<Cell> {
         return MoreObjects.toStringHelper(getClass())
                 .add("rowName", PtBytes.encodeHexString(rowName))
                 .add("columnName", PtBytes.encodeHexString(columnName))
-                .addValue(((ttlDurationMillis == INVALID_TTL) ? "no TTL" : "ttlDurationMillis=" + ttlDurationMillis))
+                .addValue((ttlDurationMillis == INVALID_TTL) ? "no TTL" : "ttlDurationMillis=" + ttlDurationMillis)
                 .toString();
     }
 }

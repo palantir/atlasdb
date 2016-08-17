@@ -15,7 +15,8 @@
  */
 package com.palantir.atlasdb.encoding;
 
-import com.google.common.base.Charsets;
+import java.nio.charset.StandardCharsets;
+
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.cache.Cache;
@@ -67,56 +68,56 @@ public final class PtBytes {
     /**
      * Converts a string to a UTF-8 byte array.
      */
-    public static byte[] toBytes(String s) {
-        return s.getBytes(Charsets.UTF_8);
+    public static byte[] toBytes(String str) {
+        return str.getBytes(StandardCharsets.UTF_8);
     }
 
     /**
      * Converts a string to a UTF-8 byte array. This method will cache results and return cached
      * results, so the resulting byte arrays must not be modified.
      */
-    public static byte[] toCachedBytes(String s) {
-        byte[] bytes = cache.getIfPresent(s);
+    public static byte[] toCachedBytes(String str) {
+        byte[] bytes = cache.getIfPresent(str);
         if (bytes == null) {
-            bytes = toBytes(s);
-            cache.put(s, bytes);
+            bytes = toBytes(str);
+            cache.put(str, bytes);
         }
         return bytes;
     }
 
-    public static byte[] tail(final byte[] a, final int length) {
-        if (a.length < length) {
+    public static byte[] tail(final byte[] arr, final int length) {
+        if (arr.length < length) {
             return null;
         }
         byte[] result = new byte[length];
-        System.arraycopy(a, a.length - length, result, 0, length);
+        System.arraycopy(arr, arr.length - length, result, 0, length);
         return result;
     }
 
-    public static byte[] head(final byte[] a, final int length) {
-        if (a.length < length) {
+    public static byte[] head(final byte[] arr, final int length) {
+        if (arr.length < length) {
             return null;
         }
         byte[] result = new byte[length];
-        System.arraycopy(a, 0, result, 0, length);
+        System.arraycopy(arr, 0, result, 0, length);
         return result;
     }
 
-    public static String toString(final byte[] b) {
-        if (b == null) {
+    public static String toString(final byte[] arr) {
+        if (arr == null) {
             return null;
         }
-        return toString(b, 0, b.length);
+        return toString(arr, 0, arr.length);
     }
 
-    public static String toString(final byte[] b, int off, int len) {
-        if (b == null) {
+    public static String toString(final byte[] arr, int off, int len) {
+        if (arr == null) {
             return null;
         }
         if (len == 0) {
             return "";
         }
-        return new String(b, off, len, Charsets.UTF_8);
+        return new String(arr, off, len, StandardCharsets.UTF_8);
     }
 
     public static String encodeHexString(byte[] name) {
@@ -126,12 +127,7 @@ public final class PtBytes {
         return BaseEncoding.base16().lowerCase().encode(name);
     }
 
-    public static final Function<byte[], String> BYTES_TO_HEX_STRING = new Function<byte[], String>() {
-        @Override
-        public String apply(byte[] input) {
-            return encodeHexString(input);
-        }
-    };
+    public static final Function<byte[], String> BYTES_TO_HEX_STRING = PtBytes::encodeHexString;
 
     public static void addIfNotEmpty(MoreObjects.ToStringHelper helper, String name, byte[] bytes) {
         if (bytes != null && bytes.length > 0) {
@@ -167,7 +163,9 @@ public final class PtBytes {
     }
 
     /**
-     * @return 0 if equal, &lt; 0 if left is less than right, etc.
+     * Compare two byte arrays.
+     *
+     * @return 0 if equal, &lt; 0 if left is less than right, etc
      */
     public static int compareTo(final byte[] left, final byte[] right) {
         return UnsignedBytes.lexicographicalComparator().compare(left, right);

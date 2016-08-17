@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.SortedSet;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
@@ -30,7 +29,7 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 
-public class ColumnSelection implements Serializable {
+public final class ColumnSelection implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private static final ColumnSelection allColumnsSelected = new ColumnSelection(null);
@@ -44,12 +43,12 @@ public class ColumnSelection implements Serializable {
 
     public static ColumnSelection valueOf(String serialized) {
         Set<byte[]> columns = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
-        for (String strColumn : serialized.split("\\s*,\\s*")) {
-            strColumn = strColumn.trim();
-            if (strColumn.equals("")) {
+        for (String columnString : serialized.split("\\s*,\\s*")) {
+            String trimmedColumnString = columnString.trim();
+            if (trimmedColumnString.isEmpty()) {
                 continue;
             }
-            byte[] column = PtBytes.decodeBase64(strColumn);
+            byte[] column = PtBytes.decodeBase64(trimmedColumnString);
             assert !columns.contains(column);
             columns.add(column);
         }
@@ -64,13 +63,8 @@ public class ColumnSelection implements Serializable {
         if (selectedColumns == null) {
             return "";
         }
-        return Joiner.on(',').join(Iterables.transform(selectedColumns, new Function<byte[], String>() {
-            @Override
-            public String apply(byte[] input) {
-                return PtBytes.encodeBase64String(input);
-            }
-        }));
-    };
+        return Joiner.on(',').join(Iterables.transform(selectedColumns, PtBytes::encodeBase64String));
+    }
 
     // Factory methods.
     public static ColumnSelection all() {
@@ -78,19 +72,18 @@ public class ColumnSelection implements Serializable {
     }
 
     public static ColumnSelection create(Iterable<byte[]> selectedColumns) {
-        if (Iterables.isEmpty(Preconditions.checkNotNull(selectedColumns))) {
+        if (Iterables.isEmpty(Preconditions.checkNotNull(selectedColumns, "selectedColumns cannot be null"))) {
             return allColumnsSelected;
         }
 
         // Copy contents of 'selectedColumns' into a new set with proper deep comparison semantics.
-        return new ColumnSelection(ImmutableSortedSet.copyOf(UnsignedBytes.lexicographicalComparator(), selectedColumns));
+        return new ColumnSelection(ImmutableSortedSet.copyOf(
+                UnsignedBytes.lexicographicalComparator(),
+                selectedColumns));
     }
 
     public boolean contains(byte[] column) {
-        if (selectedColumns == null) {
-            return true;
-        }
-        return selectedColumns.contains(column);
+        return selectedColumns == null || selectedColumns.contains(column);
     }
 
     // allColumnsSelected() returns true if all columns are selected.  getSelectedColumns() should

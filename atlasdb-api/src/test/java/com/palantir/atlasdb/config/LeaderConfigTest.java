@@ -15,10 +15,10 @@
  */
 package com.palantir.atlasdb.config;
 
-import static java.util.Collections.emptySet;
-
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.Collections;
 
 import org.junit.Test;
 
@@ -63,7 +63,7 @@ public class LeaderConfigTest {
     public void cannotCreateALeaderConfigWithNoLeaders() {
         ImmutableLeaderConfig.builder()
                 .localServer("me")
-                .leaders(emptySet())
+                .leaders(Collections.emptySet())
                 .quorumSize(0)
                 .build();
     }
