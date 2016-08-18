@@ -42,6 +42,10 @@ v0.12.0
          - Change
 
     *    - |breaking|
+         - ``AtlasDbServer`` has been renamed to ``AtlasDbServiceServer``. Any products that are using this should switch to using the Java Feign client instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/801>`__)
+
+    *    - |breaking|
          - If you do not specify a leader block in your config, AtlasDB will now still try to register the timestamp and lock endpoints necessary for other clients or CLIs to run in the same keyspace.
            This may require changes in setup logic for applications that have previously only ever run with no leader block.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/708>`__)
