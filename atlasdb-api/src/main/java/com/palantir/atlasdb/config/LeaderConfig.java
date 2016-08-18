@@ -76,7 +76,11 @@ public abstract class LeaderConfig {
     @Value.Check
     protected final void check() {
         Preconditions.checkState(quorumSize() > leaders().size() / 2,
-                "The quorumSize '%s' must be over half the amount of the leaders entries %s.", quorumSize(), leaders());
+                "The quorumSize '%s' must be over half the amount of leader entries %s.", quorumSize(), leaders());
+        Preconditions.checkState(leaders().size() >= quorumSize(),
+                "The quorumSize '%s' must be less than or equal to the amount of leader entries %s.",
+                quorumSize(), leaders());
+
         Preconditions.checkArgument(leaders().contains(localServer()),
                 "The localServer '%s' must included in the leader entries %s.", localServer(), leaders());
         Preconditions.checkArgument(learnerLogDir().exists() || learnerLogDir().mkdirs(),
