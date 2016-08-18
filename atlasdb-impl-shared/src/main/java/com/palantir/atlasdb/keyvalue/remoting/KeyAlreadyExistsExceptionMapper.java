@@ -20,9 +20,12 @@ import javax.ws.rs.ext.ExceptionMapper;
 
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 
-public class KeyAlreadyExistsExceptionMapper implements ExceptionMapper<KeyAlreadyExistsException> {
-    private final static KeyAlreadyExistsExceptionMapper instance = new KeyAlreadyExistsExceptionMapper();
-    private KeyAlreadyExistsExceptionMapper() { }
+public final class KeyAlreadyExistsExceptionMapper implements ExceptionMapper<KeyAlreadyExistsException> {
+    private static final KeyAlreadyExistsExceptionMapper instance = new KeyAlreadyExistsExceptionMapper();
+
+    private KeyAlreadyExistsExceptionMapper() {
+        // singleton
+    }
 
     public static KeyAlreadyExistsExceptionMapper instance() {
         return instance;
@@ -31,9 +34,8 @@ public class KeyAlreadyExistsExceptionMapper implements ExceptionMapper<KeyAlrea
     @Override
     public Response toResponse(KeyAlreadyExistsException exception) {
         return Response
-        		.status(409)
-        		.entity("Key already exists!")
-        		.build();
+                .status(409)
+                .entity("Key already exists!")
+                .build();
     }
-
 }

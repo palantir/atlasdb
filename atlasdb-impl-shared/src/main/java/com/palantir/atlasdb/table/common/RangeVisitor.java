@@ -40,7 +40,6 @@ import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.lock.HeldLocksToken;
-import com.palantir.lock.LockRequest;
 
 public class RangeVisitor {
     private static final Logger log = LoggerFactory.getLogger(RangeVisitor.class);
@@ -60,13 +59,13 @@ public class RangeVisitor {
         this.tableRef = tableRef;
     }
 
-    public RangeVisitor setStartRowInclusive(byte[] startRow) {
-        this.startRow = startRow;
+    public RangeVisitor setStartRowInclusive(byte[] newStartRow) {
+        this.startRow = newStartRow;
         return this;
     }
 
-    public RangeVisitor setEndRowExclusive(byte[] endRow) {
-        this.endRow = endRow;
+    public RangeVisitor setEndRowExclusive(byte[] newEndRow) {
+        this.endRow = newEndRow;
         return this;
     }
 
@@ -76,58 +75,51 @@ public class RangeVisitor {
         return this;
     }
 
-    public RangeVisitor setBatchSize(int batchSize) {
-        this.batchSize = batchSize;
+    public RangeVisitor setBatchSize(int newBatchSize) {
+        this.batchSize = newBatchSize;
         return this;
     }
 
-    public RangeVisitor setExecutor(ExecutorService exec) {
-        this.exec = exec;
+    public RangeVisitor setExecutor(ExecutorService newExec) {
+        this.exec = newExec;
         return this;
     }
 
-    public RangeVisitor setThreadCount(int threadCount) {
-        this.threadCount = threadCount;
+    public RangeVisitor setThreadCount(int newThreadCount) {
+        this.threadCount = newThreadCount;
         return this;
     }
 
-    public RangeVisitor setLockTokens(Iterable<HeldLocksToken> lockTokens) {
-        this.lockTokens = lockTokens;
+    public RangeVisitor setLockTokens(Iterable<HeldLocksToken> newLockTokens) {
+        this.lockTokens = newLockTokens;
         return this;
     }
 
-    public RangeVisitor setProgressCounter(AtomicLong counter) {
-        this.counter = counter;
+    public RangeVisitor setProgressCounter(AtomicLong newCounter) {
+        this.counter = newCounter;
         return this;
     }
 
     public long visit(final Visitor visitor) throws InterruptedException {
         BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
         for (final MutableRange range : getRanges()) {
-            pool.submitTask(new Runnable() {
-                @Override
-                public void run() {
-                    visitRange(visitor, range);
-                }
-            });
+            pool.submitTask(() -> visitRange(visitor, range));
         }
         pool.waitForSubmittedTasks();
         return counter.get();
     }
 
-    private void visitRange(final Visitor visitor,
-                            final MutableRange range) {
+    private void visitRange(Visitor visitor, MutableRange range) {
         do {
             final RangeRequest request = range.getRangeRequest();
             try {
                 long startTime = System.currentTimeMillis();
                 long numVisited = txManager.runTaskWithLocksWithRetry(lockTokens,
-                        Suppliers.<LockRequest> ofInstance(null),
+                        Suppliers.ofInstance(null),
                         new LockAwareTransactionTask<Long, RuntimeException>() {
                             @Override
-                            public Long execute(Transaction t,
-                                                Iterable<HeldLocksToken> heldLocks) {
-                                return visitInternal(t, visitor, request, range);
+                            public Long execute(Transaction tx, Iterable<HeldLocksToken> heldLocks) {
+                                return visitInternal(tx, visitor, request, range);
                             }
 
                             @Override
@@ -146,16 +138,13 @@ public class RangeVisitor {
         } while (!range.isComplete());
     }
 
-    private long visitInternal(final Transaction t,
-                               final Visitor visitor,
-                               RangeRequest request,
-                               final MutableRange range) {
+    private long visitInternal(Transaction tx, Visitor visitor, RangeRequest request, MutableRange range) {
         final AtomicLong numVisited = new AtomicLong();
-        boolean isEmpty = t.getRange(tableRef, request).batchAccept(range.getBatchSize(),
+        boolean isEmpty = tx.getRange(tableRef, request).batchAccept(range.getBatchSize(),
                 new AbortingVisitor<List<RowResult<byte[]>>, RuntimeException>() {
                     @Override
                     public boolean visit(List<RowResult<byte[]>> batch) {
-                        visitor.visit(t, batch);
+                        visitor.visit(tx, batch);
                         if (batch.size() < range.getBatchSize()) {
                             range.setStartRow(null);
                         } else {
@@ -201,11 +190,16 @@ public class RangeVisitor {
     private static byte[] toBytes(BigInteger num, int length) {
         byte[] rawBytes = num.toByteArray();
         byte[] paddedBytes = new byte[length];
-        System.arraycopy(rawBytes, Math.max(0, rawBytes.length - length), paddedBytes, Math.max(0, length - rawBytes.length), length);
+        System.arraycopy(
+                rawBytes,
+                Math.max(0, rawBytes.length - length),
+                paddedBytes,
+                Math.max(0, length - rawBytes.length),
+                length);
         return paddedBytes;
     }
 
-    public static interface Visitor {
-        void visit(Transaction t, List<RowResult<byte[]>> batch);
+    public interface Visitor {
+        void visit(Transaction tx, List<RowResult<byte[]>> batch);
     }
 }

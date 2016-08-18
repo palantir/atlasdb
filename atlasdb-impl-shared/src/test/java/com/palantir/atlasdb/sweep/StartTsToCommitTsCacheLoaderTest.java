@@ -52,8 +52,10 @@ public class StartTsToCommitTsCacheLoaderTest {
         doAnswer((invocation) -> answerCount.get() > 0 ? ROLLBACK_TIMESTAMP : NO_TIMESTAMP)
                 .when(mockTransactionService).get(VALID_START_TIMESTAMP);
 
-        doAnswer((invocation) -> { answerCount.set(1); return null; })
-                .when(mockTransactionService).putUnlessExists(VALID_START_TIMESTAMP, ROLLBACK_TIMESTAMP);
+        doAnswer((invocation) -> {
+            answerCount.set(1);
+            return null;
+        }).when(mockTransactionService).putUnlessExists(VALID_START_TIMESTAMP, ROLLBACK_TIMESTAMP);
 
         assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(ROLLBACK_TIMESTAMP);
 
@@ -67,8 +69,10 @@ public class StartTsToCommitTsCacheLoaderTest {
         doAnswer((invocation) -> answerCount.get() > 0 ? VALID_COMMIT_TIMESTAMP : NO_TIMESTAMP)
                 .when(mockTransactionService).get(VALID_START_TIMESTAMP);
 
-        doAnswer((invocation) -> { answerCount.set(1); throw new KeyAlreadyExistsException("Already exists"); })
-                .when(mockTransactionService).putUnlessExists(VALID_START_TIMESTAMP, ROLLBACK_TIMESTAMP);
+        doAnswer((invocation) -> {
+            answerCount.set(1);
+            throw new KeyAlreadyExistsException("Already exists");
+        }).when(mockTransactionService).putUnlessExists(VALID_START_TIMESTAMP, ROLLBACK_TIMESTAMP);
 
         assertThat(loader.load(VALID_START_TIMESTAMP)).isEqualTo(VALID_COMMIT_TIMESTAMP);
 

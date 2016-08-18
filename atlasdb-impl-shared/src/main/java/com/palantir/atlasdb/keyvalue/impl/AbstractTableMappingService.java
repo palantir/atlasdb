@@ -21,7 +21,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.Maps;
@@ -32,12 +32,12 @@ import com.palantir.atlasdb.table.description.Schemas;
 
 public abstract class AbstractTableMappingService implements TableMappingService {
 
-    protected final AtomicReference<BiMap<TableReference, TableReference>> tableMap = new AtomicReference<BiMap<TableReference, TableReference>>();
+    protected final AtomicReference<BiMap<TableReference, TableReference>> tableMap = new AtomicReference<>();
 
     protected abstract BiMap<TableReference, TableReference> readTableMap();
 
     protected void updateTableMap() {
-        while(true) {
+        while (true) {
             BiMap<TableReference, TableReference> oldMap = tableMap.get();
             BiMap<TableReference, TableReference> newMap = readTableMap();
             if (tableMap.compareAndSet(oldMap, newMap)) {
@@ -57,13 +57,15 @@ public abstract class AbstractTableMappingService implements TableMappingService
             return tableMap.get().get(tableRef);
         } else {
             updateTableMap();
-            Validate.isTrue(tableMap.get().containsKey(tableRef), "Unable to resolve full name for table reference " + tableRef);
+            Validate.isTrue(tableMap.get().containsKey(tableRef),
+                    "Unable to resolve full name for table reference " + tableRef);
             return tableMap.get().get(tableRef);
         }
     }
 
     protected void validateShortName(TableReference tableRef, TableReference shortName) {
-        Validate.isTrue(Schemas.isTableNameValid(shortName.getQualifiedName()), "Table mapper has an invalid table name for table reference " + tableRef + ": " + shortName);
+        Validate.isTrue(Schemas.isTableNameValid(shortName.getQualifiedName()),
+                "Table mapper has an invalid table name for table reference " + tableRef + ": " + shortName);
     }
 
     private TableReference getFullTableName(TableReference shortTableName) {
@@ -71,7 +73,8 @@ public abstract class AbstractTableMappingService implements TableMappingService
             return tableMap.get().inverse().get(shortTableName);
         } else {
             updateTableMap();
-            Validate.isTrue(tableMap.get().containsValue(shortTableName), "Unable to resolve full name for table " + shortTableName);
+            Validate.isTrue(tableMap.get().containsValue(shortTableName),
+                    "Unable to resolve full name for table " + shortTableName);
             return tableMap.get().inverse().get(shortTableName);
         }
     }
@@ -85,7 +88,7 @@ public abstract class AbstractTableMappingService implements TableMappingService
         return newMap;
     }
 
-    private final ConcurrentHashMap<TableReference, Boolean> unmappedTables = new ConcurrentHashMap<TableReference, Boolean>();
+    private final ConcurrentHashMap<TableReference, Boolean> unmappedTables = new ConcurrentHashMap<>();
 
     @Override
     public Set<TableReference> mapToFullTableNames(Set<TableReference> tableRefs) {

@@ -32,7 +32,10 @@ public class ConservativeSweeper implements Sweeper {
     private final Supplier<Long> immutableTimestampSupplier;
     private final Supplier<Long> unreadableTimestampSupplier;
 
-    public ConservativeSweeper(KeyValueService keyValueService, Supplier<Long> immutableTimestampSupplier, Supplier<Long> unreadableTimestampSupplier) {
+    public ConservativeSweeper(
+            KeyValueService keyValueService,
+            Supplier<Long> immutableTimestampSupplier,
+            Supplier<Long> unreadableTimestampSupplier) {
         this.keyValueService = keyValueService;
         this.immutableTimestampSupplier = immutableTimestampSupplier;
         this.unreadableTimestampSupplier = unreadableTimestampSupplier;
@@ -44,13 +47,16 @@ public class ConservativeSweeper implements Sweeper {
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getValues(TableReference tableReference, RangeRequest rangeRequest, long timestamp) {
+    public ClosableIterator<RowResult<Value>> getValues(TableReference table, RangeRequest range, long maxTimestamp) {
         return ClosableIterators.emptyImmutableClosableIterator();
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getCellTimestamps(TableReference tableReference, RangeRequest rangeRequest, long timestamp) {
-        return keyValueService.getRangeOfTimestamps(tableReference, rangeRequest, timestamp);
+    public ClosableIterator<RowResult<Set<Long>>> getCellTimestamps(
+            TableReference table,
+            RangeRequest range,
+            long maxTimestamp) {
+        return keyValueService.getRangeOfTimestamps(table, range, maxTimestamp);
     }
 
     @Override

@@ -37,7 +37,6 @@ import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
  */
 @Path("/partition-map")
 public interface PartitionMapService {
-
     @POST
     @Path("get-map")
     @Produces(MediaType.APPLICATION_JSON)
@@ -59,7 +58,6 @@ public interface PartitionMapService {
      * and update it if the provided map is newer than the stored map.
      * (No update takes place if the versions are equal.)
      *
-     * @param partitionMap
      * @return Version of the map that was stored in the service before
      * the operation. Negative if the service was "empty".
      * <tt>partitionMap</tt>.
@@ -68,5 +66,4 @@ public interface PartitionMapService {
     @Path("update-map-if-newer")
     @Consumes(MediaType.APPLICATION_JSON)
     long updateMapIfNewer(DynamicPartitionMap partitionMap);
-
 }

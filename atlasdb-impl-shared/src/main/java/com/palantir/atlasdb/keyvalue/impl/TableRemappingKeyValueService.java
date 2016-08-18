@@ -42,7 +42,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public class TableRemappingKeyValueService extends ForwardingObject implements
+public final class TableRemappingKeyValueService extends ForwardingObject implements
         NamespacedKeyValueService {
     public static TableRemappingKeyValueService create(KeyValueService delegate,
                                                        TableMappingService tableMapper) {
@@ -78,7 +78,8 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
 
     @Override
     public void createTables(Map<TableReference, byte[]> tableReferencesToTableMetadata) {
-        Map<TableReference, byte[]> tableNameToTableMetadata= Maps.newHashMapWithExpectedSize(tableReferencesToTableMetadata.size());
+        Map<TableReference, byte[]> tableNameToTableMetadata =
+                Maps.newHashMapWithExpectedSize(tableReferencesToTableMetadata.size());
         for (Entry<TableReference, byte[]> tableEntry : tableReferencesToTableMetadata.entrySet()) {
             tableNameToTableMetadata.put(
                     tableMapper.addTable(tableEntry.getKey()),
@@ -145,9 +146,10 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef,
-                                                                                                           Iterable<RangeRequest> rangeRequests,
-                                                                                                           long timestamp) {
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
+            TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            long timestamp) {
         return delegate().getFirstBatchForRanges(
                 tableMapper.getMappedTableName(tableRef),
                 rangeRequests,
@@ -218,7 +220,11 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection,
+            long timestamp) {
         return delegate().getRowsColumnRange(tableMapper.getMappedTableName(tableRef),
                 rows,
                 columnRangeSelection,
@@ -248,7 +254,8 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
 
     @Override
     public void putMetadataForTables(Map<TableReference, byte[]> tableReferencesToMetadata) {
-        Map<TableReference, byte[]> tableNameToMetadata = Maps.newHashMapWithExpectedSize(tableReferencesToMetadata.size());
+        Map<TableReference, byte[]> tableNameToMetadata =
+                Maps.newHashMapWithExpectedSize(tableReferencesToMetadata.size());
         for (Entry<TableReference, byte[]> tableEntry : tableReferencesToMetadata.entrySet()) {
             tableNameToMetadata.put(
                     tableMapper.getMappedTableName(tableEntry.getKey()),
