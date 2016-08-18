@@ -43,8 +43,6 @@ public class ConnectionSupplier implements SqlConnectionSupplier {
     /**
      * Returns fresh PalantirSqlConnection. It is the responsibility of the consumer of this method
      * to close the returned connection when done.
-     *
-     * @return
      */
     public SqlConnection getFresh() {
         close();

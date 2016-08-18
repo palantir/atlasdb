@@ -15,11 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThat;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,10 +53,13 @@ public class TestConfigLoading {
 
     @Test
     public void testHikariConnectionTimeout() throws IOException {
-        // Hikari uses "connectionTimeout" for how long the client will wait for a connection from the pool. In our parlance, this is checkoutTimeout
-        // Our connectionTimeout is instead translated to "connectTimeout", which is how long a connection can be open for.
+        // Hikari uses "connectionTimeout" for how long the client will wait for a connection from the pool.
+        // In our parlance, this is checkoutTimeout
+        // Our connectionTimeout is instead translated to "connectTimeout", which is how long a connection
+        // can be open for.
         ConnectionConfig connectionConfig = getConnectionConfig();
-        assertThat(connectionConfig.getHikariConfig().getConnectionTimeout(), is((long) connectionConfig.getCheckoutTimeout()));
+        assertThat(connectionConfig.getHikariConfig().getConnectionTimeout(),
+                is((long) connectionConfig.getCheckoutTimeout()));
     }
 
     @Test
@@ -75,7 +78,8 @@ public class TestConfigLoading {
     }
 
     private ConnectionConfig getConnectionConfig() throws IOException {
-        AtlasDbConfig config = AtlasDbConfigs.load(new File(getClass().getClassLoader().getResource("postgresTestConfig.yml").getFile()));
+        AtlasDbConfig config = AtlasDbConfigs.load(
+                new File(getClass().getClassLoader().getResource("postgresTestConfig.yml").getFile()));
         KeyValueServiceConfig keyValueServiceConfig = config.keyValueService();
         DbKeyValueServiceConfig dbkvsConfig = (DbKeyValueServiceConfig) keyValueServiceConfig;
         return dbkvsConfig.connection();

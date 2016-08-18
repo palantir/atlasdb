@@ -67,10 +67,9 @@ public class SimpleDbWriteTable implements DbWriteTable {
 
     private void put(List<Object[]> args) {
         try {
-            conns.get().insertManyUnregisteredQuery(
-                    "/* INSERT_ONE (" + tableName + ") */" +
-                    " INSERT INTO " + prefixedTableName() + " (row_name, col_name, ts, val) " +
-                    " VALUES (?, ?, ?, ?) ",
+            conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + tableName + ") */"
+                    + " INSERT INTO " + prefixedTableName() + " (row_name, col_name, ts, val) "
+                    + " VALUES (?, ?, ?, ?) ",
                     args);
         } catch (PalantirSqlException e) {
             if (ExceptionCheck.isUniqueConstraintViolation(e)) {
@@ -92,14 +91,13 @@ public class SimpleDbWriteTable implements DbWriteTable {
             }
             while (true) {
                 try {
-                    conns.get().insertManyUnregisteredQuery(
-                            "/* INSERT_WHERE_NOT_EXISTS (" + tableName + ") */" +
-                            " INSERT INTO " + prefixedTableName() + " (row_name, col_name, ts, val) " +
-                            " SELECT ?, ?, ?, ? FROM DUAL" +
-                            " WHERE NOT EXISTS (SELECT * FROM " + prefixedTableName() + " WHERE" +
-                            " row_name = ? AND" +
-                            " col_name = ? AND" +
-                            " ts = ?)",
+                    conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + tableName + ") */"
+                            + " INSERT INTO " + prefixedTableName() + " (row_name, col_name, ts, val) "
+                            + " SELECT ?, ?, ?, ? FROM DUAL"
+                            + " WHERE NOT EXISTS (SELECT * FROM " + prefixedTableName() + " WHERE"
+                            + " row_name = ? AND"
+                            + " col_name = ? AND"
+                            + " ts = ?)",
                             args);
                     break;
                 } catch (PalantirSqlException e) {
@@ -120,13 +118,12 @@ public class SimpleDbWriteTable implements DbWriteTable {
             Cell cell = entry.getKey();
             args.add(new Object[] {cell.getRowName(), cell.getColumnName(), entry.getValue()});
         }
-        conns.get().updateManyUnregisteredQuery(
-                " /* DELETE_ONE (" + tableName + ") */ " +
-                " DELETE /*+ INDEX(m pk_" + prefixedTableName() + ") */ " +
-                " FROM " + prefixedTableName() + " m " +
-                " WHERE m.row_name = ? " +
-                "  AND m.col_name = ? " +
-                "  AND m.ts = ?",
+        conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE (" + tableName + ") */ "
+                + " DELETE /*+ INDEX(m pk_" + prefixedTableName() + ") */ "
+                + " FROM " + prefixedTableName() + " m "
+                + " WHERE m.row_name = ? "
+                + "  AND m.col_name = ? "
+                + "  AND m.ts = ?",
                 args);
     }
 
