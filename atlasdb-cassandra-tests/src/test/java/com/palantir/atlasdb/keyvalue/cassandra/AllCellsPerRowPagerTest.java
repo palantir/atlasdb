@@ -87,6 +87,11 @@ public class AllCellsPerRowPagerTest {
     }
 
     @Test
+    public void getNextPageShouldExecuteQueryLimitedToPageSize() {
+        verifyNextPageQueryMatches(endsWith(String.format("LIMIT %s;", pageSize)));
+    }
+
+    @Test
     public void getFirstPageShouldFireCqlRequestWithCorrectTableName() {
         verifyFirstPageQueryMatches(containsString(String.format("FROM %s ", DEFAULT_TABLE.getQualifiedName())));
     }
@@ -121,6 +126,14 @@ public class AllCellsPerRowPagerTest {
         allQueriesReturn(ImmutableList.of());
 
         pager.getFirstPage();
+
+        verify(executor).execute(argThat(matcher));
+    }
+
+    private void verifyNextPageQueryMatches(Matcher<String> matcher) {
+        allQueriesReturn(ImmutableList.of());
+
+        pager.getNextPage(PREVIOUS_PAGE);
 
         verify(executor).execute(argThat(matcher));
     }
