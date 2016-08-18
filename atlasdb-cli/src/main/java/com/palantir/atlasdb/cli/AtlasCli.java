@@ -20,7 +20,6 @@ import java.util.concurrent.Callable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.cli.command.KvsMigrationCommand;
 import com.palantir.atlasdb.cli.command.SweepCommand;
 import com.palantir.atlasdb.cli.command.timestamp.CleanTransactionRange;
@@ -34,7 +33,6 @@ public class AtlasCli {
 
     private static final Logger log = LoggerFactory.getLogger(AtlasCli.class);
 
-    @VisibleForTesting
     public static Cli<Callable> buildCli() {
         Cli.CliBuilder<Callable> builder = Cli.<Callable>builder("atlasdb")
                 .withDescription("Perform common AtlasDB tasks")

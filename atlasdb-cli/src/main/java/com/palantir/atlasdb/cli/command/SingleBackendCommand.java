@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cli.command;
 import java.io.IOException;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
@@ -28,6 +29,8 @@ public abstract class SingleBackendCommand extends AbstractCommand {
 
     @Override
     public Integer call() {
+        Preconditions.checkState(isOnlineRunSupported() || isOffline(), "This CLI can only be run offline");
+
         try (AtlasDbServices services = connect()) {
             return execute(services);
         } catch (Exception e) {
@@ -48,4 +51,5 @@ public abstract class SingleBackendCommand extends AbstractCommand {
         return factory.connect(ServicesConfigModule.create(getAtlasDbConfig()));
     }
 
+    public abstract boolean isOnlineRunSupported();
 }

@@ -34,7 +34,6 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -115,7 +114,7 @@ public class TableRemappingKeyValueService extends ForwardingObject implements
         // We're purposely updating the table mappings after all drops are complete
         for (TableReference tableRef : tableRefs) {
             // Handles the edge case of deleting _namespace when clearing the kvs
-            if (tableRef.getNamespace().equals(Namespace.EMPTY_NAMESPACE)
+            if (tableRef.getNamespace().isEmptyNamespace()
                     && tableRef.equals(AtlasDbConstants.NAMESPACE_TABLE)) {
                 break;
             }

@@ -28,8 +28,12 @@ import io.airlift.airline.Command;
         + " service to the specified timestamp.  Is used in the restore process to ensure that all future timestamps used are"
         + " explicity greater than any that may have been used to write data to the KVS before backing up the underlying storage.")
 public class FastForwardTimestamp extends AbstractTimestampCommand {
-
     private static final Logger log = LoggerFactory.getLogger(FastForwardTimestamp.class);
+
+    @Override
+    public boolean isOnlineRunSupported() {
+        return false;
+    }
 
     @Override
     protected boolean requireTimestamp() {

@@ -70,7 +70,7 @@ public final class Namespace {
 
     @JsonIgnore
     public boolean isEmptyNamespace() {
-        return this == EMPTY_NAMESPACE;
+        return this.equals(EMPTY_NAMESPACE);
     }
 
     public String getName() {

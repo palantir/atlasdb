@@ -18,6 +18,8 @@ package com.palantir.atlasdb.config;
 import java.io.File;
 import java.io.IOException;
 
+import javax.annotation.Nullable;
+
 import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,17 +48,17 @@ public final class AtlasDbConfigs {
         return load(configFile, ATLASDB_CONFIG_ROOT);
     }
 
-    public static AtlasDbConfig load(File configFile, String configRoot) throws IOException {
+    public static AtlasDbConfig load(File configFile, @Nullable String configRoot) throws IOException {
         JsonNode rootNode = getConfigNode(configFile, configRoot);
         return OBJECT_MAPPER.treeToValue(rootNode, AtlasDbConfig.class);
     }
 
-    public static AtlasDbConfig loadFromString(String fileContents, String configRoot) throws IOException {
+    public static AtlasDbConfig loadFromString(String fileContents, @Nullable String configRoot) throws IOException {
         JsonNode rootNode = getConfigNode(fileContents, configRoot);
         return OBJECT_MAPPER.treeToValue(rootNode, AtlasDbConfig.class);
     }
 
-    private static JsonNode getConfigNode(File configFile, String configRoot) throws IOException {
+    private static JsonNode getConfigNode(File configFile, @Nullable String configRoot) throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(configFile);
         JsonNode configNode = findRoot(node, configRoot);
 
@@ -67,7 +69,7 @@ public final class AtlasDbConfigs {
         return configNode;
     }
 
-    private static JsonNode getConfigNode(String fileContents, String configRoot) throws IOException {
+    private static JsonNode getConfigNode(String fileContents, @Nullable String configRoot) throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(fileContents);
         JsonNode configNode = findRoot(node, configRoot);
 
@@ -78,7 +80,7 @@ public final class AtlasDbConfigs {
         return configNode;
     }
 
-    private static JsonNode findRoot(JsonNode node, String configRoot) {
+    private static JsonNode findRoot(JsonNode node, @Nullable String configRoot) {
         if (Strings.isNullOrEmpty(configRoot)) {
             return node;
         }
