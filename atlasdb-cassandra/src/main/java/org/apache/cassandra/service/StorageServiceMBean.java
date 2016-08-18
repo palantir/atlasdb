@@ -95,7 +95,6 @@ public interface StorageServiceMBean extends NotificationEmitter {
      */
     String getSchemaVersion();
 
-
     /**
      * Get the list of all data file locations from conf.
      *
@@ -660,6 +659,7 @@ public interface StorageServiceMBean extends NotificationEmitter {
      * Returns the threshold for abandoning queries with many tombstones.
      */
     int getTombstoneFailureThreshold();
+
     /**
      * Sets the threshold for abandoning queries with many tombstones.
      */
@@ -669,6 +669,7 @@ public interface StorageServiceMBean extends NotificationEmitter {
      * Returns the threshold for rejecting queries due to a large batch size.
      */
     int getBatchSizeFailureThreshold();
+
     /**
      * Sets the threshold for rejecting queries due to a large batch size.
      */

@@ -67,7 +67,8 @@ public final class CQLExpiringKeyValueService extends CQLKeyValueService impleme
                     tableRef,
                     KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp),
                     TransactionType.NONE,
-                    CassandraKeyValueServices.convertTtl(time, unit), false);
+                    CassandraKeyValueServices.convertTtl(time, unit),
+                    false);
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -80,7 +81,8 @@ public final class CQLExpiringKeyValueService extends CQLKeyValueService impleme
                     tableRef,
                     values.entries(),
                     TransactionType.NONE,
-                    CassandraKeyValueServices.convertTtl(time, unit), false);
+                    CassandraKeyValueServices.convertTtl(time, unit),
+                    false);
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }

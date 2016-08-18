@@ -922,74 +922,75 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 + CassandraConstants.ROW_NAME + " = ?";
         return ClosableIterators.wrap(
                 new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
-                @Override
-                protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage()
-                        throws Exception {
-                    return getPage(rangeRequest.getStartInclusive());
-                }
-
-                @Override
-                protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(
-                        TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous)
-                        throws Exception {
-                    return getPage(previous.getTokenForNextPage());
-                }
-
-                TokenBackedBasicResultsPage<RowResult<U>, byte[]> getPage(final byte[] startKey)
-                        throws Exception {
-                    BoundStatement boundStatement = getPreparedStatement(tableRef, bindQuery.toString(), session)
-                            .setConsistencyLevel(consistency)
-                            .bind();
-
-                    boundStatement.setBytes(0, ByteBuffer.wrap(startKey));
-                    if (endExclusive.length > 0) {
-                        boundStatement.setBytes(1, ByteBuffer.wrap(endExclusive));
+                    @Override
+                    protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage()
+                            throws Exception {
+                        return getPage(rangeRequest.getStartInclusive());
                     }
-                    ResultSet resultSet = session.execute(boundStatement);
-                    List<Row> rows = Lists.newArrayList(resultSet.all());
-                    cqlKeyValueServices.logTracedQuery(
-                            bindQuery.toString(), resultSet, session, cqlStatementCache.normalQuery);
-                    byte[] maxRow = null;
-                    ResultsExtractor<T, U> extractor = resultsExtractor.get();
-                    for (Row row : rows) {
-                        byte[] rowName = CQLKeyValueServices.getRowName(row);
-                        if (maxRow == null) {
-                            maxRow = rowName;
-                        } else {
-                            maxRow = PtBytes.BYTES_COMPARATOR.max(maxRow, rowName);
+
+                    @Override
+                    protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(
+                            TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous)
+                            throws Exception {
+                        return getPage(previous.getTokenForNextPage());
+                    }
+
+                    TokenBackedBasicResultsPage<RowResult<U>, byte[]> getPage(final byte[] startKey)
+                            throws Exception {
+                        BoundStatement boundStatement = getPreparedStatement(tableRef, bindQuery.toString(), session)
+                                .setConsistencyLevel(consistency)
+                                .bind();
+
+                        boundStatement.setBytes(0, ByteBuffer.wrap(startKey));
+                        if (endExclusive.length > 0) {
+                            boundStatement.setBytes(1, ByteBuffer.wrap(endExclusive));
                         }
-                    }
-                    if (maxRow == null) {
-                        return new SimpleTokenBackedResultsPage<>(
-                                endExclusive,
-                                ImmutableList.of(),
-                                false);
-                    }
-                    // get the rest of the last row
-                    BoundStatement boundLastRow = getPreparedStatement(tableRef, getLastRowQuery, session).bind();
+                        ResultSet resultSet = session.execute(boundStatement);
+                        List<Row> rows = Lists.newArrayList(resultSet.all());
+                        cqlKeyValueServices.logTracedQuery(
+                                bindQuery.toString(), resultSet, session, cqlStatementCache.normalQuery);
+                        byte[] maxRow = null;
+                        ResultsExtractor<T, U> extractor = resultsExtractor.get();
+                        for (Row row : rows) {
+                            byte[] rowName = CQLKeyValueServices.getRowName(row);
+                            if (maxRow == null) {
+                                maxRow = rowName;
+                            } else {
+                                maxRow = PtBytes.BYTES_COMPARATOR.max(maxRow, rowName);
+                            }
+                        }
+                        if (maxRow == null) {
+                            return new SimpleTokenBackedResultsPage<>(
+                                    endExclusive,
+                                    ImmutableList.of(),
+                                    false);
+                        }
+                        // get the rest of the last row
+                        BoundStatement boundLastRow = getPreparedStatement(tableRef, getLastRowQuery, session).bind();
 
-                    boundLastRow.setBytes(CassandraConstants.ROW_NAME, ByteBuffer.wrap(maxRow));
-                    try {
-                        resultSet = session.execute(boundLastRow);
-                    } catch (com.datastax.driver.core.exceptions.UnavailableException e) {
-                        throw new InsufficientConsistencyException("This operation requires all Cassandra"
-                                + " nodes to be up and available.", e);
+                        boundLastRow.setBytes(CassandraConstants.ROW_NAME, ByteBuffer.wrap(maxRow));
+                        try {
+                            resultSet = session.execute(boundLastRow);
+                        } catch (com.datastax.driver.core.exceptions.UnavailableException e) {
+                            throw new InsufficientConsistencyException("This operation requires all Cassandra"
+                                    + " nodes to be up and available.", e);
+                        }
+                        rows.addAll(resultSet.all());
+                        cqlKeyValueServices.logTracedQuery(
+                                getLastRowQuery, resultSet, session, cqlStatementCache.normalQuery);
+                        for (Row row : rows) {
+                            extractor.internalExtractResult(
+                                    timestamp,
+                                    selection,
+                                    CQLKeyValueServices.getRowName(row),
+                                    CQLKeyValueServices.getColName(row),
+                                    CQLKeyValueServices.getValue(row),
+                                    CQLKeyValueServices.getTs(row));
+                        }
+                        SortedMap<byte[], SortedMap<byte[], U>> resultsByRow =
+                                Cells.breakCellsUpByRow(extractor.asMap());
+                        return ResultsExtractor.getRowResults(endExclusive, maxRow, resultsByRow);
                     }
-                    rows.addAll(resultSet.all());
-                    cqlKeyValueServices.logTracedQuery(
-                            getLastRowQuery, resultSet, session, cqlStatementCache.normalQuery);
-                    for (Row row : rows) {
-                        extractor.internalExtractResult(
-                                timestamp,
-                                selection,
-                                CQLKeyValueServices.getRowName(row),
-                                CQLKeyValueServices.getColName(row),
-                                CQLKeyValueServices.getValue(row),
-                                CQLKeyValueServices.getTs(row));
-                    }
-                    SortedMap<byte[], SortedMap<byte[], U>> resultsByRow = Cells.breakCellsUpByRow(extractor.asMap());
-                    return ResultsExtractor.getRowResults(endExclusive, maxRow, resultsByRow);
-                }
             }.iterator());
     }
 
