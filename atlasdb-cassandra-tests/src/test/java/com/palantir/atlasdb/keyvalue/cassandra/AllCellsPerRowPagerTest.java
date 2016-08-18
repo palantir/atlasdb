@@ -62,12 +62,12 @@ public class AllCellsPerRowPagerTest {
     );
 
     @Test
-    public void testGetFirstPage() {
+    public void getFirstPageShouldReturnSingleResult() {
         verifySingletonListIsReturnedCorrectly(() -> pager.getFirstPage());
     }
 
     @Test
-    public void testGetNextPage() {
+    public void getNextPageShouldReturnSingleResult() {
         verifySingletonListIsReturnedCorrectly(() -> pager.getNextPage(PREVIOUS_PAGE));
     }
 
