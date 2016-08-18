@@ -38,13 +38,14 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 abstract class ResultsExtractor<T, U> {
     protected final T collector;
 
-    public ResultsExtractor(T collector) {
+    ResultsExtractor(T collector) {
         this.collector = collector;
     }
 
-    public final byte[] extractResults(Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
-                                       long startTs,
-                                       ColumnSelection selection) {
+    public final byte[] extractResults(
+            Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey,
+            long startTs,
+            ColumnSelection selection) {
         byte[] maxRow = null;
         for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> colEntry : colsByKey.entrySet()) {
             byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(colEntry.getKey());
@@ -72,17 +73,19 @@ abstract class ResultsExtractor<T, U> {
         return getRowResults(endExclusive, lastRow, resultsByRow);
     }
 
-    public static <T> TokenBackedBasicResultsPage<RowResult<T>, byte[]> getRowResults(final byte[] endExclusive,
-                                                                                      byte[] lastRow, SortedMap<byte[], SortedMap<byte[], T>> resultsByRow) {
+    public static <T> TokenBackedBasicResultsPage<RowResult<T>, byte[]> getRowResults(
+            byte[] endExclusive,
+            byte[] lastRow,
+            SortedMap<byte[], SortedMap<byte[], T>> resultsByRow) {
         SortedMap<byte[], RowResult<T>> ret = RowResults.viewOfSortedMap(resultsByRow);
         if (lastRow == null || RangeRequests.isLastRowName(lastRow)) {
-            return new SimpleTokenBackedResultsPage<RowResult<T>, byte[]>(endExclusive, ret.values(), false);
+            return new SimpleTokenBackedResultsPage<>(endExclusive, ret.values(), false);
         }
         byte[] nextStart = RangeRequests.nextLexicographicName(lastRow);
         if (Arrays.equals(nextStart, endExclusive)) {
-            return new SimpleTokenBackedResultsPage<RowResult<T>, byte[]>(endExclusive, ret.values(), false);
+            return new SimpleTokenBackedResultsPage<>(endExclusive, ret.values(), false);
         }
-        return new SimpleTokenBackedResultsPage<RowResult<T>, byte[]>(nextStart, ret.values(), true);
+        return new SimpleTokenBackedResultsPage<>(nextStart, ret.values(), true);
     }
 
     public abstract void internalExtractResult(long startTs,

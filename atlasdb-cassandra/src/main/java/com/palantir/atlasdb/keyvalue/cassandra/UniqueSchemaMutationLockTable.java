@@ -29,6 +29,8 @@ import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class UniqueSchemaMutationLockTable {
     private static final Logger log = LoggerFactory.getLogger(UniqueSchemaMutationLockTable.class);
     private final SchemaMutationLockTables schemaMutationLockTables;
@@ -47,13 +49,15 @@ public class UniqueSchemaMutationLockTable {
                 case SOMEONE_ELSE_IS_THE_LOCK_LEADER:
                     return waitForSomeoneElseToCreateLockTable();
                 default:
-                    throw new RuntimeException("We encountered an unknown lock leader status, please contact the AtlasDB team");
+                    throw new RuntimeException(
+                            "We encountered an unknown lock leader status, please contact the AtlasDB team");
             }
         } catch (TException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
 
+    @SuppressFBWarnings("SWL_SLEEP_WITH_LOCK_HELD")
     private synchronized TableReference waitForSomeoneElseToCreateLockTable() throws TException {
         while (schemaMutationLockTables.getAllLockTables().isEmpty()) {
             try {
@@ -80,15 +84,13 @@ public class UniqueSchemaMutationLockTable {
         Set<TableReference> lockTables = schemaMutationLockTables.getAllLockTables();
 
         if (lockTables.size() > 1) {
-            throw new IllegalStateException(
-                    "Multiple schema mutation lock tables have been created.\n" +
-                            "This happens when multiple nodes have themselves as lockLeader in the configuration.\n" +
-                            "Please ensure the lockLeader is the same for each node, stop all Atlas clients using " +
-                            "this keyspace, restart your cassandra cluster and delete all created schema mutation lock tables.\n" +
-                            "The tables that clashed were: " + lockTables);
+            throw new IllegalStateException("Multiple schema mutation lock tables have been created.\n"
+                    + "This happens when multiple nodes have themselves as lockLeader in the configuration.\n"
+                    + "Please ensure the lockLeader is the same for each node, stop all Atlas clients using this "
+                    + "keyspace, restart your cassandra cluster and delete all created schema mutation lock tables.\n"
+                    + "The tables that clashed were: " + lockTables);
         }
 
         return Iterables.getOnlyElement(lockTables);
     }
-
 }

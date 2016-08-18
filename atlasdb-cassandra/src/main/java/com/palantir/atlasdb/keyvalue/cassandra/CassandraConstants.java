@@ -28,7 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public class CassandraConstants {
+public final class CassandraConstants {
     static final int LONG_RUNNING_QUERY_SOCKET_TIMEOUT_MILLIS = 62000;
     public static final int DEFAULT_REPLICATION_FACTOR = 3;
     public static final int DEFAULT_THRIFT_PORT = 9160;
@@ -63,7 +63,9 @@ public class CassandraConstants {
     static final String DEFAULT_RACK = "rack1";
     static final String SIMPLE_RF_TEST_KEYSPACE = "__simple_rf_test_keyspace__";
     static final String REPLICATION_FACTOR_OPTION = "replication_factor";
-    static final int GC_GRACE_SECONDS = 4 * 24 * 60 * 60; // 4 days; Hinted-Handoffs MUST expire well within this period for delete correctness (I believe we will be expiring hints in half this period)
+    // 4 days; Hinted-Handoffs MUST expire well within this period for delete correctness
+    // (I believe we will be expiring hints in half this period)
+    static final int GC_GRACE_SECONDS = 4 * 24 * 60 * 60;
     static final float TOMBSTONE_THRESHOLD_RATIO = 0.2f;
 
     // JMX compaction related
@@ -84,12 +86,17 @@ public class CassandraConstants {
     public static final int NO_TTL = -1;
 
     static final String LEVELED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.LeveledCompactionStrategy";
-    static final String SIZE_TIERED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy";
+    static final String SIZE_TIERED_COMPACTION_STRATEGY =
+            "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy";
 
     public static final String GLOBAL_DDL_LOCK = "Global DDL lock";
     public static final String GLOBAL_DDL_LOCK_COLUMN_NAME = "id_with_lock";
     public static final long TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS = 1000;
     public static final long GLOBAL_DDL_LOCK_CLEARED_VALUE = Long.MAX_VALUE;
+
+    private CassandraConstants() {
+        // Utility class
+    }
 
     // update CKVS.isMatchingCf if you update this method
     static CfDef getStandardCfDef(String keyspace, String internalTableName) {

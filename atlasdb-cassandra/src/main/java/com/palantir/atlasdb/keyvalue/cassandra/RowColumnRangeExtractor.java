@@ -37,10 +37,11 @@ class RowColumnRangeExtractor {
         private final Set<byte[]> emptyRows;
         private final Map<byte[], Integer> rowsToRawColumnCount;
 
-        public RowColumnRangeResult(Map<byte[], LinkedHashMap<Cell, Value>> results,
-                                    Map<byte[], Column> rowsToLastCompositeColumns,
-                                    Set<byte[]> emptyRows,
-                                    Map<byte[], Integer> rowsToRawColumnCount) {
+        RowColumnRangeResult(
+                Map<byte[], LinkedHashMap<Cell, Value>> results,
+                Map<byte[], Column> rowsToLastCompositeColumns,
+                Set<byte[]> emptyRows,
+                Map<byte[], Integer> rowsToRawColumnCount) {
             this.results = results;
             this.rowsToLastCompositeColumns = rowsToLastCompositeColumns;
             this.emptyRows = emptyRows;
