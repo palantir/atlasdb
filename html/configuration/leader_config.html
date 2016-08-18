@@ -180,7 +180,7 @@
 <ul class="simple">
 <li><code class="docutils literal"><span class="pre">learnerLogDir</span></code> : Path to the paxos learner logs (defaults to var/data/paxos/learner)</li>
 <li><code class="docutils literal"><span class="pre">acceptorLogDir</span></code> : Path to the paxos acceptor logs (defaults to var/data/paxos/acceptor)</li>
-<li><code class="docutils literal"><span class="pre">lockCreator</span></code> : The host responsible for creation of the schema mutation lock table. If specified, this must be same across all hosts. (defaults to the first host in the leaders list, the first host must be same across all the hosts for this to work)</li>
+<li><code class="docutils literal"><span class="pre">lockCreator</span></code> : The host responsible for creation of the schema mutation lock table. If specified, this must be same across all hosts. (defaults to the first host in the sorted leaders list)</li>
 <li><code class="docutils literal"><span class="pre">pingRateMs</span></code> : defaults to 5000</li>
 <li><code class="docutils literal"><span class="pre">randomWaitBeforeProposingLeadershipMs</span></code> : defaults to 1000</li>
 <li><code class="docutils literal"><span class="pre">leaderPingResponseWaitMs</span></code> : defaults to 5000</li>
