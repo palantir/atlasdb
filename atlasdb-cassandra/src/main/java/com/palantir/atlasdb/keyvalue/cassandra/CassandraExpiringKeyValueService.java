@@ -102,12 +102,8 @@ public class CassandraExpiringKeyValueService extends CassandraKeyValueService i
 
 
             Iterable<List<Entry<Cell, byte[]>>> partitions = partitionByCountAndBytes(sortedMap.entrySet(),
-                    getMultiPutBatchCount(), getMultiPutBatchSizeBytes(), table, entry -> {
-                        long totalSize = 0;
-                        totalSize += entry.getValue().length;
-                        totalSize += Cells.getApproxSizeOfCell(entry.getKey());
-                        return totalSize;
-                    });
+                    getMultiPutBatchCount(), getMultiPutBatchSizeBytes(), table, entry ->
+                            entry.getValue().length + Cells.getApproxSizeOfCell(entry.getKey()));
 
             for (final List<Entry<Cell, byte[]>> p : partitions) {
                 callables.add(() -> {
