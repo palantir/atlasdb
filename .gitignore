@@ -13,6 +13,7 @@ Thumbs.db
 *.iws
 fix-ivy.py
 .idea
+.checkstyle
 .classpath
 .ecbuild
 .settings/
@@ -22,6 +23,7 @@ docs/build/
 .gradle
 bin/
 userdict.txt
+.apt_generated/
 generated_src/
 generated_testSrc/
 .factorypath
