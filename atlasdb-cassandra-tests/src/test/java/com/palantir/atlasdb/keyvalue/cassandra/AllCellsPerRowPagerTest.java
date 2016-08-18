@@ -62,23 +62,22 @@ public class AllCellsPerRowPagerTest {
 
     @Test
     public void testGetFirstPage() {
-        verifyCorrectListIsReturned(this::getFirstPage);
+        verifySingletonListIsReturnedCorrectly(() -> pager.getFirstPage());
     }
 
     @Test
     public void testGetNextPage() {
-        verifyCorrectListIsReturned(this::getNextPage);
+        verifySingletonListIsReturnedCorrectly(this::getNextPage);
     }
 
     @Test
     public void getFirstPageShouldReturnMultipleResults() {
-        CqlRow row1 = makeCqlRow(DEFAULT_COLUMN_NAME, 1L);
-        CqlRow row2 = makeCqlRow(DEFAULT_COLUMN_NAME, 2L);
-        allQueriesReturn(ImmutableList.of(row1, row2));
+        verifyMultipleElementListIsReturnedCorrectly(() -> pager.getFirstPage());
+    }
 
-        List<ColumnOrSuperColumn> firstPage = pager.getFirstPage();
-
-        assertThat(firstPage, hasSize(2));
+    @Test
+    public void getNextPageShouldReturnMultipleResults() {
+        verifyMultipleElementListIsReturnedCorrectly(this::getNextPage);
     }
 
     @Test
@@ -96,7 +95,7 @@ public class AllCellsPerRowPagerTest {
         verifyFirstPageQueryMatches(containsString(String.format("WHERE key = %s LIMIT", encodeAsHex(rowKey.array()))));
     }
 
-    private void verifyCorrectListIsReturned(Supplier<List<ColumnOrSuperColumn>> method) {
+    private void verifySingletonListIsReturnedCorrectly(Supplier<List<ColumnOrSuperColumn>> method) {
         long timestamp = 1L;
         CqlRow row = makeCqlRow(DEFAULT_COLUMN_NAME, timestamp);
         allQueriesReturn(ImmutableList.of(row));
@@ -107,8 +106,14 @@ public class AllCellsPerRowPagerTest {
         assertColumnOrSuperColumnHasCorrectNameAndTimestamp(page.get(0), DEFAULT_COLUMN_NAME, timestamp);
     }
 
-    private List<ColumnOrSuperColumn> getFirstPage() {
-        return pager.getFirstPage();
+    private void verifyMultipleElementListIsReturnedCorrectly(Supplier<List<ColumnOrSuperColumn>> method) {
+        CqlRow row1 = makeCqlRow(DEFAULT_COLUMN_NAME, 1L);
+        CqlRow row2 = makeCqlRow(DEFAULT_COLUMN_NAME, 2L);
+        allQueriesReturn(ImmutableList.of(row1, row2));
+
+        List<ColumnOrSuperColumn> firstPage = method.get();
+
+        assertThat(firstPage, hasSize(2));
     }
 
     private List<ColumnOrSuperColumn> getNextPage() {
