@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -61,14 +62,12 @@ public class AllCellsPerRowPagerTest {
 
     @Test
     public void testGetFirstPage() {
-        long timestamp = 1L;
-        CqlRow row = makeCqlRow(DEFAULT_COLUMN_NAME, timestamp);
-        allQueriesReturn(ImmutableList.of(row));
+        verifyCorrectListIsReturned(this::getFirstPage);
+    }
 
-        List<ColumnOrSuperColumn> firstPage = pager.getFirstPage();
-
-        assertThat(firstPage, hasSize(1));
-        assertColumnOrSuperColumnHasCorrectNameAndTimestamp(firstPage.get(0), DEFAULT_COLUMN_NAME, timestamp);
+    @Test
+    public void testGetNextPage() {
+        verifyCorrectListIsReturned(this::getNextPage);
     }
 
     @Test
@@ -97,6 +96,26 @@ public class AllCellsPerRowPagerTest {
         verifyFirstPageQueryMatches(containsString(String.format("WHERE key = %s LIMIT", encodeAsHex(rowKey.array()))));
     }
 
+    private void verifyCorrectListIsReturned(Supplier<List<ColumnOrSuperColumn>> method) {
+        long timestamp = 1L;
+        CqlRow row = makeCqlRow(DEFAULT_COLUMN_NAME, timestamp);
+        allQueriesReturn(ImmutableList.of(row));
+
+        List<ColumnOrSuperColumn> page = method.get();
+
+        assertThat(page, hasSize(1));
+        assertColumnOrSuperColumnHasCorrectNameAndTimestamp(page.get(0), DEFAULT_COLUMN_NAME, timestamp);
+    }
+
+    private List<ColumnOrSuperColumn> getFirstPage() {
+        return pager.getFirstPage();
+    }
+
+    private List<ColumnOrSuperColumn> getNextPage() {
+        List<ColumnOrSuperColumn> previousPage = ImmutableList.of(makeColumnOrSuperColumn("don't care", 23));
+        return pager.getNextPage(previousPage);
+    }
+
     private void verifyFirstPageQueryMatches(Matcher<String> matcher) {
         allQueriesReturn(ImmutableList.of());
 
@@ -110,6 +129,10 @@ public class AllCellsPerRowPagerTest {
                 new Column().setValue(columnName.getBytes()),
                 new Column().setValue(PtBytes.toBytes(~timestamp)));
         return new CqlRow(rowKey, columns);
+    }
+
+    private ColumnOrSuperColumn makeColumnOrSuperColumn(String columnName, long timestamp) {
+        return makeColumnOrSuperColumn(columnName.getBytes(), PtBytes.toBytes(timestamp));
     }
 
     private void allQueriesReturn(List<CqlRow> rows) {
@@ -132,7 +155,15 @@ public class AllCellsPerRowPagerTest {
         return ByteBuffer.wrap(str.getBytes());
     }
 
+    // TODO the below got copied from production code, which makes us sad
     private String encodeAsHex(byte[] array) {
         return "0x" + PtBytes.encodeHexString(array);
+    }
+
+    private ColumnOrSuperColumn makeColumnOrSuperColumn(byte[] columnName, byte[] timestamp) {
+        long timestampLong = ~PtBytes.toLong(timestamp);
+        Column col = new Column()
+                .setName(CassandraKeyValueServices.makeCompositeBuffer(columnName, timestampLong));
+        return new ColumnOrSuperColumn().setColumn(col);
     }
 }
