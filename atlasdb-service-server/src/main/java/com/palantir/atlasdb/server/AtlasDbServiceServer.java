@@ -15,35 +15,31 @@
  */
 package com.palantir.atlasdb.server;
 
-import javax.net.ssl.SSLSocketFactory;
-
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
 import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.jackson.AtlasJacksonModule;
-import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 
 import io.dropwizard.Application;
 import io.dropwizard.setup.Environment;
 
-public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
+public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfiguration> {
 
     public static void main(String[] args) throws Exception {
-        new AtlasDbServer().run(args);
+        new AtlasDbServiceServer().run(args);
     }
 
     @Override
-    public void run(AtlasDbServerConfiguration config, final Environment environment) throws Exception {
-        SerializableTransactionManager tm = TransactionManagers.create(config.getConfig(), Optional.<SSLSocketFactory>absent(), ImmutableSet.<Schema>of(),
-                new com.palantir.atlasdb.factory.TransactionManagers.Environment() {
-                    @Override
-                    public void register(Object resource) {
-                        environment.jersey().register(resource);
-                    }
-                }, false);
+    public void run(AtlasDbServiceServerConfiguration config, final Environment environment) throws Exception {
+        SerializableTransactionManager tm = TransactionManagers.create(
+                config.getConfig(),
+                Optional.absent(),
+                ImmutableSet.of(),
+                environment.jersey()::register,
+                false);
 
         TableMetadataCache cache = new TableMetadataCache(tm.getKeyValueService());
 

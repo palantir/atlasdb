@@ -1,7 +1,7 @@
-.. _atlas-server-api:
+.. _atlasdb-server-api:
 
 ================
-Atlas Server Api
+AtlasDB Server Api
 ================
 
 Table Requests
