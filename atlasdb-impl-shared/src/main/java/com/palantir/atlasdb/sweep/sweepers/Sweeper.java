@@ -26,9 +26,12 @@ import com.palantir.common.base.ClosableIterator;
 public interface Sweeper {
     long getSweepTimestamp();
 
-    ClosableIterator<RowResult<Value>> getValues(TableReference table, RangeRequest range, long ts);
+    ClosableIterator<RowResult<Value>> getValues(TableReference table, RangeRequest range, long maxTimestamp);
 
-    ClosableIterator<RowResult<Set<Long>>> getCellTimestamps(TableReference table, RangeRequest range, long ts);
+    ClosableIterator<RowResult<Set<Long>>> getCellTimestamps(
+            TableReference table,
+            RangeRequest range,
+            long maxTimestamp);
 
     Set<Long> getTimestampsToIgnore();
 

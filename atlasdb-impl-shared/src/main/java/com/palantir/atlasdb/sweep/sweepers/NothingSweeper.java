@@ -32,12 +32,15 @@ public class NothingSweeper implements Sweeper {
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getValues(TableReference table, RangeRequest range, long ts) {
+    public ClosableIterator<RowResult<Value>> getValues(TableReference table, RangeRequest range, long maxTimestamp) {
         return ClosableIterators.emptyImmutableClosableIterator();
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getCellTimestamps(TableReference table, RangeRequest range, long ts) {
+    public ClosableIterator<RowResult<Set<Long>>> getCellTimestamps(
+            TableReference table,
+            RangeRequest range,
+            long maxTimestamp) {
         return ClosableIterators.emptyImmutableClosableIterator();
     }
 

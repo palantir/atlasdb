@@ -24,11 +24,11 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters.QuorumRequestParameters;
 import com.palantir.common.collect.Maps2;
 
-public class QuorumTracker<FutureReturnTypeT, TrackingUnitT> {
+public class QuorumTracker<FutureReturnT, TrackingUnitT> {
 
     private final Map<TrackingUnitT, Integer> numberOfRemainingSuccessesForSuccess;
     private final Map<TrackingUnitT, Integer> numberOfRemainingFailuresForFailure;
-    private final Map<Future<FutureReturnTypeT>, Iterable<TrackingUnitT>> unitsByReference;
+    private final Map<Future<FutureReturnT>, Iterable<TrackingUnitT>> unitsByReference;
     private boolean failure;
 
     public QuorumTracker(Iterable<TrackingUnitT> allTrackedUnits,
@@ -76,7 +76,7 @@ public class QuorumTracker<FutureReturnTypeT, TrackingUnitT> {
         return new QuorumTracker<>(allTrackedUnits, quorumRequestParameters);
     }
 
-    public void handleSuccess(Future<FutureReturnTypeT> ref) {
+    public void handleSuccess(Future<FutureReturnT> ref) {
         Preconditions.checkState(!finished());
         Preconditions.checkArgument(unitsByReference.containsKey(ref));
 
@@ -94,7 +94,7 @@ public class QuorumTracker<FutureReturnTypeT, TrackingUnitT> {
         unregisterRef(ref);
     }
 
-    public void handleFailure(Future<FutureReturnTypeT> ref) {
+    public void handleFailure(Future<FutureReturnT> ref) {
         Preconditions.checkState(!finished());
         Preconditions.checkArgument(unitsByReference.containsKey(ref));
         for (TrackingUnitT cell : unitsByReference.get(ref)) {
@@ -111,18 +111,18 @@ public class QuorumTracker<FutureReturnTypeT, TrackingUnitT> {
         unregisterRef(ref);
     }
 
-    public void registerRef(Future<FutureReturnTypeT> ref, Iterable<TrackingUnitT> items) {
+    public void registerRef(Future<FutureReturnT> ref, Iterable<TrackingUnitT> items) {
         Preconditions.checkState(!finished());
         unitsByReference.put(ref, items);
     }
 
-    public void unregisterRef(Future<FutureReturnTypeT> ref) {
+    public void unregisterRef(Future<FutureReturnT> ref) {
         Preconditions.checkArgument(unitsByReference.containsKey(ref));
         unitsByReference.remove(ref);
     }
 
     public void cancel(boolean mayInterruptIfRunning) {
-        for (Future<FutureReturnTypeT> f : unitsByReference.keySet()) {
+        for (Future<FutureReturnT> f : unitsByReference.keySet()) {
             f.cancel(mayInterruptIfRunning);
         }
     }

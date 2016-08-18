@@ -67,7 +67,7 @@ public class ClientVersionTooOldException extends VersionMismatchException {
      */
     public DynamicPartitionMap getUpdatedMap() {
         return RemotingPartitionMapService.createClientSide(
-                Preconditions.checkNotNull(pmsUri, "pmsUri must not be nnull to get the updated map")).getMap();
+                Preconditions.checkNotNull(pmsUri, "pmsUri must not be null to get the updated map")).getMap();
     }
 
     @Override

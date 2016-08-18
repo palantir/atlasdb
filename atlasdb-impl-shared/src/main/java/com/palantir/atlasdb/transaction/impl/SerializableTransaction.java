@@ -88,6 +88,8 @@ import com.palantir.util.Pair;
 public class SerializableTransaction extends SnapshotTransaction {
     private static final Logger log = LoggerFactory.getLogger(SerializableTransaction.class);
 
+    private static final int BATCH_SIZE = 1000;
+
     final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> readsByTable = Maps.newConcurrentMap();
     final ConcurrentMap<TableReference, ConcurrentMap<RangeRequest, byte[]>> rangeEndByTable = Maps.newConcurrentMap();
     final ConcurrentMap<TableReference, ConcurrentMap<byte[], ConcurrentMap<ColumnRangeSelection, byte[]>>>
@@ -444,7 +446,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             ConcurrentNavigableMap<Cell, byte[]> readsForTable,
             Multimap<ColumnSelection, byte[]> rowsReadByColumns,
             ColumnSelection columns) {
-        for (List<byte[]> batch : Iterables.partition(rowsReadByColumns.get(columns), 1000)) {
+        for (List<byte[]> batch : Iterables.partition(rowsReadByColumns.get(columns), BATCH_SIZE)) {
             SortedMap<byte[], RowResult<byte[]>> currentRows = ro.getRows(table, batch, columns);
             for (byte[] row : batch) {
                 RowResult<byte[]> currentRow = currentRows.get(row);
@@ -517,7 +519,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             Set<Cell> cells = tableAndCellsEntry.getValue();
 
             final ConcurrentNavigableMap<Cell, byte[]> readsForTable = getReadsForTable(table);
-            for (Iterable<Cell> batch : Iterables.partition(cells, 1000)) {
+            for (Iterable<Cell> batch : Iterables.partition(cells, BATCH_SIZE)) {
                 // We don't want to verify any reads that we wrote to cause we will just read our own values.
                 // NB: If the value has changed between read and write, our normal SI checking handles this case
                 Iterable<Cell> batchWithoutWrites = writesByTable.get(table) != null

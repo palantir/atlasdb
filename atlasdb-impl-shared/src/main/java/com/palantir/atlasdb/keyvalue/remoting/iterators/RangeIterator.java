@@ -89,7 +89,7 @@ public abstract class RangeIterator<T> implements ClosableIterator<RowResult<T>>
             KeyValueService kvs,
             TableReference tableReference,
             RangeRequest newRange,
-            long ts);
+            long newTimestamp);
 
     private void swapWithNewRows(RangeIterator<T> other) {
         hasNext = other.hasNext;

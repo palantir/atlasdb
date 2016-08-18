@@ -69,7 +69,7 @@ public final class InMemoryPartitionMapService implements PartitionMapService {
     public synchronized void updateMap(DynamicPartitionMap newPartitionMap) {
         lock.writeLock().lock();
         try {
-            this.partitionMap = Preconditions.checkNotNull(newPartitionMap, "Cannot set the partition map to null");
+            partitionMap = Preconditions.checkNotNull(newPartitionMap, "Cannot set the partition map to null");
         } finally {
             lock.writeLock().unlock();
         }
@@ -81,10 +81,10 @@ public final class InMemoryPartitionMapService implements PartitionMapService {
 
         lock.writeLock().lock();
         try {
-            final long originalVersion = this.partitionMap == null ? -1L : this.partitionMap.getVersion();
+            long originalVersion = partitionMap == null ? -1 : partitionMap.getVersion();
 
             if (newPartitionMap.getVersion() > originalVersion) {
-                this.partitionMap = newPartitionMap;
+                partitionMap = newPartitionMap;
             }
             return originalVersion;
         } finally {

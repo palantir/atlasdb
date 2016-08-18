@@ -27,17 +27,21 @@ import com.palantir.common.base.ClosableIterator;
 
 public class ValueRangeIterator extends RangeIterator<Value> {
     @JsonCreator
-    public ValueRangeIterator(@JsonProperty("tableRef") TableReference tableRef,
-                              @JsonProperty("range") RangeRequest range,
-                              @JsonProperty("timestamp") long timestamp,
-                              @JsonProperty("hasNext") boolean hasNext,
-                              @JsonProperty("page") ImmutableList<RowResult<Value>> page) {
+    public ValueRangeIterator(
+            @JsonProperty("tableRef") TableReference tableRef,
+            @JsonProperty("range") RangeRequest range,
+            @JsonProperty("timestamp") long timestamp,
+            @JsonProperty("hasNext") boolean hasNext,
+            @JsonProperty("page") ImmutableList<RowResult<Value>> page) {
         super(tableRef, range, timestamp, hasNext, page);
     }
 
     @Override
-    protected ClosableIterator<RowResult<Value>> getMoreRows(KeyValueService kvs, TableReference tableReference,
-                                                             RangeRequest newRange, long ts) {
-        return kvs.getRange(tableReference, newRange, ts);
+    protected ClosableIterator<RowResult<Value>> getMoreRows(
+            KeyValueService kvs,
+            TableReference tableReference,
+            RangeRequest newRange,
+            long newTimestamp) {
+        return kvs.getRange(tableReference, newRange, newTimestamp);
     }
 }

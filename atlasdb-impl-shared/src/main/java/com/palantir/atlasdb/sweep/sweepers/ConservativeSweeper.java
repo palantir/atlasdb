@@ -47,13 +47,16 @@ public class ConservativeSweeper implements Sweeper {
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getValues(TableReference table, RangeRequest range, long ts) {
+    public ClosableIterator<RowResult<Value>> getValues(TableReference table, RangeRequest range, long maxTimestamp) {
         return ClosableIterators.emptyImmutableClosableIterator();
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getCellTimestamps(TableReference table, RangeRequest range, long ts) {
-        return keyValueService.getRangeOfTimestamps(table, range, ts);
+    public ClosableIterator<RowResult<Set<Long>>> getCellTimestamps(
+            TableReference table,
+            RangeRequest range,
+            long maxTimestamp) {
+        return keyValueService.getRangeOfTimestamps(table, range, maxTimestamp);
     }
 
     @Override
