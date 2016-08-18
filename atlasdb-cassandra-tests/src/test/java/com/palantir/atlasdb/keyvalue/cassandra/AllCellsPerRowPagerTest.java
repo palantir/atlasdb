@@ -40,6 +40,7 @@ import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.util.Pair;
@@ -52,7 +53,9 @@ public class AllCellsPerRowPagerTest {
 
     private static final TableReference DEFAULT_TABLE = TableReference.fromString("tr");
     private static final String DEFAULT_COLUMN_NAME = "col1";
-    private static final List<ColumnOrSuperColumn> PREVIOUS_PAGE = ImmutableList.of(makeColumnOrSuperColumn("don't care", 23));
+    private static final String PREVIOUS_COLUMN_NAME = "don't care";
+    private static final long PREVIOUS_TIMESTAMP = 23;
+    private static final List<ColumnOrSuperColumn> PREVIOUS_PAGE = ImmutableList.of(makeColumnOrSuperColumn(PREVIOUS_COLUMN_NAME, PREVIOUS_TIMESTAMP));
 
     private AllCellsPerRowPager pager = new AllCellsPerRowPager(
             executor,
@@ -97,8 +100,20 @@ public class AllCellsPerRowPagerTest {
     }
 
     @Test
+    public void getNextPageShouldFireCqlRequestWithCorrectTableName() {
+        verifyNextPageQueryMatches(containsString(String.format("FROM %s ", DEFAULT_TABLE.getQualifiedName())));
+    }
+
+    @Test
     public void getFirstPageShouldFireCqlRequestWithCorrectRow() {
         verifyFirstPageQueryMatches(containsString(String.format("WHERE key = %s LIMIT", encodeAsHex(rowKey.array()))));
+    }
+
+    @Test
+    public void getNextPageShouldFireCqlRequestWithCorrectWhereClause() {
+        verifyNextPageQueryMatches(containsString(String.format("WHERE key = %s AND %s LIMIT",
+                encodeAsHex(rowKey.array()),
+                getExpectedColumnFilter())));
     }
 
     private void verifySingletonListIsReturnedCorrectly(Supplier<List<ColumnOrSuperColumn>> method) {
@@ -136,6 +151,10 @@ public class AllCellsPerRowPagerTest {
         pager.getNextPage(PREVIOUS_PAGE);
 
         verify(executor).execute(argThat(matcher));
+    }
+
+    private String getExpectedColumnFilter() {
+        return String.format("column1 = %s AND column2 > %s", encodeAsHex(PREVIOUS_COLUMN_NAME.getBytes()), PREVIOUS_TIMESTAMP);
     }
 
     private CqlRow makeCqlRow(String columnName, long timestamp) {
