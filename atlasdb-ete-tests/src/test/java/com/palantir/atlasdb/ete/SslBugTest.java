@@ -22,6 +22,8 @@ import java.util.Collection;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import org.junit.ClassRule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
@@ -34,18 +36,17 @@ import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
+import com.palantir.timestamp.TimestampService;
 
-public class EteSetup {
+public class SslBugTest {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
-    private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
     private static final Optional<SSLSocketFactory> SSL = Optional.of((SSLSocketFactory) SSLSocketFactory.getDefault());
     private static final int ETE_PORT = 3828;
 
     private static DockerComposition dockerComposition;
 
-    protected <T> T createClientToSingleNode(Class<T> clazz) {
-        return createClientFor(clazz, asPort("ete1"));
-    }
+    @ClassRule
+    public static final RuleChain COMPOSITION_SETUP = setupComposition("cassandra-ha", "docker-compose.cassandra.yml");
 
     public <T> T createClientToMultipleNodes(Class<T> clazz, String... nodeNames) {
         Collection<String> uris = ImmutableList.copyOf(nodeNames).stream()
@@ -62,6 +63,10 @@ public class EteSetup {
         } catch (IOException | InterruptedException e) {
             throw Throwables.propagate(e);
         }
+    }
+    @Test
+    public void createTimestampClient() {
+        createClientToMultipleNodes(TimestampService.class, "ete1", "ete2", "ete3");
     }
 
     protected static RuleChain setupComposition(String name, String composeFile) {
@@ -81,7 +86,7 @@ public class EteSetup {
 
     private static <T> T createClientFor(Class<T> clazz, DockerPort port) {
         String uri = port.inFormat("http://$HOST:$EXTERNAL_PORT");
-        return AtlasDbHttpClients.createProxy(NO_SSL, uri, clazz);
+        return AtlasDbHttpClients.createProxy(SSL, uri, clazz);
     }
 
     private static HealthCheck<Container> toBeReady() {

@@ -81,7 +81,7 @@ public class CassandraTestSuite {
                         .username("cassandra")
                         .password("cassandra")
                         .build())
-                .ssl(false)
+                .ssl(true)
                 .replicationFactor(1)
                 .mutationBatchCount(10000)
                 .mutationBatchSizeBytes(10000000)

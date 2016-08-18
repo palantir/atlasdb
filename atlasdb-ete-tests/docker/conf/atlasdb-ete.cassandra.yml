@@ -19,7 +19,7 @@ atlasdb:
     credentials:
       username: cassandra
       password: cassandra
-    ssl: false
+    ssl: true
     replicationFactor: 1
     mutationBatchCount: 10000
     mutationBatchSizeBytes: 10000000
