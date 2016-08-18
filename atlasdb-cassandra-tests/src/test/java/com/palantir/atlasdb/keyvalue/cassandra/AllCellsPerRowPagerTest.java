@@ -46,14 +46,15 @@ import com.palantir.util.Pair;
 
 public class AllCellsPerRowPagerTest {
 
-    CqlExecutor executor = mock(CqlExecutor.class);
-    ByteBuffer rowKey = toByteBuffer("row");
-    int pageSize = 20;
+    private CqlExecutor executor = mock(CqlExecutor.class);
+    private ByteBuffer rowKey = toByteBuffer("row");
+    private int pageSize = 20;
 
     private static final TableReference DEFAULT_TABLE = TableReference.fromString("tr");
     private static final String DEFAULT_COLUMN_NAME = "col1";
+    private static final List<ColumnOrSuperColumn> PREVIOUS_PAGE = ImmutableList.of(makeColumnOrSuperColumn("don't care", 23));
 
-    AllCellsPerRowPager pager = new AllCellsPerRowPager(
+    private AllCellsPerRowPager pager = new AllCellsPerRowPager(
             executor,
             rowKey,
             DEFAULT_TABLE,
@@ -67,7 +68,7 @@ public class AllCellsPerRowPagerTest {
 
     @Test
     public void testGetNextPage() {
-        verifySingletonListIsReturnedCorrectly(this::getNextPage);
+        verifySingletonListIsReturnedCorrectly(() -> pager.getNextPage(PREVIOUS_PAGE));
     }
 
     @Test
@@ -77,7 +78,7 @@ public class AllCellsPerRowPagerTest {
 
     @Test
     public void getNextPageShouldReturnMultipleResults() {
-        verifyMultipleElementListIsReturnedCorrectly(this::getNextPage);
+        verifyMultipleElementListIsReturnedCorrectly(() -> pager.getNextPage(PREVIOUS_PAGE));
     }
 
     @Test
@@ -116,11 +117,6 @@ public class AllCellsPerRowPagerTest {
         assertThat(firstPage, hasSize(2));
     }
 
-    private List<ColumnOrSuperColumn> getNextPage() {
-        List<ColumnOrSuperColumn> previousPage = ImmutableList.of(makeColumnOrSuperColumn("don't care", 23));
-        return pager.getNextPage(previousPage);
-    }
-
     private void verifyFirstPageQueryMatches(Matcher<String> matcher) {
         allQueriesReturn(ImmutableList.of());
 
@@ -136,7 +132,7 @@ public class AllCellsPerRowPagerTest {
         return new CqlRow(rowKey, columns);
     }
 
-    private ColumnOrSuperColumn makeColumnOrSuperColumn(String columnName, long timestamp) {
+    private static ColumnOrSuperColumn makeColumnOrSuperColumn(String columnName, long timestamp) {
         return makeColumnOrSuperColumn(columnName.getBytes(), PtBytes.toBytes(timestamp));
     }
 
@@ -165,7 +161,7 @@ public class AllCellsPerRowPagerTest {
         return "0x" + PtBytes.encodeHexString(array);
     }
 
-    private ColumnOrSuperColumn makeColumnOrSuperColumn(byte[] columnName, byte[] timestamp) {
+    private static ColumnOrSuperColumn makeColumnOrSuperColumn(byte[] columnName, byte[] timestamp) {
         long timestampLong = ~PtBytes.toLong(timestamp);
         Column col = new Column()
                 .setName(CassandraKeyValueServices.makeCompositeBuffer(columnName, timestampLong));
