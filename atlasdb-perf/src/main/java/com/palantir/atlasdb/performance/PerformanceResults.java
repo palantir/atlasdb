@@ -31,13 +31,13 @@ public class PerformanceResults {
 
     public void writeToFile(File file) throws IOException {
         try (BufferedWriter fout = new BufferedWriter(new FileWriter(file))) {
-            long time = System.currentTimeMillis();
+            long date = System.currentTimeMillis();
             List<ImmutablePerformanceResult> newResults = results.stream().map(r -> {
                 String[] benchmarkParts = r.getParams().getBenchmark().split("\\.");
                 String benchmarkSuite = benchmarkParts[benchmarkParts.length - 2];
                 String benchmarkName = benchmarkParts[benchmarkParts.length - 1];
                 return ImmutablePerformanceResult.builder()
-                        .date(time)
+                        .date(date)
                         .suite(benchmarkSuite)
                         .benchmark(benchmarkName)
                         .backend(r.getParams().getParam((BenchmarkParam.BACKEND.getKey())))
@@ -64,7 +64,7 @@ public class PerformanceResults {
             f.setAccessible(true);
             Multiset<Double> rawResults = (Multiset<Double>) f.get(statistics);
             return rawResults.entrySet().stream()
-                    .flatMap(e -> DoubleStream.of(e.getKey()).limit(e.getValue()).boxed())
+                    .flatMap(e -> DoubleStream.iterate(e.getKey(), d -> d).limit(e.getValue()).boxed())
                     .collect(Collectors.toList());
         } catch (NoSuchFieldException | IllegalAccessException e) {
             return Lists.newArrayList();
