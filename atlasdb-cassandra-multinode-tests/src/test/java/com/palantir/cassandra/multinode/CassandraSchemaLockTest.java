@@ -68,6 +68,7 @@ public class CassandraSchemaLockTest {
     private static final int THRIFT_PORT_NUMBER_1 = 9160;
     private static final int THRIFT_PORT_NUMBER_2 = 9161;
     private static final int THRIFT_PORT_NUMBER_3 = 9162;
+    private static final int THREAD_COUNT = 4;
 
     private static final String CONTAINER_LOGS_DIRECTORY = "container-logs";
     private static final DockerComposeRule CASSANDRA_DOCKER_SETUP = DockerComposeRule.builder()
@@ -106,7 +107,7 @@ public class CassandraSchemaLockTest {
     private static final CassandraKeyValueServiceConfigManager CONFIG_MANAGER = CassandraKeyValueServiceConfigManager
             .createSimpleManager(KVS_CONFIG);
 
-    private final ExecutorService executorService = Executors.newFixedThreadPool(32);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
 
     @BeforeClass
     public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {
@@ -121,8 +122,8 @@ public class CassandraSchemaLockTest {
         TableReference table1 = TableReference.createFromFullyQualifiedName("ns.table1");
 
         try {
-            CyclicBarrier barrier = new CyclicBarrier(32);
-            for (int i = 0; i < 32; i++) {
+            CyclicBarrier barrier = new CyclicBarrier(THREAD_COUNT);
+            for (int i = 0; i < THREAD_COUNT; i++) {
                 async(() -> {
                     CassandraKeyValueService keyValueService =
                             CassandraKeyValueService.create(CONFIG_MANAGER, Optional.absent());
@@ -133,7 +134,7 @@ public class CassandraSchemaLockTest {
             }
         } finally {
             executorService.shutdown();
-            assertTrue(executorService.awaitTermination(10, TimeUnit.MINUTES));
+            assertTrue(executorService.awaitTermination(4, TimeUnit.MINUTES));
         }
         assertThat(new File(CONTAINER_LOGS_DIRECTORY),
                 containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())));
