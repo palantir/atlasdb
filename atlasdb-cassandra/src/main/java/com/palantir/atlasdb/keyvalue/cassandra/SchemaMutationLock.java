@@ -180,7 +180,7 @@ public class SchemaMutationLock {
     private TimeoutException generateSchemaLockTimeoutException(Stopwatch stopwatch) {
         return new TimeoutException(String.format("We have timed out waiting on the current"
                         + " schema mutation lock holder. We have tried to grab the lock for %d milliseconds"
-                        + " unsuccessfully.  Please try restarting the AtlasDB client. If this occurs"
+                        + " unsuccessfully. Please try restarting the AtlasDB client. If this occurs"
                         + " repeatedly it may indicate that the current lock holder has died without"
                         + " releasing the lock and will require manual intervention. This will require"
                         + " restarting all atlasDB clients and then using cqlsh to truncate the _locks table.",
