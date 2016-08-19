@@ -220,7 +220,7 @@ v0.9.0
          - Inserting an empty (size = 0) value into a ``Cell`` will now throw an ``IllegalArgumentException``. (`#156 <https://github.com/palantir/atlasdb/issues/156>`__) Likely empty
            values include empty strings and empty protobufs.
 
-           AtlasDB cannot currently distinguish between empty and deleted cells. In previous versions of Atlas, inserting
+           AtlasDB cannot currently distinguish between empty and deleted cells. In previous versions of AtlasDB, inserting
            an empty value into a ``Cell`` would delete that cell. Thus, in this snippet,
 
            .. code-block:: java
