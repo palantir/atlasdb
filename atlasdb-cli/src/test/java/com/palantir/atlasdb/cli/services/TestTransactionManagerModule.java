@@ -27,6 +27,7 @@ import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.services.ServicesConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
