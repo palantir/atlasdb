@@ -39,6 +39,7 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
+import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
@@ -104,6 +105,7 @@ public class TransactionManagers {
         );
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
+        kvs = ProfilingKeyValueService.create(kvs);
         kvs = new SweepStatsKeyValueService(kvs, lts.time());
 
         TransactionTables.createTables(kvs);
