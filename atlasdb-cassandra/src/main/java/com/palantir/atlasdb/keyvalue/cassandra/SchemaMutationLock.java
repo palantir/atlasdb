@@ -154,14 +154,16 @@ public class SchemaMutationLock {
                     int mutationTimeoutMillis = configManager.getConfig().schemaMutationTimeoutMillis();
                     // possibly dead remote locker
                     if (stopwatch.elapsed(TimeUnit.MILLISECONDS) > mutationTimeoutMillis * 4) {
-                        throw new TimeoutException(String.format("We have timed out waiting on the current"
-                                + " schema mutation lock holder. We have tried to grab the lock for %d milliseconds"
-                                + " unsuccessfully.  Please try restarting the AtlasDB client. If this occurs"
-                                + " repeatedly it may indicate that the current lock holder has died without"
-                                + " releasing the lock and will require manual intervention. This will require"
-                                + " restarting all atlasDB clients and then using cqlsh to truncate the _locks table."
-                                + " Please contact support for help with this in important situations.",
+                        TimeoutException schemaLockTimeoutError = new TimeoutException(String.format("We have timed out waiting on the current"
+                                        + " schema mutation lock holder. We have tried to grab the lock for %d milliseconds"
+                                        + " unsuccessfully.  Please try restarting the AtlasDB client. If this occurs"
+                                        + " repeatedly it may indicate that the current lock holder has died without"
+                                        + " releasing the lock and will require manual intervention. This will require"
+                                        + " restarting all atlasDB clients and then using cqlsh to truncate the _locks table."
+                                        + " Please contact support for help with this in important situations.",
                                 stopwatch.elapsed(TimeUnit.MILLISECONDS)));
+                        LOGGER.error(schemaLockTimeoutError.getMessage(), schemaLockTimeoutError);
+                        throw Throwables.rewrapAndThrowUncheckedException(schemaLockTimeoutError);
                     }
 
                     long timeToSleep = CassandraConstants.TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS
