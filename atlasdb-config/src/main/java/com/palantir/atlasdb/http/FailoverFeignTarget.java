@@ -44,7 +44,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private final Class<T> type;
     private final AtomicInteger failoverCount = new AtomicInteger();
     private final int failuresBeforeSwitching = 3;
-    private final int numServersToTryBeforeFailing = 14;
+    private final int numServersToTryBeforeFailing;
     private final int fastFailoverTimeoutMillis = 10000;
     private final int maxBackoffMillis = 3000;
 
@@ -57,6 +57,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     public FailoverFeignTarget(Collection<String> servers, Class<T> type) {
         this.servers = ImmutableList.copyOf(ImmutableSet.copyOf(servers));
         this.type = type;
+        this.numServersToTryBeforeFailing = Math.min(servers.size(), 14);
     }
 
     public void sucessfulCall() {
