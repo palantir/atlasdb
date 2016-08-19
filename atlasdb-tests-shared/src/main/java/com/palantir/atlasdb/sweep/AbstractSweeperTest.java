@@ -586,7 +586,11 @@ public abstract class AbstractSweeperTest {
     }
 
     protected void put(final String row, final String val, final long ts) {
-        Cell cell = Cell.create(row.getBytes(), COL.getBytes());
+        put(row, COL, val, ts);
+    }
+
+    protected void put(final String row, final String column, final String val, final long ts) {
+        Cell cell = Cell.create(row.getBytes(), column.getBytes());
         kvs.put(TABLE_NAME, ImmutableMap.of(cell, val.getBytes()), ts);
         txService.putUnlessExists(ts, ts);
     }

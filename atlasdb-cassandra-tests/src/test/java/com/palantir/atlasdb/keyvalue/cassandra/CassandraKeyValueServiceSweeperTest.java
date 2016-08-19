@@ -47,10 +47,24 @@ public class CassandraKeyValueServiceSweeperTest extends AbstractSweeperTest {
         assertThat(sweepResults.getCellsDeleted(), equalTo(numInsertions - 1));
     }
 
+    @Test
+    public void should_return_values_for_multiple_columns_when_sweeping() {
+        createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+
+        for (int ts = 10; ts <= 150; ts += 10) {
+            put("row", "col1", "value", ts);
+            put("row", "col2", "value", ts + 5);
+        }
+
+        SweepResults sweepResults = completeSweep(350);
+
+        assertThat(sweepResults.getCellsDeleted(), equalTo(28L));
+    }
+
     private void insertMultipleValues(long numInsertions) {
         for (int ts = 1; ts <= numInsertions; ts++) {
             System.out.println("putting with ts = " + ts);
-            put("row1", makeLongRandomString(), ts);
+            put("row", makeLongRandomString(), ts);
         }
     }
 
