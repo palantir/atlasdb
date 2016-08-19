@@ -28,12 +28,12 @@ import com.google.common.collect.ObjectArrays;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.runner.AbstractTestRunner;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
-import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.SweepSchema;
+import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.table.description.Schemas;
 
 public class TestKvsMigrationCommand {

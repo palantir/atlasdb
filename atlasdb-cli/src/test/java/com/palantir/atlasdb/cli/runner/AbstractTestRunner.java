@@ -26,8 +26,8 @@ import org.apache.commons.lang.ArrayUtils;
 
 import com.palantir.atlasdb.cli.AtlasCli;
 import com.palantir.atlasdb.cli.command.SingleBackendCommand;
-import com.palantir.atlasdb.cli.services.AtlasDbServices;
-import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
+import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.atlasdb.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 public abstract class AbstractTestRunner <S extends AtlasDbServices> implements SingleBackendCliTestRunner {

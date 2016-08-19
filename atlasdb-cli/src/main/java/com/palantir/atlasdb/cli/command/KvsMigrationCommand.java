@@ -26,15 +26,15 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.cli.services.AtlasDbServices;
-import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
-import com.palantir.atlasdb.cli.services.ServicesConfigModule;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
 import com.palantir.atlasdb.schema.KeyValueServiceValidator;
 import com.palantir.atlasdb.schema.TaskProgress;
+import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.atlasdb.services.DaggerAtlasDbServices;
+import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.common.base.Throwables;
 
 import io.airlift.airline.Command;
