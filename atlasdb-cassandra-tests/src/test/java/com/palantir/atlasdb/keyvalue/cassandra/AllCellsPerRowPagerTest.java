@@ -167,15 +167,9 @@ public class AllCellsPerRowPagerTest {
     }
 
     private void allQueriesReturn(List<CqlRow> rows) {
-        CqlResult cqlResult = mock(CqlResult.class);
-        when(cqlResult.getRows()).thenReturn(rows);
-
-        CqlResult noResults = mock(CqlResult.class);
-        when(noResults.getRows()).thenReturn(ImmutableList.of());
-
-        when(executor.getColAndTimestamp(any(TableReference.class), anyString(), anyInt())).thenReturn(cqlResult);
-        when(executor.getColAndTimestampForColumnAndTimestamp(any(TableReference.class), anyString(), anyString(), anyLong(), anyInt())).thenReturn(cqlResult);
-        when(executor.getColAndTimestampForNextColumn(any(TableReference.class), anyString(), anyString(), anyInt())).thenReturn(noResults);
+        allQueriesSimpleReturn(rows);
+        allQueriesWithColumnAndTimestampReturn(rows);
+        allQueriesWithColumnReturn(ImmutableList.of());
     }
 
     private void allQueriesSimpleReturn(List<CqlRow> rows) {
@@ -184,13 +178,13 @@ public class AllCellsPerRowPagerTest {
         when(executor.getColAndTimestamp(any(TableReference.class), anyString(), anyInt())).thenReturn(cqlResult);
     }
 
-    private void allQueriesWithColumnAndTimestampReturn(ImmutableList<CqlRow> rows) {
+    private void allQueriesWithColumnAndTimestampReturn(List<CqlRow> rows) {
         CqlResult cqlResult = mock(CqlResult.class);
         when(cqlResult.getRows()).thenReturn(rows);
         when(executor.getColAndTimestampForColumnAndTimestamp(any(TableReference.class), anyString(), anyString(), anyLong(), anyInt())).thenReturn(cqlResult);
     }
 
-    private void allQueriesWithColumnReturn(ImmutableList<CqlRow> rows) {
+    private void allQueriesWithColumnReturn(List<CqlRow> rows) {
         CqlResult result2 = mock(CqlResult.class);
         when(result2.getRows()).thenReturn(rows);
         when(executor.getColAndTimestampForNextColumn(any(TableReference.class), anyString(), anyString(), anyInt())).thenReturn(result2);
