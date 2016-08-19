@@ -149,20 +149,20 @@
            <div itemprop="articleBody">
             
   <div class="section" id="enabling-cassandra-tracing">
-<h1>Enabling Cassandra Tracing<a class="headerlink" href="#enabling-cassandra-tracing" title="Permalink to this headline">¶</a></h1>
+<span id="id1"></span><h1>Enabling Cassandra Tracing<a class="headerlink" href="#enabling-cassandra-tracing" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
 <p>Sometimes in order to do deeper performance analysis of queries hitting
-your cassandra cluster, you&#8217;ll want to enable tracing.  To learn more
-about tracing itself check out datastax&#8217;s <a class="reference external" href="http://www.datastax.com/dev/blog/tracing-in-cassandra-1-2">Request tracing in Cassandra
+your Cassandra cluster, you&#8217;ll want to enable tracing.  To learn more
+about tracing itself check out DataStax&#8217;s <a class="reference external" href="http://www.datastax.com/dev/blog/tracing-in-cassandra-1-2">Request tracing in Cassandra
 1.2</a> and <a class="reference external" href="https://docs.datastax.com/en/cql/3.3/cql/cql_reference/tracing_r.html">TRACING</a>.</p>
 <p>To enable tracing you need to provide a configuration file called
 <code class="docutils literal"><span class="pre">atlasdb_tracing.prefs</span></code> and place it in the <code class="docutils literal"><span class="pre">user.dir</span></code> directory of your
-java process, which is the directory from which java was executed.</p>
-<p>When a query is traced you will see the following line your log file:
+Java process, which is the directory from which java was executed.</p>
+<p>When a query is traced, you will see the following line your log file:
 <code class="docutils literal"><span class="pre">Traced</span> <span class="pre">a</span> <span class="pre">call</span> <span class="pre">to</span> <span class="pre">&lt;table-name&gt;</span> <span class="pre">that</span> <span class="pre">took</span> <span class="pre">&lt;duration&gt;</span> <span class="pre">ms.</span> <span class="pre">It</span> <span class="pre">will</span> <span class="pre">appear</span> <span class="pre">in</span> <span class="pre">system_traces</span> <span class="pre">with</span> <span class="pre">UUID=&lt;session-id-of-trace&gt;</span></code></p>
-<p>Generally it is important to note that tracing is expensive and can have
-performance implications when reading/writing to cassandra, and thus the
+<p>Generally, it is important to note that tracing is expensive and can have
+performance implications when reading/writing to Cassandra, and thus the
 use of it should be minimized.</p>
 </div>
 <div class="section" id="the-prefs-file">
@@ -177,7 +177,7 @@ the following parameters:</p>
 <span class="c1"># frequently enough to incur performance degradation</span>
 <span class="n">trace_probability</span><span class="p">:</span> <span class="mf">1.0</span>
 
-<span class="c1"># a comma separated list of tables whose queries are eligible for tracing</span>
+<span class="c1"># a comma-separated list of tables whose queries are eligible for tracing</span>
 <span class="c1"># for namespaced tables the table entry must be &lt;namespace&gt;.&lt;table&gt;</span>
 <span class="c1"># like &quot;trace_probability&quot;, this is also a pre-filter</span>
 <span class="n">tables_to_trace</span><span class="p">:</span> <span class="n">_transactions</span><span class="p">,</span><span class="n">namespaceOne</span><span class="o">.</span><span class="n">table_7</span><span class="p">,</span><span class="n">namespaceTwo</span><span class="o">.</span><span class="n">table_3</span>
@@ -191,7 +191,7 @@ the following parameters:</p>
 </div>
 <div class="section" id="understanding-namespaced-tables-in-cassandra">
 <h2>Understanding Namespaced Tables in Cassandra<a class="headerlink" href="#understanding-namespaced-tables-in-cassandra" title="Permalink to this headline">¶</a></h2>
-<p>In cassandra an atlas namespaced table will look like <code class="docutils literal"><span class="pre">&lt;keyspace&gt;.&lt;namespace&gt;__&lt;table-name&gt;</span></code>.
+<p>In Cassandra, an AtlasDB namespaced table will look like <code class="docutils literal"><span class="pre">&lt;keyspace&gt;.&lt;namespace&gt;__&lt;table-name&gt;</span></code>.
 As described in the prefs file&#8217;s comment, to trace said table you would want to
 write it in the form of <code class="docutils literal"><span class="pre">&lt;namespace&gt;.&lt;table-name&gt;</span></code> in the comma-separated list.</p>
 </div>

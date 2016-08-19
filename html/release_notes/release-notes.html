@@ -182,6 +182,10 @@ transaction range cleaning, and sweeping. These commands will only work if the s
 <td>Docs for cassandra_KVS_configuration now have correct information on <code class="docutils literal"><span class="pre">ssl</span></code> and <code class="docutils literal"><span class="pre">sslConfiguration</span></code> parameters. Also, documentation for leader block is now added.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/787">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>All KVSs now come wrapped with ProfilingKeyValueService, which at the TRACE level provides timing information per KVS operation performed by AtlasDB.  See <a class="reference internal" href="../cluster_management/logging.html#logging-configuration"><span class="std std-ref">Logging Configuration</span></a> for more details.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/798">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
