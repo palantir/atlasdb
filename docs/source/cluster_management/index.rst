@@ -6,6 +6,8 @@ Cluster Management
    :maxdepth: 1
    :titlesonly:
 
+   backup-restore
    clis
    console
-   backup-restore
+   logging
+

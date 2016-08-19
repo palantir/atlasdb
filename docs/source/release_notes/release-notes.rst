@@ -57,6 +57,9 @@ v0.12.0
     *    - |improved|
          - Docs for cassandra_KVS_configuration now have correct information on ``ssl`` and ``sslConfiguration`` parameters. Also, documentation for leader block is now added.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/787>`__)
+    *    - |new|
+         - All KVSs now come wrapped with ProfilingKeyValueService, which at the TRACE level provides timing information per KVS operation performed by AtlasDB.  See :ref:`logging-configuration` for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/798>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
