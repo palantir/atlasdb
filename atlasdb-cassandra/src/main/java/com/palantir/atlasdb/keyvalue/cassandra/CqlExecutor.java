@@ -26,6 +26,7 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.thrift.TException;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
 
 public class CqlExecutor {
@@ -37,6 +38,36 @@ public class CqlExecutor {
         this.clientPool = clientPool;
         this.host = host;
         this.consistency = consistency;
+    }
+
+    public CqlResult getColAndTimestamp(TableReference tableRef, String row, int limit) {
+        String query = String.format(
+                "SELECT column1, column2 FROM %s WHERE key = %s LIMIT %s;",
+                CassandraKeyValueService.internalTableName(tableRef),
+                row,
+                limit);
+        return execute(query);
+    }
+
+    public CqlResult getColAndTimestampForColumnAndTimestamp(TableReference tableRef, String row, String columnNameStr, long timestamp, int limit) {
+        String query = String.format(
+                "SELECT column1, column2 FROM %s WHERE key = %s AND column1 = %s AND column2 > %s LIMIT %s;",
+                CassandraKeyValueService.internalTableName(tableRef),
+                row,
+                columnNameStr,
+                timestamp,
+                limit);
+        return execute(query);
+    }
+
+    public CqlResult getColAndTimestampForNextColumn(TableReference tableRef, String row, String columnNameStr, int limit) {
+        String query = String.format(
+                "SELECT column1, column2 FROM %s WHERE key = %s AND column1 > %s LIMIT %s;",
+                CassandraKeyValueService.internalTableName(tableRef),
+                row,
+                columnNameStr,
+                limit);
+        return execute(query);
     }
 
     public CqlResult execute(String query) {

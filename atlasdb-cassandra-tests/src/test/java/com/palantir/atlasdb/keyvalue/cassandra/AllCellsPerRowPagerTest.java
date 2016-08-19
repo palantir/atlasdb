@@ -22,14 +22,19 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.StringEndsWith.endsWith;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -48,7 +53,8 @@ import com.palantir.util.Pair;
 public class AllCellsPerRowPagerTest {
 
     private CqlExecutor executor = mock(CqlExecutor.class);
-    private ByteBuffer rowKey = toByteBuffer("row");
+    private String rowName = "row";
+    private ByteBuffer rowKey = toByteBuffer(rowName);
     private int pageSize = 20;
 
     private static final TableReference DEFAULT_TABLE = TableReference.fromString("tr");
@@ -77,7 +83,7 @@ public class AllCellsPerRowPagerTest {
     public void getNextPageShouldReturnSingleResult() {
         long timestamp = 1L;
         CqlRow row = makeCqlRow(DEFAULT_COLUMN_NAME, timestamp);
-        queriesForSpecificColumnReturn(ImmutableList.of(row));
+        allQueriesReturn(ImmutableList.of(row));
 
         verifySingletonListIsReturnedCorrectly(() -> pager.getNextPage(PREVIOUS_PAGE), timestamp);
     }
@@ -95,41 +101,35 @@ public class AllCellsPerRowPagerTest {
     public void getNextPageShouldReturnMultipleResults() {
         CqlRow row1 = makeCqlRow(DEFAULT_COLUMN_NAME, 1L);
         CqlRow row2 = makeCqlRow(DEFAULT_COLUMN_NAME, 2L);
-        queriesForSpecificColumnReturn(ImmutableList.of(row1, row2));
+        allQueriesReturn(ImmutableList.of(row1, row2));
 
         verifyMultipleElementListIsReturnedCorrectly(() -> pager.getNextPage(PREVIOUS_PAGE));
     }
 
     @Test
-    public void getFirstPageShouldExecuteQueryLimitedToPageSize() {
-        verifyFirstPageQueryMatches(endsWith(String.format("LIMIT %s;", pageSize)));
-    }
+    public void getFirstPageShouldExecuteQueryWithCorrectParameters() {
+        allQueriesReturn(ImmutableList.of());
 
-    @Test
-    public void getNextPageShouldExecuteQueryLimitedToPageSize() {
-        verifyNextPageQueryMatches(endsWith(String.format("LIMIT %s;", pageSize)));
-    }
+        pager.getFirstPage();
 
-    @Test
-    public void getFirstPageShouldFireCqlRequestWithCorrectTableName() {
-        verifyFirstPageQueryMatches(containsString(String.format("FROM %s ", DEFAULT_TABLE.getQualifiedName())));
-    }
-
-    @Test
-    public void getNextPageShouldFireCqlRequestWithCorrectTableName() {
-        verifyNextPageQueryMatches(containsString(String.format("FROM %s ", DEFAULT_TABLE.getQualifiedName())));
-    }
-
-    @Test
-    public void getFirstPageShouldFireCqlRequestWithCorrectRow() {
-        verifyFirstPageQueryMatches(containsString(String.format("WHERE key = %s LIMIT", encodeAsHex(rowKey.array()))));
-    }
-
-    @Test
-    public void getNextPageShouldFireCqlRequestWithCorrectWhereClause() {
-        verifyNextPageQueryMatches(containsString(String.format("WHERE key = %s AND %s LIMIT",
+        verify(executor).getColAndTimestamp(
+                DEFAULT_TABLE,
                 encodeAsHex(rowKey.array()),
-                getExpectedColumnFilter())));
+                pageSize);
+    }
+
+    @Test
+    public void getNextPageShouldExecuteQueryWithCorrectParameters() {
+        allQueriesReturn(ImmutableList.of());
+
+        pager.getNextPage(PREVIOUS_PAGE);
+
+        verify(executor).getColAndTimestampForColumnAndTimestamp(
+                DEFAULT_TABLE,
+                encodeAsHex(rowKey.array()),
+                encodeAsHex(PREVIOUS_COLUMN_NAME.getBytes()),
+                PREVIOUS_TIMESTAMP,
+                pageSize);
     }
 
     private void verifySingletonListIsReturnedCorrectly(Supplier<List<ColumnOrSuperColumn>> method, long expectedTimestamp) {
@@ -143,26 +143,6 @@ public class AllCellsPerRowPagerTest {
         List<ColumnOrSuperColumn> firstPage = method.get();
 
         assertThat(firstPage, hasSize(2));
-    }
-
-    private void verifyFirstPageQueryMatches(Matcher<String> matcher) {
-        allQueriesReturn(ImmutableList.of());
-
-        pager.getFirstPage();
-
-        verify(executor).execute(argThat(matcher));
-    }
-
-    private void verifyNextPageQueryMatches(Matcher<String> matcher) {
-        allQueriesReturn(ImmutableList.of());
-
-        pager.getNextPage(PREVIOUS_PAGE);
-
-        verify(executor, atLeastOnce()).execute(argThat(matcher));
-    }
-
-    private String getExpectedColumnFilter() {
-        return String.format("column1 = %s AND column2 > %s", encodeAsHex(PREVIOUS_COLUMN_NAME.getBytes()), PREVIOUS_TIMESTAMP);
     }
 
     private CqlRow makeCqlRow(String columnName, long timestamp) {
@@ -179,17 +159,13 @@ public class AllCellsPerRowPagerTest {
     private void allQueriesReturn(List<CqlRow> rows) {
         CqlResult cqlResult = mock(CqlResult.class);
         when(cqlResult.getRows()).thenReturn(rows);
-        when(executor.execute(anyString())).thenReturn(cqlResult);
-    }
-
-    private void queriesForSpecificColumnReturn(List<CqlRow> rows) {
-        CqlResult cqlResult = mock(CqlResult.class);
-        when(cqlResult.getRows()).thenReturn(rows);
-        when(executor.execute(argThat(containsString("column1 = ")))).thenReturn(cqlResult);
 
         CqlResult noResults = mock(CqlResult.class);
         when(noResults.getRows()).thenReturn(ImmutableList.of());
-        when(executor.execute(argThat(containsString("column1 > ")))).thenReturn(noResults);
+
+        when(executor.getColAndTimestamp(any(TableReference.class), anyString(), anyInt())).thenReturn(cqlResult);
+        when(executor.getColAndTimestampForColumnAndTimestamp(any(TableReference.class), anyString(), anyString(), anyLong(), anyInt())).thenReturn(cqlResult);
+        when(executor.getColAndTimestampForNextColumn(any(TableReference.class), anyString(), anyString(), anyInt())).thenReturn(noResults);
     }
 
     private void assertColumnOrSuperColumnHasCorrectNameAndTimestamp(ColumnOrSuperColumn columnOrSuperColumn, String expectedName, long expectedTs) {

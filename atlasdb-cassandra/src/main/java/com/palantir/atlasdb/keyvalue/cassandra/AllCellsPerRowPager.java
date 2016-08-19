@@ -46,13 +46,8 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
 
     @Override
     public List<ColumnOrSuperColumn> getFirstPage() {
-        String query = String.format(
-                "SELECT column1, column2 FROM %s WHERE key = %s LIMIT %s;",
-                getTableName(),
-                row,
-                pageSize);
-
-        return getColumns(query);
+        CqlResult cqlResult = cqlExecutor.getColAndTimestamp(tableRef, row, pageSize);
+        return getColumns(cqlResult);
     }
 
     @Override
@@ -63,25 +58,14 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
         String columnNameStr = encodeAsHex(nameAndTimestamp.getLhSide());
         long timestamp = ~nameAndTimestamp.getRhSide();
 
-        String query = String.format(
-                "SELECT column1, column2 FROM %s WHERE key = %s AND column1 = %s AND column2 > %s LIMIT %s;",
-                getTableName(),
-                row,
-                columnNameStr,
-                timestamp,
-                pageSize);
-
-        List<ColumnOrSuperColumn> columns = getColumns(query);
+        CqlResult cqlResult = cqlExecutor.getColAndTimestampForColumnAndTimestamp(tableRef, row, columnNameStr, timestamp, pageSize);
+        List<ColumnOrSuperColumn> columns = getColumns(cqlResult);
 
         if (columns.size() < pageSize) {
             // We finished with this column, but there might be more, so let's capture them
-            String secondQuery = String.format(
-                    "SELECT column1, column2 FROM %s WHERE key = %s AND column1 > %s LIMIT %s;",
-                    getTableName(),
-                    row,
-                    columnNameStr,
-                    pageSize - columns.size());
-            columns.addAll(getColumns(secondQuery));
+            CqlResult secondCqlResult =
+                    cqlExecutor.getColAndTimestampForNextColumn(tableRef, row, columnNameStr, pageSize - columns.size());
+            columns.addAll(getColumns(secondCqlResult));
         }
 
         return columns;
