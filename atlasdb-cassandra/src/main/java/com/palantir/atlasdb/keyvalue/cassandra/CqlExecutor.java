@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -19,13 +19,13 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.thrift.TException;
 
-import com.google.common.base.Charsets;
 import com.palantir.common.base.Throwables;
 
 public class CqlExecutor {
@@ -40,13 +40,14 @@ public class CqlExecutor {
     }
 
     public CqlResult execute(String query) {
-        ByteBuffer queryBytes = ByteBuffer.wrap(query.getBytes(Charsets.UTF_8));
+        ByteBuffer queryBytes = ByteBuffer.wrap(query.getBytes(StandardCharsets.UTF_8));
         return executeQuery(queryBytes);
     }
 
     private CqlResult executeQuery(ByteBuffer queryBytes) {
         try {
-            return clientPool.runWithRetryOnHost(host, client -> client.execute_cql3_query(queryBytes, Compression.NONE, consistency));
+            return clientPool.runWithRetryOnHost(host, client ->
+                    client.execute_cql3_query(queryBytes, Compression.NONE, consistency));
         } catch (TException e) {
             throw Throwables.throwUncheckedException(e);
         }

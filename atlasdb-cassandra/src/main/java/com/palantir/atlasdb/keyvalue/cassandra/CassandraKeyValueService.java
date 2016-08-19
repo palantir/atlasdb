@@ -1334,7 +1334,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         final ColumnSelection selection = rangeRequest.getColumnNames().isEmpty() ? ColumnSelection.all()
                 : ColumnSelection.create(rangeRequest.getColumnNames());
 
-        AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>> rowResults = new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
+        AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>> rowResults =
+                new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
             @Override
             protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage() throws Exception {
                 return getSinglePage(rangeRequest.getStartInclusive());
@@ -1353,7 +1354,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 KeyRange keyRange = getKeyRange(startKey, endExclusive, batchHint);
                 List<KeySlice> firstPage = getRangeSlices(host, tableRef, keyRange, pred, consistency);
 
-                Set<ByteBuffer> rows = getRows(firstPage);
+                Set<ByteBuffer> rows = getRowsFromPage(firstPage);
 
                 CellPager cellPager = new CellPager(clientPool, host);
                 Map<ByteBuffer, List<ColumnOrSuperColumn>> columnsByRow = cellPager.getColsByKeyWithPaging(rows,
@@ -1375,7 +1376,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return ClosableIterators.wrap(rowResults.iterator());
     }
 
-    private Set<ByteBuffer> getRows(List<KeySlice> firstPage) {
+    private Set<ByteBuffer> getRowsFromPage(List<KeySlice> firstPage) {
         Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(firstPage);
         return colsByKey.keySet();
     }
@@ -1392,11 +1393,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return keyRange;
     }
 
-    public <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(final TableReference tableRef,
-                                                                         final RangeRequest rangeRequest,
-                                                                         final long timestamp,
-                                                                         final ConsistencyLevel consistency,
-                                                                         final Supplier<ResultsExtractor<T, U>> resultsExtractor) {
+    public <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(
+            final TableReference tableRef,
+            final RangeRequest rangeRequest,
+            final long timestamp,
+            final ConsistencyLevel consistency,
+            final Supplier<ResultsExtractor<T, U>> resultsExtractor) {
 
         if (rangeRequest.isReverse()) {
             throw new UnsupportedOperationException();
@@ -1406,21 +1408,27 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
         final int batchHint = rangeRequest.getBatchHint() == null ? 100 : rangeRequest.getBatchHint();
 
-        SliceRange slice = new SliceRange(ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), false, Integer.MAX_VALUE);
+        SliceRange slice = new SliceRange(
+                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
+                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
+                false,
+                Integer.MAX_VALUE);
         final SlicePredicate pred = new SlicePredicate();
         pred.setSlice_range(slice);
 
         final ColumnSelection selection = rangeRequest.getColumnNames().isEmpty() ? ColumnSelection.all()
                 : ColumnSelection.create(rangeRequest.getColumnNames());
 
-        AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>> rowResults = new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
+        AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>> rowResults =
+                new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
             @Override
             protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage() throws Exception {
                 return getSinglePage(rangeRequest.getStartInclusive());
             }
 
             @Override
-            protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous) throws Exception {
+            protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(
+                    TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous) throws Exception {
                 return getSinglePage(previous.getTokenForNextPage());
             }
 
@@ -1433,7 +1441,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                 List<KeySlice> firstPage = getRangeSlices(host, tableRef, keyRange, pred, consistency);
 
-                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(firstPage);
+                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(
+                        firstPage);
                 TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
                         resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
                 if (page.moreResultsAvailable() && firstPage.size() < batchHint) {
@@ -1464,7 +1473,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             () -> client.get_range_slices(colFam, pred, keyRange, consistency));
                 } catch (UnavailableException e) {
                     if (consistency.equals(ConsistencyLevel.ALL)) {
-                        throw new InsufficientConsistencyException("This operation requires all Cassandra nodes to be up and available.", e);
+                        throw new InsufficientConsistencyException("This operation requires all Cassandra"
+                                + " nodes to be up and available.", e);
                     } else {
                         throw e;
                     }

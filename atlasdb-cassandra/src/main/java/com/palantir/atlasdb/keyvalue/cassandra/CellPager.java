@@ -39,7 +39,8 @@ public class CellPager {
         this.host = host;
     }
 
-    public Map<ByteBuffer, List<ColumnOrSuperColumn>> getColsByKeyWithPaging(Set<ByteBuffer> rows, TableReference tableRef, ConsistencyLevel consistency) throws TException {
+    public Map<ByteBuffer, List<ColumnOrSuperColumn>> getColsByKeyWithPaging(
+            Set<ByteBuffer> rows, TableReference tableRef, ConsistencyLevel consistency) throws TException {
         Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = new HashMap<>();
 
         for (ByteBuffer row : rows) {
