@@ -43,7 +43,7 @@ public class CqlExecutor {
     public CqlResult getColAndTimestamp(TableReference tableRef, String row, int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s LIMIT %s;",
-                CassandraKeyValueService.internalTableName(tableRef),
+                getTableName(tableRef),
                 row,
                 limit);
         return execute(query);
@@ -52,7 +52,7 @@ public class CqlExecutor {
     public CqlResult getColAndTimestampForColumnAndTimestamp(TableReference tableRef, String row, String columnNameStr, long timestamp, int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s AND column1 = %s AND column2 > %s LIMIT %s;",
-                CassandraKeyValueService.internalTableName(tableRef),
+                getTableName(tableRef),
                 row,
                 columnNameStr,
                 timestamp,
@@ -63,14 +63,14 @@ public class CqlExecutor {
     public CqlResult getColAndTimestampForNextColumn(TableReference tableRef, String row, String columnNameStr, int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s AND column1 > %s LIMIT %s;",
-                CassandraKeyValueService.internalTableName(tableRef),
+                getTableName(tableRef),
                 row,
                 columnNameStr,
                 limit);
         return execute(query);
     }
 
-    public CqlResult execute(String query) {
+    private CqlResult execute(String query) {
         ByteBuffer queryBytes = ByteBuffer.wrap(query.getBytes(StandardCharsets.UTF_8));
         return executeQuery(queryBytes);
     }
@@ -82,5 +82,9 @@ public class CqlExecutor {
         } catch (TException e) {
             throw Throwables.throwUncheckedException(e);
         }
+    }
+
+    private String getTableName(TableReference tableRef) {
+        return CassandraKeyValueService.internalTableName(tableRef);
     }
 }

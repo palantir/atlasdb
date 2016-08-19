@@ -80,15 +80,6 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
         return "0x" + PtBytes.encodeHexString(array);
     }
 
-    private String getTableName() {
-        return CassandraKeyValueService.internalTableName(tableRef);
-    }
-
-    private List<ColumnOrSuperColumn> getColumns(String query) {
-        CqlResult cqlResult = cqlExecutor.execute(query);
-        return getColumns(cqlResult);
-    }
-
     private List<ColumnOrSuperColumn> getColumns(CqlResult cqlResult) {
         return cqlResult.getRows().stream()
                 .map(this::getColumn)
