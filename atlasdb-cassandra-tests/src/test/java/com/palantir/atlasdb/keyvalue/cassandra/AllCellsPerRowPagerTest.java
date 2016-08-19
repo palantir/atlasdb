@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.StringEndsWith.endsWith;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -65,21 +66,37 @@ public class AllCellsPerRowPagerTest {
 
     @Test
     public void getFirstPageShouldReturnSingleResult() {
-        verifySingletonListIsReturnedCorrectly(() -> pager.getFirstPage());
+        long timestamp = 1L;
+        CqlRow row = makeCqlRow(DEFAULT_COLUMN_NAME, timestamp);
+        allQueriesReturn(ImmutableList.of(row));
+
+        verifySingletonListIsReturnedCorrectly(() -> pager.getFirstPage(), timestamp);
     }
 
     @Test
     public void getNextPageShouldReturnSingleResult() {
-        verifySingletonListIsReturnedCorrectly(() -> pager.getNextPage(PREVIOUS_PAGE));
+        long timestamp = 1L;
+        CqlRow row = makeCqlRow(DEFAULT_COLUMN_NAME, timestamp);
+        queriesForSpecificColumnReturn(ImmutableList.of(row));
+
+        verifySingletonListIsReturnedCorrectly(() -> pager.getNextPage(PREVIOUS_PAGE), timestamp);
     }
 
     @Test
     public void getFirstPageShouldReturnMultipleResults() {
+        CqlRow row1 = makeCqlRow(DEFAULT_COLUMN_NAME, 1L);
+        CqlRow row2 = makeCqlRow(DEFAULT_COLUMN_NAME, 2L);
+        allQueriesReturn(ImmutableList.of(row1, row2));
+
         verifyMultipleElementListIsReturnedCorrectly(() -> pager.getFirstPage());
     }
 
     @Test
     public void getNextPageShouldReturnMultipleResults() {
+        CqlRow row1 = makeCqlRow(DEFAULT_COLUMN_NAME, 1L);
+        CqlRow row2 = makeCqlRow(DEFAULT_COLUMN_NAME, 2L);
+        queriesForSpecificColumnReturn(ImmutableList.of(row1, row2));
+
         verifyMultipleElementListIsReturnedCorrectly(() -> pager.getNextPage(PREVIOUS_PAGE));
     }
 
@@ -115,22 +132,14 @@ public class AllCellsPerRowPagerTest {
                 getExpectedColumnFilter())));
     }
 
-    private void verifySingletonListIsReturnedCorrectly(Supplier<List<ColumnOrSuperColumn>> method) {
-        long timestamp = 1L;
-        CqlRow row = makeCqlRow(DEFAULT_COLUMN_NAME, timestamp);
-        allQueriesReturn(ImmutableList.of(row));
-
+    private void verifySingletonListIsReturnedCorrectly(Supplier<List<ColumnOrSuperColumn>> method, long expectedTimestamp) {
         List<ColumnOrSuperColumn> page = method.get();
 
         assertThat(page, hasSize(1));
-        assertColumnOrSuperColumnHasCorrectNameAndTimestamp(page.get(0), DEFAULT_COLUMN_NAME, timestamp);
+        assertColumnOrSuperColumnHasCorrectNameAndTimestamp(page.get(0), DEFAULT_COLUMN_NAME, expectedTimestamp);
     }
 
     private void verifyMultipleElementListIsReturnedCorrectly(Supplier<List<ColumnOrSuperColumn>> method) {
-        CqlRow row1 = makeCqlRow(DEFAULT_COLUMN_NAME, 1L);
-        CqlRow row2 = makeCqlRow(DEFAULT_COLUMN_NAME, 2L);
-        allQueriesReturn(ImmutableList.of(row1, row2));
-
         List<ColumnOrSuperColumn> firstPage = method.get();
 
         assertThat(firstPage, hasSize(2));
@@ -149,7 +158,7 @@ public class AllCellsPerRowPagerTest {
 
         pager.getNextPage(PREVIOUS_PAGE);
 
-        verify(executor).execute(argThat(matcher));
+        verify(executor, atLeastOnce()).execute(argThat(matcher));
     }
 
     private String getExpectedColumnFilter() {
@@ -171,6 +180,16 @@ public class AllCellsPerRowPagerTest {
         CqlResult cqlResult = mock(CqlResult.class);
         when(cqlResult.getRows()).thenReturn(rows);
         when(executor.execute(anyString())).thenReturn(cqlResult);
+    }
+
+    private void queriesForSpecificColumnReturn(List<CqlRow> rows) {
+        CqlResult cqlResult = mock(CqlResult.class);
+        when(cqlResult.getRows()).thenReturn(rows);
+        when(executor.execute(argThat(containsString("column1 = ")))).thenReturn(cqlResult);
+
+        CqlResult noResults = mock(CqlResult.class);
+        when(noResults.getRows()).thenReturn(ImmutableList.of());
+        when(executor.execute(argThat(containsString("column1 > ")))).thenReturn(noResults);
     }
 
     private void assertColumnOrSuperColumnHasCorrectNameAndTimestamp(ColumnOrSuperColumn columnOrSuperColumn, String expectedName, long expectedTs) {
