@@ -109,7 +109,7 @@ public class KvsGetRangeBenchmarks {
 
 
     @Benchmark
-    public Object getSingleRange() {
+    public void getSingleRange() {
         int startRow = random.nextInt(NUM_ROWS);
         int endRow = startRow + 1;
         RangeRequest request = RangeRequest.builder()
@@ -118,7 +118,10 @@ public class KvsGetRangeBenchmarks {
                 .endRowExclusive(Ints.toByteArray(endRow))
                 .build();
         ClosableIterator<RowResult<Value>> result = kvs.getRange(this.tableRef1, request, QUERY_TIMESTAMP);
-        return result;
+        ArrayList<RowResult<Value>> list = Lists.newArrayList(result);
+        byte[] rowName = Iterables.getOnlyElement(list).getRowName();
+        int rowNumber = Ints.fromByteArray(rowName);
+        KvsBenchmarks.validate(rowNumber == startRow, "Start Row %s, row number %s", startRow, rowNumber);
     }
 
     private Iterable<RangeRequest> getRangeRequests(int numRequests) {
@@ -142,11 +145,27 @@ public class KvsGetRangeBenchmarks {
     }
 
     @Benchmark
-    public Object getMultiRange() {
+    public void getMultiRange() {
         Iterable<RangeRequest> requests = getRangeRequests(NUM_REQUESTS);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> results =
                 kvs.getFirstBatchForRanges(tableRef1, requests, QUERY_TIMESTAMP);
-        return results;
+
+        int numRequests = Iterables.size(requests);
+
+        KvsBenchmarks.validate(numRequests == results.size(),
+                "Got %s requests and %s results, requests %s, results %s", numRequests, results.size(), requests, results);
+
+        results.forEach((request, result) -> {
+            KvsBenchmarks.validate(1 == result.getResults().size(), "Key %s, List size is %s",
+                    Ints.fromByteArray(request.getStartInclusive()), result.getResults().size());
+            KvsBenchmarks.validate(!result.moreResultsAvailable(), "Key %s, result.moreResultsAvailable() %s",
+                    Ints.fromByteArray(request.getStartInclusive()), result.moreResultsAvailable());
+            RowResult<Value> row = Iterables.getOnlyElement(result.getResults());
+            KvsBenchmarks.validate(Arrays.equals(request.getStartInclusive(), row.getRowName()),
+                    "Request row is %s, result is %s",
+                    Ints.fromByteArray(request.getStartInclusive()),
+                    Ints.fromByteArray(row.getRowName()));
+        });
     }
 
 }
