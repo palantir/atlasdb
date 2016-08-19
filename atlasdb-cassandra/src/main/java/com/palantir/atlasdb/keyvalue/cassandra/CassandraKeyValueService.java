@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -117,6 +118,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.ThreadNamingCallable;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.util.paging.AbstractPagingIterable;
+import com.palantir.util.paging.Pager;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -1356,9 +1358,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                 Set<ByteBuffer> rows = getRowsFromPage(firstPage);
 
-                CellPager cellPager = new CellPager(clientPool, host);
-                Map<ByteBuffer, List<ColumnOrSuperColumn>> columnsByRow = cellPager.getColsByKeyWithPaging(rows,
-                        tableRef, consistency);
+                Map<ByteBuffer, List<ColumnOrSuperColumn>> columnsByRow = getColumnsByRow(host, rows);
 
                 TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
                         resultsExtractor.get().getPageFromRangeResults(columnsByRow, timestamp, selection,
@@ -1369,6 +1369,20 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     page = SimpleTokenBackedResultsPage.create(endExclusive, page.getResults(), false);
                 }
                 return page;
+            }
+
+            private Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(
+                    InetSocketAddress host, Set<ByteBuffer> rows) throws TException {
+                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = new HashMap<>();
+
+                for (ByteBuffer row : rows) {
+                    CqlExecutor cqlExecutor = new CqlExecutor(clientPool, host, consistency);
+                    AllCellsPerRowPager allCellsPerRowPager = new AllCellsPerRowPager(cqlExecutor, row, tableRef, 10);
+                    List<ColumnOrSuperColumn> columns = new Pager<>(allCellsPerRowPager).getPages();
+                    colsByKey.put(row, columns);
+                }
+
+                return colsByKey;
             }
 
         };
