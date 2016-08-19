@@ -13,6 +13,8 @@ services:
   ete1:
     build: .
     command: bash -c 'cp var/conf/atlasdb-ete.dbkvs.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://postgres:5432 && service/bin/init.sh console'
+    depends_on:
+      - postgres
     environment:
       - ME=ete1
     ports:
@@ -21,6 +23,8 @@ services:
   ete2:
     build: .
     command: bash -c 'cp var/conf/atlasdb-ete.dbkvs.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://postgres:5432 && service/bin/init.sh console'
+    depends_on:
+      - postgres
     environment:
       - ME=ete2
     ports:
@@ -29,6 +33,8 @@ services:
   ete3:
     build: .
     command: bash -c 'cp var/conf/atlasdb-ete.dbkvs.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://postgres:5432 && service/bin/init.sh console'
+    depends_on:
+      - postgres
     environment:
       - ME=ete3
     ports:

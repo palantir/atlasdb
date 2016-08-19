@@ -22,6 +22,6 @@ import com.palantir.atlasdb.sweep.AbstractSweeperTest;
 public class DbkvsKeyValueServiceSweeperTest extends AbstractSweeperTest {
     @Override
     protected KeyValueService getKeyValueService() {
-        return ConnectionManagerAwareDbKvs.create(DbkvsTestSuite.POSTGRES_KVS_CONFIG);
+        return ConnectionManagerAwareDbKvs.create(DbkvsTestSuite.getKvsConfig());
     }
 }
