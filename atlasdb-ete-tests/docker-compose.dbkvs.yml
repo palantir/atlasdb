@@ -20,20 +20,25 @@ services:
 
   ete2:
     build: .
-    command: bash -c 'cp var/conf/atlasdb-ete.dbkvs.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://ete1:3828 && service/bin/init.sh console'
+    command: bash -c 'cp var/conf/atlasdb-ete.dbkvs.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://postgres:5432 && service/bin/init.sh console'
     environment:
       - ME=ete2
-    depends_on:
-      - ete1
     ports:
       - "3828"
 
   ete3:
     build: .
-    command: bash -c 'cp var/conf/atlasdb-ete.dbkvs.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://ete1:3828 && service/bin/init.sh console'
+    command: bash -c 'cp var/conf/atlasdb-ete.dbkvs.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://postgres:5432 && service/bin/init.sh console'
     environment:
       - ME=ete3
-    depends_on:
-      - ete1
     ports:
       - "3828"
+
+  ete-cli:
+    build: .
+    entrypoint: [bash, -c, 'cp var/conf/atlasdb-ete.dbkvs.yml var/conf/atlasdb-ete.yml && "$$@"', --]
+    command: exit
+    environment:
+      - ME=ete1
+    depends_on:
+      - ete1

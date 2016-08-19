@@ -29,16 +29,13 @@ import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
  * @author htarasiuk
  *
  */
-@JsonSerialize(as=SimpleKeyValueEndpoint.class)
-@JsonDeserialize(as=SimpleKeyValueEndpoint.class)
+@JsonSerialize(as = SimpleKeyValueEndpoint.class)
+@JsonDeserialize(as = SimpleKeyValueEndpoint.class)
 public interface KeyValueEndpoint {
     KeyValueService keyValueService();
     PartitionMapService partitionMapService();
     String rack();
 
-    /**
-     * TODO: This should be replaced by a nicer solution eventually.
-     * @param clientVersionSupplier
-     */
+    // TODO: This should be replaced by a nicer solution eventually.
     void registerPartitionMapVersion(Supplier<Long> clientVersionSupplier);
 }

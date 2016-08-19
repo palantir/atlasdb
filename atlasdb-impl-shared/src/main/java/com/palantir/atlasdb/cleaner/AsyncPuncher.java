@@ -33,7 +33,7 @@ import com.palantir.common.concurrent.PTExecutors;
  *
  * @author jweel
  */
-public class AsyncPuncher implements Puncher {
+public final class AsyncPuncher implements Puncher {
     private static final Logger log = LoggerFactory.getLogger(AsyncPuncher.class);
     private static final long INVALID_TIMESTAMP = -1L;
 
@@ -89,9 +89,9 @@ public class AsyncPuncher implements Puncher {
             Thread.currentThread().interrupt();
         }
         if (!shutdown) {
-            log.error("Failed to shutdown puncher in a timely manner. The puncher may attempt " +
-                    "to access a key value service after the key value service closes. This shouldn't " +
-                    "cause any problems, but may result in some scary looking error messages.");
+            log.error("Failed to shutdown puncher in a timely manner. The puncher may attempt"
+                    + " to access a key value service after the key value service closes. This shouldn't"
+                    + " cause any problems, but may result in some scary looking error messages.");
         }
     }
 }

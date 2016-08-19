@@ -20,9 +20,13 @@ import javax.ws.rs.ext.ExceptionMapper;
 
 import com.palantir.atlasdb.keyvalue.partition.exception.EndpointVersionTooOldException;
 
-public class EndpointVersionTooOldExceptionMapper implements ExceptionMapper<EndpointVersionTooOldException> {
-
+public final class EndpointVersionTooOldExceptionMapper implements ExceptionMapper<EndpointVersionTooOldException> {
     private static final EndpointVersionTooOldExceptionMapper instance = new EndpointVersionTooOldExceptionMapper();
+
+    private EndpointVersionTooOldExceptionMapper() {
+        // singleton
+    }
+
     public static EndpointVersionTooOldExceptionMapper instance() {
         return instance;
     }
@@ -31,5 +35,4 @@ public class EndpointVersionTooOldExceptionMapper implements ExceptionMapper<End
     public Response toResponse(EndpointVersionTooOldException exception) {
         return Response.noContent().status(406).build();
     }
-
 }

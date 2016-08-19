@@ -70,14 +70,14 @@ public class OracleDbTableFactory implements DbTableFactory {
         TableSize tableSize = getTableSize(conns, tableName);
         DbQueryFactory queryFactory;
         switch (tableSize) {
-        case OVERFLOW:
-            queryFactory = new OracleOverflowQueryFactory(tableName, config);
-            break;
-        case RAW:
-            queryFactory = new OracleRawQueryFactory(tableName, config);
-            break;
-        default:
-            throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
+            case OVERFLOW:
+                queryFactory = new OracleOverflowQueryFactory(tableName, config);
+                break;
+            case RAW:
+                queryFactory = new OracleRawQueryFactory(tableName, config);
+                break;
+            default:
+                throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
         }
         return new UnbatchedDbReadTable(conns, queryFactory);
     }
@@ -86,12 +86,12 @@ public class OracleDbTableFactory implements DbTableFactory {
     public DbWriteTable createWrite(String tableName, ConnectionSupplier conns) {
         TableSize tableSize = getTableSize(conns, tableName);
         switch (tableSize) {
-        case OVERFLOW:
-            return new OracleOverflowWriteTable(tableName, conns, config);
-        case RAW:
-            return new SimpleDbWriteTable(tableName, conns, config);
-        default:
-            throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
+            case OVERFLOW:
+                return new OracleOverflowWriteTable(tableName, conns, config);
+            case RAW:
+                return new SimpleDbWriteTable(tableName, conns, config);
+            default:
+                throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
         }
     }
 
@@ -100,8 +100,9 @@ public class OracleDbTableFactory implements DbTableFactory {
             return tableSizeByTableName.get(tableName, new Callable<TableSize>() {
                 @Override
                 public TableSize call() {
+                    String metadataTableName = config.metadataTable().getQualifiedName();
                     AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
-                            "SELECT table_size FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
+                            String.format("SELECT table_size FROM %s WHERE table_name = ?", metadataTableName),
                             tableName);
                     Preconditions.checkArgument(
                             !results.rows().isEmpty(),

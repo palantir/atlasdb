@@ -22,10 +22,10 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Test;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
-import com.palantir.atlasdb.cleaner.AbstractSweeperTest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.sweep.AbstractSweeperTest;
 
 public class CassandraKeyValueServiceSweeperTest extends AbstractSweeperTest {
     @Override

@@ -18,12 +18,10 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.io.Closeable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -78,7 +76,7 @@ public class LazyClosableIteratorTest {
 
         List<String> output = Lists.newArrayList();
         try {
-            while(iter.hasNext()) {
+            while (iter.hasNext()) {
                 output.add(iter.next());
             }
             assertTrue(Thread.interrupted()); // race didn't do the thing this time.
@@ -91,54 +89,42 @@ public class LazyClosableIteratorTest {
         exec.awaitTermination(1, TimeUnit.SECONDS);
         assertEquals(opened, closed);
         assertTrue("output not in allowable state: " + output,
-                output.equals(Lists.newArrayList("0-1", "0-2", "1-1", "1-2")) ||
-                output.equals(Lists.newArrayList("0-1", "0-2")) ||
-                output.isEmpty());
+                output.equals(Lists.newArrayList("0-1", "0-2", "1-1", "1-2"))
+                || output.equals(Lists.newArrayList("0-1", "0-2"))
+                || output.isEmpty());
     }
 
     private FutureClosableIteratorTask<String> createInterruptTask(final Thread curThread,
             final Set<Integer> opened, final Set<Integer> closed) {
-        return new FutureClosableIteratorTask<String>(new Callable<ClosableIterator<String>>() {
-            @Override
-            public ClosableIterator<String> call() {
-                opened.add(-1);
-                curThread.interrupt();
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    closed.add(-1);
-                }
-                throw new RuntimeException();
+        return new FutureClosableIteratorTask<>(() -> {
+            opened.add(-1);
+            curThread.interrupt();
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                closed.add(-1);
             }
+            throw new RuntimeException();
         });
     }
 
     private FutureClosableIteratorTask<String> createNewFutureTask(final int num,
             final Set<Integer> opened, final Set<Integer> closed) {
-        return new FutureClosableIteratorTask<String>(new Callable<ClosableIterator<String>>() {
-            @Override
-            public ClosableIterator<String> call() throws Exception {
-                final Iterator<String> iter = Iterators.forArray(num + "-1", num + "-2");
-                opened.add(num);
-                ClosableIterator<String> result = ClosableIterators.wrap(
-                        new AbstractIterator<String>() {
-                            @Override
-                            protected String computeNext() {
-                                if (iter.hasNext()) {
-                                    return iter.next();
-                                } else {
-                                    return endOfData();
-                                }
+        return new FutureClosableIteratorTask<>(() -> {
+            Iterator<String> iter = Iterators.forArray(num + "-1", num + "-2");
+            opened.add(num);
+            return ClosableIterators.wrap(
+                    new AbstractIterator<String>() {
+                        @Override
+                        protected String computeNext() {
+                            if (iter.hasNext()) {
+                                return iter.next();
+                            } else {
+                                return endOfData();
                             }
-                        },
-                        new Closeable() {
-                            @Override
-                            public void close() {
-                                closed.add(num);
-                            }
-                        });
-               return result;
-            }
+                        }
+                    },
+                    () -> closed.add(num));
         });
     }
 }

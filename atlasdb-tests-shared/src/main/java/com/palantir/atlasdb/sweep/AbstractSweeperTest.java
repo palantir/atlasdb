@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Palantir Technologies
+ * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cleaner;
+package com.palantir.atlasdb.sweep;
 
 import static com.palantir.atlasdb.schema.generated.SweepProgressTable.SweepProgressRowResult;
 
@@ -33,6 +33,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.cleaner.Cleaner;
+import com.palantir.atlasdb.cleaner.Follower;
+import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
@@ -45,9 +48,6 @@ import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRowResult;
 import com.palantir.atlasdb.schema.generated.SweepProgressTable;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
-import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
-import com.palantir.atlasdb.sweep.SweepTaskRunner;
-import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;

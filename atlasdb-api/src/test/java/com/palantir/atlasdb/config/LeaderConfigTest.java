@@ -47,16 +47,15 @@ public class LeaderConfigTest {
         assertThat(config.whoIsTheLockLeader(), is(LockLeader.SOMEONE_ELSE_IS_THE_LOCK_LEADER));
     }
 
-
     @Test
-    public void lockLeaderDefaultsToBeTheFirstLeader() {
+    public void lockLeaderDefaultsToBeTheFirstSortedLeader() {
         ImmutableLeaderConfig config = ImmutableLeaderConfig.builder()
                 .localServer("me")
                 .addLeaders("not me", "me")
                 .quorumSize(2)
                 .build();
 
-        assertThat(config.lockCreator(), is("not me"));
+        assertThat(config.lockCreator(), is("me"));
     }
 
     @Test(expected = IllegalStateException.class)
@@ -65,6 +64,24 @@ public class LeaderConfigTest {
                 .localServer("me")
                 .leaders(Collections.emptySet())
                 .quorumSize(0)
+                .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void cannotCreateALeaderConfigWithQuorumSizeNotBeingAMajorityOfTheLeaders() {
+        ImmutableLeaderConfig.builder()
+                .localServer("me")
+                .addLeaders("not me", "me")
+                .quorumSize(1)
+                .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void cannotCreateALeaderConfigWithQuorumSizeLargerThanTheAmountOfLeaders() {
+        ImmutableLeaderConfig.builder()
+                .localServer("me")
+                .addLeaders("not me", "me")
+                .quorumSize(3)
                 .build();
     }
 }

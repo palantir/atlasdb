@@ -52,10 +52,10 @@ public abstract class LeaderConfig {
     @JsonProperty("lockCreator")
     @Value.Default
     public String lockCreator() {
-        if (leaders().isEmpty()) {
-            throw new IllegalStateException("The leaders block cannot be empty");
-        }
-        return leaders().iterator().next();
+        return leaders().stream()
+                .sorted()
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("The leaders block cannot be empty"));
     }
 
     @Value.Default
@@ -75,6 +75,12 @@ public abstract class LeaderConfig {
 
     @Value.Check
     protected final void check() {
+        Preconditions.checkState(quorumSize() > leaders().size() / 2,
+                "The quorumSize '%s' must be over half the amount of leader entries %s.", quorumSize(), leaders());
+        Preconditions.checkState(leaders().size() >= quorumSize(),
+                "The quorumSize '%s' must be less than or equal to the amount of leader entries %s.",
+                quorumSize(), leaders());
+
         Preconditions.checkArgument(leaders().contains(localServer()),
                 "The localServer '%s' must included in the leader entries %s.", localServer(), leaders());
         Preconditions.checkArgument(learnerLogDir().exists() || learnerLogDir().mkdirs(),

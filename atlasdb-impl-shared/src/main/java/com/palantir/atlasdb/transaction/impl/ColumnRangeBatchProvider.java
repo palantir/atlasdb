@@ -41,7 +41,12 @@ public class ColumnRangeBatchProvider implements BatchProvider<Map.Entry<Cell, V
     private final ColumnRangeSelection columnRangeSelection;
     private final long timestamp;
 
-    public ColumnRangeBatchProvider(KeyValueService keyValueService, TableReference tableRef, byte[] row, ColumnRangeSelection columnRangeSelection, long timestamp) {
+    public ColumnRangeBatchProvider(
+            KeyValueService keyValueService,
+            TableReference tableRef,
+            byte[] row,
+            ColumnRangeSelection columnRangeSelection,
+            long timestamp) {
         this.keyValueService = keyValueService;
         this.tableRef = tableRef;
         this.row = row;
@@ -56,7 +61,11 @@ public class ColumnRangeBatchProvider implements BatchProvider<Map.Entry<Cell, V
             startCol = RangeRequests.nextLexicographicName(lastToken);
         }
         ColumnRangeSelection newRange = new ColumnRangeSelection(startCol, columnRangeSelection.getEndCol(), batchSize);
-        Map<byte[], RowColumnRangeIterator> range = keyValueService.getRowsColumnRange(tableRef, ImmutableList.of(row), newRange, timestamp);
+        Map<byte[], RowColumnRangeIterator> range = keyValueService.getRowsColumnRange(
+                tableRef,
+                ImmutableList.of(row),
+                newRange,
+                timestamp);
         if (range.isEmpty()) {
             return ClosableIterators.wrap(ImmutableList.<Map.Entry<Cell, Value>>of().iterator());
         }

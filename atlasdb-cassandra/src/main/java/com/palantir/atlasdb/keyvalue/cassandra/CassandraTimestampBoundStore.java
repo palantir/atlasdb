@@ -52,10 +52,14 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private static final String ROW_AND_COLUMN_NAME = "ts";
 
     public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
-        NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription("timestamp_name", ValueType.STRING))),
-        new ColumnMetadataDescription(ImmutableList.of(
-            new NamedColumnDescription(ROW_AND_COLUMN_NAME, "current_max_ts", ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
-        ConflictHandler.IGNORE_ALL);
+            NameMetadataDescription.create(ImmutableList.of(
+                    new NameComponentDescription("timestamp_name", ValueType.STRING))),
+            new ColumnMetadataDescription(ImmutableList.of(
+                new NamedColumnDescription(
+                        ROW_AND_COLUMN_NAME,
+                        "current_max_ts",
+                        ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
+            ConflictHandler.IGNORE_ALL);
 
     private static final long INITIAL_VALUE = 10000L;
 
@@ -71,7 +75,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     }
 
     private CassandraTimestampBoundStore(CassandraClientPool clientPool) {
-        this.clientPool = Preconditions.checkNotNull(clientPool);
+        this.clientPool = Preconditions.checkNotNull(clientPool, "clientPool cannot be null");
     }
 
     @Override
@@ -119,7 +123,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             result = client.cas(
                     getRowName(),
                     AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
-                    oldVal == null ? ImmutableList.<Column> of() : ImmutableList.of(makeColumn(oldVal)),
+                    oldVal == null ? ImmutableList.of() : ImmutableList.of(makeColumn(oldVal)),
                     ImmutableList.of(makeColumn(newVal)),
                     ConsistencyLevel.SERIAL,
                     ConsistencyLevel.EACH_QUORUM);
@@ -129,13 +133,14 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         }
         if (!result.isSuccess()) {
             String msg = "Timestamp limit changed underneath us (limit in memory: " + currentLimit
-                    + "). This may indicate that another timestamp service is running against this cassandra keyspace. "
-                    + "This is likely caused by multiple copies of a service running without a configured set of leaders "
-                    + "or a CLI being run with an embedded timestamp service against an already running service.";
-            MultipleRunningTimestampServiceError e = new MultipleRunningTimestampServiceError(msg);
-            log.error(msg, e);
-            lastWriteException = e;
-            throw e;
+                    + "). This may indicate that another timestamp service is running against this cassandra keyspace."
+                    + " This is likely caused by multiple copies of a service running without a configured set of"
+                    + " leaders or a CLI being run with an embedded timestamp service against an already running"
+                    + " service.";
+            MultipleRunningTimestampServiceError err = new MultipleRunningTimestampServiceError(msg);
+            log.error(msg, err);
+            lastWriteException = err;
+            throw err;
         } else {
             lastWriteException = null;
             currentLimit = newVal;
@@ -151,7 +156,9 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     }
 
     private static byte[] getColumnName() {
-        return CassandraKeyValueServices.makeCompositeBuffer(PtBytes.toBytes(ROW_AND_COLUMN_NAME), CASSANDRA_TIMESTAMP).array();
+        return CassandraKeyValueServices
+                .makeCompositeBuffer(PtBytes.toBytes(ROW_AND_COLUMN_NAME), CASSANDRA_TIMESTAMP)
+                .array();
     }
 
     private static ByteBuffer getRowName() {

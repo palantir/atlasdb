@@ -30,6 +30,8 @@ import com.palantir.util.VersionStrings;
 
 public class PostgresDdlTable implements DbDdlTable {
     private static final Logger log = LoggerFactory.getLogger(PostgresDdlTable.class);
+    private static final String MIN_POSTGRES_VERSION = "9.2";
+
     private final TableReference tableName;
     private final ConnectionSupplier conns;
     private final PostgresDdlConfig config;
@@ -50,13 +52,14 @@ public class PostgresDdlTable implements DbDdlTable {
             return;
         }
         executeIgnoringError(
-                "CREATE TABLE " + prefixedTableName() + " (" +
-                "  row_name   BYTEA NOT NULL," +
-                "  col_name   BYTEA NOT NULL," +
-                "  ts         INT8 NOT NULL," +
-                "  val        BYTEA," +
-                "  CONSTRAINT pk_" + prefixedTableName() + " PRIMARY KEY (row_name, col_name, ts) " +
-                ")",
+                String.format("CREATE TABLE %s ("
+                        + "  row_name   BYTEA NOT NULL,"
+                        + "  col_name   BYTEA NOT NULL,"
+                        + "  ts         INT8 NOT NULL,"
+                        + "  val        BYTEA,"
+                        + "  CONSTRAINT pk_%s PRIMARY KEY (row_name, col_name, ts) ",
+                        prefixedTableName(), prefixedTableName())
+                + ")",
                 "already exists");
         conns.get().insertOneUnregisteredQuery(
                 "INSERT INTO " + config.metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)",
@@ -68,7 +71,8 @@ public class PostgresDdlTable implements DbDdlTable {
     public void drop() {
         executeIgnoringError("DROP TABLE " + prefixedTableName(), "does not exist");
         conns.get().executeUnregisteredQuery(
-                "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?", tableName.getQualifiedName());
+                String.format("DELETE FROM %s WHERE table_name = ?", config.metadataTable().getQualifiedName()),
+                tableName.getQualifiedName());
     }
 
     @Override
@@ -78,13 +82,13 @@ public class PostgresDdlTable implements DbDdlTable {
 
     @Override
     public void checkDatabaseVersion() {
-        String MIN_POSTGRES_VERSION = "9.2";
         AgnosticResultSet result = conns.get().selectResultSetUnregisteredQuery("SHOW server_version");
         String version = result.get(0).getString("server_version");
         if (!version.matches("^[\\.0-9]+$") || VersionStrings.compareVersions(version, MIN_POSTGRES_VERSION) < 0) {
-            log.error("Your key value service currently uses version " + version +
-                    " of postgres. The minimum supported version is " + MIN_POSTGRES_VERSION +
-                    ". If you absolutely need to use an older version of postgres, please contact Palantir support for assistance.");
+            log.error("Your key value service currently uses version " + version + " of postgres."
+                    + " The minimum supported version is " + MIN_POSTGRES_VERSION + "."
+                    + " If you absolutely need to use an older version of postgres,"
+                    + " please contact Palantir support for assistance.");
         }
     }
 

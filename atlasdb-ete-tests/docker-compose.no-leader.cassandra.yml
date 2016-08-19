@@ -17,3 +17,12 @@ services:
       - ME=ete1
     ports:
       - "3828"
+
+  ete-cli:
+    build: .
+    entrypoint: [bash, -c, 'cp var/conf/atlasdb-ete.no-leader.cassandra.client.yml var/conf/atlasdb-ete.yml && "$$@"', --]
+    command: exit
+    environment:
+      - ME=ete1
+    depends_on:
+      - ete1

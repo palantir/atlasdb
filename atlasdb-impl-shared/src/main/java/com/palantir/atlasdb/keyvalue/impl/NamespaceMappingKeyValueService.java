@@ -90,7 +90,11 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection,
+            long timestamp) {
         return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
     }
 
@@ -100,12 +104,18 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+    public ClosableIterator<RowResult<Value>> getRange(
+            TableReference tableRef,
+            RangeRequest rangeRequest,
+            long timestamp) {
         return delegate().getRange(tableRef, rangeRequest, timestamp);
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
+            TableReference tableRef,
+            RangeRequest rangeRequest,
+            long timestamp) {
         return delegate().getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
     }
 
@@ -117,9 +127,10 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef,
-                                                                                                           Iterable<RangeRequest> rangeRequests,
-                                                                                                           long timestamp) {
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
+            TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            long timestamp) {
         return delegate().getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
     }
 
@@ -210,7 +221,8 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
 
     @Override
     public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
-        Map<TableReference, byte[]> tableReferencesToTableMetadata = Maps.newHashMapWithExpectedSize(tableRefToTableMetadata.size());
+        Map<TableReference, byte[]> tableReferencesToTableMetadata =
+                Maps.newHashMapWithExpectedSize(tableRefToTableMetadata.size());
         for (Entry<TableReference, byte[]> tableToMetadata : tableRefToTableMetadata.entrySet()) {
             tableReferencesToTableMetadata.put(tableToMetadata.getKey(), tableToMetadata.getValue());
         }
@@ -219,7 +231,8 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
 
     @Override
     public void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata) {
-        Map<TableReference, byte[]> tableReferencesToMetadata = Maps.newHashMapWithExpectedSize(tableRefToMetadata.size());
+        Map<TableReference, byte[]> tableReferencesToMetadata =
+                Maps.newHashMapWithExpectedSize(tableRefToMetadata.size());
         for (Entry<TableReference, byte[]> tableToMetadataEntry : tableRefToMetadata.entrySet()) {
             tableReferencesToMetadata.put(tableToMetadataEntry.getKey(), tableToMetadataEntry.getValue());
         }

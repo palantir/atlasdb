@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -46,7 +46,6 @@ import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbstractBatchingVisitable;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableFromIterable;
@@ -60,15 +59,15 @@ import com.palantir.common.base.ClosableIterator;
  *
  * @author ejin
  */
-public class KeyValueServiceScrubberStore implements ScrubberStore {
-
+public final class KeyValueServiceScrubberStore implements ScrubberStore {
     private final KeyValueService keyValueService;
 
     public static ScrubberStore create(KeyValueService keyValueService) {
         keyValueService.createTable(AtlasDbConstants.SCRUB_TABLE, new TableMetadata(
                 NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription("cell", ValueType.BLOB))),
                 new ColumnMetadataDescription(new DynamicColumnDescription(
-                        NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription("name", ValueType.STRING))),
+                        NameMetadataDescription.create(ImmutableList.of(
+                                new NameComponentDescription("name", ValueType.STRING))),
                         ColumnValueDescription.forType(ValueType.STRING))),
                         ConflictHandler.IGNORE_ALL).persistToBytes());
         return new KeyValueServiceScrubberStore(keyValueService);
@@ -84,7 +83,10 @@ public class KeyValueServiceScrubberStore implements ScrubberStore {
     }
 
     @Override
-    public void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs, long scrubTimestamp, int batchSize) {
+    public void queueCellsForScrubbing(
+            Multimap<Cell, TableReference> cellToTableRefs,
+            long scrubTimestamp,
+            int batchSize) {
         Map<Cell, byte[]> values = Maps.newHashMap();
         for (Map.Entry<Cell, Collection<TableReference>> entry : cellToTableRefs.asMap().entrySet()) {
             Cell cell = entry.getKey();
@@ -120,27 +122,31 @@ public class KeyValueServiceScrubberStore implements ScrubberStore {
     }
 
     @Override
-    public BatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>> getBatchingVisitableScrubQueue(final int cellsToScrubBatchSize,
-                                                                                                             long maxScrubTimestamp /* exclusive */,
-                                                                                                             byte[] startRow,
-                                                                                                             byte[] endRow) {
-        ClosableIterator<RowResult<Value>> iterator = getIteratorToScrub(cellsToScrubBatchSize, maxScrubTimestamp, startRow, endRow);
+    public BatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>> getBatchingVisitableScrubQueue(
+            int cellsToScrubBatchSize,
+            long maxScrubTimestamp /* exclusive */,
+            byte[] startRow,
+            byte[] endRow) {
+        ClosableIterator<RowResult<Value>> iterator =
+                getIteratorToScrub(cellsToScrubBatchSize, maxScrubTimestamp, startRow, endRow);
         final BatchingVisitable<RowResult<Value>> results = BatchingVisitableFromIterable.create(iterator);
-        return BatchingVisitableView.of(new AbstractBatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>>() {
-            @Override
-            protected <K extends Exception> void batchAcceptSizeHint(int batchSizeHint,
-                                                                        final ConsistentVisitor<SortedMap<Long, Multimap<TableReference, Cell>>, K> v) throws K {
-                results.batchAccept(cellsToScrubBatchSize, new AbortingVisitor<List<RowResult<Value>>, K>() {
+        return BatchingVisitableView.of(
+                new AbstractBatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>>() {
                     @Override
-                    public boolean visit(List<RowResult<Value>> batch) throws K {
-                        return v.visit(ImmutableList.of(transformRows(batch)));
+                    protected <K extends Exception> void batchAcceptSizeHint(
+                            int batchSizeHint,
+                            ConsistentVisitor<SortedMap<Long, Multimap<TableReference, Cell>>, K> visitor) throws K {
+                        results.batchAccept(cellsToScrubBatchSize, batch ->
+                                visitor.visit(ImmutableList.of(transformRows(batch))));
                     }
                 });
-            }
-        });
     }
 
-    private ClosableIterator<RowResult<Value>> getIteratorToScrub(int cellsToScrubBatchSize, long maxScrubTimestamp, byte[] startRow, byte[] endRow) {
+    private ClosableIterator<RowResult<Value>> getIteratorToScrub(
+            int cellsToScrubBatchSize,
+            long maxScrubTimestamp,
+            byte[] startRow,
+            byte[] endRow) {
         RangeRequest.Builder range = RangeRequest.builder();
         if (startRow != null) {
             range = range.startRowInclusive(startRow);
@@ -165,10 +171,11 @@ public class KeyValueServiceScrubberStore implements ScrubberStore {
                         PtBytes.toString(value.getContents()),
                         AtlasDbConstants.SCRUB_TABLE_SEPARATOR_CHAR);
                 if (!scrubTimestampToTableNameToCell.containsKey(scrubTimestamp)) {
-                    scrubTimestampToTableNameToCell.put(scrubTimestamp, HashMultimap.<TableReference, Cell>create());
+                    scrubTimestampToTableNameToCell.put(scrubTimestamp, HashMultimap.create());
                 }
                 for (String tableName : tableNames) {
-                    scrubTimestampToTableNameToCell.get(scrubTimestamp).put(TableReference.createUnsafe(tableName), cell);
+                    scrubTimestampToTableNameToCell.get(scrubTimestamp)
+                            .put(TableReference.createUnsafe(tableName), cell);
                 }
             }
         }

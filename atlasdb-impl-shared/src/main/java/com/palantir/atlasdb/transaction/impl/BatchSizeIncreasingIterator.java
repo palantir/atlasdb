@@ -27,13 +27,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.util.AssertUtils;
 
-interface BatchProvider<T> {
-    ClosableIterator<T> getBatch(int batchSize, @Nullable byte[] lastToken);
-    boolean hasNext(byte[] lastToken);
-    byte[] getLastToken(List<T> batch);
-}
-
-class BatchSizeIncreasingIterator<T> {
+public class BatchSizeIncreasingIterator<T> {
     final int originalBatchSize;
 
     final BatchProvider<T> batchProvider;
@@ -58,7 +52,8 @@ class BatchSizeIncreasingIterator<T> {
 
     public void markNumResultsNotDeleted(int resultsInBatch) {
         numNotDeleted += resultsInBatch;
-        AssertUtils.assertAndLog(numNotDeleted <= numReturned, "NotDeleted is bigger than the number of results we returned.");
+        AssertUtils.assertAndLog(numNotDeleted <= numReturned,
+                "NotDeleted is bigger than the number of results we returned.");
     }
 
     int getBestBatchSize() {
@@ -71,7 +66,9 @@ class BatchSizeIncreasingIterator<T> {
             // If everything we've seen has been deleted, we should be aggressive about getting more rows.
             batchSize = maxNewBatchSize;
         } else {
-            batchSize = Math.min((long) Math.ceil(originalBatchSize * (numReturned / (double) numNotDeleted)), maxNewBatchSize);
+            batchSize = Math.min(
+                    (long) Math.ceil(originalBatchSize * (numReturned / (double) numNotDeleted)),
+                    maxNewBatchSize);
         }
         return (int) Math.min(batchSize, AtlasDbPerformanceConstants.MAX_BATCH_SIZE);
     }

@@ -33,6 +33,8 @@ import com.palantir.util.VersionStrings;
 
 public class OracleDdlTable implements DbDdlTable {
     private static final Logger log = LoggerFactory.getLogger(OracleDdlTable.class);
+    private static final String MIN_ORACLE_VERSION = "11.2.0.2.3";
+
     private final TableReference tableName;
     private final ConnectionSupplier conns;
     private final OracleDdlConfig config;
@@ -60,28 +62,28 @@ public class OracleDdlTable implements DbDdlTable {
         }
 
         executeIgnoringError(
-                "CREATE TABLE " + prefixedTableName() + " (" +
-                "  row_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL," +
-                "  col_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL," +
-                "  ts         NUMBER(20) NOT NULL," +
-                "  val        RAW(2000), " +
-                (needsOverflow ? "  overflow   NUMBER(38), " : "") +
-                "  CONSTRAINT pk_" + prefixedTableName() + " PRIMARY KEY (row_name, col_name, ts) " +
-                ") organization index compress overflow",
+                "CREATE TABLE " + prefixedTableName() + " ("
+                + "  row_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL,"
+                + "  col_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL,"
+                + "  ts         NUMBER(20) NOT NULL,"
+                + "  val        RAW(2000), "
+                + (needsOverflow ? "  overflow   NUMBER(38), " : "")
+                + "  CONSTRAINT pk_" + prefixedTableName() + " PRIMARY KEY (row_name, col_name, ts) "
+                + ") organization index compress overflow",
                 "ORA-00955");
         if (needsOverflow && config.overflowMigrationState() != OverflowMigrationState.UNSTARTED) {
             executeIgnoringError(
-                    "CREATE TABLE " + prefixedOverflowTableName() + " (" +
-                    "  id  NUMBER(38) NOT NULL, " +
-                    "  val BLOB NOT NULL," +
-                    "  CONSTRAINT pk_" + prefixedOverflowTableName() + " PRIMARY KEY (id)" +
-                    ")",
+                    "CREATE TABLE " + prefixedOverflowTableName() + " ("
+                    + "  id  NUMBER(38) NOT NULL, "
+                    + "  val BLOB NOT NULL,"
+                    + "  CONSTRAINT pk_" + prefixedOverflowTableName() + " PRIMARY KEY (id)"
+                    + ")",
                     "ORA-00955");
         }
         conns.get().insertOneUnregisteredQuery(
                 "INSERT INTO " + config.metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)",
                 tableName.getQualifiedName(),
-                (needsOverflow ? TableSize.OVERFLOW.getId() : TableSize.RAW.getId()));
+                needsOverflow ? TableSize.OVERFLOW.getId() : TableSize.RAW.getId());
     }
 
     @Override
@@ -89,7 +91,8 @@ public class OracleDdlTable implements DbDdlTable {
         executeIgnoringError("DROP TABLE " + prefixedTableName() + " PURGE", "ORA-00942");
         executeIgnoringError("DROP TABLE " + prefixedOverflowTableName() + " PURGE", "ORA-00942");
         conns.get().executeUnregisteredQuery(
-                "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?", tableName.getQualifiedName());
+                "DELETE FROM " + config.metadataTable().getQualifiedName()
+                + " WHERE table_name = ?", tableName.getQualifiedName());
     }
 
     @Override
@@ -100,7 +103,6 @@ public class OracleDdlTable implements DbDdlTable {
 
     @Override
     public void checkDatabaseVersion() {
-        String MIN_ORACLE_VERSION = "11.2.0.2.3";
         AgnosticResultSet result = conns.get().selectResultSetUnregisteredQuery(
                 "SELECT version FROM product_component_version where lower(product) like '%oracle%'");
         String version = result.get(0).getString("version");
@@ -109,7 +111,8 @@ public class OracleDdlTable implements DbDdlTable {
                     + version
                     + " of oracle. The minimum supported version is "
                     + MIN_ORACLE_VERSION
-                    + ". If you absolutely need to use an older version of oracle, please contact Palantir support for assistance.");
+                    + ". If you absolutely need to use an older version of oracle,"
+                    + " please contact Palantir support for assistance.");
         }
     }
 
@@ -130,12 +133,13 @@ public class OracleDdlTable implements DbDdlTable {
             try {
                 conns.get().executeUnregisteredQuery("ALTER TABLE " + prefixedTableName() + " MOVE ONLINE");
             } catch (PalantirSqlException e) {
-                log.error("Tried to clean up " + tableName + " bloat after a sweep operation, "
-                        + "but underlying Oracle database or configuration does not support this "
-                        + "(Enterprise Edition that requires this user to be able to perform DDL operations) feature online. "
-                        + "Since this can't be automated in your configuration, good practice would be do to occasional offline manual maintenance "
-                        + "of rebuilding IOT tables to compensate for bloat. You can contact Palantir Support if you'd like more information. "
-                        + "Underlying error was: " + e.getMessage());
+                log.error("Tried to clean up " + tableName + " bloat after a sweep operation,"
+                        + " but underlying Oracle database or configuration does not support this"
+                        + " (Enterprise Edition that requires this user to be able to perform DDL operations)"
+                        + " feature online. Since this can't be automated in your configuration,"
+                        + " good practice would be do to occasional offline manual maintenance of rebuilding"
+                        + " IOT tables to compensate for bloat. You can contact Palantir Support if you'd"
+                        + " like more information. Underlying error was: " + e.getMessage());
             }
         }
     }

@@ -31,7 +31,7 @@ import com.palantir.timestamp.TimestampService;
  * @author jweel
  *
  */
-public class ImmutableTimestampSupplier implements Supplier<Long> {
+public final class ImmutableTimestampSupplier implements Supplier<Long> {
     private static final long RELOAD_INTERVAL_MILLIS = 1000L;
 
     public static Supplier<Long> createMemoizedWithExpiration(RemoteLockService lockService,

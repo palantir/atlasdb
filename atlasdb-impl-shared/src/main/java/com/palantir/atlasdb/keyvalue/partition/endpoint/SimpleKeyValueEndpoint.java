@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.partition.endpoint;
 
+import java.util.Objects;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
@@ -38,7 +40,7 @@ import com.palantir.atlasdb.keyvalue.remoting.proxy.FillInUrlProxy;
  * @author htarasiuk
  *
  */
-public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
+public final class SimpleKeyValueEndpoint implements KeyValueEndpoint {
 
     transient KeyValueService kvs;
     final transient PartitionMapService pms;
@@ -47,20 +49,18 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
     @JsonProperty("rack") final String rack;
 
     private SimpleKeyValueEndpoint(String kvsUri, String pmsUri, String rack) {
-        this.kvsUri = Preconditions.checkNotNull(kvsUri);
-        this.pmsUri = Preconditions.checkNotNull(pmsUri);
+        this.kvsUri = Preconditions.checkNotNull(kvsUri, "kvsUri cannot be null");
+        this.pmsUri = Preconditions.checkNotNull(pmsUri, "pmgUri cannot be null");
         this.pms = RemotingPartitionMapService.createClientSide(pmsUri);
         this.rack = KeyValueEndpoints.makeUniqueRackIfNoneSpecified(rack);
     }
 
     /**
+     * Creates a new {@link SimpleKeyValueEndpoint}.
      *
-     * @param kvsUri
-     * @param pmsUri
      * @param rack Use <tt>PartitionedKeyValueConstants.NO_RACK</tt> if you want
      * to have a unique rack id created. A convenience method {@link #create(String, String)}
      * is also available.
-     * @return
      */
     @JsonCreator
     public static SimpleKeyValueEndpoint create(@JsonProperty("kvsUri") String kvsUri,
@@ -72,10 +72,6 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
     /**
      * Same as {@link #create(String, String, String)} but will automatically
      * create a unique rack id for this enpoint.
-     *
-     * @param kvsUri
-     * @param pmsUri
-     * @return
      */
     public static SimpleKeyValueEndpoint create(String kvsUri, String pmsUri) {
         return create(kvsUri, pmsUri, PartitionedKeyValueConstants.NO_RACK);
@@ -83,7 +79,7 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
 
     @Override
     public KeyValueService keyValueService() {
-        return Preconditions.checkNotNull(kvs);
+        return Preconditions.checkNotNull(kvs, "kvs is not set");
     }
 
     @Override
@@ -112,40 +108,22 @@ public class SimpleKeyValueEndpoint implements KeyValueEndpoint {
     }
 
     @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((kvsUri == null) ? 0 : kvsUri.hashCode());
-        result = prime * result + ((pmsUri == null) ? 0 : pmsUri.hashCode());
-        result = prime * result + ((rack == null) ? 0 : rack.hashCode());
-        return result;
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        SimpleKeyValueEndpoint that = (SimpleKeyValueEndpoint) obj;
+        return Objects.equals(kvsUri, that.kvsUri)
+                && Objects.equals(pmsUri, that.pmsUri)
+                && Objects.equals(rack, that.rack);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        SimpleKeyValueEndpoint other = (SimpleKeyValueEndpoint) obj;
-        if (kvsUri == null) {
-            if (other.kvsUri != null)
-                return false;
-        } else if (!kvsUri.equals(other.kvsUri))
-            return false;
-        if (pmsUri == null) {
-            if (other.pmsUri != null)
-                return false;
-        } else if (!pmsUri.equals(other.pmsUri))
-            return false;
-        if (rack == null) {
-            if (other.rack != null)
-                return false;
-        } else if (!rack.equals(other.rack))
-            return false;
-        return true;
+    public int hashCode() {
+        return Objects.hash(kvsUri, pmsUri, rack);
     }
 
     @Override

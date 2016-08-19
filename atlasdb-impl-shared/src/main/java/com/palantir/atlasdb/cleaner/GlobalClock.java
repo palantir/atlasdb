@@ -19,19 +19,19 @@ import com.palantir.common.time.Clock;
 import com.palantir.lock.RemoteLockService;
 
 /**
- * Clock implementation that delegates to a LockService
+ * Clock implementation that delegates to a LockService.
  *
  * @author jweel
  */
-public class GlobalClock implements Clock {
-    public static GlobalClock create(RemoteLockService lockService) {
-        return new GlobalClock(lockService);
-    }
-
+public final class GlobalClock implements Clock {
     private final RemoteLockService lockService;
 
     private GlobalClock(RemoteLockService lockService) {
         this.lockService = lockService;
+    }
+
+    public static GlobalClock create(RemoteLockService lockService) {
+        return new GlobalClock(lockService);
     }
 
     @Override

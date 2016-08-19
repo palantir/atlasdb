@@ -46,19 +46,22 @@ import com.palantir.common.base.ClosableIterator;
 
 public class KVTableMappingService extends AbstractTableMappingService {
     public static final TableMetadata NAMESPACE_TABLE_METADATA = new TableMetadata(
-        NameMetadataDescription.create(ImmutableList.of(
-                new NameComponentDescription("namespace", ValueType.VAR_STRING),
-                new NameComponentDescription("table_name", ValueType.STRING))),
-        new ColumnMetadataDescription(ImmutableList.of(
-            new NamedColumnDescription(AtlasDbConstants.NAMESPACE_SHORT_COLUMN_NAME, "short_name", ColumnValueDescription.forType(ValueType.STRING)))),
-        ConflictHandler.IGNORE_ALL);
+            NameMetadataDescription.create(ImmutableList.of(
+                    new NameComponentDescription("namespace", ValueType.VAR_STRING),
+                    new NameComponentDescription("table_name", ValueType.STRING))),
+            new ColumnMetadataDescription(ImmutableList.of(
+                    new NamedColumnDescription(
+                            AtlasDbConstants.NAMESPACE_SHORT_COLUMN_NAME,
+                            "short_name",
+                            ColumnValueDescription.forType(ValueType.STRING)))),
+            ConflictHandler.IGNORE_ALL);
 
     private final KeyValueService kv;
     private final Supplier<Long> uniqueLongSupplier;
 
     protected KVTableMappingService(KeyValueService kv, Supplier<Long> uniqueLongSupplier) {
-        this.kv = Preconditions.checkNotNull(kv);
-        this.uniqueLongSupplier = Preconditions.checkNotNull(uniqueLongSupplier);
+        this.kv = Preconditions.checkNotNull(kv, "kv must not be null");
+        this.uniqueLongSupplier = Preconditions.checkNotNull(uniqueLongSupplier, "uniqueLongSupplier must not be null");
     }
 
     public static KVTableMappingService create(KeyValueService kvs, Supplier<Long> uniqueLongSupplier) {
@@ -94,7 +97,8 @@ public class KVTableMappingService extends AbstractTableMappingService {
             return tableMap.get().get(tableRef);
         }
         Cell key = Cell.create(getBytesForTableRef(tableRef), AtlasDbConstants.NAMESPACE_SHORT_COLUMN_BYTES);
-        String shortName = AtlasDbConstants.NAMESPACE_PREFIX + Preconditions.checkNotNull(uniqueLongSupplier.get());
+        String shortName = AtlasDbConstants.NAMESPACE_PREFIX
+                + Preconditions.checkNotNull(uniqueLongSupplier.get(), "uniqueLongSupplier returned null");
         byte[] value = PtBytes.toBytes(shortName);
         try {
             kv.putUnlessExists(AtlasDbConstants.NAMESPACE_TABLE, ImmutableMap.of(key, value));
@@ -119,11 +123,15 @@ public class KVTableMappingService extends AbstractTableMappingService {
     @Override
     protected BiMap<TableReference, TableReference> readTableMap() {
         BiMap<TableReference, TableReference> ret = HashBiMap.create();
-        ClosableIterator<RowResult<Value>> range = kv.getRange(AtlasDbConstants.NAMESPACE_TABLE, RangeRequest.builder().build(), Long.MAX_VALUE);
+        ClosableIterator<RowResult<Value>> range = kv.getRange(
+                AtlasDbConstants.NAMESPACE_TABLE,
+                RangeRequest.builder().build(),
+                Long.MAX_VALUE);
         try {
             while (range.hasNext()) {
                 RowResult<Value> row = range.next();
-                String shortName = PtBytes.toString(row.getColumns().get(AtlasDbConstants.NAMESPACE_SHORT_COLUMN_BYTES).getContents());
+                String shortName = PtBytes.toString(row.getColumns()
+                        .get(AtlasDbConstants.NAMESPACE_SHORT_COLUMN_BYTES).getContents());
                 TableReference ref = getTableRefFromBytes(row.getRowName());
                 ret.put(ref, TableReference.createWithEmptyNamespace(shortName));
             }

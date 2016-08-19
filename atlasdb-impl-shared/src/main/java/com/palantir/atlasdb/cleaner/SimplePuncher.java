@@ -25,7 +25,7 @@ import com.palantir.common.time.Clock;
  *
  * @author jweel
  */
-public class SimplePuncher implements Puncher {
+public final class SimplePuncher implements Puncher {
     public static SimplePuncher create(PuncherStore puncherStore,
                                        Clock clock,
                                        Supplier<Long> transactionReadTimeoutMillisSupplier) {
@@ -50,12 +50,7 @@ public class SimplePuncher implements Puncher {
 
     @Override
     public Supplier<Long> getTimestampSupplier() {
-        return new Supplier<Long>() {
-            @Override
-            public Long get() {
-                return puncherStore.get(clock.getTimeMillis() - transactionReadTimeoutMillisSupplier.get());
-            }
-        };
+        return () -> puncherStore.get(clock.getTimeMillis() - transactionReadTimeoutMillisSupplier.get());
     }
 
     @Override

@@ -23,18 +23,19 @@ import com.palantir.common.concurrent.ExecutorInheritableThreadLocal;
 public class ThreadLocalWrappingTransactionManager extends WrappingTransactionManager {
     private final ExecutorInheritableThreadLocal<TransactionWrapper> wrapper;
 
-    public ThreadLocalWrappingTransactionManager(LockAwareTransactionManager delegate,
-                                                 ExecutorInheritableThreadLocal<TransactionWrapper> wrapper) {
+    public ThreadLocalWrappingTransactionManager(
+            LockAwareTransactionManager delegate,
+            ExecutorInheritableThreadLocal<TransactionWrapper> wrapper) {
         super(delegate);
         this.wrapper = wrapper;
     }
 
     @Override
-    protected Transaction wrap(Transaction t) {
-        TransactionWrapper w = wrapper.get();
-        if (w == null) {
-            return t;
+    protected Transaction wrap(Transaction transaction) {
+        TransactionWrapper transactionWrapper = this.wrapper.get();
+        if (transactionWrapper == null) {
+            return transaction;
         }
-        return w.wrap(t);
+        return transactionWrapper.wrap(transaction);
     }
 }

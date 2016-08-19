@@ -24,9 +24,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableCassandraCredentialsConfig.class)
 @Value.Immutable
 public interface CassandraCredentialsConfig {
+    String username();
 
-    public String username();
-    
-    public String password();
-    
+    String password();
 }

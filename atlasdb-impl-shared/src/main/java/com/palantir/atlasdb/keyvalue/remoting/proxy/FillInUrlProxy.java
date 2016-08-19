@@ -45,10 +45,9 @@ import com.palantir.common.base.ClosableIterator;
  * @author htarasiuk
  *
  */
-public class FillInUrlProxy<T> extends AbstractInvocationHandler {
-
-    final T delegate;
-    final String pmsUri;
+public final class FillInUrlProxy<T> extends AbstractInvocationHandler {
+    private final T delegate;
+    private final String pmsUri;
 
     private FillInUrlProxy(T delegate, String pmsUri) {
         this.delegate = delegate;
@@ -74,7 +73,9 @@ public class FillInUrlProxy<T> extends AbstractInvocationHandler {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> ClosableIterator<RowResult<T>> newFillInUrlProxy(ClosableIterator<RowResult<T>> delegate, String pmsUri) {
+    public static <T> ClosableIterator<RowResult<T>> newFillInUrlProxy(
+            ClosableIterator<RowResult<T>> delegate,
+            String pmsUri) {
         FillInUrlProxy<ClosableIterator<RowResult<T>>> itHandler = new FillInUrlProxy<>(delegate, pmsUri);
         return (ClosableIterator<RowResult<T>>) Proxy.newProxyInstance(
                 ClosableIterator.class.getClassLoader(), new Class<?>[] { ClosableIterator.class }, itHandler);
@@ -87,7 +88,7 @@ public class FillInUrlProxy<T> extends AbstractInvocationHandler {
         } catch (InvocationTargetException e) {
             Throwable cause = e.getCause();
             if (cause instanceof ClientVersionTooOldException) {
-            	throw new ClientVersionTooOldException(pmsUri);
+                throw new ClientVersionTooOldException(pmsUri);
             }
             if (cause instanceof EndpointVersionTooOldException) {
                 throw new EndpointVersionTooOldException(pmsUri);
@@ -137,5 +138,4 @@ public class FillInUrlProxy<T> extends AbstractInvocationHandler {
         }
 
     }
-
 }
