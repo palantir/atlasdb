@@ -16,17 +16,11 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
-import com.palantir.exception.PalantirSqlException;
 
 public class DbkvsKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
     @Override
@@ -40,19 +34,9 @@ public class DbkvsKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest
         return kvs;
     }
 
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
-
     @Override
     @Ignore
     public void testGetRangeWithHistory() {
         /* Have to ignore this test as it is an unsupported operation for this KVS */
-    }
-
-    @Test
-    public void testRejectCaseInsensitiveDuplicateTableName() {
-        keyValueService.createTable(TableReference.create(Namespace.EMPTY_NAMESPACE, "Duplicate"), AtlasDbConstants.GENERIC_TABLE_METADATA);
-        thrown.expect(PalantirSqlException.class);
-        keyValueService.createTable(TableReference.create(Namespace.EMPTY_NAMESPACE, "duplicate"), AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 }
