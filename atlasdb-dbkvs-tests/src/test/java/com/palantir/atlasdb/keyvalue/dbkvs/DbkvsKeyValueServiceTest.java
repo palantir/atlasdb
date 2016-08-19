@@ -31,7 +31,7 @@ import com.palantir.exception.PalantirSqlException;
 public class DbkvsKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
     @Override
     protected KeyValueService getKeyValueService() {
-        KeyValueService kvs = ConnectionManagerAwareDbKvs.create(DbkvsTestSuite.POSTGRES_KVS_CONFIG);
+        KeyValueService kvs = ConnectionManagerAwareDbKvs.create(DbkvsTestSuite.getKvsConfig());
         for (TableReference table : kvs.getAllTableNames()) {
             if (!table.getQualifiedName().equals("_metadata")) {
                 kvs.dropTable(table);
