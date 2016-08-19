@@ -83,4 +83,4 @@ done by running AtlasDbServiceServer in the atlasdb-service-server project.
 
 This is Dropwizard service that runs all the needed parts and doesn't
 force you to use the Java client to get the benefits of AtlasDB. See the
-`atlasdb-service-server` API for more details.
+ref:`atlasdb-service-api` for more details.
