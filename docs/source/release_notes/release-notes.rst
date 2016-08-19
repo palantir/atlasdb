@@ -57,6 +57,11 @@ v0.12.0
          - DB passwords are no longer output as part of the connection configuration ``toString()`` methods.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/755>`__)
 
+    *    - |new|
+         - All KVSs now come wrapped with ProfilingKeyValueService, which at the TRACE level provides timing information per KVS operation performed by AtlasDB.
+           See :ref:`logging-configuration` for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/798>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
