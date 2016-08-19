@@ -16,5 +16,5 @@ explicit and query time can easily be back of the enveloped.
    :titlesonly:
 
    benefits
-   atlasdb_server_api
+   atlasdb_service_api
    getting_started.rst
