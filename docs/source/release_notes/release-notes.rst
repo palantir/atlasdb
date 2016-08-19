@@ -42,21 +42,20 @@ v0.12.0
          - Change
 
     *    - |breaking|
-         - If you do not specify a leader block in your config, AtlasDB will now still try to register the timestamp and lock endpoints necessary for other clients or CLIs to run in the same keyspace.
-           This may require changes in setup logic for applications that have previously only ever run with no leader block.
+         - AtlasDB will always try to register timestamp and lock endpoints for your application, whereas previously this only occurs if you specify a :ref:`leader-config`.
+           This ensures that CLIs will always be able to run against your service.
+           Applications that have previously only ever run with no leader block may need to make changes to startup logic.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/708>`__)
 
     *    - |new|
-         - There is now a dropwizard bundle which can be added to dropwizard applications. This will add startup commands to launch the AtlasDB console and CLIs including timestamp manipulation,
-           transaction range cleaning, and sweeping. These commands will only work if the server is started with a leader block in its configuration.
+         - There is now a dropwizard bundle which can be added to dropwizard applications.
+           This will add startup commands to launch the AtlasDB console and :ref:`CLIs <clis>` suchs as ``sweep`` and ``timestamp``, which is needed to perform :ref:`live backups <backup-restore>`.
+           These commands will only work if the server is started with a leader block in its configuration.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/629>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/696>`__)
 
     *    - |fixed|
          - DB passwords are no longer output as part of the connection configuration ``toString()`` methods.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/755>`__)
-    *    - |improved|
-         - Docs for cassandra_KVS_configuration now have correct information on ``ssl`` and ``sslConfiguration`` parameters. Also, documentation for leader block is now added.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/787>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -221,7 +220,7 @@ v0.9.0
          - Inserting an empty (size = 0) value into a ``Cell`` will now throw an ``IllegalArgumentException``. (`#156 <https://github.com/palantir/atlasdb/issues/156>`__) Likely empty
            values include empty strings and empty protobufs.
 
-           Atlas cannot currently distinguish between empty and deleted cells. In previous versions of Atlas, inserting
+           AtlasDB cannot currently distinguish between empty and deleted cells. In previous versions of Atlas, inserting
            an empty value into a ``Cell`` would delete that cell. Thus, in this snippet,
 
            .. code-block:: java
@@ -290,7 +289,7 @@ v0.7.0
          - Change
 
     *    - |new|
-         - Atlas can now be backed by Postgres via DB KVS. This is a very early release for this feature, so please contact us if you
+         - AtlasDB can now be backed by Postgres via DB KVS. This is a very early release for this feature, so please contact us if you
            plan on using it. Please see `the documentation <http://palantir.github.io/atlasdb/html/configuration/postgres_key_value_service_config.html>`_ for more details.
 
     *    - |fixed|
@@ -299,7 +298,7 @@ v0.7.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/552>`__)
 
     *    - |fixed|
-         - Atlas will no longer log incorrect errors stating "Couldn't grab new token ranges for token aware cassandra mapping" when running against a single node and single token Cassandra cluster.
+         - AtlasDB will no longer log incorrect errors stating "Couldn't grab new token ranges for token aware cassandra mapping" when running against a single node and single token Cassandra cluster.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/634>`__)
 
     *    - |improved|
