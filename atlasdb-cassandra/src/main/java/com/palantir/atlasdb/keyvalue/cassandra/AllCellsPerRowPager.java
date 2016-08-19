@@ -71,7 +71,20 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
                 timestamp,
                 pageSize);
 
-        return getColumns(query);
+        List<ColumnOrSuperColumn> columns = getColumns(query);
+
+        if (columns.size() < pageSize) {
+            // We finished with this column, but there might be more, so let's capture them
+            String secondQuery = String.format(
+                    "SELECT column1, column2 FROM %s WHERE key = %s AND column1 > %s LIMIT %s;",
+                    getTableName(),
+                    row,
+                    columnNameStr,
+                    pageSize - columns.size());
+            columns.addAll(getColumns(secondQuery));
+        }
+
+        return columns;
     }
 
     @Override
