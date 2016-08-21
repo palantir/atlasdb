@@ -43,12 +43,13 @@ v0.12.0
 
     *    - |breaking|
          - AtlasDB will always try to register timestamp and lock endpoints for your application, whereas previously this only occurs if you specify a :ref:`leader-config`.
-           This ensures that CLIs will always be able to run against your service.
-           Applications that have previously only ever run with no leader block may need to make changes to startup logic.
+           This ensures that CLIs will be able to run against your service even in the single node case.
+           For Dropwizard applications, this is only a breaking change if you try to initialize your KeyValueService after having initialized the Dropwizard application.
+           Note: If you are initializing the KVS post-Dropwizard initialization, then your application will already fail when starting multiple AtlasDB clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/708>`__)
 
     *    - |new|
-         - There is now a dropwizard bundle which can be added to dropwizard applications.
+         - There is now a Dropwizard bundle which can be added to Dropwizard applications.
            This will add startup commands to launch the AtlasDB console and :ref:`CLIs <clis>` suchs as ``sweep`` and ``timestamp``, which is needed to perform :ref:`live backups <backup-restore>`.
            These commands will only work if the server is started with a leader block in its configuration.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/629>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/696>`__)
