@@ -31,7 +31,7 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-v0.12.0
+v0.13.0
 =======
 
 .. list-table::
@@ -44,6 +44,19 @@ v0.12.0
     *    - |breaking|
          - ``AtlasDbServer`` has been renamed to ``AtlasDbServiceServer``. Any products that are using this should switch to using the Java Feign client instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/801>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.12.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |breaking|
          - AtlasDB will always try to register timestamp and lock endpoints for your application, whereas previously this only occurred if you specify a :ref:`leader-config`.
