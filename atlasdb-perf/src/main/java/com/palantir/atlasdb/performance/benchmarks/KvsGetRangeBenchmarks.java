@@ -50,7 +50,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.performance.backend.KeyValueServiceConnector;
+import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -71,7 +71,7 @@ public class KvsGetRangeBenchmarks {
     private static final int VALUE_BYTE_ARRAY_SIZE = 100;
     private static final long VALUE_SEED = 279L;
 
-    private KeyValueServiceConnector connector;
+    private AtlasDbServicesConnector connector;
     private KeyValueService kvs;
     private Random random = new Random(VALUE_SEED);
 
@@ -82,9 +82,9 @@ public class KvsGetRangeBenchmarks {
     private static final int NUM_REQUESTS = 1000;
 
     @Setup(Level.Trial)
-    public void setup(KeyValueServiceConnector conn) {
+    public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
-        this.kvs = conn.connect();
+        this.kvs = conn.connect().getKeyValueService();
         this.tableRef1 = KvsBenchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
         storeData();
     }
