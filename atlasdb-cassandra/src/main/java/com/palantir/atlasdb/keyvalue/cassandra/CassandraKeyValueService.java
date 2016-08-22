@@ -1350,25 +1350,26 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>> rowResults =
                 new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
+            private final ColumnGetter foo = new CqlColumnGetter(consistency, tableRef, columnBatchSize);
+
             @Override
             protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage() throws Exception {
-                return getSinglePage(rangeRequest.getStartInclusive(), this::getColumnsByRow);
+                return getSinglePage(rangeRequest.getStartInclusive());
             }
 
             @Override
             protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(
                     TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous) throws Exception {
-                return getSinglePage(previous.getTokenForNextPage(), this::getColumnsByRow);
+                return getSinglePage(previous.getTokenForNextPage());
             }
 
-            TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(final byte[] startKey,
-                    Function<List<KeySlice>, Map<ByteBuffer, List<ColumnOrSuperColumn>>> method) throws Exception {
+            TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(final byte[] startKey) throws Exception {
                 final byte[] endExclusive = rangeRequest.getEndExclusive();
 
                 KeyRange keyRange = getKeyRange(startKey, endExclusive, batchHint);
                 List<KeySlice> firstPage = getRangeSlices(tableRef, keyRange, pred, consistency);
 
-                Map<ByteBuffer, List<ColumnOrSuperColumn>> columnsByRow = method.apply(firstPage);
+                Map<ByteBuffer, List<ColumnOrSuperColumn>> columnsByRow = foo.getColumnsByRow(firstPage);
 
                 TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
                         resultsExtractor.get().getPageFromRangeResults(columnsByRow, timestamp, selection,
@@ -1383,35 +1384,61 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 return page;
             }
 
-            private Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(List<KeySlice> firstPage) {
-                CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
-                Set<ByteBuffer> rows = getRowsFromPage(firstPage);
-                try {
-                    return getColumnsByRow(cqlExecutor, rows);
-                } catch (TException ex) {
-                    throw Throwables.throwUncheckedException(ex);
-                }
-            }
-
-            private Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(
-                    CqlExecutor cqlExecutor, Set<ByteBuffer> rows) throws TException {
-                return rows.stream().collect(Collectors.toMap(
-                        row -> row,
-                        row -> getColumns(cqlExecutor, row)));
-            }
-
-            private List<ColumnOrSuperColumn> getColumns(CqlExecutor cqlExecutor, ByteBuffer row) {
-                AllCellsPerRowPager allCellsPerRowPager = new AllCellsPerRowPager(
-                        cqlExecutor,
-                        row,
-                        tableRef,
-                        columnBatchSize);
-                return new Pager<>(allCellsPerRowPager).getPages();
-            }
 
         };
 
         return ClosableIterators.wrap(rowResults.iterator());
+    }
+
+    private interface ColumnGetter {
+        Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(List<KeySlice> firstPage);
+    }
+
+    private class DelegatingColumnGetter implements ColumnGetter {
+
+        @Override
+        public Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(List<KeySlice> firstPage) {
+            return CassandraKeyValueServices.getColsByKey(firstPage);
+        }
+    }
+
+    private class CqlColumnGetter implements ColumnGetter {
+        private final ConsistencyLevel consistency;
+        private final TableReference tableRef;
+        private final int columnBatchSize;
+
+        CqlColumnGetter(ConsistencyLevel consistency, TableReference tableRef, int columnBatchSize) {
+            this.consistency = consistency;
+            this.tableRef = tableRef;
+            this.columnBatchSize = columnBatchSize;
+        }
+
+        @Override
+        public Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(List<KeySlice> firstPage) {
+            CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
+            Set<ByteBuffer> rows = getRowsFromPage(firstPage);
+            try {
+                return getColumnsByRow(cqlExecutor, rows);
+            } catch (TException ex) {
+                throw Throwables.throwUncheckedException(ex);
+            }
+        }
+
+        private Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(
+                CqlExecutor cqlExecutor, Set<ByteBuffer> rows) throws TException {
+            return rows.stream().collect(Collectors.toMap(
+                    row -> row,
+                    row -> getColumns(cqlExecutor, row)));
+        }
+
+        private List<ColumnOrSuperColumn> getColumns(CqlExecutor cqlExecutor, ByteBuffer row) {
+            AllCellsPerRowPager allCellsPerRowPager = new AllCellsPerRowPager(
+                    cqlExecutor,
+                    row,
+                    tableRef,
+                    columnBatchSize);
+            return new Pager<>(allCellsPerRowPager).getPages();
+        }
     }
 
     private Set<ByteBuffer> getRowsFromPage(List<KeySlice> firstPage) {
@@ -1459,6 +1486,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>> rowResults =
                 new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
+                    // TODO use DelegatingColumnGetter
+                    
             @Override
             protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage() throws Exception {
                 return getSinglePage(rangeRequest.getStartInclusive(), CassandraKeyValueServices::getColsByKey);
