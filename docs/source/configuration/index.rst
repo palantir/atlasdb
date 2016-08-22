@@ -13,3 +13,4 @@ The AtlasDB configuration has two main blocks - keyValueService and leader. Plea
    postgres_key_value_service_config
    cassandra_KVS_configuration
    leader_config
+   logging
