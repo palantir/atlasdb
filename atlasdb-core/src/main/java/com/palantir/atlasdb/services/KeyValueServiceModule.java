@@ -43,12 +43,17 @@ public class KeyValueServiceModule {
     @Provides
     @Singleton
     @Named("kvs")
-    public KeyValueService provideWrappedKeyValueService(@Named("rawKvs") KeyValueService rawKvs, TimestampService tss, ServicesConfig config) {
+    public KeyValueService provideWrappedKeyValueService(@Named("rawKvs") KeyValueService rawKvs,
+                                                         TimestampService tss,
+                                                         ServicesConfig config) {
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
         kvs = new SweepStatsKeyValueService(kvs, tss);
         TransactionTables.createTables(kvs);
-
-        for (Schema schema : ImmutableSet.<Schema>builder().add(SweepSchema.INSTANCE.getLatestSchema()).addAll(config.schemas()).build()) {
+        ImmutableSet<Schema> schemas =
+                ImmutableSet.<Schema>builder()
+                        .add(SweepSchema.INSTANCE.getLatestSchema())
+                        .addAll(config.schemas()).build();
+        for (Schema schema : schemas) {
             Schemas.createTablesAndIndexes(schema, kvs);
         }
         return kvs;
