@@ -136,7 +136,6 @@ public class AllCellsPerRowPagerTest {
         allQueriesWithColumnReturn(ImmutableList.of(row2));
 
         List<ColumnOrSuperColumn> nextPage = pager.getNextPage(PREVIOUS_PAGE);
-        nextPage.get(0);
 
         assertColumnOrSuperColumnHasCorrectNameAndTimestamp(nextPage.get(0), DEFAULT_COLUMN_NAME, 10L);
         assertColumnOrSuperColumnHasCorrectNameAndTimestamp(nextPage.get(1), OTHER_COLUMN_NAME, 20L);

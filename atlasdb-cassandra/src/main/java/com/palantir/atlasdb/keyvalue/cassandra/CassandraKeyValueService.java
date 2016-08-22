@@ -22,7 +22,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -1368,37 +1367,37 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 KeyRange keyRange = getKeyRange(startKey, endExclusive, batchHint);
                 List<KeySlice> firstPage = getRangeSlices(host, tableRef, keyRange, pred, consistency);
 
+                CqlExecutor cqlExecutor = new CqlExecutor(clientPool, host, consistency);
                 Set<ByteBuffer> rows = getRowsFromPage(firstPage);
-
-                Map<ByteBuffer, List<ColumnOrSuperColumn>> columnsByRow = getColumnsByRow(host, rows);
+                Map<ByteBuffer, List<ColumnOrSuperColumn>> columnsByRow = getColumnsByRow(cqlExecutor, rows);
 
                 TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
                         resultsExtractor.get().getPageFromRangeResults(columnsByRow, timestamp, selection,
                                 endExclusive);
+
                 if (page.moreResultsAvailable() && firstPage.size() < batchHint) {
                     // If get_range_slices didn't return the full number of results, there's no
                     // point to trying to get another page
-                    page = SimpleTokenBackedResultsPage.create(endExclusive, page.getResults(), false);
+                    return SimpleTokenBackedResultsPage.create(endExclusive, page.getResults(), false);
                 }
+
                 return page;
             }
 
             private Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(
-                    InetSocketAddress host, Set<ByteBuffer> rows) throws TException {
-                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = new HashMap<>();
+                    CqlExecutor cqlExecutor, Set<ByteBuffer> rows) throws TException {
+                return rows.stream().collect(Collectors.toMap(
+                        row -> row,
+                        row -> getColumns(cqlExecutor, row)));
+            }
 
-                for (ByteBuffer row : rows) {
-                    CqlExecutor cqlExecutor = new CqlExecutor(clientPool, host, consistency);
-                    AllCellsPerRowPager allCellsPerRowPager = new AllCellsPerRowPager(
-                            cqlExecutor,
-                            row,
-                            tableRef,
-                            columnBatchSize);
-                    List<ColumnOrSuperColumn> columns = new Pager<>(allCellsPerRowPager).getPages();
-                    colsByKey.put(row, columns);
-                }
-
-                return colsByKey;
+            private List<ColumnOrSuperColumn> getColumns(CqlExecutor cqlExecutor, ByteBuffer row) {
+                AllCellsPerRowPager allCellsPerRowPager = new AllCellsPerRowPager(
+                        cqlExecutor,
+                        row,
+                        tableRef,
+                        columnBatchSize);
+                return new Pager<>(allCellsPerRowPager).getPages();
             }
 
         };
@@ -1423,7 +1422,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return keyRange;
     }
 
-    public <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(
+    private <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(
             final TableReference tableRef,
             final RangeRequest rangeRequest,
             final long timestamp,
@@ -1478,7 +1477,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 if (page.moreResultsAvailable() && firstPage.size() < batchHint) {
                     // If get_range_slices didn't return the full number of results, there's no
                     // point to trying to get another page
-                    page = SimpleTokenBackedResultsPage.create(endExclusive, page.getResults(), false);
+                    return SimpleTokenBackedResultsPage.create(endExclusive, page.getResults(), false);
                 }
                 return page;
             }
