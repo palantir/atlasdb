@@ -27,23 +27,23 @@ Instructions for MacOS
 Mac users will need to install `docker-machine` and a virtualization environment as well to be able to run docker. Virtualbox is used in this example. Simplified set-up instructions are as follows:
 
 1. Install ``docker-machine``, ``docker`` and ``docker-compose``
-   
+
    .. code:: bash
-   
+
       brew install docker docker-machine docker-compose
 
 2. Set up a ``docker-machine`` for Virtualbox (named ``atlas`` in the example, name can be chosen freely by the user)
 
    .. code:: bash
-   
+
       docker-machine create atlas --driver virtualbox
 
 3. Set up the environment:
-   
+
    .. code:: bash
-   
-      eval $(docker-machine env atlas)  
-   
+
+      eval $(docker-machine env atlas)
+
    These environment variables need to always be set before running the tests through `gradle`, or set manually as environment variables for the launch configurations in any IDE.
 
 Depending on Published Artifacts
@@ -75,12 +75,12 @@ Standalone JSON/REST Server
 ===========================
 
 The standalone server is a lightweight way to try out AtlasDB and can be
-done by running AtlasDbServer in the atlasdb-server project.
+done by running AtlasDbServiceServer in the atlasdb-service-server project.
 
 .. code:: bash
 
-    AtlasDbServer server src/dist/atlasdb_standalone.yml
+    AtlasDbServiceServer server src/dist/atlasdb_standalone.yml
 
-This is dropwizard service that runs all the needed parts and doesn't
-force you to use the java client to get the benefits of atlas. See the
-:ref:`atlas-server-api` for more details.
+This is Dropwizard service that runs all the needed parts and doesn't
+force you to use the Java client to get the benefits of AtlasDB. See the
+ref:`atlasdb-service-api` for more details.
