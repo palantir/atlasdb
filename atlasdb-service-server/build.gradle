@@ -1,11 +1,11 @@
 apply from: "../gradle/shared.gradle"
 
 apply plugin: 'application'
-mainClassName = 'com.palantir.atlasdb.server.AtlasDbServer'
-applicationName = 'atlas-server'
+mainClassName = 'com.palantir.atlasdb.server.AtlasDbServiceServer'
+applicationName = 'atlas-service-server'
 
 dependencies {
-    compile project(':atlasdb-server')
+    compile project(':atlasdb-service')
     compile project(':lock-impl')
     compile project(':leader-election-impl')
     compile project(':atlasdb-config')
@@ -23,9 +23,10 @@ dependencies {
         exclude(module:'libthrift')
     }
     compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
-    
+
     testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
 }
+
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
     resolutionStrategy {
         force 'com.google.code.findbugs:jsr305:' + libVersions.jsr305

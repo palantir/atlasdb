@@ -42,6 +42,10 @@ v0.12.0
          - Change
 
     *    - |breaking|
+         - ``AtlasDbServer`` has been renamed to ``AtlasDbServiceServer``. Any products that are using this should switch to using the Java Feign client instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/801>`__)
+
+    *    - |breaking|
          - AtlasDB will always try to register timestamp and lock endpoints for your application, whereas previously this only occurred if you specify a :ref:`leader-config`.
            This ensures that CLIs will be able to run against your service even in the single node case.
            For Dropwizard applications, this is only a breaking change if you try to initialize your KeyValueService after having initialized the Dropwizard application.
