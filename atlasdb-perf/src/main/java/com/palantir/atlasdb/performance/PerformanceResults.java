@@ -46,6 +46,9 @@ public class PerformanceResults {
                         .mean(r.getPrimaryResult().getStatistics().getMean())
                         .data(getData(r))
                         .units(r.getParams().getTimeUnit())
+                        .p50(r.getPrimaryResult().getStatistics().getPercentile(50.0))
+                        .p90(r.getPrimaryResult().getStatistics().getPercentile(90.0))
+                        .p99(r.getPrimaryResult().getStatistics().getPercentile(99.0))
                         .build();
             }).collect(Collectors.toList());
             new ObjectMapper().writeValue(fout, newResults);
@@ -84,6 +87,9 @@ public class PerformanceResults {
         public abstract double mean();
         public abstract List<Double> data();
         public abstract TimeUnit units();
+        public abstract double p50();
+        public abstract double p90();
+        public abstract double p99();
     }
 
 }
