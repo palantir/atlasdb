@@ -1288,12 +1288,23 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
-        return getTimestampsWithPageCreator(
-                tableRef,
-                rangeRequest,
-                timestamp,
-                deleteConsistency,
-                TimestampExtractor.SUPPLIER);
+        Optional<Integer> sweepColumnBatchSize = configManager.getConfig().sweepColumnBatchSize();
+        if (sweepColumnBatchSize.isPresent()) {
+            return getTimestampsWithPageCreator(
+                    tableRef,
+                    rangeRequest,
+                    sweepColumnBatchSize.get(),
+                    timestamp,
+                    deleteConsistency,
+                    TimestampExtractor.SUPPLIER);
+        } else {
+            return getRangeWithPageCreator(
+                    tableRef,
+                    rangeRequest,
+                    timestamp,
+                    deleteConsistency,
+                    TimestampExtractor.SUPPLIER);
+        }
     }
 
     @Override
@@ -1310,9 +1321,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 HistoryExtractor.SUPPLIER);
     }
 
-    public <T, U> ClosableIterator<RowResult<U>> getTimestampsWithPageCreator(
+    private <T, U> ClosableIterator<RowResult<U>> getTimestampsWithPageCreator(
             final TableReference tableRef,
             final RangeRequest rangeRequest,
+            final int columnBatchSize,
             final long timestamp,
             final ConsistencyLevel consistency,
             final Supplier<ResultsExtractor<T, U>> resultsExtractor) {
@@ -1377,7 +1389,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                 for (ByteBuffer row : rows) {
                     CqlExecutor cqlExecutor = new CqlExecutor(clientPool, host, consistency);
-                    AllCellsPerRowPager allCellsPerRowPager = new AllCellsPerRowPager(cqlExecutor, row, tableRef, 10);
+                    AllCellsPerRowPager allCellsPerRowPager = new AllCellsPerRowPager(
+                            cqlExecutor,
+                            row,
+                            tableRef,
+                            columnBatchSize);
                     List<ColumnOrSuperColumn> columns = new Pager<>(allCellsPerRowPager).getPages();
                     colsByKey.put(row, columns);
                 }
