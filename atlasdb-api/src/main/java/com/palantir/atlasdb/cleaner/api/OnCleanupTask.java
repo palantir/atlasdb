@@ -40,7 +40,8 @@ public interface OnCleanupTask {
      * <p>
      * If the current transaction fills up this method should return true and it will be called
      * again with a fresh transaction.  This is useful if a large cleanup is needed.
-     * @return true if this method should be called again with a fresh transaction.
+     *
+     * @return true if this method should be called again with a fresh transaction
      */
-    boolean cellsCleanedUp(Transaction t, Set<Cell> cells);
+    boolean cellsCleanedUp(Transaction transaction, Set<Cell> cells);
 }

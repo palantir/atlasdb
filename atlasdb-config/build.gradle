@@ -3,7 +3,7 @@ apply plugin: 'org.inferred.processors'
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-    compile project(':atlasdb-spi')
+    compile project(':atlasdb-api')
     compile project(':atlasdb-impl-shared')
     compile project(':leader-election-impl')
     compile project(':lock-impl')
@@ -22,7 +22,7 @@ dependencies {
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:' + libVersions.jackson
     compile 'io.dropwizard:dropwizard-jackson:' + libVersions.dropwizard
 
-    processor 'org.immutables:value:2.0.21'
+    processor 'org.immutables:value:' + libVersions.immutables
     processor 'com.google.auto.service:auto-service:1.0-rc2'
 
     testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {

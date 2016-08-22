@@ -10,6 +10,7 @@ repositories {
 }
 
 libsDirName = file('build/artifacts')
+
 dependencies {
   compile(project(":atlasdb-client"))
   compile(project(":atlasdb-lock-api"))
@@ -17,6 +18,10 @@ dependencies {
   compile(project(":timestamp-impl"))
   compile(project(":atlasdb-commons"))
   compile(project(":lock-impl"))
-  processor 'org.immutables:value:2.0.21'
+
+  processor 'org.immutables:value:' + libVersions.immutables
   processor 'com.google.auto.service:auto-service:1.0-rc2'
+
+  testCompile group: 'org.assertj', name: 'assertj-core', version: libVersions.assertj
+  testCompile group: 'org.mockito', name: 'mockito-core', version: libVersions.mockito
 }

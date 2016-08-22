@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.Callable;
@@ -24,11 +25,11 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.common.base.ClosableIterator;
@@ -47,12 +48,13 @@ public abstract class AbstractDbReadTable implements DbReadTable {
     }
 
     @Override
-    public ClosableIterator<AgnosticLightResultRow> getLatestRows(Iterable<byte[]> rows,
-                                                                  final ColumnSelection columns,
-                                                                  final long ts,
-                                                                  final boolean includeValues) {
+    public ClosableIterator<AgnosticLightResultRow> getLatestRows(
+            Iterable<byte[]> rows,
+            ColumnSelection columns,
+            long ts,
+            boolean includeValues) {
         if (columns.noColumnsSelected()) {
-            return ClosableIterators.wrap(ImmutableSet.<AgnosticLightResultRow>of().iterator());
+            return ClosableIterators.emptyImmutableClosableIterator();
         }
         if (isSingleton(rows)) {
             return run(queryFactory.getLatestRowQuery(
@@ -64,17 +66,13 @@ public abstract class AbstractDbReadTable implements DbReadTable {
         return getLatestRowsInternal(rows, columns, ts, includeValues);
     }
 
-    protected abstract ClosableIterator<AgnosticLightResultRow> getLatestRowsInternal(Iterable<byte[]> rows,
-                                                                                      ColumnSelection columns,
-                                                                                      long ts,
-                                                                                      boolean includeValues);
-
     @Override
-    public ClosableIterator<AgnosticLightResultRow> getLatestRows(Map<byte[], Long> rows,
-                                                                  final ColumnSelection columns,
-                                                                  final boolean includeValues) {
+    public ClosableIterator<AgnosticLightResultRow> getLatestRows(
+            Map<byte[], Long> rows,
+            ColumnSelection columns,
+            boolean includeValues) {
         if (columns.noColumnsSelected()) {
-            return ClosableIterators.wrap(ImmutableSet.<AgnosticLightResultRow>of().iterator());
+            return ClosableIterators.emptyImmutableClosableIterator();
         }
         if (rows.size() == 1) {
             return run(queryFactory.getLatestRowQuery(
@@ -86,17 +84,25 @@ public abstract class AbstractDbReadTable implements DbReadTable {
         return getLatestRowsInternal(rows, columns, includeValues);
     }
 
-    protected abstract ClosableIterator<AgnosticLightResultRow> getLatestRowsInternal(Map<byte[], Long> rows,
-                                                                                      ColumnSelection columns,
-                                                                                      boolean includeValues);
+    protected abstract ClosableIterator<AgnosticLightResultRow> getLatestRowsInternal(
+            Map<byte[], Long> rows,
+            ColumnSelection columns,
+            boolean includeValues);
+
+    protected abstract ClosableIterator<AgnosticLightResultRow> getLatestRowsInternal(
+            Iterable<byte[]> rows,
+            ColumnSelection columns,
+            long ts,
+            boolean includeValues);
 
     @Override
-    public ClosableIterator<AgnosticLightResultRow> getAllRows(Iterable<byte[]> rows,
-                                                               final ColumnSelection columns,
-                                                               final long ts,
-                                                               final boolean includeValues) {
+    public ClosableIterator<AgnosticLightResultRow> getAllRows(
+            Iterable<byte[]> rows,
+            ColumnSelection columns,
+            long ts,
+            boolean includeValues) {
         if (columns.noColumnsSelected()) {
-            return ClosableIterators.wrap(ImmutableSet.<AgnosticLightResultRow>of().iterator());
+            return ClosableIterators.emptyImmutableClosableIterator();
         }
         if (isSingleton(rows)) {
             return run(queryFactory.getAllRowQuery(
@@ -108,17 +114,13 @@ public abstract class AbstractDbReadTable implements DbReadTable {
         return getAllRowsInternal(rows, columns, ts, includeValues);
     }
 
-    protected abstract ClosableIterator<AgnosticLightResultRow> getAllRowsInternal(Iterable<byte[]> rows,
-                                                                                   ColumnSelection columns,
-                                                                                   long ts,
-                                                                                   boolean includeValues);
-
     @Override
-    public ClosableIterator<AgnosticLightResultRow> getAllRows(Map<byte[], Long> rows,
-                                                               final ColumnSelection columns,
-                                                               final boolean includeValues) {
+    public ClosableIterator<AgnosticLightResultRow> getAllRows(
+            Map<byte[], Long> rows,
+            ColumnSelection columns,
+            boolean includeValues) {
         if (columns.noColumnsSelected()) {
-            return ClosableIterators.wrap(ImmutableSet.<AgnosticLightResultRow>of().iterator());
+            return ClosableIterators.emptyImmutableClosableIterator();
         }
         if (rows.size() == 1) {
             return run(queryFactory.getAllRowQuery(
@@ -130,14 +132,22 @@ public abstract class AbstractDbReadTable implements DbReadTable {
         return getAllRowsInternal(rows, columns, includeValues);
     }
 
-    protected abstract ClosableIterator<AgnosticLightResultRow> getAllRowsInternal(Map<byte[], Long> rows,
-                                                                                   ColumnSelection columns,
-                                                                                   boolean includeValues);
+    protected abstract ClosableIterator<AgnosticLightResultRow> getAllRowsInternal(
+            Iterable<byte[]> rows,
+            ColumnSelection columns,
+            long ts,
+            boolean includeValues);
+
+    protected abstract ClosableIterator<AgnosticLightResultRow> getAllRowsInternal(
+            Map<byte[], Long> rows,
+            ColumnSelection columns,
+            boolean includeValues);
 
     @Override
-    public ClosableIterator<AgnosticLightResultRow> getLatestCells(Iterable<Cell> cells,
-                                                                   final long ts,
-                                                                   final boolean includeValue) {
+    public ClosableIterator<AgnosticLightResultRow> getLatestCells(
+            Iterable<Cell> cells,
+            long ts,
+            boolean includeValue) {
         if (isSingleton(cells)) {
             return run(queryFactory.getLatestCellQuery(
                     Iterables.getOnlyElement(cells),
@@ -147,13 +157,10 @@ public abstract class AbstractDbReadTable implements DbReadTable {
         return getLatestCellsInternal(cells, ts, includeValue);
     }
 
-    protected abstract ClosableIterator<AgnosticLightResultRow> getLatestCellsInternal(Iterable<Cell> cells,
-                                                                                       long ts,
-                                                                                       boolean includeValue);
-
     @Override
-    public ClosableIterator<AgnosticLightResultRow> getLatestCells(Map<Cell, Long> cells,
-                                                                   final boolean includeValue) {
+    public ClosableIterator<AgnosticLightResultRow> getLatestCells(
+            Map<Cell, Long> cells,
+            boolean includeValue) {
         if (cells.size() == 1) {
             return run(queryFactory.getLatestCellQuery(
                     Iterables.getOnlyElement(cells.keySet()),
@@ -163,13 +170,20 @@ public abstract class AbstractDbReadTable implements DbReadTable {
         return getLatestCellsInternal(cells, includeValue);
     }
 
-    protected abstract ClosableIterator<AgnosticLightResultRow> getLatestCellsInternal(Map<Cell, Long> cells,
-                                                                                       boolean includeValue);
+    protected abstract ClosableIterator<AgnosticLightResultRow> getLatestCellsInternal(
+            Iterable<Cell> cells,
+            long ts,
+            boolean includeValue);
+
+    protected abstract ClosableIterator<AgnosticLightResultRow> getLatestCellsInternal(
+            Map<Cell, Long> cells,
+            boolean includeValue);
 
     @Override
-    public ClosableIterator<AgnosticLightResultRow> getAllCells(Iterable<Cell> cells,
-                                                                final long ts,
-                                                                final boolean includeValue) {
+    public ClosableIterator<AgnosticLightResultRow> getAllCells(
+            Iterable<Cell> cells,
+            long ts,
+            boolean includeValue) {
         if (isSingleton(cells)) {
             return run(queryFactory.getAllCellQuery(
                     Iterables.getOnlyElement(cells),
@@ -179,13 +193,10 @@ public abstract class AbstractDbReadTable implements DbReadTable {
         return getAllCellsInternal(cells, ts, includeValue);
     }
 
-    protected abstract ClosableIterator<AgnosticLightResultRow> getAllCellsInternal(Iterable<Cell> cells,
-                                                                                    long ts,
-                                                                                    boolean includeValue);
-
     @Override
-    public ClosableIterator<AgnosticLightResultRow> getAllCells(Map<Cell, Long> cells,
-                                                                final boolean includeValue) {
+    public ClosableIterator<AgnosticLightResultRow> getAllCells(
+            Map<Cell, Long> cells,
+            boolean includeValue) {
         if (cells.size() == 1) {
             return run(queryFactory.getAllCellQuery(
                     Iterables.getOnlyElement(cells.keySet()),
@@ -195,8 +206,14 @@ public abstract class AbstractDbReadTable implements DbReadTable {
         return getAllCellsInternal(cells, includeValue);
     }
 
-    protected abstract ClosableIterator<AgnosticLightResultRow> getAllCellsInternal(Map<Cell, Long> cells,
-                                                                                    boolean includeValue);
+    protected abstract ClosableIterator<AgnosticLightResultRow> getAllCellsInternal(
+            Iterable<Cell> cells,
+            long ts,
+            boolean includeValue);
+
+    protected abstract ClosableIterator<AgnosticLightResultRow> getAllCellsInternal(
+            Map<Cell, Long> cells,
+            boolean includeValue);
 
     @Override
     public ClosableIterator<AgnosticLightResultRow> getRange(RangeRequest range, long ts, int maxRows) {
@@ -204,6 +221,18 @@ public abstract class AbstractDbReadTable implements DbReadTable {
         AgnosticLightResultSet results = conns.get().selectLightResultSetUnregisteredQuery(
                 query.getQuery(), query.getArgs());
         results.setFetchSize(maxRows);
+        return ClosableIterators.wrap(results.iterator(), results);
+    }
+
+    @Override
+    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(
+            List<byte[]> rows,
+            long ts,
+            ColumnRangeSelection columnRangeSelection) {
+        FullQuery query = queryFactory.getRowsColumnRangeQuery(rows, ts, columnRangeSelection);
+        AgnosticLightResultSet results = conns.get()
+                .selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
+        results.setFetchSize(columnRangeSelection.getBatchHint() * rows.size());
         return ClosableIterators.wrap(results.iterator(), results);
     }
 
@@ -219,10 +248,10 @@ public abstract class AbstractDbReadTable implements DbReadTable {
             return run(Iterables.getOnlyElement(queries));
         }
         Queue<Future<ClosableIterator<AgnosticLightResultRow>>> futures = Queues.newArrayDeque();
-        for (final FullQuery query : queries) {
+        for (FullQuery query : queries) {
             futures.add(submit(MoreExecutors.directExecutor(), query));
         }
-        return new LazyClosableIterator<AgnosticLightResultRow>(futures);
+        return new LazyClosableIterator<>(futures);
     }
 
     private boolean isSingleton(Iterable<?> iterable) {
@@ -234,18 +263,13 @@ public abstract class AbstractDbReadTable implements DbReadTable {
         return !iter.hasNext();
     }
 
-    protected Callable<ClosableIterator<AgnosticLightResultRow>> getCallable(final FullQuery query) {
-        return new Callable<ClosableIterator<AgnosticLightResultRow>>() {
-            @Override
-            public ClosableIterator<AgnosticLightResultRow> call() throws InterruptedException {
-                return run(query);
-            }
-        };
+    protected Callable<ClosableIterator<AgnosticLightResultRow>> getCallable(FullQuery query) {
+        return () -> run(query);
     }
 
     protected Future<ClosableIterator<AgnosticLightResultRow>> submit(Executor exec, FullQuery query) {
         FutureTask<ClosableIterator<AgnosticLightResultRow>> task =
-                new FutureClosableIteratorTask<AgnosticLightResultRow>(getCallable(query));
+                new FutureClosableIteratorTask<>(getCallable(query));
         exec.execute(task);
         return task;
     }

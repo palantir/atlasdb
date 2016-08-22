@@ -27,23 +27,39 @@ import com.google.common.collect.Multimap;
  *
  * Contract with the user:
  * - This is for space and deletion time savings only.
- * - This does not fulfill the same goals/legal requirements as hard delete for sensitive data. (though data written by this service can itself be deleted by normal hard delete routines)
- * - // todo Only tables marked with 'AllowsSelfExpiringData' in their schema may use these features
+ * - This does not fulfill the same goals/legal requirements as hard delete for sensitive data.
+ *   (though data written by this service can itself be deleted by normal hard delete routines)
+ * - // TODO: Only tables marked with 'AllowsSelfExpiringData' in their schema may use these features
  *
- * - Normal atlasdb guarantees may be broken. Data written with expiration times are:
+ * - Normal AtlasDB guarantees may be broken. Data written with expiration times are:
  * 1. not guaranteed to expire atomically with the entire row or at any other level of granularity
- * 2. not guaranteed to exist at any time after being written (as this feature implicitly requires distributed wall clock time)
+ * 2. not guaranteed to exist at any time after being written (as this feature implicitly
+ *    requires distributed wall clock time)
  * 3. not guaranteed to be deleted after the specified expiration time
  *
- * That said, points #2 and #3 are attempted on a best-effort basis and should work adequately with synchronized cluster clocks and expiration durations generously outside what is strictly necessary for the application.
+ * That said, points #2 and #3 are attempted on a best-effort basis and should work adequately with synchronized
+ * cluster clocks and expiration durations generously outside what is strictly necessary for the application.
  *
  * @author clockfort
  *
  */
 public interface ExpiringKeyValueService extends KeyValueService {
+    void multiPut(
+            Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
+            long timestamp,
+            long time,
+            TimeUnit unit) throws KeyAlreadyExistsException;
 
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp, final long time, final TimeUnit unit) throws KeyAlreadyExistsException;
-    public void put(final TableReference tableRef, final Map<Cell, byte[]> values, final long timestamp, final long time, final TimeUnit unit);
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values, final long time, final TimeUnit unit);
+    void put(
+            TableReference tableRef,
+            Map<Cell, byte[]> values,
+            long timestamp,
+            long time,
+            TimeUnit unit);
 
+    void putWithTimestamps(
+            TableReference tableRef,
+            Multimap<Cell, Value> values,
+            long time,
+            TimeUnit unit);
 }

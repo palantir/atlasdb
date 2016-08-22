@@ -27,7 +27,7 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.common.concurrent.PTExecutors;
 
-public class CassandraKeyValueServiceConfigManager {
+public final class CassandraKeyValueServiceConfigManager {
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueServiceConfigManager.class);
 
     private final Supplier<CassandraKeyValueServiceConfig> configSupplier;
@@ -41,21 +41,29 @@ public class CassandraKeyValueServiceConfigManager {
     private static final long DEFAULT_REFRESH_INTERVAL = 1000 * 10;
 
     public static CassandraKeyValueServiceConfigManager createSimpleManager(CassandraKeyValueServiceConfig config) {
-        CassandraKeyValueServiceConfigManager ret =
-                new CassandraKeyValueServiceConfigManager(Suppliers.ofInstance(config), null, DEFAULT_INIT_DELAY, DEFAULT_REFRESH_INTERVAL);
+        CassandraKeyValueServiceConfigManager ret = new CassandraKeyValueServiceConfigManager(
+                Suppliers.ofInstance(config),
+                null,
+                DEFAULT_INIT_DELAY,
+                DEFAULT_REFRESH_INTERVAL);
         ret.init();
         return ret;
     }
 
-    public static CassandraKeyValueServiceConfigManager create(Supplier<CassandraKeyValueServiceConfig> configSupplier) {
+    public static CassandraKeyValueServiceConfigManager create(
+            Supplier<CassandraKeyValueServiceConfig> configSupplier) {
         return create(configSupplier, DEFAULT_INIT_DELAY, DEFAULT_REFRESH_INTERVAL);
     }
 
-    public static CassandraKeyValueServiceConfigManager create(Supplier<CassandraKeyValueServiceConfig> configSupplier,
-                                                               long initDelay,
-                                                               long refreshInterval) {
-        CassandraKeyValueServiceConfigManager ret =
-                new CassandraKeyValueServiceConfigManager(configSupplier, PTExecutors.newScheduledThreadPool(1), initDelay, refreshInterval);
+    public static CassandraKeyValueServiceConfigManager create(
+            Supplier<CassandraKeyValueServiceConfig> configSupplier,
+            long initDelay,
+            long refreshInterval) {
+        CassandraKeyValueServiceConfigManager ret = new CassandraKeyValueServiceConfigManager(
+                configSupplier,
+                PTExecutors.newScheduledThreadPool(1),
+                initDelay,
+                refreshInterval);
         ret.init();
         return ret;
     }
@@ -68,10 +76,11 @@ public class CassandraKeyValueServiceConfigManager {
      * @param initDelay init delay on polling updates
      * @param refreshInterval refresh interval for polling updates
      */
-    private CassandraKeyValueServiceConfigManager(final Supplier<CassandraKeyValueServiceConfig> configSupplier,
-                                                  @Nullable ScheduledExecutorService refreshExecutor,
-                                                  long initDelay,
-                                                  long refreshInterval) {
+    private CassandraKeyValueServiceConfigManager(
+            Supplier<CassandraKeyValueServiceConfig> configSupplier,
+            @Nullable ScheduledExecutorService refreshExecutor,
+            long initDelay,
+            long refreshInterval) {
         this.configSupplier = configSupplier;
         this.refreshExecutor = refreshExecutor;
         this.config = configSupplier.get();
@@ -81,17 +90,15 @@ public class CassandraKeyValueServiceConfigManager {
 
     private void init() {
         if (refreshExecutor != null) {
-            refreshExecutor.scheduleWithFixedDelay(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        config = configSupplier.get();
-                    }  catch (Throwable t) {
-                        // If any execution of the task encounters an exception, subsequent executions are suppressed for
-                        // ScheduledExecutorService.scheduleWithFixedDelay() we're catching Throwable (e.g. OutOfMemoryError,
-                        // NPE, SocketException, Cassandra network error, etc.) to ensure the task doesn't get killed.
-                        log.error("CassandraKeyValueServiceConfigManager encountered {}", t.toString(), t);
-                    }
+            refreshExecutor.scheduleWithFixedDelay(() -> {
+                try {
+                    config = configSupplier.get();
+                }  catch (Throwable t) {
+                    // If any execution of the task encounters an exception, subsequent executions are suppressed for
+                    // ScheduledExecutorService.scheduleWithFixedDelay() we're catching Throwable (e.g.
+                    // OutOfMemoryError, NPE, SocketException, Cassandra network error, etc.) to ensure the task
+                    // doesn't get killed.
+                    log.error("CassandraKeyValueServiceConfigManager encountered {}", t.toString(), t);
                 }
             }, initDelay, refreshInterval, TimeUnit.MILLISECONDS);
         }

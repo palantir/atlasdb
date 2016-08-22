@@ -5,9 +5,9 @@ apply from: "../gradle/shared.gradle"
 dependencies {
   compile project(":atlasdb-jdbc")
 
-  compile "com.zaxxer:HikariCP:2.4.3"
+  compile(group: 'com.zaxxer', name: 'HikariCP', version: libVersions.hikariCP)
 
-  processor "org.immutables:value:2.0.21"
+  processor "org.immutables:value:" + libVersions.immutables
   processor "com.google.auto.service:auto-service:1.0-rc2"
 }
 

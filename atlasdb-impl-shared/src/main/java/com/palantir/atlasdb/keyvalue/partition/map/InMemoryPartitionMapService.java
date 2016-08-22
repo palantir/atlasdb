@@ -23,8 +23,7 @@ import javax.annotation.concurrent.GuardedBy;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 
-public class InMemoryPartitionMapService implements PartitionMapService {
-
+public final class InMemoryPartitionMapService implements PartitionMapService {
     @GuardedBy("this")
     private DynamicPartitionMap partitionMap;
     private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
@@ -34,7 +33,7 @@ public class InMemoryPartitionMapService implements PartitionMapService {
     }
 
     public static InMemoryPartitionMapService create(DynamicPartitionMap partitionMap) {
-        return new InMemoryPartitionMapService(Preconditions.checkNotNull(partitionMap));
+        return new InMemoryPartitionMapService(Preconditions.checkNotNull(partitionMap, "partitionMap cannot be null"));
     }
 
     /**
@@ -50,7 +49,7 @@ public class InMemoryPartitionMapService implements PartitionMapService {
     public synchronized DynamicPartitionMap getMap() {
         lock.readLock().lock();
         try {
-            return Preconditions.checkNotNull(partitionMap);
+            return Preconditions.checkNotNull(partitionMap, "Cannot get a null partitionMap");
         } finally {
             lock.readLock().unlock();
         }
@@ -67,24 +66,25 @@ public class InMemoryPartitionMapService implements PartitionMapService {
     }
 
     @Override
-    public synchronized void updateMap(DynamicPartitionMap partitionMap) {
+    public synchronized void updateMap(DynamicPartitionMap newPartitionMap) {
         lock.writeLock().lock();
         try {
-            this.partitionMap = Preconditions.checkNotNull(partitionMap);
+            partitionMap = Preconditions.checkNotNull(newPartitionMap, "Cannot set the partition map to null");
         } finally {
             lock.writeLock().unlock();
         }
     }
 
     @Override
-    public synchronized long updateMapIfNewer(DynamicPartitionMap partitionMap) {
+    public synchronized long updateMapIfNewer(DynamicPartitionMap newPartitionMap) {
+        Preconditions.checkNotNull(newPartitionMap, "Cannot set the partition map to null");
+
         lock.writeLock().lock();
-
         try {
-            final long originalVersion = this.partitionMap == null ? -1L : this.partitionMap.getVersion();
+            long originalVersion = partitionMap == null ? -1 : partitionMap.getVersion();
 
-            if (partitionMap.getVersion() > originalVersion) {
-                this.partitionMap = Preconditions.checkNotNull(partitionMap);
+            if (newPartitionMap.getVersion() > originalVersion) {
+                partitionMap = newPartitionMap;
             }
             return originalVersion;
         } finally {

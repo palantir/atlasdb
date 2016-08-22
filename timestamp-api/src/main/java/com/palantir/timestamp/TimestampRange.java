@@ -67,4 +67,9 @@ public class TimestampRange implements Serializable {
     public long getUpperBound() {
         return upper;
     }
+
+    public long size() {
+        // Need to add 1 as both bounds are inclusive
+        return upper - lower + 1;
+    }
 }

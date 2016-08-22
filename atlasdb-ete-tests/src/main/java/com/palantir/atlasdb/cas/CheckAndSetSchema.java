@@ -49,7 +49,7 @@ public class CheckAndSetSchema implements AtlasSchema {
     }
 
     public static void main(String[] args) throws Exception {
-        GENERATED_SCHEMA.renderTables(new File("atlasdb-ete-tests/src/main/java"));
+        GENERATED_SCHEMA.renderTables(new File("src/main/java"));
     }
 
     @Override

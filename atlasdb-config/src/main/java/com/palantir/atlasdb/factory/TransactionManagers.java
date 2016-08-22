@@ -39,6 +39,7 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
+import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
@@ -95,7 +96,7 @@ public class TransactionManagers {
                                                         Set<Schema> schemas,
                                                         Environment env,
                                                         boolean allowHiddenTableAccess) {
-        final ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(config.keyValueService());
+        final ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
         final KeyValueService rawKvs = atlasFactory.getKeyValueService();
 
         LockAndTimestampServices lts = createLockAndTimestampServices(config, sslSocketFactory, env,
@@ -104,6 +105,7 @@ public class TransactionManagers {
         );
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
+        kvs = ProfilingKeyValueService.create(kvs);
         kvs = new SweepStatsKeyValueService(kvs, lts.time());
 
         TransactionTables.createTables(kvs);
@@ -217,9 +219,19 @@ public class TransactionManagers {
         } else {
             warnIf(config.lock().isPresent() != config.timestamp().isPresent(), "Using embedded instances for one (but not both) of lock and timestamp services");
 
+            RemoteLockService lockService = config.lock().transform(new ServiceCreator<>(sslSocketFactory, RemoteLockService.class)).or(lock);
+            TimestampService timeService = config.timestamp().transform(new ServiceCreator<>(sslSocketFactory, TimestampService.class)).or(time);
+
+            if (!config.lock().isPresent()) {
+                env.register(lockService);
+            }
+            if (!config.timestamp().isPresent()) {
+                env.register(timeService);
+            }
+
             return ImmutableLockAndTimestampServices.builder()
-                    .lock(config.lock().transform(new ServiceCreator<>(sslSocketFactory, RemoteLockService.class)).or(lock))
-                    .time(config.timestamp().transform(new ServiceCreator<>(sslSocketFactory, TimestampService.class)).or(time))
+                    .lock(lockService)
+                    .time(timeService)
                     .build();
         }
     }

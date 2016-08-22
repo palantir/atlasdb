@@ -44,6 +44,8 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
@@ -96,6 +98,7 @@ public final class UserPhotosStreamValueTable implements
     private final List<UserPhotosStreamValueTrigger> triggers;
     private final static String rawTableName = "user_photos_stream_value";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = getColumnSelection(UserPhotosStreamValueNamedColumn.values());
 
     static UserPhotosStreamValueTable of(Transaction t, Namespace namespace) {
         return new UserPhotosStreamValueTable(t, namespace, ImmutableList.<UserPhotosStreamValueTrigger>of());
@@ -222,7 +225,7 @@ public final class UserPhotosStreamValueTable implements
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(id, blockId);
+            return Arrays.deepHashCode(new Object[]{ id, blockId });
         }
 
         @Override
@@ -482,7 +485,7 @@ public final class UserPhotosStreamValueTable implements
 
     @Override
     public Optional<UserPhotosStreamValueRowResult> getRow(UserPhotosStreamValueRow row) {
-        return getRow(row, ColumnSelection.all());
+        return getRow(row, allColumns);
     }
 
     @Override
@@ -498,7 +501,7 @@ public final class UserPhotosStreamValueTable implements
 
     @Override
     public List<UserPhotosStreamValueRowResult> getRows(Iterable<UserPhotosStreamValueRow> rows) {
-        return getRows(rows, ColumnSelection.all());
+        return getRows(rows, allColumns);
     }
 
     @Override
@@ -513,7 +516,7 @@ public final class UserPhotosStreamValueTable implements
 
     @Override
     public List<UserPhotosStreamValueRowResult> getAsyncRows(Iterable<UserPhotosStreamValueRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, ColumnSelection.all(), exec);
+        return getAsyncRows(rows, allColumns, exec);
     }
 
     @Override
@@ -530,7 +533,7 @@ public final class UserPhotosStreamValueTable implements
 
     @Override
     public List<UserPhotosStreamValueNamedColumnValue<?>> getRowColumns(UserPhotosStreamValueRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -550,7 +553,7 @@ public final class UserPhotosStreamValueTable implements
 
     @Override
     public Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<UserPhotosStreamValueRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -560,7 +563,7 @@ public final class UserPhotosStreamValueTable implements
 
     @Override
     public Multimap<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<UserPhotosStreamValueRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -591,8 +594,22 @@ public final class UserPhotosStreamValueTable implements
         return rowMap;
     }
 
+    @Override
+    public Map<UserPhotosStreamValueRow, BatchingVisitable<UserPhotosStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<UserPhotosStreamValueRow> rows, ColumnRangeSelection columnRangeSelection) {
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<UserPhotosStreamValueRow, BatchingVisitable<UserPhotosStreamValueNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            UserPhotosStreamValueRow row = UserPhotosStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<UserPhotosStreamValueNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<UserPhotosStreamValueRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<UserPhotosStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -643,6 +660,8 @@ public final class UserPhotosStreamValueTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link ColumnRangeSelection}
+     * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
@@ -700,5 +719,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "UzI7TXUlWL5M9KqjP/k4WA==";
+    static String __CLASS_HASH = "jHXwPpmc5Ay3gKn9eZC8Gg==";
 }

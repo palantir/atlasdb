@@ -43,7 +43,7 @@ import com.palantir.timestamp.TimestampBoundStore;
 
 // TODO: switch to using ptdatabase sql running, which more gracefully
 // supports multiple db types.
-public final class InDbTimestampBoundStore implements TimestampBoundStore {
+public class InDbTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(InDbTimestampBoundStore.class);
 
     private final ConnectionManager connManager;
@@ -64,8 +64,8 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
     }
 
     public InDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable) {
-        this.connManager = Preconditions.checkNotNull(connManager);
-        this.timestampTable = Preconditions.checkNotNull(timestampTable);
+        this.connManager = Preconditions.checkNotNull(connManager, "connectionManager is required");
+        this.timestampTable = Preconditions.checkNotNull(timestampTable, "timestampTable is required");
     }
 
     private void init() {
@@ -77,14 +77,14 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
     }
 
     private interface Operation {
-        long run(Connection c, @Nullable Long oldLimit) throws SQLException;
+        long run(Connection connection, @Nullable Long oldLimit) throws SQLException;
     }
 
-    private long runOperation(final Operation o) {
+    private long runOperation(final Operation operation) {
         TransactionResult<Long> result = RetriableTransactions.run(connManager, new RetriableWriteTransaction<Long>() {
             @Override
-            public Long run(Connection c) throws SQLException {
-                Long oldLimit = readLimit(c);
+            public Long run(Connection connection) throws SQLException {
+                Long oldLimit = readLimit(connection);
                 if (currentLimit != null) {
                     if (oldLimit != null) {
                         if (currentLimit.equals(oldLimit)) {
@@ -92,44 +92,44 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
                         } else {
                             // mismatch
                             throw new MultipleRunningTimestampServiceError(
-                                    "Timestamp limit changed underneath us (limit in memory: " + currentLimit +
-                                    ", limit in DB: " + oldLimit + "). This may indicate that " +
-                                    "another timestamp service is running against this database!  " +
-                                    "If you get this error check that your client.prefs in dispatch " +
-                                    "is configured correctly."
-                                    );
+                                    "Timestamp limit changed underneath us (limit in memory: " + currentLimit
+                                    + ", limit in DB: " + oldLimit + "). This may indicate that "
+                                    + "another timestamp service is running against this database!  "
+                                    + "If you get this error check that your client.prefs in dispatch "
+                                    + "is configured correctly.");
                         }
                     } else {
                         // disappearance
                         throw new IllegalStateException(
-                                "Unable to retrieve a timestamp when expected. " +
-                                        "You probably reseeded the database while the timestamp server was running. " +
-                                        "This deloyment is in a dangerous state and you should take down " +
-                                        "everything (all servers) and reseed the database again."
-                                );
+                                "Unable to retrieve a timestamp when expected. "
+                                + "You probably reseeded the database while the timestamp server was running. "
+                                + "This deloyment is in a dangerous state and you should take down "
+                                + "everything (all servers) and reseed the database again.");
                     }
                 } else {
                     // first read, no check to be done
                 }
-                return o.run(c, oldLimit);
+                return operation.run(connection, oldLimit);
             }
         });
         switch (result.getStatus()) {
-        case SUCCESSFUL:
-            currentLimit = result.getResultValue();
-            return currentLimit;
-        case UNKNOWN:
-            // Since the DB's state is unknown, the in-memory state can't be confirmed, so get rid of it.
-            currentLimit = null;
-            // Fall through to failure case, where exceptions are handled.
-        case FAILED:
-            Throwable error = result.getError();
-            if (error instanceof SQLException) {
-                throw PalantirSqlException.create((SQLException) error);
-            }
-            throw Throwables.rewrapAndThrowUncheckedException(error);
-        default:
-            throw new IllegalStateException("Unrecognized transaction status " + result.getStatus());
+            case SUCCESSFUL:
+                currentLimit = result.getResultValue();
+                return currentLimit;
+            case UNKNOWN:
+            case FAILED:
+                if (result.getStatus() == RetriableTransactions.TransactionStatus.UNKNOWN) {
+                    // Since the DB's state is unknown, the in-memory state can't be confirmed, so get rid of it.
+                    currentLimit = null;
+                }
+
+                Throwable error = result.getError();
+                if (error instanceof SQLException) {
+                    throw PalantirSqlException.create((SQLException) error);
+                }
+                throw Throwables.rewrapAndThrowUncheckedException(error);
+            default:
+                throw new IllegalStateException("Unrecognized transaction status " + result.getStatus());
         }
     }
 
@@ -137,13 +137,13 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
     public synchronized long getUpperLimit() {
         return runOperation(new Operation() {
             @Override
-            public long run(Connection c, Long oldLimit) throws SQLException {
+            public long run(Connection connection, Long oldLimit) throws SQLException {
                 if (oldLimit != null) {
                     return oldLimit;
                 }
 
                 final long startVal = 10000;
-                createLimit(c, startVal);
+                createLimit(connection, startVal);
                 return startVal;
             }
         });
@@ -153,11 +153,11 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
     public synchronized void storeUpperLimit(final long limit) {
         runOperation(new Operation() {
             @Override
-            public long run(Connection c, Long oldLimit) throws SQLException {
+            public long run(Connection connection, Long oldLimit) throws SQLException {
                 if (oldLimit != null) {
-                    writeLimit(c, limit);
+                    writeLimit(connection, limit);
                 } else {
-                    createLimit(c, limit);
+                    createLimit(connection, limit);
                 }
 
                 return limit;
@@ -165,10 +165,10 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
         });
     }
 
-    private Long readLimit(Connection c) throws SQLException {
+    private Long readLimit(Connection connection) throws SQLException {
         String sql = "SELECT last_allocated FROM " + timestampTable.getQualifiedName() + " FOR UPDATE";
         QueryRunner run = new QueryRunner();
-        return run.query(c, sql, new ResultSetHandler<Long>() {
+        return run.query(connection, sql, new ResultSetHandler<Long>() {
             @Override
             public Long handle(ResultSet rs) throws SQLException {
                 if (rs.next()) {
@@ -180,28 +180,31 @@ public final class InDbTimestampBoundStore implements TimestampBoundStore {
         });
     }
 
-    private void writeLimit(Connection c, long limit) throws SQLException {
+    private void writeLimit(Connection connection, long limit) throws SQLException {
         String updateTs = "UPDATE " + timestampTable.getQualifiedName() + " SET last_allocated = ?";
-        try (PreparedStatement statement = c.prepareStatement(updateTs)) {
+        try (PreparedStatement statement = connection.prepareStatement(updateTs)) {
             statement.setLong(1, limit);
             statement.executeUpdate();
         }
     }
 
-    private void createLimit(Connection c, long limit) throws SQLException {
+    private void createLimit(Connection connection, long limit) throws SQLException {
         QueryRunner run = new QueryRunner();
-        run.update(c, "INSERT INTO " + timestampTable.getQualifiedName() + " (last_allocated) VALUES (?)", limit);
+        run.update(connection,
+                String.format("INSERT INTO %s (last_allocated) VALUES (?)", timestampTable.getQualifiedName()),
+                limit);
     }
 
-    private void createTimestampTable(Connection c) throws SQLException {
-        try (Statement statement = c.createStatement()) {
-            statement.execute("CREATE TABLE IF NOT EXISTS " + timestampTable.getQualifiedName() + " ( last_allocated int8 NOT NULL )");
+    private void createTimestampTable(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute(String.format("CREATE TABLE IF NOT EXISTS %s ( last_allocated int8 NOT NULL )",
+                    timestampTable.getQualifiedName()));
         }
     }
 
-    private DBType getDbType(Connection c) {
+    private DBType getDbType(Connection connection) {
         if (dbType == null) {
-            dbType = ConnectionDbTypes.getDBType(c);
+            dbType = ConnectionDbTypes.getDbType(connection);
         }
         return dbType;
     }

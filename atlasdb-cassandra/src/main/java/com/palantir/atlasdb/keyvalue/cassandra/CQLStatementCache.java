@@ -22,14 +22,15 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
 public class CQLStatementCache {
-    Session session, longRunningQuerySession;
+    final Session session;
+    final Session longRunningQuerySession;
 
     CQLStatementCache(Session session, Session longRunningQuerySession) {
         this.session = session;
         this.longRunningQuerySession = longRunningQuerySession;
     }
 
-    final LoadingCache<String, PreparedStatement> NORMAL_QUERY = CacheBuilder.newBuilder()
+    final LoadingCache<String, PreparedStatement> normalQuery = CacheBuilder.newBuilder()
             .build(new CacheLoader<String, PreparedStatement>() {
                 @Override
                 public PreparedStatement load(String query) {
@@ -38,7 +39,7 @@ public class CQLStatementCache {
             });
 
 
-    final LoadingCache<String, PreparedStatement> LONG_RUNNING_QUERY = CacheBuilder.newBuilder()
+    final LoadingCache<String, PreparedStatement> longRunningQuery = CacheBuilder.newBuilder()
             .build(new CacheLoader<String, PreparedStatement>() {
                 @Override
                 public PreparedStatement load(String query) {

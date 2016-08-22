@@ -27,10 +27,10 @@ public interface ConstraintCheckingTransaction extends Transaction {
     /**
      * Returns the cell values in the key-value service, ignoring the cache of local writes.
      */
-    public Map<Cell, byte[]> getIgnoringLocalWrites(TableReference tableRef, Set<Cell> cells);
+    Map<Cell, byte[]> getIgnoringLocalWrites(TableReference tableRef, Set<Cell> cells);
 
     /**
      * Returns the row result values in the key-value service, ignoring the cache of local writes.
      */
-    public SortedMap<byte[], RowResult<byte[]>> getRowsIgnoringLocalWrites(TableReference tableRef, Iterable<byte[]> rows);
+    SortedMap<byte[], RowResult<byte[]>> getRowsIgnoringLocalWrites(TableReference tableRef, Iterable<byte[]> rows);
 }

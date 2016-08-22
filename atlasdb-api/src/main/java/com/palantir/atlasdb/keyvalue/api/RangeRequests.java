@@ -20,7 +20,10 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.encoding.PtBytes;
 
-public class RangeRequests {
+public final class RangeRequests {
+    private RangeRequests() {
+        // Utility class
+    }
 
     /**
      * This will return the first byte[] less than the given byte[] lexicographically.
@@ -33,15 +36,15 @@ public class RangeRequests {
     public static byte[] previousLexicographicName(@Nonnull byte[] name) {
         Preconditions.checkArgument(name.length <= Cell.MAX_NAME_LENGTH, "name is too long");
         Preconditions.checkArgument(name.length > 0, "name is empty");
-        if (name[name.length-1] == 0) {
-            byte[] ret = new byte[name.length-1];
+        if (name[name.length - 1] == 0) {
+            byte[] ret = new byte[name.length - 1];
             System.arraycopy(name, 0, ret, 0, ret.length);
             return ret;
         }
         byte[] ret = new byte[Cell.MAX_NAME_LENGTH];
         System.arraycopy(name, 0, ret, 0, name.length);
-        ret[name.length-1]--;
-        for (int i = name.length ; i < ret.length ; i++) {
+        ret[name.length - 1]--;
+        for (int i = name.length; i < ret.length; i++) {
             ret[i] = (byte) 0xff;
         }
         return ret;
@@ -54,11 +57,13 @@ public class RangeRequests {
      * @param rowName must be non-null
      */
     public static byte[] createEndNameForPrefixScan(@Nonnull byte[] rowName) {
-        Preconditions.checkArgument(Preconditions.checkNotNull(rowName).length <= Cell.MAX_NAME_LENGTH, "name is too long");
-        for (int i = rowName.length-1 ; i >= 0 ; i--) {
+        Preconditions.checkNotNull(rowName, "name cannot be null");
+        Preconditions.checkArgument(rowName.length <= Cell.MAX_NAME_LENGTH, "name is too long");
+
+        for (int i = rowName.length - 1; i >= 0; i--) {
             if ((rowName[i] & 0xff) != 0xff) {
-                byte[] ret = new byte[i+1];
-                System.arraycopy(rowName, 0, ret, 0, i+1);
+                byte[] ret = new byte[i + 1];
+                System.arraycopy(rowName, 0, ret, 0, i + 1);
                 ret[i]++;
                 return ret;
             }
@@ -75,7 +80,8 @@ public class RangeRequests {
         return ret;
     }
 
-    final static byte[] ONE_AFTER_MAXIMUM_NAME;
+    static final byte[] ONE_AFTER_MAXIMUM_NAME;
+
     static {
         ONE_AFTER_MAXIMUM_NAME = new byte[Cell.MAX_NAME_LENGTH + 1];
         for (int i = 0; i < Cell.MAX_NAME_LENGTH; ++i) {
@@ -90,8 +96,6 @@ public class RangeRequests {
 
     /**
      * This is a replacement for endRow when doing a non-reverse range request.
-     * @param rangeRequest
-     * @return
      */
     public static byte[] endRowExclusiveOrOneAfterMax(RangeRequest rangeRequest) {
         Preconditions.checkArgument(!rangeRequest.isReverse());
@@ -103,8 +107,6 @@ public class RangeRequests {
 
     /**
      * This is a replacement for startRow when doing reverse range request.
-     * @param rangeRequest
-     * @return
      */
     public static byte[] startRowInclusiveOrLargestRow(RangeRequest rangeRequest) {
         Preconditions.checkArgument(rangeRequest.isReverse());
@@ -124,15 +126,15 @@ public class RangeRequests {
     private static byte[] nextLexicographicNameInternal(@Nonnull byte[] name) {
         Preconditions.checkArgument(name.length <= Cell.MAX_NAME_LENGTH, "name is too long");
         if (name.length < Cell.MAX_NAME_LENGTH) {
-            byte[] ret = new byte[name.length+1];
+            byte[] ret = new byte[name.length + 1];
             System.arraycopy(name, 0, ret, 0, name.length);
             ret[name.length] = (byte) 0;
             return ret;
         } else {
-            for (int i = name.length-1 ; i >= 0 ; i--) {
+            for (int i = name.length - 1; i >= 0; i--) {
                 if ((name[i] & 0xff) != 0xff) {
-                    byte[] ret = new byte[i+1];
-                    System.arraycopy(name, 0, ret, 0, i+1);
+                    byte[] ret = new byte[i + 1];
+                    System.arraycopy(name, 0, ret, 0, i + 1);
                     ret[i]++;
                     return ret;
                 }
@@ -147,7 +149,7 @@ public class RangeRequests {
 
     public static byte[] getLastRowName() {
         byte[] ret = new byte[Cell.MAX_NAME_LENGTH];
-        for (int i = 0 ; i < ret.length ; i++) {
+        for (int i = 0; i < ret.length; i++) {
             ret[i] = (byte) 0xff;
         }
         return ret;

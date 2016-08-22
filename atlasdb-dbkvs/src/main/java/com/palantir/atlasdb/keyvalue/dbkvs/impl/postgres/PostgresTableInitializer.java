@@ -46,16 +46,20 @@ public class PostgresTableInitializer implements DbTableInitializer {
     @Override
     public void createMetadataTable(String metadataTableName) {
         executeIgnoringError(
-                "CREATE TABLE " + metadataTableName + " (" +
-                        "  table_name VARCHAR(2000) NOT NULL," +
-                        "  table_size BIGINT NOT NULL," +
-                        "  value      BYTEA NULL," +
-                        "  CONSTRAINT pk_" + metadataTableName + " PRIMARY KEY (table_name) " +
-                        ")",
+                String.format(
+                        "CREATE TABLE %s ("
+                        + "  table_name VARCHAR(2000) NOT NULL,"
+                        + "  table_size BIGINT NOT NULL,"
+                        + "  value      BYTEA NULL,"
+                        + "  CONSTRAINT pk_%s PRIMARY KEY (table_name) "
+                        + ")",
+                        metadataTableName, metadataTableName),
                 "already exists");
 
         executeIgnoringError(
-                "CREATE UNIQUE INDEX unique_lower_case_" + metadataTableName + "_index ON " + metadataTableName + " (lower(table_name))",
+                String.format(
+                        "CREATE UNIQUE INDEX unique_lower_case_%s_index ON %s (lower(table_name))",
+                        metadataTableName, metadataTableName),
                 "already exists");
     }
 

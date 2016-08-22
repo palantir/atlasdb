@@ -50,7 +50,7 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
-    private final static int NUM_RETRIES = 10;
+    private static final int NUM_RETRIES = 10;
 
     final KeyValueService keyValueService;
     final TransactionService transactionService;
@@ -109,7 +109,7 @@ import com.palantir.timestamp.TimestampService;
     public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<HeldLocksToken> lockTokens,
                                                                       LockAwareTransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
-        Iterable<LockRefreshToken> lockRefreshTokens= Iterables.transform(lockTokens,
+        Iterable<LockRefreshToken> lockRefreshTokens = Iterables.transform(lockTokens,
                 new Function<HeldLocksToken, LockRefreshToken>() {
                     @Nullable
                     @Override
@@ -128,22 +128,24 @@ import com.palantir.timestamp.TimestampService;
         LockRequest lockRequest =
                 LockRequest.builder(ImmutableSortedMap.of(lockDesc, LockMode.READ)).withLockedInVersionId(
                         immutableLockTs).build();
-        final LockRefreshToken lock;
+        LockRefreshToken lock;
         try {
             lock = lockService.lock(lockClient.getClientId(), lockRequest);
         } catch (InterruptedException e) {
             throw Throwables.throwUncheckedException(e);
         }
         try {
-            ImmutableList<LockRefreshToken> allTokens =
-                    ImmutableList.<LockRefreshToken> builder().add(lock).addAll(lockTokens).build();
-            SnapshotTransaction t = createTransaction(immutableLockTs, startTimestampSupplier, allTokens);
-            return new RawTransaction(t, lock);
-        } catch (Throwable t) {
-            lockService.unlock(lock);
-            Throwables.throwIfInstance(t, Error.class);
-            Throwables.throwIfInstance(t, RuntimeException.class);
-            throw Throwables.rewrapAndThrowUncheckedException(t);
+            ImmutableList<LockRefreshToken> allTokens = ImmutableList.<LockRefreshToken>builder()
+                    .add(lock)
+                    .addAll(lockTokens)
+                    .build();
+            SnapshotTransaction transaction = createTransaction(immutableLockTs, startTimestampSupplier, allTokens);
+            return new RawTransaction(transaction, lock);
+        } catch (Throwable e) {
+            if (lock != null) {
+                lockService.unlock(lock);
+            }
+            throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
 
@@ -189,7 +191,7 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
         long immutableTs = getApproximateImmutableTimestamp();
-        SnapshotTransaction t = new SnapshotTransaction(
+        SnapshotTransaction transaction = new SnapshotTransaction(
                 keyValueService,
                 lockService,
                 timestampService,
@@ -204,7 +206,7 @@ import com.palantir.timestamp.TimestampService;
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess);
-        return runTaskThrowOnConflict(task, new OnlyWriteTempTablesTransaction(t, sweepStrategyManager));
+        return runTaskThrowOnConflict(task, new OnlyWriteTempTablesTransaction(transaction, sweepStrategyManager));
     }
 
     private Supplier<Long> getStartTimestampSupplier() {
@@ -269,7 +271,7 @@ import com.palantir.timestamp.TimestampService;
     public KeyValueService getKeyValueService() {
         return keyValueService;
     }
-    
+
     public TimestampService getTimestampService() {
         return timestampService;
     }

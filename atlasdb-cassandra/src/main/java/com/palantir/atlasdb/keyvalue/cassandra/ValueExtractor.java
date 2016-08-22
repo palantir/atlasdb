@@ -33,7 +33,7 @@ class ValueExtractor extends ResultsExtractor<Map<Cell, Value>, Value> {
         }
     };
 
-    public ValueExtractor(Map<Cell, Value> collector) {
+    ValueExtractor(Map<Cell, Value> collector) {
         super(collector);
     }
 

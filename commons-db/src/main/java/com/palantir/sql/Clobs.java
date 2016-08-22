@@ -18,13 +18,10 @@ package com.palantir.sql;
 import java.sql.Clob;
 import java.sql.SQLException;
 
-import org.apache.log4j.Logger;
-
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.BasicSQL;
 
 public class Clobs {
-    private static final Logger sqlExceptionlog = Logger.getLogger("sqlException." + Clobs.class.getName());
 
     public static String getString(Clob clob, long clobLen) throws PalantirSqlException {
         try {
@@ -52,7 +49,6 @@ public class Clobs {
 
         return rv.toString();
         } catch (SQLException e) {
-            sqlExceptionlog.info("Caught SQLException", e);
             throw BasicSQL.handleInterruptions(0, e);
         }
     }

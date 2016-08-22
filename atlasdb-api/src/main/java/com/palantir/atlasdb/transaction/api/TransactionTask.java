@@ -25,5 +25,5 @@ package com.palantir.atlasdb.transaction.api;
  * it will have no work to do, because the list was cleared.
  */
 public interface TransactionTask<T, E extends Exception> {
-    T execute(Transaction t) throws E;
+    T execute(Transaction transaction) throws E;
 }

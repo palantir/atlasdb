@@ -1,8 +1,10 @@
+import org.gradle.plugins.ide.idea.model.IdeaModel
+
 buildscript {
     repositories {
         mavenCentral()
         maven {
-            url 'http://dl.bintray.com/palantir/releases/'
+            url 'https://dl.bintray.com/palantir/releases/'
         }
         maven {
             url 'https://plugins.gradle.org/m2/'
@@ -11,7 +13,8 @@ buildscript {
 
     dependencies {
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.3.1'
-        classpath 'com.palantir:jacoco-coverage:0.1.4'
+        classpath 'com.palantir:gradle-baseline-java:0.7.1'
+        classpath 'com.palantir:jacoco-coverage:0.4.0'
         classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0'
     }
 }
@@ -19,6 +22,12 @@ buildscript {
 plugins {
     id 'com.palantir.git-version' version '0.1.3'
     id 'org.inferred.processors' version '1.1'
+}
+
+repositories {
+    maven {
+        url 'https://dl.bintray.com/palantir/releases/'
+    }
 }
 
 apply from: 'gradle/versions.gradle'
@@ -31,7 +40,29 @@ task clean(type: Delete) {
     delete buildDir
 }
 
+subprojects {
+  task allDeps(type: DependencyReportTask) {}
+}
+
 apply from: 'idea.gradle'
+
+// Setup copyright notice as JavaDoc and no newline after it
+project.afterEvaluate {
+    def ideaRootModel = project.rootProject.extensions.findByType(IdeaModel)
+    if (ideaRootModel) {
+        ideaRootModel.project.ipr.withXml { provider ->
+            def node = provider.asNode()
+            def copyrightManager = node.component.find { it.'@name' == 'CopyrightManager' }
+            copyrightManager.append(new XmlParser().parseText("""
+                <LanguageOptions name="__TEMPLATE__">
+                    <option name="addBlankAfter" value="false" />
+                    <option name="separateBefore" value="true" />
+                    <option name="lenBefore" value="2" />
+                </LanguageOptions>
+                """.stripIndent()))
+        }
+    }
+}
 
 def ideaSetModuleLevel(idea, targetCompatibility) {
     if (idea == null) return

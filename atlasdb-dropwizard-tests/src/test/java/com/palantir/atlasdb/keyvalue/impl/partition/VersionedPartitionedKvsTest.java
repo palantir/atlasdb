@@ -26,7 +26,6 @@ import java.util.Set;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -69,7 +68,6 @@ import jersey.repackaged.com.google.common.collect.Iterators;
  * @author htarasiuk
  *
  */
-@Ignore
 public class VersionedPartitionedKvsTest extends AbstractAtlasDbKeyValueServiceTest {
 
     /**
@@ -198,7 +196,7 @@ public class VersionedPartitionedKvsTest extends AbstractAtlasDbKeyValueServiceT
     @Test
     public void testMultiAddEndpoint() throws Exception {
         // This tests that the put function will block for long enough.
-        for (int i=0; i<100; ++i) {
+        for (int i=0; i<50; ++i) {
             testAddEndpoint();
             cleanupStuff();
         }
@@ -365,7 +363,7 @@ public class VersionedPartitionedKvsTest extends AbstractAtlasDbKeyValueServiceT
     @Test
     public void testMultiRangeIteratorRetryTransparentlyOnVersionMismatch() throws Exception {
         // This tests that the put function will block for long enough.
-        for (int i=0; i<50; ++i) {
+        for (int i=0; i<25; ++i) {
             testRangeIteratorRetryTransparentlyOnVersionMismatch();
             cleanupStuff();
         }
@@ -405,7 +403,7 @@ public class VersionedPartitionedKvsTest extends AbstractAtlasDbKeyValueServiceT
     @Test
     public void testMultiRangeWithHistoryIteratorRetryTransparentlyOnVersionMismatch() throws Exception {
         // This tests that the put function will block for long enough.
-        for (int i=0; i<50; ++i) {
+        for (int i=0; i<25; ++i) {
             testRangeWithHistoryIteratorRetryTransparentlyOnVersionMismatch();
             cleanupStuff();
         }
@@ -446,7 +444,7 @@ public class VersionedPartitionedKvsTest extends AbstractAtlasDbKeyValueServiceT
     @Test
     public void testMultiRangeOfTimestampsIteratorRetryTransparentlyOnVersionMismatch() throws Exception {
         // This tests that the put function will block for long enough.
-        for (int i=0; i<50; ++i) {
+        for (int i=0; i<25; ++i) {
             testRangeOfTimestampsIteratorRetryTransparentlyOnVersionMismatch();
             cleanupStuff();
         }

@@ -16,16 +16,19 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 
 public interface DbQueryFactory {
     FullQuery getLatestRowQuery(byte[] row, long ts, ColumnSelection columns, boolean includeValue);
     FullQuery getLatestRowsQuery(Iterable<byte[]> rows, long ts, ColumnSelection columns, boolean includeValue);
-    FullQuery getLatestRowsQuery(Collection<Map.Entry<byte[], Long>> rows, ColumnSelection columns, boolean includeValue);
+    FullQuery getLatestRowsQuery(
+            Collection<Map.Entry<byte[], Long>> rows, ColumnSelection columns, boolean includeValue);
 
     FullQuery getAllRowQuery(byte[] row, long ts, ColumnSelection columns, boolean includeValue);
     FullQuery getAllRowsQuery(Iterable<byte[]> rows, long ts, ColumnSelection columns, boolean includeValue);
@@ -42,4 +45,6 @@ public interface DbQueryFactory {
     FullQuery getRangeQuery(RangeRequest range, long ts, int maxRows);
     boolean hasOverflowValues();
     Collection<FullQuery> getOverflowQueries(Collection<OverflowValue> overflowIds);
+
+    FullQuery getRowsColumnRangeQuery(List<byte[]> row, long ts, ColumnRangeSelection columnRangeSelection);
 }

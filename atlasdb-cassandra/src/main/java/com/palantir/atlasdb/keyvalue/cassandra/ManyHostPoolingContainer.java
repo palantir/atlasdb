@@ -22,8 +22,9 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
 
 public interface ManyHostPoolingContainer<T> extends PoolingContainer<T> {
-    <V, K extends Exception> V runWithPooledResourceOnHost(InetAddress host,
-                                                           FunctionCheckedException<T, V, K> f) throws K;
+    <V, K extends Exception> V runWithPooledResourceOnHost(
+            InetAddress host,
+            FunctionCheckedException<T, V, K> fn) throws K;
 
-    <V> V runWithPooledResourceOnHost(InetAddress host, Function<T, V> f);
+    <V> V runWithPooledResourceOnHost(InetAddress host, Function<T, V> fn);
 }

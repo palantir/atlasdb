@@ -17,26 +17,39 @@ package com.palantir.atlasdb.cli;
 
 import java.util.concurrent.Callable;
 
-import com.palantir.atlasdb.cli.command.CleanTransactionRange;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.atlasdb.cli.command.KvsMigrationCommand;
 import com.palantir.atlasdb.cli.command.SweepCommand;
-import com.palantir.atlasdb.cli.command.TimestampCommand;
+import com.palantir.atlasdb.cli.command.timestamp.CleanTransactionRange;
+import com.palantir.atlasdb.cli.command.timestamp.FastForwardTimestamp;
+import com.palantir.atlasdb.cli.command.timestamp.FetchTimestamp;
 
 import io.airlift.airline.Cli;
 import io.airlift.airline.Help;
 
 public class AtlasCli {
 
-    private static Cli<Callable> buildCli() {
+    private static final Logger log = LoggerFactory.getLogger(AtlasCli.class);
+
+    public static Cli<Callable> buildCli() {
         Cli.CliBuilder<Callable> builder = Cli.<Callable>builder("atlasdb")
                 .withDescription("Perform common AtlasDB tasks")
                 .withDefaultCommand(Help.class)
                 .withCommands(
                         Help.class,
-                        TimestampCommand.class,
-                        CleanTransactionRange.class,
                         SweepCommand.class,
                         KvsMigrationCommand.class);
+
+        builder.withGroup("timestamp")
+                .withDescription("Timestamp-centric commands")
+                .withDefaultCommand(Help.class)
+                .withCommands(
+                        FetchTimestamp.class,
+                        CleanTransactionRange.class,
+                        FastForwardTimestamp.class);
+
         return builder.build();
     }
 
@@ -49,7 +62,7 @@ public class AtlasCli {
             }
             System.exit(0);
         } catch (Exception e) {
-            System.err.println(e.getMessage());
+            log.error("Fatal exception thrown during cli command execution.  Exiting.", e);
             System.exit(1);
         }
     }

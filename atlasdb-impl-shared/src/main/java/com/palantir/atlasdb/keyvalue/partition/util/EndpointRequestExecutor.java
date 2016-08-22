@@ -31,7 +31,8 @@ import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
-@ThreadSafe public class EndpointRequestExecutor {
+@ThreadSafe
+public final class EndpointRequestExecutor {
     // This is a SOFT limit and might be sometimes exceeded due to
     // race conditions.
     public static final int MAX_TASKS_PER_ENDPOINT = 32;
@@ -54,17 +55,21 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
         Future<FutureReturnType> take() throws InterruptedException;
     }
 
-    public static <FutureReturnType> EndpointRequestCompletionService<FutureReturnType> newService(final ExecutorService executor) {
+    public static <FutureReturnTypeT> EndpointRequestCompletionService<FutureReturnTypeT> newService(
+            ExecutorService executor) {
         return instance.newServiceInternal(executor);
     }
 
-    private <FutureReturnType> EndpointRequestCompletionService<FutureReturnType> newServiceInternal(final ExecutorService executor) {
-        return new EndpointRequestCompletionService<FutureReturnType>() {
-            final ExecutorCompletionService<FutureReturnType> execSvc = new ExecutorCompletionService<>(executor);
+    private <FutureReturnTypeT> EndpointRequestCompletionService<FutureReturnTypeT> newServiceInternal(
+            ExecutorService executor) {
+        return new EndpointRequestCompletionService<FutureReturnTypeT>() {
+            final ExecutorCompletionService<FutureReturnTypeT> execSvc = new ExecutorCompletionService<>(executor);
 
             private <T> Future<T> registerTaskCompleted(Future<T> future) {
                 if (future != null) {
-                    KeyValueService kvs = Preconditions.checkNotNull(endpointByFuture.get(future));
+                    KeyValueService kvs = Preconditions.checkNotNull(
+                            endpointByFuture.get(future),
+                            "No endpoint for future");
                     endpointByFuture.remove(future);
                     numberOfTasksByEndpoint.remove(kvs);
                 }
@@ -72,11 +77,11 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
             }
 
             @Override
-            public Future<FutureReturnType> submit(
-                    Callable<FutureReturnType> callable,
+            public Future<FutureReturnTypeT> submit(
+                    Callable<FutureReturnTypeT> callable,
                     KeyValueService kvs) {
 
-                final Future<FutureReturnType> ret;
+                final Future<FutureReturnTypeT> ret;
 
                 // Try not to exceed the MAX_TASKS_PER_ENDPOINT number.
                 //
@@ -88,11 +93,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
                 // reject more than necessary.
                 if (numberOfTasksByEndpoint.count(kvs) > MAX_TASKS_PER_ENDPOINT) {
                     log.warn("Dropping task " + callable + " for kv service " + kvs + " due to queue overflow.");
-                    ret = execSvc.submit(new Callable<FutureReturnType>() {
-                        @Override
-                        public FutureReturnType call() throws Exception {
-                            throw new RuntimeException("This task has not been enqueued due to queue overflow!");
-                        }
+                    ret = execSvc.submit(() -> {
+                        throw new RuntimeException("This task has not been enqueued due to queue overflow!");
                     });
                 } else {
                     numberOfTasksByEndpoint.add(kvs);
@@ -103,7 +105,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
             }
 
             @Override
-            public Future<FutureReturnType> take() throws InterruptedException {
+            public Future<FutureReturnTypeT> take() throws InterruptedException {
                 return registerTaskCompleted(execSvc.take());
             }
         };

@@ -63,11 +63,6 @@ public abstract class AbstractTransaction implements Transaction {
         this.transactionType = transactionType;
     }
 
-    @Override
-    final public void delete(TableReference tableRef, Set<Cell> cells) {
-        put(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
-    }
-
     public boolean isTempTable(TableReference tableRef) {
         return tempTables.contains(tableRef);
     }

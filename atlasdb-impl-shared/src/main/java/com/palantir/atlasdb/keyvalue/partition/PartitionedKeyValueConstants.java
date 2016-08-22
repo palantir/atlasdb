@@ -15,8 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.partition;
 
-public class PartitionedKeyValueConstants {
+public final class PartitionedKeyValueConstants {
     private PartitionedKeyValueConstants() {
+        // Utility class
     }
 
     // If you pass this value to endpoint constructor, a new

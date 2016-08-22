@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Palantir Technologies
+ * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,12 +41,13 @@ public abstract class ConnectionConfig {
     public abstract String type();
 
     public abstract String getDbLogin();
-    public abstract String getDbPassword();
+    public abstract MaskedValue getDbPassword();
 
     public abstract String getUrl();
     public abstract String getDriverClass();
     public abstract String getTestQuery();
 
+    @JsonIgnore
     @Value.Derived
     public abstract DBType getDbType();
 
@@ -95,6 +96,10 @@ public abstract class ConnectionConfig {
         return 45;
     }
 
+    /**
+     * This is JsonIgnore'd because it doesn't serialise. Serialisation is needed for atlasdb-dropwizard-bundle.
+     */
+    @JsonIgnore
     @Value.Default
     public Visitor<Connection> getOnAcquireConnectionVisitor() {
         return Visitors.emptyVisitor();
@@ -123,6 +128,9 @@ public abstract class ConnectionConfig {
         config.setMaxLifetime(TimeUnit.SECONDS.toMillis(getMaxConnectionAge()));
         config.setIdleTimeout(TimeUnit.SECONDS.toMillis(getMaxIdleTime()));
         config.setLeakDetectionThreshold(getUnreturnedConnectionTimeout());
+        // Not a bug - we don't want to use connectionTimeout here, since Hikari uses a different terminology.
+        // See https://github.com/brettwooldridge/HikariCP/wiki/Configuration - connectionTimeout = how long to wait for a connection to be opened.
+        // ConnectionConfig.connectionTimeoutSeconds is passed in via getHikariProperties(), in subclasses.
         config.setConnectionTimeout(getCheckoutTimeout());
 
         // TODO: See if driver supports JDBC4 (isValid()) and use it.

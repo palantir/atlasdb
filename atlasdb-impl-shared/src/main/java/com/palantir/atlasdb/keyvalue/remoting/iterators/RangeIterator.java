@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -28,7 +29,6 @@ import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class RangeIterator<T> implements ClosableIterator<RowResult<T>> {
-
     @JsonProperty("tableRef")
     final TableReference tableRef;
 
@@ -65,7 +65,7 @@ public abstract class RangeIterator<T> implements ClosableIterator<RowResult<T>>
         }
 
         // Download more results from the server
-        RowResult<T> lastResult = page.get(page.size()-1);
+        RowResult<T> lastResult = Iterables.getLast(page);
         byte[] newStart = RangeRequests.getNextStartRow(range.isReverse(), lastResult.getRowName());
 
         RangeRequest newRange = range.getBuilder().startRowInclusive(newStart).build();
@@ -85,7 +85,11 @@ public abstract class RangeIterator<T> implements ClosableIterator<RowResult<T>>
         }
     }
 
-    protected abstract ClosableIterator<RowResult<T>> getMoreRows(KeyValueService kvs, TableReference tableRef, RangeRequest newRange, long timestamp);
+    protected abstract ClosableIterator<RowResult<T>> getMoreRows(
+            KeyValueService kvs,
+            TableReference tableReference,
+            RangeRequest newRange,
+            long newTimestamp);
 
     private void swapWithNewRows(RangeIterator<T> other) {
         hasNext = other.hasNext;
@@ -145,7 +149,8 @@ public abstract class RangeIterator<T> implements ClosableIterator<RowResult<T>>
 
     static <T> RangeIterator<T> validateIsRangeIterator(ClosableIterator<RowResult<T>> it) {
         if (!(it instanceof RangeIterator)) {
-            throw new IllegalArgumentException("The server-side kvs must be wrapper with RemotingKeyValueService.createServerSide()");
+            throw new IllegalArgumentException(
+                    "The server-side kvs must be wrapper with RemotingKeyValueService.createServerSide()");
         }
         return (RangeIterator<T>) it;
     }

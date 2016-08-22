@@ -27,10 +27,16 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
  */
 public interface Follower {
     /**
+     * Run the follower over the cells in a transaction.
+     *
      * @param tableRef the table being scrubbed / swept
      * @param cells ALL the actual cells being deleted (not just the ones passed in to scrub()!)
      * @param transactionType regular or aggressive hard delete
      */
     // TODO (ejin): Is passing a TransactionType really the cleanest approach here?
-    void run(TransactionManager txManager, TableReference tableRef, Set<Cell> cells, Transaction.TransactionType transactionType);
+    void run(
+            TransactionManager txManager,
+            TableReference tableRef,
+            Set<Cell> cells,
+            Transaction.TransactionType transactionType);
 }

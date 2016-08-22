@@ -22,11 +22,11 @@ dependencies {
     compile 'com.google.dagger:dagger:2.0.2'
 
     compile "org.rocksdb:rocksdbjni:4.1.0"
-    compile 'org.postgresql:postgresql:9.4.1208'
+    compile 'org.postgresql:postgresql:' + libVersions.postgresql
 
     compile 'org.apache.thrift:libthrift:' + libVersions.libthrift
 
-    processor 'org.immutables:value:2.0.21'
+    processor 'org.immutables:value:' + libVersions.immutables
     processor('com.google.dagger:dagger-compiler:2.0.2') {
         // We need to explicitly exclude these so that intellij does not label them as provided
         if(gradle.startParameter.taskNames.contains('idea')) {

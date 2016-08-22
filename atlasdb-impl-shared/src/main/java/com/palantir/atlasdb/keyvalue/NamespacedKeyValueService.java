@@ -21,10 +21,12 @@ import java.util.Set;
 
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -48,8 +50,18 @@ public interface NamespacedKeyValueService {
     TableMappingService getTableMapper();
 
     @Idempotent
-    Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows,
-                             ColumnSelection columnSelection,long timestamp);
+    Map<Cell, Value> getRows(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnSelection columnSelection,
+            long timestamp);
+
+    @Idempotent
+    Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection,
+            long timestamp);
 
     @Idempotent
     Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell);
@@ -94,7 +106,8 @@ public interface NamespacedKeyValueService {
                                                                 long timestamp);
 
     @Idempotent
-    Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef,
+    Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
+            TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             long timestamp);
 

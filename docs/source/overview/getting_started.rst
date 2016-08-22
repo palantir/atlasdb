@@ -10,7 +10,7 @@ Running from Source
 ===================
 
 1. Clone the git repository:
-   ``git clone git@github.com/palantir/atlasdb.git; cd atlasdb``.
+   ``git clone git@github.com:palantir/atlasdb.git; cd atlasdb``.
 2. Generate IDE configuration: ``./gradlew eclipse`` or
    ``./gradlew idea``.
 3. Import projects into Eclipse/Intellij.

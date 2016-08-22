@@ -3,15 +3,15 @@ apply plugin: 'org.inferred.processors'
 apply from: "../gradle/shared.gradle"
 
 dependencies {
+  compile project(":atlasdb-api")
   compile project(":atlasdb-client")
   compile project(":atlasdb-dbkvs-hikari")
-  compile project(":atlasdb-spi")
   compile project(':timestamp-impl')
   compile project(':commons-db')
   compile project(':commons-api')
 
   testCompile project(':atlasdb-config')
 
-  processor 'org.immutables:value:2.0.21'
+  processor 'org.immutables:value:' + libVersions.immutables
   processor "com.google.auto.service:auto-service:1.0-rc2"
 }

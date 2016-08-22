@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.keyvalue.jdbc;
 
 import com.google.auto.service.AutoService;
+import com.google.common.base.Optional;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -32,7 +34,7 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config) {
+    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
         AtlasDbVersion.ensureVersionReported();
         return JdbcKeyValueService.create((JdbcKeyValueConfiguration) config);
     }
