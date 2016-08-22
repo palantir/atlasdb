@@ -18,24 +18,47 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 
-import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.Test;
+import java.util.Arrays;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.Assume;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import com.google.common.base.Optional;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweeperTest;
 
+@RunWith(Parameterized.class)
 public class CassandraKeyValueServiceSweeperTest extends AbstractSweeperTest {
+    @Parameterized.Parameter
+    public boolean useColumnBatchSize;
+
+    @Parameterized.Parameters(name = "Use column batch size parameter = {0}")
+    public static Iterable<?> parameters() {
+        return Arrays.asList(true, false);
+    }
+
+
     @Override
     protected KeyValueService getKeyValueService() {
+        ImmutableCassandraKeyValueServiceConfig config = useColumnBatchSize
+                ? CassandraTestSuite.CASSANDRA_KVS_CONFIG.withSweepColumnBatchSize(Optional.of(10))
+                : CassandraTestSuite.CASSANDRA_KVS_CONFIG;
+
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), CassandraTestSuite.LEADER_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(config), CassandraTestSuite.LEADER_CONFIG);
     }
 
     @Test
     public void should_not_oom_when_there_are_many_large_values_to_sweep() {
+        Assume.assumeTrue("should_not_oom test will always fail if column batch size is not set!", useColumnBatchSize);
+
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
 
         long numInsertions = 100;

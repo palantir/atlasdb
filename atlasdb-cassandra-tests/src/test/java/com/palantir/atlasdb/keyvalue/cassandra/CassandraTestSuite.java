@@ -91,7 +91,6 @@ public class CassandraTestSuite {
                 .mutationBatchCount(10000)
                 .mutationBatchSizeBytes(10000000)
                 .fetchBatchCount(1000)
-                .sweepColumnBatchSize(Optional.of(10))
                 .safetyDisabled(false)
                 .autoRefreshNodes(false)
                 .build();
