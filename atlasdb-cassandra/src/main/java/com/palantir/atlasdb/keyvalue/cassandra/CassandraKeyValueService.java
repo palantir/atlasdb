@@ -117,6 +117,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.ThreadNamingCallable;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.util.paging.AbstractPagingIterable;
+import com.palantir.util.paging.BasicResultsPage;
 import com.palantir.util.paging.Pager;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -1335,8 +1336,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             return ClosableIterators.wrap(ImmutableList.<RowResult<U>>of().iterator());
         }
 
-        final int batchHint = rangeRequest.getBatchHint() == null ? 100 : rangeRequest.getBatchHint();
-
         SliceRange slice = new SliceRange(
                 ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
                 ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
@@ -1345,50 +1344,87 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         final SlicePredicate pred = new SlicePredicate();
         pred.setSlice_range(slice);
 
-        final ColumnSelection selection = rangeRequest.getColumnNames().isEmpty() ? ColumnSelection.all()
-                : ColumnSelection.create(rangeRequest.getColumnNames());
 
         AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>> rowResults =
-                new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
-            private final ColumnGetter columnGetter = new CqlColumnGetter(consistency, tableRef, columnBatchSize);
-
-            @Override
-            protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage() throws Exception {
-                return getSinglePage(rangeRequest.getStartInclusive());
-            }
-
-            @Override
-            protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(
-                    TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous) throws Exception {
-                return getSinglePage(previous.getTokenForNextPage());
-            }
-
-            TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(final byte[] startKey) throws Exception {
-                final byte[] endExclusive = rangeRequest.getEndExclusive();
-
-                KeyRange keyRange = getKeyRange(startKey, endExclusive, batchHint);
-                List<KeySlice> firstPage = getRangeSlices(tableRef, keyRange, pred, consistency);
-
-                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = columnGetter.getColumnsByRow(firstPage);
-
-                TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
-                        resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
-
-                if (page.moreResultsAvailable() && firstPage.size() < batchHint) {
-                    // If get_range_slices didn't return the full number of results, there's no
-                    // point to trying to get another page
-                    return SimpleTokenBackedResultsPage.create(endExclusive, page.getResults(), false);
-                }
-
-                return page;
-            }
-
-        };
+                new PagingIterable(
+                        new CqlColumnGetter(consistency, tableRef, columnBatchSize),
+                        rangeRequest,
+                        tableRef,
+                        pred,
+                        consistency,
+                        resultsExtractor,
+                        timestamp
+                );
 
         return ClosableIterators.wrap(rowResults.iterator());
     }
 
-    private class PagingIterable implements AbstractPagingIterable {
+    private class PagingIterable<U, T> extends AbstractPagingIterable {
+        private final ColumnGetter columnGetter;
+        private final RangeRequest rangeRequest;
+        private final TableReference tableRef;
+        private final SlicePredicate pred;
+        private final ConsistencyLevel consistency;
+        private final Supplier<ResultsExtractor<T, U>> resultsExtractor;
+        private final long timestamp;
+
+        private final int batchHint;
+        private final ColumnSelection selection;
+
+        private PagingIterable(
+                ColumnGetter columnGetter,
+                RangeRequest rangeRequest,
+                TableReference tableRef,
+                SlicePredicate pred,
+                ConsistencyLevel consistency,
+                Supplier<ResultsExtractor<T, U>> resultsExtractor,
+                long timestamp) {
+            this.columnGetter = columnGetter;
+            this.rangeRequest = rangeRequest;
+            this.tableRef = tableRef;
+            this.pred = pred;
+            this.consistency = consistency;
+            this.resultsExtractor = resultsExtractor;
+            this.timestamp = timestamp;
+
+            batchHint = rangeRequest.getBatchHint() == null ? 100 : rangeRequest.getBatchHint();
+            selection = rangeRequest.getColumnNames().isEmpty() ? ColumnSelection.all()
+                    : ColumnSelection.create(rangeRequest.getColumnNames());
+
+        }
+
+        @Override
+        protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage() throws Exception {
+            return getSinglePage(rangeRequest.getStartInclusive());
+        }
+
+        @Override
+        protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(BasicResultsPage previous)
+                throws Exception {
+            TokenBackedBasicResultsPage<RowResult<U>, byte[]> castedPrevious =
+                    (TokenBackedBasicResultsPage<RowResult<U>, byte[]>) previous;
+            return getSinglePage(castedPrevious.getTokenForNextPage());
+        }
+
+        TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(final byte[] startKey) throws Exception {
+            final byte[] endExclusive = rangeRequest.getEndExclusive();
+
+            KeyRange keyRange = getKeyRange(startKey, endExclusive, batchHint);
+            List<KeySlice> firstPage = getRangeSlices(tableRef, keyRange, pred, consistency);
+
+            Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = columnGetter.getColumnsByRow(firstPage);
+
+            TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
+                    resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
+
+            if (page.moreResultsAvailable() && firstPage.size() < batchHint) {
+                // If get_range_slices didn't return the full number of results, there's no
+                // point to trying to get another page
+                return SimpleTokenBackedResultsPage.create(endExclusive, page.getResults(), false);
+            }
+
+            return page;
+        }
 
     }
 
@@ -1473,7 +1509,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         if (rangeRequest.isEmptyRange()) {
             return ClosableIterators.wrap(ImmutableList.<RowResult<U>>of().iterator());
         }
-        final int batchHint = rangeRequest.getBatchHint() == null ? 100 : rangeRequest.getBatchHint();
 
         SliceRange slice = new SliceRange(
                 ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
@@ -1483,45 +1518,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         final SlicePredicate pred = new SlicePredicate();
         pred.setSlice_range(slice);
 
-        final ColumnSelection selection = rangeRequest.getColumnNames().isEmpty() ? ColumnSelection.all()
-                : ColumnSelection.create(rangeRequest.getColumnNames());
 
         AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>> rowResults =
-                new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
-            private final ColumnGetter columnGetter = new DelegatingColumnGetter();
-                    
-            @Override
-            protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage() throws Exception {
-                return getSinglePage(rangeRequest.getStartInclusive());
-            }
-
-            @Override
-            protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(
-                    TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous) throws Exception {
-                return getSinglePage(previous.getTokenForNextPage());
-            }
-
-            TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(final byte[] startKey) throws Exception {
-                final byte[] endExclusive = rangeRequest.getEndExclusive();
-
-                KeyRange keyRange = getKeyRange(startKey, endExclusive, batchHint);
-                List<KeySlice> firstPage = getRangeSlices(tableRef, keyRange, pred, consistency);
-
-                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = columnGetter.getColumnsByRow(firstPage);
-
-                TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
-                        resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
-
-                if (page.moreResultsAvailable() && firstPage.size() < batchHint) {
-                    // If get_range_slices didn't return the full number of results, there's no
-                    // point to trying to get another page
-                    return SimpleTokenBackedResultsPage.create(endExclusive, page.getResults(), false);
-                }
-
-                return page;
-            }
-
-        };
+                new PagingIterable(
+                        new DelegatingColumnGetter(),
+                        rangeRequest,
+                        tableRef,
+                        pred,
+                        consistency,
+                        resultsExtractor,
+                        timestamp
+                );
 
         return ClosableIterators.wrap(rowResults.iterator());
     }
