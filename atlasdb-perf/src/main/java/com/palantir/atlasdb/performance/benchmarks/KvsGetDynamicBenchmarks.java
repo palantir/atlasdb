@@ -45,7 +45,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.performance.backend.KeyValueServiceConnector;
+import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
 
 /**
  * Performance benchmarks for KVS get with dynamic columns.
@@ -68,7 +68,7 @@ public class KvsGetDynamicBenchmarks {
 
     private static final int NUM_COLS = 50000;
 
-    private KeyValueServiceConnector connector;
+    private AtlasDbServicesConnector connector;
     private KeyValueService kvs;
 
     private TableReference tableRef1;
@@ -77,9 +77,9 @@ public class KvsGetDynamicBenchmarks {
     private Map<Cell, Long> firstCell2ReadTimestamp;
 
     @Setup
-    public void setup(KeyValueServiceConnector conn) throws UnsupportedEncodingException {
+    public void setup(AtlasDbServicesConnector conn) throws UnsupportedEncodingException {
         this.connector = conn;
-        kvs = conn.connect();
+        kvs = conn.connect().getKeyValueService();
         tableRef1 = KvsBenchmarks.createTableWithDynamicColumns(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_COMPONENT);
         byte[] rowBytes = ROW_COMPONENT.getBytes(StandardCharsets.UTF_8);
         Map<Cell, byte[]> values = Maps.newHashMap();
