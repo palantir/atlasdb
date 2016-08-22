@@ -1350,7 +1350,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>> rowResults =
                 new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
-            private final ColumnGetter foo = new CqlColumnGetter(consistency, tableRef, columnBatchSize);
+            private final ColumnGetter columnGetter = new CqlColumnGetter(consistency, tableRef, columnBatchSize);
 
             @Override
             protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage() throws Exception {
@@ -1369,11 +1369,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 KeyRange keyRange = getKeyRange(startKey, endExclusive, batchHint);
                 List<KeySlice> firstPage = getRangeSlices(tableRef, keyRange, pred, consistency);
 
-                Map<ByteBuffer, List<ColumnOrSuperColumn>> columnsByRow = foo.getColumnsByRow(firstPage);
+                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = columnGetter.getColumnsByRow(firstPage);
 
                 TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
-                        resultsExtractor.get().getPageFromRangeResults(columnsByRow, timestamp, selection,
-                                endExclusive);
+                        resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
 
                 if (page.moreResultsAvailable() && firstPage.size() < batchHint) {
                     // If get_range_slices didn't return the full number of results, there's no
@@ -1384,10 +1383,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 return page;
             }
 
-
         };
 
         return ClosableIterators.wrap(rowResults.iterator());
+    }
+
+    private class PagingIterable implements AbstractPagingIterable {
+
     }
 
     private interface ColumnGetter {
@@ -1486,27 +1488,26 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>> rowResults =
                 new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
-                    // TODO use DelegatingColumnGetter
+            private final ColumnGetter columnGetter = new DelegatingColumnGetter();
                     
             @Override
             protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage() throws Exception {
-                return getSinglePage(rangeRequest.getStartInclusive(), CassandraKeyValueServices::getColsByKey);
+                return getSinglePage(rangeRequest.getStartInclusive());
             }
 
             @Override
             protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(
                     TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous) throws Exception {
-                return getSinglePage(previous.getTokenForNextPage(), CassandraKeyValueServices::getColsByKey);
+                return getSinglePage(previous.getTokenForNextPage());
             }
 
-            TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(final byte[] startKey,
-                    Function<List<KeySlice>, Map<ByteBuffer, List<ColumnOrSuperColumn>>> method) throws Exception {
+            TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(final byte[] startKey) throws Exception {
                 final byte[] endExclusive = rangeRequest.getEndExclusive();
 
                 KeyRange keyRange = getKeyRange(startKey, endExclusive, batchHint);
                 List<KeySlice> firstPage = getRangeSlices(tableRef, keyRange, pred, consistency);
 
-                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = method.apply(firstPage);
+                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = columnGetter.getColumnsByRow(firstPage);
 
                 TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
                         resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
