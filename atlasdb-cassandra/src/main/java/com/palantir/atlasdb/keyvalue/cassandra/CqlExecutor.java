@@ -40,7 +40,7 @@ public class CqlExecutor {
         this.consistency = consistency;
     }
 
-    public CqlResult getColAndTimestamp(TableReference tableRef, String row, int limit) {
+    public CqlResult getColumnsForRow(TableReference tableRef, String row, int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s LIMIT %s;",
                 getTableName(tableRef),
@@ -49,23 +49,23 @@ public class CqlExecutor {
         return execute(query);
     }
 
-    public CqlResult getColAndTimestampForColumnAndTimestamp(TableReference tableRef, String row, String columnNameStr, long timestamp, int limit) {
+    public CqlResult getTimestampsForRowAndColumn(TableReference tableRef, String row, String column, long minTimestamp, int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s AND column1 = %s AND column2 > %s LIMIT %s;",
                 getTableName(tableRef),
                 row,
-                columnNameStr,
-                timestamp,
+                column,
+                minTimestamp,
                 limit);
         return execute(query);
     }
 
-    public CqlResult getColAndTimestampForNextColumn(TableReference tableRef, String row, String columnNameStr, int limit) {
+    public CqlResult getNextColumnsForRow(TableReference tableRef, String row, String previousColumn, int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s AND column1 > %s LIMIT %s;",
                 getTableName(tableRef),
                 row,
-                columnNameStr,
+                previousColumn,
                 limit);
         return execute(query);
     }

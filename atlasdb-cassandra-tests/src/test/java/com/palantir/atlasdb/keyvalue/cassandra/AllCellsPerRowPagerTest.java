@@ -24,7 +24,6 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -107,7 +106,7 @@ public class AllCellsPerRowPagerTest {
 
         pager.getFirstPage();
 
-        verify(executor).getColAndTimestamp(
+        verify(executor).getColumnsForRow(
                 DEFAULT_TABLE,
                 encodeAsHex(rowKey.array()),
                 pageSize);
@@ -119,7 +118,7 @@ public class AllCellsPerRowPagerTest {
 
         pager.getNextPage(PREVIOUS_PAGE);
 
-        verify(executor).getColAndTimestampForColumnAndTimestamp(
+        verify(executor).getTimestampsForRowAndColumn(
                 DEFAULT_TABLE,
                 encodeAsHex(rowKey.array()),
                 encodeAsHex(PREVIOUS_COLUMN_NAME.getBytes()),
@@ -175,19 +174,19 @@ public class AllCellsPerRowPagerTest {
     private void allQueriesSimpleReturn(List<CqlRow> rows) {
         CqlResult cqlResult = mock(CqlResult.class);
         when(cqlResult.getRows()).thenReturn(rows);
-        when(executor.getColAndTimestamp(any(TableReference.class), anyString(), anyInt())).thenReturn(cqlResult);
+        when(executor.getColumnsForRow(any(TableReference.class), anyString(), anyInt())).thenReturn(cqlResult);
     }
 
     private void allQueriesWithColumnAndTimestampReturn(List<CqlRow> rows) {
         CqlResult cqlResult = mock(CqlResult.class);
         when(cqlResult.getRows()).thenReturn(rows);
-        when(executor.getColAndTimestampForColumnAndTimestamp(any(TableReference.class), anyString(), anyString(), anyLong(), anyInt())).thenReturn(cqlResult);
+        when(executor.getTimestampsForRowAndColumn(any(TableReference.class), anyString(), anyString(), anyLong(), anyInt())).thenReturn(cqlResult);
     }
 
     private void allQueriesWithColumnReturn(List<CqlRow> rows) {
         CqlResult result2 = mock(CqlResult.class);
         when(result2.getRows()).thenReturn(rows);
-        when(executor.getColAndTimestampForNextColumn(any(TableReference.class), anyString(), anyString(), anyInt())).thenReturn(result2);
+        when(executor.getNextColumnsForRow(any(TableReference.class), anyString(), anyString(), anyInt())).thenReturn(result2);
     }
 
     private void assertColumnOrSuperColumnHasCorrectNameAndTimestamp(ColumnOrSuperColumn columnOrSuperColumn, String expectedName, long expectedTs) {

@@ -46,7 +46,7 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
 
     @Override
     public List<ColumnOrSuperColumn> getFirstPage() {
-        CqlResult cqlResult = cqlExecutor.getColAndTimestamp(tableRef, row, pageSize);
+        CqlResult cqlResult = cqlExecutor.getColumnsForRow(tableRef, row, pageSize);
         return getColumns(cqlResult);
     }
 
@@ -58,13 +58,13 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
         String columnNameStr = encodeAsHex(nameAndTimestamp.getLhSide());
         long timestamp = ~nameAndTimestamp.getRhSide();
 
-        CqlResult cqlResult = cqlExecutor.getColAndTimestampForColumnAndTimestamp(tableRef, row, columnNameStr, timestamp, pageSize);
+        CqlResult cqlResult = cqlExecutor.getTimestampsForRowAndColumn(tableRef, row, columnNameStr, timestamp, pageSize);
         List<ColumnOrSuperColumn> columns = getColumns(cqlResult);
 
         if (columns.size() < pageSize) {
             // We finished with this column, but there might be more, so let's capture them
             CqlResult secondCqlResult =
-                    cqlExecutor.getColAndTimestampForNextColumn(tableRef, row, columnNameStr, pageSize - columns.size());
+                    cqlExecutor.getNextColumnsForRow(tableRef, row, columnNameStr, pageSize - columns.size());
             columns.addAll(getColumns(secondCqlResult));
         }
 
