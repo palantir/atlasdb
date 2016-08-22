@@ -55,8 +55,9 @@ public class AllCellsPerRowPagerTest {
     private static final String OTHER_COLUMN_NAME = "otherColumn";
     private static final String PREVIOUS_COLUMN_NAME = "don't care";
     private static final long PREVIOUS_TIMESTAMP = 23;
+    private static final List<ColumnOrSuperColumn> PREVIOUS_PAGE = ImmutableList.of(
+            makeColumnOrSuperColumn(PREVIOUS_COLUMN_NAME, PREVIOUS_TIMESTAMP));
 
-    private static final List<ColumnOrSuperColumn> PREVIOUS_PAGE = ImmutableList.of(makeColumnOrSuperColumn(PREVIOUS_COLUMN_NAME, PREVIOUS_TIMESTAMP));
     private AllCellsPerRowPager pager = new AllCellsPerRowPager(
             executor,
             rowKey,

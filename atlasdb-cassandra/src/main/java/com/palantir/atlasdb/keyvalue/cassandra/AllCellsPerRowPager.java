@@ -55,16 +55,16 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
         ColumnOrSuperColumn previousResult = Iterables.getLast(currentPage);
 
         Pair<byte[], Long> nameAndTimestamp = CassandraKeyValueServices.decomposeName(previousResult.getColumn());
-        String columnNameStr = encodeAsHex(nameAndTimestamp.getLhSide());
+        String columnName = encodeAsHex(nameAndTimestamp.getLhSide());
         long timestamp = ~nameAndTimestamp.getRhSide();
 
-        CqlResult cqlResult = cqlExecutor.getTimestampsForRowAndColumn(tableRef, row, columnNameStr, timestamp, pageSize);
+        CqlResult cqlResult = cqlExecutor.getTimestampsForRowAndColumn(tableRef, row, columnName, timestamp, pageSize);
         List<ColumnOrSuperColumn> columns = getColumns(cqlResult);
 
         if (columns.size() < pageSize) {
             // We finished with this column, but there might be more, so let's capture them
             CqlResult secondCqlResult =
-                    cqlExecutor.getNextColumnsForRow(tableRef, row, columnNameStr, pageSize - columns.size());
+                    cqlExecutor.getNextColumnsForRow(tableRef, row, columnName, pageSize - columns.size());
             columns.addAll(getColumns(secondCqlResult));
         }
 

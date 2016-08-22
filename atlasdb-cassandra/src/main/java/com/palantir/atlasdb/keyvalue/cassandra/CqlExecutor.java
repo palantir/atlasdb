@@ -49,7 +49,12 @@ public class CqlExecutor {
         return execute(query);
     }
 
-    public CqlResult getTimestampsForRowAndColumn(TableReference tableRef, String row, String column, long minTimestamp, int limit) {
+    public CqlResult getTimestampsForRowAndColumn(
+            TableReference tableRef,
+            String row,
+            String column,
+            long minTimestamp,
+            int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s AND column1 = %s AND column2 > %s LIMIT %s;",
                 getTableName(tableRef),
