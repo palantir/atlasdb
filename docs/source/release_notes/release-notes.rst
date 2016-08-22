@@ -46,21 +46,26 @@ v0.12.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/801>`__)
 
     *    - |breaking|
-         - If you do not specify a leader block in your config, AtlasDB will now still try to register the timestamp and lock endpoints necessary for other clients or CLIs to run in the same keyspace.
-           This may require changes in setup logic for applications that have previously only ever run with no leader block.
+         - AtlasDB will always try to register timestamp and lock endpoints for your application, whereas previously this only occurred if you specify a :ref:`leader-config`.
+           This ensures that CLIs will be able to run against your service even in the single node case.
+           For Dropwizard applications, this is only a breaking change if you try to initialize your KeyValueService after having initialized the Dropwizard application.
+           Note: If you are initializing the KVS post-Dropwizard initialization, then your application will already fail when starting multiple AtlasDB clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/708>`__)
 
     *    - |new|
-         - There is now a dropwizard bundle which can be added to dropwizard applications. This will add startup commands to launch the AtlasDB console and CLIs including timestamp manipulation,
-           transaction range cleaning, and sweeping. These commands will only work if the server is started with a leader block in its configuration.
+         - There is now a Dropwizard bundle which can be added to Dropwizard applications.
+           This will add startup commands to launch the AtlasDB console and :ref:`CLIs <clis>` suchs as ``sweep`` and ``timestamp``, which is needed to perform :ref:`live backups <backup-restore>`.
+           These commands will only work if the server is started with a leader block in its configuration.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/629>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/696>`__)
 
     *    - |fixed|
          - DB passwords are no longer output as part of the connection configuration ``toString()`` methods.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/755>`__)
-    *    - |improved|
-         - Docs for cassandra_KVS_configuration now have correct information on ``ssl`` and ``sslConfiguration`` parameters. Also, documentation for leader block is now added.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/787>`__)
+
+    *    - |new|
+         - All KVSs now come wrapped with ProfilingKeyValueService, which at the TRACE level provides timing information per KVS operation performed by AtlasDB.
+           See :ref:`logging-configuration` for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/798>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -225,7 +230,7 @@ v0.9.0
          - Inserting an empty (size = 0) value into a ``Cell`` will now throw an ``IllegalArgumentException``. (`#156 <https://github.com/palantir/atlasdb/issues/156>`__) Likely empty
            values include empty strings and empty protobufs.
 
-           Atlas cannot currently distinguish between empty and deleted cells. In previous versions of Atlas, inserting
+           AtlasDB cannot currently distinguish between empty and deleted cells. In previous versions of AtlasDB, inserting
            an empty value into a ``Cell`` would delete that cell. Thus, in this snippet,
 
            .. code-block:: java
@@ -294,8 +299,8 @@ v0.7.0
          - Change
 
     *    - |new|
-         - Atlas can now be backed by Postgres via DB KVS. This is a very early release for this feature, so please contact us if you
-           plan on using it. Please see `the documentation <http://palantir.github.io/atlasdb/html/configuration/postgres_key_value_service_config.html>`_ for more details.
+         - AtlasDB can now be backed by Postgres via DB KVS. This is a very early release for this feature, so please contact us if you
+           plan on using it. Please see :ref:`the documentation <postgres-configuration>` for more details.
 
     *    - |fixed|
          - The In Memory Key Value Service now makes defensive copies of any data stored or retrieved. This may lead to a slight performance degradation to users of In Memory Key Value Service.
@@ -303,7 +308,7 @@ v0.7.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/552>`__)
 
     *    - |fixed|
-         - Atlas will no longer log incorrect errors stating "Couldn't grab new token ranges for token aware cassandra mapping" when running against a single node and single token Cassandra cluster.
+         - AtlasDB will no longer log incorrect errors stating "Couldn't grab new token ranges for token aware cassandra mapping" when running against a single node and single token Cassandra cluster.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/634>`__)
 
     *    - |improved|

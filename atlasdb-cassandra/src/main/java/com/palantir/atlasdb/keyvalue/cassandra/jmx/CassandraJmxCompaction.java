@@ -39,16 +39,17 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 
-public class CassandraJmxCompaction {
+public final class CassandraJmxCompaction {
     private static final Logger log = LoggerFactory.getLogger(CassandraJmxCompaction.class);
     private final CassandraKeyValueServiceConfig config;
 
     private CassandraJmxCompaction(CassandraKeyValueServiceConfig config) {
-        this.config = Preconditions.checkNotNull(config);
+        this.config = Preconditions.checkNotNull(config, "config cannot be null");
     }
 
-    public static Optional<CassandraJmxCompactionManager> createJmxCompactionManager(CassandraKeyValueServiceConfigManager configManager) {
-        Preconditions.checkNotNull(configManager);
+    public static Optional<CassandraJmxCompactionManager> createJmxCompactionManager(
+            CassandraKeyValueServiceConfigManager configManager) {
+        Preconditions.checkNotNull(configManager, "configManager cannot be null");
         CassandraKeyValueServiceConfig config = configManager.getConfig();
         CassandraJmxCompaction jmxCompaction = new CassandraJmxCompaction(config);
 
@@ -90,29 +91,47 @@ public class CassandraJmxCompaction {
     }
 
     /**
-     * return an empty set if no client can be created
+     * Return an empty set if no client can be created.
      */
     private ImmutableSet<CassandraJmxCompactionClient> createCompactionClients(CassandraJmxCompactionConfig jmxConfig) {
         Set<CassandraJmxCompactionClient> clients = Sets.newHashSet();
         Set<InetSocketAddress> servers = config.servers();
         int jmxPort = jmxConfig.port();
         for (InetSocketAddress addr : servers) {
-            CassandraJmxCompactionClient client = createCompactionClient(addr.getHostString(), jmxPort, jmxConfig.username(), jmxConfig.password());
+            CassandraJmxCompactionClient client =
+                    createCompactionClient(addr.getHostString(), jmxPort, jmxConfig.username(), jmxConfig.password());
             clients.add(client);
         }
 
         return ImmutableSet.copyOf(clients);
     }
 
-    private CassandraJmxCompactionClient createCompactionClient(String host, int port, String username, String password) {
-        CassandraJmxConnectorFactory jmxConnectorFactory = new CassandraJmxConnectorFactory(host, port, username, password);
+    private CassandraJmxCompactionClient createCompactionClient(
+            String host,
+            int port,
+            String username,
+            String password) {
+        CassandraJmxConnectorFactory jmxConnectorFactory =
+                new CassandraJmxConnectorFactory(host, port, username, password);
         JMXConnector jmxConnector = jmxConnectorFactory.create();
 
         CassandraJmxBeanFactory jmxBeanFactory = new CassandraJmxBeanFactory(jmxConnector);
-        StorageServiceMBean storageServiceProxy = jmxBeanFactory.create(CassandraConstants.STORAGE_SERVICE_OBJECT_NAME, StorageServiceMBean.class);
-        HintedHandOffManagerMBean hintedHandoffProxy = jmxBeanFactory.create(CassandraConstants.HINTED_HANDOFF_MANAGER_OBJECT_NAME, HintedHandOffManagerMBean.class);
-        CompactionManagerMBean compactionManagerProxy = jmxBeanFactory.create(CassandraConstants.COMPACTION_MANAGER_OBJECT_NAME, CompactionManagerMBean.class);
+        StorageServiceMBean storageServiceProxy = jmxBeanFactory.create(
+                CassandraConstants.STORAGE_SERVICE_OBJECT_NAME,
+                StorageServiceMBean.class);
+        HintedHandOffManagerMBean hintedHandoffProxy = jmxBeanFactory.create(
+                CassandraConstants.HINTED_HANDOFF_MANAGER_OBJECT_NAME,
+                HintedHandOffManagerMBean.class);
+        CompactionManagerMBean compactionManagerProxy = jmxBeanFactory.create(
+                CassandraConstants.COMPACTION_MANAGER_OBJECT_NAME,
+                CompactionManagerMBean.class);
 
-        return CassandraJmxCompactionClient.create(host, port, jmxConnector, storageServiceProxy, hintedHandoffProxy, compactionManagerProxy);
+        return CassandraJmxCompactionClient.create(
+                host,
+                port,
+                jmxConnector,
+                storageServiceProxy,
+                hintedHandoffProxy,
+                compactionManagerProxy);
     }
 }

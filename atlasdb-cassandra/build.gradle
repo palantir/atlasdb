@@ -24,6 +24,8 @@ dependencies {
     exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
   }
 
+  compile group: 'com.google.code.findbugs', name: 'annotations', version: '2.0.3'
+
   processor 'org.immutables:value:' + libVersions.immutables
   processor 'com.google.auto.service:auto-service:1.0-rc2'
 }
