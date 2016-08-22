@@ -31,12 +31,10 @@ import com.palantir.common.base.Throwables;
 
 public class CqlExecutor {
     private CassandraClientPool clientPool;
-    private InetSocketAddress host;
     private ConsistencyLevel consistency;
 
-    public CqlExecutor(CassandraClientPool clientPool, InetSocketAddress host, ConsistencyLevel consistency) {
+    public CqlExecutor(CassandraClientPool clientPool, ConsistencyLevel consistency) {
         this.clientPool = clientPool;
-        this.host = host;
         this.consistency = consistency;
     }
 
@@ -46,7 +44,7 @@ public class CqlExecutor {
                 getTableName(tableRef),
                 row,
                 limit);
-        return execute(query);
+        return execute(query, getHostForRow(row));
     }
 
     public CqlResult getTimestampsForRowAndColumn(
@@ -62,7 +60,7 @@ public class CqlExecutor {
                 column,
                 minTimestamp,
                 limit);
-        return execute(query);
+        return execute(query, getHostForRow(row));
     }
 
     public CqlResult getNextColumnsForRow(TableReference tableRef, String row, String previousColumn, int limit) {
@@ -72,17 +70,21 @@ public class CqlExecutor {
                 row,
                 previousColumn,
                 limit);
-        return execute(query);
+        return execute(query, getHostForRow(row));
     }
 
-    private CqlResult execute(String query) {
+    private InetSocketAddress getHostForRow(String row) {
+        return clientPool.getRandomHostForKey(row.getBytes());
+    }
+
+    private CqlResult execute(String query, InetSocketAddress host1) {
         ByteBuffer queryBytes = ByteBuffer.wrap(query.getBytes(StandardCharsets.UTF_8));
-        return executeQuery(queryBytes);
+        return executeQuery(queryBytes, host1);
     }
 
-    private CqlResult executeQuery(ByteBuffer queryBytes) {
+    private CqlResult executeQuery(ByteBuffer queryBytes, InetSocketAddress host1) {
         try {
-            return clientPool.runWithRetryOnHost(host, client ->
+            return clientPool.runWithRetryOnHost(host1, client ->
                     client.execute_cql3_query(queryBytes, Compression.NONE, consistency));
         } catch (TException e) {
             throw Throwables.throwUncheckedException(e);

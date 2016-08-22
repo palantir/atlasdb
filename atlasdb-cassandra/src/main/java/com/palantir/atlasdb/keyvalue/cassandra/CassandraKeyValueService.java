@@ -1336,6 +1336,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
 
         final int batchHint = rangeRequest.getBatchHint() == null ? 100 : rangeRequest.getBatchHint();
+
         SliceRange slice = new SliceRange(
                 ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
                 ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
@@ -1351,25 +1352,23 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
             @Override
             protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage() throws Exception {
-                return getSinglePage(rangeRequest.getStartInclusive());
+                return getSinglePage(rangeRequest.getStartInclusive(), this::getColumnsByRow);
             }
 
             @Override
             protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(
                     TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous) throws Exception {
-                return getSinglePage(previous.getTokenForNextPage());
+                return getSinglePage(previous.getTokenForNextPage(), this::getColumnsByRow);
             }
 
-            TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(final byte[] startKey) throws Exception {
-                InetSocketAddress host = clientPool.getRandomHostForKey(startKey);
+            TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(final byte[] startKey,
+                    Function<List<KeySlice>, Map<ByteBuffer, List<ColumnOrSuperColumn>>> method) throws Exception {
                 final byte[] endExclusive = rangeRequest.getEndExclusive();
 
                 KeyRange keyRange = getKeyRange(startKey, endExclusive, batchHint);
-                List<KeySlice> firstPage = getRangeSlices(host, tableRef, keyRange, pred, consistency);
+                List<KeySlice> firstPage = getRangeSlices(tableRef, keyRange, pred, consistency);
 
-                CqlExecutor cqlExecutor = new CqlExecutor(clientPool, host, consistency);
-                Set<ByteBuffer> rows = getRowsFromPage(firstPage);
-                Map<ByteBuffer, List<ColumnOrSuperColumn>> columnsByRow = getColumnsByRow(cqlExecutor, rows);
+                Map<ByteBuffer, List<ColumnOrSuperColumn>> columnsByRow = method.apply(firstPage);
 
                 TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
                         resultsExtractor.get().getPageFromRangeResults(columnsByRow, timestamp, selection,
@@ -1382,6 +1381,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 }
 
                 return page;
+            }
+
+            private Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(List<KeySlice> firstPage) {
+                CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
+                Set<ByteBuffer> rows = getRowsFromPage(firstPage);
+                try {
+                    return getColumnsByRow(cqlExecutor, rows);
+                } catch (TException ex) {
+                    throw Throwables.throwUncheckedException(ex);
+                }
             }
 
             private Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(
@@ -1452,33 +1461,33 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
             @Override
             protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage() throws Exception {
-                return getSinglePage(rangeRequest.getStartInclusive());
+                return getSinglePage(rangeRequest.getStartInclusive(), CassandraKeyValueServices::getColsByKey);
             }
 
             @Override
             protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(
                     TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous) throws Exception {
-                return getSinglePage(previous.getTokenForNextPage());
+                return getSinglePage(previous.getTokenForNextPage(), CassandraKeyValueServices::getColsByKey);
             }
 
-            TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(final byte[] startKey) throws Exception {
-                InetSocketAddress host = clientPool.getRandomHostForKey(startKey);
-
+            TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(final byte[] startKey,
+                    Function<List<KeySlice>, Map<ByteBuffer, List<ColumnOrSuperColumn>>> method) throws Exception {
                 final byte[] endExclusive = rangeRequest.getEndExclusive();
 
                 KeyRange keyRange = getKeyRange(startKey, endExclusive, batchHint);
+                List<KeySlice> firstPage = getRangeSlices(tableRef, keyRange, pred, consistency);
 
-                List<KeySlice> firstPage = getRangeSlices(host, tableRef, keyRange, pred, consistency);
+                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = method.apply(firstPage);
 
-                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(
-                        firstPage);
                 TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
                         resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
+
                 if (page.moreResultsAvailable() && firstPage.size() < batchHint) {
                     // If get_range_slices didn't return the full number of results, there's no
                     // point to trying to get another page
                     return SimpleTokenBackedResultsPage.create(endExclusive, page.getResults(), false);
                 }
+
                 return page;
             }
 
@@ -1488,12 +1497,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private List<KeySlice> getRangeSlices(
-            InetSocketAddress host,
             final TableReference tableRef,
             final KeyRange keyRange,
             final SlicePredicate pred,
             final ConsistencyLevel consistency) throws Exception {
         final ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
+        InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
         return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, List<KeySlice>, Exception>() {
             @Override
             public List<KeySlice> apply(Client client) throws Exception {
