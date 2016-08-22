@@ -42,7 +42,7 @@ v0.12.0
          - Change
 
     *    - |breaking|
-         - AtlasDB will always try to register timestamp and lock endpoints for your application, whereas previously this only occurs if you specify a :ref:`leader-config`.
+         - AtlasDB will always try to register timestamp and lock endpoints for your application, whereas previously this only occurred if you specify a :ref:`leader-config`.
            This ensures that CLIs will be able to run against your service even in the single node case.
            For Dropwizard applications, this is only a breaking change if you try to initialize your KeyValueService after having initialized the Dropwizard application.
            Note: If you are initializing the KVS post-Dropwizard initialization, then your application will already fail when starting multiple AtlasDB clients.
@@ -296,7 +296,7 @@ v0.7.0
 
     *    - |new|
          - AtlasDB can now be backed by Postgres via DB KVS. This is a very early release for this feature, so please contact us if you
-           plan on using it. Please see `the documentation <http://palantir.github.io/atlasdb/html/configuration/postgres_key_value_service_config.html>`_ for more details.
+           plan on using it. Please see :ref:`the documentation <postgres-configuration>` for more details.
 
     *    - |fixed|
          - The In Memory Key Value Service now makes defensive copies of any data stored or retrieved. This may lead to a slight performance degradation to users of In Memory Key Value Service.
