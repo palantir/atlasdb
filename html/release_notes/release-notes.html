@@ -165,25 +165,25 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
-<td>If you do not specify a leader block in your config, AtlasDB will now still try to register the timestamp and lock endpoints necessary for other clients or CLIs to run in the same keyspace.
-This may require changes in setup logic for applications that have previously only ever run with no leader block.
+<td>AtlasDB will always try to register timestamp and lock endpoints for your application, whereas previously this only occurred if you specify a <a class="reference internal" href="../configuration/leader_config.html#leader-config"><span class="std std-ref">Leader configuration</span></a>.
+This ensures that CLIs will be able to run against your service even in the single node case.
+For Dropwizard applications, this is only a breaking change if you try to initialize your KeyValueService after having initialized the Dropwizard application.
+Note: If you are initializing the KVS post-Dropwizard initialization, then your application will already fail when starting multiple AtlasDB clients.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/708">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
-<td>There is now a dropwizard bundle which can be added to dropwizard applications. This will add startup commands to launch the AtlasDB console and CLIs including timestamp manipulation,
-transaction range cleaning, and sweeping. These commands will only work if the server is started with a leader block in its configuration.
+<td>There is now a Dropwizard bundle which can be added to Dropwizard applications.
+This will add startup commands to launch the AtlasDB console and <a class="reference internal" href="../cluster_management/clis.html#clis"><span class="std std-ref">CLIs</span></a> suchs as <code class="docutils literal"><span class="pre">sweep</span></code> and <code class="docutils literal"><span class="pre">timestamp</span></code>, which is needed to perform <a class="reference internal" href="../cluster_management/backup-restore.html#backup-restore"><span class="std std-ref">live backups</span></a>.
+These commands will only work if the server is started with a leader block in its configuration.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/629">Pull Request 1</a> and <a class="reference external" href="https://github.com/palantir/atlasdb/pull/696">Pull Request 2</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>DB passwords are no longer output as part of the connection configuration <code class="docutils literal"><span class="pre">toString()</span></code> methods.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/755">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Docs for cassandra_KVS_configuration now have correct information on <code class="docutils literal"><span class="pre">ssl</span></code> and <code class="docutils literal"><span class="pre">sslConfiguration</span></code> parameters. Also, documentation for leader block is now added.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/787">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
-<td>All KVSs now come wrapped with ProfilingKeyValueService, which at the TRACE level provides timing information per KVS operation performed by AtlasDB.  See <a class="reference internal" href="../cluster_management/logging.html#logging-configuration"><span class="std std-ref">Logging Configuration</span></a> for more details.
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td>All KVSs now come wrapped with ProfilingKeyValueService, which at the TRACE level provides timing information per KVS operation performed by AtlasDB.
+See <a class="reference internal" href="../configuration/logging.html#logging-configuration"><span class="std std-ref">Logging Configuration</span></a> for more details.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/798">Pull Request</a>)</td>
 </tr>
 </tbody>
@@ -365,7 +365,7 @@ and therefore lower latency.  (<a class="reference external" href="https://githu
 <tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
 <td><p class="first">Inserting an empty (size = 0) value into a <code class="docutils literal"><span class="pre">Cell</span></code> will now throw an <code class="docutils literal"><span class="pre">IllegalArgumentException</span></code>. (<a class="reference external" href="https://github.com/palantir/atlasdb/issues/156">#156</a>) Likely empty
 values include empty strings and empty protobufs.</p>
-<p>Atlas cannot currently distinguish between empty and deleted cells. In previous versions of Atlas, inserting
+<p>AtlasDB cannot currently distinguish between empty and deleted cells. In previous versions of AtlasDB, inserting
 an empty value into a <code class="docutils literal"><span class="pre">Cell</span></code> would delete that cell. Thus, in this snippet,</p>
 <div class="highlight-java"><div class="highlight"><pre><span></span><span class="n">Transaction</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">table</span><span class="o">,</span> <span class="n">ImmutableMap</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">myCell</span><span class="o">,</span> <span class="k">new</span> <span class="kt">byte</span><span class="o">[</span><span class="mi">0</span><span class="o">]))</span>
 <span class="n">Transaction</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">table</span><span class="o">,</span> <span class="n">ImmutableSet</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">myCell</span><span class="o">)).</span><span class="na">get</span><span class="o">(</span><span class="n">myCell</span><span class="o">)</span>
@@ -435,8 +435,8 @@ You will need to regenerate your schema code in order to see this fix.
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
-<td>Atlas can now be backed by Postgres via DB KVS. This is a very early release for this feature, so please contact us if you
-plan on using it. Please see <a class="reference external" href="http://palantir.github.io/atlasdb/html/configuration/postgres_key_value_service_config.html">the documentation</a> for more details.</td>
+<td>AtlasDB can now be backed by Postgres via DB KVS. This is a very early release for this feature, so please contact us if you
+plan on using it. Please see <a class="reference internal" href="../configuration/postgres_key_value_service_config.html#postgres-configuration"><span class="std std-ref">the documentation</span></a> for more details.</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The In Memory Key Value Service now makes defensive copies of any data stored or retrieved. This may lead to a slight performance degradation to users of In Memory Key Value Service.
@@ -444,7 +444,7 @@ In Memory Key Value Service is recommended for testing environments only and pro
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/552">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Atlas will no longer log incorrect errors stating &#8220;Couldn&#8217;t grab new token ranges for token aware cassandra mapping&#8221; when running against a single node and single token Cassandra cluster.
+<td>AtlasDB will no longer log incorrect errors stating &#8220;Couldn&#8217;t grab new token ranges for token aware cassandra mapping&#8221; when running against a single node and single token Cassandra cluster.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/634">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
