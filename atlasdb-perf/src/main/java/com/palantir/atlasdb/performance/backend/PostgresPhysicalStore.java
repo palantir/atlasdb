@@ -27,6 +27,7 @@ import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
+import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 
 /**
@@ -87,7 +88,7 @@ public class PostgresPhysicalStore extends PhysicalStore {
         ImmutablePostgresConnectionConfig connectionConfig = ImmutablePostgresConnectionConfig.builder()
                 .dbName(POSTGRES_DB_NAME)
                 .dbLogin(POSTGRES_USER_LOGIN)
-                .dbPassword(POSTGRES_USER_PASSWORD)
+                .dbPassword(ImmutableMaskedValue.of(POSTGRES_USER_PASSWORD))
                 .host(docker.containers().ip())
                 .port(POSTGRES_PORT_NUMBER)
                 .build();

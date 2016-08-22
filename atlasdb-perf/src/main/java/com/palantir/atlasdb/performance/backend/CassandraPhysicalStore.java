@@ -23,6 +23,7 @@ import java.util.concurrent.Callable;
 
 import org.joda.time.Duration;
 
+import com.google.common.base.Optional;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -114,13 +115,17 @@ public class CassandraPhysicalStore extends PhysicalStore {
                 .pollInterval(com.jayway.awaitility.Duration.FIVE_SECONDS)
                 .until(canCreateKeyValueService(connectionConfig));
 
-        return CassandraKeyValueService.create(CassandraKeyValueServiceConfigManager.createSimpleManager(connectionConfig));
+        return CassandraKeyValueService.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(connectionConfig),
+                Optional.absent());
     }
 
     private static Callable<Boolean> canCreateKeyValueService(CassandraKeyValueServiceConfig config) {
         return () -> {
             try {
-                CassandraKeyValueService.create(CassandraKeyValueServiceConfigManager.createSimpleManager(config));
+                CassandraKeyValueService.create(
+                        CassandraKeyValueServiceConfigManager.createSimpleManager(config),
+                        Optional.absent());
                 return true;
             } catch (Exception e) {
                 return false;
