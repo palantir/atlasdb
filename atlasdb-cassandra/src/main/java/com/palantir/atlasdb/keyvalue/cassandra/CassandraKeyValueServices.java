@@ -28,7 +28,6 @@ import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.KeySlice;
 import org.apache.commons.lang3.Validate;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -196,15 +195,6 @@ public final class CassandraKeyValueServices {
             buffer.duplicate().get(bytes, buffer.position(), bytes.length);
         }
         return bytes;
-    }
-
-    // TODO (gbrova) instead of making it public, can we move this to ColumnGetter? (It's only used there)
-    public static Map<ByteBuffer, List<ColumnOrSuperColumn>> getColsByKey(List<KeySlice> firstPage) {
-        Map<ByteBuffer, List<ColumnOrSuperColumn>> ret = Maps.newHashMapWithExpectedSize(firstPage.size());
-        for (KeySlice e : firstPage) {
-            ret.put(ByteBuffer.wrap(e.getKey()), e.getColumns());
-        }
-        return ret;
     }
 
     // /Obviously/ this is long (internal cassandra timestamp) + long (internal cassandra clock sequence and node id)

@@ -28,7 +28,6 @@ import org.apache.thrift.TException;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.AllCellsPerRowPager;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.paging.Pager;
@@ -70,7 +69,7 @@ public class CqlColumnGetter implements ColumnGetter {
     }
 
     private Set<ByteBuffer> getRowsFromPage(List<KeySlice> firstPage) {
-        Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(firstPage);
+        Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = ColumnGetters.getColsByKey(firstPage);
         return colsByKey.keySet();
     }
 }
