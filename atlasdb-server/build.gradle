@@ -1,0 +1,22 @@
+apply plugin: 'org.inferred.processors'
+
+apply from: "${rootProject.projectDir}/gradle/shared.gradle"
+
+apply plugin: 'application'
+mainClassName = 'com.palantir.atlasdb.server.AtlasDbServer'
+applicationName = 'atlasdb-server'
+
+dependencies {
+    compile project(':atlasdb-config')
+    compile project(':atlasdb-impl-shared')
+
+    compile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.dropwizard
+
+    processor group: 'org.immutables', name: 'value', version: libVersions.immutables
+}
+
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+    resolutionStrategy {
+        force group: 'org.apache.commons', name: 'commons-lang3', version: libVersions.commons_lang3
+    }
+}
