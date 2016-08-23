@@ -101,6 +101,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CqlColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.DelegatingColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.PagingIterable;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
@@ -1321,13 +1322,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         pred.setSlice_range(slice);
 
         PagingIterable<SetMultimap<Cell, Long>, Set<Long>> rowResults = new PagingIterable<>(
+                new RowGetter(clientPool, queryRunner, consistency, tableRef, pred),
                 new CqlColumnGetter(new CqlExecutor(clientPool, consistency), tableRef, columnBatchSize),
-                clientPool,
-                queryRunner,
                 rangeRequest,
-                tableRef,
-                pred,
-                consistency,
                 resultsExtractor,
                 timestamp
         );
@@ -1360,13 +1357,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         PagingIterable<T, U> rowResults =
                 new PagingIterable<>(
+                        new RowGetter(clientPool, queryRunner, consistency, tableRef, pred),
                         new DelegatingColumnGetter(),
-                        clientPool,
-                        queryRunner,
                         rangeRequest,
-                        tableRef,
-                        pred,
-                        consistency,
                         resultsExtractor,
                         timestamp
                 );
