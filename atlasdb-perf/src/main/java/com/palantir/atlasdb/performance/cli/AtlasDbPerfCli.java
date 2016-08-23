@@ -94,7 +94,7 @@ public class AtlasDbPerfCli {
     private static void run(AtlasDbPerfCli cli) throws Exception {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
                 .forks(1)
-                .threads(4)
+                .threads(1)
                 .param(BenchmarkParam.BACKEND.getKey(), cli.backend);
 
         if (cli.tests == null) {
