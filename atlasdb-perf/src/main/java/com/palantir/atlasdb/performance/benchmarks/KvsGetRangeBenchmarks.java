@@ -85,7 +85,7 @@ public class KvsGetRangeBenchmarks {
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
         this.kvs = conn.connect().getKeyValueService();
-        this.tableRef1 = KvsBenchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
+        this.tableRef1 = Benchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
         storeData();
     }
 
@@ -137,7 +137,7 @@ public class KvsGetRangeBenchmarks {
         ArrayList<RowResult<Value>> list = Lists.newArrayList(result);
         byte[] rowName = Iterables.getOnlyElement(list).getRowName();
         int rowNumber = Ints.fromByteArray(rowName);
-        KvsBenchmarks.validate(rowNumber == startRow, "Start Row %s, row number %s", startRow, rowNumber);
+        Benchmarks.validate(rowNumber == startRow, "Start Row %s, row number %s", startRow, rowNumber);
     }
 
     private Iterable<RangeRequest> getRangeRequests(int numRequests) {
@@ -168,17 +168,17 @@ public class KvsGetRangeBenchmarks {
 
         int numRequests = Iterables.size(requests);
 
-        KvsBenchmarks.validate(numRequests == results.size(),
+        Benchmarks.validate(numRequests == results.size(),
                 "Got %s requests and %s results, requests %s, results %s",
                 numRequests, results.size(), requests, results);
 
         results.forEach((request, result) -> {
-            KvsBenchmarks.validate(1 == result.getResults().size(), "Key %s, List size is %s",
+            Benchmarks.validate(1 == result.getResults().size(), "Key %s, List size is %s",
                     Ints.fromByteArray(request.getStartInclusive()), result.getResults().size());
-            KvsBenchmarks.validate(!result.moreResultsAvailable(), "Key %s, result.moreResultsAvailable() %s",
+            Benchmarks.validate(!result.moreResultsAvailable(), "Key %s, result.moreResultsAvailable() %s",
                     Ints.fromByteArray(request.getStartInclusive()), result.moreResultsAvailable());
             RowResult<Value> row = Iterables.getOnlyElement(result.getResults());
-            KvsBenchmarks.validate(Arrays.equals(request.getStartInclusive(), row.getRowName()),
+            Benchmarks.validate(Arrays.equals(request.getStartInclusive(), row.getRowName()),
                     "Request row is %s, result is %s",
                     Ints.fromByteArray(request.getStartInclusive()),
                     Ints.fromByteArray(row.getRowName()));

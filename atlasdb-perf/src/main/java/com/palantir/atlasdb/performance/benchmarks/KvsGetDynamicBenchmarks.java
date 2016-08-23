@@ -80,7 +80,7 @@ public class KvsGetDynamicBenchmarks {
     public void setup(AtlasDbServicesConnector conn) throws UnsupportedEncodingException {
         this.connector = conn;
         kvs = conn.connect().getKeyValueService();
-        tableRef1 = KvsBenchmarks.createTableWithDynamicColumns(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_COMPONENT);
+        tableRef1 = Benchmarks.createTableWithDynamicColumns(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_COMPONENT);
         byte[] rowBytes = ROW_COMPONENT.getBytes(StandardCharsets.UTF_8);
         Map<Cell, byte[]> values = Maps.newHashMap();
         allCells2ReadTimestamp = Maps.newHashMap();
@@ -104,7 +104,7 @@ public class KvsGetDynamicBenchmarks {
     @Benchmark
     public Map<Cell, Value> getAllColumnsExplicitly() {
         Map<Cell, Value> result = kvs.get(tableRef1, allCells2ReadTimestamp);
-        KvsBenchmarks.validate(result.size() == NUM_COLS,
+        Benchmarks.validate(result.size() == NUM_COLS,
                 "Should be %s columns, but were: %s", NUM_COLS, result.size());
         return result;
     }
@@ -116,7 +116,7 @@ public class KvsGetDynamicBenchmarks {
                 Collections.singleton(ROW_COMPONENT.getBytes("UTF-8")),
                 ColumnSelection.all(),
                 READ_TIMESTAMP);
-        KvsBenchmarks.validate(result.size() == NUM_COLS,
+        Benchmarks.validate(result.size() == NUM_COLS,
                 "Should be %s columns, but were: %s", NUM_COLS, result.size());
         return result;
     }
@@ -125,9 +125,9 @@ public class KvsGetDynamicBenchmarks {
     @Benchmark
     public Map<Cell, Value> getFirstColumnExplicitly() {
         Map<Cell, Value> result = kvs.get(tableRef1, firstCell2ReadTimestamp);
-        KvsBenchmarks.validate(result.size() == 1, "Should be %s column, but were: %s", 1, result.size());
+        Benchmarks.validate(result.size() == 1, "Should be %s column, but were: %s", 1, result.size());
         int value = Ints.fromByteArray(Iterables.getOnlyElement(result.values()).getContents());
-        KvsBenchmarks.validate(value == 0, "Value should be %s but is %s", 0,  value);
+        Benchmarks.validate(value == 0, "Value should be %s but is %s", 0,  value);
         return result;
     }
 
@@ -139,9 +139,9 @@ public class KvsGetDynamicBenchmarks {
                         firstCell2ReadTimestamp.keySet().stream().map(Cell::getColumnName).collect(Collectors.toList())
                 ),
                 READ_TIMESTAMP);
-        KvsBenchmarks.validate(result.size() == 1, "Should be %s column, but were: %s", 1, result.size());
+        Benchmarks.validate(result.size() == 1, "Should be %s column, but were: %s", 1, result.size());
         int value = Ints.fromByteArray(Iterables.getOnlyElement(result.values()).getContents());
-        KvsBenchmarks.validate(value == 0, "Value should be %s but is %s", 0,  value);
+        Benchmarks.validate(value == 0, "Value should be %s but is %s", 0,  value);
         return result;
     }
 
