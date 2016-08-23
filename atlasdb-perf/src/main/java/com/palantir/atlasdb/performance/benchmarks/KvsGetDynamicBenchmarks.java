@@ -1,8 +1,11 @@
 package com.palantir.atlasdb.performance.benchmarks;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -16,10 +19,12 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -33,8 +38,9 @@ import com.palantir.atlasdb.performance.backend.KeyValueServiceConnector;
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.SampleTime)
-@Warmup(iterations = 10)
-@Measurement(iterations = 20)
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
+@Warmup(iterations = 1, time = 5, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 1, time = 30, timeUnit = TimeUnit.SECONDS)
 public class KvsGetDynamicBenchmarks {
 
     private static final String TABLE_NAME_1 = "performance.table2";
@@ -78,15 +84,41 @@ public class KvsGetDynamicBenchmarks {
     }
 
     @Benchmark
-    @OutputTimeUnit(TimeUnit.MILLISECONDS)
-    public Map<Cell, Value> getAllColumns() {
-        return kvs.get(tableRef1, allCells2ReadTimestamp);
+    public Map<Cell, Value> getAllColumnsExplicitly() {
+        Map<Cell, Value> result = kvs.get(tableRef1, allCells2ReadTimestamp);
+        KvsBenchmarks.validate(result.size() == NUM_COLS, "Should be %s columns, but were: %s", NUM_COLS, result.size());
+        return result;
     }
 
     @Benchmark
-    @OutputTimeUnit(TimeUnit.MICROSECONDS)
+    public Map<Cell, Value> getAllColumnsImplicitly() throws UnsupportedEncodingException {
+        Map<Cell, Value> result = kvs.getRows(tableRef1, Collections.singleton(ROW_COMPONENT.getBytes("UTF-8")), ColumnSelection.all(), READ_TIMESTAMP);
+        KvsBenchmarks.validate(result.size() == NUM_COLS, "Should be %s columns, but were: %s", NUM_COLS, result.size());
+        return result;
+    }
+
+
+    @Benchmark
     public Map<Cell, Value> getFirstColumnExplicitly() {
-        return kvs.get(tableRef1, firstCell2ReadTimestamp);
+        Map<Cell, Value> result = kvs.get(tableRef1, firstCell2ReadTimestamp);
+        KvsBenchmarks.validate(result.size() == 1, "Should be %s column, but were: %s", 1, result.size());
+        int value = Ints.fromByteArray(Iterables.getOnlyElement(result.values()).getContents());
+        KvsBenchmarks.validate(value == 0, "Value should be %s but is %s", 0,  value);
+        return result;
+    }
+
+
+    @Benchmark
+    public Map<Cell, Value> getFirstColumnExplicitlyGetRows() throws UnsupportedEncodingException {
+        Map<Cell, Value> result = kvs.getRows(tableRef1, Collections.singleton(ROW_COMPONENT.getBytes("UTF-8")),
+                ColumnSelection.create(
+                        firstCell2ReadTimestamp.keySet().stream().map(Cell::getColumnName).collect(Collectors.toList())
+                ),
+                READ_TIMESTAMP);
+        KvsBenchmarks.validate(result.size() == 1, "Should be %s column, but were: %s", 1, result.size());
+        int value = Ints.fromByteArray(Iterables.getOnlyElement(result.values()).getContents());
+        KvsBenchmarks.validate(value == 0, "Value should be %s but is %s", 0,  value);
+        return result;
     }
 
 }
