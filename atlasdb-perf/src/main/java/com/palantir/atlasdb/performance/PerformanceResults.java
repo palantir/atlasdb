@@ -49,20 +49,20 @@ public class PerformanceResults {
     public void writeToFile(File file) throws IOException {
         try (BufferedWriter fout = new BufferedWriter(new FileWriter(file))) {
             long date = System.currentTimeMillis();
-            List<ImmutablePerformanceResult> newResults = results.stream().map(r -> {
-                String[] benchmarkParts = r.getParams().getBenchmark().split("\\.");
+            List<ImmutablePerformanceResult> newResults = results.stream().map(rs -> {
+                String[] benchmarkParts = rs.getParams().getBenchmark().split("\\.");
                 String benchmarkSuite = benchmarkParts[benchmarkParts.length - 2];
                 String benchmarkName = benchmarkParts[benchmarkParts.length - 1];
                 return ImmutablePerformanceResult.builder()
                         .date(date)
                         .suite(benchmarkSuite)
                         .benchmark(benchmarkName)
-                        .backend(r.getParams().getParam((BenchmarkParam.BACKEND.getKey())))
-                        .samples(r.getPrimaryResult().getStatistics().getN())
-                        .std(r.getPrimaryResult().getStatistics().getStandardDeviation())
-                        .mean(r.getPrimaryResult().getStatistics().getMean())
-                        .data(getData(r))
-                        .units(r.getParams().getTimeUnit())
+                        .backend(rs.getParams().getParam(BenchmarkParam.BACKEND.getKey()))
+                        .samples(rs.getPrimaryResult().getStatistics().getN())
+                        .std(rs.getPrimaryResult().getStatistics().getStandardDeviation())
+                        .mean(rs.getPrimaryResult().getStatistics().getMean())
+                        .data(getData(rs))
+                        .units(rs.getParams().getTimeUnit())
                         .build();
             }).collect(Collectors.toList());
             new ObjectMapper().writeValue(fout, newResults);
@@ -77,9 +77,9 @@ public class PerformanceResults {
 
     private List<Double> getRawResults(Statistics statistics) {
         try {
-            Field f = statistics.getClass().getDeclaredField("values");
-            f.setAccessible(true);
-            Multiset<Double> rawResults = (Multiset<Double>) f.get(statistics);
+            Field field = statistics.getClass().getDeclaredField("values");
+            field.setAccessible(true);
+            Multiset<Double> rawResults = (Multiset<Double>) field.get(statistics);
             return rawResults.entrySet().stream()
                     .flatMap(e -> DoubleStream.iterate(e.getKey(), d -> d).limit(e.getValue()).boxed())
                     .collect(Collectors.toList());
@@ -91,7 +91,7 @@ public class PerformanceResults {
     @JsonDeserialize(as = ImmutablePerformanceResult.class)
     @JsonSerialize(as = ImmutablePerformanceResult.class)
     @Value.Immutable
-    static abstract class PerformanceResult {
+    abstract static class PerformanceResult {
         public abstract long date();
         public abstract String suite();
         public abstract String benchmark();

@@ -72,9 +72,9 @@ public class KvsPutBenchmarks {
     private TableReference tableRef2;
 
     @Setup
-    public void setup(KeyValueServiceConnector connector) {
-        this.connector = connector;
-        this.kvs = connector.connect();
+    public void setup(KeyValueServiceConnector conn) {
+        this.connector = conn;
+        this.kvs = conn.connect();
         this.tableRef1 = KvsBenchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
         this.tableRef2 = KvsBenchmarks.createTable(kvs, TABLE_NAME_2, ROW_COMPONENT, COLUMN_NAME);
     }

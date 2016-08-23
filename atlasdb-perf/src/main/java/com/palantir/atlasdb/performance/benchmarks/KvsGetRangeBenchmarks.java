@@ -25,7 +25,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Level;
@@ -81,9 +81,9 @@ public class KvsGetRangeBenchmarks {
     private static final int NUM_REQUESTS = 1000;
 
     @Setup(Level.Trial)
-    public void setup(KeyValueServiceConnector connector) {
-        this.connector = connector;
-        this.kvs = connector.connect();
+    public void setup(KeyValueServiceConnector conn) {
+        this.connector = conn;
+        this.kvs = conn.connect();
         this.tableRef1 = KvsBenchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
         storeData();
     }
@@ -91,8 +91,6 @@ public class KvsGetRangeBenchmarks {
 
     private void storeData() {
         Validate.isTrue(NUM_ROWS % PUT_BATCH_SIZE  == 0);
-
-
         for (int i = 0; i < NUM_ROWS; i += PUT_BATCH_SIZE) {
             Map<TableReference, Map<Cell, byte[]>> multiPutMap = Maps.newHashMap();
             multiPutMap.put(tableRef1, generateBatch(i, PUT_BATCH_SIZE));
@@ -170,7 +168,8 @@ public class KvsGetRangeBenchmarks {
         int numRequests = Iterables.size(requests);
 
         KvsBenchmarks.validate(numRequests == results.size(),
-                "Got %s requests and %s results, requests %s, results %s", numRequests, results.size(), requests, results);
+                "Got %s requests and %s results, requests %s, results %s",
+                numRequests, results.size(), requests, results);
 
         results.forEach((request, result) -> {
             KvsBenchmarks.validate(1 == result.getResults().size(), "Key %s, List size is %s",

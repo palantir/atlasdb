@@ -27,7 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 public class KeyValueServiceConnector extends PhysicalStore {
 
     /**
-     * Edit this instance variable name ("backend") with care -- it must match {@code BenchmarkParam.BACKEND}.getKey()
+     * Edit this instance variable name ("backend") with care -- it must match {@code BenchmarkParam.BACKEND}.getKey().
      */
     @Param
     private KeyValueServiceType backend;

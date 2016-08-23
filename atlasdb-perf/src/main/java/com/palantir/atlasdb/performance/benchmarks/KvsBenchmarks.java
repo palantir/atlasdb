@@ -17,7 +17,7 @@
 
 package com.palantir.atlasdb.performance.benchmarks;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -50,22 +50,25 @@ public final class KvsBenchmarks {
      * @param tableName the name of the table being created.
      * @param rowComponent the name of the row being created.
      * @param columnName the name of the column being created.
-     * @return a reference to the newly created table.
+     * @return a reference to the newly created table
      */
-    public static TableReference createTable(KeyValueService kvs, String tableName, String rowComponent, String columnName) {
+    public static TableReference createTable(KeyValueService kvs,
+            String tableName,
+            String rowComponent,
+            String columnName) {
         TableReference tableRef = TableReference.createFromFullyQualifiedName(tableName);
-        TableDefinition tableDef = new TableDefinition() {{
-            rowName();
-            rowComponent(rowComponent, ValueType.STRING);
-            columns();
-            column(columnName, columnName, ValueType.BLOB);
-            conflictHandler(ConflictHandler.IGNORE_ALL);
-            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
-        }};
+        TableDefinition tableDef = new TableDefinition() {
+            {
+                rowName();
+                rowComponent(rowComponent, ValueType.STRING);
+                columns();
+                column(columnName, columnName, ValueType.BLOB);
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+            }
+        };
         kvs.createTable(tableRef, tableDef.toTableMetadata().persistToBytes());
         return tableRef;
     }
-
-
 
 }

@@ -41,7 +41,7 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
  *
  * @author mwakerman
  */
-public class CassandraPhysicalStore extends PhysicalStore {
+public final class CassandraPhysicalStore extends PhysicalStore {
 
     private static final String KEYSPACE                     = "atlasdb";
     private static final int    THRIFT_PORT_NUMBER           = 9160;
@@ -51,19 +51,21 @@ public class CassandraPhysicalStore extends PhysicalStore {
     private static final String DOCKER_LOGS_DIR              = "container-logs";
 
     public static CassandraPhysicalStore create() {
-            DockerComposeRule docker = DockerComposeRule.builder()
-                    .file(getDockerComposeFileAbsolutePath())
-                    .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen(), Duration.standardMinutes(1))
-                    .saveLogsTo(DOCKER_LOGS_DIR)
-                    .build();
+        DockerComposeRule docker = DockerComposeRule.builder()
+                .file(getDockerComposeFileAbsolutePath())
+                .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen(), Duration.standardMinutes(1))
+                .saveLogsTo(DOCKER_LOGS_DIR)
+                .build();
 
 
-            return new CassandraPhysicalStore(docker);
+        return new CassandraPhysicalStore(docker);
     }
 
     private static String getDockerComposeFileAbsolutePath() {
         try {
-            return PhysicalStores.writeResourceToTempFile(CassandraPhysicalStore.class, CASSANDRA_DOCKER_COMPOSE_PATH).getAbsolutePath();
+            return PhysicalStores
+                    .writeResourceToTempFile(CassandraPhysicalStore.class, CASSANDRA_DOCKER_COMPOSE_PATH)
+                    .getAbsolutePath();
         } catch (IOException e) {
             throw new RuntimeException("Unable to write docker compose file to a temporary file.", e);
         }
@@ -88,9 +90,7 @@ public class CassandraPhysicalStore extends PhysicalStore {
                 docker.before();
             }
         } catch (IOException | InterruptedException | IllegalStateException e) {
-            System.err.println("Could not run docker compose rule for cassandra.");
-            e.printStackTrace();
-            return null;
+            throw new RuntimeException("Could not run docker compose rule for cassandra.", e);
         }
 
         ImmutableCassandraKeyValueServiceConfig connectionConfig = ImmutableCassandraKeyValueServiceConfig.builder()
