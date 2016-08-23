@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -109,7 +109,7 @@ public class AllCellsPerRowPagerTest {
 
         verify(executor).getColumnsForRow(
                 DEFAULT_TABLE,
-                encodeAsHex(rowKey.array()),
+                CassandraKeyValueServices.encodeAsHex(rowKey.array()),
                 pageSize);
     }
 
@@ -121,8 +121,8 @@ public class AllCellsPerRowPagerTest {
 
         verify(executor).getTimestampsForRowAndColumn(
                 DEFAULT_TABLE,
-                encodeAsHex(rowKey.array()),
-                encodeAsHex(PREVIOUS_COLUMN_NAME.getBytes()),
+                CassandraKeyValueServices.encodeAsHex(rowKey.array()),
+                CassandraKeyValueServices.encodeAsHex(PREVIOUS_COLUMN_NAME.getBytes()),
                 PREVIOUS_TIMESTAMP,
                 pageSize);
     }
@@ -141,7 +141,9 @@ public class AllCellsPerRowPagerTest {
         assertColumnOrSuperColumnHasCorrectNameAndTimestamp(nextPage.get(1), OTHER_COLUMN_NAME, 20L);
     }
 
-    private void verifySingletonListIsReturnedCorrectly(Supplier<List<ColumnOrSuperColumn>> method, long expectedTimestamp) {
+    private void verifySingletonListIsReturnedCorrectly(
+            Supplier<List<ColumnOrSuperColumn>> method,
+            long expectedTimestamp) {
         List<ColumnOrSuperColumn> page = method.get();
 
         assertThat(page, hasSize(1));
@@ -162,7 +164,7 @@ public class AllCellsPerRowPagerTest {
     }
 
     private static ColumnOrSuperColumn makeColumnOrSuperColumn(String columnName, long timestamp) {
-        return makeColumnOrSuperColumn(columnName.getBytes(), PtBytes.toBytes(timestamp));
+        return CassandraKeyValueServices.makeColumnOrSuperColumn(columnName.getBytes(), PtBytes.toBytes(timestamp));
     }
 
     private void allQueriesReturn(List<CqlRow> rows) {
@@ -180,16 +182,21 @@ public class AllCellsPerRowPagerTest {
     private void allQueriesWithColumnAndTimestampReturn(List<CqlRow> rows) {
         CqlResult cqlResult = mock(CqlResult.class);
         when(cqlResult.getRows()).thenReturn(rows);
-        when(executor.getTimestampsForRowAndColumn(any(TableReference.class), anyString(), anyString(), anyLong(), anyInt())).thenReturn(cqlResult);
+        when(executor.getTimestampsForRowAndColumn(
+                any(TableReference.class), anyString(), anyString(), anyLong(), anyInt())).thenReturn(cqlResult);
     }
 
     private void allQueriesWithColumnReturn(List<CqlRow> rows) {
         CqlResult result2 = mock(CqlResult.class);
         when(result2.getRows()).thenReturn(rows);
-        when(executor.getNextColumnsForRow(any(TableReference.class), anyString(), anyString(), anyInt())).thenReturn(result2);
+        when(executor.getNextColumnsForRow(
+                any(TableReference.class), anyString(), anyString(), anyInt())).thenReturn(result2);
     }
 
-    private void assertColumnOrSuperColumnHasCorrectNameAndTimestamp(ColumnOrSuperColumn columnOrSuperColumn, String expectedName, long expectedTs) {
+    private void assertColumnOrSuperColumnHasCorrectNameAndTimestamp(
+            ColumnOrSuperColumn columnOrSuperColumn,
+            String expectedName,
+            long expectedTs) {
         Pair<byte[], Long> nameAndTimestamp = CassandraKeyValueServices.decomposeName(columnOrSuperColumn.getColumn());
         String colName = PtBytes.toString(nameAndTimestamp.getLhSide());
         assertThat(colName, equalTo(expectedName));
@@ -200,17 +207,5 @@ public class AllCellsPerRowPagerTest {
 
     private ByteBuffer toByteBuffer(String str) {
         return ByteBuffer.wrap(str.getBytes());
-    }
-
-    // TODO the below got copied from production code, which makes us sad
-    private String encodeAsHex(byte[] array) {
-        return "0x" + PtBytes.encodeHexString(array);
-    }
-
-    private static ColumnOrSuperColumn makeColumnOrSuperColumn(byte[] columnName, byte[] timestamp) {
-        long timestampLong = ~PtBytes.toLong(timestamp);
-        Column col = new Column()
-                .setName(CassandraKeyValueServices.makeCompositeBuffer(columnName, timestampLong));
-        return new ColumnOrSuperColumn().setColumn(col);
     }
 }

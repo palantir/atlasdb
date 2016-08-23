@@ -19,13 +19,11 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
 
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.PageGetter;
@@ -39,7 +37,7 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
 
     public AllCellsPerRowPager(CqlExecutor executor, ByteBuffer row, TableReference tableRef, int pageSize) {
         this.cqlExecutor = executor;
-        this.row = encodeAsHex(row.array());
+        this.row = CassandraKeyValueServices.encodeAsHex(row.array());
         this.tableRef = tableRef;
         this.pageSize = pageSize;
     }
@@ -55,7 +53,7 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
         ColumnOrSuperColumn previousResult = Iterables.getLast(currentPage);
 
         Pair<byte[], Long> nameAndTimestamp = CassandraKeyValueServices.decomposeName(previousResult.getColumn());
-        String columnName = encodeAsHex(nameAndTimestamp.getLhSide());
+        String columnName = CassandraKeyValueServices.encodeAsHex(nameAndTimestamp.getLhSide());
         long timestamp = ~nameAndTimestamp.getRhSide();
 
         CqlResult cqlResult = cqlExecutor.getTimestampsForRowAndColumn(tableRef, row, columnName, timestamp, pageSize);
@@ -76,10 +74,6 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
         return pageSize;
     }
 
-    private static String encodeAsHex(byte[] array) {
-        return "0x" + PtBytes.encodeHexString(array);
-    }
-
     private List<ColumnOrSuperColumn> getColumns(CqlResult cqlResult) {
         return cqlResult.getRows().stream()
                 .map(this::getColumn)
@@ -90,13 +84,7 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
         byte[] columnName = cqlRow.getColumns().get(0).getValue();
         byte[] timestampAsBytes = cqlRow.getColumns().get(1).getValue();
 
-        return makeColumnOrSuperColumn(columnName, timestampAsBytes);
+        return CassandraKeyValueServices.makeColumnOrSuperColumn(columnName, timestampAsBytes);
     }
 
-    private ColumnOrSuperColumn makeColumnOrSuperColumn(byte[] columnName, byte[] timestamp) {
-        long timestampLong = ~PtBytes.toLong(timestamp);
-        Column col = new Column()
-                .setName(CassandraKeyValueServices.makeCompositeBuffer(columnName, timestampLong));
-        return new ColumnOrSuperColumn().setColumn(col);
-    }
 }
