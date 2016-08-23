@@ -34,6 +34,7 @@ ext.libVersions =
     hikariCP: '2.4.7',
     checkstyle: '6.18',
     snakeyaml: '1.12',
+    findbugsAnnotations: '2.0.3',
 
     // Danger, Will Robinson!
     //

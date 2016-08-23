@@ -15,9 +15,9 @@
  */
 package com.palantir.atlasdb.factory;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNot.not;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import org.hamcrest.Description;
@@ -76,7 +76,9 @@ public class ServiceDiscoveringAtlasSupplierTest {
     public void returnDifferentTimestampServicesOnSubsequentCalls() {
         // Need to get a newly-initialized timestamp service in case leadership changed between calls.
         ServiceDiscoveringAtlasSupplier supplier = new ServiceDiscoveringAtlasSupplier(kvsConfig, leaderConfig);
-        AutoServiceAnnotatedAtlasDbFactory.nextTimestampServiceToReturn(mock(TimestampService.class), mock(TimestampService.class));
+        AutoServiceAnnotatedAtlasDbFactory.nextTimestampServiceToReturn(
+                mock(TimestampService.class),
+                mock(TimestampService.class));
 
         assertThat(supplier.getTimestampService(), is(not(sameObjectAs(supplier.getTimestampService()))));
     }
