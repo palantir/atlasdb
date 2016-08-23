@@ -98,6 +98,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTs
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ThreadSafeResultVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnFetchMode;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CqlColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.DelegatingColumnGetter;
@@ -1306,8 +1307,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             final long timestamp,
             final ConsistencyLevel consistency,
             final Supplier<ResultsExtractor<T, U>> resultsExtractor) {
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, 1);
-        ColumnGetter columnGetter = new CqlColumnGetter(new CqlExecutor(clientPool, consistency), tableRef, columnBatchSize);
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, ColumnFetchMode.FETCH_ONE);
+
+        CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
+        ColumnGetter columnGetter = new CqlColumnGetter(cqlExecutor, tableRef, columnBatchSize);
 
         return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, resultsExtractor, timestamp);
     }
@@ -1318,7 +1321,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             final long timestamp,
             final ConsistencyLevel consistency,
             final Supplier<ResultsExtractor<T, U>> resultsExtractor) {
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, Integer.MAX_VALUE);
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, ColumnFetchMode.FETCH_ALL);
         ColumnGetter columnGetter = new DelegatingColumnGetter();
 
         return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, resultsExtractor, timestamp);

@@ -37,23 +37,24 @@ import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.common.base.FunctionCheckedException;
 
 public class RowGetter {
+
     private CassandraClientPool clientPool;
     private TracingQueryRunner queryRunner;
     private ConsistencyLevel consistency;
     private TableReference tableRef;
-    private int initialColumnsPerRow;
+    private ColumnFetchMode fetchMode;
 
     public RowGetter(
             CassandraClientPool clientPool,
             TracingQueryRunner queryRunner,
             ConsistencyLevel consistency,
             TableReference tableRef,
-            int initialColumnsPerRow) {
+            ColumnFetchMode fetchMode) {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
         this.consistency = consistency;
         this.tableRef = tableRef;
-        this.initialColumnsPerRow = initialColumnsPerRow;
+        this.fetchMode = fetchMode;
     }
 
     public List<KeySlice> getRows(KeyRange keyRange) throws Exception {
@@ -86,10 +87,10 @@ public class RowGetter {
 
     private SlicePredicate getSlicePredicate() {
         SliceRange slice = new SliceRange(
-            ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
-            ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
-            false,
-            initialColumnsPerRow);
+                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
+                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
+                false,
+                fetchMode.getColumnsToFetch());
         final SlicePredicate predicate = new SlicePredicate();
         predicate.setSlice_range(slice);
         return predicate;
