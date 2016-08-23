@@ -17,8 +17,8 @@ package com.palantir.atlasdb.cli.runner;
 
 import java.net.URISyntaxException;
 
-import com.palantir.atlasdb.cli.services.AtlasDbServices;
-import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
+import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.atlasdb.services.AtlasDbServicesFactory;
 
 public interface SingleBackendCliTestRunner extends AutoCloseable {
 
