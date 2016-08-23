@@ -142,8 +142,8 @@ public class TransactionGetBenchmarks {
     }
 
     @Benchmark
-    public void getSingleCell() {
-        services.getTransactionManager().runTaskThrowOnConflict(txn -> {
+    public Map<Cell, byte[]> getSingleCell() {
+        return services.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Set<Cell> request = getCellsRequest(1);
             Map<Cell, byte[]> result = txn.get(this.tableRef, request);
             byte[] rowName = Iterables.getOnlyElement(result.entrySet()).getKey().getRowName();
@@ -151,18 +151,18 @@ public class TransactionGetBenchmarks {
             int expectRowNumber = rowNumber(Iterables.getOnlyElement(request).getRowName());
             Benchmarks.validate(rowNumber == expectRowNumber,
                     "Start Row %s, row number %s", expectRowNumber, rowNumber);
-            return null;
+            return result;
         });
     }
 
     @Benchmark
-    public void getCells() {
-        services.getTransactionManager().runTaskThrowOnConflict(txn -> {
+    public Map<Cell, byte[]> getCells() {
+        return services.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Set<Cell> request = getCellsRequest(GET_CELLS_SIZE);
             Map<Cell, byte[]> result = txn.get(this.tableRef, request);
             Benchmarks.validate(result.size() == GET_CELLS_SIZE,
                     "expected %s cells, found %s cells", GET_CELLS_SIZE, result.size());
-            return null;
+            return result;
         });
     }
 
@@ -177,8 +177,8 @@ public class TransactionGetBenchmarks {
     }
 
     @Benchmark
-    public void getSingleCellWithRangeQuery() {
-        services.getTransactionManager().runTaskThrowOnConflict(txn -> {
+    public  List<RowResult<byte[]>> getSingleCellWithRangeQuery() {
+        return services.getTransactionManager().runTaskThrowOnConflict(txn -> {
             RangeRequest request = getRangeRequest(1);
             List<RowResult<byte[]>> result = BatchingVisitables.copyToList(txn.getRange(this.tableRef, request));
             byte[] rowName = Iterables.getOnlyElement(result).getRowName();
@@ -186,24 +186,24 @@ public class TransactionGetBenchmarks {
             int expectedRowNumber = rowNumber(request.getStartInclusive());
             Benchmarks.validate(rowNumber == expectedRowNumber,
                     "Start Row %s, row number %s", expectedRowNumber, rowNumber);
-            return null;
+            return result;
         });
     }
 
     @Benchmark
-    public void getRange() {
-        services.getTransactionManager().runTaskThrowOnConflict(txn -> {
+    public List<RowResult<byte[]>> getRange() {
+        return services.getTransactionManager().runTaskThrowOnConflict(txn -> {
             RangeRequest request = getRangeRequest(RANGE_REQUEST_SIZE);
             List<RowResult<byte[]>> results = BatchingVisitables.copyToList(txn.getRange(this.tableRef, request));
             Benchmarks.validate(results.size() == RANGE_REQUEST_SIZE,
                     "Expected %s rows, found %s rows", RANGE_REQUEST_SIZE, results.size());
-            return null;
+            return results;
         });
     }
 
     @Benchmark
-    public void getRanges() {
-        services.getTransactionManager().runTaskThrowOnConflict(txn -> {
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges() {
+        return services.getTransactionManager().runTaskThrowOnConflict(txn -> {
             List<RangeRequest> requests = Stream
                     .generate(() -> getRangeRequest(RANGES_SINGLE_REQUEST_SIZE))
                     .limit(NUM_RANGE_REQUESTS)
@@ -214,7 +214,7 @@ public class TransactionGetBenchmarks {
                 Benchmarks.validate(result.size() == RANGES_SINGLE_REQUEST_SIZE,
                         "Expected %s rows, found %s rows", RANGES_SINGLE_REQUEST_SIZE, result.size());
             });
-            return null;
+            return results;
         });
     }
 
