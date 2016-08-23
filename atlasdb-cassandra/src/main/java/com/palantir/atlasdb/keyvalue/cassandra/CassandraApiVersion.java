@@ -50,9 +50,12 @@ public class CassandraApiVersion {
 
         return supportsCheckAndSet;
     }
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
 
     @Override
     public String toString() {
         return versionString;
     }
+=======
+>>>>>>> merge develop into perf cli branch (#820)
 }

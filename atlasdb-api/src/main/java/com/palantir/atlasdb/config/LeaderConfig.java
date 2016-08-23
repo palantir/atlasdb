@@ -51,8 +51,11 @@ public abstract class LeaderConfig {
     @Size(min = 1)
     public abstract Set<String> leaders();
 
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56:atlasdb-api/src/main/java/com/palantir/atlasdb/config/LeaderConfig.java
     public abstract Optional<SslConfiguration> sslConfiguration();
 
+=======
+>>>>>>> merge develop into perf cli branch (#820):atlasdb-api/src/main/java/com/palantir/atlasdb/config/LeaderConfig.java
     @JsonProperty("lockCreator")
     @Value.Default
     public String lockCreator() {

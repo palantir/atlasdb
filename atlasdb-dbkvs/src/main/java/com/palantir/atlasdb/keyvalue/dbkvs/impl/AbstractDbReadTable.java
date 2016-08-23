@@ -266,6 +266,7 @@ public abstract class AbstractDbReadTable implements DbReadTable {
         }
         Queue<Future<ClosableIterator<AgnosticLightResultRow>>> futures = Queues.newArrayDeque();
         for (FullQuery query : queries) {
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
             futures.add(getSupplierFuture(() -> run(query)));
         }
         return new LazyClosableIterator<>(futures);
@@ -294,6 +295,11 @@ public abstract class AbstractDbReadTable implements DbReadTable {
                 return get();
             }
         };
+=======
+            futures.add(submit(MoreExecutors.directExecutor(), query));
+        }
+        return new LazyClosableIterator<>(futures);
+>>>>>>> merge develop into perf cli branch (#820)
     }
 
     private boolean isSingleton(Iterable<?> iterable) {

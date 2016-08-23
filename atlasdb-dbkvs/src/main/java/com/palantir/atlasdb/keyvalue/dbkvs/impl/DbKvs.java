@@ -520,7 +520,11 @@ public class DbKvs extends AbstractKeyValueService {
         try {
             return runRead(tableRef, table -> getTimestampsPageInternal(table, range, timestamp));
         } finally {
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
             log.debug("Call to KVS.getTimestampsPage on table {} took {} ms.",
+=======
+            log.info("Call to KVS.getTimestampsPage on table {} took {} ms.",
+>>>>>>> merge develop into perf cli branch (#820)
                     tableRef, watch.elapsed(TimeUnit.MILLISECONDS));
         }
     }
@@ -755,7 +759,11 @@ public class DbKvs extends AbstractKeyValueService {
         try {
             return runRead(tableRef, table -> extractRowColumnRangePage(table, columnRangeSelection, ts, rows));
         } finally {
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
             log.debug("Call to KVS.getFirstRowColumnRangePage on table {} took {} ms.",
+=======
+            log.info("Call to KVS.getFirstRowColumnRangePage on table {} took {} ms.",
+>>>>>>> merge develop into perf cli branch (#820)
                     tableRef, watch.elapsed(TimeUnit.MILLISECONDS));
         }
     }
@@ -1117,7 +1125,11 @@ public class DbKvs extends AbstractKeyValueService {
      */
     private <T> T runWriteFreshConnection(
             ConnectionSupplier conns, TableReference tableRef, Function<DbWriteTable, T> runner) {
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
         log.debug("Running in a new thread to turn autocommit on for write");
+=======
+        log.info("Running in a new thread to turn autocommit on for write");
+>>>>>>> merge develop into perf cli branch (#820)
         AtomicReference<T> result = Atomics.newReference();
         Thread writeThread = new Thread(() -> {
             SqlConnection freshConn = conns.getFresh();

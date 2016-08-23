@@ -18,7 +18,11 @@ package com.palantir.atlasdb.cli.command.timestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
 import com.palantir.atlasdb.services.AtlasDbServices;
+=======
+import com.palantir.atlasdb.cli.services.AtlasDbServices;
+>>>>>>> merge develop into perf cli branch (#820)
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 

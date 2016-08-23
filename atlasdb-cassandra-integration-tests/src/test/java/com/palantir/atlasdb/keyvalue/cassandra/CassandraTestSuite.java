@@ -43,6 +43,7 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 @RunWith(Suite.class)
 @SuiteClasses({
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56:atlasdb-cassandra-integration-tests/src/test/java/com/palantir/atlasdb/keyvalue/cassandra/CassandraTestSuite.java
         CassandraKeyValueServiceTransactionIntegrationTest.class,
         CassandraClientPoolIntegrationTest.class,
         CassandraConnectionIntegrationTest.class,
@@ -53,6 +54,16 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
         CassandraKeyValueServiceIntegrationTest.class,
         SchemaMutationLockIntegrationTest.class,
         SchemaMutationLockTablesIntegrationTest.class,
+=======
+        CassandraConnectionTest.class,
+        CassandraKeyValueServiceTableCreationTest.class,
+        CassandraKeyValueServiceSerializableTransactionTest.class,
+        CassandraKeyValueServiceSweeperTest.class,
+        CassandraTimestampTest.class,
+        CassandraKeyValueServiceTest.class,
+        SchemaMutationLockTest.class,
+        SchemaMutationLockTablesTest.class,
+>>>>>>> merge develop into perf cli branch (#820):atlasdb-cassandra-tests/src/test/java/com/palantir/atlasdb/keyvalue/cassandra/CassandraTestSuite.java
 })
 public class CassandraTestSuite {
 

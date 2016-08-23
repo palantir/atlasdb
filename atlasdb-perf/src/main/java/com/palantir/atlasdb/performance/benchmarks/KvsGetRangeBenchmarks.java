@@ -1,5 +1,23 @@
+/**
+ * Copyright 2016 Palantir Technologies
+ *
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package com.palantir.atlasdb.performance.benchmarks;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -8,7 +26,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Level;
@@ -46,7 +64,7 @@ public class KvsGetRangeBenchmarks {
     private static final String TABLE_NAME_1 = "performance.table1";
     private static final String ROW_COMPONENT = "key";
     private static final String COLUMN_NAME = "value";
-    private static final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes();
+    private static final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes(StandardCharsets.UTF_8);
     private static final long DUMMY_TIMESTAMP = 1L;
     private static final long QUERY_TIMESTAMP = 2L;
 
@@ -64,9 +82,9 @@ public class KvsGetRangeBenchmarks {
     private static final int NUM_REQUESTS = 1000;
 
     @Setup(Level.Trial)
-    public void setup(KeyValueServiceConnector connector) {
-        this.connector = connector;
-        this.kvs = connector.connect();
+    public void setup(KeyValueServiceConnector conn) {
+        this.connector = conn;
+        this.kvs = conn.connect();
         this.tableRef1 = KvsBenchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
         storeData();
     }
@@ -74,8 +92,6 @@ public class KvsGetRangeBenchmarks {
 
     private void storeData() {
         Validate.isTrue(NUM_ROWS % PUT_BATCH_SIZE  == 0);
-
-
         for (int i = 0; i < NUM_ROWS; i += PUT_BATCH_SIZE) {
             Map<TableReference, Map<Cell, byte[]>> multiPutMap = Maps.newHashMap();
             multiPutMap.put(tableRef1, generateBatch(i, PUT_BATCH_SIZE));
@@ -153,7 +169,8 @@ public class KvsGetRangeBenchmarks {
         int numRequests = Iterables.size(requests);
 
         KvsBenchmarks.validate(numRequests == results.size(),
-                "Got %s requests and %s results, requests %s, results %s", numRequests, results.size(), requests, results);
+                "Got %s requests and %s results, requests %s, results %s",
+                numRequests, results.size(), requests, results);
 
         results.forEach((request, result) -> {
             KvsBenchmarks.validate(1 == result.getResults().size(), "Key %s, List size is %s",
