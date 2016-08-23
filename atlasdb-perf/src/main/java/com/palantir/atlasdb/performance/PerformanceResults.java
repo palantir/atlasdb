@@ -19,9 +19,12 @@ package com.palantir.atlasdb.performance;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -47,7 +50,7 @@ public class PerformanceResults {
     }
 
     public void writeToFile(File file) throws IOException {
-        try (BufferedWriter fout = new BufferedWriter(new FileWriter(file))) {
+        try (BufferedWriter fout = openFileWriter(file)) {
             long date = System.currentTimeMillis();
             List<ImmutablePerformanceResult> newResults = results.stream().map(rs -> {
                 String[] benchmarkParts = rs.getParams().getBenchmark().split("\\.");
@@ -70,6 +73,10 @@ public class PerformanceResults {
             }).collect(Collectors.toList());
             new ObjectMapper().writeValue(fout, newResults);
         }
+    }
+
+    private BufferedWriter openFileWriter(File file) throws FileNotFoundException {
+        return new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8));
     }
 
     private List<Double> getData(RunResult result) {

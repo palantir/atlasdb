@@ -17,6 +17,7 @@
 
 package com.palantir.atlasdb.performance.benchmarks;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -63,7 +64,7 @@ public class KvsGetRangeBenchmarks {
     private static final String TABLE_NAME_1 = "performance.table1";
     private static final String ROW_COMPONENT = "key";
     private static final String COLUMN_NAME = "value";
-    private static final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes();
+    private static final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes(StandardCharsets.UTF_8);
     private static final long DUMMY_TIMESTAMP = 1L;
     private static final long QUERY_TIMESTAMP = 2L;
 

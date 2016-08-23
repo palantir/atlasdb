@@ -18,6 +18,7 @@
 package com.palantir.atlasdb.performance.benchmarks;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -80,12 +81,13 @@ public class KvsGetDynamicBenchmarks {
         this.connector = conn;
         kvs = conn.connect();
         tableRef1 = KvsBenchmarks.createTableWithDynamicColumns(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_COMPONENT);
-        byte[] rowBytes = ROW_COMPONENT.getBytes("UTF-8");
+        byte[] rowBytes = ROW_COMPONENT.getBytes(StandardCharsets.UTF_8);
         Map<Cell, byte[]> values = Maps.newHashMap();
         allCells2ReadTimestamp = Maps.newHashMap();
-        firstCell2ReadTimestamp = ImmutableMap.of(Cell.create(rowBytes, "col_0".getBytes("UTF-8")), READ_TIMESTAMP);
+        firstCell2ReadTimestamp = ImmutableMap.of(
+                Cell.create(rowBytes, "col_0".getBytes(StandardCharsets.UTF_8)), READ_TIMESTAMP);
         for (int i = 0; i < NUM_COLS; i++) {
-            Cell cell = Cell.create(rowBytes, ("col_" + i).getBytes("UTF-8"));
+            Cell cell = Cell.create(rowBytes, ("col_" + i).getBytes(StandardCharsets.UTF_8));
             values.put(cell, Ints.toByteArray(i));
             allCells2ReadTimestamp.put(cell, READ_TIMESTAMP);
         }
