@@ -29,7 +29,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cli.command.SingleBackendCommand;
-import com.palantir.atlasdb.cli.services.AtlasDbServices;
+import com.palantir.atlasdb.services.AtlasDbServices;
 
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;

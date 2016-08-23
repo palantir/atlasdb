@@ -19,10 +19,10 @@ import java.io.IOException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.cli.services.AtlasDbServices;
-import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
-import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
-import com.palantir.atlasdb.cli.services.ServicesConfigModule;
+import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.atlasdb.services.AtlasDbServicesFactory;
+import com.palantir.atlasdb.services.DaggerAtlasDbServices;
+import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.common.base.Throwables;
 
 public abstract class SingleBackendCommand extends AbstractCommand {
