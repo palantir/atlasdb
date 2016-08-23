@@ -30,6 +30,10 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 public class PagerTest {
+
+    private static final int PAGE_SIZE = 10;
+    private static final int INCOMPLETE_PAGE_SIZE = 5;
+
     private class SimplePager implements PageGetter<Integer> {
         private final int pageSize;
         private final int limit;
@@ -70,26 +74,26 @@ public class PagerTest {
 
     @Test
     public void getsOnePartialPage() {
-        assertGetsResultsUpTo(5);
+        assertGetsResultsUpTo(INCOMPLETE_PAGE_SIZE);
     }
 
     @Test
     public void getsOneFullPage() {
-        assertGetsResultsUpTo(10);
+        assertGetsResultsUpTo(PAGE_SIZE);
     }
 
     @Test
     public void getsMultiplePagesWithLastOnePartial() {
-        assertGetsResultsUpTo(23);
+        assertGetsResultsUpTo(PAGE_SIZE * 2 + INCOMPLETE_PAGE_SIZE);
     }
 
     @Test
     public void getsMultiplePagesWithLastOneComplete() {
-        assertGetsResultsUpTo(30);
+        assertGetsResultsUpTo(PAGE_SIZE * 3);
     }
 
     private void assertGetsResultsUpTo(int limit) {
-        Pager<Integer> pager = new Pager<Integer>(new SimplePager(10, limit));
+        Pager<Integer> pager = new Pager<Integer>(new SimplePager(PAGE_SIZE, limit));
         List<Integer> pages = pager.getPages();
         assertThat(pages, hasSize(limit));
     }

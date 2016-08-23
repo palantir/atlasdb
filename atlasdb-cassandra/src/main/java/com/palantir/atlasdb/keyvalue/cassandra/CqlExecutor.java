@@ -44,7 +44,7 @@ public class CqlExecutor {
                 getTableName(tableRef),
                 row,
                 limit);
-        return execute(query, getHostForRow(row));
+        return executeQueryOnHost(query, getHostForRow(row));
     }
 
     public CqlResult getTimestampsForRowAndColumn(
@@ -60,7 +60,7 @@ public class CqlExecutor {
                 column,
                 minTimestamp,
                 limit);
-        return execute(query, getHostForRow(row));
+        return executeQueryOnHost(query, getHostForRow(row));
     }
 
     public CqlResult getNextColumnsForRow(TableReference tableRef, String row, String previousColumn, int limit) {
@@ -70,21 +70,21 @@ public class CqlExecutor {
                 row,
                 previousColumn,
                 limit);
-        return execute(query, getHostForRow(row));
+        return executeQueryOnHost(query, getHostForRow(row));
     }
 
     private InetSocketAddress getHostForRow(String row) {
         return clientPool.getRandomHostForKey(row.getBytes(StandardCharsets.UTF_8));
     }
 
-    private CqlResult execute(String query, InetSocketAddress host1) {
+    private CqlResult executeQueryOnHost(String query, InetSocketAddress host) {
         ByteBuffer queryBytes = ByteBuffer.wrap(query.getBytes(StandardCharsets.UTF_8));
-        return executeQuery(queryBytes, host1);
+        return executeQueryOnHost(queryBytes, host);
     }
 
-    private CqlResult executeQuery(ByteBuffer queryBytes, InetSocketAddress host1) {
+    private CqlResult executeQueryOnHost(ByteBuffer queryBytes, InetSocketAddress host) {
         try {
-            return clientPool.runWithRetryOnHost(host1, client ->
+            return clientPool.runWithRetryOnHost(host, client ->
                     client.execute_cql3_query(queryBytes, Compression.NONE, consistency));
         } catch (TException e) {
             throw Throwables.throwUncheckedException(e);
