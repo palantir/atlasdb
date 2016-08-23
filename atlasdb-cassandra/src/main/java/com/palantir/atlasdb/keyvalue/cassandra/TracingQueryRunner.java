@@ -27,15 +27,15 @@ import org.slf4j.Logger;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 
-public class CassandraQueryRunner {
+public class TracingQueryRunner {
     private final Logger log;
-    private final CassandraKeyValueService cassandraKeyValueService;
+    private final TracingPrefsConfig tracingPrefs;
 
-    // TODO (gbrova) can we come up with a better / more specific name for this class?
-    public CassandraQueryRunner(Logger log, CassandraKeyValueService cassandraKeyValueService) {
+    public TracingQueryRunner(Logger log, TracingPrefsConfig tracingPrefs) {
         this.log = log;
-        this.cassandraKeyValueService = cassandraKeyValueService;
+        this.tracingPrefs = tracingPrefs;
     }
 
     @FunctionalInterface
@@ -78,7 +78,7 @@ public class CassandraQueryRunner {
 
     private boolean shouldTraceQuery(Set<TableReference> tableRefs) {
         for (TableReference tableRef : tableRefs) {
-            if (cassandraKeyValueService.shouldTraceQuery(tableRef)) {
+            if (tracingPrefs.shouldTraceQuery(tableRef.getQualifiedName())) {
                 return true;
             }
         }
@@ -91,7 +91,7 @@ public class CassandraQueryRunner {
     }
 
     private void logTraceResults(long duration, Set<TableReference> tableRefs, ByteBuffer recvTrace, boolean failed) {
-        if (failed || duration > cassandraKeyValueService.getMinimumDurationToTraceMillis()) {
+        if (failed || duration > tracingPrefs.getMinimumDurationToTraceMillis()) {
             log.error("Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
                     tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")),
                     failed ? "failed and " : "",

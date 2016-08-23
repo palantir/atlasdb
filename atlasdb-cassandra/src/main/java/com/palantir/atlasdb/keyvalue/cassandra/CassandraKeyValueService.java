@@ -152,7 +152,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
 
-    private final CassandraQueryRunner queryRunner;
+    private final TracingQueryRunner queryRunner;
 
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
@@ -191,7 +191,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, configManager.getConfig());
         this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
 
-        this.queryRunner = new CassandraQueryRunner(log, this);
+        this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
     }
 
     private LockLeader whoIsTheLockCreator() {

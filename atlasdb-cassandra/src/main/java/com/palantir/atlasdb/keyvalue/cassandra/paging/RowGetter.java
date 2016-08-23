@@ -30,17 +30,17 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraQueryRunner;
+import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.common.base.FunctionCheckedException;
 
 public class RowGetter {
     private CassandraClientPool clientPool;
-    private CassandraQueryRunner queryRunner;
+    private TracingQueryRunner queryRunner;
     private ConsistencyLevel consistency;
     private TableReference tableRef;
     private SlicePredicate pred;
 
-    public RowGetter(CassandraClientPool clientPool, CassandraQueryRunner queryRunner, ConsistencyLevel consistency,
+    public RowGetter(CassandraClientPool clientPool, TracingQueryRunner queryRunner, ConsistencyLevel consistency,
             TableReference tableRef, SlicePredicate pred) {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;

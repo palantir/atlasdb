@@ -64,7 +64,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     protected ExecutorService executor;
 
-    private final TracingPrefsConfig tracingPrefs;
+    protected final TracingPrefsConfig tracingPrefs;
     private final ScheduledExecutorService scheduledExecutor;
 
     /**
@@ -126,10 +126,6 @@ public abstract class AbstractKeyValueService implements KeyValueService {
             builder.put(table, getMetadataForTable(table));
         }
         return builder.build();
-    }
-
-    public int getMinimumDurationToTraceMillis() {
-        return tracingPrefs.getMinimumDurationToTraceMillis();
     }
 
     protected int getMultiPutBatchCount() {
@@ -267,10 +263,6 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         for (Map.Entry<TableReference, byte[]> entry : tableRefToMetadata.entrySet()) {
             putMetadataForTable(entry.getKey(), entry.getValue());
         }
-    }
-
-    public boolean shouldTraceQuery(final TableReference tableRef) {
-        return tracingPrefs.shouldTraceQuery(tableRef.getQualifiedName());
     }
 
     @Override
