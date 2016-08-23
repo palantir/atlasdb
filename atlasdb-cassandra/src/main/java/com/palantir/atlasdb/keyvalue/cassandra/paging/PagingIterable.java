@@ -122,27 +122,29 @@ public class PagingIterable<T, U> extends AbstractPagingIterable {
     private List<KeySlice> getRangeSlices(final KeyRange keyRange) throws Exception {
         final ColumnParent colFam = new ColumnParent(CassandraKeyValueService.internalTableName(tableRef));
         InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
-        return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Cassandra.Client, List<KeySlice>, Exception>() {
-            @Override
-            public List<KeySlice> apply(Cassandra.Client client) throws Exception {
-                try {
-                    return queryRunner.run(client, tableRef,
-                            () -> client.get_range_slices(colFam, pred, keyRange, consistency));
-                } catch (UnavailableException e) {
-                    if (consistency.equals(ConsistencyLevel.ALL)) {
-                        throw new InsufficientConsistencyException("This operation requires all Cassandra"
-                                + " nodes to be up and available.", e);
-                    } else {
-                        throw e;
+        return clientPool.runWithRetryOnHost(
+                host,
+                new FunctionCheckedException<Cassandra.Client, List<KeySlice>, Exception>() {
+                    @Override
+                    public List<KeySlice> apply(Cassandra.Client client) throws Exception {
+                        try {
+                            return queryRunner.run(client, tableRef,
+                                    () -> client.get_range_slices(colFam, pred, keyRange, consistency));
+                        } catch (UnavailableException e) {
+                            if (consistency.equals(ConsistencyLevel.ALL)) {
+                                throw new InsufficientConsistencyException("This operation requires all Cassandra"
+                                        + " nodes to be up and available.", e);
+                            } else {
+                                throw e;
+                            }
+                        }
                     }
-                }
-            }
 
-            @Override
-            public String toString() {
-                return "get_range_slices(" + colFam + ")";
-            }
-        });
+                    @Override
+                    public String toString() {
+                        return "get_range_slices(" + colFam + ")";
+                    }
+                });
     }
 
     private KeyRange getKeyRange(byte[] startKey, byte[] endExclusive) {

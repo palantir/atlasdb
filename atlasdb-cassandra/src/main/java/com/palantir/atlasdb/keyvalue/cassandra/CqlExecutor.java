@@ -74,7 +74,7 @@ public class CqlExecutor {
     }
 
     private InetSocketAddress getHostForRow(String row) {
-        return clientPool.getRandomHostForKey(row.getBytes());
+        return clientPool.getRandomHostForKey(row.getBytes(StandardCharsets.UTF_8));
     }
 
     private CqlResult execute(String query, InetSocketAddress host1) {
