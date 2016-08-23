@@ -198,7 +198,8 @@ public final class CassandraKeyValueServices {
         return bytes;
     }
 
-    static Map<ByteBuffer, List<ColumnOrSuperColumn>> getColsByKey(List<KeySlice> firstPage) {
+    // TODO (gbrova) instead of making it public, can we move this to ColumnGetter? (It's only used there)
+    public static Map<ByteBuffer, List<ColumnOrSuperColumn>> getColsByKey(List<KeySlice> firstPage) {
         Map<ByteBuffer, List<ColumnOrSuperColumn>> ret = Maps.newHashMapWithExpectedSize(firstPage.size());
         for (KeySlice e : firstPage) {
             ret.put(ByteBuffer.wrap(e.getKey()), e.getColumns());
