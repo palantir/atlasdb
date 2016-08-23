@@ -58,7 +58,7 @@ public class AtlasDbServicesConnector {
 
     public void close() throws Exception {
         if (services != null) {
-            services.getKeyValueService().close();
+            services.close();
         }
         if (store != null) {
             store.close();

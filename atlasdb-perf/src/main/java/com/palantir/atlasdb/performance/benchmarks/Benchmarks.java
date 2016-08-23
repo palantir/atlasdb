@@ -29,9 +29,9 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 /**
  * Static utilities class for common performance test procedures.
  */
-public final class KvsBenchmarks {
+public final class Benchmarks {
 
-    private KvsBenchmarks() {
+    private Benchmarks() {
         // uninstantiable
     }
 

@@ -76,8 +76,8 @@ public class KvsPutBenchmarks {
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
         this.kvs = conn.connect().getKeyValueService();
-        this.tableRef1 = KvsBenchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
-        this.tableRef2 = KvsBenchmarks.createTable(kvs, TABLE_NAME_2, ROW_COMPONENT, COLUMN_NAME);
+        this.tableRef1 = Benchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
+        this.tableRef2 = Benchmarks.createTable(kvs, TABLE_NAME_2, ROW_COMPONENT, COLUMN_NAME);
     }
 
     @TearDown
