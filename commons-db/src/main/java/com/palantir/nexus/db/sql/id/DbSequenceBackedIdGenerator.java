@@ -155,7 +155,5 @@ public class DbSequenceBackedIdGenerator implements IdGenerator {
 
     // constants for selecting top id from a sequence
     private static final String ORACLE_TOP_MANY_ID_SQL = "SELECT %s.nextval from dual_n where rownum <= ?"; //$NON-NLS-1$
-    // TODO: this only grabs one at a time. need to add a plpgsql function to really make this work
-    private static final String POSTGRESQL_TOP_MANY_ID_SQL = "SELECT * FROM nextvals_%s( ? );"; //$NON-NLS-1$
-
+    private static final String POSTGRESQL_TOP_MANY_ID_SQL = "SELECT nextval( lower('%s') ) from generate_series(1, ?)"; //$NON-NLS-1$
 }
