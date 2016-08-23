@@ -95,8 +95,8 @@ This property is a boolean value saying whether or not to use ssl.  When ``true`
 
 .. _cassandra-sweep-config:
 
-Sweep (experimental)
-====================
+Column Paging for Sweep (experimental)
+======================================
 
 If ``sweepColumnBatchSize`` is set, the maximum number of entries loaded into memory for any
 Cassandra node during a :ref:`Sweep <physical-cleanup-sweep>` will be limited.
