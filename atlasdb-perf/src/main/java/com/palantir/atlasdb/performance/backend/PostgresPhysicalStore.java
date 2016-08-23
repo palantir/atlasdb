@@ -27,6 +27,7 @@ import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
+import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 
 /**
@@ -34,7 +35,7 @@ import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
  *
  * @author mwakerman
  */
-public class PostgresPhysicalStore extends PhysicalStore {
+public final class PostgresPhysicalStore extends PhysicalStore {
 
     private static final String POSTGRES_DB_NAME             = "atlas";
     private static final int    POSTGRES_PORT_NUMBER         = 5432;
@@ -44,17 +45,19 @@ public class PostgresPhysicalStore extends PhysicalStore {
     private static final String POSTGRES_DOCKER_LOGS_DIR     = "container-logs";
 
     public static PostgresPhysicalStore create() {
-            DockerComposeRule docker = DockerComposeRule.builder()
-                    .file(getDockerComposeFileAbsolutePath())
-                    .waitingForHostNetworkedPort(POSTGRES_PORT_NUMBER, toBeOpen())
-                    .saveLogsTo(POSTGRES_DOCKER_LOGS_DIR)
-                    .build();
-            return new PostgresPhysicalStore(docker);
+        DockerComposeRule docker = DockerComposeRule.builder()
+                .file(getDockerComposeFileAbsolutePath())
+                .waitingForHostNetworkedPort(POSTGRES_PORT_NUMBER, toBeOpen())
+                .saveLogsTo(POSTGRES_DOCKER_LOGS_DIR)
+                .build();
+        return new PostgresPhysicalStore(docker);
     }
 
     private static String getDockerComposeFileAbsolutePath() {
         try {
-            return PhysicalStores.writeResourceToTempFile(PostgresPhysicalStore.class, POSTGRES_DOCKER_COMPOSE_PATH).getAbsolutePath();
+            return PhysicalStores
+                    .writeResourceToTempFile(PostgresPhysicalStore.class, POSTGRES_DOCKER_COMPOSE_PATH)
+                    .getAbsolutePath();
         } catch (IOException e) {
             throw new RuntimeException("Unable to write docker compose file to a temporary file.", e);
         }
@@ -79,15 +82,13 @@ public class PostgresPhysicalStore extends PhysicalStore {
                 docker.before();
             }
         } catch (IOException | InterruptedException | IllegalStateException e) {
-            System.err.println("Could not run docker compose rule for postgres.");
-            e.printStackTrace();
-            return null;
+            throw new RuntimeException("Could not run docker compose rule for postgres.", e);
         }
 
         ImmutablePostgresConnectionConfig connectionConfig = ImmutablePostgresConnectionConfig.builder()
                 .dbName(POSTGRES_DB_NAME)
                 .dbLogin(POSTGRES_USER_LOGIN)
-                .dbPassword(POSTGRES_USER_PASSWORD)
+                .dbPassword(ImmutableMaskedValue.of(POSTGRES_USER_PASSWORD))
                 .host(docker.containers().ip())
                 .port(POSTGRES_PORT_NUMBER)
                 .build();

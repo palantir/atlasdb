@@ -44,6 +44,8 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
@@ -94,6 +96,7 @@ public final class StreamTestStreamIdxTable implements
     private final List<StreamTestStreamIdxTrigger> triggers;
     private final static String rawTableName = "stream_test_stream_idx";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = ColumnSelection.all();
 
     static StreamTestStreamIdxTable of(Transaction t, Namespace namespace) {
         return new StreamTestStreamIdxTable(t, namespace, ImmutableList.<StreamTestStreamIdxTrigger>of());
@@ -557,7 +560,7 @@ public final class StreamTestStreamIdxTable implements
 
     @Override
     public List<StreamTestStreamIdxColumnValue> getRowColumns(StreamTestStreamIdxRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -579,7 +582,7 @@ public final class StreamTestStreamIdxTable implements
 
     @Override
     public Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue> getRowsMultimap(Iterable<StreamTestStreamIdxRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -589,7 +592,7 @@ public final class StreamTestStreamIdxTable implements
 
     @Override
     public Multimap<StreamTestStreamIdxRow, StreamTestStreamIdxColumnValue> getAsyncRowsMultimap(Iterable<StreamTestStreamIdxRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -622,8 +625,24 @@ public final class StreamTestStreamIdxTable implements
         return rowMap;
     }
 
+    @Override
+    public Map<StreamTestStreamIdxRow, BatchingVisitable<StreamTestStreamIdxColumnValue>> getRowsColumnRange(Iterable<StreamTestStreamIdxRow> rows, ColumnRangeSelection columnRangeSelection) {
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<StreamTestStreamIdxRow, BatchingVisitable<StreamTestStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            StreamTestStreamIdxRow row = StreamTestStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<StreamTestStreamIdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                StreamTestStreamIdxColumn col = StreamTestStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                Long val = StreamTestStreamIdxColumnValue.hydrateValue(result.getValue());
+                return StreamTestStreamIdxColumnValue.of(col, val);
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<StreamTestStreamIdxRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<StreamTestStreamIdxRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -674,6 +693,8 @@ public final class StreamTestStreamIdxTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link ColumnRangeSelection}
+     * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
@@ -731,5 +752,5 @@ public final class StreamTestStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "LcPxHk1KeY0A0J1DTaOHxg==";
+    static String __CLASS_HASH = "9w4fKjWIzGTwxE3/K8JzYQ==";
 }

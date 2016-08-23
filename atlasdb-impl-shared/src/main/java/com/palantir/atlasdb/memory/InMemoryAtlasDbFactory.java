@@ -16,15 +16,16 @@
 package com.palantir.atlasdb.memory;
 
 import com.google.auto.service.AutoService;
+import com.google.common.base.Optional;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespaceMappingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StaticTableMappingService;
@@ -68,7 +69,9 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public InMemoryKeyValueService createRawKeyValueService(KeyValueServiceConfig config) {
+    public InMemoryKeyValueService createRawKeyValueService(
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig) {
         AtlasDbVersion.ensureVersionReported();
         return new InMemoryKeyValueService(false);
     }
@@ -81,12 +84,12 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
 
     public static SerializableTransactionManager createInMemoryTransactionManager(AtlasSchema schema) {
         AtlasDbVersion.ensureVersionReported();
-        return createInMemoryTransactionManagerInternal(schema.getLatestSchema(), schema.getNamespace());
+        return createInMemoryTransactionManagerInternal(schema.getLatestSchema());
     }
 
-    private static SerializableTransactionManager createInMemoryTransactionManagerInternal(Schema schema, Namespace namespace) {
+    private static SerializableTransactionManager createInMemoryTransactionManagerInternal(Schema schema) {
         TimestampService ts = new InMemoryTimestampService();
-        KeyValueService keyValueService = createTableMappingKv(ts);
+        KeyValueService keyValueService = createTableMappingKv();
 
         Schemas.createTablesAndIndexes(schema, keyValueService);
         TransactionTables.createTables(keyValueService);
@@ -105,7 +108,13 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
         CleanupFollower follower = CleanupFollower.create(schema);
-        Cleaner cleaner = new DefaultCleanerBuilder(keyValueService, lock, ts, client, ImmutableList.of(follower), transactionService).buildCleaner();
+        Cleaner cleaner = new DefaultCleanerBuilder(
+                keyValueService,
+                lock,
+                ts,
+                client,
+                ImmutableList.of(follower),
+                transactionService).buildCleaner();
         SerializableTransactionManager ret = new SerializableTransactionManager(
                 keyValueService,
                 ts,
@@ -120,7 +129,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         return ret;
     }
 
-    private static KeyValueService createTableMappingKv(final TimestampService ts) {
+    private static KeyValueService createTableMappingKv() {
         KeyValueService kv = new InMemoryKeyValueService(false);
         TableMappingService mapper = getMapper(kv);
         return NamespaceMappingKeyValueService.create(TableRemappingKeyValueService.create(kv, mapper));

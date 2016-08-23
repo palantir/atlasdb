@@ -45,11 +45,7 @@ import io.airlift.airline.SingleCommand;
 /**
  * The Atlas Perf(ormance) CLI is a tool for making and running AtlasDB performance tests.
  *
- *
- * Note, you must have a docker machine running, and put the environment variables in your run configuration (if you are in an IDE).
- * Something like this:
- * DOCKER_TLS_VERIFY=1;DOCKER_HOST=tcp://192.168.99.100:2376;DOCKER_CERT_PATH=/Users/dcohen/.docker/machine/machines/atlas;DOCKER_MACHINE_NAME=atlas
- * Check these against your actual env, e.g. "docker-machine env atlas"
+ * This requires you to have a docker-machine running and configured correctly.
  *
  * @author mwakerman, bullman
  */
@@ -68,8 +64,9 @@ public class AtlasDbPerfCli {
     @Option(name = {"-l", "--list-tests"}, description = "Lists all available benchmarks.")
     private boolean listTests;
 
-    @Option(name = {"-o", "--output"}, description = "The file in which to store the test results. Leave blank to only write results to " +
-                                                     "the console.")
+    @Option(name = {"-o", "--output"},
+            description = "The file in which to store the test results. "
+                    + "Leave blank to only write results to the console.")
     private String outputFile;
 
     public static void main(String[] args) throws Exception {
@@ -125,7 +122,9 @@ public class AtlasDbPerfCli {
     }
 
     private static Set<String> getAllBenchmarks() {
-        Reflections reflections = new Reflections("com.palantir.atlasdb.performance.benchmarks", new MethodAnnotationsScanner());
+        Reflections reflections = new Reflections(
+                "com.palantir.atlasdb.performance.benchmarks",
+                new MethodAnnotationsScanner());
         return reflections.getMethodsAnnotatedWith(Benchmark.class).stream()
                 .map(method -> method.getDeclaringClass().getSimpleName() + "." + method.getName())
                 .collect(Collectors.toSet());

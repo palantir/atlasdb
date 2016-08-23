@@ -28,7 +28,7 @@ public class Prefix {
     private final byte[] bytes;
 
     public Prefix(byte[] bytes) {
-        this.bytes = Preconditions.checkNotNull(bytes).clone();
+        this.bytes = Preconditions.checkNotNull(bytes, "bytes cannot be null").clone();
     }
 
     @Nonnull

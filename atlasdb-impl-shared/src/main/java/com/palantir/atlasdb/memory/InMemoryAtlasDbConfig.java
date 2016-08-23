@@ -22,12 +22,10 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 @JsonTypeName(InMemoryAtlasDbConfig.TYPE)
 @AutoService(KeyValueServiceConfig.class)
 public final class InMemoryAtlasDbConfig implements KeyValueServiceConfig {
-
     public static final String TYPE = "memory";
 
     @Override
-    public final String type() {
+    public String type() {
         return TYPE;
     }
-
 }

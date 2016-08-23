@@ -22,6 +22,7 @@ import org.junit.After;
 import com.google.common.io.Files;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.rocksdb.impl.RocksDbKeyValueService;
+import com.palantir.atlasdb.sweep.AbstractSweeperTest;
 
 public class RocksDbSweeperTest extends AbstractSweeperTest {
     private File tempDir;

@@ -2,9 +2,11 @@ apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: 'checkstyle'
-apply plugin: 'jacoco-coverage'
+apply plugin: 'com.palantir.jacoco-coverage'
 apply plugin: 'com.github.hierynomus.license'
 
+apply from: "${rootDir}/gradle/versions.gradle"
+apply from: "${rootDir}/gradle/baseline.gradle"
 apply from: "${rootDir}/gradle/publish.gradle"
 
 sourceCompatibility = 1.8
@@ -20,16 +22,27 @@ repositories {
 }
 
 checkstyle {
-    toolVersion = 6.17
+    toolVersion = libVersions.checkstyle
     configFile rootProject.file('config/checkstyle/checkstyle.xml')
 }
 
-apply from: rootProject.file('gradle/versions.gradle')
+jacoco {
+    toolVersion = libVersions.jacoco
+}
+
 libsDirName = file('build/artifacts')
 
 dependencies {
-    checkstyle 'com.puppycrawl.tools:checkstyle:6.6'
+    checkstyle group: 'com.puppycrawl.tools', name: 'checkstyle', version: libVersions.checkstyle
     testCompile group: 'junit', name: 'junit', version: libVersions.junit
+}
+
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+    resolutionStrategy {
+            force 'net.java.dev.jna:jna:' + libVersions.jna
+            force 'com.google.code.findbugs:jsr305:' + libVersions.jsr305
+            force 'org.slf4j:slf4j-api:' + libVersions.slf4j
+        }
 }
 
 apply from: rootProject.file('gradle/javadoc.gradle'), to: javadoc

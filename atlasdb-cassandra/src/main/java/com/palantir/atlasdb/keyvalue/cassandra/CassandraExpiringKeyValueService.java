@@ -24,13 +24,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Function;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ExpiringKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -43,33 +45,42 @@ import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
 
-public class CassandraExpiringKeyValueService extends CassandraKeyValueService implements ExpiringKeyValueService{
+public class CassandraExpiringKeyValueService extends CassandraKeyValueService implements ExpiringKeyValueService {
 
-    public static CassandraExpiringKeyValueService create(CassandraKeyValueServiceConfigManager configManager) {
+    public static CassandraExpiringKeyValueService create(
+            CassandraKeyValueServiceConfigManager configManager,
+            Optional<LeaderConfig> leaderConfig) {
         Preconditions.checkState(!configManager.getConfig().servers().isEmpty(), "address list was empty");
 
-        Optional<CassandraJmxCompactionManager> compactionManager = CassandraJmxCompaction.createJmxCompactionManager(configManager);
-        CassandraExpiringKeyValueService kvs = new CassandraExpiringKeyValueService(configManager, compactionManager);
+        Optional<CassandraJmxCompactionManager> compactionManager =
+                CassandraJmxCompaction.createJmxCompactionManager(configManager);
+        CassandraExpiringKeyValueService kvs =
+                new CassandraExpiringKeyValueService(configManager, compactionManager, leaderConfig);
         kvs.init();
         return kvs;
     }
 
-    protected CassandraExpiringKeyValueService(CassandraKeyValueServiceConfigManager configManager,
-                                               Optional<CassandraJmxCompactionManager> compactionManager) {
-        super(configManager, compactionManager);
+    protected CassandraExpiringKeyValueService(
+            CassandraKeyValueServiceConfigManager configManager,
+            Optional<CassandraJmxCompactionManager> compactionManager,
+            Optional<LeaderConfig> leaderConfig) {
+        super(LoggerFactory.getLogger(CassandraKeyValueService.class), configManager, compactionManager, leaderConfig);
     }
 
     @Override
-    public void put(final TableReference tableRef, final Map<Cell, byte[]> values, final long timestamp, final long time, final TimeUnit unit) {
+    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp, long time, TimeUnit unit) {
         try {
-            putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp), CassandraKeyValueServices.convertTtl(time, unit));
+            putInternal(
+                    tableRef,
+                    KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp),
+                    CassandraKeyValueServices.convertTtl(time, unit));
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
     }
 
     @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values, final long time, final TimeUnit unit) {
+    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values, long time, TimeUnit unit) {
         try {
             putInternal(tableRef, values.entries(), CassandraKeyValueServices.convertTtl(time, unit));
         } catch (Exception e) {
@@ -78,7 +89,11 @@ public class CassandraExpiringKeyValueService extends CassandraKeyValueService i
     }
 
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp, final long time, final TimeUnit unit) throws KeyAlreadyExistsException {
+    public void multiPut(
+            Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
+            long timestamp,
+            long time,
+            TimeUnit unit) throws KeyAlreadyExistsException {
         List<Callable<Void>> callables = Lists.newArrayList();
         for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
             final TableReference table = e.getKey();
@@ -87,25 +102,14 @@ public class CassandraExpiringKeyValueService extends CassandraKeyValueService i
 
 
             Iterable<List<Entry<Cell, byte[]>>> partitions = partitionByCountAndBytes(sortedMap.entrySet(),
-                    getMultiPutBatchCount(), getMultiPutBatchSizeBytes(), table, new Function<Entry<Cell, byte[]>, Long>(){
-
-                @Override
-                public Long apply(Entry<Cell, byte[]> entry) {
-                    long totalSize = 0;
-                    totalSize += entry.getValue().length;
-                    totalSize += Cells.getApproxSizeOfCell(entry.getKey());
-                    return totalSize;
-                }});
-
+                    getMultiPutBatchCount(), getMultiPutBatchSizeBytes(), table, entry ->
+                            entry.getValue().length + Cells.getApproxSizeOfCell(entry.getKey()));
 
             for (final List<Entry<Cell, byte[]>> p : partitions) {
-                callables.add(new Callable<Void>() {
-                    @Override
-                    public Void call() {
-                        Thread.currentThread().setName("Atlas expiry multiPut of " + p.size() + " cells into " + table);
-                        put(table, Maps2.fromEntries(p), timestamp, time, unit);
-                        return null;
-                    }
+                callables.add(() -> {
+                    Thread.currentThread().setName("Atlas expiry multiPut of " + p.size() + " cells into " + table);
+                    put(table, Maps2.fromEntries(p), timestamp, time, unit);
+                    return null;
                 });
             }
         }

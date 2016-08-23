@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
+import java.util.function.Predicate;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,10 +28,13 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSize;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
+import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.palantir.util.VersionStrings;
 
 public class PostgresDdlTable implements DbDdlTable {
     private static final Logger log = LoggerFactory.getLogger(PostgresDdlTable.class);
+    private static final String MIN_POSTGRES_VERSION = "9.2";
+
     private final TableReference tableName;
     private final ConnectionSupplier conns;
     private final PostgresDdlConfig config;
@@ -49,26 +54,34 @@ public class PostgresDdlTable implements DbDdlTable {
                 tableName.getQualifiedName())) {
             return;
         }
+
         executeIgnoringError(
-                "CREATE TABLE " + prefixedTableName() + " (" +
-                "  row_name   BYTEA NOT NULL," +
-                "  col_name   BYTEA NOT NULL," +
-                "  ts         INT8 NOT NULL," +
-                "  val        BYTEA," +
-                "  CONSTRAINT pk_" + prefixedTableName() + " PRIMARY KEY (row_name, col_name, ts) " +
-                ")",
+                String.format("CREATE TABLE %s ("
+                        + "  row_name   BYTEA NOT NULL,"
+                        + "  col_name   BYTEA NOT NULL,"
+                        + "  ts         INT8 NOT NULL,"
+                        + "  val        BYTEA,"
+                        + "  CONSTRAINT pk_%s PRIMARY KEY (row_name, col_name, ts) ",
+                        prefixedTableName(), prefixedTableName())
+                + ")",
                 "already exists");
-        conns.get().insertOneUnregisteredQuery(
-                "INSERT INTO " + config.metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)",
-                tableName.getQualifiedName(),
-                TableSize.RAW.getId());
+
+        ignoringError(() -> {
+            conns.get().insertOneUnregisteredQuery(
+                    String.format(
+                            "INSERT INTO %s (table_name, table_size) VALUES (?, ?)",
+                            config.metadataTable().getQualifiedName()),
+                    tableName.getQualifiedName(),
+                    TableSize.RAW.getId());
+        }, ExceptionCheck::isUniqueConstraintViolation);
     }
 
     @Override
     public void drop() {
         executeIgnoringError("DROP TABLE " + prefixedTableName(), "does not exist");
         conns.get().executeUnregisteredQuery(
-                "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?", tableName.getQualifiedName());
+                String.format("DELETE FROM %s WHERE table_name = ?", config.metadataTable().getQualifiedName()),
+                tableName.getQualifiedName());
     }
 
     @Override
@@ -78,24 +91,13 @@ public class PostgresDdlTable implements DbDdlTable {
 
     @Override
     public void checkDatabaseVersion() {
-        String MIN_POSTGRES_VERSION = "9.2";
         AgnosticResultSet result = conns.get().selectResultSetUnregisteredQuery("SHOW server_version");
         String version = result.get(0).getString("server_version");
         if (!version.matches("^[\\.0-9]+$") || VersionStrings.compareVersions(version, MIN_POSTGRES_VERSION) < 0) {
-            log.error("Your key value service currently uses version " + version +
-                    " of postgres. The minimum supported version is " + MIN_POSTGRES_VERSION +
-                    ". If you absolutely need to use an older version of postgres, please contact Palantir support for assistance.");
-        }
-    }
-
-    private void executeIgnoringError(String sql, String errorToIgnore) {
-        try {
-            conns.get().executeUnregisteredQuery(sql);
-        } catch (PalantirSqlException e) {
-            if (!e.getMessage().contains(errorToIgnore)) {
-                log.error(e.getMessage(), e);
-                throw e;
-            }
+            log.error("Your key value service currently uses version " + version + " of postgres."
+                    + " The minimum supported version is " + MIN_POSTGRES_VERSION + "."
+                    + " If you absolutely need to use an older version of postgres,"
+                    + " please contact Palantir support for assistance.");
         }
     }
 
@@ -107,5 +109,20 @@ public class PostgresDdlTable implements DbDdlTable {
 
     private String prefixedTableName() {
         return config.tablePrefix() + DbKvs.internalTableName(tableName);
+    }
+
+    private void executeIgnoringError(String sql, String errorToIgnore) {
+        ignoringError(() -> conns.get().executeUnregisteredQuery(sql), e -> e.getMessage().contains(errorToIgnore));
+    }
+
+    private static void ignoringError(Runnable fn, Predicate<PalantirSqlException> shouldIgnoreException) {
+        try {
+            fn.run();
+        } catch (PalantirSqlException e) {
+            if (!shouldIgnoreException.test(e)) {
+                log.error(e.getMessage(), e);
+                throw e;
+            }
+        }
     }
 }

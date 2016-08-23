@@ -31,7 +31,7 @@ import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters.QuorumReq
  *
  * The usual add-endpoint workflow:
  * <ol>
- *  <li> retry {@link #addEndpoint(byte[], KeyValueEndpoint, String)} until succeeds
+ *  <li> retry {@link #addEndpoint(byte[], KeyValueEndpoint)} until succeeds
  *  <li> retry {@link #backfillAddedEndpoint(byte[])} untill succeeds
  *  <li> retry {@link #promoteAddedEndpoint(byte[])} until succeeds
  * </ol>
@@ -63,10 +63,6 @@ public interface DynamicPartitionMap extends PartitionMap {
      * It will return <code>false</code> if the preconditions were not
      * met and the request was rejected. It will return <code>true</code>
      * if the request was accepted.
-     *
-     * @param key
-     * @param kve
-     * @return
      */
     boolean addEndpoint(byte[] key, KeyValueEndpoint kve);
 
@@ -80,8 +76,6 @@ public interface DynamicPartitionMap extends PartitionMap {
      *
      * After completing this call you should promote your new endpoint
      * with {@link #promoteAddedEndpoint(byte[])}.
-     *
-     * @param key
      */
     void backfillAddedEndpoint(byte[] key);
 
@@ -95,8 +89,6 @@ public interface DynamicPartitionMap extends PartitionMap {
      *
      * After this call completes, the new endpoint is fully functional.
      * You might consider {@link #pushMapToEndpoints()} at this moment.
-     *
-     * @param key
      */
     void promoteAddedEndpoint(byte[] key);
 
@@ -115,11 +107,6 @@ public interface DynamicPartitionMap extends PartitionMap {
      * It will return <code>false</code> if the preconditions were not
      * met and the request was rejected. It will return <code>true</code>
      * if the request was accepted.
-     *
-     * @param key
-     * @param kvs
-     * @param rack
-     * @return
      */
     boolean removeEndpoint(byte[] key);
 
@@ -133,9 +120,6 @@ public interface DynamicPartitionMap extends PartitionMap {
      *
      * After completing this call you should promote your new endpoint
      * with {@link #promoteAddedEndpoint(byte[])}.
-     *
-     * @param key
-     *
      */
     void backfillRemovedEndpoint(byte[] key);
 
@@ -151,8 +135,6 @@ public interface DynamicPartitionMap extends PartitionMap {
      *
      * After this call completes, the removed endpoint can be taken down.
      * You might consider {@link #pushMapToEndpoints()} at this moment.
-     *
-     * @param key
      */
     void promoteRemovedEndpoint(byte[] key);
 
@@ -162,7 +144,7 @@ public interface DynamicPartitionMap extends PartitionMap {
      *
      * The initial version MUST be 0L!
      *
-     * @return Current version of the map.
+     * @return Current version of the map
      */
     long getVersion();
 
@@ -180,7 +162,7 @@ public interface DynamicPartitionMap extends PartitionMap {
     Map<Cell, QuorumRequestParameters> getReadCellsParameters(Set<Cell> cells);
     Map<Cell, QuorumRequestParameters> getWriteCellsParameters(Set<Cell> cells);
     <T> Map<Entry<Cell, T>, QuorumRequestParameters> getReadEntriesParameters(Map<Cell, T> entries);
-    <T> Map<Entry<Cell, T>, QuorumRequestParameters> getWriteEntriesParameters(Map<Cell, T> entries);
     <T> Map<Entry<Cell, T>, QuorumRequestParameters> getReadEntriesParameters(Multimap<Cell, T> entries);
+    <T> Map<Entry<Cell, T>, QuorumRequestParameters> getWriteEntriesParameters(Map<Cell, T> entries);
     <T> Map<Entry<Cell, T>, QuorumRequestParameters> getWriteEntriesParameters(Multimap<Cell, T> entries);
 }

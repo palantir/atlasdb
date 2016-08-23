@@ -25,10 +25,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.NamespacedKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -88,17 +90,32 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection,
+            long timestamp) {
+        return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+    }
+
+    @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return delegate().getLatestTimestamps(tableRef, timestampByCell);
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+    public ClosableIterator<RowResult<Value>> getRange(
+            TableReference tableRef,
+            RangeRequest rangeRequest,
+            long timestamp) {
         return delegate().getRange(tableRef, rangeRequest, timestamp);
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
+            TableReference tableRef,
+            RangeRequest rangeRequest,
+            long timestamp) {
         return delegate().getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
     }
 
@@ -110,9 +127,10 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef,
-                                                                                                           Iterable<RangeRequest> rangeRequests,
-                                                                                                           long timestamp) {
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
+            TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            long timestamp) {
         return delegate().getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
     }
 
@@ -203,7 +221,8 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
 
     @Override
     public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
-        Map<TableReference, byte[]> tableReferencesToTableMetadata = Maps.newHashMapWithExpectedSize(tableRefToTableMetadata.size());
+        Map<TableReference, byte[]> tableReferencesToTableMetadata =
+                Maps.newHashMapWithExpectedSize(tableRefToTableMetadata.size());
         for (Entry<TableReference, byte[]> tableToMetadata : tableRefToTableMetadata.entrySet()) {
             tableReferencesToTableMetadata.put(tableToMetadata.getKey(), tableToMetadata.getValue());
         }
@@ -212,7 +231,8 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
 
     @Override
     public void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata) {
-        Map<TableReference, byte[]> tableReferencesToMetadata = Maps.newHashMapWithExpectedSize(tableRefToMetadata.size());
+        Map<TableReference, byte[]> tableReferencesToMetadata =
+                Maps.newHashMapWithExpectedSize(tableRefToMetadata.size());
         for (Entry<TableReference, byte[]> tableToMetadataEntry : tableRefToMetadata.entrySet()) {
             tableReferencesToMetadata.put(tableToMetadataEntry.getKey(), tableToMetadataEntry.getValue());
         }

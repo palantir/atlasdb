@@ -26,11 +26,13 @@ import feign.Response;
 import feign.codec.ErrorDecoder;
 
 public final class KeyValueServiceErrorDecoder implements ErrorDecoder {
-
     private static final ErrorDecoder defaultDecoder = new ErrorDecoder.Default();
     private static final KeyValueServiceErrorDecoder instance = new KeyValueServiceErrorDecoder();
 
-    private KeyValueServiceErrorDecoder() {}
+    private KeyValueServiceErrorDecoder() {
+        // singleton
+    }
+
     public static KeyValueServiceErrorDecoder instance() {
         return instance;
     }
@@ -53,5 +55,4 @@ public final class KeyValueServiceErrorDecoder implements ErrorDecoder {
         }
         return defaultDecoder.decode(methodKey, response);
     }
-
 }

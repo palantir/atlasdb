@@ -49,6 +49,11 @@ public class TestSingleBackendCommand {
         String flag2;
 
         @Override
+        public boolean isOnlineRunSupported() {
+            return true;
+        }
+
+        @Override
         public int execute(AtlasDbServices services) {
             // test a method on each of the services
             if (flag1 != null) {
@@ -90,22 +95,22 @@ public class TestSingleBackendCommand {
 
     @Test
     public void testRun() {
-        assertSuccessful(runTest(new String[] { "test", "--config", SIMPLE_CONFIG_FILE}));
+        assertSuccessful(runTest(new String[] { "--config", SIMPLE_CONFIG_FILE, "test"}));
     }
 
     @Test
     public void testFlag1Run() {
-        assertSuccessful(runTest(new String[] { "test", "--config", SIMPLE_CONFIG_FILE, "--flag1"}));
+        assertSuccessful(runTest(new String[] { "--config", SIMPLE_CONFIG_FILE, "test", "--flag1"}));
     }
 
     @Test
     public void testFlag2Run() {
-        assertSuccessful(runTest(new String[] { "test", "-c", SIMPLE_CONFIG_FILE, "--flag2", "test.new_table"}));
+        assertSuccessful(runTest(new String[] { "-c", SIMPLE_CONFIG_FILE, "test", "--flag2", "test.new_table"}));
     }
 
     @Test
     public void testRunNestedConfig() {
-        assertSuccessful(runTest(new String[] { "test", "-c", NESTED_CONFIG_FILE, "-f1", "--config-root", "atlasdb", "-f2", "test.new_table"}));
+        assertSuccessful(runTest(new String[] { "-c", NESTED_CONFIG_FILE, "--config-root", "/config/dropwizardConfig/real/atlasdb", "test", "-f1", "-f2", "test.new_table"}));
     }
 
     @Test

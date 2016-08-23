@@ -34,8 +34,7 @@ public class TransactionFailedRetriableException extends TransactionFailedExcept
     }
 
     @Override
-    final public boolean canTransactionBeRetried() {
+    public final boolean canTransactionBeRetried() {
         return true;
     }
-
 }

@@ -44,6 +44,8 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
@@ -96,6 +98,7 @@ public final class DataTable implements
     private final List<DataTrigger> triggers;
     private final static String rawTableName = "data";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = getColumnSelection(DataNamedColumn.values());
 
     static DataTable of(Transaction t, Namespace namespace) {
         return new DataTable(t, namespace, ImmutableList.<DataTrigger>of());
@@ -609,7 +612,7 @@ public final class DataTable implements
 
     @Override
     public Optional<DataRowResult> getRow(DataRow row) {
-        return getRow(row, ColumnSelection.all());
+        return getRow(row, allColumns);
     }
 
     @Override
@@ -625,7 +628,7 @@ public final class DataTable implements
 
     @Override
     public List<DataRowResult> getRows(Iterable<DataRow> rows) {
-        return getRows(rows, ColumnSelection.all());
+        return getRows(rows, allColumns);
     }
 
     @Override
@@ -640,7 +643,7 @@ public final class DataTable implements
 
     @Override
     public List<DataRowResult> getAsyncRows(Iterable<DataRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, ColumnSelection.all(), exec);
+        return getAsyncRows(rows, allColumns, exec);
     }
 
     @Override
@@ -657,7 +660,7 @@ public final class DataTable implements
 
     @Override
     public List<DataNamedColumnValue<?>> getRowColumns(DataRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -677,7 +680,7 @@ public final class DataTable implements
 
     @Override
     public Multimap<DataRow, DataNamedColumnValue<?>> getRowsMultimap(Iterable<DataRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -687,7 +690,7 @@ public final class DataTable implements
 
     @Override
     public Multimap<DataRow, DataNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<DataRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -716,6 +719,20 @@ public final class DataTable implements
             }
         }
         return rowMap;
+    }
+
+    @Override
+    public Map<DataRow, BatchingVisitable<DataNamedColumnValue<?>>> getRowsColumnRange(Iterable<DataRow> rows, ColumnRangeSelection columnRangeSelection) {
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<DataRow, BatchingVisitable<DataNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            DataRow row = DataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<DataNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
     }
 
     private Multimap<DataRow, DataNamedColumnValue<?>> getAffectedCells(Multimap<DataRow, ? extends DataNamedColumnValue<?>> rows) {
@@ -809,7 +826,7 @@ public final class DataTable implements
     }
 
     public BatchingVisitableView<DataRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<DataRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -845,6 +862,7 @@ public final class DataTable implements
         private final List<Index1IdxTrigger> triggers;
         private final static String rawTableName = "index1_idx";
         private final TableReference tableRef;
+        private final static ColumnSelection allColumns = ColumnSelection.all();
 
         public static Index1IdxTable of(DataTable table) {
             return new Index1IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index1IdxTrigger>of());
@@ -1056,6 +1074,28 @@ public final class DataTable implements
                 }
             };
 
+            public static ColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
+            }
+
+            public static Prefix prefixUnsorted(byte[] rowName) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                return new Prefix(EncodingUtils.add(rowNameBytes));
+            }
+
+            public static ColumnRangeSelection createPrefixRange(byte[] rowName, byte[] columnName, int batchSize) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes, columnNameBytes), batchSize);
+            }
+
+            public static Prefix prefix(byte[] rowName, byte[] columnName) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+                return new Prefix(EncodingUtils.add(rowNameBytes, columnNameBytes));
+            }
+
             @Override
             public String toString() {
                 return MoreObjects.toStringHelper(getClass().getSimpleName())
@@ -1082,7 +1122,7 @@ public final class DataTable implements
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(rowName, columnName, id);
+                return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
             }
 
             @Override
@@ -1343,7 +1383,7 @@ public final class DataTable implements
 
         @Override
         public List<Index1IdxColumnValue> getRowColumns(Index1IdxRow row) {
-            return getRowColumns(row, ColumnSelection.all());
+            return getRowColumns(row, allColumns);
         }
 
         @Override
@@ -1365,7 +1405,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index1IdxRow, Index1IdxColumnValue> getRowsMultimap(Iterable<Index1IdxRow> rows) {
-            return getRowsMultimapInternal(rows, ColumnSelection.all());
+            return getRowsMultimapInternal(rows, allColumns);
         }
 
         @Override
@@ -1375,7 +1415,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index1IdxRow, Index1IdxColumnValue> getAsyncRowsMultimap(Iterable<Index1IdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+            return getAsyncRowsMultimap(rows, allColumns, exec);
         }
 
         @Override
@@ -1408,9 +1448,25 @@ public final class DataTable implements
             return rowMap;
         }
 
+        @Override
+        public Map<Index1IdxRow, BatchingVisitable<Index1IdxColumnValue>> getRowsColumnRange(Iterable<Index1IdxRow> rows, ColumnRangeSelection columnRangeSelection) {
+            Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+            Map<Index1IdxRow, BatchingVisitable<Index1IdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+            for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+                Index1IdxRow row = Index1IdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+                BatchingVisitable<Index1IdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                    Index1IdxColumn col = Index1IdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                    Long val = Index1IdxColumnValue.hydrateValue(result.getValue());
+                    return Index1IdxColumnValue.of(col, val);
+                });
+                transformed.put(row, bv);
+            }
+            return transformed;
+        }
+
         public BatchingVisitableView<Index1IdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
-                range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
+                range = range.getBuilder().retainColumns(allColumns).build();
             }
             return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, Index1IdxRowResult>() {
                 @Override
@@ -1481,6 +1537,7 @@ public final class DataTable implements
         private final List<Index2IdxTrigger> triggers;
         private final static String rawTableName = "index2_idx";
         private final TableReference tableRef;
+        private final static ColumnSelection allColumns = ColumnSelection.all();
 
         public static Index2IdxTable of(DataTable table) {
             return new Index2IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index2IdxTrigger>of());
@@ -1617,7 +1674,7 @@ public final class DataTable implements
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(value, id);
+                return Arrays.deepHashCode(new Object[]{ value, id });
             }
 
             @Override
@@ -1695,6 +1752,16 @@ public final class DataTable implements
                 }
             };
 
+            public static ColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
+            }
+
+            public static Prefix prefixUnsorted(byte[] rowName) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                return new Prefix(EncodingUtils.add(rowNameBytes));
+            }
+
             @Override
             public String toString() {
                 return MoreObjects.toStringHelper(getClass().getSimpleName())
@@ -1720,7 +1787,7 @@ public final class DataTable implements
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(rowName, columnName);
+                return Arrays.deepHashCode(new Object[]{ rowName, columnName });
             }
 
             @Override
@@ -1979,7 +2046,7 @@ public final class DataTable implements
 
         @Override
         public List<Index2IdxColumnValue> getRowColumns(Index2IdxRow row) {
-            return getRowColumns(row, ColumnSelection.all());
+            return getRowColumns(row, allColumns);
         }
 
         @Override
@@ -2001,7 +2068,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index2IdxRow, Index2IdxColumnValue> getRowsMultimap(Iterable<Index2IdxRow> rows) {
-            return getRowsMultimapInternal(rows, ColumnSelection.all());
+            return getRowsMultimapInternal(rows, allColumns);
         }
 
         @Override
@@ -2011,7 +2078,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index2IdxRow, Index2IdxColumnValue> getAsyncRowsMultimap(Iterable<Index2IdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+            return getAsyncRowsMultimap(rows, allColumns, exec);
         }
 
         @Override
@@ -2044,9 +2111,25 @@ public final class DataTable implements
             return rowMap;
         }
 
+        @Override
+        public Map<Index2IdxRow, BatchingVisitable<Index2IdxColumnValue>> getRowsColumnRange(Iterable<Index2IdxRow> rows, ColumnRangeSelection columnRangeSelection) {
+            Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+            Map<Index2IdxRow, BatchingVisitable<Index2IdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+            for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+                Index2IdxRow row = Index2IdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+                BatchingVisitable<Index2IdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                    Index2IdxColumn col = Index2IdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                    Long val = Index2IdxColumnValue.hydrateValue(result.getValue());
+                    return Index2IdxColumnValue.of(col, val);
+                });
+                transformed.put(row, bv);
+            }
+            return transformed;
+        }
+
         public BatchingVisitableView<Index2IdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
-                range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
+                range = range.getBuilder().retainColumns(allColumns).build();
             }
             return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, Index2IdxRowResult>() {
                 @Override
@@ -2117,6 +2200,7 @@ public final class DataTable implements
         private final List<Index3IdxTrigger> triggers;
         private final static String rawTableName = "index3_idx";
         private final TableReference tableRef;
+        private final static ColumnSelection allColumns = ColumnSelection.all();
 
         public static Index3IdxTable of(DataTable table) {
             return new Index3IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index3IdxTrigger>of());
@@ -2309,6 +2393,16 @@ public final class DataTable implements
                 }
             };
 
+            public static ColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
+            }
+
+            public static Prefix prefixUnsorted(byte[] rowName) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                return new Prefix(EncodingUtils.add(rowNameBytes));
+            }
+
             @Override
             public String toString() {
                 return MoreObjects.toStringHelper(getClass().getSimpleName())
@@ -2334,7 +2428,7 @@ public final class DataTable implements
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(rowName, columnName);
+                return Arrays.deepHashCode(new Object[]{ rowName, columnName });
             }
 
             @Override
@@ -2593,7 +2687,7 @@ public final class DataTable implements
 
         @Override
         public List<Index3IdxColumnValue> getRowColumns(Index3IdxRow row) {
-            return getRowColumns(row, ColumnSelection.all());
+            return getRowColumns(row, allColumns);
         }
 
         @Override
@@ -2615,7 +2709,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index3IdxRow, Index3IdxColumnValue> getRowsMultimap(Iterable<Index3IdxRow> rows) {
-            return getRowsMultimapInternal(rows, ColumnSelection.all());
+            return getRowsMultimapInternal(rows, allColumns);
         }
 
         @Override
@@ -2625,7 +2719,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index3IdxRow, Index3IdxColumnValue> getAsyncRowsMultimap(Iterable<Index3IdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+            return getAsyncRowsMultimap(rows, allColumns, exec);
         }
 
         @Override
@@ -2658,9 +2752,25 @@ public final class DataTable implements
             return rowMap;
         }
 
+        @Override
+        public Map<Index3IdxRow, BatchingVisitable<Index3IdxColumnValue>> getRowsColumnRange(Iterable<Index3IdxRow> rows, ColumnRangeSelection columnRangeSelection) {
+            Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+            Map<Index3IdxRow, BatchingVisitable<Index3IdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+            for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+                Index3IdxRow row = Index3IdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+                BatchingVisitable<Index3IdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                    Index3IdxColumn col = Index3IdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                    Long val = Index3IdxColumnValue.hydrateValue(result.getValue());
+                    return Index3IdxColumnValue.of(col, val);
+                });
+                transformed.put(row, bv);
+            }
+            return transformed;
+        }
+
         public BatchingVisitableView<Index3IdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
-                range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
+                range = range.getBuilder().retainColumns(allColumns).build();
             }
             return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, Index3IdxRowResult>() {
                 @Override
@@ -2731,6 +2841,7 @@ public final class DataTable implements
         private final List<Index4IdxTrigger> triggers;
         private final static String rawTableName = "index4_idx";
         private final TableReference tableRef;
+        private final static ColumnSelection allColumns = ColumnSelection.all();
 
         public static Index4IdxTable of(DataTable table) {
             return new Index4IdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<Index4IdxTrigger>of());
@@ -2867,7 +2978,7 @@ public final class DataTable implements
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(value1, value2);
+                return Arrays.deepHashCode(new Object[]{ value1, value2 });
             }
 
             @Override
@@ -2945,6 +3056,16 @@ public final class DataTable implements
                 }
             };
 
+            public static ColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
+            }
+
+            public static Prefix prefixUnsorted(byte[] rowName) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                return new Prefix(EncodingUtils.add(rowNameBytes));
+            }
+
             @Override
             public String toString() {
                 return MoreObjects.toStringHelper(getClass().getSimpleName())
@@ -2970,7 +3091,7 @@ public final class DataTable implements
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(rowName, columnName);
+                return Arrays.deepHashCode(new Object[]{ rowName, columnName });
             }
 
             @Override
@@ -3229,7 +3350,7 @@ public final class DataTable implements
 
         @Override
         public List<Index4IdxColumnValue> getRowColumns(Index4IdxRow row) {
-            return getRowColumns(row, ColumnSelection.all());
+            return getRowColumns(row, allColumns);
         }
 
         @Override
@@ -3251,7 +3372,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index4IdxRow, Index4IdxColumnValue> getRowsMultimap(Iterable<Index4IdxRow> rows) {
-            return getRowsMultimapInternal(rows, ColumnSelection.all());
+            return getRowsMultimapInternal(rows, allColumns);
         }
 
         @Override
@@ -3261,7 +3382,7 @@ public final class DataTable implements
 
         @Override
         public Multimap<Index4IdxRow, Index4IdxColumnValue> getAsyncRowsMultimap(Iterable<Index4IdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+            return getAsyncRowsMultimap(rows, allColumns, exec);
         }
 
         @Override
@@ -3294,9 +3415,25 @@ public final class DataTable implements
             return rowMap;
         }
 
+        @Override
+        public Map<Index4IdxRow, BatchingVisitable<Index4IdxColumnValue>> getRowsColumnRange(Iterable<Index4IdxRow> rows, ColumnRangeSelection columnRangeSelection) {
+            Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+            Map<Index4IdxRow, BatchingVisitable<Index4IdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+            for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+                Index4IdxRow row = Index4IdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+                BatchingVisitable<Index4IdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                    Index4IdxColumn col = Index4IdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                    Long val = Index4IdxColumnValue.hydrateValue(result.getValue());
+                    return Index4IdxColumnValue.of(col, val);
+                });
+                transformed.put(row, bv);
+            }
+            return transformed;
+        }
+
         public BatchingVisitableView<Index4IdxRowResult> getRange(RangeRequest range) {
             if (range.getColumnNames().isEmpty()) {
-                range = range.getBuilder().retainColumns(ColumnSelection.all()).build();
+                range = range.getBuilder().retainColumns(allColumns).build();
             }
             return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, Index4IdxRowResult>() {
                 @Override
@@ -3382,6 +3519,8 @@ public final class DataTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link ColumnRangeSelection}
+     * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
@@ -3439,5 +3578,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "TAfXhQqzRAKrhLBxlvImOw==";
+    static String __CLASS_HASH = "Gw4KVbhTByDbyPGBajf5JQ==";
 }

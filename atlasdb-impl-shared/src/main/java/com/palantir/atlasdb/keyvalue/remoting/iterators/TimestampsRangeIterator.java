@@ -28,17 +28,21 @@ import com.palantir.common.base.ClosableIterator;
 
 public class TimestampsRangeIterator extends RangeIterator<Set<Long>> {
     @JsonCreator
-    public TimestampsRangeIterator(@JsonProperty("tableRef") TableReference tableRef,
-                                   @JsonProperty("range") RangeRequest range,
-                                   @JsonProperty("timestamp") long timestamp,
-                                   @JsonProperty("hasNext") boolean hasNext,
-                                   @JsonProperty("page") ImmutableList<RowResult<Set<Long>>> page) {
+    public TimestampsRangeIterator(
+            @JsonProperty("tableRef") TableReference tableRef,
+            @JsonProperty("range") RangeRequest range,
+            @JsonProperty("timestamp") long timestamp,
+            @JsonProperty("hasNext") boolean hasNext,
+            @JsonProperty("page") ImmutableList<RowResult<Set<Long>>> page) {
         super(tableRef, range, timestamp, hasNext, page);
     }
 
     @Override
-    protected ClosableIterator<RowResult<Set<Long>>> getMoreRows(KeyValueService kvs, TableReference tableRef,
-                                                                 RangeRequest newRange, long timestamp) {
-        return kvs.getRangeOfTimestamps(tableRef, newRange, timestamp);
+    protected ClosableIterator<RowResult<Set<Long>>> getMoreRows(
+            KeyValueService kvs,
+            TableReference tableReference,
+            RangeRequest newRange,
+            long newTimestamp) {
+        return kvs.getRangeOfTimestamps(tableReference, newRange, newTimestamp);
     }
 }

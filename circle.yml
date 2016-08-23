@@ -14,6 +14,9 @@ machine:
 general:
   artifacts:
     - "build/reports/profile"
+    - "atlasdb-ete-tests/container-logs"
+    - "atlasdb-cassandra-tests/container-logs"
+    - "atlasdb-cassandra-multinode-tests/container-logs"
 
 dependencies:
   pre:
@@ -33,6 +36,12 @@ test:
     - mkdir -p $CIRCLE_TEST_REPORTS/junit/:
         parallel: true
     - find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;:
+        parallel: true
+    - mkdir -p $CIRCLE_ARTIFACTS/checkstyle $CIRCLE_ARTIFACTS/findbugs:
+        parallel: true
+    - find . -type d -regex ".*/build/reports/checkstyle" | sed 's#\./\(\(.*\)/build/reports/checkstyle\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/checkstyle/\2#' | bash:
+        parallel: true
+    - find . -type d -regex ".*/build/reports/findbugs" | sed 's#\./\(\(.*\)/build/reports/findbugs\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/findbugs/\2#' | bash:
         parallel: true
 
 deployment:

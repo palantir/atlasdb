@@ -30,20 +30,18 @@ public class CassandraJmxBeanFactory {
     private final JMXConnector jmxConnector;
 
     public CassandraJmxBeanFactory(JMXConnector jmxConnector) {
-        this.jmxConnector = Preconditions.checkNotNull(jmxConnector);
+        this.jmxConnector = Preconditions.checkNotNull(jmxConnector, "jmxConnector cannot be null");
     }
 
     public <T> T create(String name, Class<T> interfaceClass) {
-        MBeanServerConnection mBeanServerConnection = null;
+        MBeanServerConnection jmxBeanServerConnection = null;
         ObjectName objectName = null;
         try {
-            mBeanServerConnection = jmxConnector.getMBeanServerConnection();
+            jmxBeanServerConnection = jmxConnector.getMBeanServerConnection();
             objectName = new ObjectName(name);
-        } catch (MalformedObjectNameException e) {
-            Throwables.propagate(e);
-        } catch (IOException e) {
+        } catch (MalformedObjectNameException | IOException e) {
             Throwables.propagate(e);
         }
-        return JMX.newMBeanProxy(mBeanServerConnection, objectName, interfaceClass);
+        return JMX.newMBeanProxy(jmxBeanServerConnection, objectName, interfaceClass);
     }
 }

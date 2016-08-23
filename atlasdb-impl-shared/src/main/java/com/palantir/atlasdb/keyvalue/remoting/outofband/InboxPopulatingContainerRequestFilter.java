@@ -45,7 +45,9 @@ public class InboxPopulatingContainerRequestFilter implements ContainerRequestFi
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
-        AbstractWritableServiceContext<Map<RemoteContextType<?>, Object>> holderContext = (AbstractWritableServiceContext<Map<RemoteContextType<?>, Object>>) RemoteContextHolder.INBOX.getHolderContext();
+        AbstractWritableServiceContext<Map<RemoteContextType<?>, Object>> holderContext =
+                (AbstractWritableServiceContext<Map<RemoteContextType<?>, Object>>) RemoteContextHolder.INBOX
+                        .getHolderContext();
         if (!requestContext.getHeaders().containsKey(OutboxShippingInterceptor.CONTEXT_HEADER_NAME)) {
             holderContext.set(null);
             return;

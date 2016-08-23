@@ -46,18 +46,19 @@ public class TransactionKVSWrapper {
         Cell cell = getTransactionCell(startTimestamp);
         Map<Cell, Value> returnMap = keyValueService.get(TransactionConstants.TRANSACTION_TABLE,
                                                          ImmutableMap.of(cell, MAX_TIMESTAMP));
-        if (returnMap.containsKey(cell))
+        if (returnMap.containsKey(cell)) {
             return TransactionConstants.getTimestampForValue(returnMap.get(cell).getContents());
-        else
+        } else {
             return null;
+        }
     }
 
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
         Map<Long, Long> result = Maps.newHashMap();
         Map<Cell, Long> startTsMap = Maps.newHashMap();
-        for (Long startTimestamp: startTimestamps) {
-            Cell k = getTransactionCell(startTimestamp);
-            startTsMap.put(k, MAX_TIMESTAMP);
+        for (Long startTimestamp : startTimestamps) {
+            Cell cell = getTransactionCell(startTimestamp);
+            startTsMap.put(cell, MAX_TIMESTAMP);
         }
 
         Map<Cell, Value> rawResults = keyValueService.get(TransactionConstants.TRANSACTION_TABLE, startTsMap);
@@ -78,8 +79,8 @@ public class TransactionKVSWrapper {
     }
 
     public void putAll(Map<Long, Long> timestampMap) throws KeyAlreadyExistsException {
-        Map<Cell, byte[]> kvMap = new HashMap<Cell, byte[]> ();
-        for (Map.Entry<Long, Long> entry: timestampMap.entrySet()) {
+        Map<Cell, byte[]> kvMap = new HashMap<>();
+        for (Map.Entry<Long, Long> entry : timestampMap.entrySet()) {
             kvMap.put(
                     getTransactionCell(entry.getKey()),
                     TransactionConstants.getValueForTimestamp(entry.getValue()));

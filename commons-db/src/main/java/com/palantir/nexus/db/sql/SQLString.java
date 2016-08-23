@@ -27,6 +27,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Pattern;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
 
@@ -42,15 +44,24 @@ import com.palantir.util.TextUtils;
 public class SQLString extends BasicSQLString {
     private static final Pattern ALL_WORD_CHARS_REGEX = Pattern.compile("^[a-zA-Z_0-9\\.\\-]*$"); //$NON-NLS-1$
 
+    /**
+     * Callers changing the value of cachedUnregistered and
+     * cachedKeyed should be synchronized on this lock. Readers
+     * do not need to - the values of those maps are not guaranteed
+     * to be in sync with each other.
+     */
+    private static final Object cacheLock = new Object();
     //TODO (DCohen): Combine cachedKeyed and cachedUnregistered maps into one.
     /**
      * Rewritten unregistered queries.
      * Key: String with all whitespace removed
      * Value: the new SQLString to run instead.
      */
-    protected static volatile ImmutableMap<String, FinalSQLString> cachedUnregistered = ImmutableMap.of();
+    @GuardedBy("cacheLock")
+    private static volatile ImmutableMap<String, FinalSQLString> cachedUnregistered = ImmutableMap.of();
     /** Rewritten registered queries */
-    protected static volatile ImmutableMap<String, FinalSQLString> cachedKeyed = ImmutableMap.of();
+    @GuardedBy("cacheLock")
+    private static volatile ImmutableMap<String, FinalSQLString> cachedKeyed = ImmutableMap.of();
     /** All registered queries */
     protected static final ConcurrentMap<String, FinalSQLString> registeredValues = new ConcurrentHashMap<String, FinalSQLString>();
     /** DB-specific registered queries */
@@ -65,6 +76,20 @@ public class SQLString extends BasicSQLString {
         public void noteUse(SQLString used) {
            //do nothing
         }};
+
+    protected static interface CallableCheckedException<T, E extends Exception> {
+        T call() throws E;
+    }
+
+    /**
+     * Runs the provided callable while holding the lock for the override caches.
+     * Callers replacing the caches should hold this lock.
+     */
+    protected static <T, E extends Exception> T runWithCacheLock(CallableCheckedException<T, E> callable) throws E {
+        synchronized (cacheLock) {
+            return callable.call();
+        }
+    }
 
     /**
      * Call this function to store a query to be used later with the given key.
@@ -207,7 +232,6 @@ public class SQLString extends BasicSQLString {
      * Creates an appropriate comment string for the beginning of a SQL statement
      * @param keyString Identifier for the SQL; will be null if the SQL is unregistered
      * @param dbType
-     * @param fromDB
      */
     private static String makeCommentString(String keyString, DBType dbType) {
         String registrationState;
@@ -271,9 +295,7 @@ public class SQLString extends BasicSQLString {
      * @param sqlFormat format string which takes one argument which is the
      * conjunction of clauses (from <code>clauses</code>) which modify the
      * query variant
-     * @param baseClause the filter required for all instances of the search type
      * @param type database type the search is for, null for all DBs
-     * @param keys keys for clauses that can be added to the search
      * @param clauses clauses (in the same order as their keys) which can narrow
      * the search
      */
@@ -321,7 +343,7 @@ public class SQLString extends BasicSQLString {
         /**
          * Should only be called inside SQLString because this class essentially verifies that we've
          * checked for updates.
-         * @param delegate
+         * @param sqlstring
          */
         private RegisteredSQLString(BasicSQLString sqlstring) {
             this.delegate = sqlstring;
@@ -341,5 +363,25 @@ public class SQLString extends BasicSQLString {
 
     public static RegisteredSQLString getRegisteredQueryByKey(FinalSQLString key) {
          return new RegisteredSQLString(key.delegate);
+    }
+
+    protected static ImmutableMap<String, FinalSQLString> getCachedUnregistered() {
+            return cachedUnregistered;
+    }
+
+    protected static void setCachedUnregistered(ImmutableMap<String, FinalSQLString> cachedUnregistered) {
+        synchronized (cacheLock) {
+            SQLString.cachedUnregistered = cachedUnregistered;
+        }
+    }
+
+    protected static ImmutableMap<String, FinalSQLString> getCachedKeyed() {
+            return cachedKeyed;
+    }
+
+    protected static void setCachedKeyed(ImmutableMap<String, FinalSQLString> cachedKeyed) {
+        synchronized (cacheLock) {
+            SQLString.cachedKeyed = cachedKeyed;
+        }
     }
 }

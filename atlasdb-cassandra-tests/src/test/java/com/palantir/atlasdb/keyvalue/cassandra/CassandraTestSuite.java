@@ -21,16 +21,22 @@ import java.util.concurrent.Callable;
 
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.docker.compose.DockerComposition;
+import com.palantir.atlasdb.config.ImmutableLeaderConfig;
+import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.ete.Gradle;
+import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
@@ -38,30 +44,39 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 @RunWith(Suite.class)
 @SuiteClasses({
         CassandraConnectionTest.class,
+        CassandraKeyValueServiceTableCreationTest.class,
         CassandraKeyValueServiceSerializableTransactionTest.class,
         CassandraKeyValueServiceSweeperTest.class,
         CassandraTimestampTest.class,
         CassandraKeyValueServiceTest.class,
-        CassandraDbLockTest.class,
-        CassandraLegacyLockTest.class
+        SchemaMutationLockTest.class,
+        SchemaMutationLockTablesTest.class,
 })
 public class CassandraTestSuite {
 
     public static final int THRIFT_PORT_NUMBER = 9160;
-    @ClassRule
-    public static final DockerComposition composition = DockerComposition.of("src/test/resources/docker-compose.yml")
+    public static final DockerComposeRule docker = DockerComposeRule.builder()
+            .file("src/test/resources/docker-compose.yml")
             .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen())
             .saveLogsTo("container-logs")
             .build();
+
+    public static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
+
+    @ClassRule
+    public static final RuleChain CASSANDRA_DOCKER_SET_UP = RuleChain.outerRule(GRADLE_PREPARE_TASK).around(docker);
 
     static InetSocketAddress CASSANDRA_THRIFT_ADDRESS;
 
     static ImmutableCassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG;
 
+    static Optional<LeaderConfig> LEADER_CONFIG;
+
     @BeforeClass
     public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {
-        DockerPort port = composition.hostNetworkedPort(THRIFT_PORT_NUMBER);
-        CASSANDRA_THRIFT_ADDRESS = new InetSocketAddress(port.getIp(), port.getExternalPort());
+        DockerPort port = docker.hostNetworkedPort(THRIFT_PORT_NUMBER);
+        String hostname = port.getIp();
+        CASSANDRA_THRIFT_ADDRESS = new InetSocketAddress(hostname, port.getExternalPort());
 
         CASSANDRA_KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
                 .addServers(CASSANDRA_THRIFT_ADDRESS)
@@ -80,6 +95,13 @@ public class CassandraTestSuite {
                 .autoRefreshNodes(false)
                 .build();
 
+        LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
+                .builder()
+                .quorumSize(1)
+                .localServer(hostname)
+                .leaders(ImmutableSet.of(hostname))
+                .build());
+
         Awaitility.await()
                 .atMost(Duration.ONE_MINUTE)
                 .pollInterval(Duration.ONE_SECOND)
@@ -91,7 +113,7 @@ public class CassandraTestSuite {
             @Override
             public Boolean call() throws Exception {
                 try {
-                    CassandraKeyValueService.create(CassandraKeyValueServiceConfigManager.createSimpleManager(CASSANDRA_KVS_CONFIG));
+                    CassandraKeyValueService.create(CassandraKeyValueServiceConfigManager.createSimpleManager(CASSANDRA_KVS_CONFIG), LEADER_CONFIG);
                     return true;
                 } catch (Exception e) {
                     return false;

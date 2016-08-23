@@ -15,10 +15,6 @@
  */
 package com.palantir.nexus.db.sql;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
 import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.SQLString.RegisteredSQLString;
@@ -88,44 +84,7 @@ public interface PalantirSqlConnection extends SqlConnection {
      */
     Long selectLongWithDefault(RegisteredSQLString sql, Long defaultVal, Object... vs) throws PalantirSqlException, PalantirInterruptedException;
 
-    /**
-     * Clears out any existing rows in PT_TEMP_IDS and inserts the caller's list of temp ids.
-     * All users of this temp table should use this function, so that multiple uses within the
-     * same transaction do not interfere with each other.
-     *
-     * The main use case is that the caller has a large list of ids that would otherwise become part
-     * of a "AND table.column in (?,?,?,...)", potentially running into Oracle's limit on elements in
-     * a list unless the query is broken up.  Instead, you can add all of the ids in a single shot to this
-     * temp table, and then convert your query into a join.  Apparently, this is offers a performance improvement.
-     *
-     * Note: This does NOT need to run within a transaction. Each {@link java.sql.Connection} gets its own
-     *       temp table.
-     *
-     * @param tempIds collection of Longs to be inserted into PT_TEMP_IDS
-     * @throws PalantirSqlException
-     */
-    void loadTempIds(Iterable<Long> tempIds) throws PalantirSqlException;
-
-    /**
-     * Create clears out the contents of the temp table with the name provided and replaces
-     * it with the numbers passed in via 'tempIds'
-     *
-     * @param tempIds collection of Longs to be inserted into specified temp table
-     * @param tableName name of temporary table which will be cleared out and inserted with data
-     * @throws PalantirSqlException
-     */
-    void loadTempIds(Iterable<Long> tempIds, String tableName) throws PalantirSqlException;
-    void deleteIdsFromTempIds(Collection<Long> ids) throws PalantirSqlException;
-    void deleteIdsFromTempIdsForTable(Collection<Long> ids, String tempTable) throws PalantirSqlException;
-    void loadTempIdPairsIntoEight(Map<Long, Long> idToField1) throws PalantirSqlException;
-    void loadEightFieldTempIds(Iterable<Object[]> args) throws PalantirSqlException;
-    void loadIdKeyPairTempIds(Iterable<Object[]> args) throws PalantirSqlException;
-    void loadTempExternalIds(Iterable<Object[]> externalIds) throws PalantirSqlException;
-    void loadThreeFieldTempIds(Iterable<Object[]> args) throws PalantirSqlException;
-    void loadTempIdPairsIntoIdKeyTuples(Map<Long, Long> idToField1) throws PalantirSqlException;
-    void loadIdKeyTuplesTempIds(List<Object[]> tempRows) throws PalantirSqlException;
-    void loadKeysTempIds(Iterable<String> args) throws PalantirSqlException;
-    void clearTempTable(String tempTable) throws PalantirSqlException;
+    void initializeTempTable(TempTable tempTable) throws PalantirSqlException;
 
     /**
      * This will return the current time.  This is better than {@link System#currentTimeMillis()} because it will take

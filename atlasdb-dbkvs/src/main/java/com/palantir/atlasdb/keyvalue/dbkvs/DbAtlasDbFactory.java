@@ -16,8 +16,10 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.google.auto.service.AutoService;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
@@ -29,15 +31,17 @@ import com.palantir.timestamp.TimestampService;
 @AutoService(AtlasDbFactory.class)
 public class DbAtlasDbFactory implements AtlasDbFactory {
     public static final String TYPE = "relational";
+
     @Override
     public String getType() {
         return TYPE;
     }
 
     @Override
-    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config) {
+    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
         Preconditions.checkArgument(config instanceof DbKeyValueServiceConfig,
-                "DbAtlasDbFactory expects a configuration of type DbKeyValueServiceConfiguration, found %s", config.getClass());
+                "DbAtlasDbFactory expects a configuration of type DbKeyValueServiceConfiguration, found %s",
+                config.getClass());
         return ConnectionManagerAwareDbKvs.create((DbKeyValueServiceConfig) config);
     }
 

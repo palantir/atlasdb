@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.keyvalue.partition;
 
 import com.google.auto.service.AutoService;
+import com.google.common.base.Optional;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -32,7 +34,9 @@ public class PartitionedAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public PartitionedKeyValueService createRawKeyValueService(KeyValueServiceConfig config) {
+    public PartitionedKeyValueService createRawKeyValueService(
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig) {
         AtlasDbVersion.ensureVersionReported();
         return PartitionedKeyValueService.create((PartitionedKeyValueConfiguration) config);
     }

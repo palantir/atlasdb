@@ -20,7 +20,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -33,28 +32,37 @@ import com.palantir.atlasdb.keyvalue.api.Value;
  */
 @SuppressWarnings("rawtypes")
 public final class RowResultSerializer extends JsonSerializer<RowResult> {
-
     static final int VALUE_TYPE_ID = 0;
     static final int TIMESTAMPS_SET_TYPE_ID = 1;
     static final int VALUES_SET_TYPE_ID = 2;
 
-    @SuppressWarnings("unchecked") @Override
-    public void serialize(RowResult value, JsonGenerator gen, SerializerProvider serializers)
-            throws IOException, JsonProcessingException {
+    private static final RowResultSerializer instance = new RowResultSerializer();
+
+    private RowResultSerializer() {
+        // singleton
+    }
+
+    public static RowResultSerializer instance() {
+        return instance;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public void serialize(RowResult value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
         if (!value.getColumns().entrySet().isEmpty()) {
             Object firstObject = ((Entry) value.getColumns().entrySet().iterator().next()).getValue();
             if (firstObject instanceof Value) {
-                serializeWithValue(value, gen, serializers);
+                serializeWithValue(value, gen);
                 return;
             } else if (firstObject instanceof Set<?>) {
                 Set<?> set = (Set<?>) firstObject;
                 if (!set.isEmpty()) {
                     Object firstSetObject = set.iterator().next();
                     if (firstSetObject instanceof Long) {
-                        serializeWithTimestampsSet(value, gen, serializers);
+                        serializeWithTimestampsSet(value, gen);
                         return;
                     } else if (firstSetObject instanceof Value) {
-                        serializeWithValuesSet(value, gen, serializers);
+                        serializeWithValuesSet(value, gen);
                         return;
                     }
                 }
@@ -62,10 +70,10 @@ public final class RowResultSerializer extends JsonSerializer<RowResult> {
             throw new UnsupportedOperationException("Invalid RowResult type!");
         }
         // Does not matter since no templated objects are in there.
-        serializeWithValue(value, gen, serializers);
+        serializeWithValue(value, gen);
     }
 
-    private void serializeWithValue(RowResult<Value> value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+    private void serializeWithValue(RowResult<Value> value, JsonGenerator gen) throws IOException {
         gen.writeStartObject();
         gen.writeNumberField("type", VALUE_TYPE_ID);
         gen.writeBinaryField("row", value.getRowName());
@@ -82,9 +90,7 @@ public final class RowResultSerializer extends JsonSerializer<RowResult> {
         gen.writeEndObject();
     }
 
-    private void serializeWithTimestampsSet(RowResult<Set<Long>> value,
-                                            JsonGenerator gen,
-                                            SerializerProvider serializers) throws IOException {
+    private void serializeWithTimestampsSet(RowResult<Set<Long>> value, JsonGenerator gen) throws IOException {
         gen.writeStartObject();
         gen.writeNumberField("type", TIMESTAMPS_SET_TYPE_ID);
         gen.writeBinaryField("row", value.getRowName());
@@ -105,9 +111,7 @@ public final class RowResultSerializer extends JsonSerializer<RowResult> {
         gen.writeEndObject();
     }
 
-    private void serializeWithValuesSet(RowResult<Set<Value>> value,
-                                        JsonGenerator gen,
-                                        SerializerProvider serializers) throws IOException {
+    private void serializeWithValuesSet(RowResult<Set<Value>> value, JsonGenerator gen) throws IOException {
         gen.writeStartObject();
         gen.writeNumberField("type", VALUES_SET_TYPE_ID);
         gen.writeBinaryField("row", value.getRowName());
@@ -130,10 +134,4 @@ public final class RowResultSerializer extends JsonSerializer<RowResult> {
         gen.writeEndArray();
         gen.writeEndObject();
     }
-
-    private static RowResultSerializer instance = new RowResultSerializer();
-    public static RowResultSerializer instance() {
-        return instance;
-    }
-
 }

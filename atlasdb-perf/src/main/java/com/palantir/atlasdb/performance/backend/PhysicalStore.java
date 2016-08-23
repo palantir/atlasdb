@@ -20,8 +20,8 @@ package com.palantir.atlasdb.performance.backend;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 /**
- * The physical store backing the AtlasDB key-value service. Any new physical store should extend this class (currently only Postgres is
- * implemented).
+ * The physical store backing the AtlasDB key-value service. Any new physical store should extend this class
+ * (currently only Postgres is implemented).
  */
 public abstract class PhysicalStore implements AutoCloseable {
 

@@ -16,6 +16,6 @@
 package com.palantir.atlasdb.sweep;
 
 public interface BackgroundSweeper extends Runnable {
-    public void runInBackground();
-    public void shutdown();
+    void runInBackground();
+    void shutdown();
 }

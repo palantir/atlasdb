@@ -44,6 +44,8 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
@@ -96,6 +98,7 @@ public final class TwoColumnsTable implements
     private final List<TwoColumnsTrigger> triggers;
     private final static String rawTableName = "two_columns";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = getColumnSelection(TwoColumnsNamedColumn.values());
 
     static TwoColumnsTable of(Transaction t, Namespace namespace) {
         return new TwoColumnsTable(t, namespace, ImmutableList.<TwoColumnsTrigger>of());
@@ -677,7 +680,7 @@ public final class TwoColumnsTable implements
 
     @Override
     public Optional<TwoColumnsRowResult> getRow(TwoColumnsRow row) {
-        return getRow(row, ColumnSelection.all());
+        return getRow(row, allColumns);
     }
 
     @Override
@@ -693,7 +696,7 @@ public final class TwoColumnsTable implements
 
     @Override
     public List<TwoColumnsRowResult> getRows(Iterable<TwoColumnsRow> rows) {
-        return getRows(rows, ColumnSelection.all());
+        return getRows(rows, allColumns);
     }
 
     @Override
@@ -708,7 +711,7 @@ public final class TwoColumnsTable implements
 
     @Override
     public List<TwoColumnsRowResult> getAsyncRows(Iterable<TwoColumnsRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, ColumnSelection.all(), exec);
+        return getAsyncRows(rows, allColumns, exec);
     }
 
     @Override
@@ -725,7 +728,7 @@ public final class TwoColumnsTable implements
 
     @Override
     public List<TwoColumnsNamedColumnValue<?>> getRowColumns(TwoColumnsRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -745,7 +748,7 @@ public final class TwoColumnsTable implements
 
     @Override
     public Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getRowsMultimap(Iterable<TwoColumnsRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -755,7 +758,7 @@ public final class TwoColumnsTable implements
 
     @Override
     public Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<TwoColumnsRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -784,6 +787,20 @@ public final class TwoColumnsTable implements
             }
         }
         return rowMap;
+    }
+
+    @Override
+    public Map<TwoColumnsRow, BatchingVisitable<TwoColumnsNamedColumnValue<?>>> getRowsColumnRange(Iterable<TwoColumnsRow> rows, ColumnRangeSelection columnRangeSelection) {
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<TwoColumnsRow, BatchingVisitable<TwoColumnsNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            TwoColumnsRow row = TwoColumnsRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<TwoColumnsNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
     }
 
     private Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getAffectedCells(Multimap<TwoColumnsRow, ? extends TwoColumnsNamedColumnValue<?>> rows) {
@@ -839,7 +856,7 @@ public final class TwoColumnsTable implements
     }
 
     public BatchingVisitableView<TwoColumnsRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<TwoColumnsRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -875,6 +892,7 @@ public final class TwoColumnsTable implements
         private final List<FooToIdCondIdxTrigger> triggers;
         private final static String rawTableName = "foo_to_id_cond_idx";
         private final TableReference tableRef;
+        private final static ColumnSelection allColumns = ColumnSelection.all();
 
         public static FooToIdCondIdxTable of(TwoColumnsTable table) {
             return new FooToIdCondIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<FooToIdCondIdxTrigger>of());
@@ -1086,6 +1104,28 @@ public final class TwoColumnsTable implements
                 }
             };
 
+            public static ColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
+            }
+
+            public static Prefix prefixUnsorted(byte[] rowName) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                return new Prefix(EncodingUtils.add(rowNameBytes));
+            }
+
+            public static ColumnRangeSelection createPrefixRange(byte[] rowName, byte[] columnName, int batchSize) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes, columnNameBytes), batchSize);
+            }
+
+            public static Prefix prefix(byte[] rowName, byte[] columnName) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+                return new Prefix(EncodingUtils.add(rowNameBytes, columnNameBytes));
+            }
+
             @Override
             public String toString() {
                 return MoreObjects.toStringHelper(getClass().getSimpleName())
@@ -1112,7 +1152,7 @@ public final class TwoColumnsTable implements
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(rowName, columnName, id);
+                return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
             }
 
             @Override
@@ -1373,7 +1413,7 @@ public final class TwoColumnsTable implements
 
         @Override
         public List<FooToIdCondIdxColumnValue> getRowColumns(FooToIdCondIdxRow row) {
-            return getRowColumns(row, ColumnSelection.all());
+            return getRowColumns(row, allColumns);
         }
 
         @Override
@@ -1395,7 +1435,7 @@ public final class TwoColumnsTable implements
 
         @Override
         public Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> getRowsMultimap(Iterable<FooToIdCondIdxRow> rows) {
-            return getRowsMultimapInternal(rows, ColumnSelection.all());
+            return getRowsMultimapInternal(rows, allColumns);
         }
 
         @Override
@@ -1405,7 +1445,7 @@ public final class TwoColumnsTable implements
 
         @Override
         public Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> getAsyncRowsMultimap(Iterable<FooToIdCondIdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+            return getAsyncRowsMultimap(rows, allColumns, exec);
         }
 
         @Override
@@ -1438,8 +1478,24 @@ public final class TwoColumnsTable implements
             return rowMap;
         }
 
+        @Override
+        public Map<FooToIdCondIdxRow, BatchingVisitable<FooToIdCondIdxColumnValue>> getRowsColumnRange(Iterable<FooToIdCondIdxRow> rows, ColumnRangeSelection columnRangeSelection) {
+            Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+            Map<FooToIdCondIdxRow, BatchingVisitable<FooToIdCondIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+            for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+                FooToIdCondIdxRow row = FooToIdCondIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+                BatchingVisitable<FooToIdCondIdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                    FooToIdCondIdxColumn col = FooToIdCondIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                    Long val = FooToIdCondIdxColumnValue.hydrateValue(result.getValue());
+                    return FooToIdCondIdxColumnValue.of(col, val);
+                });
+                transformed.put(row, bv);
+            }
+            return transformed;
+        }
+
         public BatchingVisitableView<FooToIdCondIdxRowResult> getAllRowsUnordered() {
-            return getAllRowsUnordered(ColumnSelection.all());
+            return getAllRowsUnordered(allColumns);
         }
 
         public BatchingVisitableView<FooToIdCondIdxRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -1477,6 +1533,7 @@ public final class TwoColumnsTable implements
         private final List<FooToIdIdxTrigger> triggers;
         private final static String rawTableName = "foo_to_id_idx";
         private final TableReference tableRef;
+        private final static ColumnSelection allColumns = ColumnSelection.all();
 
         public static FooToIdIdxTable of(TwoColumnsTable table) {
             return new FooToIdIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<FooToIdIdxTrigger>of());
@@ -1688,6 +1745,28 @@ public final class TwoColumnsTable implements
                 }
             };
 
+            public static ColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
+            }
+
+            public static Prefix prefixUnsorted(byte[] rowName) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                return new Prefix(EncodingUtils.add(rowNameBytes));
+            }
+
+            public static ColumnRangeSelection createPrefixRange(byte[] rowName, byte[] columnName, int batchSize) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes, columnNameBytes), batchSize);
+            }
+
+            public static Prefix prefix(byte[] rowName, byte[] columnName) {
+                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+                return new Prefix(EncodingUtils.add(rowNameBytes, columnNameBytes));
+            }
+
             @Override
             public String toString() {
                 return MoreObjects.toStringHelper(getClass().getSimpleName())
@@ -1714,7 +1793,7 @@ public final class TwoColumnsTable implements
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(rowName, columnName, id);
+                return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
             }
 
             @Override
@@ -1975,7 +2054,7 @@ public final class TwoColumnsTable implements
 
         @Override
         public List<FooToIdIdxColumnValue> getRowColumns(FooToIdIdxRow row) {
-            return getRowColumns(row, ColumnSelection.all());
+            return getRowColumns(row, allColumns);
         }
 
         @Override
@@ -1997,7 +2076,7 @@ public final class TwoColumnsTable implements
 
         @Override
         public Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> getRowsMultimap(Iterable<FooToIdIdxRow> rows) {
-            return getRowsMultimapInternal(rows, ColumnSelection.all());
+            return getRowsMultimapInternal(rows, allColumns);
         }
 
         @Override
@@ -2007,7 +2086,7 @@ public final class TwoColumnsTable implements
 
         @Override
         public Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> getAsyncRowsMultimap(Iterable<FooToIdIdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+            return getAsyncRowsMultimap(rows, allColumns, exec);
         }
 
         @Override
@@ -2040,8 +2119,24 @@ public final class TwoColumnsTable implements
             return rowMap;
         }
 
+        @Override
+        public Map<FooToIdIdxRow, BatchingVisitable<FooToIdIdxColumnValue>> getRowsColumnRange(Iterable<FooToIdIdxRow> rows, ColumnRangeSelection columnRangeSelection) {
+            Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+            Map<FooToIdIdxRow, BatchingVisitable<FooToIdIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+            for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+                FooToIdIdxRow row = FooToIdIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+                BatchingVisitable<FooToIdIdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                    FooToIdIdxColumn col = FooToIdIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                    Long val = FooToIdIdxColumnValue.hydrateValue(result.getValue());
+                    return FooToIdIdxColumnValue.of(col, val);
+                });
+                transformed.put(row, bv);
+            }
+            return transformed;
+        }
+
         public BatchingVisitableView<FooToIdIdxRowResult> getAllRowsUnordered() {
-            return getAllRowsUnordered(ColumnSelection.all());
+            return getAllRowsUnordered(allColumns);
         }
 
         public BatchingVisitableView<FooToIdIdxRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -2094,6 +2189,8 @@ public final class TwoColumnsTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link ColumnRangeSelection}
+     * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
@@ -2151,5 +2248,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "qm8uxD9QtsMkbXBnBo9Pvg==";
+    static String __CLASS_HASH = "7GRVAi0WA3eAZGEPT28KwQ==";
 }

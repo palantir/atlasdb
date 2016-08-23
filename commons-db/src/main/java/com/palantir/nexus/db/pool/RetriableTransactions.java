@@ -293,7 +293,8 @@ public final class RetriableTransactions {
             }
             // Great, that worked, fallthrough to below but don't commit.
         } catch (SQLException e) {
-            log.info("Failed to add/remove testId, attempting to create table...", e);
+            log.info("The table {} has not been created yet, so we will try to create it.", TABLE_NAME);
+            log.debug("To check whether the table exists we tried to use it. This caused an exception indicating that it did not exist. The exception was: ", e);
             Connection c = cm.getConnection();
             try {
                 c.createStatement().execute("CREATE TABLE " + TABLE_NAME + " (id " + varcharType + "(36) PRIMARY KEY, created TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");

@@ -2,9 +2,9 @@ apply from: "../gradle/shared.gradle"
 apply plugin: 'groovy'
 
 dependencies {
-    compile project(':atlasdb-server')
+    compile project(':atlasdb-service')
     compile('org.fusesource.jansi:jansi:1.11')
-    compile('commons-cli:commons-cli:1.1')
+    compile('commons-cli:commons-cli:1.2')
     compile('jline:jline:2.12')
     compile('org.codehaus.groovy:groovy-all:' + libVersions.groovy)
 

@@ -17,6 +17,7 @@
 
 package com.palantir.atlasdb.performance.benchmarks;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -56,7 +57,7 @@ public class KvsPutBenchmarks {
     private static final String TABLE_NAME_2 = "performance.table2";
     private static final String ROW_COMPONENT = "key";
     private static final String COLUMN_NAME = "value";
-    private static final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes();
+    private static final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes(StandardCharsets.UTF_8);
     private static final long DUMMY_TIMESTAMP = 1L;
 
     private static final int VALUE_BYTE_ARRAY_SIZE = 100;
@@ -72,9 +73,9 @@ public class KvsPutBenchmarks {
     private TableReference tableRef2;
 
     @Setup
-    public void setup(KeyValueServiceConnector connector) {
-        this.connector = connector;
-        this.kvs = connector.connect();
+    public void setup(KeyValueServiceConnector conn) {
+        this.connector = conn;
+        this.kvs = conn.connect();
         this.tableRef1 = KvsBenchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
         this.tableRef2 = KvsBenchmarks.createTable(kvs, TABLE_NAME_2, ROW_COMPONENT, COLUMN_NAME);
     }

@@ -28,7 +28,7 @@ import feign.FeignException;
 import feign.codec.DecodeException;
 import feign.codec.Decoder;
 
-final class OctetStreamDelegateDecoder implements Decoder {
+public final class OctetStreamDelegateDecoder implements Decoder {
     private final Decoder delegate;
 
     public OctetStreamDelegateDecoder(Decoder delegate) {
@@ -36,14 +36,13 @@ final class OctetStreamDelegateDecoder implements Decoder {
     }
 
     @Override
-    public Object decode(feign.Response response, Type type) throws IOException,
-            DecodeException, FeignException {
+    public Object decode(feign.Response response, Type type) throws IOException, DecodeException, FeignException {
         Collection<String> contentTypes = response.headers().get(HttpHeaders.CONTENT_TYPE);
         if (contentTypes != null
-            && contentTypes.size() == 1
-            && Iterables.getOnlyElement(contentTypes, "").equals(MediaType.APPLICATION_OCTET_STREAM)) {
+                && contentTypes.size() == 1
+                && Iterables.getOnlyElement(contentTypes, "").equals(MediaType.APPLICATION_OCTET_STREAM)) {
             if (response.body() == null || response.body().length() == null) {
-              return null;
+                return null;
             }
             byte[] data = new byte[response.body().length()];
             int bytesRead = 0;

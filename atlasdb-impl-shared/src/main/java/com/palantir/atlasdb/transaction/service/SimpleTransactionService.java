@@ -24,7 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
-final class SimpleTransactionService implements TransactionService {
+public final class SimpleTransactionService implements TransactionService {
     private final KeyValueService keyValueService;
 
     public SimpleTransactionService(KeyValueService keyValueService) {
@@ -54,8 +54,8 @@ final class SimpleTransactionService implements TransactionService {
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
         Map<Cell, Long> startTsMap = Maps.newHashMap();
         for (Long startTimestamp : startTimestamps) {
-            Cell k = getTransactionCell(startTimestamp);
-            startTsMap.put(k, MAX_TIMESTAMP);
+            Cell cell = getTransactionCell(startTimestamp);
+            startTsMap.put(cell, MAX_TIMESTAMP);
         }
 
         Map<Cell, Value> rawResults = keyValueService.get(

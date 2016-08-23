@@ -24,11 +24,14 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.nexus.db.DBType;
 
-public class ConnectionDbTypes {
-
+public final class ConnectionDbTypes {
     private static final Logger log = LoggerFactory.getLogger(ConnectionDbTypes.class);
 
-    public static DBType getDBType(Connection conn) {
+    private ConnectionDbTypes() {
+        // Utility class
+    }
+
+    public static DBType getDbType(Connection conn) {
         try {
             DatabaseMetaData metaData = conn.getMetaData();
             String driverName = metaData.getDriverName().toLowerCase();

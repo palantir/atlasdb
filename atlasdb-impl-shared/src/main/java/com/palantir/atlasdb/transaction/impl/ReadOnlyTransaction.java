@@ -17,7 +17,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.List;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 
 import com.google.common.base.Functions;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -62,44 +62,42 @@ public class ReadOnlyTransaction extends SnapshotTransaction {
         return false;
     }
 
-    public BatchingVisitable<RowResult<Value>> getRangeWithTimestamps(final TableReference tableRef,
-                                                                      final RangeRequest range) {
+    public BatchingVisitable<RowResult<Value>> getRangeWithTimestamps(TableReference tableRef, RangeRequest range) {
         checkGetPreconditions(tableRef);
         if (range.isEmptyRange()) {
             return BatchingVisitables.emptyBatchingVisitable();
         }
         return new AbstractBatchingVisitable<RowResult<Value>>() {
             @Override
-            public <K extends Exception> void batchAcceptSizeHint(int userRequestedSize,
-                                                                  ConsistentVisitor<RowResult<Value>, K> v)
+            public <K extends Exception> void batchAcceptSizeHint(
+                    int userRequestedSize,
+                    ConsistentVisitor<RowResult<Value>, K> visitor)
                     throws K {
-                if (range.getBatchHint() != null) {
-                    userRequestedSize = range.getBatchHint();
-                }
-
-                int preFilterBatchSize = getRequestHintToKvStore(userRequestedSize);
+                int requestSize = range.getBatchHint() != null ? range.getBatchHint() : userRequestedSize;
+                int preFilterBatchSize = getRequestHintToKvStore(requestSize);
 
                 Validate.isTrue(!range.isReverse(), "we currently do not support reverse ranges");
                 getBatchingVisitableFromIterator(
                         tableRef,
                         range,
-                        userRequestedSize,
-                        v,
+                        requestSize,
+                        visitor,
                         preFilterBatchSize);
             }
 
         };
     }
 
-    private <K extends Exception> boolean getBatchingVisitableFromIterator(final TableReference tableRef,
-                                                                           RangeRequest range,
-                                                                           int userRequestedSize,
-                                                                           AbortingVisitor<List<RowResult<Value>>, K> v,
-                                                                           int preFilterBatchSize) throws K {
+    private <K extends Exception> boolean getBatchingVisitableFromIterator(
+            TableReference tableRef,
+            RangeRequest range,
+            int userRequestedSize,
+            AbortingVisitor<List<RowResult<Value>>, K> visitor,
+            int preFilterBatchSize) throws K {
         ClosableIterator<RowResult<Value>> postFilterIterator =
-                postFilterIterator(tableRef, range, preFilterBatchSize, Functions.<Value>identity());
+                postFilterIterator(tableRef, range, preFilterBatchSize, Functions.identity());
         try {
-            return BatchingVisitableFromIterable.create(postFilterIterator).batchAccept(userRequestedSize, v);
+            return BatchingVisitableFromIterable.create(postFilterIterator).batchAccept(userRequestedSize, visitor);
         } finally {
             postFilterIterator.close();
         }

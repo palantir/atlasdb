@@ -17,12 +17,14 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Objects;
 
 import javax.annotation.Nonnull;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -32,17 +34,14 @@ import com.palantir.atlasdb.encoding.PtBytes;
  * Values are stored in {@link Cell}s.
  * @see Cell
  */
-public class Value implements Serializable {
+public final class Value implements Serializable {
     private static final long serialVersionUID = 1L;
     public static final long INVALID_VALUE_TIMESTAMP = -1L;
 
     @JsonCreator
     public static Value create(@JsonProperty("contents") byte[] contents,
                                @JsonProperty("timestamp") long timestamp) {
-        if (contents == null) {
-            contents = PtBytes.EMPTY_BYTE_ARRAY;
-        }
-        return new Value(contents, timestamp);
+        return new Value(MoreObjects.firstNonNull(contents, PtBytes.EMPTY_BYTE_ARRAY), timestamp);
     }
 
     public static Value createWithCopyOfData(byte[] contents, long timestamp) {
@@ -68,68 +67,43 @@ public class Value implements Serializable {
     private final long timestamp;
 
     private Value(byte[] contents, long timestamp) {
-        Preconditions.checkArgument((timestamp >= 0 && timestamp < Long.MAX_VALUE) || (timestamp == INVALID_VALUE_TIMESTAMP), "timestamp out of bounds");
+        Preconditions.checkArgument(
+                (timestamp >= 0 && timestamp < Long.MAX_VALUE) || (timestamp == INVALID_VALUE_TIMESTAMP),
+                "timestamp out of bounds");
         this.contents = contents;
         this.timestamp = timestamp;
     }
 
-    public static final Function<Value, Long> GET_TIMESTAMP = new Function<Value, Long>() {
-        @Override
-        public Long apply(Value from) {
-            return from.getTimestamp();
-        }
-    };
+    public static final Function<Value, Long> GET_TIMESTAMP = Value::getTimestamp;
 
-    public static final Function<Value, byte[]> GET_VALUE = new Function<Value, byte[]>() {
-        @Override
-        public byte[] apply(Value from) {
-            return from.getContents();
-        }
-    };
+    public static final Function<Value, byte[]> GET_VALUE = Value::getContents;
 
-    public static final Predicate<byte[]> IS_EMPTY = new Predicate<byte[]>() {
-        @Override
-        public boolean apply(byte[] input) {
-            return input.length == 0;
-        }
-    };
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + Arrays.hashCode(contents);
-        result = prime * result + (int) (timestamp ^ (timestamp >>> 32));
-        return result;
-    }
+    public static final Predicate<byte[]> IS_EMPTY = input -> input.length == 0;
 
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
-        if (obj == null) {
+        if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        Value other = (Value)obj;
-        if (!Arrays.equals(contents, other.contents)) {
-            return false;
-        }
-        if (timestamp != other.timestamp) {
-            return false;
-        }
-        return true;
+        Value value = (Value) obj;
+        return timestamp == value.timestamp
+                && Arrays.equals(contents, value.contents);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(Arrays.hashCode(contents), timestamp);
     }
 
     @Override
     public String toString() {
         byte[] prefix = Arrays.copyOf(contents, Math.min(10, contents.length));
-        return "Value [contents=" + PtBytes.encodeHexString(prefix) +
-                ", contentsLength=" + contents.length +
-                ", timestamp=" + timestamp + "]";
+        return "Value [contents=" + PtBytes.encodeHexString(prefix)
+                + ", contentsLength=" + contents.length
+                + ", timestamp=" + timestamp + "]";
     }
 
 

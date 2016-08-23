@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -35,8 +36,16 @@ import com.palantir.common.base.BatchingVisitable;
 public interface Transaction {
 
     @Idempotent
-    SortedMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef, Iterable<byte[]> rows,
-                                                 ColumnSelection columnSelection);
+    SortedMap<byte[], RowResult<byte[]>> getRows(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnSelection columnSelection);
+
+    @Idempotent
+    Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection);
 
     @Idempotent
     Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells);
@@ -60,7 +69,9 @@ public interface Transaction {
      * will default to 1 for the first page in each range.
      */
     @Idempotent
-    Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(TableReference tableRef, Iterable<RangeRequest> rangeRequests);
+    Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(
+            TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests);
 
     /**
      * Puts values into the key-value store. If you put a null or the empty byte array, then
@@ -90,9 +101,8 @@ public interface Transaction {
 
         /**
          * Hard delete transactions are different from regular transactions because they
-         * must queue cells for "scrubbing" (i.e. not just write a value at the latest
-         * timestamp, but also clean up values at older timestamps) on every cell that's
-         * modified or deleted
+         * must queue cells for "scrubbing" on every cell that's modified or deleted.
+         * (i.e. not just write a value at the latest timestamp, but also clean up values at older timestamps)
          */
         HARD_DELETE,
 
@@ -100,9 +110,9 @@ public interface Transaction {
          * In addition to queuing cells for "scrubbing", we also:
          * - (a) Scrub earlier than we would have otherwise, even at the cost of possibly
          *       causing open transactions to abort, and
-         * - (b) Block until the scrub is complete
+         * - (b) Block until the scrub is complete.
          */
-        AGGRESSIVE_HARD_DELETE;
+        AGGRESSIVE_HARD_DELETE
     }
 
     /**
@@ -134,13 +144,18 @@ public interface Transaction {
     void commit(TransactionService transactionService) throws TransactionFailedException;
 
     /**
+     * Gets whether the transaction has been aborted.
+     *
      * @return <code>true</code> if <code>abort()</code> has been called, otherwise <code>false</code>
      */
     @Idempotent
     boolean isAborted();
 
     /**
-     * @return <code>true</code> if neither <code>commit()</code> or <code>abort()</code> have been called, otherwise <code>false</code>
+     * Gets whether the transaction has not been committed.
+     *
+     * @return <code>true</code> if neither <code>commit()</code> or <code>abort()</code> have been called,
+     *         otherwise <code>false</code>
      */
     @Idempotent
     boolean isUncommitted();

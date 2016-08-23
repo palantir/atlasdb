@@ -22,9 +22,21 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 
 
-public class ConsistentRingRangeRequests {
+public final class ConsistentRingRangeRequests {
+    private ConsistentRingRangeRequests() {
+        // Utility class
+    }
 
-     private static class ConsistentRingRangeRequestComparator implements Comparator<ConsistentRingRangeRequest> {
+    public static Comparator<ConsistentRingRangeRequest> getCompareByStartRow() {
+        return ConsistentRingRangeRequestComparator.instance();
+    }
+
+    private static class ConsistentRingRangeRequestComparator implements Comparator<ConsistentRingRangeRequest> {
+        private static final ConsistentRingRangeRequestComparator instance = new ConsistentRingRangeRequestComparator();
+
+        public static ConsistentRingRangeRequestComparator instance() {
+            return instance;
+        }
 
         @Override
         public int compare(ConsistentRingRangeRequest o1, ConsistentRingRangeRequest o2) {
@@ -51,22 +63,5 @@ public class ConsistentRingRangeRequests {
             Preconditions.checkArgument(Math.signum(cmpStart) == Math.signum(cmpEnd));
             return cmpStart;
         }
-
-        private static ConsistentRingRangeRequestComparator instance;
-        public static ConsistentRingRangeRequestComparator instance() {
-            if (instance == null) {
-                ConsistentRingRangeRequestComparator ret = new ConsistentRingRangeRequestComparator();
-                instance = ret;
-            }
-            return instance;
-        }
-
-     }
-
-     public static Comparator<ConsistentRingRangeRequest> getCompareByStartRow() {
-         return ConsistentRingRangeRequestComparator.instance();
-     }
-
-     private ConsistentRingRangeRequests() {
-     }
+    }
 }

@@ -35,7 +35,7 @@ class TimestampExtractor extends ResultsExtractor<SetMultimap<Cell, Long>, Set<L
         }
     };
 
-    public TimestampExtractor(SetMultimap<Cell, Long> collector) {
+    TimestampExtractor(SetMultimap<Cell, Long> collector) {
         super(collector);
     }
 

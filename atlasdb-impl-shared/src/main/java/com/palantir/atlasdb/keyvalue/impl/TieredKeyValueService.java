@@ -42,9 +42,11 @@ import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -56,7 +58,7 @@ import com.palantir.util.Pair;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public class TieredKeyValueService implements KeyValueService {
+public final class TieredKeyValueService implements KeyValueService {
     /**
      * We keep track of and report only the tables we're actually tiering
      * so the TieredKvsMover can know what tables need to be moved between
@@ -169,6 +171,23 @@ public class TieredKeyValueService implements KeyValueService {
     }
 
     @Override
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection,
+            long timestamp) {
+        if (isNotTiered(tableRef)) {
+            return primary.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+        }
+        Map<byte[], RowColumnRangeIterator> primaryResults =
+                primary.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+        Map<byte[], RowColumnRangeIterator> results =
+                Maps.newHashMap(secondary.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp));
+        results.putAll(primaryResults);
+        return results;
+    }
+
+    @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         if (isNotTiered(tableRef)) {
             return primary.get(tableRef, timestampByCell);
@@ -178,7 +197,8 @@ public class TieredKeyValueService implements KeyValueService {
         if (primaryResults.size() == timestampByCell.size()) {
             results = primaryResults;
         } else {
-            Map<Cell, Long> missingCells = Maps.newHashMapWithExpectedSize(timestampByCell.size() - primaryResults.size());
+            Map<Cell, Long> missingCells =
+                    Maps.newHashMapWithExpectedSize(timestampByCell.size() - primaryResults.size());
             results = Maps.newHashMapWithExpectedSize(timestampByCell.size());
             for (Entry<Cell, Long> entry : timestampByCell.entrySet()) {
                 Value value = primaryResults.get(entry.getKey());
@@ -203,7 +223,8 @@ public class TieredKeyValueService implements KeyValueService {
         if (primaryResults.size() == timestampByCell.size()) {
             results = primaryResults;
         } else {
-            Map<Cell, Long> missingCells = Maps.newHashMapWithExpectedSize(timestampByCell.size() - primaryResults.size());
+            Map<Cell, Long> missingCells =
+                    Maps.newHashMapWithExpectedSize(timestampByCell.size() - primaryResults.size());
             results = Maps.newHashMapWithExpectedSize(timestampByCell.size());
             for (Entry<Cell, Long> entry : timestampByCell.entrySet()) {
                 Long timestamp = primaryResults.get(entry.getKey());
@@ -292,8 +313,8 @@ public class TieredKeyValueService implements KeyValueService {
             primary.putUnlessExists(tableRef, values);
             return;
         }
-        throw new UnsupportedOperationException("TieredKeyValueService does not " +
-                "support putUnlessExists on tiered tables. tableName=" + tableRef + ".");
+        throw new UnsupportedOperationException("TieredKeyValueService does not"
+                + " support putUnlessExists on tiered tables. tableName=" + tableRef + ".");
     }
 
     @Override
@@ -320,12 +341,8 @@ public class TieredKeyValueService implements KeyValueService {
             return primary.getRange(tableRef, rangeRequest, timestamp);
         }
         ClosableIterator<RowResult<Value>> primaryIter = primary.getRange(tableRef, rangeRequest, timestamp);
-        return new ClosableMergedIterator<Value>(rangeRequest, primaryIter,
-                new Function<RangeRequest, ClosableIterator<RowResult<Value>>>() {
-                    @Override
-                    public ClosableIterator<RowResult<Value>> apply(RangeRequest request) {
-                        return secondary.getRange(tableRef, request, timestamp);
-                    }});
+        return new ClosableMergedIterator<>(rangeRequest, primaryIter,
+                request -> secondary.getRange(tableRef, request, timestamp));
     }
 
     @Override
@@ -335,13 +352,10 @@ public class TieredKeyValueService implements KeyValueService {
         if (isNotTiered(tableRef)) {
             return primary.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
         }
-        ClosableIterator<RowResult<Set<Long>>> primaryIter = primary.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
-        return new ClosableMergedIterator<Set<Long>>(rangeRequest, primaryIter,
-                new Function<RangeRequest, ClosableIterator<RowResult<Set<Long>>>>() {
-                    @Override
-                    public ClosableIterator<RowResult<Set<Long>>> apply(RangeRequest request) {
-                        return secondary.getRangeOfTimestamps(tableRef, request, timestamp);
-                    }});
+        ClosableIterator<RowResult<Set<Long>>> primaryIter =
+                primary.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
+        return new ClosableMergedIterator<>(rangeRequest, primaryIter,
+                request -> secondary.getRangeOfTimestamps(tableRef, request, timestamp));
     }
 
     @Override
@@ -351,13 +365,10 @@ public class TieredKeyValueService implements KeyValueService {
         if (isNotTiered(tableRef)) {
             return primary.getRangeWithHistory(tableRef, rangeRequest, timestamp);
         }
-        ClosableIterator<RowResult<Set<Value>>> primaryIter = primary.getRangeWithHistory(tableRef, rangeRequest, timestamp);
-        return new ClosableMergedIterator<Set<Value>>(rangeRequest, primaryIter,
-                new Function<RangeRequest, ClosableIterator<RowResult<Set<Value>>>>() {
-                    @Override
-                    public ClosableIterator<RowResult<Set<Value>>> apply(RangeRequest request) {
-                        return secondary.getRangeWithHistory(tableRef, request, timestamp);
-                    }});
+        ClosableIterator<RowResult<Set<Value>>> primaryIter =
+                primary.getRangeWithHistory(tableRef, rangeRequest, timestamp);
+        return new ClosableMergedIterator<>(rangeRequest, primaryIter,
+                request -> secondary.getRangeWithHistory(tableRef, request, timestamp));
     }
 
     @Override
@@ -374,7 +385,8 @@ public class TieredKeyValueService implements KeyValueService {
                 secondary.getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> results =
                 Maps.newHashMapWithExpectedSize(primaryResults.size());
-        for (Entry<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> entry : primaryResults.entrySet()) {
+        for (Entry<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> entry :
+                primaryResults.entrySet()) {
             RangeRequest rangeRequest = entry.getKey();
             boolean isReversed = rangeRequest.isReverse();
             TokenBackedBasicResultsPage<RowResult<Value>, byte[]> primaryPage = entry.getValue();
@@ -382,7 +394,8 @@ public class TieredKeyValueService implements KeyValueService {
             boolean moreAvailable = primaryPage.moreResultsAvailable() || secondaryPage.moreResultsAvailable();
             byte[] pageToken = getNextPageToken(primaryPage, secondaryPage, isReversed);
             Predicate<RowResult<Value>> limiter = getLimitingPredicate(pageToken, isReversed, moreAvailable);
-            Iterable<RowResult<Value>> pageResults = getMergedPageResults(primaryPage, secondaryPage, limiter, isReversed);
+            Iterable<RowResult<Value>> pageResults =
+                    getMergedPageResults(primaryPage, secondaryPage, limiter, isReversed);
             results.put(rangeRequest, SimpleTokenBackedResultsPage.create(pageToken, pageResults, moreAvailable));
         }
         return results;
@@ -473,12 +486,12 @@ public class TieredKeyValueService implements KeyValueService {
                         for (Entry<byte[], T> entry : primaryResult.getColumns().entrySet()) {
                             T secondaryValue = secondaryResult.getColumns().get(entry.getKey());
                             if (secondaryValue instanceof Value) {
-                                long primaryTimestamp = ((Value)entry.getValue()).getTimestamp();
-                                long secondaryTimestamp = ((Value)secondaryValue).getTimestamp();
+                                long primaryTimestamp = ((Value) entry.getValue()).getTimestamp();
+                                long secondaryTimestamp = ((Value) secondaryValue).getTimestamp();
                                 AssertUtils.assertAndLog(primaryTimestamp >= secondaryTimestamp,
-                                        "The secondary kvs has a row with timestamp %s, while the " +
-                                        "same row in the primary has timestamp %s. This should be " +
-                                        "extremely uncommon.",
+                                        "The secondary kvs has a row with timestamp %s, while the"
+                                        + " same row in the primary has timestamp %s. This should be"
+                                        + " extremely uncommon.",
                                         secondaryTimestamp, primaryTimestamp);
                             }
                         }
@@ -540,13 +553,8 @@ public class TieredKeyValueService implements KeyValueService {
         }
 
         List<Future<?>> futures = Lists.newArrayListWithExpectedSize(2);
-        for (final Entry<KeyValueService, Set<TableReference>> tableRefsPerKVS : tableRefsPerDelegate.entrySet()) {
-            futures.add(executor.submit(new Runnable() {
-                @Override
-                public void run() {
-                    tableRefsPerKVS.getKey().dropTables(tableRefsPerKVS.getValue());
-                }
-            }));
+        for (Entry<KeyValueService, Set<TableReference>> tableRefsPerKvs : tableRefsPerDelegate.entrySet()) {
+            futures.add(executor.submit(() -> tableRefsPerKvs.getKey().dropTables(tableRefsPerKvs.getValue())));
         }
 
         for (Future<?> future : futures) {
@@ -592,9 +600,7 @@ public class TieredKeyValueService implements KeyValueService {
             }
         }
 
-        for (KeyValueService kvs : delegateToTableMetadata.keySet()) {
-            kvs.createTables(delegateToTableMetadata.get(kvs));
-        }
+        delegateToTableMetadata.forEach(KeyValueService::createTables);
     }
 
     @Override
@@ -624,13 +630,14 @@ public class TieredKeyValueService implements KeyValueService {
 
     @Override
     public void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata) {
-        Map<KeyValueService, Map<TableReference, byte[]>> delegateToTablenameToMetadata = Maps.newHashMapWithExpectedSize(2);
+        Map<KeyValueService, Map<TableReference, byte[]>> delegateToTablenameToMetadata =
+                Maps.newHashMapWithExpectedSize(2);
         for (Entry<TableReference, byte[]> tableEntry : tableRefToMetadata.entrySet()) {
             TableReference tableRef = tableEntry.getKey();
             byte[] metadata = tableEntry.getValue();
-            Map<TableReference, byte[]> splitTableToMetadata = ImmutableMap.of();
 
             // always place in primary
+            Map<TableReference, byte[]> splitTableToMetadata;
             if (delegateToTablenameToMetadata.containsKey(primary)) {
                 splitTableToMetadata = delegateToTablenameToMetadata.get(primary);
             } else {
@@ -649,9 +656,8 @@ public class TieredKeyValueService implements KeyValueService {
                 delegateToTablenameToMetadata.put(secondary, splitTableToMetadata);
             }
         }
-        for (KeyValueService kvs : delegateToTablenameToMetadata.keySet()) {
-            kvs.putMetadataForTables(delegateToTablenameToMetadata.get(kvs));
-        }
+
+        delegateToTablenameToMetadata.forEach(KeyValueService::putMetadataForTables);
     }
 
     @Override

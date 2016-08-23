@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.transaction.api;
 
 /**
- * The locks to the lock server have timed out
+ * The locks to the lock server have timed out.
  *
  * @author carrino
  */

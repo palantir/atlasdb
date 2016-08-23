@@ -44,6 +44,8 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
@@ -96,6 +98,7 @@ public final class StreamTestStreamValueTable implements
     private final List<StreamTestStreamValueTrigger> triggers;
     private final static String rawTableName = "stream_test_stream_value";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = getColumnSelection(StreamTestStreamValueNamedColumn.values());
 
     static StreamTestStreamValueTable of(Transaction t, Namespace namespace) {
         return new StreamTestStreamValueTable(t, namespace, ImmutableList.<StreamTestStreamValueTrigger>of());
@@ -222,7 +225,7 @@ public final class StreamTestStreamValueTable implements
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(id, blockId);
+            return Arrays.deepHashCode(new Object[]{ id, blockId });
         }
 
         @Override
@@ -482,7 +485,7 @@ public final class StreamTestStreamValueTable implements
 
     @Override
     public Optional<StreamTestStreamValueRowResult> getRow(StreamTestStreamValueRow row) {
-        return getRow(row, ColumnSelection.all());
+        return getRow(row, allColumns);
     }
 
     @Override
@@ -498,7 +501,7 @@ public final class StreamTestStreamValueTable implements
 
     @Override
     public List<StreamTestStreamValueRowResult> getRows(Iterable<StreamTestStreamValueRow> rows) {
-        return getRows(rows, ColumnSelection.all());
+        return getRows(rows, allColumns);
     }
 
     @Override
@@ -513,7 +516,7 @@ public final class StreamTestStreamValueTable implements
 
     @Override
     public List<StreamTestStreamValueRowResult> getAsyncRows(Iterable<StreamTestStreamValueRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, ColumnSelection.all(), exec);
+        return getAsyncRows(rows, allColumns, exec);
     }
 
     @Override
@@ -530,7 +533,7 @@ public final class StreamTestStreamValueTable implements
 
     @Override
     public List<StreamTestStreamValueNamedColumnValue<?>> getRowColumns(StreamTestStreamValueRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -550,7 +553,7 @@ public final class StreamTestStreamValueTable implements
 
     @Override
     public Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> getRowsMultimap(Iterable<StreamTestStreamValueRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -560,7 +563,7 @@ public final class StreamTestStreamValueTable implements
 
     @Override
     public Multimap<StreamTestStreamValueRow, StreamTestStreamValueNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<StreamTestStreamValueRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -591,8 +594,22 @@ public final class StreamTestStreamValueTable implements
         return rowMap;
     }
 
+    @Override
+    public Map<StreamTestStreamValueRow, BatchingVisitable<StreamTestStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<StreamTestStreamValueRow> rows, ColumnRangeSelection columnRangeSelection) {
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<StreamTestStreamValueRow, BatchingVisitable<StreamTestStreamValueNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            StreamTestStreamValueRow row = StreamTestStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<StreamTestStreamValueNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<StreamTestStreamValueRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<StreamTestStreamValueRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -643,6 +660,8 @@ public final class StreamTestStreamValueTable implements
      * {@link Cells}
      * {@link Collection}
      * {@link Collections2}
+     * {@link ColumnRangeSelection}
+     * {@link ColumnRangeSelections}
      * {@link ColumnSelection}
      * {@link ColumnValue}
      * {@link ColumnValues}
@@ -700,5 +719,5 @@ public final class StreamTestStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "AW5bkfuNm5HKpXkur7a4cg==";
+    static String __CLASS_HASH = "9/3DQmfyJb8b6iKJn7qLWQ==";
 }

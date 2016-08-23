@@ -65,7 +65,7 @@ public class OracleOverflowWriteTable implements DbWriteTable {
             } else {
                 long overflowId = config.overflowIds().get();
                 overflowArgs.add(new Object[] { overflowId, val });
-                args.add(new Object[] { cell.getRowName(), cell.getColumnName(), ts, null , overflowId });
+                args.add(new Object[] { cell.getRowName(), cell.getColumnName(), ts, null, overflowId });
             }
         }
         put(args, overflowArgs);
@@ -79,11 +79,15 @@ public class OracleOverflowWriteTable implements DbWriteTable {
             Cell cell = entry.getKey();
             Value val = entry.getValue();
             if (val.getContents().length <= 2000) {
-                args.add(new Object[] { cell.getRowName(), cell.getColumnName(), val.getTimestamp(), val.getContents(), null });
+                args.add(new Object[] {
+                        cell.getRowName(), cell.getColumnName(), val.getTimestamp(), val.getContents(), null
+                });
             } else {
                 long overflowId = config.overflowIds().get();
                 overflowArgs.add(new Object[] { overflowId, val.getContents() });
-                args.add(new Object[] { cell.getRowName(), cell.getColumnName(), val.getTimestamp(), null , overflowId });
+                args.add(new Object[] {
+                        cell.getRowName(), cell.getColumnName(), val.getTimestamp(), null, overflowId
+                });
             }
         }
         put(args, overflowArgs);
@@ -92,22 +96,19 @@ public class OracleOverflowWriteTable implements DbWriteTable {
     private void put(List<Object[]> args, List<Object[]> overflowArgs) {
         if (!overflowArgs.isEmpty()) {
             if (config.overflowMigrationState() == OverflowMigrationState.UNSTARTED) {
-                conns.get().insertManyUnregisteredQuery(
-                        "/* INSERT_OVERFLOW */" +
-                        " INSERT INTO " + config.singleOverflowTable() + " (id, val) VALUES (?, ?) ",
+                conns.get().insertManyUnregisteredQuery("/* INSERT_OVERFLOW */"
+                        + " INSERT INTO " + config.singleOverflowTable() + " (id, val) VALUES (?, ?) ",
                         overflowArgs);
             } else {
-                conns.get().insertManyUnregisteredQuery(
-                        "/* INSERT_OVERFLOW (" + tableName + ") */" +
-                        " INSERT INTO " + prefixedOverflowTableName() + " (id, val) VALUES (?, ?) ",
+                conns.get().insertManyUnregisteredQuery("/* INSERT_OVERFLOW (" + tableName + ") */"
+                        + " INSERT INTO " + prefixedOverflowTableName() + " (id, val) VALUES (?, ?) ",
                         overflowArgs);
             }
         }
         try {
-            conns.get().insertManyUnregisteredQuery(
-                    "/* INSERT_ONE (" + tableName + ") */" +
-                    " INSERT INTO " + prefixedTableName() + " (row_name, col_name, ts, val, overflow) " +
-                    " VALUES (?, ?, ?, ?, ?) ",
+            conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + tableName + ") */"
+                    + " INSERT INTO " + prefixedTableName() + " (row_name, col_name, ts, val, overflow) "
+                    + " VALUES (?, ?, ?, ?, ?) ",
                     args);
         } catch (PalantirSqlException e) {
             if (ExceptionCheck.isUniqueConstraintViolation(e)) {
@@ -129,14 +130,15 @@ public class OracleOverflowWriteTable implements DbWriteTable {
             }
             while (true) {
                 try {
-                    conns.get().insertManyUnregisteredQuery(
-                            "/* INSERT_WHERE_NOT_EXISTS (" + tableName + ") */" +
-                            " INSERT INTO " + prefixedTableName() + " (row_name, col_name, ts, val, overflow) " +
-                            " SELECT ?, ?, ?, ?, ? FROM DUAL" +
-                            " WHERE NOT EXISTS (SELECT * FROM " + prefixedTableName() + " WHERE" +
-                            " row_name = ? AND" +
-                            " col_name = ? AND" +
-                            " ts = ?)",
+                    conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + tableName + ") */"
+                            + " INSERT INTO " + prefixedTableName()
+                            + "   (row_name, col_name, ts, val, overflow)"
+                            + " SELECT ?, ?, ?, ?, ? FROM DUAL"
+                            + " WHERE NOT EXISTS ("
+                            + "   SELECT * FROM " + prefixedTableName()
+                            + "   WHERE row_name = ?"
+                            + "     AND col_name = ?"
+                            + "     AND ts = ?)",
                             args);
                     break;
                 } catch (PalantirSqlException e) {
@@ -157,50 +159,50 @@ public class OracleOverflowWriteTable implements DbWriteTable {
             args.add(new Object[] {cell.getRowName(), cell.getColumnName(), entry.getValue()});
         }
         switch (config.overflowMigrationState()) {
-        case UNSTARTED:
-            deleteOverflow(config.singleOverflowTable(), args);
-            break;
-        case IN_PROGRESS:
-            deleteOverflow(config.singleOverflowTable(), args);
-            deleteOverflow(prefixedOverflowTableName(), args);
-            break;
-        case FINISHING: // fall through
-        case FINISHED:
-            deleteOverflow(prefixedOverflowTableName(), args);
-            break;
-        default:
-            throw new EnumConstantNotPresentException(OverflowMigrationState.class, config.overflowMigrationState().name());
+            case UNSTARTED:
+                deleteOverflow(config.singleOverflowTable(), args);
+                break;
+            case IN_PROGRESS:
+                deleteOverflow(config.singleOverflowTable(), args);
+                deleteOverflow(prefixedOverflowTableName(), args);
+                break;
+            case FINISHING: // fall through
+            case FINISHED:
+                deleteOverflow(prefixedOverflowTableName(), args);
+                break;
+            default:
+                throw new EnumConstantNotPresentException(
+                        OverflowMigrationState.class, config.overflowMigrationState().name());
         }
         SqlConnection conn = conns.get();
         try {
-            log.info("Got connection for delete on table {}: {}, autocommit={}", tableName, conn.getUnderlyingConnection(), conn.getUnderlyingConnection().getAutoCommit());
-        } catch (PalantirSqlException e) {
-            //
-        } catch (SQLException e) {
+            log.info("Got connection for delete on table {}: {}, autocommit={}",
+                    tableName,
+                    conn.getUnderlyingConnection(),
+                    conn.getUnderlyingConnection().getAutoCommit());
+        } catch (PalantirSqlException | SQLException e) {
             //
         }
-        conn.updateManyUnregisteredQuery(
-                " /* DELETE_ONE (" + tableName + ") */ " +
-                " DELETE /*+ INDEX(m pk_" + prefixedTableName() + ") */ " +
-                " FROM " + prefixedTableName() + " m " +
-                " WHERE m.row_name = ? " +
-                "  AND m.col_name = ? " +
-                "  AND m.ts = ?",
+        conn.updateManyUnregisteredQuery(" /* DELETE_ONE (" + tableName + ") */ "
+                + " DELETE /*+ INDEX(m pk_" + prefixedTableName() + ") */ "
+                + " FROM " + prefixedTableName() + " m "
+                + " WHERE m.row_name = ? "
+                + "  AND m.col_name = ? "
+                + "  AND m.ts = ?",
                 args);
     }
 
     private void deleteOverflow(String overflowTable, List<Object[]> args) {
-        conns.get().updateManyUnregisteredQuery(
-                " /* DELETE_ONE_OVERFLOW (" + tableName + ") */ " +
-                " DELETE /*+ INDEX(m pk_" + overflowTable + ") */ " +
-                "   FROM " + overflowTable + " m " +
-                "  WHERE m.id IN (SELECT /*+ INDEX(i pk_" + prefixedTableName() + ") */ " +
-                "                        i.overflow " +
-                "                   FROM " + prefixedTableName() + " i " +
-                "                  WHERE i.row_name = ? " +
-                "                    AND i.col_name = ? " +
-                "                    AND i.ts = ? " +
-                "                    AND i.overflow IS NOT NULL)",
+        conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE_OVERFLOW (" + tableName + ") */ "
+                + " DELETE /*+ INDEX(m pk_" + overflowTable + ") */ "
+                + "   FROM " + overflowTable + " m "
+                + "  WHERE m.id IN (SELECT /*+ INDEX(i pk_" + prefixedTableName() + ") */ "
+                + "                        i.overflow "
+                + "                   FROM " + prefixedTableName() + " i "
+                + "                  WHERE i.row_name = ? "
+                + "                    AND i.col_name = ? "
+                + "                    AND i.ts = ? "
+                + "                    AND i.overflow IS NOT NULL)",
                 args);
     }
 

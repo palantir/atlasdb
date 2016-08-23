@@ -31,13 +31,12 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class PartitionedRangedIterator<T> implements ClosableIterator<RowResult<T>> {
+    private final SortedSet<ConsistentRingRangeRequest> ranges;
 
-    final SortedSet<ConsistentRingRangeRequest> ranges;
-    Set<ClosablePeekingIterator<RowResult<T>>> currentRangeIterators;
-    Iterator<ConsistentRingRangeRequest> currentRange;
-    private PeekingIterator<RowResult<T>> rowIterator = Iterators.peekingIterator(Collections.<RowResult<T>>emptyIterator());
-    // Used to validate row ordering
-    private RowResult<T> cachedResult;
+    private Set<ClosablePeekingIterator<RowResult<T>>> currentRangeIterators;
+    private Iterator<ConsistentRingRangeRequest> currentRange;
+    private PeekingIterator<RowResult<T>> rowIterator = Iterators.peekingIterator(Collections.emptyIterator());
+    private RowResult<T> cachedResult; // Used to validate row ordering
 
     public PartitionedRangedIterator(Collection<ConsistentRingRangeRequest> ranges) {
         this.ranges = Sets.newTreeSet(ConsistentRingRangeRequests.getCompareByStartRow());
@@ -53,14 +52,14 @@ public abstract class PartitionedRangedIterator<T> implements ClosableIterator<R
         closeCurrentRangeIterators();
         currentRangeIterators = computeNextRange(newRange);
         Preconditions.checkState(!currentRangeIterators.isEmpty());
-        rowIterator = Iterators.<RowResult<T>>peekingIterator(Iterators.mergeSorted(
+        rowIterator = Iterators.peekingIterator(Iterators.mergeSorted(
                 currentRangeIterators,
-                RowResult.<T>getOrderingByRowName()));
+                RowResult.getOrderingByRowName()));
     }
 
     protected abstract Set<ClosablePeekingIterator<RowResult<T>>> computeNextRange(ConsistentRingRangeRequest range);
 
-    private final void prepareNextElement() {
+    private void prepareNextElement() {
         while (!getRowIterator().hasNext() && currentRange.hasNext()) {
             prepareNextRange();
         }
