@@ -7,7 +7,7 @@ mainClassName = 'com.palantir.atlasdb.cli.AtlasCli'
 applicationName = 'atlasdb'
 
 dependencies {
-  compile project(':atlasdb-server')
+  compile project(':atlasdb-service')
   compile project(':atlasdb-impl-shared')
   compile 'io.airlift:airline:0.7'
   compile 'com.google.dagger:dagger:2.0.2'

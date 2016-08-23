@@ -34,12 +34,15 @@ import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
 import feign.okhttp.OkHttpClient;
 
-public class AtlasDbHttpClients {
-
+public final class AtlasDbHttpClients {
     private static final ObjectMapper mapper = new ObjectMapper();
     private static final Contract contract = new JAXRSContract();
     private static final Encoder encoder = new JacksonEncoder(mapper);
     private static final Decoder decoder = new TextDelegateDecoder(new JacksonDecoder(mapper));
+
+    private AtlasDbHttpClients() {
+        // Utility class
+    }
 
     /**
      * Constructs a dynamic proxy for the specified type, using the supplied SSL factory if is present, and feign {@link
@@ -96,5 +99,4 @@ public class AtlasDbHttpClients {
         client.setSslSocketFactory(sslSocketFactory.orNull());
         return new OkHttpClient(client);
     }
-
 }

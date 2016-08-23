@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
+import java.util.function.Predicate;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSize;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
+import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.palantir.util.VersionStrings;
 
 public class PostgresDdlTable implements DbDdlTable {
@@ -51,6 +54,7 @@ public class PostgresDdlTable implements DbDdlTable {
                 tableName.getQualifiedName())) {
             return;
         }
+
         executeIgnoringError(
                 String.format("CREATE TABLE %s ("
                         + "  row_name   BYTEA NOT NULL,"
@@ -61,10 +65,15 @@ public class PostgresDdlTable implements DbDdlTable {
                         prefixedTableName(), prefixedTableName())
                 + ")",
                 "already exists");
-        conns.get().insertOneUnregisteredQuery(
-                "INSERT INTO " + config.metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)",
-                tableName.getQualifiedName(),
-                TableSize.RAW.getId());
+
+        ignoringError(() -> {
+            conns.get().insertOneUnregisteredQuery(
+                    String.format(
+                            "INSERT INTO %s (table_name, table_size) VALUES (?, ?)",
+                            config.metadataTable().getQualifiedName()),
+                    tableName.getQualifiedName(),
+                    TableSize.RAW.getId());
+        }, ExceptionCheck::isUniqueConstraintViolation);
     }
 
     @Override
@@ -92,17 +101,6 @@ public class PostgresDdlTable implements DbDdlTable {
         }
     }
 
-    private void executeIgnoringError(String sql, String errorToIgnore) {
-        try {
-            conns.get().executeUnregisteredQuery(sql);
-        } catch (PalantirSqlException e) {
-            if (!e.getMessage().contains(errorToIgnore)) {
-                log.error(e.getMessage(), e);
-                throw e;
-            }
-        }
-    }
-
     @Override
     public void compactInternally() {
         // VACUUM FULL is /really/ what we want here, but it takes out a table lock
@@ -111,5 +109,20 @@ public class PostgresDdlTable implements DbDdlTable {
 
     private String prefixedTableName() {
         return config.tablePrefix() + DbKvs.internalTableName(tableName);
+    }
+
+    private void executeIgnoringError(String sql, String errorToIgnore) {
+        ignoringError(() -> conns.get().executeUnregisteredQuery(sql), e -> e.getMessage().contains(errorToIgnore));
+    }
+
+    private static void ignoringError(Runnable fn, Predicate<PalantirSqlException> shouldIgnoreException) {
+        try {
+            fn.run();
+        } catch (PalantirSqlException e) {
+            if (!shouldIgnoreException.test(e)) {
+                log.error(e.getMessage(), e);
+                throw e;
+            }
+        }
     }
 }

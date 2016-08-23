@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.concurrent.Callable;
 
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -24,10 +24,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
+import com.jayway.awaitility.Awaitility;
+import com.jayway.awaitility.Duration;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
-import com.palantir.docker.compose.connection.waiting.HealthCheck;
-import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
@@ -37,42 +39,64 @@ import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
         DbkvsKeyValueServiceTest.class,
         DbkvsKeyValueServiceSerializableTransactionTest.class,
         DbkvsKeyValueServiceSweeperTest.class
-})
-public class DbkvsTestSuite {
+        })
+public final class DbkvsTestSuite {
+    private static final int POSTGRES_PORT_NUMBER = 5432;
 
-    public static final int POSTGRES_PORT_NUMBER = 5432;
+    private DbkvsTestSuite() {
+        // Test suite
+    }
+
     @ClassRule
     public static final DockerComposeRule docker = DockerComposeRule.builder()
             .file("src/test/resources/docker-compose.yml")
-            .waitingForHostNetworkedPort(POSTGRES_PORT_NUMBER, toBeOpen())
+            .waitingForService("postgres", Container::areAllPortsOpen)
             .saveLogsTo("container-logs")
+            .skipShutdown(true)
             .build();
 
-    static InetSocketAddress POSTGRES_ADDRESS;
-
-    static DbKeyValueServiceConfig POSTGRES_KVS_CONFIG;
-
     @BeforeClass
-    public static void waitUntilDbkvsIsUp() throws IOException, InterruptedException {
-        DockerPort port = docker.hostNetworkedPort(POSTGRES_PORT_NUMBER);
-        POSTGRES_ADDRESS = new InetSocketAddress(port.getIp(), port.getExternalPort());
+    public static void waitUntilDbkvsIsUp() throws InterruptedException {
+        Awaitility.await()
+                .atMost(Duration.ONE_MINUTE)
+                .pollInterval(Duration.ONE_SECOND)
+                .until(canCreateKeyValueService());
+    }
 
+    public static DbKeyValueServiceConfig getKvsConfig() {
+        DockerPort port = docker.containers()
+                .container("postgres")
+                .port(POSTGRES_PORT_NUMBER);
+
+        InetSocketAddress postgresAddress = new InetSocketAddress(port.getIp(), port.getExternalPort());
 
         ConnectionConfig connectionConfig = ImmutablePostgresConnectionConfig.builder()
                 .dbName("atlas")
                 .dbLogin("palantir")
                 .dbPassword(ImmutableMaskedValue.of("palantir"))
-                .host(POSTGRES_ADDRESS.getHostName())
-                .port(POSTGRES_ADDRESS.getPort())
+                .host(postgresAddress.getHostName())
+                .port(postgresAddress.getPort())
                 .build();
 
-        POSTGRES_KVS_CONFIG = ImmutableDbKeyValueServiceConfig.builder()
+        return ImmutableDbKeyValueServiceConfig.builder()
                 .connection(connectionConfig)
                 .ddl(ImmutablePostgresDdlConfig.builder().build())
                 .build();
     }
 
-    private static HealthCheck<DockerPort> toBeOpen() {
-        return port -> SuccessOrFailure.fromBoolean(port.isListeningNow(), "" + "" + port + " was not open");
+    private static Callable<Boolean> canCreateKeyValueService() {
+        return () -> {
+            ConnectionManagerAwareDbKvs kvs = null;
+            try {
+                kvs = ConnectionManagerAwareDbKvs.create(getKvsConfig());
+                return kvs.getConnectionManager().getConnection().isValid(5);
+            } catch (Exception e) {
+                return false;
+            } finally {
+                if (kvs != null) {
+                    kvs.close();
+                }
+            }
+        };
     }
 }
