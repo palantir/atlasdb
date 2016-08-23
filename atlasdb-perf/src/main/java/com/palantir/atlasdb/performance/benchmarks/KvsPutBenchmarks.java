@@ -39,7 +39,7 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.performance.backend.KeyValueServiceConnector;
+import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
 
 /**
  * Performance benchmarks for KVS put operations.
@@ -65,7 +65,7 @@ public class KvsPutBenchmarks {
     private static final long VALUE_SEED = 279L;
     private static final int BATCH_SIZE = 250;
 
-    private KeyValueServiceConnector connector;
+    private AtlasDbServicesConnector connector;
     private KeyValueService kvs;
     private Random random = new Random(VALUE_SEED);
 
@@ -73,9 +73,9 @@ public class KvsPutBenchmarks {
     private TableReference tableRef2;
 
     @Setup
-    public void setup(KeyValueServiceConnector conn) {
+    public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
-        this.kvs = conn.connect();
+        this.kvs = conn.connect().getKeyValueService();
         this.tableRef1 = KvsBenchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
         this.tableRef2 = KvsBenchmarks.createTable(kvs, TABLE_NAME_2, ROW_COMPONENT, COLUMN_NAME);
     }
