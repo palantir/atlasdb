@@ -23,6 +23,7 @@ import java.util.concurrent.Callable;
 
 import org.joda.time.Duration;
 
+import com.google.common.base.Optional;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -40,7 +41,7 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
  *
  * @author mwakerman
  */
-public class CassandraPhysicalStore extends PhysicalStore {
+public final class CassandraPhysicalStore extends PhysicalStore {
 
     private static final String KEYSPACE                     = "atlasdb";
     private static final int    THRIFT_PORT_NUMBER           = 9160;
@@ -50,19 +51,21 @@ public class CassandraPhysicalStore extends PhysicalStore {
     private static final String DOCKER_LOGS_DIR              = "container-logs";
 
     public static CassandraPhysicalStore create() {
-            DockerComposeRule docker = DockerComposeRule.builder()
-                    .file(getDockerComposeFileAbsolutePath())
-                    .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen(), Duration.standardMinutes(1))
-                    .saveLogsTo(DOCKER_LOGS_DIR)
-                    .build();
+        DockerComposeRule docker = DockerComposeRule.builder()
+                .file(getDockerComposeFileAbsolutePath())
+                .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen(), Duration.standardMinutes(1))
+                .saveLogsTo(DOCKER_LOGS_DIR)
+                .build();
 
 
-            return new CassandraPhysicalStore(docker);
+        return new CassandraPhysicalStore(docker);
     }
 
     private static String getDockerComposeFileAbsolutePath() {
         try {
-            return PhysicalStores.writeResourceToTempFile(CassandraPhysicalStore.class, CASSANDRA_DOCKER_COMPOSE_PATH).getAbsolutePath();
+            return PhysicalStores
+                    .writeResourceToTempFile(CassandraPhysicalStore.class, CASSANDRA_DOCKER_COMPOSE_PATH)
+                    .getAbsolutePath();
         } catch (IOException e) {
             throw new RuntimeException("Unable to write docker compose file to a temporary file.", e);
         }
@@ -87,9 +90,7 @@ public class CassandraPhysicalStore extends PhysicalStore {
                 docker.before();
             }
         } catch (IOException | InterruptedException | IllegalStateException e) {
-            System.err.println("Could not run docker compose rule for cassandra.");
-            e.printStackTrace();
-            return null;
+            throw new RuntimeException("Could not run docker compose rule for cassandra.", e);
         }
 
         ImmutableCassandraKeyValueServiceConfig connectionConfig = ImmutableCassandraKeyValueServiceConfig.builder()
@@ -114,13 +115,17 @@ public class CassandraPhysicalStore extends PhysicalStore {
                 .pollInterval(com.jayway.awaitility.Duration.FIVE_SECONDS)
                 .until(canCreateKeyValueService(connectionConfig));
 
-        return CassandraKeyValueService.create(CassandraKeyValueServiceConfigManager.createSimpleManager(connectionConfig));
+        return CassandraKeyValueService.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(connectionConfig),
+                Optional.absent());
     }
 
     private static Callable<Boolean> canCreateKeyValueService(CassandraKeyValueServiceConfig config) {
         return () -> {
             try {
-                CassandraKeyValueService.create(CassandraKeyValueServiceConfigManager.createSimpleManager(config));
+                CassandraKeyValueService.create(
+                        CassandraKeyValueServiceConfigManager.createSimpleManager(config),
+                        Optional.absent());
                 return true;
             } catch (Exception e) {
                 return false;

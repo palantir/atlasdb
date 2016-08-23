@@ -17,6 +17,12 @@ package com.palantir.atlasdb;
 
 import java.util.Set;
 
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
+=======
+import javax.net.ssl.SSLSocketFactory;
+
+import com.google.common.base.Optional;
+>>>>>>> merge develop into perf cli branch (#820)
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.CheckAndSetSchema;
@@ -37,6 +43,10 @@ import io.dropwizard.setup.Environment;
 
 public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     private static final boolean DONT_SHOW_HIDDEN_TABLES = false;
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
+=======
+    private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
+>>>>>>> merge develop into perf cli branch (#820)
     private static final Set<Schema> ETE_SCHEMAS = ImmutableSet.of(
             CheckAndSetSchema.getSchema(),
             TodoSchema.getSchema());
@@ -53,7 +63,11 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     @Override
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
         TransactionManager transactionManager = TransactionManagers.create(config.getAtlasDbConfig(), ETE_SCHEMAS, environment.jersey()::register, DONT_SHOW_HIDDEN_TABLES);
+=======
+        TransactionManager transactionManager = TransactionManagers.create(config.getAtlasDbConfig(), NO_SSL, ETE_SCHEMAS, environment.jersey()::register, DONT_SHOW_HIDDEN_TABLES);
+>>>>>>> merge develop into perf cli branch (#820)
         environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager)));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
     }

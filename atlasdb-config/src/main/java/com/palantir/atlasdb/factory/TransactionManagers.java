@@ -83,6 +83,7 @@ public final class TransactionManagers {
     }
 
     /**
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
      * Create a {@link SerializableTransactionManager} with provided configuration, {@link Schema},
      * and an environment in which to register HTTP server endpoints.
      */
@@ -92,6 +93,19 @@ public final class TransactionManagers {
             Environment env,
             boolean allowHiddenTableAccess) {
         return create(config, ImmutableSet.of(schema), env, allowHiddenTableAccess);
+=======
+     * Create a {@link SerializableTransactionManager} with provided configuration,
+     * {@link SSLSocketFactory}, {@link Schema}, and an environment in which to
+     * register HTTP server endpoints.
+     */
+    public static SerializableTransactionManager create(
+            AtlasDbConfig config,
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Schema schema,
+            Environment env,
+            boolean allowHiddenTableAccess) {
+        return create(config, sslSocketFactory, ImmutableSet.of(schema), env, allowHiddenTableAccess);
+>>>>>>> merge develop into perf cli branch (#820)
     }
 
     /**
@@ -100,6 +114,10 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
+=======
+            Optional<SSLSocketFactory> sslSocketFactory,
+>>>>>>> merge develop into perf cli branch (#820)
             Set<Schema> schemas,
             Environment env,
             boolean allowHiddenTableAccess) {
@@ -109,14 +127,23 @@ public final class TransactionManagers {
 
         LockAndTimestampServices lts = createLockAndTimestampServices(
                 config,
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
+=======
+                sslSocketFactory,
+>>>>>>> merge develop into perf cli branch (#820)
                 env,
                 LockServiceImpl::create,
                 atlasFactory::getTimestampService);
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
         kvs = ProfilingKeyValueService.create(kvs);
         kvs = SweepStatsKeyValueService.create(kvs, lts.time());
+=======
+        kvs = ProfilingKeyValueService.create(kvs);
+        kvs = new SweepStatsKeyValueService(kvs, lts.time());
+>>>>>>> merge develop into perf cli branch (#820)
 
         TransactionTables.createTables(kvs);
 
@@ -195,7 +222,11 @@ public final class TransactionManagers {
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
         LockAndTimestampServices lockAndTimestampServices =
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
                 createRawServices(config, env, lock, time);
+=======
+                createRawServices(config, sslSocketFactory, env, lock, time);
+>>>>>>> merge develop into perf cli branch (#820)
         return withRefreshingLockService(lockAndTimestampServices);
     }
 
@@ -209,6 +240,10 @@ public final class TransactionManagers {
 
     private static LockAndTimestampServices createRawServices(
             AtlasDbConfig config,
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
+=======
+            Optional<SSLSocketFactory> sslSocketFactory,
+>>>>>>> merge develop into perf cli branch (#820)
             Environment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
@@ -221,6 +256,7 @@ public final class TransactionManagers {
         }
     }
 
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
     private static LockAndTimestampServices createRawLeaderServices(
             LeaderConfig leaderConfig,
             Environment env,
@@ -237,6 +273,40 @@ public final class TransactionManagers {
                 .lock(createService(sslSocketFactory, leaderConfig.leaders(), RemoteLockService.class))
                 .time(createService(sslSocketFactory, leaderConfig.leaders(), TimestampService.class))
                 .build();
+=======
+            warnIf(config.lock().isPresent(),
+                    "Ignoring lock server configuration because leadership election is enabled");
+            warnIf(config.timestamp().isPresent(),
+                    "Ignoring timestamp server configuration because leadership election is enabled");
+
+            return ImmutableLockAndTimestampServices.builder()
+                    .lock(createService(sslSocketFactory, config.leader().get().leaders(), RemoteLockService.class))
+                    .time(createService(sslSocketFactory, config.leader().get().leaders(), TimestampService.class))
+                    .build();
+        } else {
+            warnIf(config.lock().isPresent() != config.timestamp().isPresent(),
+                    "Using embedded instances for one (but not both) of lock and timestamp services");
+
+            RemoteLockService lockService = config.lock()
+                    .transform(new ServiceCreator<>(sslSocketFactory, RemoteLockService.class))
+                    .or(lock);
+            TimestampService timeService = config.timestamp()
+                    .transform(new ServiceCreator<>(sslSocketFactory, TimestampService.class))
+                    .or(time);
+
+            if (!config.lock().isPresent()) {
+                env.register(lockService);
+            }
+            if (!config.timestamp().isPresent()) {
+                env.register(timeService);
+            }
+
+            return ImmutableLockAndTimestampServices.builder()
+                    .lock(lockService)
+                    .time(timeService)
+                    .build();
+        }
+>>>>>>> merge develop into perf cli branch (#820)
     }
 
     private static LockAndTimestampServices createRawRemoteServices(AtlasDbConfig config) {
@@ -249,6 +319,7 @@ public final class TransactionManagers {
                 .build();
     }
 
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
     private static LockAndTimestampServices createRawEmbeddedServices(
             Environment env,
             Supplier<RemoteLockService> lock,
@@ -272,6 +343,8 @@ public final class TransactionManagers {
         return sslConfiguration.transform(config -> SslSocketFactories.createSslSocketFactory(config));
     }
 
+=======
+>>>>>>> merge develop into perf cli branch (#820)
     private static <T> T createService(
             Optional<SSLSocketFactory> sslSocketFactory,
             Set<String> uris,
@@ -282,7 +355,12 @@ public final class TransactionManagers {
     private static class ServiceCreator<T> implements Function<ServerListConfig, T> {
         private Class<T> serviceClass;
 
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
         ServiceCreator(Class<T> serviceClass) {
+=======
+        ServiceCreator(Optional<SSLSocketFactory> sslSocketFactory, Class<T> serviceClass) {
+            this.sslSocketFactory = sslSocketFactory;
+>>>>>>> merge develop into perf cli branch (#820)
             this.serviceClass = serviceClass;
         }
 

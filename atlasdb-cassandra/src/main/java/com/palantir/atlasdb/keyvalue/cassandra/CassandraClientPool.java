@@ -19,7 +19,10 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
 import java.net.UnknownHostException;
+=======
+>>>>>>> merge develop into perf cli branch (#820)
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -278,6 +281,10 @@ public class CassandraClientPool {
 
     public InetSocketAddress getRandomHostForKey(byte[] key) {
         List<InetSocketAddress> hostsForKey = tokenMap.get(new LightweightOppToken(key));
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
+=======
+        SetView<InetSocketAddress> liveOwnerHosts;
+>>>>>>> merge develop into perf cli branch (#820)
 
         if (hostsForKey == null) {
             log.debug("We attempted to route your query to a cassandra host that already contains the relevant data."
@@ -372,6 +379,7 @@ public class CassandraClientPool {
         return tableName.replaceFirst("\\.", "__");
     }
 
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
     private InetSocketAddress getAddressForHostThrowUnchecked(String host) {
         try {
             return getAddressForHost(host);
@@ -402,6 +410,8 @@ public class CassandraClientPool {
         }
     }
 
+=======
+>>>>>>> merge develop into perf cli branch (#820)
     private void refreshTokenRanges() {
         try {
             ImmutableRangeMap.Builder<LightweightOppToken, List<InetSocketAddress>> newTokenRing =
@@ -413,12 +423,23 @@ public class CassandraClientPool {
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
                 String onlyEndpoint = Iterables.getOnlyElement(Iterables.getOnlyElement(tokenRanges).getEndpoints());
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
                 InetSocketAddress onlyHost = getAddressForHost(onlyEndpoint);
                 newTokenRing.put(Range.all(), ImmutableList.of(onlyHost));
             } else { // normal case, large cluster with many vnodes
                 for (TokenRange tokenRange : tokenRanges) {
                     List<InetSocketAddress> hosts = tokenRange.getEndpoints().stream()
                             .map(host -> getAddressForHostThrowUnchecked(host)).collect(Collectors.toList());
+=======
+                InetSocketAddress onlyHost = new InetSocketAddress(
+                        onlyEndpoint,
+                        CassandraConstants.DEFAULT_THRIFT_PORT);
+                newTokenRing.put(Range.all(), ImmutableList.of(onlyHost));
+            } else { // normal case, large cluster with many vnodes
+                for (TokenRange tokenRange : tokenRanges) {
+                    List<InetSocketAddress> hosts = Lists.transform(tokenRange.getEndpoints(),
+                            endpoint -> new InetSocketAddress(endpoint, CassandraConstants.DEFAULT_THRIFT_PORT));
+>>>>>>> merge develop into perf cli branch (#820)
                     LightweightOppToken startToken = new LightweightOppToken(
                             BaseEncoding.base16().decode(tokenRange.getStart_token().toUpperCase()));
                     LightweightOppToken endToken = new LightweightOppToken(
@@ -655,8 +676,13 @@ public class CassandraClientPool {
 
             int lowerBoundInclusive = 0;
             NavigableMap<Integer, InetSocketAddress> weightedHosts = new TreeMap<>();
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
             for (Entry<InetSocketAddress, Integer> entry : openRequestsByHost.entrySet()) {
                 // We want the weight to be inversely proportional to the number of open requests so that we pick
+=======
+            for (Entry<InetSocketAddress, Integer> entry : activeConnectionsByHost.entrySet()) {
+                // We want the weight to be inversely proportional to the number of active connections so that we pick
+>>>>>>> merge develop into perf cli branch (#820)
                 // less-active hosts. We add 1 to make sure that all ranges are non-empty
                 int weight = totalOpenRequests - entry.getValue() + 1;
                 weightedHosts.put(lowerBoundInclusive + weight, entry.getKey());

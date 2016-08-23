@@ -1,5 +1,9 @@
 List<String> blacklistedBaselineProjects = [
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
         'atlasdb-cassandra-integration-tests',
+=======
+        'atlasdb-cassandra-tests',
+>>>>>>> merge develop into perf cli branch (#820)
         'atlasdb-cli',
         'atlasdb-client',
         'atlasdb-client-protobufs',

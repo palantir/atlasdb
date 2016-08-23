@@ -7,7 +7,7 @@ mainClassName = 'com.palantir.atlasdb.performance.cli.AtlasDbPerfCli'
 applicationName = 'atlasdb-perf'
 
 dependencies {
-  compile project(':atlasdb-spi')
+  compile project(':atlasdb-api')
   compile project(':atlasdb-dbkvs')
   compile project(':atlasdb-cassandra')
 
@@ -28,6 +28,7 @@ dependencies {
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
       resolutionStrategy {
+          force 'javax.validation:validation-api:1.1.0.Final'
           force 'com.google.code.findbugs:annotations:2.0.3'
           force 'org.slf4j:slf4j-api:' + libVersions.slf4j
           force 'org.apache.commons:commons-lang3:' + libVersions.commons_lang3

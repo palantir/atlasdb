@@ -7,13 +7,24 @@ mainClassName = 'com.palantir.atlasdb.cli.AtlasCli'
 applicationName = 'atlasdb'
 
 dependencies {
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
   compile project(':atlasdb-dagger')
+=======
+  compile project(':atlasdb-service')
+  compile project(':atlasdb-impl-shared')
+>>>>>>> merge develop into perf cli branch (#820)
   compile 'io.airlift:airline:0.7'
 
   runtime project(':atlasdb-cassandra')
   runtime project(':atlasdb-rocksdb')
 
   testCompile project(':atlasdb-rocksdb')
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
+=======
+
+  processor 'com.google.dagger:dagger-compiler:2.0.2'
+  processor 'org.immutables:value:' + libVersions.immutables
+>>>>>>> merge develop into perf cli branch (#820)
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {

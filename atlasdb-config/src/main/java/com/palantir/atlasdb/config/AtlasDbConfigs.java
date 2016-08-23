@@ -24,10 +24,14 @@ import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.google.common.base.Optional;
+=======
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
+>>>>>>> merge develop into perf cli branch (#820)
 import com.google.common.base.Strings;
 import com.palantir.remoting.ssl.SslConfiguration;
 
@@ -37,14 +41,21 @@ public final class AtlasDbConfigs {
 
     public static final String ATLASDB_CONFIG_ROOT = "/atlasdb";
 
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
             .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
             .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
+=======
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory());
+>>>>>>> merge develop into perf cli branch (#820)
 
     static {
         OBJECT_MAPPER.setSubtypeResolver(new DiscoverableSubtypeResolver());
         OBJECT_MAPPER.registerModule(new GuavaModule());
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
         OBJECT_MAPPER.registerModule(new Jdk7Module());
+=======
+>>>>>>> merge develop into perf cli branch (#820)
     }
 
     private AtlasDbConfigs() {
@@ -97,6 +108,7 @@ public final class AtlasDbConfigs {
             return null;
         }
         return root;
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
     }
 
     public static AtlasDbConfig addFallbackSslConfigurationToAtlasDbConfig(
@@ -126,5 +138,7 @@ public final class AtlasDbConfigs {
                 .from(serverList)
                 .sslConfiguration(serverList.sslConfiguration().or(sslConfiguration))
                 .build());
+=======
+>>>>>>> merge develop into perf cli branch (#820)
     }
 }

@@ -42,6 +42,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56:atlasdb-cassandra-integration-tests/src/test/java/com/palantir/atlasdb/keyvalue/cassandra/CassandraClientPoolIntegrationTest.java
+=======
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+>>>>>>> merge develop into perf cli branch (#820):atlasdb-cassandra-tests/src/test/java/com/palantir/atlasdb/keyvalue/cassandra/CassandraClientPoolTest.java
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.LightweightOppToken;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.WeightedHosts;
 import com.palantir.common.base.FunctionCheckedException;
@@ -52,7 +56,23 @@ public class CassandraClientPoolIntegrationTest {
     @Before
     public void setUp() {
         kv = CassandraKeyValueService.create(
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56:atlasdb-cassandra-integration-tests/src/test/java/com/palantir/atlasdb/keyvalue/cassandra/CassandraClientPoolIntegrationTest.java
                 CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG),
+=======
+                CassandraKeyValueServiceConfigManager.createSimpleManager(
+                        ImmutableCassandraKeyValueServiceConfig.builder()
+                                .addServers(new InetSocketAddress("localhost", 9160))
+                                .poolSize(20)
+                                .keyspace("atlasdb")
+                                .ssl(false)
+                                .replicationFactor(1)
+                                .mutationBatchCount(10000)
+                                .mutationBatchSizeBytes(10000000)
+                                .fetchBatchCount(1000)
+                                .safetyDisabled(true)
+                                .autoRefreshNodes(true)
+                                .build()),
+>>>>>>> merge develop into perf cli branch (#820):atlasdb-cassandra-tests/src/test/java/com/palantir/atlasdb/keyvalue/cassandra/CassandraClientPoolTest.java
                 CassandraTestSuite.LEADER_CONFIG);
         kv.initializeFromFreshInstance();
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);

@@ -30,10 +30,15 @@ import com.palantir.remoting.ssl.SslConfiguration;
 @JsonSerialize(as = ImmutableServerListConfig.class)
 @Value.Immutable
 public interface ServerListConfig {
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
 
     @Size(min = 1)
     Set<String> servers();
 
     Optional<SslConfiguration> sslConfiguration();
 
+=======
+    @Size(min = 1)
+    Set<String> servers();
+>>>>>>> merge develop into perf cli branch (#820)
 }

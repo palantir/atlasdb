@@ -13,9 +13,12 @@ dependencies {
   compile 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
   compile 'javax.validation:validation-api:1.1.0.Final'
 
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
   compile ('com.palantir.remoting:ssl-config:' + libVersions.http_remoting) {
     exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
   }
+=======
+>>>>>>> merge develop into perf cli branch (#820)
 
   testCompile(group: 'junit', name: 'junit', version: libVersions.junit) {
     exclude group: 'org.hamcrest'

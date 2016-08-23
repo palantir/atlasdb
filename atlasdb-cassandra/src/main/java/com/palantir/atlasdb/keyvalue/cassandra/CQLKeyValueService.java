@@ -126,6 +126,15 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     private Cluster cluster;
     private Cluster longRunningQueryCluster;
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
+=======
+    Session session;
+    Session longRunningQuerySession;
+
+    CQLStatementCache cqlStatementCache;
+    protected CQLKeyValueServices cqlKeyValueServices;
+
+>>>>>>> merge develop into perf cli branch (#820)
     private final CassandraKeyValueServiceConfigManager configManager;
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
@@ -381,9 +390,16 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                     throw Throwables.throwUncheckedException(t);
                 }
                 for (Row row : resultSet.all()) {
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
                     Cell cell = Cell.create(getRowName(row), getColName(row));
                     if ((getTs(row) < startTs)
                             && (!result.containsKey(cell) || (result.get(cell).getTimestamp() < getTs(row)))) {
+=======
+                    Cell cell = Cell.create(CQLKeyValueServices.getRowName(row), CQLKeyValueServices.getColName(row));
+                    if ((CQLKeyValueServices.getTs(row) < startTs)
+                            && (!result.containsKey(cell)
+                                    || (result.get(cell).getTimestamp() < CQLKeyValueServices.getTs(row)))) {
+>>>>>>> merge develop into perf cli branch (#820)
                         result.put(
                                 Cell.create(getRowName(row), getColName(row)),
                                 Value.create(getValue(row), getTs(row)));
@@ -435,7 +451,25 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                             boolean loadAllTs,
                             final Visitor<Multimap<Cell, Value>> visitor,
                             final ConsistencyLevel consistency) throws Exception {
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
+=======
+        String loadWithTsQuery = "SELECT * FROM " + getFullTableName(tableRef)
+                + " WHERE " + CassandraConstants.ROW_NAME + " = ?"
+                + " AND " + CassandraConstants.COL_NAME_COL + " = ?"
+                + " AND " + CassandraConstants.TS_COL + " > ?"
+                + (!loadAllTs ? " LIMIT 1" : "");
+        CassandraKeyValueServiceConfig config = configManager.getConfig();
+        if (cells.size() > config.fetchBatchCount()) {
+            log.warn("A call to " + tableRef
+                    + " is performing a multiget " + cells.size()
+                    + " cells; this may indicate overly-large batching on a higher level.\n"
+                    + CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
+        }
+        PreparedStatement preparedStatement = getPreparedStatement(tableRef, loadWithTsQuery, session)
+                .setConsistencyLevel(consistency);
+        List<ResultSetFuture> resultSetFutures = Lists.newArrayListWithCapacity(cells.size());
+>>>>>>> merge develop into perf cli branch (#820)
 
         List<ResultSetFuture> resultSetFutures = Lists.newArrayListWithCapacity(cells.size());
         SortedSetMultimap<byte[], Cell> cellsByCol =
@@ -479,7 +513,11 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 + " = ? AND " + fieldNameProvider.timestamp()
                 + " > ?" + (!loadAllTs ? " LIMIT 1" : "");
         for (ResultSetFuture rsf : resultSetFutures) {
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
             visitResults(rsf.getUninterruptibly(), visitor, loggedLoadWithTsQuery, loadAllTs);
+=======
+            visitResults(rsf.getUninterruptibly(), visitor, loadWithTsQuery, loadAllTs);
+>>>>>>> merge develop into perf cli branch (#820)
         }
     }
 
@@ -529,12 +567,21 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 + (timestampByCell.size() % fetchBatchCount > 0 ? 1 : 0);
         List<Future<Map<Cell, Long>>> futures = Lists.newArrayListWithCapacity(numPartitions);
         String loadOnlyTsQuery = "SELECT "
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
                 + fieldNameProvider.row() + ", "
                 + fieldNameProvider.column() + ", "
                 + fieldNameProvider.timestamp()
                 + " FROM " + getFullTableName(tableRef)
                 + " WHERE " + fieldNameProvider.row() + " = ?"
                 + " AND " + fieldNameProvider.column() + " = ?"
+=======
+                + CassandraConstants.ROW_NAME + ", "
+                + CassandraConstants.COL_NAME_COL + ", "
+                + CassandraConstants.TS_COL
+                + " FROM " + getFullTableName(tableRef)
+                + " WHERE " + CassandraConstants.ROW_NAME + " = ?"
+                + " AND " + CassandraConstants.COL_NAME_COL + " = ?"
+>>>>>>> merge develop into perf cli branch (#820)
                 + " LIMIT 1";
         if (timestampByCell.size() > fetchBatchCount) {
             log.warn("Re-batching in getLatestTimestamps a call to " + tableRef
@@ -561,7 +608,14 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                     for (ResultSetFuture resultSetFuture : resultSetFutures) {
                         ResultSet resultSet = resultSetFuture.getUninterruptibly();
                         for (Row row : resultSet.all()) {
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
                             res.put(Cell.create(getRowName(row), getColName(row)), getTs(row));
+=======
+                            res.put(Cell.create(
+                                    CQLKeyValueServices.getRowName(row),
+                                    CQLKeyValueServices.getColName(row)),
+                                    CQLKeyValueServices.getTs(row));
+>>>>>>> merge develop into perf cli branch (#820)
                         }
                         cqlKeyValueServices.logTracedQuery(
                                 loadOnlyTsQuery,
@@ -734,10 +788,17 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     protected String getPutQuery(TableReference tableName, int ttl) {
         String putQuery = "INSERT INTO " + getFullTableName(tableName)
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
                 + " (" + fieldNameProvider.row() + ", "
                 + fieldNameProvider.column() + ", "
                 + fieldNameProvider.timestamp() + ", "
                 + fieldNameProvider.value() + ")"
+=======
+                + " (" + CassandraConstants.ROW_NAME + ", "
+                + CassandraConstants.COL_NAME_COL + ", "
+                + CassandraConstants.TS_COL + ", "
+                + CassandraConstants.VALUE_COL + ")"
+>>>>>>> merge develop into perf cli branch (#820)
                 + " VALUES (?, ?, ?, ?)";
         if (ttl >= 0) {
             putQuery += " USING TTL " + ttl;
@@ -819,9 +880,15 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     public void delete(final TableReference tableRef, final Multimap<Cell, Long> keys) {
         int cellCount = 0;
         String deleteQuery = "DELETE FROM " + getFullTableName(tableRef)
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
                 + " WHERE " + fieldNameProvider.row() + " = ?"
                 + " AND " + fieldNameProvider.column() + " = ?"
                 + " AND " + fieldNameProvider.timestamp() + " = ?";
+=======
+                + " WHERE " + CassandraConstants.ROW_NAME + " = ?"
+                + " AND " + CassandraConstants.COL_NAME_COL + " = ?"
+                + " AND " + CassandraConstants.TS_COL + " = ?";
+>>>>>>> merge develop into perf cli branch (#820)
         CassandraKeyValueServiceConfig config = configManager.getConfig();
         int fetchBatchCount = config.fetchBatchCount();
         for (final List<Cell> batch : Iterables.partition(keys.keySet(), fetchBatchCount)) {
@@ -941,7 +1008,11 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
         bindQuery.append("LIMIT " + batchHint);
         final String getLastRowQuery = "SELECT * FROM " + getFullTableName(tableRef) + " WHERE "
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
                 + fieldNameProvider.row() + " = ?";
+=======
+                + CassandraConstants.ROW_NAME + " = ?";
+>>>>>>> merge develop into perf cli branch (#820)
         return ClosableIterators.wrap(
                 new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
                     @Override
@@ -974,7 +1045,11 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                         byte[] maxRow = null;
                         ResultsExtractor<T, U> extractor = resultsExtractor.get();
                         for (Row row : rows) {
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
                             byte[] rowName = getRowName(row);
+=======
+                            byte[] rowName = CQLKeyValueServices.getRowName(row);
+>>>>>>> merge develop into perf cli branch (#820)
                             if (maxRow == null) {
                                 maxRow = rowName;
                             } else {
@@ -990,7 +1065,11 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                         // get the rest of the last row
                         BoundStatement boundLastRow = getPreparedStatement(tableRef, getLastRowQuery, session).bind();
 
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
                         boundLastRow.setBytes(fieldNameProvider.row(), ByteBuffer.wrap(maxRow));
+=======
+                        boundLastRow.setBytes(CassandraConstants.ROW_NAME, ByteBuffer.wrap(maxRow));
+>>>>>>> merge develop into perf cli branch (#820)
                         try {
                             resultSet = session.execute(boundLastRow);
                         } catch (com.datastax.driver.core.exceptions.UnavailableException e) {
@@ -1004,10 +1083,17 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                             extractor.internalExtractResult(
                                     timestamp,
                                     selection,
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
                                     getRowName(row),
                                     getColName(row),
                                     getValue(row),
                                     getTs(row));
+=======
+                                    CQLKeyValueServices.getRowName(row),
+                                    CQLKeyValueServices.getColName(row),
+                                    CQLKeyValueServices.getValue(row),
+                                    CQLKeyValueServices.getTs(row));
+>>>>>>> merge develop into perf cli branch (#820)
                         }
                         SortedMap<byte[], SortedMap<byte[], U>> resultsByRow =
                                 Cells.breakCellsUpByRow(extractor.asMap());
@@ -1293,6 +1379,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             throw Throwables.throwUncheckedException(e.getCause());
         }
     }
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
 
     private boolean shouldTraceQuery(TableReference tableRef) {
         return tracingPrefs.shouldTraceQuery(tableRef.getQualifiedName());
@@ -1313,4 +1400,6 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     byte[] getValue(Row row) {
         return CassandraKeyValueServices.getBytesFromByteBuffer(row.getBytes(fieldNameProvider.value()));
     }
+=======
+>>>>>>> merge develop into perf cli branch (#820)
 }

@@ -44,6 +44,7 @@ timestamp
 ---------
 
 Read or recalculate the immutable timestamp. Run ``./bin/atlasdb help timestamp`` for more information.
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
 
 Offline CLIs
 ============
@@ -59,6 +60,8 @@ For example, to run the ``fast-forward`` command with default settings, run ``./
 
 The ``--offline`` flag will make the CLI ignore the leader, timestamp, and lock configuration blocks, and start an embedded timestamp and lock server.
 Once the CLI has completed, you can resume your AtlasDB clients.
+=======
+>>>>>>> merge develop into perf cli branch (#820)
 
 Running commands without any servers being up
 ---------------------------------------------

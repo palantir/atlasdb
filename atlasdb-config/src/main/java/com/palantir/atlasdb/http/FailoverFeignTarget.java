@@ -112,14 +112,23 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         boolean failedDueToNumSwitches = numSwitches.get() >= numServersToTryBeforeFailing;
 
         if (failedDueToFastFailover) {
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
             log.error("This connection has been instructed to fast failover for "
+=======
+            log.warn("This connection has been instructed to fast failover for "
+>>>>>>> merge develop into perf cli branch (#820)
                     + TimeUnit.MILLISECONDS.toSeconds(fastFailoverTimeoutMillis)
                     + " seconds without establishing a successful connection."
                     + " The remote hosts have been in a fast failover state for too long.");
         } else if (failedDueToNumSwitches) {
+<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
             log.error("This connection has tried " + numServersToTryBeforeFailing
                     + " hosts rolling across " + servers.size() + " servers, each "
                     + failuresBeforeSwitching + " times and has failed out.", ex);
+=======
+            log.warn("This connection has tried " + numServersToTryBeforeFailing
+                    + " hosts each " + failuresBeforeSwitching + " times and has failed out.", ex);
+>>>>>>> merge develop into perf cli branch (#820)
         }
 
         if (failedDueToFastFailover || failedDueToNumSwitches) {
