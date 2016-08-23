@@ -33,7 +33,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra.Client;
@@ -57,7 +56,6 @@ import com.google.common.base.Functions;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
-import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
@@ -153,6 +151,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
 
+    private final CassandraQueryRunner queryRunner;
+
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig) {
@@ -189,6 +189,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, configManager.getConfig());
         this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
+
+        this.queryRunner = new CassandraQueryRunner(log, this);
     }
 
     private LockLeader whoIsTheLockCreator() {
@@ -1011,34 +1013,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                      final Set<TableReference> tableRefs,
                                      final Map<ByteBuffer, Map<String, List<Mutation>>> map,
                                      final ConsistencyLevel consistency) throws TException {
-        run(client, tableRefs, () -> {
+        queryRunner.run(client, tableRefs, () -> {
             client.batch_mutate(map, consistency);
             return true;
         });
-    }
-
-    private boolean shouldTraceQuery(Set<TableReference> tableRefs) {
-        for (TableReference tableRef : tableRefs) {
-            if (shouldTraceQuery(tableRef)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private void logFailedCall(Set<TableReference> tableRefs) {
-        log.error("A call to table(s) {} failed with an exception.",
-                tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")));
-    }
-
-    private void logTraceResults(long duration, Set<TableReference> tableRefs, ByteBuffer recvTrace, boolean failed) {
-        if (failed || duration > getMinimumDurationToTraceMillis()) {
-            log.error("Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
-                    tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")),
-                    failed ? "failed and " : "",
-                    duration,
-                    CassandraKeyValueServices.convertCassandraByteBufferUuidToString(recvTrace));
-        }
     }
 
     private Map<ByteBuffer, List<ColumnOrSuperColumn>> multigetInternal(
@@ -1048,7 +1026,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             ColumnParent colFam,
             SlicePredicate pred,
             ConsistencyLevel consistency) throws TException {
-        return run(client, tableRef, () -> client.multiget_slice(rowNames, colFam, pred, consistency));
+        return queryRunner.run(client, tableRef, () -> client.multiget_slice(rowNames, colFam, pred, consistency));
     }
 
     @Override
@@ -1087,7 +1065,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         for (int tries = 1; tries <= CassandraConstants.MAX_TRUNCATION_ATTEMPTS; tries++) {
             boolean successful = true;
             try {
-                run(client, tableRef, () -> {
+                queryRunner.run(client, tableRef, () -> {
                     client.truncate(internalTableName(tableRef));
                     return true;
                 });
@@ -1347,7 +1325,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 new PagingIterable(
                         new CqlColumnGetter(new CqlExecutor(clientPool, consistency), tableRef, columnBatchSize),
                         clientPool,
-                        this,
+                        queryRunner,
                         rangeRequest,
                         tableRef,
                         pred,
@@ -1386,7 +1364,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 new PagingIterable(
                         new DelegatingColumnGetter(),
                         clientPool,
-                        this,
+                        queryRunner,
                         rangeRequest,
                         tableRef,
                         pred,
@@ -1736,7 +1714,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         col.setName(colName);
                         col.setValue(contents);
                         col.setTimestamp(timestamp);
-                        CASResult casResult = run(client, tableRef, () -> client.cas(
+                        CASResult casResult = queryRunner.run(client, tableRef, () -> client.cas(
                                 rowName,
                                 tableName,
                                 ImmutableList.of(),
@@ -1753,45 +1731,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             });
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
-        }
-    }
-
-    // TODO (gbrova) make private
-    public interface Action<V> {
-        V run() throws TException;
-    }
-
-    private <V> V run(Client client, Set<TableReference> tableRefs, Action<V> action) throws TException {
-        if (shouldTraceQuery(tableRefs)) {
-            return trace(action, client, tableRefs);
-        } else {
-            try {
-                return action.run();
-            } catch (TException e) {
-                logFailedCall(tableRefs);
-                throw e;
-            }
-        }
-    }
-
-    // TODO (gbrova) make private
-    public <V> V run(Client client, TableReference tableRef, Action<V> action) throws TException {
-        return run(client, ImmutableSet.of(tableRef), action);
-    }
-
-    private <V> V trace(Action<V> action, Client client, Set<TableReference> tableRefs) throws TException {
-        ByteBuffer traceId = client.trace_next_query();
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        boolean failed = false;
-        try {
-            return action.run();
-        } catch (TException e) {
-            failed = true;
-            logFailedCall(tableRefs);
-            throw e;
-        } finally {
-            long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-            logTraceResults(duration, tableRefs, traceId, failed);
         }
     }
 

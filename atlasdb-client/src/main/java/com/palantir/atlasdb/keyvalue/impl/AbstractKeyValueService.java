@@ -128,7 +128,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         return builder.build();
     }
 
-    protected int getMinimumDurationToTraceMillis() {
+    public int getMinimumDurationToTraceMillis() {
         return tracingPrefs.getMinimumDurationToTraceMillis();
     }
 

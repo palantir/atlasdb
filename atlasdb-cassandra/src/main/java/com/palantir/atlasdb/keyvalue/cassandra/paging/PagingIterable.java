@@ -38,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraQueryRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.ResultsExtractor;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.util.paging.AbstractPagingIterable;
@@ -48,7 +49,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public class PagingIterable<U, T> extends AbstractPagingIterable {
     private final ColumnGetter columnGetter;
     private final CassandraClientPool clientPool;
-    private final CassandraKeyValueService cassandraKeyValueService;
+    private final CassandraQueryRunner queryRunner;
     private final RangeRequest rangeRequest;
     private final TableReference tableRef;
     private final SlicePredicate pred;
@@ -62,7 +63,7 @@ public class PagingIterable<U, T> extends AbstractPagingIterable {
     public PagingIterable(
             ColumnGetter columnGetter,
             CassandraClientPool clientPool,
-            CassandraKeyValueService cassandraKeyValueService, // TODO (gbrova) this is weird and we should remove it
+            CassandraQueryRunner queryRunner,
             RangeRequest rangeRequest,
             TableReference tableRef,
             SlicePredicate pred,
@@ -71,7 +72,7 @@ public class PagingIterable<U, T> extends AbstractPagingIterable {
             long timestamp) {
         this.columnGetter = columnGetter;
         this.clientPool = clientPool;
-        this.cassandraKeyValueService = cassandraKeyValueService;
+        this.queryRunner = queryRunner;
         this.rangeRequest = rangeRequest;
         this.tableRef = tableRef;
         this.pred = pred;
@@ -129,7 +130,7 @@ public class PagingIterable<U, T> extends AbstractPagingIterable {
             @Override
             public List<KeySlice> apply(Cassandra.Client client) throws Exception {
                 try {
-                    return cassandraKeyValueService.run(client, tableRef,
+                    return queryRunner.run(client, tableRef,
                             () -> client.get_range_slices(colFam, pred, keyRange, consistency));
                 } catch (UnavailableException e) {
                     if (consistency.equals(ConsistencyLevel.ALL)) {
