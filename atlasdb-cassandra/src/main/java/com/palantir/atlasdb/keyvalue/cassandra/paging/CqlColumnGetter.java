@@ -19,6 +19,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -47,20 +48,19 @@ public class CqlColumnGetter implements ColumnGetter {
     public Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(List<KeySlice> firstPage) {
         Set<ByteBuffer> rows = getRowsFromPage(firstPage);
         try {
-            return getColumnsByRow(cqlExecutor, rows);
+            return getColumnsByRow(rows);
         } catch (TException ex) {
             throw Throwables.throwUncheckedException(ex);
         }
     }
 
-    private Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(
-            CqlExecutor cqlExecutor, Set<ByteBuffer> rows) throws TException {
+    private Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(Set<ByteBuffer> rows) throws TException {
         return rows.stream().collect(Collectors.toMap(
-                row -> row,
-                row -> getColumns(cqlExecutor, row)));
+                Function.identity(),
+                this::getColumns));
     }
 
-    private List<ColumnOrSuperColumn> getColumns(CqlExecutor cqlExecutor, ByteBuffer row) {
+    private List<ColumnOrSuperColumn> getColumns(ByteBuffer row) {
         AllCellsPerRowPager allCellsPerRowPager = new AllCellsPerRowPager(
                 cqlExecutor,
                 row,

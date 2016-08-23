@@ -46,7 +46,7 @@ import com.palantir.util.paging.BasicResultsPage;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public class PagingIterable<U, T> extends AbstractPagingIterable {
+public class PagingIterable<T, U> extends AbstractPagingIterable {
     private final ColumnGetter columnGetter;
     private final CassandraClientPool clientPool;
     private final CassandraQueryRunner queryRunner;
@@ -102,8 +102,8 @@ public class PagingIterable<U, T> extends AbstractPagingIterable {
     private TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(final byte[] startKey) throws Exception {
         final byte[] endExclusive = rangeRequest.getEndExclusive();
 
-        KeyRange keyRange = getKeyRange(startKey, endExclusive, batchHint);
-        List<KeySlice> firstPage = getRangeSlices(tableRef, keyRange, pred, consistency);
+        KeyRange keyRange = getKeyRange(startKey, endExclusive);
+        List<KeySlice> firstPage = getRangeSlices(keyRange);
 
         Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = columnGetter.getColumnsByRow(firstPage);
 
@@ -119,11 +119,7 @@ public class PagingIterable<U, T> extends AbstractPagingIterable {
         return page;
     }
 
-    private List<KeySlice> getRangeSlices(
-            final TableReference tableRef,
-            final KeyRange keyRange,
-            final SlicePredicate pred,
-            final ConsistencyLevel consistency) throws Exception {
+    private List<KeySlice> getRangeSlices(final KeyRange keyRange) throws Exception {
         final ColumnParent colFam = new ColumnParent(CassandraKeyValueService.internalTableName(tableRef));
         InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
         return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Cassandra.Client, List<KeySlice>, Exception>() {
@@ -149,7 +145,7 @@ public class PagingIterable<U, T> extends AbstractPagingIterable {
         });
     }
 
-    private KeyRange getKeyRange(byte[] startKey, byte[] endExclusive, int batchHint) {
+    private KeyRange getKeyRange(byte[] startKey, byte[] endExclusive) {
         KeyRange keyRange = new KeyRange(batchHint);
         keyRange.setStart_key(startKey);
         if (endExclusive.length == 0) {
