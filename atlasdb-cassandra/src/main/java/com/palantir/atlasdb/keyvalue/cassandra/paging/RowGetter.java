@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra.paging;
 
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.util.List;
 
 import org.apache.cassandra.thrift.Cassandra;
@@ -24,8 +25,10 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.SlicePredicate;
+import org.apache.cassandra.thrift.SliceRange;
 import org.apache.cassandra.thrift.UnavailableException;
 
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
@@ -38,15 +41,19 @@ public class RowGetter {
     private TracingQueryRunner queryRunner;
     private ConsistencyLevel consistency;
     private TableReference tableRef;
-    private SlicePredicate pred;
+    private int initialColumnsPerRow;
 
-    public RowGetter(CassandraClientPool clientPool, TracingQueryRunner queryRunner, ConsistencyLevel consistency,
-            TableReference tableRef, SlicePredicate pred) {
+    public RowGetter(
+            CassandraClientPool clientPool,
+            TracingQueryRunner queryRunner,
+            ConsistencyLevel consistency,
+            TableReference tableRef,
+            int initialColumnsPerRow) {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
         this.consistency = consistency;
         this.tableRef = tableRef;
-        this.pred = pred;
+        this.initialColumnsPerRow = initialColumnsPerRow;
     }
 
     public List<KeySlice> getRows(KeyRange keyRange) throws Exception {
@@ -59,7 +66,7 @@ public class RowGetter {
                     public List<KeySlice> apply(Cassandra.Client client) throws Exception {
                         try {
                             return queryRunner.run(client, tableRef,
-                                    () -> client.get_range_slices(colFam, pred, keyRange, consistency));
+                                    () -> client.get_range_slices(colFam, getSlicePredicate(), keyRange, consistency));
                         } catch (UnavailableException e) {
                             if (consistency.equals(ConsistencyLevel.ALL)) {
                                 throw new InsufficientConsistencyException("This operation requires all Cassandra"
@@ -75,5 +82,16 @@ public class RowGetter {
                         return "get_range_slices(" + colFam + ")";
                     }
                 });
+    }
+
+    private SlicePredicate getSlicePredicate() {
+        SliceRange slice = new SliceRange(
+            ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
+            ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
+            false,
+            initialColumnsPerRow);
+        final SlicePredicate predicate = new SlicePredicate();
+        predicate.setSlice_range(slice);
+        return predicate;
     }
 }

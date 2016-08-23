@@ -98,6 +98,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTs
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ThreadSafeResultVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CqlColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.DelegatingColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.PagingIterable;
@@ -1298,38 +1299,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 HistoryExtractor.SUPPLIER);
     }
 
-    private ClosableIterator<RowResult<Set<Long>>> getTimestampsWithPageCreator(
+    private <T, U> ClosableIterator<RowResult<U>> getTimestampsWithPageCreator(
             final TableReference tableRef,
             final RangeRequest rangeRequest,
             final int columnBatchSize,
             final long timestamp,
             final ConsistencyLevel consistency,
-            final Supplier<ResultsExtractor<SetMultimap<Cell, Long>, Set<Long>>> resultsExtractor) {
+            final Supplier<ResultsExtractor<T, U>> resultsExtractor) {
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, 1);
+        ColumnGetter columnGetter = new CqlColumnGetter(new CqlExecutor(clientPool, consistency), tableRef, columnBatchSize);
 
-        if (rangeRequest.isReverse()) {
-            throw new UnsupportedOperationException();
-        }
-        if (rangeRequest.isEmptyRange()) {
-            return ClosableIterators.wrap(ImmutableList.<RowResult<Set<Long>>>of().iterator());
-        }
-
-        SliceRange slice = new SliceRange(
-                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
-                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
-                false,
-                1);
-        final SlicePredicate pred = new SlicePredicate();
-        pred.setSlice_range(slice);
-
-        PagingIterable<SetMultimap<Cell, Long>, Set<Long>> rowResults = new PagingIterable<>(
-                new RowGetter(clientPool, queryRunner, consistency, tableRef, pred),
-                new CqlColumnGetter(new CqlExecutor(clientPool, consistency), tableRef, columnBatchSize),
-                rangeRequest,
-                resultsExtractor,
-                timestamp
-        );
-
-        return ClosableIterators.wrap(rowResults.iterator());
+        return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, resultsExtractor, timestamp);
     }
 
     private <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(
@@ -1338,7 +1318,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             final long timestamp,
             final ConsistencyLevel consistency,
             final Supplier<ResultsExtractor<T, U>> resultsExtractor) {
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, Integer.MAX_VALUE);
+        ColumnGetter columnGetter = new DelegatingColumnGetter();
 
+        return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, resultsExtractor, timestamp);
+    }
+
+    private <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(
+            RowGetter rowGetter,
+            ColumnGetter columnGetter,
+            RangeRequest rangeRequest,
+            Supplier<ResultsExtractor<T, U>> resultsExtractor,
+            long timestamp) {
         if (rangeRequest.isReverse()) {
             throw new UnsupportedOperationException();
         }
@@ -1346,23 +1337,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             return ClosableIterators.wrap(ImmutableList.<RowResult<U>>of().iterator());
         }
 
-        SliceRange slice = new SliceRange(
-                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
-                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
-                false,
-                Integer.MAX_VALUE);
-        final SlicePredicate pred = new SlicePredicate();
-        pred.setSlice_range(slice);
-
-
-        PagingIterable<T, U> rowResults =
-                new PagingIterable<>(
-                        new RowGetter(clientPool, queryRunner, consistency, tableRef, pred),
-                        new DelegatingColumnGetter(),
-                        rangeRequest,
-                        resultsExtractor,
-                        timestamp
-                );
+        PagingIterable<T, U> rowResults = new PagingIterable<>(
+                rowGetter,
+                columnGetter,
+                rangeRequest,
+                resultsExtractor,
+                timestamp
+        );
 
         return ClosableIterators.wrap(rowResults.iterator());
     }
