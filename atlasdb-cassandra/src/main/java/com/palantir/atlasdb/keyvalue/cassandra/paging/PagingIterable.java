@@ -42,11 +42,11 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraQueryRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.ResultsExtractor;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.util.paging.AbstractPagingIterable;
-import com.palantir.util.paging.BasicResultsPage;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public class PagingIterable<T, U> extends AbstractPagingIterable {
+public class PagingIterable<T, U>
+        extends AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>> {
     private final ColumnGetter columnGetter;
     private final CassandraClientPool clientPool;
     private final CassandraQueryRunner queryRunner;
@@ -92,14 +92,14 @@ public class PagingIterable<T, U> extends AbstractPagingIterable {
     }
 
     @Override
-    protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(BasicResultsPage previous)
+    protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(
+            TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous)
             throws Exception {
-        TokenBackedBasicResultsPage<RowResult<U>, byte[]> castedPrevious =
-                (TokenBackedBasicResultsPage<RowResult<U>, byte[]>) previous;
-        return getSinglePage(castedPrevious.getTokenForNextPage());
+        return getSinglePage(previous.getTokenForNextPage());
     }
 
-    private TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(final byte[] startKey) throws Exception {
+    private TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(
+            final byte[] startKey) throws Exception {
         final byte[] endExclusive = rangeRequest.getEndExclusive();
 
         KeyRange keyRange = getKeyRange(startKey, endExclusive);
@@ -107,8 +107,8 @@ public class PagingIterable<T, U> extends AbstractPagingIterable {
 
         Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = columnGetter.getColumnsByRow(firstPage);
 
-        TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
-                resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
+        TokenBackedBasicResultsPage<RowResult<U>, byte[]> page = resultsExtractor.get().getPageFromRangeResults(
+                colsByKey, timestamp, selection, endExclusive);
 
         if (page.moreResultsAvailable() && firstPage.size() < batchHint) {
             // If get_range_slices didn't return the full number of results, there's no

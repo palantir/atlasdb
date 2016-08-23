@@ -1297,19 +1297,19 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 HistoryExtractor.SUPPLIER);
     }
 
-    private <T, U> ClosableIterator<RowResult<U>> getTimestampsWithPageCreator(
+    private ClosableIterator<RowResult<Set<Long>>> getTimestampsWithPageCreator(
             final TableReference tableRef,
             final RangeRequest rangeRequest,
             final int columnBatchSize,
             final long timestamp,
             final ConsistencyLevel consistency,
-            final Supplier<ResultsExtractor<T, U>> resultsExtractor) {
+            final Supplier<ResultsExtractor<SetMultimap<Cell, Long>, Set<Long>>> resultsExtractor) {
 
         if (rangeRequest.isReverse()) {
             throw new UnsupportedOperationException();
         }
         if (rangeRequest.isEmptyRange()) {
-            return ClosableIterators.wrap(ImmutableList.<RowResult<U>>of().iterator());
+            return ClosableIterators.wrap(ImmutableList.<RowResult<Set<Long>>>of().iterator());
         }
 
         SliceRange slice = new SliceRange(
@@ -1320,19 +1320,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         final SlicePredicate pred = new SlicePredicate();
         pred.setSlice_range(slice);
 
-
-        AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>> rowResults =
-                new PagingIterable(
-                        new CqlColumnGetter(new CqlExecutor(clientPool, consistency), tableRef, columnBatchSize),
-                        clientPool,
-                        queryRunner,
-                        rangeRequest,
-                        tableRef,
-                        pred,
-                        consistency,
-                        resultsExtractor,
-                        timestamp
-                );
+        PagingIterable<SetMultimap<Cell, Long>, Set<Long>> rowResults = new PagingIterable<>(
+                new CqlColumnGetter(new CqlExecutor(clientPool, consistency), tableRef, columnBatchSize),
+                clientPool,
+                queryRunner,
+                rangeRequest,
+                tableRef,
+                pred,
+                consistency,
+                resultsExtractor,
+                timestamp
+        );
 
         return ClosableIterators.wrap(rowResults.iterator());
     }
@@ -1360,8 +1358,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         pred.setSlice_range(slice);
 
 
-        AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>> rowResults =
-                new PagingIterable(
+        PagingIterable<T, U> rowResults =
+                new PagingIterable<>(
                         new DelegatingColumnGetter(),
                         clientPool,
                         queryRunner,
