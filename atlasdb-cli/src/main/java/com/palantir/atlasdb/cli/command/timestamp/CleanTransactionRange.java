@@ -20,12 +20,12 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.base.ClosableIterator;
 

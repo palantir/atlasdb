@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
-import com.palantir.atlasdb.cli.services.AtlasDbServices;
+import com.palantir.atlasdb.services.AtlasDbServices;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
