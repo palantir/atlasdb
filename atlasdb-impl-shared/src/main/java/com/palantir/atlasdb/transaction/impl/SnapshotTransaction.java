@@ -1472,7 +1472,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         try {
-            log.warn("For table: " + tableRef
+            log.debug("For table: " + tableRef
                     + " we are deleting values of an uncommitted transaction: " + keysToDelete);
             keyValueService.delete(tableRef, Multimaps.forMap(keysToDelete));
         } catch (RuntimeException e) {
@@ -1480,10 +1480,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     + "Delete has stronger consistency semantics than read/write and must talk to all nodes "
                     + "instead of just talking to a quorum of nodes. "
                     + "Failed to delete keys for table" + tableRef
-                    + " from an uncommitted transaction: " + keysToDelete;
-            log.error(msg, e);
+                    + " from an uncommitted transaction; "
+                    + " sweep should eventually clean this when it processes this table.";
+	    if (log.isDebugEnabled()) {
+                msg += " The keys that failed to be deleted during rollback were " + keysToDelete;
+            }
+            log.warn(msg, e);
         }
-
 
         return true;
     }
