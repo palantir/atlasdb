@@ -123,6 +123,12 @@ public class KvsGetRangeBenchmarks {
     }
 
     @Benchmark
+    public Object getSingleRangeVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
+        return getSingleRangeInner(table, 1);
+    }
+
+
+    @Benchmark
     public Object getSingleLargeRange(ConsecutiveNarrowTable.CleanNarrowTable table) {
         return getSingleRangeInner(table, (int) (0.1 * table.getNumRows()));
     }
@@ -133,12 +139,23 @@ public class KvsGetRangeBenchmarks {
     }
 
     @Benchmark
+    public Object getSingleLargeRangeVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
+        return getSingleRangeInner(table, (int) (0.1 * table.getNumRows()));
+    }
+
+
+    @Benchmark
     public Object getMultiRange(ConsecutiveNarrowTable.CleanNarrowTable table) {
         return getMultiRangeInner(table);
     }
 
     @Benchmark
     public Object getMultiRangeDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return getMultiRangeInner(table);
+    }
+
+    @Benchmark
+    public Object getMultiRangeVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
         return getMultiRangeInner(table);
     }
 }
