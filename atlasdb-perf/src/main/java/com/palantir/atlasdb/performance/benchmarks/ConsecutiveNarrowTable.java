@@ -59,10 +59,13 @@ public class ConsecutiveNarrowTable {
 
     private Random random = new Random(VALUE_SEED);
     private TableReference tableRef;
-    private final int numRows = 10000;
+    private int numRows = 10000;
     private AtlasDbServices services;
 
 
+    public void setNumRows(int n) {
+        this.numRows = n;
+    }
     public AtlasDbServicesConnector getConnector() {
         return connector;
     }
@@ -149,5 +152,20 @@ public class ConsecutiveNarrowTable {
                 storeData();
             }
         }
+    }
+
+    @State(Scope.Benchmark)
+    public static class VeryDirtyNarrowTable extends ConsecutiveNarrowTable {
+
+        @Override
+        @Setup(Level.Trial)
+        public void setup(AtlasDbServicesConnector conn) {
+            super.setup(conn);
+            setNumRows(10);
+            for (long storeTs = MIN_STORE_TS; storeTs < MIN_STORE_TS + 1000; storeTs++) {
+                storeData();
+            }
+        }
+
     }
 }

@@ -153,12 +153,24 @@ public class TransactionGetBenchmarks {
     }
 
     @Benchmark
+    public Map<Cell, byte[]> getCellsVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
+        return getCellsInner(table);
+    }
+
+
+    @Benchmark
     public  List<RowResult<byte[]>> getSingleCellWithRangeQuery(ConsecutiveNarrowTable.CleanNarrowTable table) {
         return getSingleCellWithRangeQueryInner(table);
     }
 
     @Benchmark
     public  List<RowResult<byte[]>> getSingleCellWithRangeQueryDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return getSingleCellWithRangeQueryInner(table);
+    }
+
+    @Benchmark
+    public  List<RowResult<byte[]>> getSingleCellWithRangeQueryVeryDirty(
+            ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
         return getSingleCellWithRangeQueryInner(table);
     }
 
@@ -173,6 +185,12 @@ public class TransactionGetBenchmarks {
     }
 
     @Benchmark
+    public List<RowResult<byte[]>> getRangeVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
+        return getRangeInner(table);
+    }
+
+
+    @Benchmark
     public Map<Cell, byte[]> getSingleCell(ConsecutiveNarrowTable.CleanNarrowTable table) {
         return getSingleCellInner(table);
     }
@@ -183,12 +201,25 @@ public class TransactionGetBenchmarks {
     }
 
     @Benchmark
+    public Map<Cell, byte[]> getSingleCellVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
+        return getSingleCellInner(table);
+    }
+
+
+    @Benchmark
     public Iterable<BatchingVisitable<RowResult<byte[]>>> getRanges(ConsecutiveNarrowTable.CleanNarrowTable table) {
         return getRangesInner(table);
     }
 
     @Benchmark
-    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesDirty(
+            ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return getRangesInner(table);
+    }
+
+    @Benchmark
+    public Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesVeryDirty(
+            ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
         return getRangesInner(table);
     }
 
