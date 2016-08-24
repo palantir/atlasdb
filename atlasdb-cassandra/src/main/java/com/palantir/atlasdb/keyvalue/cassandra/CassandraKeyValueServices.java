@@ -40,6 +40,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -128,6 +129,17 @@ public final class CassandraKeyValueServices {
             log.error(errorMessage);
             throw e;
         }
+    }
+
+    static String encodeAsHex(byte[] array) {
+        return "0x" + PtBytes.encodeHexString(array);
+    }
+
+    static ColumnOrSuperColumn makeColumnOrSuperColumn(byte[] columnName, byte[] timestamp) {
+        long timestampLong = ~PtBytes.toLong(timestamp);
+        Column col = new Column()
+                .setName(CassandraKeyValueServices.makeCompositeBuffer(columnName, timestampLong));
+        return new ColumnOrSuperColumn().setColumn(col);
     }
 
     static ByteBuffer makeCompositeBuffer(byte[] colName, long ts) {

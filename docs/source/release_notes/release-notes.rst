@@ -45,6 +45,19 @@ v0.13.0
          - ``AtlasDbServer`` has been renamed to ``AtlasDbServiceServer``. Any products that are using this should switch to using the Java Feign client instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/801>`__)
 
+    *    - |new|
+         - ``CassandraKeyValueServiceConfiguration`` now supports :ref:`column paging <cassandra-sweep-config>`
+           via the ``sweepColumnBatchSize`` parameter.
+
+           Enabling such paging could make :ref:`Sweep <physical-cleanup-sweep>` more reliable by helping
+           prevent sweep jobs from causing Cassandra nodes to run out of memory if the underlying Cassandra
+           KVS contains rows that store large values and change frequently.
+
+           This feature is experimental and disabled by default; please
+           reach out to the AtlasDB dev team if you would like to enable it.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/812>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

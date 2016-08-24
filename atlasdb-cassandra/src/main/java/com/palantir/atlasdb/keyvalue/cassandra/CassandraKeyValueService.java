@@ -98,7 +98,9 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTs
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ThreadSafeResultVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnFetchMode;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.CqlColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.DelegatingColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.PagingIterable;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
@@ -1265,12 +1267,23 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
-        return getRangeWithPageCreator(
-                tableRef,
-                rangeRequest,
-                timestamp,
-                deleteConsistency,
-                TimestampExtractor.SUPPLIER);
+        Optional<Integer> sweepColumnBatchSize = configManager.getConfig().sweepColumnBatchSize();
+        if (sweepColumnBatchSize.isPresent()) {
+            return getTimestampsWithPageCreator(
+                    tableRef,
+                    rangeRequest,
+                    sweepColumnBatchSize.get(),
+                    timestamp,
+                    deleteConsistency,
+                    TimestampExtractor.SUPPLIER);
+        } else {
+            return getRangeWithPageCreator(
+                    tableRef,
+                    rangeRequest,
+                    timestamp,
+                    deleteConsistency,
+                    TimestampExtractor.SUPPLIER);
+        }
     }
 
     @Override
@@ -1287,13 +1300,28 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 HistoryExtractor.SUPPLIER);
     }
 
+    private <T, U> ClosableIterator<RowResult<U>> getTimestampsWithPageCreator(
+            final TableReference tableRef,
+            final RangeRequest rangeRequest,
+            final int columnBatchSize,
+            final long timestamp,
+            final ConsistencyLevel consistency,
+            final Supplier<ResultsExtractor<T, U>> resultsExtractor) {
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, ColumnFetchMode.FETCH_ONE);
+
+        CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
+        ColumnGetter columnGetter = new CqlColumnGetter(cqlExecutor, tableRef, columnBatchSize);
+
+        return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, resultsExtractor, timestamp);
+    }
+
     private <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(
             final TableReference tableRef,
             final RangeRequest rangeRequest,
             final long timestamp,
             final ConsistencyLevel consistency,
             final Supplier<ResultsExtractor<T, U>> resultsExtractor) {
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef);
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, ColumnFetchMode.FETCH_ALL);
         ColumnGetter columnGetter = new DelegatingColumnGetter();
 
         return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, resultsExtractor, timestamp);

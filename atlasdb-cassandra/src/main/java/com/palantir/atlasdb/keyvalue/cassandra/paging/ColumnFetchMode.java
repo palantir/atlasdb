@@ -15,17 +15,17 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.paging;
 
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
+public enum ColumnFetchMode {
+    FETCH_ONE(1),
+    FETCH_ALL(Integer.MAX_VALUE);
 
-import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.KeySlice;
+    private int columnsToFetch;
 
-public class DelegatingColumnGetter implements ColumnGetter {
+    ColumnFetchMode(int columnsToFetch) {
+        this.columnsToFetch = columnsToFetch;
+    }
 
-    @Override
-    public Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(List<KeySlice> firstPage) {
-        return ColumnGetters.getColsByKey(firstPage);
+    public int getColumnsToFetch() {
+        return columnsToFetch;
     }
 }

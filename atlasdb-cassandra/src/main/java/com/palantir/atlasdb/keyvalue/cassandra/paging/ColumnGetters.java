@@ -22,10 +22,18 @@ import java.util.Map;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.KeySlice;
 
-public class DelegatingColumnGetter implements ColumnGetter {
+import com.google.common.collect.Maps;
 
-    @Override
-    public Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(List<KeySlice> firstPage) {
-        return ColumnGetters.getColsByKey(firstPage);
+final class ColumnGetters {
+    private ColumnGetters() {
+        // Utility class
+    }
+
+    static Map<ByteBuffer, List<ColumnOrSuperColumn>> getColsByKey(List<KeySlice> firstPage) {
+        Map<ByteBuffer, List<ColumnOrSuperColumn>> ret = Maps.newHashMapWithExpectedSize(firstPage.size());
+        for (KeySlice e : firstPage) {
+            ret.put(ByteBuffer.wrap(e.getKey()), e.getColumns());
+        }
+        return ret;
     }
 }
