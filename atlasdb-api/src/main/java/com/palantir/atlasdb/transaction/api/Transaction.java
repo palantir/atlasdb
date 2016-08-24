@@ -51,7 +51,8 @@ public interface Transaction {
     Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells);
 
     /**
-     * Creates a visitable that scans the provided range.
+     * Creates a visitable that scans the provided range.  This method retrieves all cell-value pairs
+     * spanned by the <code>RangeRequest</code>.
      *
      * @param tableRef the table to scan
      * @param rangeRequest the range of rows and columns to scan
