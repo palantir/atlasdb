@@ -26,7 +26,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang3.Validate;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Level;
@@ -36,7 +35,6 @@ import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.google.common.collect.Iterables;
@@ -54,103 +52,63 @@ import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-@State(Scope.Benchmark)
 @BenchmarkMode(Mode.SampleTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @Warmup(iterations = 1, time = 5, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 1, time = 30, timeUnit = TimeUnit.SECONDS)
 public class KvsGetRangeBenchmarks {
+    
+    @State(Scope.Benchmark)
+    public static class CleanNarrowTable extends ConsecutiveNarrowTable {
 
-    private static final String TABLE_NAME_1 = "performance.table1";
-    private static final String ROW_COMPONENT = "key";
-    private static final String COLUMN_NAME = "value";
-    private static final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes(StandardCharsets.UTF_8);
-    private static final long DUMMY_TIMESTAMP = 1L;
-    private static final long QUERY_TIMESTAMP = 2L;
-
-    private static final int VALUE_BYTE_ARRAY_SIZE = 100;
-    private static final long VALUE_SEED = 279L;
-
-    private AtlasDbServicesConnector connector;
-    private KeyValueService kvs;
-    private Random random = new Random(VALUE_SEED);
-
-    private TableReference tableRef1;
-
-    private static final int NUM_ROWS = 10000;
-    private static final int PUT_BATCH_SIZE = 1000;
-    private static final int NUM_REQUESTS = 1000;
-
-    @Setup(Level.Trial)
-    public void setup(AtlasDbServicesConnector conn) {
-        this.connector = conn;
-        this.kvs = conn.connect().getKeyValueService();
-        this.tableRef1 = Benchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
-        storeData();
-    }
-
-
-    private void storeData() {
-        Validate.isTrue(NUM_ROWS % PUT_BATCH_SIZE  == 0);
-        for (int i = 0; i < NUM_ROWS; i += PUT_BATCH_SIZE) {
-            Map<TableReference, Map<Cell, byte[]>> multiPutMap = Maps.newHashMap();
-            multiPutMap.put(tableRef1, generateBatch(i, PUT_BATCH_SIZE));
-            kvs.multiPut(multiPutMap, DUMMY_TIMESTAMP);
+        @Override
+        @Setup(Level.Trial)
+        public void setup(AtlasDbServicesConnector conn) {
+            super.setup(conn);
+            storeData();
         }
     }
 
-    private byte[] generateValue() {
-        byte[] value = new byte[VALUE_BYTE_ARRAY_SIZE];
-        random.nextBytes(value);
-        return value;
-    }
+    @State(Scope.Benchmark)
+    public static class DirtyNarrowTable extends ConsecutiveNarrowTable {
 
-    private Map<Cell, byte[]> generateBatch(int startKey, int size) {
-        Map<Cell, byte[]> map = Maps.newHashMapWithExpectedSize(size);
-        for (int j = 0; j < size; j++) {
-            byte[] key = Ints.toByteArray(startKey + j);
-            byte[] value = generateValue();
-            map.put(Cell.create(key, COLUMN_NAME_IN_BYTES), value);
+        @Override
+        @Setup(Level.Trial)
+        public void setup(AtlasDbServicesConnector conn) {
+            super.setup(conn);
+            for (long storeTs = MIN_STORE_TS; storeTs < MIN_STORE_TS + 10; storeTs++) {
+                storeData();
+            }
         }
-        return map;
     }
 
-    @TearDown(Level.Trial)
-    public void cleanup() throws Exception {
-        this.kvs.dropTables(Sets.newHashSet(tableRef1));
-        this.kvs.close();
-        this.connector.close();
-        this.tableRef1 = null;
-    }
-
-
-    @Benchmark
-    public void getSingleRange() {
-        int startRow = random.nextInt(NUM_ROWS);
-        int endRow = startRow + 1;
-        RangeRequest request = RangeRequest.builder()
-                .batchHint(1)
-                .startRowInclusive(Ints.toByteArray(startRow))
-                .endRowExclusive(Ints.toByteArray(endRow))
-                .build();
-        ClosableIterator<RowResult<Value>> result = kvs.getRange(this.tableRef1, request, QUERY_TIMESTAMP);
+    protected Object getSingleRangeInner(ConsecutiveNarrowTable table, int sliceSize) {
+        RangeRequest request = Iterables.getOnlyElement(getRangeRequests(table, 1, sliceSize));
+        int startRow = Ints.fromByteArray(request.getStartInclusive());
+        ClosableIterator<RowResult<Value>> result =
+                table.getKvs().getRange(table.getTableRef1(), request, Long.MAX_VALUE);
         ArrayList<RowResult<Value>> list = Lists.newArrayList(result);
-        byte[] rowName = Iterables.getOnlyElement(list).getRowName();
-        int rowNumber = Ints.fromByteArray(rowName);
-        Benchmarks.validate(rowNumber == startRow, "Start Row %s, row number %s", startRow, rowNumber);
+        KvsBenchmarks.validate(list.size() == sliceSize, "List size %s != %s", sliceSize, list.size());
+        list.forEach(rowResult -> {
+            byte[] rowName = rowResult.getRowName();
+            int rowNumber = Ints.fromByteArray(rowName);
+            KvsBenchmarks.validate(rowNumber - startRow < sliceSize, "Start Row %s, row number %s, sliceSize %s",
+                    startRow, rowNumber, sliceSize);
+        });
+        return result;
     }
 
-    private Iterable<RangeRequest> getRangeRequests(int numRequests) {
+    private Iterable<RangeRequest> getRangeRequests(ConsecutiveNarrowTable table, int numRequests, int sliceSize) {
         List<RangeRequest> requests = Lists.newArrayList();
         Set<Integer> used = Sets.newHashSet();
         for (int i = 0; i < numRequests; i++) {
             int startRow;
             do {
-                startRow = random.nextInt(NUM_ROWS);
+                startRow = table.getRandom().nextInt(table.getNumRows() - sliceSize);
             } while (used.contains(startRow));
-            int endRow = startRow + 1;
+            int endRow = startRow + sliceSize;
             RangeRequest request = RangeRequest.builder()
-                    .batchHint(2)
+                    .batchHint(1 + sliceSize)
                     .startRowInclusive(Ints.toByteArray(startRow))
                     .endRowExclusive(Ints.toByteArray(endRow))
                     .build();
@@ -160,11 +118,11 @@ public class KvsGetRangeBenchmarks {
         return requests;
     }
 
-    @Benchmark
-    public void getMultiRange() {
-        Iterable<RangeRequest> requests = getRangeRequests(NUM_REQUESTS);
+
+    protected Object getMultiRangeInner(ConsecutiveNarrowTable table) {
+        Iterable<RangeRequest> requests = getRangeRequests(table, (int) (table.getNumRows() * 0.1), 1);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> results =
-                kvs.getFirstBatchForRanges(tableRef1, requests, QUERY_TIMESTAMP);
+                table.getKvs().getFirstBatchForRanges(table.getTableRef1(), requests, Long.MAX_VALUE);
 
         int numRequests = Iterables.size(requests);
 
@@ -183,6 +141,37 @@ public class KvsGetRangeBenchmarks {
                     Ints.fromByteArray(request.getStartInclusive()),
                     Ints.fromByteArray(row.getRowName()));
         });
+        return results;
     }
 
+
+    @Benchmark
+    public Object getSingleRangeClean(CleanNarrowTable table) {
+        return getSingleRangeInner(table, 1);
+    }
+
+    @Benchmark
+    public Object getSingleRangeDirty(DirtyNarrowTable table) {
+        return getSingleRangeInner(table, 1);
+    }
+
+    @Benchmark
+    public Object getSingleLargeRangeClean(CleanNarrowTable table) {
+        return getSingleRangeInner(table, (int) (0.1 * table.getNumRows()));
+    }
+
+    @Benchmark
+    public Object getSingleLargeRangeDirty(DirtyNarrowTable table) {
+        return getSingleRangeInner(table, (int) (0.1 * table.getNumRows()));
+    }
+
+    @Benchmark
+    public Object getMultiRangeClean(CleanNarrowTable table) {
+        return getMultiRangeInner(table);
+    }
+
+    @Benchmark
+    public Object getMultiRangeDirty(DirtyNarrowTable table) {
+        return getMultiRangeInner(table);
+    }
 }
