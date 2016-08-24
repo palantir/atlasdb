@@ -28,7 +28,6 @@ import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.KeySlice;
 import org.apache.commons.lang3.Validate;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -41,6 +40,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -131,6 +131,17 @@ public final class CassandraKeyValueServices {
         }
     }
 
+    static String encodeAsHex(byte[] array) {
+        return "0x" + PtBytes.encodeHexString(array);
+    }
+
+    static ColumnOrSuperColumn makeColumnOrSuperColumn(byte[] columnName, byte[] timestamp) {
+        long timestampLong = ~PtBytes.toLong(timestamp);
+        Column col = new Column()
+                .setName(CassandraKeyValueServices.makeCompositeBuffer(columnName, timestampLong));
+        return new ColumnOrSuperColumn().setColumn(col);
+    }
+
     static ByteBuffer makeCompositeBuffer(byte[] colName, long ts) {
         assert colName.length <= 1 << 16 : "Cannot use column names larger than 64KiB, was " + colName.length;
 
@@ -196,14 +207,6 @@ public final class CassandraKeyValueServices {
             buffer.duplicate().get(bytes, buffer.position(), bytes.length);
         }
         return bytes;
-    }
-
-    static Map<ByteBuffer, List<ColumnOrSuperColumn>> getColsByKey(List<KeySlice> firstPage) {
-        Map<ByteBuffer, List<ColumnOrSuperColumn>> ret = Maps.newHashMapWithExpectedSize(firstPage.size());
-        for (KeySlice e : firstPage) {
-            ret.put(ByteBuffer.wrap(e.getKey()), e.getColumns());
-        }
-        return ret;
     }
 
     // /Obviously/ this is long (internal cassandra timestamp) + long (internal cassandra clock sequence and node id)

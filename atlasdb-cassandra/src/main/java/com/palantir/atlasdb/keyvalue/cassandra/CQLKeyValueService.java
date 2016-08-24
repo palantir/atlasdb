@@ -1271,4 +1271,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             throw Throwables.throwUncheckedException(e.getCause());
         }
     }
+
+    private boolean shouldTraceQuery(final TableReference tableRef) {
+        return tracingPrefs.shouldTraceQuery(tableRef.getQualifiedName());
+    }
 }
