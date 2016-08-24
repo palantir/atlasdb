@@ -64,96 +64,157 @@ public class KvsGetRangeBenchmarks {
     private static final String ROW_COMPONENT = "key";
     private static final String COLUMN_NAME = "value";
     private static final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes(StandardCharsets.UTF_8);
-    protected static final long STORE_TS = 1L;
+    protected static final long MIN_STORE_TS = 1L;
     private static final long QUERY_TIMESTAMP = Long.MAX_VALUE;
-
     private static final int VALUE_BYTE_ARRAY_SIZE = 100;
     private static final long VALUE_SEED = 279L;
-
-    private AtlasDbServicesConnector connector;
-    private KeyValueService kvs;
-    private Random random = new Random(VALUE_SEED);
-
-    private TableReference tableRef1;
-
-    protected int numRows;
     private static final int PUT_BATCH_SIZE = 1000;
-    protected int numRequests = 1000;
 
-    @Setup(Level.Trial)
-    public void setup(AtlasDbServicesConnector conn) {
-        setupTable(conn);
-        storeData(STORE_TS);
-    }
+    public static class Table {
+        private AtlasDbServicesConnector connector;
+        private KeyValueService kvs;
+        private Random random = new Random(VALUE_SEED);
 
-    protected void setupTable(AtlasDbServicesConnector conn) {
-        this.numRows = 10000;
-        this.connector = conn;
-        this.kvs = conn.connect().getKeyValueService();
-        this.tableRef1 = Benchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
-    }
+        private TableReference tableRef1;
+
+        private final int numRows;
+
+        public Table(int numRows) {
+            this.numRows = numRows;
+        }
+
+        protected void setupTable(AtlasDbServicesConnector conn) {
+            this.numRows = 10000;
+            this.connector = conn;
+            this.kvs = conn.connect().getKeyValueService();
+            this.tableRef1 = Benchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
+        }
+
+        public AtlasDbServicesConnector getConnector() {
+            return connector;
+        }
 
 
-    protected void storeData(long storeTs) {
-        for (int i = 0; i < numRows; i += PUT_BATCH_SIZE) {
-            Map<TableReference, Map<Cell, byte[]>> multiPutMap = Maps.newHashMap();
-            multiPutMap.put(tableRef1, generateBatch(i, Math.min(PUT_BATCH_SIZE, numRows - i)));
-            kvs.multiPut(multiPutMap, storeTs);
+        public KeyValueService getKvs() {
+            return kvs;
+        }
+
+        public Random getRandom() {
+            return random;
+        }
+
+        public TableReference getTableRef1() {
+            return tableRef1;
+        }
+
+        public int getNumRows() {
+            return numRows;
+        }
+
+        public void cleanup() throws Exception {
+            this.kvs.dropTables(Sets.newHashSet(tableRef1));
+            this.kvs.close();
+            this.connector.close();
+            this.tableRef1 = null;
+        }
+
+        protected void setupTable(AtlasDbServicesConnector conn) {
+            this.connector = conn;
+            this.kvs = conn.connect().getKeyValueService();
+            this.tableRef1 = KvsBenchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
+        }
+        protected void storeData(long storeTs) {
+            for (int i = 0; i < numRows; i += PUT_BATCH_SIZE) {
+                Map<TableReference, Map<Cell, byte[]>> multiPutMap = Maps.newHashMap();
+                multiPutMap.put(tableRef1, generateBatch(i, Math.min(PUT_BATCH_SIZE, numRows - i)));
+                kvs.multiPut(multiPutMap, storeTs);
+            }
+        }
+
+        private byte[] generateValue() {
+            byte[] value = new byte[VALUE_BYTE_ARRAY_SIZE];
+            random.nextBytes(value);
+            return value;
+        }
+
+        private Map<Cell, byte[]> generateBatch(int startKey, int size) {
+            Map<Cell, byte[]> map = Maps.newHashMapWithExpectedSize(size);
+            for (int j = 0; j < size; j++) {
+                byte[] key = Ints.toByteArray(startKey + j);
+                byte[] value = generateValue();
+                map.put(Cell.create(key, COLUMN_NAME_IN_BYTES), value);
+            }
+            return map;
         }
     }
 
-    private byte[] generateValue() {
-        byte[] value = new byte[VALUE_BYTE_ARRAY_SIZE];
-        random.nextBytes(value);
-        return value;
-    }
-
-    private Map<Cell, byte[]> generateBatch(int startKey, int size) {
-        Map<Cell, byte[]> map = Maps.newHashMapWithExpectedSize(size);
-        for (int j = 0; j < size; j++) {
-            byte[] key = Ints.toByteArray(startKey + j);
-            byte[] value = generateValue();
-            map.put(Cell.create(key, COLUMN_NAME_IN_BYTES), value);
+    @State(Scope.Benchmark)
+    public static class CleanNarrowTable extends Table {
+        public CleanNarrowTable() {
+            super(10000);
         }
-        return map;
+
+        @Setup(Level.Trial)
+        public void setupData(AtlasDbServicesConnector conn) {
+            setupTable(conn);
+            storeData(MIN_STORE_TS);
+        }
+
+        @TearDown(Level.Trial)
+        public void cleanup() throws Exception {
+            super.cleanup();
+        }
     }
 
-    @TearDown(Level.Trial)
-    public void cleanup() throws Exception {
-        this.kvs.dropTables(Sets.newHashSet(tableRef1));
-        this.kvs.close();
-        this.connector.close();
-        this.tableRef1 = null;
+    @State(Scope.Benchmark)
+    public static class DirtyNarrowTable extends Table {
+        public DirtyNarrowTable() {
+            super(10000);
+        }
+
+        @Setup(Level.Trial)
+        public void setupData(AtlasDbServicesConnector conn) {
+            setupTable(conn);
+            for (long storeTs = MIN_STORE_TS; storeTs < 10; storeTs++) {
+                storeData(storeTs);
+            }
+        }
+
+        @TearDown(Level.Trial)
+        public void cleanup() throws Exception {
+            super.cleanup();
+        }
+
     }
 
 
-    @Benchmark
-    public void getSingleRange() {
-        int startRow = random.nextInt(numRows);
-        int endRow = startRow + 1;
-        RangeRequest request = RangeRequest.builder()
-                .batchHint(1)
-                .startRowInclusive(Ints.toByteArray(startRow))
-                .endRowExclusive(Ints.toByteArray(endRow))
-                .build();
-        ClosableIterator<RowResult<Value>> result = kvs.getRange(this.tableRef1, request, QUERY_TIMESTAMP);
+    protected Object getSingleRangeInner(Table table, int sliceSize) {
+        RangeRequest request = Iterables.getOnlyElement(getRangeRequests(table, 1, sliceSize));
+        int startRow = Ints.fromByteArray(request.getStartInclusive());
+        ClosableIterator<RowResult<Value>> result =
+                table.getKvs().getRange(table.getTableRef1(), request, QUERY_TIMESTAMP);
         ArrayList<RowResult<Value>> list = Lists.newArrayList(result);
-        byte[] rowName = Iterables.getOnlyElement(list).getRowName();
-        int rowNumber = Ints.fromByteArray(rowName);
-        Benchmarks.validate(rowNumber == startRow, "Start Row %s, row number %s", startRow, rowNumber);
+        KvsBenchmarks.validate(list.size() == sliceSize, "List size %s != %s", sliceSize, list.size());
+        list.forEach(rowResult -> {
+            byte[] rowName = rowResult.getRowName();
+            int rowNumber = Ints.fromByteArray(rowName);
+            KvsBenchmarks.validate(rowNumber - startRow < sliceSize, "Start Row %s, row number %s, sliceSize %s",
+                    startRow, rowNumber, sliceSize);
+        });
+        return result;
     }
 
-    private Iterable<RangeRequest> getRangeRequests(int numRequests) {
+    private Iterable<RangeRequest> getRangeRequests(Table table, int numRequests, int sliceSize) {
         List<RangeRequest> requests = Lists.newArrayList();
         Set<Integer> used = Sets.newHashSet();
         for (int i = 0; i < numRequests; i++) {
             int startRow;
             do {
-                startRow = random.nextInt(numRows);
+                startRow = table.getRandom().nextInt(table.getNumRows() - sliceSize);
             } while (used.contains(startRow));
-            int endRow = startRow + 1;
+            int endRow = startRow + sliceSize;
             RangeRequest request = RangeRequest.builder()
-                    .batchHint(2)
+                    .batchHint(1 + sliceSize)
                     .startRowInclusive(Ints.toByteArray(startRow))
                     .endRowExclusive(Ints.toByteArray(endRow))
                     .build();
@@ -163,11 +224,11 @@ public class KvsGetRangeBenchmarks {
         return requests;
     }
 
-    @Benchmark
-    public void getMultiRange() {
-        Iterable<RangeRequest> requests = getRangeRequests(numRequests);
+
+    protected Object getMultiRangeInner(Table table) {
+        Iterable<RangeRequest> requests = getRangeRequests(table, (int) (table.getNumRows() * 0.1), 1);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> results =
-                kvs.getFirstBatchForRanges(tableRef1, requests, QUERY_TIMESTAMP);
+                table.getKvs().getFirstBatchForRanges(table.getTableRef1(), requests, QUERY_TIMESTAMP);
 
         int numRequests = Iterables.size(requests);
 
@@ -186,6 +247,37 @@ public class KvsGetRangeBenchmarks {
                     Ints.fromByteArray(request.getStartInclusive()),
                     Ints.fromByteArray(row.getRowName()));
         });
+        return results;
     }
 
+
+    @Benchmark
+    public Object getSingleRangeClean(CleanNarrowTable table) {
+        return getSingleRangeInner(table, 1);
+    }
+
+    @Benchmark
+    public Object getSingleRangeDirty(DirtyNarrowTable table) {
+        return getSingleRangeInner(table, 1);
+    }
+
+    @Benchmark
+    public Object getSingleLargeRangeClean(CleanNarrowTable table) {
+        return getSingleRangeInner(table, (int) (0.1 * table.getNumRows()));
+    }
+
+    @Benchmark
+    public Object getSingleLargeRangeDirty(DirtyNarrowTable table) {
+        return getSingleRangeInner(table, (int) (0.1 * table.getNumRows()));
+    }
+
+    @Benchmark
+    public Object getMultiRangeClean(CleanNarrowTable table) {
+        return getMultiRangeInner(table);
+    }
+
+    @Benchmark
+    public Object getMultiRangeDirty(DirtyNarrowTable table) {
+        return getMultiRangeInner(table);
+    }
 }
