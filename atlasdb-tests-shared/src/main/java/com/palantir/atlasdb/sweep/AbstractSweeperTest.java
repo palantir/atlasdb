@@ -168,7 +168,7 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    public void testSweepManyConservative() {
+    public void testSweepManyValuesConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         put("foo", "bar", 50);
         putUncommitted("foo", "bad", 75);
@@ -181,6 +181,11 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals("buzz", get("foo", 200));
         Assert.assertEquals("", get("foo", 124));
         Assert.assertEquals(ImmutableSet.of(-1L, 125L), getAllTs("foo"));
+    }
+
+    @Test
+    public void testSweepManyRowsConservative() {
+        testSweepManyRows(SweepStrategy.CONSERVATIVE);
     }
 
     @Test
@@ -245,7 +250,7 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    public void testSweepManyThorough() {
+    public void testSweepManyValuesThorough() {
         createTable(SweepStrategy.THOROUGH);
         put("foo", "bar", 50);
         putUncommitted("foo", "bad", 75);
@@ -258,6 +263,11 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals("buzz", get("foo", 200));
         Assert.assertEquals(null, get("foo", 124));
         Assert.assertEquals(ImmutableSet.of(125L), getAllTs("foo"));
+    }
+
+    @Test
+    public void testSweepManyRowsThorough() {
+        testSweepManyRows(SweepStrategy.THOROUGH);
     }
 
     @Test
@@ -513,6 +523,19 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals(results, SweepResults.createEmptySweepResult(0L));
     }
 
+    private void testSweepManyRows(SweepStrategy strategy) {
+        createTable(strategy);
+        put("foo", "bar1", 5);
+        put("foo", "bar2", 10);
+        put("baz", "bar3", 15);
+        put("baz", "bar4", 20);
+
+        SweepResults results = completeSweep(175);
+
+        Assert.assertEquals(2, results.getCellsDeleted());
+        Assert.assertEquals(2, results.getCellsExamined());
+    }
+
     private List<SweepProgressRowResult> getProgressTable() {
         return txManager.runTaskReadOnly(t -> {
             SweepProgressTable progressTable = SweepTableFactory.of().getSweepProgressTable(t);
@@ -534,7 +557,7 @@ public abstract class AbstractSweeperTest {
         }
     }
 
-    private SweepResults completeSweep(long ts) {
+    protected SweepResults completeSweep(long ts) {
         SweepResults results = sweep(ts, DEFAULT_BATCH_SIZE);
         Assert.assertFalse(results.getNextStartRow().isPresent());
         return results;
@@ -562,8 +585,12 @@ public abstract class AbstractSweeperTest {
         return ImmutableSet.copyOf(kvs.getAllTimestamps(TABLE_NAME, ImmutableSet.of(cell), Long.MAX_VALUE).get(cell));
     }
 
-    private void put(final String row, final String val, final long ts) {
-        Cell cell = Cell.create(row.getBytes(), COL.getBytes());
+    protected void put(final String row, final String val, final long ts) {
+        put(row, COL, val, ts);
+    }
+
+    protected void put(final String row, final String column, final String val, final long ts) {
+        Cell cell = Cell.create(row.getBytes(), column.getBytes());
         kvs.put(TABLE_NAME, ImmutableMap.of(cell, val.getBytes()), ts);
         txService.putUnlessExists(ts, ts);
     }
@@ -573,7 +600,7 @@ public abstract class AbstractSweeperTest {
         kvs.put(TABLE_NAME, ImmutableMap.of(cell, val.getBytes()), ts);
     }
 
-    private void createTable(final SweepStrategy sweepStrategy) {
+    protected void createTable(final SweepStrategy sweepStrategy) {
         kvs.createTable(TABLE_NAME,
                 new TableDefinition() {{
                     rowName();
