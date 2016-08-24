@@ -160,26 +160,17 @@ releases into <code class="docutils literal"><span class="pre">master</span></co
 </div>
 <div class="section" id="cutting-for-release">
 <h2>Cutting for Release<a class="headerlink" href="#cutting-for-release" title="Permalink to this headline">¶</a></h2>
-<ol class="arabic">
-<li><p class="first">Checkout the commit to tag for release (probably
-<code class="docutils literal"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">origin/develop</span></code>).</p>
-</li>
-<li><p class="first">Tag the commit: <code class="docutils literal"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">-a</span> <span class="pre">&lt;version&gt;</span></code>.</p>
-</li>
-<li><p class="first">Push the tag to Github:
-<code class="docutils literal"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">&lt;version&gt;:refs/tags/&lt;version&gt;</span></code>.</p>
-</li>
-<li><p class="first">After a short wait you can publish the artifacts on Bintray by going
+<ol class="arabic simple">
+<li>Checkout the commit to tag for release (probably
+<code class="docutils literal"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">origin/develop</span></code>).</li>
+<li>Tag the commit: <code class="docutils literal"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">-a</span> <span class="pre">&lt;version&gt;</span></code>.</li>
+<li>Push the tag to Github:
+<code class="docutils literal"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">&lt;version&gt;:refs/tags/&lt;version&gt;</span></code>.</li>
+<li>After a short wait (when the build at circleCI is successful) the artifacts will be published on BinTray
 to the <a class="reference external" href="https://bintray.com/palantir/releases/atlasdb/view">AtlasDB
-page</a>.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">You must have admin privledges on Bintray for this to work.</p>
-</div>
-</li>
-<li><p class="first">Edit the release notes that will appear for editing on AtlasDB GitHub <a class="reference external" href="https://github.com/palantir/atlasdb/releases">release
-page</a>.</p>
-</li>
+page</a>.</li>
+<li>Edit the release notes that will appear for editing on AtlasDB GitHub <a class="reference external" href="https://github.com/palantir/atlasdb/releases">release
+page</a>.</li>
 </ol>
 </div>
 </div>
