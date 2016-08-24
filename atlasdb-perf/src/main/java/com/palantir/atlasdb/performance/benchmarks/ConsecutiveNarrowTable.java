@@ -21,6 +21,7 @@ import java.util.Random;
 
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
@@ -32,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
 import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 /**
  * State class for creating a single Atlas table and adding N rows with row names [0...N).
@@ -47,7 +49,7 @@ public class ConsecutiveNarrowTable {
     private static final String TABLE_NAME_1 = "performance.table1";
     private static final String ROW_COMPONENT = "key";
     private static final String COLUMN_NAME = "value";
-    private static final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes(StandardCharsets.UTF_8);
+    public static final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes(StandardCharsets.UTF_8);
     protected static final long MIN_STORE_TS = 1L;
     private static final int VALUE_BYTE_ARRAY_SIZE = 100;
     private static final long VALUE_SEED = 279L;
@@ -56,7 +58,7 @@ public class ConsecutiveNarrowTable {
     private KeyValueService kvs;
 
     private Random random = new Random(VALUE_SEED);
-    private TableReference tableRef1;
+    private TableReference tableRef;
     private final int numRows = 10000;
     private AtlasDbServices services;
 
@@ -73,8 +75,8 @@ public class ConsecutiveNarrowTable {
         return random;
     }
 
-    public TableReference getTableRef1() {
-        return tableRef1;
+    public TableReference getTableRef() {
+        return tableRef;
     }
 
     public int getNumRows() {
@@ -83,23 +85,23 @@ public class ConsecutiveNarrowTable {
 
     @TearDown(Level.Trial)
     public void cleanup() throws Exception {
-        this.kvs.dropTables(Sets.newHashSet(tableRef1));
+        this.kvs.dropTables(Sets.newHashSet(tableRef));
         this.connector.close();
-        this.tableRef1 = null;
+        this.tableRef = null;
     }
 
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
         services = conn.connect();
         this.kvs = services.getKeyValueService();
-        this.tableRef1 = KvsBenchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
+        this.tableRef = Benchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
     }
 
     protected void storeData() {
         for (int i = 0; i < numRows; i += PUT_BATCH_SIZE) {
             final Map<Cell, byte[]> values = generateBatch(i, Math.min(PUT_BATCH_SIZE, numRows - i));
             services.getTransactionManager().runTaskThrowOnConflict(txn -> {
-                txn.put(tableRef1, values);
+                txn.put(tableRef, values);
                 return null;
             });
         }
@@ -119,5 +121,33 @@ public class ConsecutiveNarrowTable {
             map.put(Cell.create(key, COLUMN_NAME_IN_BYTES), value);
         }
         return map;
+    }
+
+    public TransactionManager getTransactionManager() {
+        return services.getTransactionManager();
+    }
+
+    @State(Scope.Benchmark)
+    public static class CleanNarrowTable extends ConsecutiveNarrowTable {
+
+        @Override
+        @Setup(Level.Trial)
+        public void setup(AtlasDbServicesConnector conn) {
+            super.setup(conn);
+            storeData();
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class DirtyNarrowTable extends ConsecutiveNarrowTable {
+
+        @Override
+        @Setup(Level.Trial)
+        public void setup(AtlasDbServicesConnector conn) {
+            super.setup(conn);
+            for (long storeTs = MIN_STORE_TS; storeTs < MIN_STORE_TS + 10; storeTs++) {
+                storeData();
+            }
+        }
     }
 }
