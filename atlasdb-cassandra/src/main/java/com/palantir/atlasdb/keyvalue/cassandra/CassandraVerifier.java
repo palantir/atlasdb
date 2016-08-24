@@ -195,8 +195,11 @@ public final class CassandraVerifier {
                         throw ire;
                     }
                 } catch (Exception f) {
-                    log.error("Couldn't use host {} to create keyspace, it returned exception \"{}\" during"
-                            + " the attempt.", host, f.toString(), f);
+                    log.warn("Couldn't use host {} to create keyspace."
+                            + " It returned exception \"{}\" during the attempt."
+                            + " We will retry on other nodes, so this shouldn't be a problem unless all nodes failed."
+                            + " See the debug-level log for the stack trace.", host, f.toString(), f);
+                    log.debug("Specifically, creating the keyspace failed with the following stack trace", f);
                 }
             }
             if (!someHostWasAbleToCreateTheKeyspace) {
