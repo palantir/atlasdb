@@ -26,7 +26,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang3.Validate;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Level;
@@ -65,8 +64,8 @@ public class KvsGetRangeBenchmarks {
     private static final String ROW_COMPONENT = "key";
     private static final String COLUMN_NAME = "value";
     private static final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes(StandardCharsets.UTF_8);
-    private static final long DUMMY_TIMESTAMP = 1L;
-    private static final long QUERY_TIMESTAMP = 2L;
+    protected static final long STORE_TS = 1L;
+    private static final long QUERY_TIMESTAMP = Long.MAX_VALUE;
 
     private static final int VALUE_BYTE_ARRAY_SIZE = 100;
     private static final long VALUE_SEED = 279L;
@@ -77,25 +76,29 @@ public class KvsGetRangeBenchmarks {
 
     private TableReference tableRef1;
 
-    private static final int NUM_ROWS = 10000;
+    protected int numRows;
     private static final int PUT_BATCH_SIZE = 1000;
-    private static final int NUM_REQUESTS = 1000;
+    protected int numRequests = 1000;
 
     @Setup(Level.Trial)
     public void setup(AtlasDbServicesConnector conn) {
+        setupTable(conn);
+        storeData(STORE_TS);
+    }
+
+    protected void setupTable(AtlasDbServicesConnector conn) {
+        this.numRows = 10000;
         this.connector = conn;
         this.kvs = conn.connect().getKeyValueService();
         this.tableRef1 = Benchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
-        storeData();
     }
 
 
-    private void storeData() {
-        Validate.isTrue(NUM_ROWS % PUT_BATCH_SIZE  == 0);
-        for (int i = 0; i < NUM_ROWS; i += PUT_BATCH_SIZE) {
+    protected void storeData(long storeTs) {
+        for (int i = 0; i < numRows; i += PUT_BATCH_SIZE) {
             Map<TableReference, Map<Cell, byte[]>> multiPutMap = Maps.newHashMap();
-            multiPutMap.put(tableRef1, generateBatch(i, PUT_BATCH_SIZE));
-            kvs.multiPut(multiPutMap, DUMMY_TIMESTAMP);
+            multiPutMap.put(tableRef1, generateBatch(i, Math.min(PUT_BATCH_SIZE, numRows - i)));
+            kvs.multiPut(multiPutMap, storeTs);
         }
     }
 
@@ -126,7 +129,7 @@ public class KvsGetRangeBenchmarks {
 
     @Benchmark
     public void getSingleRange() {
-        int startRow = random.nextInt(NUM_ROWS);
+        int startRow = random.nextInt(numRows);
         int endRow = startRow + 1;
         RangeRequest request = RangeRequest.builder()
                 .batchHint(1)
@@ -146,7 +149,7 @@ public class KvsGetRangeBenchmarks {
         for (int i = 0; i < numRequests; i++) {
             int startRow;
             do {
-                startRow = random.nextInt(NUM_ROWS);
+                startRow = random.nextInt(numRows);
             } while (used.contains(startRow));
             int endRow = startRow + 1;
             RangeRequest request = RangeRequest.builder()
@@ -162,7 +165,7 @@ public class KvsGetRangeBenchmarks {
 
     @Benchmark
     public void getMultiRange() {
-        Iterable<RangeRequest> requests = getRangeRequests(NUM_REQUESTS);
+        Iterable<RangeRequest> requests = getRangeRequests(numRequests);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> results =
                 kvs.getFirstBatchForRanges(tableRef1, requests, QUERY_TIMESTAMP);
 
