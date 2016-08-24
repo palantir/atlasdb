@@ -42,19 +42,16 @@ public class RowGetter {
     private TracingQueryRunner queryRunner;
     private ConsistencyLevel consistency;
     private TableReference tableRef;
-    private ColumnFetchMode fetchMode;
 
     public RowGetter(
             CassandraClientPool clientPool,
             TracingQueryRunner queryRunner,
             ConsistencyLevel consistency,
-            TableReference tableRef,
-            ColumnFetchMode fetchMode) {
+            TableReference tableRef) {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
         this.consistency = consistency;
         this.tableRef = tableRef;
-        this.fetchMode = fetchMode;
     }
 
     public List<KeySlice> getRows(KeyRange keyRange) throws Exception {
@@ -90,7 +87,7 @@ public class RowGetter {
                 ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
                 ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
                 false,
-                fetchMode.getColumnsToFetch());
+                Integer.MAX_VALUE);
         final SlicePredicate predicate = new SlicePredicate();
         predicate.setSlice_range(slice);
         return predicate;

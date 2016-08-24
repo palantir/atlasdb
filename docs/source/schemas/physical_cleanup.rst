@@ -9,8 +9,6 @@ clean up this old data.
 
 AtlasDB has a variety of options for maximal flexibility.
 
-.. _physical-cleanup-sweep:
-
 Sweeping
 ========
 

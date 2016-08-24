@@ -148,11 +148,6 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 64;
     }
 
-    @Value.Default
-    public Optional<Integer> sweepColumnBatchSize() {
-        return Optional.absent();
-    }
-
     public abstract Optional<CassandraJmxCompactionConfig> jmx();
 
     @Override
