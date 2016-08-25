@@ -62,8 +62,8 @@ public class AtlasDbPerfCli {
     @Arguments(description = "The performance benchmarks to run. Leave blank to run all performance benchmarks.")
     private List<String> tests;
 
-    @Option(name = {"-b", "--backends"}, description = "Space delimited list of backing KVS stores to use in " +
-            "quotes. (e.g. \"POSTGRES CASSANDRA\")" + " Defaults to all backends if not specified.")
+    @Option(name = {"-b", "--backends"}, description = "Space delimited list of backing KVS stores to use in "
+            + "quotes. (e.g. \"POSTGRES CASSANDRA\")" + " Defaults to all backends if not specified.")
     private String backends =
             EnumSet.allOf(KeyValueServiceType.class)
                     .stream()
@@ -128,8 +128,8 @@ public class AtlasDbPerfCli {
             try {
                 KeyValueServiceType.valueOf(backend.toUpperCase());
             } catch (Exception e) {
-                throw new RuntimeException("Invalid backend specified. Valid options: " +
-                        EnumSet.allOf(KeyValueServiceType.class) + " You provided: " + backend, e);
+                throw new RuntimeException("Invalid backend specified. Valid options: "
+                        + EnumSet.allOf(KeyValueServiceType.class) + " You provided: " + backend, e);
             }
         }
         return true;
