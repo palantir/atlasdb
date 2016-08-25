@@ -13,37 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.server;
+package com.palantir.atlasdb.server.config;
 
-import java.util.Map;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 import io.dropwizard.Configuration;
 
 public class AtlasDbServerConfiguration extends Configuration {
-    private final LeaderConfig leaderConfig;
-    private final Map<String, KeyValueServiceConfig> keyspaces;
+    private final ClusterConfig cluster;
+    private final Set<ClientConfig> clients;
 
     public AtlasDbServerConfiguration(
-            @JsonProperty("leader") LeaderConfig leaderConfig,
-            @JsonProperty("keyspaces") Map<String, KeyValueServiceConfig> keyspaces) {
-        Preconditions.checkState(!keyspaces.isEmpty(), "'keyspaces' should have at least one entry");
+            @JsonProperty(value = "cluster", required = true) ClusterConfig cluster,
+            @JsonProperty(value = "clients", required = true) Set<ClientConfig> clients) {
+        Preconditions.checkState(!clients.isEmpty(), "'clients' should have at least one entry");
 
-        this.leaderConfig = leaderConfig;
-        this.keyspaces = keyspaces;
+        this.cluster = cluster;
+        this.clients = clients;
     }
 
-    @JsonProperty("leader")
-    public LeaderConfig getLeaderConfig() {
-        return leaderConfig;
+    public ClusterConfig cluster() {
+        return cluster;
     }
 
-    @JsonProperty("keyspaces")
-    public Map<String, KeyValueServiceConfig> getKeyspaces() {
-        return keyspaces;
+    public Set<ClientConfig> clients() {
+        return clients;
     }
 }
