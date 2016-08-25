@@ -33,11 +33,11 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 
@@ -50,9 +50,9 @@ public class TransactionGetBenchmarks {
 
     private static final int RANGES_SINGLE_REQUEST_SIZE = 1;
 
-    private Cell cell(int intKey) {
-        byte[] key = Ints.toByteArray(intKey);
-        return Cell.create(key, ConsecutiveNarrowTable.getColumnNameInBytes());
+    private Cell cell(int index) {
+        byte[] key = Ints.toByteArray(index);
+        return Cell.create(key, ConsecutiveNarrowTable.COLUMN_NAME_IN_BYTES.array());
     }
 
     private int rowNumber(byte[] row) {
@@ -60,17 +60,21 @@ public class TransactionGetBenchmarks {
     }
 
     private Set<Cell> getCellsRequest(ConsecutiveNarrowTable table, int numberOfCellsToRequest) {
-        Set<Cell> ret = Sets.newHashSet();
-        while (ret.size() < numberOfCellsToRequest) {
-            ret.add(cell(table.getRandom().nextInt(table.getNumRows())));
-        }
-        return ret;
+        Benchmarks.validate(table.getNumRows() >= numberOfCellsToRequest,
+                "Unable to request %s rows from a table that only has %s rows.",
+                numberOfCellsToRequest, table.getNumRows());
+        return table.getRandom()
+                .ints(0, table.getNumRows())
+                .distinct()
+                .limit(numberOfCellsToRequest)
+                .mapToObj(this::cell)
+                .collect(Collectors.toSet());
     }
 
-    protected Map<Cell, byte[]> getSingleCellInner(ConsecutiveNarrowTable table) {
+    private Map<Cell, byte[]> getSingleCellInner(ConsecutiveNarrowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Set<Cell> request = getCellsRequest(table, 1);
-            Map<Cell, byte[]> result = txn.get(table.getTableRef(), request);
+            Map<Cell, byte[]> result = txn.get(ConsecutiveNarrowTable.TABLE_REF, request);
             byte[] rowName = Iterables.getOnlyElement(result.entrySet()).getKey().getRowName();
             int rowNumber = Ints.fromByteArray(rowName);
             int expectRowNumber = rowNumber(Iterables.getOnlyElement(request).getRowName());
@@ -80,11 +84,11 @@ public class TransactionGetBenchmarks {
         });
     }
 
-    protected Map<Cell, byte[]> getCellsInner(ConsecutiveNarrowTable table) {
+    private Map<Cell, byte[]> getCellsInner(ConsecutiveNarrowTable table) {
         final int getCellsSize = (int) (0.1 * table.getNumRows());
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Set<Cell> request = getCellsRequest(table, getCellsSize);
-            Map<Cell, byte[]> result = txn.get(table.getTableRef(), request);
+            Map<Cell, byte[]> result = txn.get(ConsecutiveNarrowTable.TABLE_REF, request);
             Benchmarks.validate(result.size() == getCellsSize,
                     "expected %s cells, found %s cells", getCellsSize, result.size());
             return result;
@@ -101,10 +105,11 @@ public class TransactionGetBenchmarks {
                 .build();
     }
 
-    protected List<RowResult<byte[]>> getSingleCellWithRangeQueryInner(final ConsecutiveNarrowTable table) {
+    private List<RowResult<byte[]>> getSingleRowWithRangeQueryInner(final ConsecutiveNarrowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             RangeRequest request = getRangeRequest(table, 1);
-            List<RowResult<byte[]>> result = BatchingVisitables.copyToList(txn.getRange(table.getTableRef(), request));
+            List<RowResult<byte[]>> result = BatchingVisitables.copyToList(
+                    txn.getRange(ConsecutiveNarrowTable.TABLE_REF, request));
             byte[] rowName = Iterables.getOnlyElement(result).getRowName();
             int rowNumber = rowNumber(rowName);
             int expectedRowNumber = rowNumber(request.getStartInclusive());
@@ -114,25 +119,26 @@ public class TransactionGetBenchmarks {
         });
     }
 
-    protected List<RowResult<byte[]>> getRangeInner(ConsecutiveNarrowTable table) {
+    private List<RowResult<byte[]>> getRangeInner(ConsecutiveNarrowTable table) {
         final int rangeRequestSize = (int) (0.1 * table.getNumRows());
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             RangeRequest request = getRangeRequest(table, rangeRequestSize);
             List<RowResult<byte[]>> results = BatchingVisitables.copyToList(txn.getRange(
-                    table.getTableRef(), request));
+                    ConsecutiveNarrowTable.TABLE_REF, request));
             Benchmarks.validate(results.size() == rangeRequestSize,
                     "Expected %s rows, found %s rows", rangeRequestSize, results.size());
             return results;
         });
     }
 
-    protected Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesInner(ConsecutiveNarrowTable table) {
+    private Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesInner(ConsecutiveNarrowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             List<RangeRequest> requests = Stream
                     .generate(() -> getRangeRequest(table, RANGES_SINGLE_REQUEST_SIZE))
                     .limit((long) (table.getNumRows() * 0.1))
                     .collect(Collectors.toList());
-            Iterable<BatchingVisitable<RowResult<byte[]>>> results = txn.getRanges(table.getTableRef(), requests);
+            Iterable<BatchingVisitable<RowResult<byte[]>>> results =
+                    txn.getRanges(ConsecutiveNarrowTable.TABLE_REF, requests);
             results.forEach(bvs -> {
                 List<RowResult<byte[]>> result = BatchingVisitables.copyToList(bvs);
                 Benchmarks.validate(result.size() == RANGES_SINGLE_REQUEST_SIZE,
@@ -159,20 +165,21 @@ public class TransactionGetBenchmarks {
 
 
     @Benchmark
-    public  List<RowResult<byte[]>> getSingleCellWithRangeQuery(ConsecutiveNarrowTable.CleanNarrowTable table) {
-        return getSingleCellWithRangeQueryInner(table);
+    public  List<RowResult<byte[]>> getSingleRowWithRangeQuery(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return getSingleRowWithRangeQueryInner(table);
     }
 
     @Benchmark
-    public  List<RowResult<byte[]>> getSingleCellWithRangeQueryDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
-        return getSingleCellWithRangeQueryInner(table);
+    public  List<RowResult<byte[]>> getSingleRowWithRangeQueryDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return getSingleRowWithRangeQueryInner(table);
     }
 
     @Benchmark
-    public  List<RowResult<byte[]>> getSingleCellWithRangeQueryVeryDirty(
+    public  List<RowResult<byte[]>> getSingleRowWithRangeQueryVeryDirty(
             ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
-        return getSingleCellWithRangeQueryInner(table);
+        return getSingleRowWithRangeQueryInner(table);
     }
+
 
     @Benchmark
     public List<RowResult<byte[]>> getRange(ConsecutiveNarrowTable.CleanNarrowTable table) {
