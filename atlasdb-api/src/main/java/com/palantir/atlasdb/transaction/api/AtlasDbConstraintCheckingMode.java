@@ -27,7 +27,6 @@ public enum AtlasDbConstraintCheckingMode {
         NO
     }
 
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
     private final ShouldThrow shouldThrow;
 
     AtlasDbConstraintCheckingMode(ShouldThrow shouldThrow) {
@@ -36,7 +35,6 @@ public enum AtlasDbConstraintCheckingMode {
 
     public boolean shouldThrowException() {
         return shouldThrow == ShouldThrow.YES;
-=======
     private final ShouldThrow shouldThrowException;
 
     AtlasDbConstraintCheckingMode(ShouldThrow shouldThrowException) {
@@ -45,7 +43,6 @@ public enum AtlasDbConstraintCheckingMode {
 
     public boolean shouldThrowException() {
         return shouldThrowException == ShouldThrow.YES;
->>>>>>> merge develop into perf cli branch (#820)
     }
 
 }
