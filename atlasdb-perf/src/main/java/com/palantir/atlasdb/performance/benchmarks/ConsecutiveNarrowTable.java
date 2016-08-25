@@ -49,7 +49,7 @@ public class ConsecutiveNarrowTable {
     private static final String TABLE_NAME_1 = "performance.table1";
     private static final String ROW_COMPONENT = "key";
     private static final String COLUMN_NAME = "value";
-    public static final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes(StandardCharsets.UTF_8);
+    private static final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes(StandardCharsets.UTF_8);
     protected static final long MIN_STORE_TS = 1L;
     private static final int VALUE_BYTE_ARRAY_SIZE = 100;
     private static final long VALUE_SEED = 279L;
@@ -63,8 +63,8 @@ public class ConsecutiveNarrowTable {
     private AtlasDbServices services;
 
 
-    public void setNumRows(int n) {
-        this.numRows = n;
+    public void setNumRows(int num) {
+        this.numRows = num;
     }
     public AtlasDbServicesConnector getConnector() {
         return connector;
@@ -84,6 +84,10 @@ public class ConsecutiveNarrowTable {
 
     public int getNumRows() {
         return numRows;
+    }
+
+    public static byte [] getColumnNameInBytes() {
+        return COLUMN_NAME_IN_BYTES;
     }
 
     @TearDown(Level.Trial)
