@@ -47,8 +47,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 @Measurement(iterations = 1, time = 30, timeUnit = TimeUnit.SECONDS)
 public class KvsGetRangeBenchmarks {
 
-
-
     protected Object getSingleRangeInner(ConsecutiveNarrowTable table, int sliceSize) {
         RangeRequest request = Iterables.getOnlyElement(getRangeRequests(table, 1, sliceSize));
         int startRow = Ints.fromByteArray(request.getStartInclusive());
@@ -158,4 +156,5 @@ public class KvsGetRangeBenchmarks {
     public Object getMultiRangeVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
         return getMultiRangeInner(table);
     }
+
 }

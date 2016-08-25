@@ -49,9 +49,9 @@ public class TransactionGetBenchmarks {
 
     private static final int RANGES_SINGLE_REQUEST_SIZE = 1;
 
-    private Cell cell(int intKey) {
-        byte[] key = Ints.toByteArray(intKey);
-        return Cell.create(key, ConsecutiveNarrowTable.getColumnNameInBytes());
+    private Cell cell(int index) {
+        byte[] key = Ints.toByteArray(index);
+        return Cell.create(key, ConsecutiveNarrowTable.COLUMN_NAME_IN_BYTES);
     }
 
     private int rowNumber(byte[] row) {
@@ -176,6 +176,7 @@ public class TransactionGetBenchmarks {
             ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
         return getSingleCellWithRangeQueryInner(table);
     }
+
 
     @Benchmark
     public List<RowResult<byte[]>> getRange(ConsecutiveNarrowTable.CleanNarrowTable table) {

@@ -53,8 +53,8 @@ import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
 @Measurement(iterations = 1, time = 30, timeUnit = TimeUnit.SECONDS)
 public class KvsPutBenchmarks {
 
-    private static final String TABLE_NAME_1 = "performance.table1";
-    private static final String TABLE_NAME_2 = "performance.table2";
+    private static final TableReference TABLE_REF_1 = TableReference.createFromFullyQualifiedName("performance.table1");
+    private static final TableReference TABLE_REF_2 = TableReference.createFromFullyQualifiedName("performance.table2");
     private static final String ROW_COMPONENT = "key";
     private static final String COLUMN_NAME = "value";
     private static final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes(StandardCharsets.UTF_8);
@@ -69,42 +69,37 @@ public class KvsPutBenchmarks {
     private KeyValueService kvs;
     private Random random = new Random(VALUE_SEED);
 
-    private TableReference tableRef1;
-    private TableReference tableRef2;
-
     @Setup
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
         this.kvs = conn.connect().getKeyValueService();
-        this.tableRef1 = Benchmarks.createTable(kvs, TABLE_NAME_1, ROW_COMPONENT, COLUMN_NAME);
-        this.tableRef2 = Benchmarks.createTable(kvs, TABLE_NAME_2, ROW_COMPONENT, COLUMN_NAME);
+        Benchmarks.createTable(kvs, TABLE_REF_1, ROW_COMPONENT, COLUMN_NAME);
+        Benchmarks.createTable(kvs, TABLE_REF_2, ROW_COMPONENT, COLUMN_NAME);
     }
 
     @TearDown
     public void cleanup() throws Exception {
-        this.kvs.dropTables(Sets.newHashSet(tableRef1, tableRef2));
+        this.kvs.dropTables(Sets.newHashSet(TABLE_REF_1, TABLE_REF_2));
         this.kvs.close();
         this.connector.close();
-        this.tableRef1 = null;
-        this.tableRef2 = null;
     }
 
     @Benchmark
     public void singleRandomPut() {
         byte[] value = generateValue();
-        kvs.put(tableRef1, ImmutableMap.of(Cell.create(generateKey(), COLUMN_NAME_IN_BYTES), value), DUMMY_TIMESTAMP);
+        kvs.put(TABLE_REF_1, ImmutableMap.of(Cell.create(generateKey(), COLUMN_NAME_IN_BYTES), value), DUMMY_TIMESTAMP);
     }
 
     @Benchmark
     public void batchRandomPut() {
-        kvs.put(tableRef1, generateBatch(BATCH_SIZE), DUMMY_TIMESTAMP);
+        kvs.put(TABLE_REF_1, generateBatch(BATCH_SIZE), DUMMY_TIMESTAMP);
     }
 
     @Benchmark
     public void batchRandomMultiPut() {
         Map<TableReference, Map<Cell, byte[]>> multiPutMap = Maps.newHashMap();
-        multiPutMap.put(tableRef1, generateBatch(BATCH_SIZE));
-        multiPutMap.put(tableRef2, generateBatch(BATCH_SIZE));
+        multiPutMap.put(TABLE_REF_1, generateBatch(BATCH_SIZE));
+        multiPutMap.put(TABLE_REF_2, generateBatch(BATCH_SIZE));
         kvs.multiPut(multiPutMap, DUMMY_TIMESTAMP);
     }
 
