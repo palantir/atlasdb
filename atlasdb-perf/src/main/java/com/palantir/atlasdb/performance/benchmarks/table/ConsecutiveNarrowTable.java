@@ -60,6 +60,18 @@ public abstract class ConsecutiveNarrowTable {
     private AtlasDbServicesConnector connector;
     private AtlasDbServices services;
 
+    public void setNumRows(int num) {
+        this.numRows = num;
+    }
+
+    public AtlasDbServicesConnector getConnector() {
+        return connector;
+    }
+
+    public KeyValueService getKvs() {
+        return kvs;
+    }
+
     public Random getRandom() {
         return random;
     }
