@@ -17,8 +17,6 @@
 
 package com.palantir.atlasdb.performance.benchmarks;
 
-import static com.palantir.atlasdb.performance.benchmarks.table.WideRowTable.NUM_COLS;
-
 import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 import java.util.Map;
@@ -54,11 +52,11 @@ import com.palantir.atlasdb.performance.benchmarks.table.WideRowTable;
 @Measurement(iterations = 1, time = 30, timeUnit = TimeUnit.SECONDS)
 public class KvsGetDynamicBenchmarks {
 
-   @Benchmark
+    @Benchmark
     public Map<Cell, Value> getAllColumnsExplicitly(WideRowTable table) {
         Map<Cell, Value> result = table.getKvs().get(WideRowTable.TABLE_REF, table.getAllCellsAtMaxTimestamp());
-        Benchmarks.validate(result.size() == NUM_COLS,
-                "Should be %s columns, but were: %s", NUM_COLS, result.size());
+        Benchmarks.validate(result.size() == WideRowTable.NUM_COLS,
+                "Should be %s columns, but were: %s", WideRowTable.NUM_COLS, result.size());
         return result;
     }
 
@@ -69,8 +67,8 @@ public class KvsGetDynamicBenchmarks {
                 Collections.singleton(WideRowTable.ROW_BYTES),
                 ColumnSelection.all(),
                 Long.MAX_VALUE);
-        Benchmarks.validate(result.size() == NUM_COLS,
-                "Should be %s columns, but were: %s", NUM_COLS, result.size());
+        Benchmarks.validate(result.size() == WideRowTable.NUM_COLS,
+                "Should be %s columns, but were: %s", WideRowTable.NUM_COLS, result.size());
         return result;
     }
 

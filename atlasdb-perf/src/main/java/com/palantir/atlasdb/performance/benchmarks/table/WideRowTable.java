@@ -65,11 +65,11 @@ public class WideRowTable {
         return services.getKeyValueService();
     }
 
-    public Map<Cell,Long> getAllCellsAtMaxTimestamp() {
+    public Map<Cell, Long> getAllCellsAtMaxTimestamp() {
         return allCellsAtMaxTimestamp;
     }
 
-    public Map<Cell,Long> getFirstCellAtMaxTimestampAsMap() {
+    public Map<Cell, Long> getFirstCellAtMaxTimestampAsMap() {
         return firstCellAtMaxTimestamp;
     }
 
@@ -105,7 +105,7 @@ public class WideRowTable {
             for (int i = 0; i < NUM_COLS; i++) {
                 Cell curCell = cell(i);
                 values.put(curCell, Ints.toByteArray(i));
-                allCellsAtMaxTimestamp.put(curCell, Long.MAX_VALUE) ;
+                allCellsAtMaxTimestamp.put(curCell, Long.MAX_VALUE);
             }
             txn.put(this.tableRef, values);
             return null;
