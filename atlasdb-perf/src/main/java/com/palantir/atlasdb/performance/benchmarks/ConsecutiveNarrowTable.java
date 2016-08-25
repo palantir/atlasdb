@@ -63,9 +63,10 @@ public class ConsecutiveNarrowTable {
     private AtlasDbServices services;
 
 
-    public void setNumRows(int n) {
-        this.numRows = n;
+    public void setNumRows(int numRows) {
+        this.numRows = numRows;
     }
+    
     public AtlasDbServicesConnector getConnector() {
         return connector;
     }

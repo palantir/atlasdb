@@ -51,8 +51,8 @@ public class TransactionGetBenchmarks {
     private static final int GET_CELLS_SIZE = 500;
     private static final int RANGES_SINGLE_REQUEST_SIZE = 1;
 
-    private Cell cell(int i) {
-        byte[] key = Ints.toByteArray(i);
+    private Cell cell(int cellNum) {
+        byte[] key = Ints.toByteArray(cellNum);
         return Cell.create(key, ConsecutiveNarrowTable.COLUMN_NAME_IN_BYTES);
     }
 

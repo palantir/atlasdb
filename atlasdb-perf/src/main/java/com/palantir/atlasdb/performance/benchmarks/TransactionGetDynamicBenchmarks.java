@@ -98,8 +98,8 @@ public class TransactionGetDynamicBenchmarks {
         });
     }
 
-    private Cell cell(int i) {
-        return Cell.create(ROW_BYTES, ("col_" + i).getBytes(StandardCharsets.UTF_8));
+    private Cell cell(int cellNum) {
+        return Cell.create(ROW_BYTES, ("col_" + cellNum).getBytes(StandardCharsets.UTF_8));
     }
 
     @TearDown
