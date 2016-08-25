@@ -99,7 +99,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ThreadS
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.DelegatingColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.PagingIterable;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
@@ -1294,7 +1293,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             final ConsistencyLevel consistency,
             final Supplier<ResultsExtractor<T, U>> resultsExtractor) {
         RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef);
-        ColumnGetter columnGetter = new DelegatingColumnGetter();
+        ColumnGetter columnGetter = new ColumnGetter();
 
         return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, resultsExtractor, timestamp);
     }
