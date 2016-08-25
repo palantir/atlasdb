@@ -18,9 +18,8 @@
 package com.palantir.atlasdb.performance.cli;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -35,6 +34,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
 
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.performance.BenchmarkParam;
 import com.palantir.atlasdb.performance.PerformanceResults;
 import com.palantir.atlasdb.performance.backend.KeyValueServiceType;
@@ -62,8 +62,12 @@ public class AtlasDbPerfCli {
     private List<String> tests;
 
     @Option(name = {"-b", "--backends"}, description = "Space delimited list of backing KVS stores to use in " +
-            "quotes. (e.g. \"POSTGRES ORACLE CASSANDRA\")" + " Defaults to all backends if not specified.")
-    private String backends;
+            "quotes. (e.g. \"POSTGRES CASSANDRA\")" + " Defaults to all backends if not specified.")
+    private String backends =
+            EnumSet.allOf(KeyValueServiceType.class)
+                    .stream()
+                    .map(Enum::toString)
+                    .collect(Collectors.joining(","));
 
     @Option(name = {"-l", "--list-tests"}, description = "Lists all available benchmarks.")
     private boolean listTests;
@@ -93,17 +97,10 @@ public class AtlasDbPerfCli {
     }
 
     private static void run(AtlasDbPerfCli cli) throws Exception {
-        if (cli.backends == null) {
-            List<String> allKvsTypes = new ArrayList<>();
-            for (KeyValueServiceType type :KeyValueServiceType.values()) {
-                allKvsTypes.add(type.toString());
-            }
-            cli.backends = String.join(" ", allKvsTypes);
-        }
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
-                .forks(1)
+                .forks(0)
                 .threads(1)
-                .param(BenchmarkParam.BACKEND.getKey(), cli.backends.toUpperCase().split(" "));
+                .param(BenchmarkParam.BACKEND.getKey(), getBackends(cli.backends));
 
         if (cli.tests == null) {
             getAllBenchmarks().forEach(b -> optBuilder.include(".*" + b));
@@ -117,25 +114,24 @@ public class AtlasDbPerfCli {
         }
     }
 
+    private static String[] getBackends(String backendsStr) {
+        Set<String> backends = Sets.newHashSet(backendsStr.split(","));
+        return backends.stream()
+                .map(String::trim)
+                .collect(Collectors.toList())
+                .toArray(new String[backends.size()]);
+    }
+
     private static boolean hasValidArgs(AtlasDbPerfCli cli) {
-        boolean isValid = true;
-        if (cli.backends != null) {
-            if (cli.backends.isEmpty()) {
-                System.err.println("Invalid backend specified. Valid options: " + Arrays.toString(KeyValueServiceType.values())
-                        + " You provided none");
-                isValid = false;
-            }
-            for (String backend : cli.backends.toUpperCase().split(" ")) {
-                try {
-                    KeyValueServiceType.valueOf(backend);
-                } catch (Exception e) {
-                    System.err.println("Invalid backend specified. Valid options: " + Arrays.toString(KeyValueServiceType.values())
-                            + " You provided: " + backend);
-                    isValid = false;
-                }
+        for (String backend : getBackends(cli.backends)) {
+            try {
+                KeyValueServiceType.valueOf(backend.toUpperCase());
+            } catch (Exception e) {
+                throw new RuntimeException("Invalid backend specified. Valid options: " +
+                        EnumSet.allOf(KeyValueServiceType.class) + " You provided: " + backend, e);
             }
         }
-        return isValid;
+        return true;
     }
 
     private static void listAllBenchmarks() {
