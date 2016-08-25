@@ -168,6 +168,7 @@ public class SchemaMutationLock {
                 }
 
                 // we won the lock!
+                LOGGER.info("Successfully acquired schema mutation lock.");
                 return null;
             });
         } catch (Exception e) {
@@ -221,6 +222,8 @@ public class SchemaMutationLock {
                             + " from underneath us. Our ID, which we expected, was %s, the value we saw in the"
                             + " database was instead %s.", Long.toString(perOperationNodeIdentifier), remoteLock));
                 }
+
+                LOGGER.info("Successfully released schema mutation lock.");
                 return null;
             });
         } catch (Exception e) {
