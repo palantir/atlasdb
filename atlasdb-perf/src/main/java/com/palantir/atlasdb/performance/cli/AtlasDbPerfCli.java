@@ -54,6 +54,7 @@ import io.airlift.airline.SingleCommand;
  */
 @Command(name = "atlasdb-perf", description = "The AtlasDB performance benchmark CLI.")
 public class AtlasDbPerfCli {
+    private static final String LIST_DELIMITER = ",";
 
     @Inject
     private HelpOption helpOption;
@@ -67,7 +68,7 @@ public class AtlasDbPerfCli {
             EnumSet.allOf(KeyValueServiceType.class)
                     .stream()
                     .map(Enum::toString)
-                    .collect(Collectors.joining(","));
+                    .collect(Collectors.joining(LIST_DELIMITER));
 
     @Option(name = {"-l", "--list-tests"}, description = "Lists all available benchmarks.")
     private boolean listTests;
@@ -115,7 +116,7 @@ public class AtlasDbPerfCli {
     }
 
     private static String[] getBackends(String backendsStr) {
-        Set<String> backends = Sets.newHashSet(backendsStr.split(","));
+        Set<String> backends = Sets.newHashSet(backendsStr.split(LIST_DELIMITER));
         return backends.stream()
                 .map(String::trim)
                 .collect(Collectors.toList())
