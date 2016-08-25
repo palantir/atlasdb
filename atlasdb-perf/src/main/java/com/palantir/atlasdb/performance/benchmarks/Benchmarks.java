@@ -69,10 +69,9 @@ public final class Benchmarks {
     }
 
     public static TableReference createTableWithDynamicColumns(KeyValueService kvs,
-            String tableName,
+            TableReference tableRef,
             String rowComponent,
             String columnComponent) {
-        TableReference tableRef = TableReference.createFromFullyQualifiedName(tableName);
         TableDefinition tableDef = new TableDefinition() {
             {
                 rowName();
