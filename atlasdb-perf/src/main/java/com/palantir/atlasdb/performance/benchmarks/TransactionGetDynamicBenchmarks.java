@@ -16,11 +16,8 @@
 
 package com.palantir.atlasdb.performance.benchmarks;
 
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -31,21 +28,15 @@ import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
-import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.atlasdb.performance.benchmarks.table.WideRowTable;
 
 /**
  * Performance benchmarks for KVS get with dynamic columns.
@@ -60,80 +51,33 @@ import com.palantir.atlasdb.services.AtlasDbServices;
 @Measurement(iterations = 1, time = 30, timeUnit = TimeUnit.SECONDS)
 public class TransactionGetDynamicBenchmarks {
 
-    private static final String TABLE_NAME = "performance.table";
-    private static final String ROW_COMPONENT = "BIG_ROW_OF_INTS";
-    private static final String COLUMN_COMPONENT = "col";
-    private static final byte[] ROW_BYTES = ROW_COMPONENT.getBytes(StandardCharsets.UTF_8);
-
-    private static final int NUM_COLS = 50000;
-
-    private AtlasDbServicesConnector connector;
-    private AtlasDbServices services;
-
-    private TableReference tableRef;
-
-    private Set<Cell> allCells;
-    private Set<Cell> firstCell;
-
-    @Setup
-    public void setup(AtlasDbServicesConnector conn) throws UnsupportedEncodingException {
-        this.connector = conn;
-        services = conn.connect();
-        tableRef = Benchmarks.createTableWithDynamicColumns(
-                services.getKeyValueService(), TABLE_NAME, ROW_COMPONENT, COLUMN_COMPONENT);
-        storeData();
-    }
-
-    private void storeData() {
-        services.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> values = Maps.newHashMap();
-            allCells = Sets.newHashSet();
-            firstCell = Sets.newHashSet(cell(0));
-            for (int i = 0; i < NUM_COLS; i++) {
-                values.put(cell(i), Ints.toByteArray(i));
-            }
-            allCells = values.keySet();
-            txn.put(this.tableRef, values);
-            return null;
-        });
-    }
-
-    private Cell cell(int colNum) {
-        return Cell.create(ROW_BYTES, ("col_" + colNum).getBytes(StandardCharsets.UTF_8));
-    }
-
-    @TearDown
-    public void cleanup() throws Exception {
-        services.getKeyValueService().dropTables(Sets.newHashSet(tableRef));
-        connector.close();
-    }
-
     @Benchmark
-    public Map<Cell, byte[]> getAllColumnsExplicitly() {
-        return services.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> result = txn.get(this.tableRef, allCells);
-            Benchmarks.validate(result.values().size() == NUM_COLS,
-                    "Should be %s columns, but were: %s", NUM_COLS, result.values().size());
+    public Map<Cell, byte[]> getAllColumnsExplicitly(WideRowTable table) {
+        return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
+            Map<Cell, byte[]> result = txn.get(WideRowTable.TABLE_REF, table.getAllCells());
+            Benchmarks.validate(result.values().size() == WideRowTable.NUM_COLS,
+                    "Should be %s columns, but were: %s", WideRowTable.NUM_COLS, result.values().size());
             return result;
         });
     }
 
     @Benchmark
-    public SortedMap<byte[], RowResult<byte[]>> getAllColumnsImplicitly() throws UnsupportedEncodingException {
-        return services.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(this.tableRef,
-                    Collections.singleton(ROW_BYTES),
+    public SortedMap<byte[], RowResult<byte[]>> getAllColumnsImplicitly(WideRowTable table) {
+        return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
+            SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(WideRowTable.TABLE_REF,
+                    Collections.singleton(WideRowTable.ROW_BYTES.array()),
                     ColumnSelection.all());
             int count = Iterables.getOnlyElement(result.values()).getColumns().size();
-            Benchmarks.validate(count == NUM_COLS, "Should be %s columns, but were: %s", NUM_COLS, count);
+            Benchmarks.validate(count == WideRowTable.NUM_COLS,
+                    "Should be %s columns, but were: %s", WideRowTable.NUM_COLS, count);
             return result;
         });
     }
 
     @Benchmark
-    public Map<Cell, byte[]> getFirstColumnExplicitly() {
-        return services.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> result = txn.get(this.tableRef, firstCell);
+    public Map<Cell, byte[]> getFirstColumnExplicitly(WideRowTable table) {
+        return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
+            Map<Cell, byte[]> result = txn.get(WideRowTable.TABLE_REF, table.getFirstCellAsSet());
             Benchmarks.validate(result.values().size() == 1,
                     "Should be %s column, but were: %s", 1, result.values().size());
             int value = Ints.fromByteArray(Iterables.getOnlyElement(result.values()));
@@ -143,12 +87,12 @@ public class TransactionGetDynamicBenchmarks {
     }
 
     @Benchmark
-    public SortedMap<byte[], RowResult<byte[]>> getFirstColumnExplicitlyGetRows() throws UnsupportedEncodingException {
-        return services.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(this.tableRef,
-                    Collections.singleton(ROW_BYTES),
+    public SortedMap<byte[], RowResult<byte[]>> getFirstColumnExplicitlyGetRows(WideRowTable table) {
+        return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
+            SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(WideRowTable.TABLE_REF,
+                    Collections.singleton(WideRowTable.ROW_BYTES.array()),
                     ColumnSelection.create(
-                            firstCell.stream().map(Cell::getColumnName).collect(Collectors.toList())
+                            table.getFirstCellAsSet().stream().map(Cell::getColumnName).collect(Collectors.toList())
                     ));
             int count = Iterables.getOnlyElement(result.values()).getColumns().size();
             Benchmarks.validate(count == 1, "Should be %s column, but were: %s", 1, count);
