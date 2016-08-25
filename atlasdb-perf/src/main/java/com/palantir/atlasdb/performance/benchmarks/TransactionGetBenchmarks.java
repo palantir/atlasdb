@@ -48,7 +48,6 @@ import com.palantir.common.base.BatchingVisitables;
 @Measurement(iterations = 1, time = 30, timeUnit = TimeUnit.SECONDS)
 public class TransactionGetBenchmarks {
 
-    private static final int GET_CELLS_SIZE = 500;
     private static final int RANGES_SINGLE_REQUEST_SIZE = 1;
 
     private Cell cell(int i) {
@@ -82,11 +81,12 @@ public class TransactionGetBenchmarks {
     }
 
     protected Map<Cell, byte[]> getCellsInner(ConsecutiveNarrowTable table) {
+        final int getCellsSize = (int) (0.1 * table.getNumRows());
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Set<Cell> request = getCellsRequest(table, GET_CELLS_SIZE);
+            Set<Cell> request = getCellsRequest(table, getCellsSize);
             Map<Cell, byte[]> result = txn.get(table.getTableRef(), request);
-            Benchmarks.validate(result.size() == GET_CELLS_SIZE,
-                    "expected %s cells, found %s cells", GET_CELLS_SIZE, result.size());
+            Benchmarks.validate(result.size() == getCellsSize,
+                    "expected %s cells, found %s cells", getCellsSize, result.size());
             return result;
         });
     }
