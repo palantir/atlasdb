@@ -128,40 +128,40 @@ characteristics, among other things. The supported types are:
 | Name                          | Java Type    | Format        | Anywhere in    | Range    |
 |                               |              |               | table?         | Scans?   |
 +===============================+==============+===============+================+==========+
-| FIXED\_LONG                   | long         | byte[8]       | YES            | YES      |
+| FIXED_LONG                    | long         | byte[8]       | YES            | YES      |
 +-------------------------------+--------------+---------------+----------------+----------+
-| FIXED\_LONG\_LITTLE\_ENDIAN   | long         | byte[8]       | YES            | NO [4]_  |
+| FIXED_LONG_LITTLE_ENDIAN      | long         | byte[8]       | YES            | NO [4]_  |
 | [3]_                          |              |               |                |          |
 +-------------------------------+--------------+---------------+----------------+----------+
-| NULLABLE\_FIXED\_LONG         | long         | byte[9]       | YES            | YES      |
+| NULLABLE_FIXED_LONG           | long         | byte[9]       | YES            | YES      |
 +-------------------------------+--------------+---------------+----------------+----------+
-| VAR\_LONG                     | long         | byte[len] [1]_| YES            | YES      |
+| VAR_LONG                      | long         | byte[len] [1]_| YES            | YES      |
 +-------------------------------+--------------+---------------+----------------+----------+
-| VAR\_SIGNED\_LONG             | long         | byte[len] [1]_| YES            | YES      |
+| VAR_SIGNED_LONG               | long         | byte[len] [1]_| YES            | YES      |
 +-------------------------------+--------------+---------------+----------------+----------+
 | UUID                          | UUID         | byte[16]      | YES            | YES      |
 +-------------------------------+--------------+---------------+----------------+----------+
-| SHA\_256\_HASH                | Sha256Hash   | byte[32]      | YES            | YES      |
+| SHA_256_HASH                  | Sha256Hash   | byte[32]      | YES            | YES      |
 +-------------------------------+--------------+---------------+----------------+----------+
 | STRING                        | String       | byte[]        | NO [2]_        | YES      |
 +-------------------------------+--------------+---------------+----------------+----------+
-| VAR\_STRING                   | String       | byte[len]     | YES            | NO [4]_  |
+| VAR_STRING                    | String       | byte[len]     | YES            | NO [4]_  |
 +-------------------------------+--------------+---------------+----------------+----------+
 | BLOB                          | byte[]       | byte[]        | NO [2]_        | YES      |
 +-------------------------------+--------------+---------------+----------------+----------+
-| SIZED\_BLOB                   | byte[]       | byte[len]     | YES            | NO [4]_  |
+| SIZED_BLOB                    | byte[]       | byte[len]     | YES            | NO [4]_  |
 +-------------------------------+--------------+---------------+----------------+----------+
 
 .. [1]
-  All long data types are signed, but VAR\_SIGNED\_LONG is
+  All long data types are signed, but ``VAR_SIGNED_LONG`` is
   encoded in a manner which stores negative numbers more efficiently than
-  VAR\_LONG.
-  In particular, 0 to 127 are 1 byte for VAR\_LONG and -64 to 63 are 1 byte for
-  VAR\_SIGNED\_LONG. VAR\_LONG will always use 10 bytes to encode negative
+  ``VAR_LONG``.
+  In particular, 0 to 127 are 1 byte for ``VAR_LONG`` and -64 to 63 are 1 byte for
+  ``VAR_SIGNED_LONG``. ``VAR_LONG`` will always use 10 bytes to encode negative
   numbers.
 
 .. [2]
-  A STRING or BLOB can only be a row or column component
+  A ``STRING`` or ``BLOB`` can only be a row or column component
   if it is the last component of the component list.
 
 .. [3]
@@ -172,9 +172,9 @@ characteristics, among other things. The supported types are:
 .. [4]
   If a type does not support range-scanning, **range scans will still be available
   in the API but will not behave as expected**.
-  In particular, range-scanning will exact-match components for VAR_STRING and
-  SIZED_BLOB types.
-  For example, if you have a key with components (VAR_STRING, FIXED_LONG)
+  In particular, range-scanning will exact-match components for ``VAR_STRING`` and
+  ``SIZED_BLOB`` types.
+  For example, if you have a key with components (``VAR_STRING``, ``FIXED_LONG``)
   and search for prefix “ab”:
 
     - (“ab”, 10) will match
