@@ -70,7 +70,7 @@ public class TransactionGetBenchmarks {
                 .collect(Collectors.toSet());
     }
 
-    protected Map<Cell, byte[]> getSingleCellInner(ConsecutiveNarrowTable table) {
+    private Map<Cell, byte[]> getSingleCellInner(ConsecutiveNarrowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Set<Cell> request = getCellsRequest(table, 1);
             Map<Cell, byte[]> result = txn.get(table.getTableRef(), request);
@@ -83,7 +83,7 @@ public class TransactionGetBenchmarks {
         });
     }
 
-    protected Map<Cell, byte[]> getCellsInner(ConsecutiveNarrowTable table) {
+    private Map<Cell, byte[]> getCellsInner(ConsecutiveNarrowTable table) {
         final int getCellsSize = (int) (0.1 * table.getNumRows());
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Set<Cell> request = getCellsRequest(table, getCellsSize);
@@ -104,7 +104,7 @@ public class TransactionGetBenchmarks {
                 .build();
     }
 
-    protected List<RowResult<byte[]>> getSingleCellWithRangeQueryInner(final ConsecutiveNarrowTable table) {
+    private List<RowResult<byte[]>> getSingleRowWithRangeQueryInner(final ConsecutiveNarrowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             RangeRequest request = getRangeRequest(table, 1);
             List<RowResult<byte[]>> result = BatchingVisitables.copyToList(txn.getRange(table.getTableRef(), request));
@@ -117,7 +117,7 @@ public class TransactionGetBenchmarks {
         });
     }
 
-    protected List<RowResult<byte[]>> getRangeInner(ConsecutiveNarrowTable table) {
+    private List<RowResult<byte[]>> getRangeInner(ConsecutiveNarrowTable table) {
         final int rangeRequestSize = (int) (0.1 * table.getNumRows());
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             RangeRequest request = getRangeRequest(table, rangeRequestSize);
@@ -129,7 +129,7 @@ public class TransactionGetBenchmarks {
         });
     }
 
-    protected Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesInner(ConsecutiveNarrowTable table) {
+    private Iterable<BatchingVisitable<RowResult<byte[]>>> getRangesInner(ConsecutiveNarrowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             List<RangeRequest> requests = Stream
                     .generate(() -> getRangeRequest(table, RANGES_SINGLE_REQUEST_SIZE))
@@ -162,19 +162,19 @@ public class TransactionGetBenchmarks {
 
 
     @Benchmark
-    public  List<RowResult<byte[]>> getSingleCellWithRangeQuery(ConsecutiveNarrowTable.CleanNarrowTable table) {
-        return getSingleCellWithRangeQueryInner(table);
+    public  List<RowResult<byte[]>> getSingleRowWithRangeQuery(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return getSingleRowWithRangeQueryInner(table);
     }
 
     @Benchmark
-    public  List<RowResult<byte[]>> getSingleCellWithRangeQueryDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
-        return getSingleCellWithRangeQueryInner(table);
+    public  List<RowResult<byte[]>> getSingleRowWithRangeQueryDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return getSingleRowWithRangeQueryInner(table);
     }
 
     @Benchmark
-    public  List<RowResult<byte[]>> getSingleCellWithRangeQueryVeryDirty(
+    public  List<RowResult<byte[]>> getSingleRowWithRangeQueryVeryDirty(
             ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
-        return getSingleCellWithRangeQueryInner(table);
+        return getSingleRowWithRangeQueryInner(table);
     }
 
 
