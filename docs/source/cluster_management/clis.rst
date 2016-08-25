@@ -37,7 +37,7 @@ Due to their destructive nature for in-progress transactions, there are some CLI
   - ``clean-transactions``
   - ``fast-forward``
 
-To run these CLIs, first ensure that all of your AtlasDB clients are all shut down, and then run the CLI with the ``--offline`` flag, for example ``./bin/atlasdb --offline fast-forward``.
+To run these CLIs, first ensure that all of your AtlasDB clients are all shut down, and then run the CLI with the ``--offline`` flag, for example ``./bin/atlasdb --offline timestamp fast-forward``.
 This will make the CLI ignore the leader, timestamp, and lock configuration blocks, and start an embedded timestamp and lock server.
 Once the CLI has completed, you can resume your AtlasDB clients.
 
