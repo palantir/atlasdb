@@ -44,7 +44,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 @State(Scope.Benchmark)
 public abstract class ConsecutiveNarrowTable {
 
-    private static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("performance.table");
+    public static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("performance.table");
     private static final String ROW_COMPONENT = "key";
     private static final String COLUMN_NAME = "value";
     public static final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes(StandardCharsets.UTF_8);
@@ -63,10 +63,6 @@ public abstract class ConsecutiveNarrowTable {
         return random;
     }
 
-    public TableReference getTableRef() {
-        return TABLE_REF;
-    }
-
     public TransactionManager getTransactionManager() {
         return services.getTransactionManager();
     }
@@ -83,7 +79,7 @@ public abstract class ConsecutiveNarrowTable {
 
     @TearDown(Level.Trial)
     public void cleanup() throws Exception {
-        getKvs().dropTables(Sets.newHashSet(getTableRef()));
+        getKvs().dropTables(Sets.newHashSet(TABLE_REF));
         this.connector.close();
     }
 
@@ -130,7 +126,7 @@ public abstract class ConsecutiveNarrowTable {
                 final Map<Cell, byte[]> values =
                         generateBatch(table.getRandom(), i, Math.min(PUT_BATCH_SIZE, numRows - i));
                 table.getTransactionManager().runTaskThrowOnConflict(txn -> {
-                    txn.put(table.getTableRef(), values);
+                    txn.put(TABLE_REF, values);
                     return null;
                 });
             }

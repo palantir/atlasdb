@@ -40,7 +40,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
  * State class for creating a single Atlas table with one wide row.
  */
 @State(Scope.Benchmark)
-public abstract class WideRowTable {
+public class WideRowTable {
 
     public static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("performance.table");
     private static final String ROW_COMPONENT = "BIG_ROW_OF_INTS";

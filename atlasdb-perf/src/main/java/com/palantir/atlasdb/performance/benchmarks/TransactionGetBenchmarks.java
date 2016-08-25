@@ -74,7 +74,7 @@ public class TransactionGetBenchmarks {
     private Map<Cell, byte[]> getSingleCellInner(ConsecutiveNarrowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Set<Cell> request = getCellsRequest(table, 1);
-            Map<Cell, byte[]> result = txn.get(table.getTableRef(), request);
+            Map<Cell, byte[]> result = txn.get(ConsecutiveNarrowTable.TABLE_REF, request);
             byte[] rowName = Iterables.getOnlyElement(result.entrySet()).getKey().getRowName();
             int rowNumber = Ints.fromByteArray(rowName);
             int expectRowNumber = rowNumber(Iterables.getOnlyElement(request).getRowName());
@@ -88,7 +88,7 @@ public class TransactionGetBenchmarks {
         final int getCellsSize = (int) (0.1 * table.getNumRows());
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Set<Cell> request = getCellsRequest(table, getCellsSize);
-            Map<Cell, byte[]> result = txn.get(table.getTableRef(), request);
+            Map<Cell, byte[]> result = txn.get(ConsecutiveNarrowTable.TABLE_REF, request);
             Benchmarks.validate(result.size() == getCellsSize,
                     "expected %s cells, found %s cells", getCellsSize, result.size());
             return result;
@@ -108,7 +108,8 @@ public class TransactionGetBenchmarks {
     private List<RowResult<byte[]>> getSingleRowWithRangeQueryInner(final ConsecutiveNarrowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             RangeRequest request = getRangeRequest(table, 1);
-            List<RowResult<byte[]>> result = BatchingVisitables.copyToList(txn.getRange(table.getTableRef(), request));
+            List<RowResult<byte[]>> result = BatchingVisitables.copyToList(
+                    txn.getRange(ConsecutiveNarrowTable.TABLE_REF, request));
             byte[] rowName = Iterables.getOnlyElement(result).getRowName();
             int rowNumber = rowNumber(rowName);
             int expectedRowNumber = rowNumber(request.getStartInclusive());
@@ -123,7 +124,7 @@ public class TransactionGetBenchmarks {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             RangeRequest request = getRangeRequest(table, rangeRequestSize);
             List<RowResult<byte[]>> results = BatchingVisitables.copyToList(txn.getRange(
-                    table.getTableRef(), request));
+                    ConsecutiveNarrowTable.TABLE_REF, request));
             Benchmarks.validate(results.size() == rangeRequestSize,
                     "Expected %s rows, found %s rows", rangeRequestSize, results.size());
             return results;
@@ -136,7 +137,8 @@ public class TransactionGetBenchmarks {
                     .generate(() -> getRangeRequest(table, RANGES_SINGLE_REQUEST_SIZE))
                     .limit((long) (table.getNumRows() * 0.1))
                     .collect(Collectors.toList());
-            Iterable<BatchingVisitable<RowResult<byte[]>>> results = txn.getRanges(table.getTableRef(), requests);
+            Iterable<BatchingVisitable<RowResult<byte[]>>> results =
+                    txn.getRanges(ConsecutiveNarrowTable.TABLE_REF, requests);
             results.forEach(bvs -> {
                 List<RowResult<byte[]>> result = BatchingVisitables.copyToList(bvs);
                 Benchmarks.validate(result.size() == RANGES_SINGLE_REQUEST_SIZE,
