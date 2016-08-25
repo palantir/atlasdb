@@ -52,7 +52,7 @@ public class TransactionGetBenchmarks {
 
     private Cell cell(int index) {
         byte[] key = Ints.toByteArray(index);
-        return Cell.create(key, ConsecutiveNarrowTable.COLUMN_NAME_IN_BYTES);
+        return Cell.create(key, ConsecutiveNarrowTable.COLUMN_NAME_IN_BYTES.array());
     }
 
     private int rowNumber(byte[] row) {

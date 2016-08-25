@@ -43,7 +43,7 @@ public class EmptyTables {
     public static final TableReference TABLE_REF_1 = TableReference.createFromFullyQualifiedName("performance.table1");
     public static final TableReference TABLE_REF_2 = TableReference.createFromFullyQualifiedName("performance.table2");
     private static final String ROW_COMPONENT = "key";
-    public static final String COLUMN_NAME = "value";
+    private static final String COLUMN_NAME = "value";
     private static final byte [] COLUMN_NAME_IN_BYTES = EmptyTables.COLUMN_NAME.getBytes(StandardCharsets.UTF_8);
 
     private static final int VALUE_BYTE_ARRAY_SIZE = 100;

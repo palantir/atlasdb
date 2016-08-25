@@ -64,7 +64,7 @@ public class KvsGetDynamicBenchmarks {
     public Map<Cell, Value> getAllColumnsImplicitly(WideRowTable table) throws UnsupportedEncodingException {
         Map<Cell, Value> result = table.getKvs().getRows(
                 WideRowTable.TABLE_REF,
-                Collections.singleton(WideRowTable.ROW_BYTES),
+                Collections.singleton(WideRowTable.ROW_BYTES.array()),
                 ColumnSelection.all(),
                 Long.MAX_VALUE);
         Benchmarks.validate(result.size() == WideRowTable.NUM_COLS,
@@ -84,7 +84,7 @@ public class KvsGetDynamicBenchmarks {
     @Benchmark
     public Map<Cell, Value> getFirstColumnExplicitlyGetRows(WideRowTable table) throws UnsupportedEncodingException {
         Map<Cell, Value> result = table.getKvs()
-                .getRows(WideRowTable.TABLE_REF, Collections.singleton(WideRowTable.ROW_BYTES),
+                .getRows(WideRowTable.TABLE_REF, Collections.singleton(WideRowTable.ROW_BYTES.array()),
                         ColumnSelection.create(
                                 table.getFirstCellAsSet().stream().map(Cell::getColumnName).collect(Collectors.toList())
                         ),

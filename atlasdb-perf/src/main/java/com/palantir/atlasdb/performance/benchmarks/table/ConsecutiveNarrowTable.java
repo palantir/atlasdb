@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Random;
@@ -47,7 +48,7 @@ public abstract class ConsecutiveNarrowTable {
     public static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("performance.table");
     private static final String ROW_COMPONENT = "key";
     private static final String COLUMN_NAME = "value";
-    public static final byte [] COLUMN_NAME_IN_BYTES = COLUMN_NAME.getBytes(StandardCharsets.UTF_8);
+    public static final ByteBuffer COLUMN_NAME_IN_BYTES = ByteBuffer.wrap(COLUMN_NAME.getBytes(StandardCharsets.UTF_8));
 
     private static final int VALUE_BYTE_ARRAY_SIZE = 100;
     private static final int PUT_BATCH_SIZE = 1000;
@@ -138,7 +139,7 @@ public abstract class ConsecutiveNarrowTable {
         for (int j = 0; j < size; j++) {
             byte[] key = Ints.toByteArray(startKey + j);
             byte[] value = generateValue(random);
-            map.put(Cell.create(key, COLUMN_NAME_IN_BYTES), value);
+            map.put(Cell.create(key, COLUMN_NAME_IN_BYTES.array()), value);
         }
         return map;
     }

@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.performance.benchmarks.table;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Set;
@@ -45,7 +46,7 @@ public class WideRowTable {
     public static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("performance.table");
     private static final String ROW_COMPONENT = "BIG_ROW_OF_INTS";
     private static final String COLUMN_COMPONENT = "col";
-    public static final byte[] ROW_BYTES = ROW_COMPONENT.getBytes(StandardCharsets.UTF_8);
+    public static final ByteBuffer ROW_BYTES = ByteBuffer.wrap(ROW_COMPONENT.getBytes(StandardCharsets.UTF_8));
 
     public static final int NUM_COLS = 50000;
 
@@ -113,7 +114,7 @@ public class WideRowTable {
     }
 
     private Cell cell(int index) {
-        return Cell.create(ROW_BYTES, ("col_" + index).getBytes(StandardCharsets.UTF_8));
+        return Cell.create(ROW_BYTES.array(), ("col_" + index).getBytes(StandardCharsets.UTF_8));
     }
 
 }

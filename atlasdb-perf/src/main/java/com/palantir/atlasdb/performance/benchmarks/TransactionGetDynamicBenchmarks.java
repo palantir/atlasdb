@@ -65,7 +65,7 @@ public class TransactionGetDynamicBenchmarks {
     public SortedMap<byte[], RowResult<byte[]>> getAllColumnsImplicitly(WideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(WideRowTable.TABLE_REF,
-                    Collections.singleton(WideRowTable.ROW_BYTES),
+                    Collections.singleton(WideRowTable.ROW_BYTES.array()),
                     ColumnSelection.all());
             int count = Iterables.getOnlyElement(result.values()).getColumns().size();
             Benchmarks.validate(count == WideRowTable.NUM_COLS,
@@ -90,7 +90,7 @@ public class TransactionGetDynamicBenchmarks {
     public SortedMap<byte[], RowResult<byte[]>> getFirstColumnExplicitlyGetRows(WideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(WideRowTable.TABLE_REF,
-                    Collections.singleton(WideRowTable.ROW_BYTES),
+                    Collections.singleton(WideRowTable.ROW_BYTES.array()),
                     ColumnSelection.create(
                             table.getFirstCellAsSet().stream().map(Cell::getColumnName).collect(Collectors.toList())
                     ));
