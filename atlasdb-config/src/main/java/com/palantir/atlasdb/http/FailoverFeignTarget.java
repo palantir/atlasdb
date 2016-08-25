@@ -44,7 +44,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private final Class<T> type;
     private final AtomicInteger failoverCount = new AtomicInteger();
     private final int failuresBeforeSwitching = 3;
-    private final int numServersToTryBeforeFailing;
+    private final int numServersToTryBeforeFailing = 14;
     private final int fastFailoverTimeoutMillis = 10000;
     private final int maxBackoffMillis = 3000;
 
@@ -57,7 +57,6 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     public FailoverFeignTarget(Collection<String> servers, Class<T> type) {
         this.servers = ImmutableList.copyOf(ImmutableSet.copyOf(servers));
         this.type = type;
-        this.numServersToTryBeforeFailing = Math.min(servers.size(), 14);
     }
 
     public void sucessfulCall() {
@@ -67,10 +66,10 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     }
 
     @Override
-    public void continueOrPropagate(RetryableException e) {
+    public void continueOrPropagate(RetryableException ex) {
 
         boolean isFastFailoverException;
-        if (e.retryAfter() == null) {
+        if (ex.retryAfter() == null) {
             // This is the case where we have failed due to networking or other IOException error.
             isFastFailoverException = false;
         } else {
@@ -99,31 +98,32 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
             }
         }
 
-        checkAndHandleFailure(e);
+        checkAndHandleFailure(ex);
         if (!isFastFailoverException) {
             pauseForBackOff();
         }
         return;
     }
 
-    private void checkAndHandleFailure(RetryableException e) {
+    private void checkAndHandleFailure(RetryableException ex) {
         final long fastFailoverStartTime = startTimeOfFastFailover.get();
         final long currentTime = System.currentTimeMillis();
         boolean failedDueToFastFailover = fastFailoverStartTime != 0 && (currentTime - fastFailoverStartTime) > fastFailoverTimeoutMillis;
         boolean failedDueToNumSwitches = numSwitches.get() >= numServersToTryBeforeFailing;
 
         if (failedDueToFastFailover) {
-            log.warn("This connection has been instructed to fast failover for " +
+            log.error("This connection has been instructed to fast failover for " +
                     TimeUnit.MILLISECONDS.toSeconds(fastFailoverTimeoutMillis) +
                     " seconds without establishing a successful connection." +
                     " The remote hosts have been in a fast failover state for too long.");
         } else if (failedDueToNumSwitches) {
-            log.warn("This connection has tried " + numServersToTryBeforeFailing
-                    + " hosts each " + failuresBeforeSwitching + " times and has failed out.", e);
+            log.error("This connection has tried " + numServersToTryBeforeFailing
+                    + " hosts rolling across " + servers.size() + " servers, each "
+                    + failuresBeforeSwitching + " times and has failed out.", ex);
         }
 
         if (failedDueToFastFailover || failedDueToNumSwitches) {
-            throw e;
+            throw ex;
         }
     }
 
