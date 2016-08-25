@@ -191,7 +191,7 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
     }
 
     /**
-     * Returns an immutable List of the all the objects in the iterable view (not a single batch).
+     * Returns an immutable List of all the objects in the iterable view (not a single batch).
      * Does not support null elements.
      */
     public ImmutableList<T> immutableCopy() {
@@ -207,7 +207,7 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
     }
 
     /**
-     * Returns an immutable Set of the all the objects in the iterable view (not a single batch).
+     * Returns an immutable Set of all the objects in the iterable view (not a single batch).
      * Does not support null elements.
      */
     public ImmutableSet<T> immutableSetCopy() {
