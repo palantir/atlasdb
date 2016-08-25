@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Palantir Technologies
+ * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,13 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli.services;
+package com.palantir.atlasdb.services;
 
-import static com.palantir.atlasdb.factory.TransactionManagers.LockAndTimestampServices;
-import static com.palantir.atlasdb.factory.TransactionManagers.createLockAndTimestampServices;
 
 import javax.inject.Singleton;
 
+import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.TimestampService;
@@ -32,24 +31,24 @@ public class LockAndTimestampModule {
 
     @Provides
     @Singleton
-    public LockAndTimestampServices provideLockAndTimestampServices(ServicesConfig config) {
-        return createLockAndTimestampServices(
+    public TransactionManagers.LockAndTimestampServices provideLockAndTimestampServices(ServicesConfig config) {
+        return TransactionManagers.createLockAndTimestampServices(
                 config.atlasDbConfig(),
                 config.sslSocketFactory(),
-                resource -> {},
+                resource -> { },
                 LockServiceImpl::create,
                 () -> config.atlasDbSupplier().getTimestampService());
     }
 
     @Provides
     @Singleton
-    public TimestampService provideTimestampService(LockAndTimestampServices lts) {
+    public TimestampService provideTimestampService(TransactionManagers.LockAndTimestampServices lts) {
         return lts.time();
     }
 
     @Provides
     @Singleton
-    public RemoteLockService provideLockService(LockAndTimestampServices lts) {
+    public RemoteLockService provideLockService(TransactionManagers.LockAndTimestampServices lts) {
         return lts.lock();
     }
 

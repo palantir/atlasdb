@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import feign.Client;
 import feign.Request;
 import feign.Request.Options;
@@ -52,7 +53,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private final AtomicLong numSwitches = new AtomicLong();
     private final AtomicLong startTimeOfFastFailover = new AtomicLong();
 
-    final ThreadLocal<Integer> mostRecentServerIndex = new ThreadLocal<Integer>();
+    final ThreadLocal<Integer> mostRecentServerIndex = new ThreadLocal<>();
 
     public FailoverFeignTarget(Collection<String> servers, Class<T> type) {
         this.servers = ImmutableList.copyOf(ImmutableSet.copyOf(servers));
@@ -67,7 +68,6 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     @Override
     public void continueOrPropagate(RetryableException ex) {
-
         boolean isFastFailoverException;
         if (ex.retryAfter() == null) {
             // This is the case where we have failed due to networking or other IOException error.
@@ -102,13 +102,13 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         if (!isFastFailoverException) {
             pauseForBackOff();
         }
-        return;
     }
 
     private void checkAndHandleFailure(RetryableException ex) {
         final long fastFailoverStartTime = startTimeOfFastFailover.get();
         final long currentTime = System.currentTimeMillis();
-        boolean failedDueToFastFailover = fastFailoverStartTime != 0 && (currentTime - fastFailoverStartTime) > fastFailoverTimeoutMillis;
+        boolean failedDueToFastFailover = fastFailoverStartTime != 0
+                && (currentTime - fastFailoverStartTime) > fastFailoverTimeoutMillis;
         boolean failedDueToNumSwitches = numSwitches.get() >= numServersToTryBeforeFailing;
 
         if (failedDueToFastFailover) {
@@ -129,7 +129,9 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
 
     private void pauseForBackOff() {
-        double pow = Math.pow(GOLDEN_RATIO, (numSwitches.get() * failuresBeforeSwitching) + failuresSinceLastSwitch.get());
+        double pow = Math.pow(
+                GOLDEN_RATIO,
+                numSwitches.get() * failuresBeforeSwitching + failuresSinceLastSwitch.get());
         long timeout = Math.min(maxBackoffMillis, Math.round(pow));
 
         try {
@@ -140,6 +142,8 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         }
     }
 
+    @SuppressFBWarnings("CN_IDIOM_NO_SUPER_CALL")
+    @SuppressWarnings({"checkstyle:NoClone", "checkstyle:SuperClone"})
     @Override
     public Retryer clone() {
         mostRecentServerIndex.remove();

@@ -15,15 +15,13 @@
  */
 package com.palantir.atlasdb.factory;
 
-import static java.util.stream.StreamSupport.stream;
-
-import static com.google.common.base.Suppliers.memoize;
-
 import java.util.ServiceLoader;
 import java.util.function.Predicate;
+import java.util.stream.StreamSupport;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -39,14 +37,14 @@ public class ServiceDiscoveringAtlasSupplier {
 
     public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
         this.config = config;
-        AtlasDbFactory atlasFactory = stream(loader.spliterator(), false)
+        AtlasDbFactory atlasFactory = StreamSupport.stream(loader.spliterator(), false)
                 .filter(producesCorrectType())
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
-                    "No atlas provider for KeyValueService type " + config.type() + " could be found. " +
-                            "Have you annotated it with @AutoService(AtlasDbFactory.class)?"
+                        "No atlas provider for KeyValueService type " + config.type() + " could be found."
+                        + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
-        keyValueService = memoize(() -> atlasFactory.createRawKeyValueService(config, leaderConfig));
+        keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(config, leaderConfig));
         timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
     }
 
