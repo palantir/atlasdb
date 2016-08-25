@@ -171,9 +171,11 @@ characteristics, among other things. The supported types are:
 
 .. [4]
   If a type does not support range-scanning, **range scans will still be available
-  in the API, but will not behave as expected.** For example, if you have a key with
-  components (VAR_STRING, FIXED_LONG), range-scanning will only exact match VAR_STRING
-  components, not prefix matches. If you search for prefix “ab”:
+  in the API but will not behave as expected**.
+  In particular, range-scanning will exact-match components for VAR_STRING and
+  SIZED_BLOB types.
+  For example, if you have a key with components (VAR_STRING, FIXED_LONG)
+  and search for prefix “ab”:
 
     - (“ab”, 10) will match
     - (“ab”, 20) will match
