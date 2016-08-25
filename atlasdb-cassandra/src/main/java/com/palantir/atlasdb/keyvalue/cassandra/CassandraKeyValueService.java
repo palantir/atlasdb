@@ -1009,10 +1009,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         batchMutateInternal(client, ImmutableSet.of(tableRef), map, consistency);
     }
 
-    private void batchMutateInternal(final Client client,
-                                     final Set<TableReference> tableRefs,
-                                     final Map<ByteBuffer, Map<String, List<Mutation>>> map,
-                                     final ConsistencyLevel consistency) throws TException {
+    private void batchMutateInternal(Client client,
+                                     Set<TableReference> tableRefs,
+                                     Map<ByteBuffer, Map<String, List<Mutation>>> map,
+                                     ConsistencyLevel consistency) throws TException {
         queryRunner.run(client, tableRefs, () -> {
             client.batch_mutate(map, consistency);
             return true;
@@ -1287,11 +1287,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(
-            final TableReference tableRef,
-            final RangeRequest rangeRequest,
-            final long timestamp,
-            final ConsistencyLevel consistency,
-            final Supplier<ResultsExtractor<T, U>> resultsExtractor) {
+            TableReference tableRef,
+            RangeRequest rangeRequest,
+            long timestamp,
+            ConsistencyLevel consistency,
+            Supplier<ResultsExtractor<T, U>> resultsExtractor) {
         RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef);
         ColumnGetter columnGetter = new ColumnGetter();
 

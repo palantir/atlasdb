@@ -1272,7 +1272,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    private boolean shouldTraceQuery(final TableReference tableRef) {
+    private boolean shouldTraceQuery(TableReference tableRef) {
         return tracingPrefs.shouldTraceQuery(tableRef.getQualifiedName());
     }
 }

@@ -54,7 +54,7 @@ public class RowGetter {
     }
 
     public List<KeySlice> getRows(KeyRange keyRange) throws Exception {
-        final ColumnParent colFam = new ColumnParent(CassandraKeyValueService.internalTableName(tableRef));
+        ColumnParent colFam = new ColumnParent(CassandraKeyValueService.internalTableName(tableRef));
         InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
         return clientPool.runWithRetryOnHost(
                 host,
@@ -87,7 +87,7 @@ public class RowGetter {
                 ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
                 false,
                 Integer.MAX_VALUE);
-        final SlicePredicate predicate = new SlicePredicate();
+        SlicePredicate predicate = new SlicePredicate();
         predicate.setSlice_range(slice);
         return predicate;
     }

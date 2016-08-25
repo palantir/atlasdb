@@ -73,8 +73,7 @@ public class PagingIterable<T, U>
         return getSinglePage(previous.getTokenForNextPage());
     }
 
-    private TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(
-            final byte[] startKey) throws Exception {
+    private TokenBackedBasicResultsPage<RowResult<U>, byte[]> getSinglePage(byte[] startKey) throws Exception {
         List<KeySlice> rows = getRows(startKey);
         Map<ByteBuffer, List<ColumnOrSuperColumn>> columnsByRow = getColumns(rows);
         TokenBackedBasicResultsPage<RowResult<U>, byte[]> page = getPage(columnsByRow);
