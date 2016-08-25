@@ -38,6 +38,7 @@ import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -47,13 +48,11 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 @Measurement(iterations = 1, time = 30, timeUnit = TimeUnit.SECONDS)
 public class KvsGetRangeBenchmarks {
 
-
-
-    protected Object getSingleRangeInner(ConsecutiveNarrowTable table, int sliceSize) {
+    private Object getSingleRangeInner(ConsecutiveNarrowTable table, int sliceSize) {
         RangeRequest request = Iterables.getOnlyElement(getRangeRequests(table, 1, sliceSize));
         int startRow = Ints.fromByteArray(request.getStartInclusive());
         ClosableIterator<RowResult<Value>> result =
-                table.getKvs().getRange(table.getTableRef(), request, Long.MAX_VALUE);
+                table.getKvs().getRange(ConsecutiveNarrowTable.TABLE_REF, request, Long.MAX_VALUE);
         ArrayList<RowResult<Value>> list = Lists.newArrayList(result);
         Benchmarks.validate(list.size() == sliceSize, "List size %s != %s", sliceSize, list.size());
         list.forEach(rowResult -> {
@@ -86,10 +85,10 @@ public class KvsGetRangeBenchmarks {
     }
 
 
-    protected Object getMultiRangeInner(ConsecutiveNarrowTable table) {
+    private Object getMultiRangeInner(ConsecutiveNarrowTable table) {
         Iterable<RangeRequest> requests = getRangeRequests(table, (int) (table.getNumRows() * 0.1), 1);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> results =
-                table.getKvs().getFirstBatchForRanges(table.getTableRef(), requests, Long.MAX_VALUE);
+                table.getKvs().getFirstBatchForRanges(ConsecutiveNarrowTable.TABLE_REF, requests, Long.MAX_VALUE);
 
         int numRequests = Iterables.size(requests);
 
@@ -158,4 +157,5 @@ public class KvsGetRangeBenchmarks {
     public Object getMultiRangeVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
         return getMultiRangeInner(table);
     }
+
 }
