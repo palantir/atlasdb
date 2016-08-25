@@ -130,7 +130,7 @@ characteristics, among other things. The supported types are:
 +===============================+==============+===============+================+==========+
 | FIXED\_LONG                   | long         | byte[8]       | YES            | YES      |
 +-------------------------------+--------------+---------------+----------------+----------+
-| FIXED\_LONG\_LITTLE\_ENDIAN   | long         | byte[8]       | YES            | NO       |
+| FIXED\_LONG\_LITTLE\_ENDIAN   | long         | byte[8]       | YES            | NO [4]_  |
 | [3]_                          |              |               |                |          |
 +-------------------------------+--------------+---------------+----------------+----------+
 | NULLABLE\_FIXED\_LONG         | long         | byte[9]       | YES            | YES      |
@@ -145,11 +145,11 @@ characteristics, among other things. The supported types are:
 +-------------------------------+--------------+---------------+----------------+----------+
 | STRING                        | String       | byte[]        | NO [2]_        | YES      |
 +-------------------------------+--------------+---------------+----------------+----------+
-| VAR\_STRING                   | String       | byte[len]     | YES            | NO       |
+| VAR\_STRING                   | String       | byte[len]     | YES            | NO [4]_  |
 +-------------------------------+--------------+---------------+----------------+----------+
 | BLOB                          | byte[]       | byte[]        | NO [2]_        | YES      |
 +-------------------------------+--------------+---------------+----------------+----------+
-| SIZED\_BLOB                   | byte[]       | byte[len]     | YES            | NO       |
+| SIZED\_BLOB                   | byte[]       | byte[len]     | YES            | NO [4]_  |
 +-------------------------------+--------------+---------------+----------------+----------+
 
 .. [1]
@@ -168,6 +168,16 @@ characteristics, among other things. The supported types are:
   This type can be useful on some key value stores because keys next
   to each other won't be written next to each other.  This can be good because
   it will spread out the load of writes to many different ranges.
+
+.. [4]
+  If a type does not support range-scanning, **range scans will still be available
+  in the API, but will not behave as expected.** For example, if you have a key with
+  components (VAR_STRING, FIXED_LONG), range-scanning will only exact match VAR_STRING
+  components, not prefix matches. If you search for prefix “ab”:
+
+    - (“ab”, 10) will match
+    - (“ab”, 20) will match
+    - (“abc”, 30) will not match
 
 Protobufs and Persistables
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
