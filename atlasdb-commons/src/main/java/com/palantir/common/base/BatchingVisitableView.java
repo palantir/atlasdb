@@ -33,6 +33,12 @@ import com.google.common.collect.Ordering;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
+/**
+ * A wrapper for a <code>BatchingVisitable</code> with super powers to perform operations on
+ * all objects. It internally uses batching, but provides a view of all contents to the user.
+ * For example, immutableCopy() will return all objects contained in the view as a List.
+ * @param <T>
+ */
 public abstract class BatchingVisitableView<T> extends ForwardingObject implements BatchingVisitable<T> {
 
     private BatchingVisitableView() {
@@ -191,8 +197,8 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
     }
 
     /**
-     * Returns an immutable List of all the objects in the iterable view (not a single batch).
-     * Does not support null elements.
+     * Returns an immutable copy of the current contents of this iterable view. Does not support
+     * null elements.
      */
     public ImmutableList<T> immutableCopy() {
         final ImmutableList.Builder<T> builder = ImmutableList.builder();
@@ -207,8 +213,8 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
     }
 
     /**
-     * Returns an immutable Set of all the objects in the iterable view (not a single batch).
-     * Does not support null elements.
+     * Returns an immutable copy of the current contents of this iterable view. Does not support
+     * null elements.
      */
     public ImmutableSet<T> immutableSetCopy() {
         final ImmutableSet.Builder<T> builder = ImmutableSet.builder();
