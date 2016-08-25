@@ -33,7 +33,6 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -60,11 +59,15 @@ public class TransactionGetBenchmarks {
     }
 
     private Set<Cell> getCellsRequest(ConsecutiveNarrowTable table, int numberOfCellsToRequest) {
-        Set<Cell> ret = Sets.newHashSet();
-        while (ret.size() < numberOfCellsToRequest) {
-            ret.add(cell(table.getRandom().nextInt(table.getNumRows())));
-        }
-        return ret;
+        Benchmarks.validate(table.getNumRows() >= numberOfCellsToRequest,
+                "Unable to request %s rows from a table that only has %s rows.",
+                numberOfCellsToRequest, table.getNumRows());
+        return table.getRandom()
+                .ints(0, table.getNumRows())
+                .distinct()
+                .limit(numberOfCellsToRequest)
+                .mapToObj(this::cell)
+                .collect(Collectors.toSet());
     }
 
     protected Map<Cell, byte[]> getSingleCellInner(ConsecutiveNarrowTable table) {
