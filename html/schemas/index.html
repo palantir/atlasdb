@@ -282,11 +282,11 @@ Scans?</th>
 <td>YES</td>
 </tr>
 <tr class="row-odd"><td>FIXED_LONG_LITTLE_ENDIAN
-<a class="footnote-reference" href="#id8" id="id1">[3]</a></td>
+<a class="footnote-reference" href="#id11" id="id1">[3]</a></td>
 <td>long</td>
 <td>byte[8]</td>
 <td>YES</td>
-<td>NO</td>
+<td>NO <a class="footnote-reference" href="#id12" id="id2">[4]</a></td>
 </tr>
 <tr class="row-even"><td>NULLABLE_FIXED_LONG</td>
 <td>long</td>
@@ -296,13 +296,13 @@ Scans?</th>
 </tr>
 <tr class="row-odd"><td>VAR_LONG</td>
 <td>long</td>
-<td>byte[len] <a class="footnote-reference" href="#id6" id="id2">[1]</a></td>
+<td>byte[len] <a class="footnote-reference" href="#id9" id="id3">[1]</a></td>
 <td>YES</td>
 <td>YES</td>
 </tr>
 <tr class="row-even"><td>VAR_SIGNED_LONG</td>
 <td>long</td>
-<td>byte[len] <a class="footnote-reference" href="#id6" id="id3">[1]</a></td>
+<td>byte[len] <a class="footnote-reference" href="#id9" id="id4">[1]</a></td>
 <td>YES</td>
 <td>YES</td>
 </tr>
@@ -321,53 +321,72 @@ Scans?</th>
 <tr class="row-odd"><td>STRING</td>
 <td>String</td>
 <td>byte[]</td>
-<td>NO <a class="footnote-reference" href="#id7" id="id4">[2]</a></td>
+<td>NO <a class="footnote-reference" href="#id10" id="id5">[2]</a></td>
 <td>YES</td>
 </tr>
 <tr class="row-even"><td>VAR_STRING</td>
 <td>String</td>
 <td>byte[len]</td>
 <td>YES</td>
-<td>NO</td>
+<td>NO <a class="footnote-reference" href="#id12" id="id6">[4]</a></td>
 </tr>
 <tr class="row-odd"><td>BLOB</td>
 <td>byte[]</td>
 <td>byte[]</td>
-<td>NO <a class="footnote-reference" href="#id7" id="id5">[2]</a></td>
+<td>NO <a class="footnote-reference" href="#id10" id="id7">[2]</a></td>
 <td>YES</td>
 </tr>
 <tr class="row-even"><td>SIZED_BLOB</td>
 <td>byte[]</td>
 <td>byte[len]</td>
 <td>YES</td>
-<td>NO</td>
+<td>NO <a class="footnote-reference" href="#id12" id="id8">[4]</a></td>
 </tr>
 </tbody>
 </table>
-<table class="docutils footnote" frame="void" id="id6" rules="none">
+<table class="docutils footnote" frame="void" id="id9" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label">[1]</td><td><em>(<a class="fn-backref" href="#id2">1</a>, <a class="fn-backref" href="#id3">2</a>)</em> All long data types are signed, but VAR_SIGNED_LONG is
+<tr><td class="label">[1]</td><td><em>(<a class="fn-backref" href="#id3">1</a>, <a class="fn-backref" href="#id4">2</a>)</em> All long data types are signed, but <code class="docutils literal"><span class="pre">VAR_SIGNED_LONG</span></code> is
 encoded in a manner which stores negative numbers more efficiently than
-VAR_LONG.
-In particular, 0 to 127 are 1 byte for VAR_LONG and -64 to 63 are 1 byte for
-VAR_SIGNED_LONG. VAR_LONG will always use 10 bytes to encode negative
+<code class="docutils literal"><span class="pre">VAR_LONG</span></code>.
+In particular, 0 to 127 are 1 byte for <code class="docutils literal"><span class="pre">VAR_LONG</span></code> and -64 to 63 are 1 byte for
+<code class="docutils literal"><span class="pre">VAR_SIGNED_LONG</span></code>. <code class="docutils literal"><span class="pre">VAR_LONG</span></code> will always use 10 bytes to encode negative
 numbers.</td></tr>
 </tbody>
 </table>
-<table class="docutils footnote" frame="void" id="id7" rules="none">
+<table class="docutils footnote" frame="void" id="id10" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label">[2]</td><td><em>(<a class="fn-backref" href="#id4">1</a>, <a class="fn-backref" href="#id5">2</a>)</em> A STRING or BLOB can only be a row or column component
+<tr><td class="label">[2]</td><td><em>(<a class="fn-backref" href="#id5">1</a>, <a class="fn-backref" href="#id7">2</a>)</em> A <code class="docutils literal"><span class="pre">STRING</span></code> or <code class="docutils literal"><span class="pre">BLOB</span></code> can only be a row or column component
 if it is the last component of the component list.</td></tr>
 </tbody>
 </table>
-<table class="docutils footnote" frame="void" id="id8" rules="none">
+<table class="docutils footnote" frame="void" id="id11" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
 <tr><td class="label"><a class="fn-backref" href="#id1">[3]</a></td><td>This type can be useful on some key value stores because keys next
 to each other won&#8217;t be written next to each other.  This can be good because
 it will spread out the load of writes to many different ranges.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id12" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[4]</td><td><em>(<a class="fn-backref" href="#id2">1</a>, <a class="fn-backref" href="#id6">2</a>, <a class="fn-backref" href="#id8">3</a>)</em> <p>If a type does not support range-scanning, <strong>range scans will still be available
+in the API but will not behave as expected</strong>.
+In particular, range-scanning will exact-match components for <code class="docutils literal"><span class="pre">VAR_STRING</span></code> and
+<code class="docutils literal"><span class="pre">SIZED_BLOB</span></code> types.
+For example, if you have a key with components (<code class="docutils literal"><span class="pre">VAR_STRING</span></code>, <code class="docutils literal"><span class="pre">FIXED_LONG</span></code>)
+and search for prefix “ab”:</p>
+<blockquote class="last">
+<div><ul class="simple">
+<li>(“ab”, 10) will match</li>
+<li>(“ab”, 20) will match</li>
+<li>(“abc”, 30) will not match</li>
+</ul>
+</div></blockquote>
+</td></tr>
 </tbody>
 </table>
 </div>
