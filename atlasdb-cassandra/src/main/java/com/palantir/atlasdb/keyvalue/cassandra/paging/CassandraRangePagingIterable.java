@@ -33,7 +33,7 @@ import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public class PagingIterable<T, U>
+public class CassandraRangePagingIterable<T, U>
         extends AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>> {
     private final ColumnGetter columnGetter;
     private final RangeRequest rangeRequest;
@@ -44,7 +44,7 @@ public class PagingIterable<T, U>
     private final ColumnSelection selection;
     private final RowGetter rowGetter;
 
-    public PagingIterable(
+    public CassandraRangePagingIterable(
             RowGetter rowGetter,
             ColumnGetter columnGetter,
             RangeRequest rangeRequest,

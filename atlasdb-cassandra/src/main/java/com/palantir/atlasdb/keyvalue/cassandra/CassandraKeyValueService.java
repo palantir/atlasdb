@@ -98,8 +98,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTs
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ThreadSafeResultVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRangePagingIterable;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.PagingIterable;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
@@ -1311,7 +1311,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             return ClosableIterators.wrap(ImmutableList.<RowResult<U>>of().iterator());
         }
 
-        PagingIterable<T, U> rowResults = new PagingIterable<>(
+        CassandraRangePagingIterable<T, U> rowResults = new CassandraRangePagingIterable<>(
                 rowGetter,
                 columnGetter,
                 rangeRequest,
