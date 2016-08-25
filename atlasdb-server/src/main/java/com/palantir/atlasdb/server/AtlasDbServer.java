@@ -25,6 +25,8 @@ import com.palantir.atlasdb.factory.ImmutableLockAndTimestampServices;
 import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
 import com.palantir.atlasdb.factory.TransactionManagers.LockAndTimestampServices;
+import com.palantir.atlasdb.server.config.AtlasDbServerConfiguration;
+import com.palantir.atlasdb.server.config.ClientConfig;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.RemoteLockService;
@@ -54,12 +56,13 @@ public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
             Environment environment) {
         LeaderElectionService leader = Leaders.create(
                 environment.jersey()::register,
-                config.getLeaderConfig());
+                config.cluster().toLeaderConfig());
 
         ImmutableMap.Builder<String, LockAndTimestampServices> keyspaceToServices = ImmutableMap.builder();
-        config.getKeyspaces().forEach((keyspace, kvsConfig) -> {
-            ServiceDiscoveringAtlasSupplier atlasFactory =
-                    new ServiceDiscoveringAtlasSupplier(kvsConfig, Optional.of(config.getLeaderConfig()));
+        for (ClientConfig client : config.clients()) {
+            ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(
+                    client.keyValueService(),
+                    Optional.of(config.cluster().toLeaderConfig()));
 
             LockAndTimestampServices services = ImmutableLockAndTimestampServices.builder()
                     .lock(AwaitingLeadershipProxy.newProxyInstance(
@@ -72,8 +75,8 @@ public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
                             leader))
                     .build();
 
-            keyspaceToServices.put(keyspace, services);
-        });
+            keyspaceToServices.put(client.client(), services);
+        }
 
         return keyspaceToServices.build();
     }
