@@ -127,7 +127,7 @@ public class AtlasDbPerfCli {
         for (String backend : getBackends(cli.backends)) {
             try {
                 KeyValueServiceType.valueOf(backend.toUpperCase());
-            } catch (Exception e) {
+            } catch (IllegalArgumentException e) {
                 throw new RuntimeException("Invalid backend specified. Valid options: "
                         + EnumSet.allOf(KeyValueServiceType.class) + " You provided: " + backend, e);
             }
