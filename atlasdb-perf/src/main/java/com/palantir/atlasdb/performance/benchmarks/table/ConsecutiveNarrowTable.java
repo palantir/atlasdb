@@ -19,6 +19,9 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.openjdk.jmh.annotations.Level;
@@ -27,11 +30,13 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
 import com.palantir.atlasdb.performance.benchmarks.Benchmarks;
@@ -92,6 +97,53 @@ public abstract class ConsecutiveNarrowTable {
         setupData();
     }
 
+    public RangeRequest getRangeRequest(int sliceSize) {
+        return Iterables.getOnlyElement(getRangeRequests(1, sliceSize));
+    }
+
+    public Iterable<RangeRequest> getRangeRequests(int numRequests, int sliceSize) {
+        return IntStream.range(0, numRequests)
+                .mapToObj($ -> {
+                    int startRow = getRandom().nextInt(getNumRows() - sliceSize + 1);
+                    int endRow = startRow + sliceSize;
+                    return RangeRequest.builder()
+                            .batchHint(sliceSize + 1)
+                            .startRowInclusive(Ints.toByteArray(startRow))
+                            .endRowExclusive(Ints.toByteArray(endRow))
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    public Map<Cell, Long> getCellRequestAtMaxTimestamp(int numCells) {
+        return getRequest(numCells, ConsecutiveNarrowTable::cell);
+    }
+
+    public Set<Cell> getCellsRequest(int numCells) {
+        return getCellRequestAtMaxTimestamp(numCells).keySet();
+    }
+
+    public Iterable<byte[]> getRowsRequest(int numRows) {
+        return getRequest(numRows, val -> cell(val).getRowName()).keySet();
+    }
+
+    private <T> Map<T, Long> getRequest(int numberOfCells,
+            Function<Integer, T> convert) {
+        Benchmarks.validate(getNumRows() >= numberOfCells,
+                "Unable to request %s rows from a table that only has %s rows.",
+                numberOfCells, getNumRows());
+        return getRandom()
+                .ints(0, getNumRows())
+                .distinct()
+                .limit(numberOfCells)
+                .mapToObj(convert::apply)
+                .collect(
+                        Collectors.toMap(
+                                e -> e,
+                                $ -> Long.MAX_VALUE
+                        ));
+    }
+
     @State(Scope.Benchmark)
     public static class CleanNarrowTable extends ConsecutiveNarrowTable {
         @Override
@@ -148,6 +200,15 @@ public abstract class ConsecutiveNarrowTable {
         byte[] value = new byte[VALUE_BYTE_ARRAY_SIZE];
         random.nextBytes(value);
         return value;
+    }
+
+    private static Cell cell(int index) {
+        byte[] key = Ints.toByteArray(index);
+        return Cell.create(key, ConsecutiveNarrowTable.COLUMN_NAME_IN_BYTES.array());
+    }
+
+    public static int rowNumber(byte[] row) {
+        return Ints.fromByteArray(row);
     }
 
 }

@@ -19,9 +19,7 @@ package com.palantir.atlasdb.performance.benchmarks;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -33,8 +31,9 @@ import org.openjdk.jmh.annotations.Warmup;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -46,10 +45,28 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @Warmup(iterations = 1, time = 5, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 1, time = 30, timeUnit = TimeUnit.SECONDS)
-public class KvsGetRangeBenchmarks {
+public class KvsGetBenchmarks {
 
-    private Object getSingleRangeInner(ConsecutiveNarrowTable table, int sliceSize) {
-        RangeRequest request = Iterables.getOnlyElement(getRangeRequests(table, 1, sliceSize));
+    private Object getCellsInner(ConsecutiveNarrowTable table, int numCells) {
+        Map<Cell, Long> request = table.getCellRequestAtMaxTimestamp(numCells);
+        Map<Cell, Value> results = table.getKvs().get(ConsecutiveNarrowTable.TABLE_REF, request);
+        Benchmarks.validate(results.size() == numCells, "Map size %s != %s", results.size(), numCells);
+        return results;
+    }
+
+    private Object getRowsInner(ConsecutiveNarrowTable table, int numRows) {
+        Iterable<byte[]> request = table.getRowsRequest(numRows);
+        Map<Cell, Value> results = table.getKvs().getRows(
+                ConsecutiveNarrowTable.TABLE_REF,
+                request,
+                ColumnSelection.all(),
+                Long.MAX_VALUE);
+        Benchmarks.validate(results.size() == numRows, "Map size %s != %s", results.size(), numRows);
+        return results;
+    }
+
+    private Object getRangeInner(ConsecutiveNarrowTable table, int sliceSize) {
+        RangeRequest request = Iterables.getOnlyElement(table.getRangeRequests(1, sliceSize));
         int startRow = Ints.fromByteArray(request.getStartInclusive());
         ClosableIterator<RowResult<Value>> result =
                 table.getKvs().getRange(ConsecutiveNarrowTable.TABLE_REF, request, Long.MAX_VALUE);
@@ -64,29 +81,8 @@ public class KvsGetRangeBenchmarks {
         return result;
     }
 
-    private Iterable<RangeRequest> getRangeRequests(ConsecutiveNarrowTable table, int numRequests, int sliceSize) {
-        List<RangeRequest> requests = Lists.newArrayList();
-        Set<Integer> used = Sets.newHashSet();
-        for (int i = 0; i < numRequests; i++) {
-            int startRow;
-            do {
-                startRow = table.getRandom().nextInt(table.getNumRows() - sliceSize);
-            } while (used.contains(startRow));
-            int endRow = startRow + sliceSize;
-            RangeRequest request = RangeRequest.builder()
-                    .batchHint(1 + sliceSize)
-                    .startRowInclusive(Ints.toByteArray(startRow))
-                    .endRowExclusive(Ints.toByteArray(endRow))
-                    .build();
-            requests.add(request);
-            used.add(startRow);
-        }
-        return requests;
-    }
-
-
     private Object getMultiRangeInner(ConsecutiveNarrowTable table) {
-        Iterable<RangeRequest> requests = getRangeRequests(table, (int) (table.getNumRows() * 0.1), 1);
+        Iterable<RangeRequest> requests = table.getRangeRequests((int) (table.getNumRows() * 0.1), 1);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> results =
                 table.getKvs().getFirstBatchForRanges(ConsecutiveNarrowTable.TABLE_REF, requests, Long.MAX_VALUE);
 
@@ -112,34 +108,98 @@ public class KvsGetRangeBenchmarks {
 
 
     @Benchmark
-    public Object getSingleRange(ConsecutiveNarrowTable.CleanNarrowTable table) {
-        return getSingleRangeInner(table, 1);
+    public Object getCell(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return getCellsInner(table, 1);
     }
 
     @Benchmark
-    public Object getSingleRangeDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
-        return getSingleRangeInner(table, 1);
+    public Object getCellDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return getCellsInner(table, 1);
     }
 
     @Benchmark
-    public Object getSingleRangeVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
-        return getSingleRangeInner(table, 1);
+    public Object getCellVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
+        return getCellsInner(table, 1);
     }
 
 
     @Benchmark
-    public Object getSingleLargeRange(ConsecutiveNarrowTable.CleanNarrowTable table) {
-        return getSingleRangeInner(table, (int) (0.1 * table.getNumRows()));
+    public Object getCells(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return getCellsInner(table, (int) (0.1 * table.getNumRows()));
     }
 
     @Benchmark
-    public Object getSingleLargeRangeDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
-        return getSingleRangeInner(table, (int) (0.1 * table.getNumRows()));
+    public Object getCellsDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return getCellsInner(table, (int) (0.1 * table.getNumRows()));
     }
 
     @Benchmark
-    public Object getSingleLargeRangeVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
-        return getSingleRangeInner(table, (int) (0.1 * table.getNumRows()));
+    public Object getCellsVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
+        return getCellsInner(table, (int) (0.1 * table.getNumRows()));
+    }
+
+
+    @Benchmark
+    public Object getRow(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return getRowsInner(table, 1);
+    }
+
+    @Benchmark
+    public Object getRowDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return getRowsInner(table, 1);
+    }
+
+    @Benchmark
+    public Object getRowVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
+        return getRowsInner(table, 1);
+    }
+
+
+    @Benchmark
+    public Object getRows(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return getRowsInner(table, (int) (0.1 * table.getNumRows()));
+    }
+
+    @Benchmark
+    public Object getRowsDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return getRowsInner(table, (int) (0.1 * table.getNumRows()));
+    }
+
+    @Benchmark
+    public Object getRowsVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
+        return getRowsInner(table, (int) (0.1 * table.getNumRows()));
+    }
+
+
+    @Benchmark
+    public Object getRange(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return getRangeInner(table, 1);
+    }
+
+    @Benchmark
+    public Object getRangeDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return getRangeInner(table, 1);
+    }
+
+    @Benchmark
+    public Object getRangeVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
+        return getRangeInner(table, 1);
+    }
+
+
+    @Benchmark
+    public Object getLargeRange(ConsecutiveNarrowTable.CleanNarrowTable table) {
+        return getRangeInner(table, (int) (0.1 * table.getNumRows()));
+    }
+
+    @Benchmark
+    public Object getLargeRangeDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
+        return getRangeInner(table, (int) (0.1 * table.getNumRows()));
+    }
+
+    @Benchmark
+    public Object getLargeRangeVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
+        return getRangeInner(table, (int) (0.1 * table.getNumRows()));
     }
 
 
