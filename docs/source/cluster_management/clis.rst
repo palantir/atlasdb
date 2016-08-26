@@ -53,7 +53,7 @@ Due to their destructive nature for in-progress transactions, there are two sub-
   - ``clean-transactions``
   - ``fast-forward``
 
-To run these CLIs, first ensure that all of your AtlasDB clients are all shut down, and then run the CLI with the ``--offline`` flag.
+To run these CLIs, first ensure that all of your AtlasDB clients are shut down, and then run the CLI with the ``--offline`` flag.
 
 For example, to run the ``fast-forward`` command with default settings, run ``./bin/atlasdb --offline timestamp fast-forward``.
 
