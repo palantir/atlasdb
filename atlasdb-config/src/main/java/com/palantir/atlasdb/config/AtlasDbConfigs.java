@@ -33,7 +33,7 @@ public final class AtlasDbConfigs {
 
     public static final String ATLASDB_CONFIG_ROOT = "/atlasdb";
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory());
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory());
 
     static {
         OBJECT_MAPPER.setSubtypeResolver(new DiscoverableSubtypeResolver());
