@@ -32,6 +32,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.NotFoundException;
@@ -43,14 +44,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
@@ -373,15 +372,30 @@ public class CassandraClientPool {
         return tableName.replaceFirst("\\.", "__");
     }
 
-    private InetSocketAddress getHostPortForHost(String host) throws UnknownHostException {
-        InetAddress byName = InetAddress.getByName(host);
+    private InetSocketAddress getAddressForHostThrowUnchecked(String host) {
+        try {
+            return getAddressForHost(host);
+        } catch (UnknownHostException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
+    }
+
+    private InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
+        InetAddress resolvedHost = InetAddress.getByName(host);
 
         for (InetSocketAddress address : Sets.union(currentPools.keySet(), config.servers())) {
-            if (address.getAddress().equals(byName)) {
+            if (address.getAddress().equals(resolvedHost)) {
                 return address;
             }
         }
-        throw new UnknownHostException("Couldn't find the provided host in server list or current servers");
+
+        Set<Integer> ports = Sets.union(currentPools.keySet(), config.servers()).stream()
+                .map(address -> address.getPort()).collect(Collectors.toSet());
+        if (ports.size() == 1) { // if everyone is on one port, try and use that
+            return new InetSocketAddress(resolvedHost, Iterables.getOnlyElement(ports));
+        } else {
+            throw new UnknownHostException("Couldn't find the provided host in server list or current servers");
+        }
     }
 
     private void refreshTokenRanges() {
@@ -395,20 +409,12 @@ public class CassandraClientPool {
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
                 String onlyEndpoint = Iterables.getOnlyElement(Iterables.getOnlyElement(tokenRanges).getEndpoints());
-                InetSocketAddress onlyHost = getHostPortForHost(onlyEndpoint);
+                InetSocketAddress onlyHost = getAddressForHost(onlyEndpoint);
                 newTokenRing.put(Range.all(), ImmutableList.of(onlyHost));
             } else { // normal case, large cluster with many vnodes
                 for (TokenRange tokenRange : tokenRanges) {
-                    List<InetSocketAddress> hosts = Lists.transform(tokenRange.getEndpoints(), new Function<String, InetSocketAddress>() {
-                        @Override
-                        public InetSocketAddress apply(String endpoint) {
-                            try {
-                                return getHostPortForHost(endpoint);
-                            } catch (UnknownHostException e) {
-                                throw Throwables.rewrapAndThrowUncheckedException(e);
-                            }
-                        }
-                    });
+                    List<InetSocketAddress> hosts = tokenRange.getEndpoints().stream()
+                            .map(host -> getAddressForHostThrowUnchecked(host)).collect(Collectors.toList());
                     LightweightOppToken startToken = new LightweightOppToken(
                             BaseEncoding.base16().decode(tokenRange.getStart_token().toUpperCase()));
                     LightweightOppToken endToken = new LightweightOppToken(

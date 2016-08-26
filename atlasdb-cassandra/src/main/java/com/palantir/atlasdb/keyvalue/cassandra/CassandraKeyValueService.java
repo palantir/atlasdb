@@ -200,12 +200,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     protected void init() {
-        clientPool.runOneTimeStartupChecks();
-        if (configManager.getConfig().scyllaDB() && !configManager.getConfig().safetyDisabled()) {
-            throw new IllegalArgumentException("Not currently allowing Thrift-based access to ScyllaDB clusters; " +
-                    "there appears to be from our tests an existing correctness bug with semi-complex column selections");
+        if (configManager.getConfig().scyllaDb() && !configManager.getConfig().safetyDisabled()) {
+            throw new IllegalArgumentException("Not currently allowing Thrift-based access to ScyllaDB clusters;"
+                    + " there appears to be from our tests"
+                    + " an existing correctness bug with semi-complex column selections");
         }
-        boolean supportsCas = !configManager.getConfig().scyllaDB() && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
+
+        clientPool.runOneTimeStartupChecks();
+
+        boolean supportsCas = !configManager.getConfig().scyllaDb()
+                && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
 
         schemaMutationLock = new SchemaMutationLock(
                 supportsCas,
@@ -1416,7 +1420,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
                         client.system_add_column_family(getCfForTable(table, metadata));
                     } else {
-                        log.debug("Ignored call to create a table ({}) that already existed (case insensitive).", table);
+                        log.debug("Ignored call to create table ({}) that already existed (case insensitive).", table);
                     }
                 }
                 if (!tablesToCreate.isEmpty()) {

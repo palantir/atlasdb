@@ -17,15 +17,15 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 
-public class CQLFieldNameProvider {
+public class CqlFieldNameProvider {
     boolean isScylla;
 
-    public CQLFieldNameProvider(CassandraKeyValueServiceConfig config) {
-        isScylla = config.scyllaDB();
+    public CqlFieldNameProvider(CassandraKeyValueServiceConfig config) {
+        isScylla = config.scyllaDb();
     }
 
     public String row() {
-        return isScylla? "key1" : "key";
+        return isScylla ? "key1" : "key";
     }
 
     public String column() {

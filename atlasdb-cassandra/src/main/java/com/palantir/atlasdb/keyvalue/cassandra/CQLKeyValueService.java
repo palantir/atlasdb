@@ -86,6 +86,7 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -125,18 +126,18 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     private Cluster cluster;
     private Cluster longRunningQueryCluster;
-    Session session;
-    Session longRunningQuerySession;
-
-    CQLStatementCache cqlStatementCache;
-    protected CQLKeyValueServices cqlKeyValueServices;
-
     private final CassandraKeyValueServiceConfigManager configManager;
     private final Optional<CassandraJmxCompactionManager> compactionManager;
-    protected final CQLFieldNameProvider fieldName;
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
+
+    protected CQLStatementCache cqlStatementCache;
+    protected CQLKeyValueServices cqlKeyValueServices;
+
+    Session session;
+    Session longRunningQuerySession;
+    final CqlFieldNameProvider fieldNameProvider;
 
     private boolean limitBatchSizesToServerDefaults = false;
 
@@ -152,7 +153,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     protected CQLKeyValueService(CassandraKeyValueServiceConfigManager configManager,
                                  Optional<CassandraJmxCompactionManager> compactionManager) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas CQL KVS", configManager.getConfig().poolSize()));
-        fieldName = new CQLFieldNameProvider(configManager.getConfig());
+        fieldNameProvider = new CqlFieldNameProvider(configManager.getConfig());
         this.configManager = configManager;
         this.compactionManager = compactionManager;
     }
@@ -360,17 +361,18 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         Map<Cell, Value> result = Maps.newHashMap();
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         int fetchBatchCount = config.fetchBatchCount();
+        List<ResultSetFuture> resultSetFutures = Lists.newArrayListWithExpectedSize(rowCount);
+
         for (final List<byte[]> batch : Iterables.partition(rows, fetchBatchCount)) {
             rowCount += batch.size();
-            List<ResultSetFuture> resultSetFutures = Lists.newArrayListWithExpectedSize(rowCount);
-            String getRowsQuery = "SELECT * FROM " + getFullTableName(tableRef) + " WHERE " + fieldName.row() + " IN ("
-                    + Joiner.on(",").join(Iterables.limit(Iterables.cycle("?"), batch.size())) + ")";
+            String getRowsQuery = String.format("SELECT * FROM %s WHERE %s IN (%s)",
+                    getFullTableName(tableRef),
+                    fieldNameProvider.row(),
+                    Joiner.on(",").join(Iterables.limit(Iterables.cycle("?"), batch.size())));
             PreparedStatement preparedStatement = getPreparedStatement(tableRef, getRowsQuery, session);
-            Object[] args = new Object[batch.size()];
-            for (int i = 0; i < batch.size(); i++) {
-                args[i] = ByteBuffer.wrap(batch.get(i));
-            }
+            Object[] args = batch.stream().map(ByteBuffer::wrap).toArray();
             resultSetFutures.add(session.executeAsync(preparedStatement.bind(args)));
+
             for (ResultSetFuture resultSetFuture : resultSetFutures) {
                 ResultSet resultSet;
                 try {
@@ -379,9 +381,9 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                     throw Throwables.throwUncheckedException(t);
                 }
                 for (Row row : resultSet.all()) {
-                    Cell c = Cell.create(getRowName(row), getColName(row));
+                    Cell cell = Cell.create(getRowName(row), getColName(row));
                     if ((getTs(row) < startTs)
-                            && (!result.containsKey(c) || (result.get(c).getTimestamp() < getTs(row)))) {
+                            && (!result.containsKey(cell) || (result.get(cell).getTimestamp() < getTs(row)))) {
                         result.put(
                                 Cell.create(getRowName(row), getColName(row)),
                                 Value.create(getValue(row), getTs(row)));
@@ -436,7 +438,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
 
         List<ResultSetFuture> resultSetFutures = Lists.newArrayListWithCapacity(cells.size());
-        TreeMultimap<byte[], Cell> cellsByCol =
+        SortedSetMultimap<byte[], Cell> cellsByCol =
                 TreeMultimap.create(UnsignedBytes.lexicographicalComparator(), Ordering.natural());
         for (Cell cell : cells) {
             cellsByCol.put(cell.getColumnName(), cell);
@@ -451,13 +453,14 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             for (List<Cell> batch : Iterables.partition(entry.getValue(), config.fetchBatchCount())) {
                 String rowBinds = Joiner.on(",").join(Iterables.limit(Iterables.cycle('?'), batch.size()));
                 final String loadWithTsQuery = "SELECT * FROM " + getFullTableName(tableRef)
-                        + " WHERE " + fieldName.row()
+                        + " WHERE " + fieldNameProvider.row()
                         + " IN (" + rowBinds
-                        + ") AND " + fieldName.column()
-                        + " = ? AND " + fieldName.timestamp()
+                        + ") AND " + fieldNameProvider.column()
+                        + " = ? AND " + fieldNameProvider.timestamp()
                         + " > ?" + (!loadAllTs ? " LIMIT 1" : "");
                 final PreparedStatement preparedStatement = getPreparedStatement(tableRef, loadWithTsQuery, session)
                               .setConsistencyLevel(consistency);
+
                 Object[] args = new Object[batch.size() + 2];
                 for (int i = 0; i < batch.size(); i++) {
                     args[i] = ByteBuffer.wrap(batch.get(i).getRowName());
@@ -471,9 +474,9 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
 
         String loggedLoadWithTsQuery = "SELECT * FROM " + getFullTableName(tableRef) + " "
-                + "WHERE " + fieldName.row()
-                + " IN (?, ...) AND " + fieldName.column()
-                + " = ? AND " + fieldName.timestamp()
+                + "WHERE " + fieldNameProvider.row()
+                + " IN (?, ...) AND " + fieldNameProvider.column()
+                + " = ? AND " + fieldNameProvider.timestamp()
                 + " > ?" + (!loadAllTs ? " LIMIT 1" : "");
         for (ResultSetFuture rsf : resultSetFutures) {
             visitResults(rsf.getUninterruptibly(), visitor, loggedLoadWithTsQuery, loadAllTs);
@@ -526,12 +529,12 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 + (timestampByCell.size() % fetchBatchCount > 0 ? 1 : 0);
         List<Future<Map<Cell, Long>>> futures = Lists.newArrayListWithCapacity(numPartitions);
         String loadOnlyTsQuery = "SELECT "
-                + fieldName.row() + ", "
-                + fieldName.column() + ", "
-                + fieldName.timestamp()
+                + fieldNameProvider.row() + ", "
+                + fieldNameProvider.column() + ", "
+                + fieldNameProvider.timestamp()
                 + " FROM " + getFullTableName(tableRef)
-                + " WHERE " + fieldName.row() + " = ?"
-                + " AND " + fieldName.column() + " = ?"
+                + " WHERE " + fieldNameProvider.row() + " = ?"
+                + " AND " + fieldNameProvider.column() + " = ?"
                 + " LIMIT 1";
         if (timestampByCell.size() > fetchBatchCount) {
             log.warn("Re-batching in getLatestTimestamps a call to " + tableRef
@@ -548,9 +551,9 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                     List<ResultSetFuture> resultSetFutures = Lists.newArrayListWithExpectedSize(partition.size());
                     for (Cell c : partition) {
                         BoundStatement boundStatement = preparedStatement.bind();
-                        boundStatement.setBytes(fieldName.row(), ByteBuffer.wrap(c.getRowName()));
+                        boundStatement.setBytes(fieldNameProvider.row(), ByteBuffer.wrap(c.getRowName()));
                         boundStatement.setBytes(
-                                fieldName.column(),
+                                fieldNameProvider.column(),
                                 ByteBuffer.wrap(c.getColumnName()));
                         resultSetFutures.add(session.executeAsync(boundStatement));
                     }
@@ -731,10 +734,10 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     protected String getPutQuery(TableReference tableName, int ttl) {
         String putQuery = "INSERT INTO " + getFullTableName(tableName)
-                + " (" + fieldName.row() + ", "
-                + fieldName.column() + ", "
-                + fieldName.timestamp() + ", "
-                + fieldName.value() + ")"
+                + " (" + fieldNameProvider.row() + ", "
+                + fieldNameProvider.column() + ", "
+                + fieldNameProvider.timestamp() + ", "
+                + fieldNameProvider.value() + ")"
                 + " VALUES (?, ?, ?, ?)";
         if (ttl >= 0) {
             putQuery += " USING TTL " + ttl;
@@ -767,10 +770,10 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
         for (Entry<Cell, Value> e : partition) {
             BoundStatement boundStatement = preparedStatement.bind();
-            boundStatement.setBytes(fieldName.row(), ByteBuffer.wrap(e.getKey().getRowName()));
-            boundStatement.setBytes(fieldName.column(), ByteBuffer.wrap(e.getKey().getColumnName()));
-            boundStatement.setLong(fieldName.timestamp(), ~e.getValue().getTimestamp());
-            boundStatement.setBytes(fieldName.value(), ByteBuffer.wrap(e.getValue().getContents()));
+            boundStatement.setBytes(fieldNameProvider.row(), ByteBuffer.wrap(e.getKey().getRowName()));
+            boundStatement.setBytes(fieldNameProvider.column(), ByteBuffer.wrap(e.getKey().getColumnName()));
+            boundStatement.setLong(fieldNameProvider.timestamp(), ~e.getValue().getTimestamp());
+            boundStatement.setBytes(fieldNameProvider.value(), ByteBuffer.wrap(e.getValue().getContents()));
             if (partition.size() > 1) {
                 batchStatement.add(boundStatement);
             } else {
@@ -816,9 +819,9 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     public void delete(final TableReference tableRef, final Multimap<Cell, Long> keys) {
         int cellCount = 0;
         String deleteQuery = "DELETE FROM " + getFullTableName(tableRef)
-                + " WHERE " + fieldName.row() + " = ?"
-                + " AND " + fieldName.column() + " = ?"
-                + " AND " + fieldName.timestamp() + " = ?";
+                + " WHERE " + fieldNameProvider.row() + " = ?"
+                + " AND " + fieldNameProvider.column() + " = ?"
+                + " AND " + fieldNameProvider.timestamp() + " = ?";
         CassandraKeyValueServiceConfig config = configManager.getConfig();
         int fetchBatchCount = config.fetchBatchCount();
         for (final List<Cell> batch : Iterables.partition(keys.keySet(), fetchBatchCount)) {
@@ -932,13 +935,13 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         final byte[] endExclusive = rangeRequest.getEndExclusive();
         final StringBuilder bindQuery = new StringBuilder();
         bindQuery.append("SELECT * FROM " + getFullTableName(tableRef) + " WHERE token("
-                + fieldName.row() + ") >= token(?) ");
+                + fieldNameProvider.row() + ") >= token(?) ");
         if (endExclusive.length > 0) {
-            bindQuery.append("AND token(" + fieldName.row() + ") < token(?) ");
+            bindQuery.append("AND token(" + fieldNameProvider.row() + ") < token(?) ");
         }
         bindQuery.append("LIMIT " + batchHint);
         final String getLastRowQuery = "SELECT * FROM " + getFullTableName(tableRef) + " WHERE "
-                + fieldName.row() + " = ?";
+                + fieldNameProvider.row() + " = ?";
         return ClosableIterators.wrap(
                 new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
                     @Override
@@ -987,7 +990,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                         // get the rest of the last row
                         BoundStatement boundLastRow = getPreparedStatement(tableRef, getLastRowQuery, session).bind();
 
-                        boundLastRow.setBytes(fieldName.row(), ByteBuffer.wrap(maxRow));
+                        boundLastRow.setBytes(fieldNameProvider.row(), ByteBuffer.wrap(maxRow));
                         try {
                             resultSet = session.execute(boundLastRow);
                         } catch (com.datastax.driver.core.exceptions.UnavailableException e) {
@@ -1293,20 +1296,21 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     private boolean shouldTraceQuery(TableReference tableRef) {
         return tracingPrefs.shouldTraceQuery(tableRef.getQualifiedName());
+    }
 
     byte[] getRowName(Row row) {
-        return CassandraKeyValueServices.getBytesFromByteBuffer(row.getBytes(fieldName.row()));
+        return CassandraKeyValueServices.getBytesFromByteBuffer(row.getBytes(fieldNameProvider.row()));
     }
 
     byte[] getColName(Row row) {
-        return CassandraKeyValueServices.getBytesFromByteBuffer(row.getBytes(fieldName.column()));
+        return CassandraKeyValueServices.getBytesFromByteBuffer(row.getBytes(fieldNameProvider.column()));
     }
 
     long getTs(Row row) {
-        return ~row.getLong(fieldName.timestamp());
+        return ~row.getLong(fieldNameProvider.timestamp());
     }
 
     byte[] getValue(Row row) {
-        return CassandraKeyValueServices.getBytesFromByteBuffer(row.getBytes(fieldName.value()));
+        return CassandraKeyValueServices.getBytesFromByteBuffer(row.getBytes(fieldNameProvider.value()));
     }
 }

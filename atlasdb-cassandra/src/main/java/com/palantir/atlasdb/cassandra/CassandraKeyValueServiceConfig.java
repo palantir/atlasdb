@@ -149,7 +149,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     }
 
     @Value.Default
-    public boolean scyllaDB() {
+    public boolean scyllaDb() {
         return false;
     }
 

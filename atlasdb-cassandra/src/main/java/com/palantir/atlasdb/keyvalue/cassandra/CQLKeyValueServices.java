@@ -277,15 +277,15 @@ public final class CQLKeyValueServices {
             chunkLength = explicitCompressionBlockSizeKB;
         }
 
-        queryBuilder.append("CREATE TABLE IF NOT EXISTS " + kvs.getFullTableName(tableRef) + " ( " // full table name (ks.cf)
-                + kvs.fieldName.row() + " blob, "
-                + kvs.fieldName.column() + " blob, "
-                + kvs.fieldName.timestamp() + " bigint, "
-                + kvs.fieldName.value() + " blob, "
+        queryBuilder.append("CREATE TABLE IF NOT EXISTS " + kvs.getFullTableName(tableRef) + " ( "
+                + kvs.fieldNameProvider.row() + " blob, "
+                + kvs.fieldNameProvider.column() + " blob, "
+                + kvs.fieldNameProvider.timestamp() + " bigint, "
+                + kvs.fieldNameProvider.value() + " blob, "
                 + "PRIMARY KEY ("
-                + kvs.fieldName.row() + ", "
-                + kvs.fieldName.column() + ", "
-                + kvs.fieldName.timestamp() + ")) "
+                + kvs.fieldNameProvider.row() + ", "
+                + kvs.fieldNameProvider.column() + ", "
+                + kvs.fieldNameProvider.timestamp() + ")) "
                 + "WITH COMPACT STORAGE ");
         queryBuilder.append("AND " + "bloom_filter_fp_chance = " + falsePositiveChance + " ");
         queryBuilder.append("AND caching = '{\"keys\":\"ALL\", \"rows_per_partition\":\"ALL\"}' ");
@@ -299,8 +299,8 @@ public final class CQLKeyValueServices {
         queryBuilder.append("AND compression = {'chunk_length_kb': '" + chunkLength + "', "
                 + "'sstable_compression': '" + CassandraConstants.DEFAULT_COMPRESSION_TYPE + "'}");
         queryBuilder.append("AND CLUSTERING ORDER BY ("
-                + kvs.fieldName.column() + " ASC, "
-                + kvs.fieldName.timestamp() + " ASC) ");
+                + kvs.fieldNameProvider.column() + " ASC, "
+                + kvs.fieldNameProvider.timestamp() + " ASC) ");
 
         BoundStatement createTableStatement =
                 kvs.getPreparedStatement(tableRef, queryBuilder.toString(), kvs.longRunningQuerySession)
