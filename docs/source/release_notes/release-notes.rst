@@ -50,6 +50,10 @@ v0.13.0
            Removed the advice to restart the client, as it will not help in this scenario.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/805>`__)
 
+    *    - |changed|
+         - Enforced validity constraints on configuration, as per `issue 790 <https://github.com/palantir/atlasdb/issue/790>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/854>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
