@@ -168,6 +168,11 @@
 <td><code class="docutils literal"><span class="pre">AtlasDbServer</span></code> has been renamed to <code class="docutils literal"><span class="pre">AtlasDbServiceServer</span></code>. Any products that are using this should switch to using the Java Feign client instead.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/801">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Improved logging for schema mutation lock timeouts and added logging for obtaining and releasing locks.
+Removed the advice to restart the client, as it will not help in this scenario.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/805">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
