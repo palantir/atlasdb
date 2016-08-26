@@ -46,8 +46,8 @@ v0.13.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/801>`__)
 
     *    - |improved|
-         - Changed the error message displayed when a client times out waiting for the schema mutation lock.
-           Removed the advice to restart the client, as it has never been known to help.
+         - Improved logging for schema mutation lock timeouts and added logging for obtaining and releasing locks.
+           Removed the advice to restart the client, as it will not help in this scenario.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/805>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
