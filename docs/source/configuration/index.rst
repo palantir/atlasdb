@@ -24,8 +24,9 @@ This configuration setup is required to use Cassandra KVS with more than one nod
 
 A minimal AtlasDB configuration for running against cassandra will look like the below.
 
-Importantly - your lock creator must be consistent across all nodes. If you do not provide a lock creator, it will default to the first host
-in the leaders list. If you do not specify a lock creator, the leaders block should be exactly the same across all nodes.
+Importantly - your lock creator must be consistent across all nodes.
+If you do not provide a lock creator, it will default to the lexicographically first host in the leaders list.
+Therefore, without a lock creator, the leaders block should be exactly the same across all nodes.
 
 .. code-block:: yaml
 
@@ -64,8 +65,8 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
           - https://host3:3828
 
 
-No Leader block (DEPRECATED)
-----------------------------
+Embedded AtlasDB Client with No Leader Block (DEPRECATED)
+---------------------------------------------------------
 
 If you only have one AtlasDB client, then you may run with no leader block, although this option is deprecated, and will be removed in a future release. An example configuration is below.
 
