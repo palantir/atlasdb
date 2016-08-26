@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
@@ -147,5 +148,16 @@ public abstract class AtlasDbConfig {
     @Value.Default
     public int getSweepBatchSize() {
         return AtlasDbConstants.DEFAULT_SWEEP_BATCH_SIZE;
+    }
+
+    @Value.Check
+    protected final void check() {
+        Preconditions.checkState(!leader().isPresent() || !lock().isPresent(),
+                "Leader and lock configuration blocks must not both be present.");
+        Preconditions.checkState(!leader().isPresent() || !timestamp().isPresent(),
+                "Leader and timestamp configuration blocks must not both be present.");
+
+        Preconditions.checkState(lock().isPresent() == timestamp().isPresent(),
+                "Can't only have one of lock and timestamp server blocks.");
     }
 }
