@@ -44,6 +44,10 @@ v0.13.0
     *    - |breaking|
          - ``AtlasDbServer`` has been renamed to ``AtlasDbServiceServer``. Any products that are using this should switch to using the Java Feign client instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/801>`__)
+    *    - |breaking|
+         - The method ``updateManyUnregisteredQuery(String sql)`` has been removed from the ``SqlConnection`` interface, as it was broken, unused, and unnecessary.
+           Use ``updateManyUnregisteredQuery(String sql, Iterable<Object[] list>)`` instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/796>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
