@@ -179,6 +179,20 @@ offers default AtlasDB configuration and connection out of the box.</p>
 <p>Read or recalculate the immutable timestamp. Run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">timestamp</span></code> for more information.</p>
 </div>
 </div>
+<div class="section" id="offline-clis">
+<h2>Offline CLIs<a class="headerlink" href="#offline-clis" title="Permalink to this headline">¶</a></h2>
+<p>Due to their destructive nature for in-progress transactions, there are two sub-commands of the timestamp CLI which can only be run when AtlasDB is offline. These are:</p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal"><span class="pre">clean-transactions</span></code></li>
+<li><code class="docutils literal"><span class="pre">fast-forward</span></code></li>
+</ul>
+</div></blockquote>
+<p>To run these CLIs, first ensure that all of your AtlasDB clients are shut down, and then run the CLI with the <code class="docutils literal"><span class="pre">--offline</span></code> flag.</p>
+<p>For example, to run the <code class="docutils literal"><span class="pre">fast-forward</span></code> command with default settings, run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">--offline</span> <span class="pre">-c</span> <span class="pre">&lt;path/to/atlasConfig.yaml&gt;</span> <span class="pre">timestamp</span> <span class="pre">-t</span> <span class="pre">&lt;targetTimestamp&gt;</span> <span class="pre">fast-forward</span></code>.</p>
+<p>The <code class="docutils literal"><span class="pre">--offline</span></code> flag will make the CLI ignore the leader, timestamp, and lock configuration blocks, and start an embedded timestamp and lock server.
+Once the CLI has completed, you can resume your AtlasDB clients.</p>
+</div>
 </div>
 
 
