@@ -1,3 +1,5 @@
+.. _cassandra-configuration:
+
 =========================================
 Cassandra Key Value Service Configuration
 =========================================

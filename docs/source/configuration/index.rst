@@ -2,7 +2,8 @@
 Configuration
 =============
 
-The AtlasDB configuration has two main blocks - keyValueService and leader. Please look at the keyValueService config for the KVS(Cassandra/Postgres) you are using and the Leader configuration page for configuring the leader block.
+The AtlasDB configuration has two main blocks - keyValueService and leader.
+Please look at the keyValueService config for the KVS (either :ref:`Cassandra <cassandra-configuration>` or :ref:`Postgres <postgres-configuration>`) you are using and the :ref:`Leader configuration <leader-config>` page for configuring the leader block.
 
 .. toctree::
    :maxdepth: 1
@@ -17,14 +18,22 @@ The AtlasDB configuration has two main blocks - keyValueService and leader. Plea
 
 There are three valid configuration modes, listed below.
 
+.. warning::
+
+   If you wish to run more than one AtlasDB client with Cassandra KVS, then you **must** provide a leader block.
+   Failure to do so can lead to data corruption.
+
 Leader block
 ------------
 
 This configuration setup is required to use Cassandra KVS with more than one node.
 
-A minimal AtlasDB configuration for running against cassandra will look like the below.
+A minimal AtlasDB configuration for running against Cassandra will look like the below.
 
-Importantly - your lock creator must be consistent across all nodes.
+.. warning::
+
+   Importantly - your lock creator must be consistent across all nodes.
+
 If you do not provide a lock creator, it will default to the lexicographically first host in the leaders list.
 Therefore, without a lock creator, the leaders block should be exactly the same across all nodes.
 
