@@ -21,6 +21,8 @@ import java.util.Set;
 import javax.validation.constraints.Size;
 
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -31,6 +33,7 @@ import com.google.common.base.Preconditions;
 @JsonSerialize(as = ImmutableLeaderConfig.class)
 @Value.Immutable
 public abstract class LeaderConfig {
+    private static final Logger log = LoggerFactory.getLogger(LeaderConfig.class);
 
     public abstract int quorumSize();
 
@@ -52,6 +55,9 @@ public abstract class LeaderConfig {
     @JsonProperty("lockCreator")
     @Value.Default
     public String lockCreator() {
+        log.warn("Lock creator not specified! "
+                + "Defaulting to the (lexicographically) first leader. "
+                + "This warning will become an error in future versions");
         return leaders().stream()
                 .sorted()
                 .findFirst()
