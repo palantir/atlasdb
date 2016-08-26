@@ -34,7 +34,7 @@ import com.palantir.common.visitor.Visitor;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
- * A wrapper for <code>BatchingVisitable</code> which adds support for extra operations over the contained objects.
+ * A wrapper for {@link BatchingVisitable} which adds support for common operations.
  *
  * @param <T> The contained object type.
  */
@@ -145,13 +145,21 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
     /**
      * Gets the first element in the visitable.
      *
-     * @return the first element or null if the visitable is empty
+     * @return the first element or <code>null</code> if the visitable is empty
      */
     @Nullable
     public T getFirst() {
         return BatchingVisitables.getFirst(delegate());
     }
 
+    /**
+     * Gets the first element in the visitable.
+     *
+     * If a default value of <code>null</code> is wanted, then consider
+     * calling {@link BatchingVisitableView#getFirst()} instead.
+     *
+     * @return the first element or <code>null</code> if the visitable is empty
+     */
     @Nullable
     public T getFirst(@Nullable T defaultElement) {
         return BatchingVisitables.getFirst(delegate(), defaultElement);
@@ -164,13 +172,21 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
     /**
      * Gets the last element in the visitable.
      *
-     * @return the last element or null if the visitable is empty
+     * @return the last element or <code>null</code> if the visitable is empty
      */
     @Nullable
     public T getLast() {
         return BatchingVisitables.getLast(delegate());
     }
 
+    /**
+     * Gets the last element in the visitable.
+     *
+     * If a default value of <code>null</code> is wanted, then consider
+     * calling {@link BatchingVisitableView#getLast()} instead.
+     *
+     * @return the last element or <code>defaultElement</code> if the visitable is empty
+     */
     @Nullable
     public T getLast(@Nullable T defaultElement) {
         return BatchingVisitables.getLast(delegate(), defaultElement);
