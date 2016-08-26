@@ -78,6 +78,10 @@ public class AtlasDbPerfCli {
                     + "Leave blank to only write results to the console.")
     private String outputFile;
 
+    @Option(name = {"--jmh-output"},
+            description = "The file to write the JMH log. Leave blank to write the log to the console.")
+    private String logFile;
+
     public static void main(String[] args) throws Exception {
         AtlasDbPerfCli cli = SingleCommand.singleCommand(AtlasDbPerfCli.class).parse(args);
 
@@ -102,6 +106,9 @@ public class AtlasDbPerfCli {
                 .forks(0)
                 .threads(1)
                 .param(BenchmarkParam.BACKEND.getKey(), getBackends(cli.backends));
+        if (cli.logFile != null) {
+            optBuilder.output(cli.logFile);
+        }
 
         if (cli.tests == null) {
             getAllBenchmarks().forEach(b -> optBuilder.include(".*" + b));
