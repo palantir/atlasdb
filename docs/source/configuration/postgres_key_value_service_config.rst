@@ -1,3 +1,5 @@
+.. _postgres-configuration:
+
 ========================================
 Postgres Key Value Service Configuration
 ========================================

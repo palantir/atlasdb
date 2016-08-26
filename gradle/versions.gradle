@@ -30,6 +30,7 @@ ext.libVersions =
     findbugs: '1.3.9',
     hikariCP: '2.4.7',
     checkstyle: '6.18',
+    findbugsAnnotations: '2.0.3',
 
     // Danger, Will Robinson!
     //

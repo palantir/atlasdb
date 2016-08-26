@@ -35,7 +35,7 @@ import com.palantir.util.Pair;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-abstract class ResultsExtractor<T, U> {
+public abstract class ResultsExtractor<T, U> {
     protected final T collector;
 
     ResultsExtractor(T collector) {

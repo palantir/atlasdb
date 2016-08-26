@@ -12,7 +12,7 @@ dependencies {
     compile('com.netflix.feign:feign-jaxrs:8.6.1') {
         exclude module: 'jsr311-api'
     }
-    // versions below 8.10.0 have a bug where POST requets must have a body
+    // versions below 8.10.0 have a bug where POST requests must have a body
     compile('com.netflix.feign:feign-okhttp:8.10.1') {
         exclude module: 'feign-core'
     }
@@ -21,6 +21,7 @@ dependencies {
     compile 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:' + libVersions.jackson
     compile 'io.dropwizard:dropwizard-jackson:' + libVersions.dropwizard
+    compile group: 'com.google.code.findbugs', name: 'annotations', version: libVersions.findbugsAnnotations
 
     processor 'org.immutables:value:' + libVersions.immutables
     processor 'com.google.auto.service:auto-service:1.0-rc2'
