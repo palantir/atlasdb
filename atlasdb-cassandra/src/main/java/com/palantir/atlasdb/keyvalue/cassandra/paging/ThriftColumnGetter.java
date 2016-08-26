@@ -22,7 +22,7 @@ import java.util.Map;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.KeySlice;
 
-public class DelegatingColumnGetter implements ColumnGetter {
+public class ThriftColumnGetter implements ColumnGetter {
 
     @Override
     public Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(List<KeySlice> firstPage) {

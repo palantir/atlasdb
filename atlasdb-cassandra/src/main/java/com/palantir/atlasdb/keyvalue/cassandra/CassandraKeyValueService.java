@@ -102,7 +102,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRangePagingIterab
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnFetchMode;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CqlColumnGetter;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.DelegatingColumnGetter;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
@@ -1322,7 +1322,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             ConsistencyLevel consistency,
             Supplier<ResultsExtractor<T, U>> resultsExtractor) {
         RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, ColumnFetchMode.FETCH_ALL);
-        ColumnGetter columnGetter = new DelegatingColumnGetter();
+        ColumnGetter columnGetter = new ThriftColumnGetter();
 
         return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, resultsExtractor, timestamp);
     }
