@@ -48,6 +48,8 @@ public class CQLStatementCache {
                 }
             });
 
+    // some errors are able to close the session,
+    // and the client driver we're using doesn't check and hands it back for us to use
     private PreparedStatement prepareSessionWithErrorHandling(Session currentSession, String query) {
         try {
             return currentSession.prepare(query);

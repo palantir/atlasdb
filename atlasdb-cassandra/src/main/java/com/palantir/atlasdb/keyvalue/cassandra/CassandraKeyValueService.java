@@ -201,11 +201,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     protected void init() {
         clientPool.runOneTimeStartupChecks();
+
         if (configManager.getConfig().scyllaDB() && !configManager.getConfig().safetyDisabled()) {
             throw new IllegalArgumentException("Not currently allowing Thrift-based access to ScyllaDB clusters; " +
                     "there appears to be from our tests an existing correctness bug with semi-complex column selections");
         }
-        boolean supportsCas = !configManager.getConfig().scyllaDB() && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
+
+        boolean supportsCas = !configManager.getConfig().scyllaDB()
+                && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
 
         schemaMutationLock = new SchemaMutationLock(
                 supportsCas,

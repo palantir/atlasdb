@@ -373,7 +373,7 @@ public class CassandraClientPool {
         return tableName.replaceFirst("\\.", "__");
     }
 
-    private InetSocketAddress getHostPortForHost(String host) throws UnknownHostException {
+    private InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
         InetAddress byName = InetAddress.getByName(host);
 
         for (InetSocketAddress address : Sets.union(currentPools.keySet(), config.servers())) {
@@ -395,7 +395,7 @@ public class CassandraClientPool {
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
                 String onlyEndpoint = Iterables.getOnlyElement(Iterables.getOnlyElement(tokenRanges).getEndpoints());
-                InetSocketAddress onlyHost = getHostPortForHost(onlyEndpoint);
+                InetSocketAddress onlyHost = getAddressForHost(onlyEndpoint);
                 newTokenRing.put(Range.all(), ImmutableList.of(onlyHost));
             } else { // normal case, large cluster with many vnodes
                 for (TokenRange tokenRange : tokenRanges) {
@@ -403,7 +403,7 @@ public class CassandraClientPool {
                         @Override
                         public InetSocketAddress apply(String endpoint) {
                             try {
-                                return getHostPortForHost(endpoint);
+                                return getAddressForHost(endpoint);
                             } catch (UnknownHostException e) {
                                 throw Throwables.rewrapAndThrowUncheckedException(e);
                             }

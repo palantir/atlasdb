@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.thrift.TException;
+import org.hamcrest.MatcherAssert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -118,13 +119,12 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
             cachePriority(TableMetadataPersistence.CachePriority.COLD);
         }}.toTableMetadata().persistToBytes();
 
-
         CassandraKeyValueService kvs;
         if (keyValueService instanceof CassandraKeyValueService) {
             kvs = (CassandraKeyValueService) keyValueService;
         } else if (keyValueService instanceof TableSplittingKeyValueService) { // scylla tests
             KeyValueService delegate = ((TableSplittingKeyValueService) keyValueService).getDelegate(testTable);
-            assert(delegate instanceof CassandraKeyValueService);
+            MatcherAssert.assertThat("The nesting of Key Value Services has apparently changed", delegate instanceof CassandraKeyValueService);
             kvs = (CassandraKeyValueService) delegate;
         } else {
             throw new IllegalArgumentException("Can't run this cassandra-specific test against a non-cassandra KVS");
@@ -134,10 +134,9 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
 
         List<CfDef> knownCfs = kvs.clientPool.runWithRetry(client ->
                 client.describe_keyspace("atlasdb").getCf_defs());
-        knownCfs.forEach(knownCf -> System.out.println(knownCf.getName()));
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream().filter(cf -> cf.getName().equals("ns__never_seen")).collect(Collectors.toList()));
 
-        assert(CassandraKeyValueServices.isMatchingCf(kvs.getCfForTable(testTable, tableMetadata), clusterSideCf));
+        MatcherAssert.assertThat("After serialization and deserialization to database, Cf metadata did not match.", (CassandraKeyValueServices.isMatchingCf(kvs.getCfForTable(testTable, tableMetadata), clusterSideCf)));
     }
 
     @Test
