@@ -101,9 +101,9 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
         return BatchingVisitables.hintPageSize(delegate(), batchSizeHint);
     }
 
-    public <U> BatchingVisitableView<U> transform(Function<? super T, ? extends U> transformingFunction) {
-        Preconditions.checkNotNull(transformingFunction, "Cannot transform using a null function");
-        return BatchingVisitables.transform(delegate(), transformingFunction);
+    public <U> BatchingVisitableView<U> transform(Function<? super T, ? extends U> fn) {
+        Preconditions.checkNotNull(fn, "Cannot transform using a null function");
+        return BatchingVisitables.transform(delegate(), fn);
     }
 
     /**
@@ -243,10 +243,10 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
     }
 
     /**
-     * Copies the current contents of this set view into an existing collection. This method has
-     * equivalent behavior to {@code Iterables.addAll(collection, this)}.
+     * Copies the elements in this visitable into an existing collection. This method has
+     * equivalent behaviour to {@code Iterables.addAll(collection, this)}.
      *
-     * @return a reference to {@code set}, for convenience
+     * @return a reference to {@code collection}, for convenience
      */
     public <S extends Collection<? super T>> S copyInto(final S collection) {
         Preconditions.checkNotNull(collection, "Cannot copy the visitable into a null collection");
