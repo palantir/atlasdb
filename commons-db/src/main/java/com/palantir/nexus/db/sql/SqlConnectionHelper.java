@@ -298,10 +298,6 @@ public final class SqlConnectionHelper {
         return updateCountRows(c, sql.getKey(), vs);
     }
 
-    void updateManyUnregisteredQuery(Connection c, String sql) throws PalantirSqlException {
-        updateManyUnregisteredQuery(c, sql, ImmutableList.<Object[]> of());
-    }
-
     void updateManyUnregisteredQuery(Connection c, String sql, Iterable<Object[]> list)
             throws PalantirSqlException {
         basicSql.updateMany(
