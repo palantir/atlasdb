@@ -44,7 +44,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.util.Pair;
 
 public class AllCellsPerRowPagerTest {
-
     private CqlExecutor executor = mock(CqlExecutor.class);
     private String rowName = "row";
     private ByteBuffer rowKey = toByteBuffer(rowName);

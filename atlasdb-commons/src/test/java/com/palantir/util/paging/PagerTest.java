@@ -30,7 +30,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 public class PagerTest {
-
     private static final int PAGE_SIZE = 10;
     private static final int INCOMPLETE_PAGE_SIZE = 5;
 

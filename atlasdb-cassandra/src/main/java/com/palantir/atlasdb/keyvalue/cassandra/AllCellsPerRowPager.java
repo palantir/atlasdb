@@ -29,7 +29,6 @@ import com.palantir.util.Pair;
 import com.palantir.util.paging.PageGetter;
 
 public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
-
     private CqlExecutor cqlExecutor;
     private String row;
     private TableReference tableRef;
@@ -86,5 +85,4 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
 
         return CassandraKeyValueServices.makeColumnOrSuperColumn(columnName, timestampAsBytes);
     }
-
 }
