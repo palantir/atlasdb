@@ -94,5 +94,22 @@ If you only have one AtlasDB client, then you may run with no leader block, alth
 Remote timestamp and lock service
 ---------------------------------
 
-TODO
+When you are running a client that can't be a leader, for instance a CLI, it is necessary to specify a remote lock and timestamp service, instead of a leader block.
+These must be singleton lists, pointing at the AtlasDB instance used to be used as lock and timestamp servers.
+
+.. code-block:: yaml
+
+    atlasdb:
+      keyValueService:
+        type: cassandra
+        # continues as above - omitted for brevity
+      # no leader block
+      lock:
+        servers:
+          # exactly one of these
+          - "http://localhost:3828/api"
+      timestamp:
+        servers:
+          # exactly one of these
+          - "http://localhost:3828/api"
 
