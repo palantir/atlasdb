@@ -152,9 +152,9 @@ public abstract class AtlasDbConfig {
 
     @Value.Check
     protected final void check() {
-        Preconditions.checkState(!leader().isPresent() || !lock().isPresent(),
+        Preconditions.checkState(!(leader().isPresent() && lock().isPresent()),
                 "Leader and lock configuration blocks must not both be present.");
-        Preconditions.checkState(!leader().isPresent() || !timestamp().isPresent(),
+        Preconditions.checkState(!(leader().isPresent() && timestamp().isPresent()),
                 "Leader and timestamp configuration blocks must not both be present.");
 
         Preconditions.checkState(lock().isPresent() == timestamp().isPresent(),
