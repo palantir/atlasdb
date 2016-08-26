@@ -5,13 +5,11 @@
         </encoder>
     </appender>
 
-    <logger name="com.palantir.nexus.db.pool.HikariCPConnectionManager" level="ERROR"/>
-    <logger name="com.palantir.docker.compose.logging.FileLogCollector" level="ERROR"/>
-
     <root level="WARN">
         <appender-ref ref="STDOUT" />
     </root>
 
     <logger name="com.palantir.nexus.db.pool.HikariCPConnectionManager" level="ERROR"/>
     <logger name="com.palantir.docker.compose.logging.FileLogCollector" level="ERROR"/>
+    <logger name="com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService" level="ERROR"/>
 </configuration>

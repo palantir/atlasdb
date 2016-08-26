@@ -29,11 +29,11 @@ import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 
 public enum KeyValueServiceType {
-    POSTGRES(ip -> ImmutableDbKeyValueServiceConfig.builder()
+    POSTGRES(addr -> ImmutableDbKeyValueServiceConfig.builder()
             .ddl(ImmutablePostgresDdlConfig.builder().build())
             .connection(
                     ImmutablePostgresConnectionConfig.builder()
-                            .host(ip)
+                            .host(addr.getHostString())
                             .port(5432)
                             .dbName("atlas")
                             .dbLogin("palantir")
@@ -42,8 +42,8 @@ public enum KeyValueServiceType {
             ).build(),
             5432,
             "postgres-docker-compose.yml"),
-    CASSANDRA(ip -> ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(new InetSocketAddress(ip, 9160))
+    CASSANDRA(addr -> ImmutableCassandraKeyValueServiceConfig.builder()
+            .addServers(addr)
             .poolSize(20)
             .keyspace("atlasdb")
             .credentials(ImmutableCassandraCredentialsConfig.builder()
@@ -61,20 +61,20 @@ public enum KeyValueServiceType {
             9160,
             "cassandra-docker-compose.yml");
 
-    private final Function<String, KeyValueServiceConfig> ipToKvsConfigFunction;
+    private final Function<InetSocketAddress, KeyValueServiceConfig> addressToKvsConfigFunction;
     private final int kvsPort;
     private final String dockerComposeFileName;
 
-    KeyValueServiceType(Function<String, KeyValueServiceConfig> ipToKvsConfigFunction,
+    KeyValueServiceType(Function<InetSocketAddress, KeyValueServiceConfig> addressToKvsConfigFunction,
             int kvsPort,
             String dockerComposeFileName) {
-        this.ipToKvsConfigFunction = ipToKvsConfigFunction;
+        this.addressToKvsConfigFunction = addressToKvsConfigFunction;
         this.kvsPort = kvsPort;
         this.dockerComposeFileName = dockerComposeFileName;
     }
 
-    public KeyValueServiceConfig getKeyValueServiceConfig(String ip) {
-        return ipToKvsConfigFunction.apply(ip);
+    public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress docker) {
+        return addressToKvsConfigFunction.apply(docker);
     }
 
     public String getDockerComposeResourceFileName() {

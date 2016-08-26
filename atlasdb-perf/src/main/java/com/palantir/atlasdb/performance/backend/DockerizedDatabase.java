@@ -18,6 +18,7 @@ package com.palantir.atlasdb.performance.backend;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.URL;
 
 import org.apache.commons.io.FileUtils;
@@ -33,13 +34,13 @@ public final class DockerizedDatabase {
 
     private static final String DOCKER_LOGS_DIR = "container-logs";
 
-    public static DockerizedDatabase create(int waitOnPort, String dockerComposeResourceFileName) {
+    public static DockerizedDatabase create(int dbPort, String dockerComposeResourceFileName) {
         DockerComposeRule docker = DockerComposeRule.builder()
                 .file(getDockerComposeFileAbsolutePath(dockerComposeResourceFileName))
-                .waitingForHostNetworkedPort(waitOnPort, toBeOpen())
+                .waitingForHostNetworkedPort(dbPort, toBeOpen())
                 .saveLogsTo(DOCKER_LOGS_DIR)
                 .build();
-        return new DockerizedDatabase(docker);
+        return new DockerizedDatabase(docker, dbPort);
     }
 
     private static String getDockerComposeFileAbsolutePath(String dockerComposeResourceFileName) {
@@ -65,18 +66,22 @@ public final class DockerizedDatabase {
     }
 
     private final DockerComposeRule docker;
+    private final int dbPort;
 
-    private DockerizedDatabase(DockerComposeRule docker) {
+    private DockerizedDatabase(DockerComposeRule docker, int dbPort) {
         this.docker = docker;
+        this.dbPort = dbPort;
     }
 
-    public String start() {
+    public InetSocketAddress start() {
         try {
             if (docker == null) {
                 throw new IllegalStateException("Docker compose rule cannot be run, is null.");
             } else {
                 docker.before();
-                return docker.containers().ip();
+                return InetSocketAddress.createUnresolved(
+                        docker.containers().ip(),
+                        docker.hostNetworkedPort(dbPort).getExternalPort());
             }
         } catch (IOException | InterruptedException | IllegalStateException e) {
             throw new RuntimeException("Could not run docker compose rule.", e);
