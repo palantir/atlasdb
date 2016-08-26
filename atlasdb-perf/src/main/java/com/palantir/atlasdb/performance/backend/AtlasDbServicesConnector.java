@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.performance.backend;
 
+import java.net.InetSocketAddress;
+
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
@@ -44,8 +46,8 @@ public class AtlasDbServicesConnector {
         }
         String dockerComposeResourceFileName = backend.getDockerComposeResourceFileName();
         store = DockerizedDatabase.create(backend.getKeyValueServicePort(), dockerComposeResourceFileName);
-        String ip = store.start();
-        KeyValueServiceConfig config = backend.getKeyValueServiceConfig(ip);
+        InetSocketAddress addr = store.start();
+        KeyValueServiceConfig config = backend.getKeyValueServiceConfig(addr);
         services = DaggerAtlasDbServices.builder()
                 .servicesConfigModule(
                         ServicesConfigModule.create(
