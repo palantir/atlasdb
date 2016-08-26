@@ -158,6 +158,6 @@ public abstract class AtlasDbConfig {
                 "Leader and timestamp configuration blocks must not both be present.");
 
         Preconditions.checkState(lock().isPresent() == timestamp().isPresent(),
-                "Can't only have one of lock and timestamp server blocks.");
+                "Lock and timestamp server blocks must either both be present or both be absent.");
     }
 }
