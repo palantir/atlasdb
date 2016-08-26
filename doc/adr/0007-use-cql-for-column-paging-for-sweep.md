@@ -27,7 +27,7 @@ columns for each row. Briefly, the algorithm implemented is as follows:
 2. Use CQL queries with limits to collect the <column, timestamp> pairs.
 
 Further, since performing a number of additional CQL queries for every row will be less efficient, and unnecessary for
-most users, we decided to add an optional parameter, sweepColumnBatchSize, in CassandraKVSConfig, and use the method
+most users, we decided to add an optional parameter, timestampsGetterBatchSize, in CassandraKVSConfig, and use the method
 described above only if this parameter is set.
 
 We chose CQL queries over thrift because CQL queries are simpler to write, and have been empirically shown to have
@@ -35,6 +35,6 @@ higher throughput.
 
 ## Consequences
 
-There is an additional parameter, sweepColumnBatchSize, in CassandraKVSConfig. If the user sets this parameter and then
+There is an additional parameter, timestampsGetterBatchSize, in CassandraKVSConfig. If the user sets this parameter and then
 runs sweep, the sweeper will page through the columns of each row while searching for timestamps, resulting in a process
 that is possibly less efficient, but is also more flexible, and less likely to cause Cassandra to run out of memory.

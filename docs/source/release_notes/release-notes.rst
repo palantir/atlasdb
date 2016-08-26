@@ -47,7 +47,7 @@ v0.13.0
 
     *    - |new|
          - ``CassandraKeyValueServiceConfiguration`` now supports :ref:`column paging <cassandra-sweep-config>`
-           via the ``sweepColumnBatchSize`` parameter.
+           via the ``timestampsGetterBatchSize`` parameter.
 
            Enabling such paging could make :ref:`Sweep <physical-cleanup-sweep>` more reliable by helping
            prevent sweep jobs from causing Cassandra nodes to run out of memory if the underlying Cassandra

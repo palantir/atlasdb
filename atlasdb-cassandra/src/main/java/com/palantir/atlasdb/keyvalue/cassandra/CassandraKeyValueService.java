@@ -1267,12 +1267,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
-        Optional<Integer> sweepColumnBatchSize = configManager.getConfig().sweepColumnBatchSize();
-        if (sweepColumnBatchSize.isPresent()) {
+        Optional<Integer> timestampsGetterBatchSize = configManager.getConfig().timestampsGetterBatchSize();
+        if (timestampsGetterBatchSize.isPresent()) {
             return getTimestampsWithPageCreator(
                     tableRef,
                     rangeRequest,
-                    sweepColumnBatchSize.get(),
+                    timestampsGetterBatchSize.get(),
                     timestamp,
                     deleteConsistency,
                     TimestampExtractor.SUPPLIER);

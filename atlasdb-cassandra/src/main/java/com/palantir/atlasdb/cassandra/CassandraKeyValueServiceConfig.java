@@ -149,7 +149,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     }
 
     @Value.Default
-    public Optional<Integer> sweepColumnBatchSize() {
+    public Optional<Integer> timestampsGetterBatchSize() {
         return Optional.absent();
     }
 
