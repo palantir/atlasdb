@@ -55,9 +55,7 @@ Due to their destructive nature for in-progress transactions, there are two sub-
 
 To run these CLIs, first ensure that all of your AtlasDB clients are shut down, and then run the CLI with the ``--offline`` flag.
 
-For example, to run the ``fast-forward`` command with default settings, run ``./bin/atlasdb --offline timestamp fast-forward``.
-
-To add custom configuration, use ``./bin/atlasdb --offline timestamp fast-forward --config <path/to/atlasConfig.yaml>``.
+For example, to run the ``fast-forward`` command with default settings, run ``./bin/atlasdb --offline -c <path/to/atlasConfig.yaml> timestamp -t <targetTimestamp> fast-forward``.
 
 The ``--offline`` flag will make the CLI ignore the leader, timestamp, and lock configuration blocks, and start an embedded timestamp and lock server.
 Once the CLI has completed, you can resume your AtlasDB clients.
