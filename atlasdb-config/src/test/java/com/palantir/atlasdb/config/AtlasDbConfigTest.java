@@ -20,34 +20,19 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.Test;
+import org.mockito.Mockito;
 
-import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 public class AtlasDbConfigTest {
-    private class TestKeyValueServiceConfig implements KeyValueServiceConfig {
-
-        @Override
-        public String type() {
-            return "test'";
-        }
-    }
-
-    private static final LeaderConfig LEADER_CONFIG = ImmutableLeaderConfig.builder()
-            .quorumSize(1)
-            .localServer("localhost")
-            .leaders(ImmutableSet.of("localhost"))
-            .build();
-    private static final ServerListConfig DEFAULT_SERVER_LIST = ImmutableServerListConfig.builder()
-            .addServers("server")
-            .build();
-
-    private final KeyValueServiceConfig kvsConfig = new TestKeyValueServiceConfig();
+    private static final KeyValueServiceConfig KVS_CONFIG = Mockito.mock(KeyValueServiceConfig.class);
+    private static final LeaderConfig LEADER_CONFIG = Mockito.mock(LeaderConfig.class);
+    private static final ServerListConfig DEFAULT_SERVER_LIST = Mockito.mock(ServerListConfig.class);
 
     @Test
     public void configWithNoLeaderOrLockIsValid() {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .keyValueService(kvsConfig)
+                .keyValueService(KVS_CONFIG)
                 .build();
         assertThat(config, not(nullValue()));
     }
@@ -60,7 +45,7 @@ public class AtlasDbConfigTest {
     @Test
     public void configWithLeaderBlockIsValid() {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .keyValueService(kvsConfig)
+                .keyValueService(KVS_CONFIG)
                 .leader(LEADER_CONFIG)
                 .build();
         assertThat(config, not(nullValue()));
@@ -69,7 +54,7 @@ public class AtlasDbConfigTest {
     @Test
     public void remoteLockAndTimestampConfigIsValid() {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .keyValueService(kvsConfig)
+                .keyValueService(KVS_CONFIG)
                 .lock(DEFAULT_SERVER_LIST)
                 .timestamp(DEFAULT_SERVER_LIST)
                 .build();
@@ -79,7 +64,7 @@ public class AtlasDbConfigTest {
     @Test(expected = IllegalStateException.class)
     public void leaderBlockNotPermittedWithLockAndTimestampBlocks() {
         ImmutableAtlasDbConfig.builder()
-                .keyValueService(kvsConfig)
+                .keyValueService(KVS_CONFIG)
                 .leader(LEADER_CONFIG)
                 .lock(DEFAULT_SERVER_LIST)
                 .timestamp(DEFAULT_SERVER_LIST)
@@ -89,7 +74,7 @@ public class AtlasDbConfigTest {
     @Test(expected = IllegalStateException.class)
     public void leaderBlockNotPermittedWithLockBlock() {
         ImmutableAtlasDbConfig.builder()
-                .keyValueService(kvsConfig)
+                .keyValueService(KVS_CONFIG)
                 .leader(LEADER_CONFIG)
                 .lock(DEFAULT_SERVER_LIST)
                 .build();
@@ -98,7 +83,7 @@ public class AtlasDbConfigTest {
     @Test(expected = IllegalStateException.class)
     public void leaderBlockNotPermittedWithTimestampBlock() {
         ImmutableAtlasDbConfig.builder()
-                .keyValueService(kvsConfig)
+                .keyValueService(KVS_CONFIG)
                 .leader(LEADER_CONFIG)
                 .timestamp(DEFAULT_SERVER_LIST)
                 .build();
@@ -107,7 +92,7 @@ public class AtlasDbConfigTest {
     @Test(expected = IllegalStateException.class)
     public void lockBlockRequiresTimestampBlock() {
         ImmutableAtlasDbConfig.builder()
-                .keyValueService(kvsConfig)
+                .keyValueService(KVS_CONFIG)
                 .lock(DEFAULT_SERVER_LIST)
                 .build();
     }
@@ -115,7 +100,7 @@ public class AtlasDbConfigTest {
     @Test(expected = IllegalStateException.class)
     public void timestampBlockRequiresLockBlock() {
         ImmutableAtlasDbConfig.builder()
-                .keyValueService(kvsConfig)
+                .keyValueService(KVS_CONFIG)
                 .timestamp(DEFAULT_SERVER_LIST)
                 .build();
     }
