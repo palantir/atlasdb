@@ -38,8 +38,8 @@ public abstract class TodoEteTest extends EteSetup {
     public void shouldBeAbleToWriteAndListTodos() {
         TodoResource todoClient = createClientToSingleNode(TodoResource.class);
 
-        todoClient.addTodo(TODO);
-        assertThat(todoClient.getTodoList(), contains(TODO));
+        todoClient.addTodo(TodoEteTest.TODO);
+        assertThat(todoClient.getTodoList(), contains(TodoEteTest.TODO));
     }
 
     @Test

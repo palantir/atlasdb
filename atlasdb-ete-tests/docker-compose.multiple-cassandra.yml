@@ -1,0 +1,41 @@
+version: '2'
+
+services:
+  cassandra1:
+     image: com.palantir.docker/atlas-cassandra:2.2-v0.1
+     ports:
+      - "9160"
+      - "9042"
+      - "7199"
+     environment:
+      - LOCAL_JMX=no
+
+  cassandra2:
+    image: com.palantir.docker/atlas-cassandra:2.2-v0.1
+    ports:
+      - 9161:9160
+    depends_on:
+      - cassandra1
+    environment:
+      - CASSANDRA_SEEDS=cassandra1
+      - LOCAL_JMX=no
+
+  cassandra3:
+    image: com.palantir.docker/atlas-cassandra:2.2-v0.1
+    ports:
+      - 9162:9160
+    depends_on:
+      - cassandra1
+    environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2
+      - LOCAL_JMX=no
+
+  ete1:
+    build: .
+    command: bash -c 'cp var/conf/atlasdb-ete.no-leader.multiple-cassandra.client.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://cassandra1:9160 && service/bin/init.sh console'
+    depends_on:
+      - cassandra1
+    environment:
+      - ME=ete1
+    ports:
+      - "3828"
