@@ -29,18 +29,6 @@ Right now, the best way to get the CLI is by cloning the atlasdb source code and
 
 This will create a zip file in ``atlasdb-cli/build/distributions``, which you can unzip on the machine where your AtlasDB server is installed.
 
-Offline CLIs
-============
-
-Due to their destructive nature for in-progress transactions, there are some CLIs which can must be run when AtlasDB is offline. These are:
-
-  - ``clean-transactions``
-  - ``fast-forward``
-
-To run these CLIs, first ensure that all of your AtlasDB clients are all shut down, and then run the CLI with the ``--offline`` flag, for example ``./bin/atlasdb --offline timestamp fast-forward``.
-This will make the CLI ignore the leader, timestamp, and lock configuration blocks, and start an embedded timestamp and lock server.
-Once the CLI has completed, you can resume your AtlasDB clients.
-
 Built-In Commands
 =================
 
@@ -57,4 +45,20 @@ timestamp
 
 Read or recalculate the immutable timestamp. Run ``./bin/atlasdb help timestamp`` for more information.
 
+Offline CLIs
+============
+
+Due to their destructive nature for in-progress transactions, there are two sub-commands of the timestamp CLI which can only be run when AtlasDB is offline. These are:
+
+  - ``clean-transactions``
+  - ``fast-forward``
+
+To run these CLIs, first ensure that all of your AtlasDB clients are all shut down, and then run the CLI with the ``--offline`` flag.
+
+For example, to run the ``fast-forward`` command with default settings, run ``./bin/atlasdb --offline timestamp fast-forward``.
+
+To add custom configuration, use ``./bin/atlasdb --offline timestamp fast-forward --config <path/to/atlasConfig.yaml>``.
+
+The ``--offline`` flag will make the CLI ignore the leader, timestamp, and lock configuration blocks, and start an embedded timestamp and lock server.
+Once the CLI has completed, you can resume your AtlasDB clients.
 
