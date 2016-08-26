@@ -45,6 +45,11 @@ v0.13.0
          - ``AtlasDbServer`` has been renamed to ``AtlasDbServiceServer``. Any products that are using this should switch to using the Java Feign client instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/801>`__)
 
+    *    - |improved|
+         - Improved logging for schema mutation lock timeouts and added logging for obtaining and releasing locks.
+           Removed the advice to restart the client, as it will not help in this scenario.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/805>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
