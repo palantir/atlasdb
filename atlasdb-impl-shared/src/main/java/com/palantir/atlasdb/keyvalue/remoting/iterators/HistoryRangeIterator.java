@@ -29,18 +29,22 @@ import com.palantir.common.base.ClosableIterator;
 
 public class HistoryRangeIterator extends RangeIterator<Set<Value>> {
     @JsonCreator
-    public HistoryRangeIterator(@JsonProperty("tableRef") TableReference tableRef,
-                                @JsonProperty("range") RangeRequest range,
-                                @JsonProperty("timestamp") long timestamp,
-                                @JsonProperty("hasNext") boolean hasNext,
-                                @JsonProperty("page") ImmutableList<RowResult<Set<Value>>> page) {
+    public HistoryRangeIterator(
+            @JsonProperty("tableRef") TableReference tableRef,
+            @JsonProperty("range") RangeRequest range,
+            @JsonProperty("timestamp") long timestamp,
+            @JsonProperty("hasNext") boolean hasNext,
+            @JsonProperty("page") ImmutableList<RowResult<Set<Value>>> page) {
         super(tableRef, range, timestamp, hasNext, page);
     }
 
     @Override
-    protected ClosableIterator<RowResult<Set<Value>>> getMoreRows(KeyValueService kvs, TableReference tableRef,
-                                                                  RangeRequest newRange, long timestamp) {
-        return kvs.getRangeWithHistory(tableRef, newRange, timestamp);
+    protected ClosableIterator<RowResult<Set<Value>>> getMoreRows(
+            KeyValueService kvs,
+            TableReference tableReference,
+            RangeRequest newRange,
+            long newTimestamp) {
+        return kvs.getRangeWithHistory(tableReference, newRange, newTimestamp);
     }
 
 }

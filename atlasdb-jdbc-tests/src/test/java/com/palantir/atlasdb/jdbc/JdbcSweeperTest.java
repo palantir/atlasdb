@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.jdbc;
 
-import com.palantir.atlasdb.cleaner.AbstractSweeperTest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.sweep.AbstractSweeperTest;
 
 public class JdbcSweeperTest extends AbstractSweeperTest {
     @Override

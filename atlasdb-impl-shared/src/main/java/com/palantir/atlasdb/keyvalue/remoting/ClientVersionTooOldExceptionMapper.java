@@ -21,10 +21,13 @@ import javax.ws.rs.ext.ExceptionMapper;
 import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
 
 
-public class ClientVersionTooOldExceptionMapper implements ExceptionMapper<ClientVersionTooOldException> {
+public final class ClientVersionTooOldExceptionMapper implements ExceptionMapper<ClientVersionTooOldException> {
+    private static final ClientVersionTooOldExceptionMapper instance = new ClientVersionTooOldExceptionMapper();
 
-    private ClientVersionTooOldExceptionMapper() {}
-    private static ClientVersionTooOldExceptionMapper instance = new ClientVersionTooOldExceptionMapper();
+    private ClientVersionTooOldExceptionMapper() {
+        // singleton
+    }
+
     public static ClientVersionTooOldExceptionMapper instance() {
         return instance;
     }
@@ -33,5 +36,4 @@ public class ClientVersionTooOldExceptionMapper implements ExceptionMapper<Clien
     public Response toResponse(ClientVersionTooOldException exception) {
         return Response.noContent().status(410).build();
     }
-
 }

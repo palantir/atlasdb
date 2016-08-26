@@ -45,7 +45,8 @@ import feign.codec.Decoder;
 import feign.codec.StringDecoder;
 
 /**
- * If the response has a Content-Type of text/plain, then this decoder uses a string decoder. Otherwise, it falls back to the delegate.
+ * If the response has a Content-Type of text/plain, then this decoder uses a string decoder.
+ * Otherwise, it falls back to the delegate.
  * @author jmeacham
  */
 public class TextDelegateDecoder implements Decoder {

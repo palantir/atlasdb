@@ -39,11 +39,25 @@ import com.palantir.common.annotation.Immutable;
  * @author htarasiuk
  *
  */
-@Immutable public class ClientVersionTooOldException extends VersionMismatchException {
-
+@Immutable
+public class ClientVersionTooOldException extends VersionMismatchException {
     private static final long serialVersionUID = 1L;
 
     private final String pmsUri;
+
+
+    public ClientVersionTooOldException() {
+        super(null);
+        this.pmsUri = null;
+    }
+
+    public ClientVersionTooOldException(String pmsUri) {
+        // WARNING! The message has to be filled in with pmsUri since some
+        // Palantir Throwables rewrapping logic will recreate the exception by
+        // passing the getMessage() result to the single-argument constructor.
+        super(pmsUri);
+        this.pmsUri = Preconditions.checkNotNull(pmsUri, "pmsUri cannot be null");
+    }
 
     /**
      * Only use this if the pmsUri has been filled in.
@@ -52,25 +66,12 @@ import com.palantir.common.annotation.Immutable;
      * associated with the KeyValueService that threw the original exception.
      */
     public DynamicPartitionMap getUpdatedMap() {
-    	return RemotingPartitionMapService.createClientSide(
-    			Preconditions.checkNotNull(pmsUri)).getMap();
+        return RemotingPartitionMapService.createClientSide(
+                Preconditions.checkNotNull(pmsUri, "pmsUri must not be null to get the updated map")).getMap();
     }
 
-    public ClientVersionTooOldException(String pmsUri) {
-        // WARNING! The message has to be filled in with pmsUri since some
-        // Palantir Throwables rewrapping logic will recreate the exception by
-        // passing the getMessage() result to the single-argument constructor.
-        super(pmsUri);
-    	this.pmsUri = Preconditions.checkNotNull(pmsUri);
+    @Override
+    public String toString() {
+        return "ClientVersionTooOldException [pmsUri=" + pmsUri + "]";
     }
-
-    public ClientVersionTooOldException() {
-        super(null);
-    	this.pmsUri = null;
-    }
-
-	@Override
-	public String toString() {
-		return "ClientVersionTooOldException [pmsUri=" + pmsUri + "]";
-	}
 }

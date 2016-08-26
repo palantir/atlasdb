@@ -47,7 +47,7 @@ public class CassandraConnectionTest {
 
     private static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
             .builder()
-            .quorumSize(0)
+            .quorumSize(1)
             .localServer("localhost")
             .leaders(Sets.newHashSet("localhost"))
             .build());

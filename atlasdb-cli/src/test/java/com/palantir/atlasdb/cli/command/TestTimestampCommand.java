@@ -19,15 +19,19 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
@@ -43,10 +47,10 @@ import com.palantir.atlasdb.cleaner.SimplePuncher;
 import com.palantir.atlasdb.cli.command.timestamp.FetchTimestamp;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.cli.runner.SingleBackendCliTestRunner;
-import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.cli.services.DaggerTestAtlasDbServices;
-import com.palantir.atlasdb.cli.services.ServicesConfigModule;
 import com.palantir.atlasdb.cli.services.TestAtlasDbServices;
+import com.palantir.atlasdb.services.AtlasDbServicesFactory;
+import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.common.time.Clock;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
@@ -57,6 +61,7 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.timestamp.TimestampService;
 
+@RunWith(Parameterized.class)
 public class TestTimestampCommand {
 
     private static LockDescriptor lock;
@@ -76,33 +81,34 @@ public class TestTimestampCommand {
                         .build();
             }
         };
+        cleanUpTimestampFile();
     }
 
-    @AfterClass
-    public static void cleanUp() {
+    @Parameterized.Parameter(value = 0)
+    public boolean isImmutable;
+
+    @Parameterized.Parameter(value = 1)
+    public boolean isToFile;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> parameters() {
+        return Arrays.asList(new Object[][] {
+                { true, true },
+                { true, false },
+                { false, true },
+                { false, false }
+        });
+    }
+
+    @After
+    public void cleanUp() {
+        cleanUpTimestampFile();
+    }
+
+    private static void cleanUpTimestampFile() {
         if (TIMESTAMP_FILE.exists()){
             TIMESTAMP_FILE.delete();
         }
-    }
-
-    @Test
-    public void testFreshToStdOut() throws Exception {
-        genericTest(false, false);
-    }
-
-    @Test
-    public void testImmutableToStdOut() throws Exception {
-        genericTest(true, false);
-    }
-
-    @Test
-    public void testFreshToFile() throws Exception {
-        genericTest(false, true);
-    }
-
-    @Test
-    public void testImmutableToFile() throws Exception {
-        genericTest(true, true);
     }
 
     private SingleBackendCliTestRunner makeRunner(String... args) {
@@ -123,7 +129,8 @@ public class TestTimestampCommand {
      * to a file for the purposes of scripting these commands is also correct.  isToFile
      * designates whether or not we provided the argument to write to a file rather than just stdout
      */
-    private void genericTest(boolean isImmutable, boolean isToFile) throws Exception {
+    @Test
+    public void genericTest() throws Exception {
         List<String> cliArgs = Lists.newArrayList("timestamp"); //group command
         if (isToFile) {
             cliArgs.add("-f");
@@ -158,24 +165,19 @@ public class TestTimestampCommand {
                     .withLockedInVersionId(immutableTs).doNotBlock().build();
             LockRefreshToken token = rls.lock(client.getClientId(), request);
             long lastFreshTs = tss.getFreshTimestamps(1000).getUpperBound();
-            runAndVerify(runner, tss, isImmutable, isToFile, immutableTs, lastFreshTs, prePunch, postPunch);
+            runAndVerify(runner, tss, isImmutable, immutableTs, lastFreshTs, prePunch, postPunch);
 
             rls.unlock(token);
             lastFreshTs = tss.getFreshTimestamps(1000).getUpperBound();
-            // there are no locks so we now expect immutable to just be a fresh 
+            // there are no locks so we now expect immutable to just be a fresh
             runner.freshCommand();
-            runAndVerify(runner, tss, false, isToFile, lastFreshTs, lastFreshTs, prePunch, postPunch);
+            runAndVerify(runner, tss, false, lastFreshTs, lastFreshTs, prePunch, postPunch);
         }
     }
 
     private void runAndVerify(SingleBackendCliTestRunner runner, TimestampService tss,
-            boolean isImmutable, boolean isToFile, long immutableTs, long lastFreshTs,
+            boolean immutable, long immutableTs, long lastFreshTs,
             long prePunch, long postPunch) throws IOException {
-        // prep
-        if (isToFile && TIMESTAMP_FILE.exists()) {
-            TIMESTAMP_FILE.delete();
-        }
-
         // run the stuff
         Scanner scanner = new Scanner(runner.run(true, false));
         // get timestamp from stdout
@@ -198,7 +200,7 @@ public class TestTimestampCommand {
         // verify correctness
         Preconditions.checkArgument(datetime.isAfter(prePunch));
         Preconditions.checkArgument(datetime.isBefore(postPunch));
-        if (isImmutable) {
+        if (immutable) {
             Preconditions.checkArgument(timestamp == immutableTs);
             Preconditions.checkArgument(timestamp < lastFreshTs);
             Preconditions.checkArgument(timestamp < tss.getFreshTimestamp());

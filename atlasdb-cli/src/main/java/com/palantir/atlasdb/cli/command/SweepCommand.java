@@ -32,11 +32,11 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
+import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
@@ -72,6 +72,11 @@ public class SweepCommand extends SingleBackendCommand {
     @Option(name = {"--sleep"},
             description = "Time to wait in milliseconds after each sweep batch (throttles long-running sweep jobs, default: 0)")
     long sleepTimeInMs = 0;
+
+    @Override
+    public boolean isOnlineRunSupported() {
+        return true;
+    }
 
 	@Override
 	public int execute(final AtlasDbServices services) {

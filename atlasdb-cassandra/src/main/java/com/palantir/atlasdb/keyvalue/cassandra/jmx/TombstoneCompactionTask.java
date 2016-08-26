@@ -34,7 +34,7 @@ public class TombstoneCompactionTask implements Callable<Void> {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(keyspace));
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()));
 
-        this.client = Preconditions.checkNotNull(client);
+        this.client = Preconditions.checkNotNull(client, "client cannot be null");
         this.keyspace = keyspace;
         this.tableRef = tableRef;
     }

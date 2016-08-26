@@ -15,10 +15,10 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheLoader;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -48,14 +48,14 @@ public class StartTsToCommitTsCacheLoader extends CacheLoader<Long, Long> {
             // TODO: carrino: use the batched version of putUnlessExists when it is available.
             transactionService.putUnlessExists(startTs, TransactionConstants.FAILED_COMMIT_TS);
         } catch (KeyAlreadyExistsException e) {
-            String msg = "Could not roll back transaction with start timestamp " + startTs + "; either" +
-                    " it was already rolled back (by a different transaction), or it committed successfully" +
-                    " before we could roll it back.";
+            String msg = "Could not roll back transaction with start timestamp " + startTs + "; either"
+                    + " it was already rolled back (by a different transaction), or it committed successfully"
+                    + " before we could roll it back.";
             log.warn("This isn't a bug but it should be very infrequent. " + msg,
                     new TransactionFailedRetriableException(msg, e));
         }
 
         commitTs = transactionService.get(startTs);
-        return Preconditions.checkNotNull(commitTs);
+        return Validate.notNull(commitTs, "commitTs should not be null");
     }
 }

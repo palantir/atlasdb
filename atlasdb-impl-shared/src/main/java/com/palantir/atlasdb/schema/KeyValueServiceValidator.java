@@ -83,11 +83,13 @@ public class KeyValueServiceValidator {
     }
 
     public void validate(boolean logOnly) {
-        Set<TableReference> tables = KeyValueServiceMigrators.getMigratableTableNames(validationFromKvs, unmigratableTables);
+        Set<TableReference> tables = KeyValueServiceMigrators
+                .getMigratableTableNames(validationFromKvs, unmigratableTables);
         try {
             validateTables(tables);
         } catch (Throwable t) {
-            KeyValueServiceMigrators.processMessage(messageProcessor, "Validation failed.", t, KvsMigrationMessageLevel.ERROR);
+            KeyValueServiceMigrators.processMessage(messageProcessor,
+                    "Validation failed.", t, KvsMigrationMessageLevel.ERROR);
             if (!logOnly) {
                 Throwables.throwUncheckedException(t);
             }

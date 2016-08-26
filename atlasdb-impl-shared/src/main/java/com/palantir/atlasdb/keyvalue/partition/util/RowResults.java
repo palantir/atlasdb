@@ -31,10 +31,12 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.partition.quorum.QuorumParameters;
 import com.palantir.common.base.Throwables;
 
-public class RowResults {
+public final class RowResults {
+    private RowResults() {
+        // Utility class
+    }
 
     public static Map<Cell, Value> getNewestValue(RowResult<Value> row) {
-
         Map<Cell, Value> result = Maps.newHashMap();
 
         for (Map.Entry<Cell, Value> e : row.getCells()) {
@@ -46,7 +48,6 @@ public class RowResults {
         }
 
         return result;
-
     }
 
     /*
@@ -112,7 +113,7 @@ public class RowResults {
             for (Map.Entry<Cell, Set<Value>> e : kvsResult.getCells()) {
                 final byte[] col = e.getKey().getColumnName();
                 if (!result.containsKey(col)) {
-                    result.put(col, Sets.<Value> newHashSet());
+                    result.put(col, Sets.newHashSet());
                 }
                 result.get(col).addAll(e.getValue());
             }
@@ -142,7 +143,7 @@ public class RowResults {
             RowResult<Set<Long>> kvsResult = it.next();
             for (Map.Entry<Cell, Set<Long>> e : kvsResult.getCells()) {
                 if (!result.containsKey(e.getKey().getColumnName())) {
-                    result.put(e.getKey().getColumnName(), Sets.<Long> newHashSet());
+                    result.put(e.getKey().getColumnName(), Sets.newHashSet());
                 }
                 result.get(e.getKey().getColumnName()).addAll(e.getValue());
             }

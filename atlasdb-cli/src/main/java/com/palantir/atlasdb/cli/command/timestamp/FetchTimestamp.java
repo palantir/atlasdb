@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
-import com.palantir.atlasdb.cli.services.AtlasDbServices;
+import com.palantir.atlasdb.services.AtlasDbServices;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
@@ -30,7 +30,6 @@ import io.airlift.airline.OptionType;
 @Command(name = "fetch", description = "Fetches a timestamp. By default"
         + " this will be a fresh timestamp unless otherwise specified.")
 public class FetchTimestamp extends AbstractTimestampCommand {
-
     private static final Logger log = LoggerFactory.getLogger(FetchTimestamp.class);
 
     @Option(name = {"-i", "--immutable"},
@@ -46,6 +45,11 @@ public class FetchTimestamp extends AbstractTimestampCommand {
 
     private static final String IMMUTABLE_STRING = "Immutable";
     private static final String FRESH_STRING = "Fresh";
+
+    @Override
+    public boolean isOnlineRunSupported() {
+        return true;
+    }
 
     @Override
     protected boolean requireTimestamp() {
@@ -65,12 +69,11 @@ public class FetchTimestamp extends AbstractTimestampCommand {
         log.info("The {} timestamp is: {}", name, timestamp);
         writeTimestampToFileIfSpecified();
 
-        String stringTime = null;
         if (dateTime) {
             long timeMillis = KeyValueServicePuncherStore.getMillisForTimestamp(
                     services.getKeyValueService(), timestamp);
             DateTime dt = new DateTime(timeMillis);
-            stringTime = ISODateTimeFormat.dateTime().print(dt);
+            String stringTime = ISODateTimeFormat.dateTime().print(dt);
             log.info("Wall clock datetime of {} timestamp is: {}", name, stringTime);
         }
 

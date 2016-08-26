@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.jmx;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import javax.management.remote.JMXConnector;
@@ -28,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
@@ -36,9 +36,9 @@ import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 /**
- * Maintains a JMX client for each node in C* cluster
+ * Maintains a JMX client for each node in C* cluster.
  */
-public class CassandraJmxCompactionClient {
+public final class CassandraJmxCompactionClient {
     private static final Logger log = LoggerFactory.getLogger(CassandraJmxCompactionClient.class);
     private final String host;
     private final int port;
@@ -57,10 +57,12 @@ public class CassandraJmxCompactionClient {
         Preconditions.checkArgument(port > 0);
         this.host = host;
         this.port = port;
-        this.jmxConnector = Preconditions.checkNotNull(jmxConnector);
-        this.storageServiceProxy = Preconditions.checkNotNull(storageServiceProxy);
-        this.hintedHandoffProxy = Preconditions.checkNotNull(hintedHandoffProxy);
-        this.compactionManagerProxy = Preconditions.checkNotNull(compactionManagerProxy);
+        this.jmxConnector = Preconditions.checkNotNull(jmxConnector, "jmxConnector cannot be null");
+        this.storageServiceProxy = Preconditions.checkNotNull(storageServiceProxy,
+                "storageServiceProxy cannot be null");
+        this.hintedHandoffProxy = Preconditions.checkNotNull(hintedHandoffProxy, "hintedHandoffProxy cannot be null");
+        this.compactionManagerProxy = Preconditions.checkNotNull(compactionManagerProxy,
+                "compactionManagerProxy cannot be null");
     }
 
     public static CassandraJmxCompactionClient create(String host,
@@ -69,7 +71,13 @@ public class CassandraJmxCompactionClient {
                                                       StorageServiceMBean storageServiceProxy,
                                                       HintedHandOffManagerMBean hintedHandoffProxy,
                                                       CompactionManagerMBean compactionManagerProxy) {
-        return new CassandraJmxCompactionClient(host, port, jmxConnector, storageServiceProxy, hintedHandoffProxy, compactionManagerProxy);
+        return new CassandraJmxCompactionClient(
+                host,
+                port,
+                jmxConnector,
+                storageServiceProxy,
+                hintedHandoffProxy,
+                compactionManagerProxy);
     }
 
     public void deleteLocalHints() {
@@ -98,7 +106,7 @@ public class CassandraJmxCompactionClient {
     public boolean forceTableCompaction(String keyspace, TableReference tableRef) {
         boolean status = tryTableCompactionInternal(keyspace, tableRef);
         int retries = 0;
-        while (status == false && retries < RETRY_TIMES) {
+        while (!status && retries < RETRY_TIMES) {
             retries++;
             log.info("Failed to compact, retrying in {} seconds for {} time(s)", RETRY_INTERVAL_IN_SECONDS, retries);
             try {
@@ -108,7 +116,7 @@ public class CassandraJmxCompactionClient {
             }
             status = tryTableCompactionInternal(keyspace, tableRef);
         }
-        if (status == false) {
+        if (!status) {
             log.error("Failed to compact after {} retries.", RETRY_INTERVAL_IN_SECONDS);
         }
         return status;
@@ -150,18 +158,21 @@ public class CassandraJmxCompactionClient {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(host, port);
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        CassandraJmxCompactionClient that = (CassandraJmxCompactionClient) obj;
+        return port == that.port
+                && Objects.equals(host, that.host);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof CassandraJmxCompactionClient)) {
-            return false;
-        }
-        CassandraJmxCompactionClient rhs = (CassandraJmxCompactionClient) obj;
-        return Objects.equal(this.host, rhs.host) && Objects.equal(this.port, rhs.port);
+    public int hashCode() {
+        return Objects.hash(host, port);
     }
 
     @Override

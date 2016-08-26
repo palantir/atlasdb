@@ -18,24 +18,30 @@ package com.palantir.atlasdb.keyvalue.partition.util;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.common.annotation.Immutable;
 
-@Immutable public class ConsistentRingRangeRequest {
+@Immutable
+public final class ConsistentRingRangeRequest {
     private final RangeRequest rangeRequest;
-    public RangeRequest get() {
-        return rangeRequest;
-    }
+
     private ConsistentRingRangeRequest(RangeRequest rangeRequest) {
         this.rangeRequest = rangeRequest;
     }
+
     public static ConsistentRingRangeRequest of(RangeRequest rangeRequest) {
         return new ConsistentRingRangeRequest(rangeRequest);
     }
+
+    public RangeRequest get() {
+        return rangeRequest;
+    }
+
     @Override
     public String toString() {
         return "CRRR=[" + rangeRequest + "]";
     }
+
     @Override
     public boolean equals(Object other) {
-        if (other instanceof ConsistentRingRangeRequest == false) {
+        if (!(other instanceof ConsistentRingRangeRequest)) {
             return false;
         }
         ConsistentRingRangeRequest otherCrrr = (ConsistentRingRangeRequest) other;

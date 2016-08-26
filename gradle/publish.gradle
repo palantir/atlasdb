@@ -6,12 +6,20 @@ task sourceJar(type: Jar) {
     classifier 'sources'
 }
 
+task testJar(type: Jar) {
+    from project.sourceSets.test.output
+    classifier 'tests'
+}
+
 publishing {
     publications {
         bintray(MavenPublication) {
             from components.java
             artifact(sourceJar) {
                 classifier 'sources'
+            }
+            artifact(testJar) {
+                classifier 'tests'
             }
             pom.withXml {
                 def scm = asNode().appendNode('scm')
@@ -44,5 +52,6 @@ bintrayUpload.onlyIf {
 
 bintrayUpload.dependsOn { generatePomFileForBintrayPublication }
 bintrayUpload.dependsOn { sourceJar }
+bintrayUpload.dependsOn { testJar }
 bintrayUpload.dependsOn { build }
 

@@ -27,19 +27,18 @@ import com.google.common.collect.Maps;
  *
  * @author jweel
  */
-class InMemoryPuncherStore implements PuncherStore {
-    // TODO (ejin): Use a KeyValueServicePuncherStore backed by an InMemoryKeyValueService
-    // for unit tests instead
+final class InMemoryPuncherStore implements PuncherStore {
+    // TODO (ejin): Use a KeyValueServicePuncherStore backed by an InMemoryKeyValueService for unit tests instead
     public static InMemoryPuncherStore create() {
         return new InMemoryPuncherStore();
     }
 
-    private InMemoryPuncherStore() {//
+    private InMemoryPuncherStore() {
     }
 
     private final NavigableMap<Long, Long> map = makeMap();
 
-    private final NavigableMap<Long, Long> makeMap() {
+    private NavigableMap<Long, Long> makeMap() {
         NavigableMap<Long, Long> map1 = Maps.newTreeMap();
         map1.put(Long.MIN_VALUE, Long.MIN_VALUE);
         return map1;

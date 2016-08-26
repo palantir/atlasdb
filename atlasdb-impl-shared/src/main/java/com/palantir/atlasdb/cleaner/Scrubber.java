@@ -63,7 +63,6 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.Throwables;
@@ -198,10 +197,12 @@ public final class Scrubber {
                         if (service.isShutdown()) {
                             break;
                         } else {
-                            log.error("Interrupted unexpectedly during background scrub task, but continuing anyway", e);
+                            log.error("Interrupted unexpectedly during background scrub task,"
+                                    + " but continuing anyway", e);
                         }
                     } catch (Throwable t) { // (authorized)
-                        log.error("Encountered the following error during background scrub task, but continuing anyway", t);
+                        log.error("Encountered the following error during background scrub task,"
+                                + " but continuing anyway", t);
                         numberOfAttempts++;
                         try {
                             Thread.sleep(RETRY_SLEEP_INTERVAL_IN_MILLIS);
@@ -237,7 +238,7 @@ public final class Scrubber {
                     + ", unreadableTimestamp: " + unreadableTimestamp
                     + ", min: " + maxScrubTimestamp);
         }
-        final int batchSize = ((int) Math.ceil(batchSizeSupplier.get() * ((double) threadCount / readThreadCount)));
+        final int batchSize = (int) Math.ceil(batchSizeSupplier.get() * ((double) threadCount / readThreadCount));
 
         List<byte[]> rangeBoundaries = Lists.newArrayList();
         rangeBoundaries.add(PtBytes.EMPTY_BYTE_ARRAY);
@@ -253,40 +254,39 @@ public final class Scrubber {
         for (int i = 0; i < rangeBoundaries.size() - 1; i++) {
             final byte[] startRow = rangeBoundaries.get(i);
             final byte[] endRow = rangeBoundaries.get(i + 1);
-            readerFutures.add(readerExec.submit(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    BatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>> scrubQueue =
-                            scrubberStore.getBatchingVisitableScrubQueue(batchSize, maxScrubTimestamp, startRow, endRow);
-                    // Take one at a time since we already batched them together in KeyValueServiceScrubberStore.
-                    BatchingVisitableView.of(scrubQueue).batchAccept(1, new AbortingVisitor<List<SortedMap<Long, Multimap<TableReference, Cell>>>, RuntimeException>() {
-                        @Override
-                        public boolean visit(List<SortedMap<Long, Multimap<TableReference, Cell>>> batch) {
-                            for (SortedMap<Long, Multimap<TableReference, Cell>> cells : batch) {
-                                // We may actually get more cells than the batch size. The batch size is used for pulling off the scrub queue,
-                                // and a single entry in the scrub queue may match multiple tables.
-                                // These will get broken down into smaller batches later on when we actually do deletes.
-                                int numCellsRead = scrubSomeCells(cells, txManager, maxScrubTimestamp);
-                                int totalRead = totalCellsRead.addAndGet(numCellsRead);
-                                if (log.isInfoEnabled()) {
-                                    log.info("Scrub task processed " + numCellsRead + " cells in a batch, total " + totalRead + " processed so far.");
-                                }
-                                if (!isScrubEnabled.get()) {
-                                    log.info("Stopping scrub for banned hours.");
-                                    break;
-                                }
-                            }
-                            return isScrubEnabled.get();
-                        }});
-                    return null;
-                }}));
+            readerFutures.add(readerExec.submit(() -> {
+                BatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>> scrubQueue = scrubberStore
+                        .getBatchingVisitableScrubQueue(batchSize, maxScrubTimestamp, startRow, endRow);
+                // Take one at a time since we already batched them together in KeyValueServiceScrubberStore.
+                BatchingVisitableView.of(scrubQueue).batchAccept(1, batch -> {
+                    for (SortedMap<Long, Multimap<TableReference, Cell>> cells : batch) {
+                        // We may actually get more cells than the batch size. The batch size is used
+                        // for pulling off the scrub queue, and a single entry in the scrub queue may
+                        // match multiple tables. These will get broken down into smaller batches later
+                        // on when we actually do deletes.
+                        int numCellsRead = scrubSomeCells(cells, txManager, maxScrubTimestamp);
+                        int totalRead = totalCellsRead.addAndGet(numCellsRead);
+                        if (log.isInfoEnabled()) {
+                            log.info("Scrub task processed " + numCellsRead + " cells in a batch,"
+                                    + " total " + totalRead + " processed so far.");
+                        }
+                        if (!isScrubEnabled.get()) {
+                            log.info("Stopping scrub for banned hours.");
+                            break;
+                        }
+                    }
+                    return isScrubEnabled.get();
+                });
+                return null;
+            }));
         }
 
         for (Future<Void> readerFuture : readerFutures) {
             Futures.getUnchecked(readerFuture);
         }
 
-        log.info("Scrub background task running at timestamp " + maxScrubTimestamp + " processed a total of " + totalCellsRead.get() + " cells");
+        log.info("Scrub background task running at timestamp " + maxScrubTimestamp
+                + " processed a total of " + totalCellsRead.get() + " cells");
 
         log.info("Finished scrub task");
     }
@@ -319,45 +319,41 @@ public final class Scrubber {
         }
 
         List<Future<Void>> scrubFutures = Lists.newArrayList();
-        for (List<Entry<TableReference, Cell>> batch : Iterables.partition(tableNameToCell.entries(), batchSizeSupplier.get())) {
+        for (List<Entry<TableReference, Cell>> batch :
+                Iterables.partition(tableNameToCell.entries(), batchSizeSupplier.get())) {
             final Multimap<TableReference, Cell> batchMultimap = HashMultimap.create();
             for (Entry<TableReference, Cell> e : batch) {
                 batchMultimap.put(e.getKey(), e.getValue());
             }
 
-            final Callable<Void> c =new Callable<Void>()  {
-                @Override
-                public Void call() throws Exception {
-                    if (log.isInfoEnabled()) {
-                        log.info("Scrubbing " + batchMultimap.size() + " cells immediately.");
-                    }
-
-                    // Here we don't need to check scrub timestamps because we guarantee that scrubImmediately is called
-                    // AFTER the transaction commits
-                    scrubCells(txManager, batchMultimap, scrubTimestamp, TransactionType.AGGRESSIVE_HARD_DELETE);
-
-                    Multimap<Cell, Long> cellToScrubTimestamp = HashMultimap.create();
-
-                    cellToScrubTimestamp = Multimaps.invertFrom(
-                            Multimaps.index(batchMultimap.values(), Functions.constant(scrubTimestamp)),
-                            cellToScrubTimestamp);
-
-                    scrubberStore.markCellsAsScrubbed(cellToScrubTimestamp, batchSizeSupplier.get());
-
-                    if (log.isInfoEnabled()) {
-                        log.info("Completed scrub immediately.");
-                    }
-                    return null;
+            final Callable<Void> c = () -> {
+                if (log.isInfoEnabled()) {
+                    log.info("Scrubbing " + batchMultimap.size() + " cells immediately.");
                 }
+
+                // Here we don't need to check scrub timestamps because we guarantee that scrubImmediately is called
+                // AFTER the transaction commits
+                scrubCells(txManager, batchMultimap, scrubTimestamp, TransactionType.AGGRESSIVE_HARD_DELETE);
+
+                Multimap<Cell, Long> cellToScrubTimestamp = HashMultimap.create();
+
+                cellToScrubTimestamp = Multimaps.invertFrom(
+                        Multimaps.index(batchMultimap.values(), Functions.constant(scrubTimestamp)),
+                        cellToScrubTimestamp);
+
+                scrubberStore.markCellsAsScrubbed(cellToScrubTimestamp, batchSizeSupplier.get());
+
+                if (log.isInfoEnabled()) {
+                    log.info("Completed scrub immediately.");
+                }
+                return null;
             };
             if (!inScrubThread.get()) {
-                scrubFutures.add(exec.submit(new Callable<Void>() {
-                    @Override
-                    public Void call() throws Exception {
-                        inScrubThread.set(true);
-                        c.call();
-                        return null;
-                    }}));
+                scrubFutures.add(exec.submit(() -> {
+                    inScrubThread.set(true);
+                    c.call();
+                    return null;
+                }));
             } else {
                 try {
                     c.call();
@@ -397,9 +393,9 @@ public final class Scrubber {
             try {
                 transactionService.putUnlessExists(startTimestamp, TransactionConstants.FAILED_COMMIT_TS);
             } catch (KeyAlreadyExistsException e) {
-                String msg = "Could not roll back transaction with start timestamp " + startTimestamp + "; either" +
-                        " it was already rolled back (by a different transaction), or it committed successfully" +
-                        " before we could roll it back.";
+                String msg = "Could not roll back transaction with start timestamp " + startTimestamp + "; either"
+                        + " it was already rolled back (by a different transaction), or it committed successfully"
+                        + " before we could roll it back.";
                 log.error("This isn't a bug but it should be very infrequent. " + msg,
                         new TransactionFailedRetriableException(msg, e));
             }
@@ -418,11 +414,14 @@ public final class Scrubber {
     }
 
     /**
+     * Scrubs some cells.
+     *
      * @return number of cells read from _scrub table
      */
-    private int scrubSomeCells(SortedMap<Long, Multimap<TableReference, Cell>> scrubTimestampToTableNameToCell, final TransactionManager txManager, long maxScrubTimestamp) {
-
-
+    private int scrubSomeCells(
+            SortedMap<Long, Multimap<TableReference, Cell>> scrubTimestampToTableNameToCell,
+            TransactionManager txManager,
+            long maxScrubTimestamp) {
         // Don't call expensive toString() if trace logging is off
         if (log.isTraceEnabled()) {
             log.trace("Attempting to scrub cells: " + scrubTimestampToTableNameToCell);
@@ -461,19 +460,18 @@ public final class Scrubber {
                 // (we still remove it from the _scrub table with the call to markCellsAsScrubbed though),
                 // or else we could cause permanent data loss if the hard delete transaction failed after
                 // queuing cells to scrub but before successfully committing
-                for (final List<Entry<TableReference, Cell>> batch : Iterables.partition(tableNameToCell.entries(), batchSizeSupplier.get())) {
+                for (final List<Entry<TableReference, Cell>> batch :
+                        Iterables.partition(tableNameToCell.entries(), batchSizeSupplier.get())) {
                     final Multimap<TableReference, Cell> batchMultimap = HashMultimap.create();
                     for (Entry<TableReference, Cell> e : batch) {
                         batchMultimap.put(e.getKey(), e.getValue());
                     }
-                    scrubFutures.add(exec.submit(new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            scrubCells(txManager, batchMultimap,
-                                    scrubTimestamp,
-                                    aggressiveScrub ? TransactionType.AGGRESSIVE_HARD_DELETE : TransactionType.HARD_DELETE);
-                            return null;
-                        }}));
+                    scrubFutures.add(exec.submit(() -> {
+                        scrubCells(txManager, batchMultimap,
+                                scrubTimestamp,
+                                aggressiveScrub ? TransactionType.AGGRESSIVE_HARD_DELETE : TransactionType.HARD_DELETE);
+                        return null;
+                    }));
                 }
             }
             toRemoveFromScrubQueue.putAll(scrubTimestamp, tableNameToCell.values());
@@ -484,7 +482,9 @@ public final class Scrubber {
         }
 
         Multimap<Cell, Long> cellToScrubTimestamp = HashMultimap.create();
-        scrubberStore.markCellsAsScrubbed(Multimaps.invertFrom(toRemoveFromScrubQueue, cellToScrubTimestamp), batchSizeSupplier.get());
+        scrubberStore.markCellsAsScrubbed(
+                Multimaps.invertFrom(toRemoveFromScrubQueue, cellToScrubTimestamp),
+                batchSizeSupplier.get());
 
         if (log.isTraceEnabled()) {
             log.trace("Finished scrubbing cells: " + scrubTimestampToTableNameToCell);
@@ -497,9 +497,9 @@ public final class Scrubber {
             }
             long minTimestamp = Collections.min(scrubTimestampToTableNameToCell.keySet());
             long maxTimestamp = Collections.max(scrubTimestampToTableNameToCell.keySet());
-            log.info("Finished scrubbing " + numCellsReadFromScrubTable + " cells at " +
-                    scrubTimestampToTableNameToCell.size() + " timestamps (" + minTimestamp + "..." +
-                    maxTimestamp + ") from tables " + tables);
+            log.info("Finished scrubbing " + numCellsReadFromScrubTable + " cells at "
+                    + scrubTimestampToTableNameToCell.size() + " timestamps (" + minTimestamp + "..."
+                    + maxTimestamp + ") from tables " + tables);
         }
 
         return numCellsReadFromScrubTable;
@@ -512,7 +512,8 @@ public final class Scrubber {
         for (Entry<TableReference, Collection<Cell>> entry : tableNameToCells.asMap().entrySet()) {
             TableReference tableRef = entry.getKey();
             if (log.isInfoEnabled()) {
-                log.info("Attempting to immediately scrub " + entry.getValue().size() + " cells from table " + tableRef);
+                log.info("Attempting to immediately scrub " + entry.getValue().size()
+                        + " cells from table " + tableRef);
             }
             for (List<Cell> cells : Iterables.partition(entry.getValue(), batchSizeSupplier.get())) {
                 Multimap<Cell, Long> timestampsToDelete = HashMultimap.create(
@@ -566,9 +567,9 @@ public final class Scrubber {
             Thread.currentThread().interrupt();
         }
         if (!shutdown) {
-            log.error("Failed to shutdown scrubber in a timely manner. The scrubber may attempt " +
-                    "to access a key value service after the key value service closes. This shouldn't " +
-                    "cause any problems, but may result in some scary looking error messages.");
+            log.error("Failed to shutdown scrubber in a timely manner. The scrubber may attempt"
+                    + " to access a key value service after the key value service closes. This shouldn't"
+                    + " cause any problems, but may result in some scary looking error messages.");
         }
     }
 }

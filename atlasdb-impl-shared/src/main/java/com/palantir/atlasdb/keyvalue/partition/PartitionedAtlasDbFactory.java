@@ -34,7 +34,9 @@ public class PartitionedAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public PartitionedKeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
+    public PartitionedKeyValueService createRawKeyValueService(
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig) {
         AtlasDbVersion.ensureVersionReported();
         return PartitionedKeyValueService.create((PartitionedKeyValueConfiguration) config);
     }

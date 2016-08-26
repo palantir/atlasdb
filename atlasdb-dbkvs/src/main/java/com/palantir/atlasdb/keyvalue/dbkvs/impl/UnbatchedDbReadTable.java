@@ -25,7 +25,6 @@ import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 
 public class UnbatchedDbReadTable extends AbstractDbReadTable {
-
     protected UnbatchedDbReadTable(ConnectionSupplier conns,
                                    DbQueryFactory queryFactory) {
         super(conns, queryFactory);

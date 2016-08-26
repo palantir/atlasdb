@@ -45,11 +45,11 @@ public class ThrowingKeyValueService implements KeyValueService {
         this.exception = new Exception("Provided for stack trace");
     }
 
-    public ThrowingKeyValueService(Exception e) {
-        this.errorMessage = "Unable to create a key value service with the given preferences. " +
-                "This error was captured and delayed until now when the key value service was used. " +
-                "Consult the AtlasDB documentation on CHANGING DATABASE CREDENTIALS AND OTHER PARAMETERS.";
-        this.exception = e;
+    public ThrowingKeyValueService(Exception ex) {
+        this.errorMessage = "Unable to create a key value service with the given preferences."
+                + " This error was captured and delayed until now when the key value service was used."
+                + " Consult the AtlasDB documentation on CHANGING DATABASE CREDENTIALS AND OTHER PARAMETERS.";
+        this.exception = ex;
     }
 
     public IllegalStateException throwEx() {
@@ -162,9 +162,10 @@ public class ThrowingKeyValueService implements KeyValueService {
 
     @Override
     @Idempotent
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef,
-                                                                                                           Iterable<RangeRequest> rangeRequests,
-                                                                                                           long timestamp) {
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
+            TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            long timestamp) {
         throw throwEx();
     }
 
@@ -238,7 +239,11 @@ public class ThrowingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection,
+            long timestamp) {
         throw throwEx();
     }
 }

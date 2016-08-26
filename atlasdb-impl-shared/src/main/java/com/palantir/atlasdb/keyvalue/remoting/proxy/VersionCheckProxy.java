@@ -36,8 +36,8 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.keyvalue.partition.exception.ClientVersionTooOldException;
 import com.palantir.atlasdb.keyvalue.partition.exception.EndpointVersionTooOldException;
-import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService.LONG_HOLDER;
-import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService.STRING_HOLDER;
+import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService.LongContextType;
+import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService.StringContextType;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.supplier.RemoteContextHolder;
 import com.palantir.common.supplier.ServiceContext;
@@ -51,13 +51,13 @@ import com.palantir.common.supplier.ServiceContext;
  *
  * @see ClientVersionTooOldException
  * @see RemoteContextHolder
- * @see LONG_HOLDER
- * @see STRING_HOLDER
+ * @see LongContextType
+ * @see StringContextType
  *
  * @author htarasiuk
  *
  */
-public class VersionCheckProxy<T> extends AbstractInvocationHandler {
+public final class VersionCheckProxy<T> extends AbstractInvocationHandler {
     private static final Logger log = LoggerFactory.getLogger(VersionCheckProxy.class);
     private final Supplier<Long> serverVersionProvider;
     private final Supplier<Long> clientVersionProvider;
@@ -80,7 +80,9 @@ public class VersionCheckProxy<T> extends AbstractInvocationHandler {
         // Only check the version for appropriate methods
         if (!isMethodVersionExempt(method)) {
             Long clientVersion = clientVersionProvider.get();
-            Long serverVersion = Preconditions.checkNotNull(serverVersionProvider.get());
+            Long serverVersion = Preconditions.checkNotNull(
+                    serverVersionProvider.get(),
+                    "serverVersion cannot be null");
             if (serverVersion < 0L) {
                 // In this case the version check is simply disabled.
                 assert clientVersion == null || clientVersion < 0;
@@ -108,16 +110,24 @@ public class VersionCheckProxy<T> extends AbstractInvocationHandler {
      * This proxy checks the client version based on the out-of-band data that came with this request.
      *
      * @param delegate key value service delegate
-     * @param serverVersionProvider Use <code>Suppliers.<Long>ofInstance(-1L)</code> to disable version check. In
+     * @param serverVersionProvider Use <code>Suppliers.&lt;Long&gt;ofInstance(-1L)</code> to disable version check. In
      * such case this proxy is just a no-op.
      * @return proxied key value service
      */
     public static KeyValueService newProxyInstance(KeyValueService delegate, Supplier<Long> serverVersionProvider) {
-        ServiceContext<Long> remoteVersionClientCtx = RemoteContextHolder.INBOX.getProviderForKey(LONG_HOLDER.PM_VERSION);
-        KeyValueService kvsWithVersionCheckIterators = new KeyValueServiceWithVersionCheckingIterators(delegate, serverVersionProvider);
-        VersionCheckProxy<KeyValueService> vcp = new VersionCheckProxy<>(serverVersionProvider, remoteVersionClientCtx, kvsWithVersionCheckIterators);
+        ServiceContext<Long> remoteVersionClientCtx = RemoteContextHolder.INBOX
+                .getProviderForKey(LongContextType.PM_VERSION);
+        KeyValueService kvsWithVersionCheckIterators = new KeyValueServiceWithVersionCheckingIterators(
+                delegate,
+                serverVersionProvider);
+        VersionCheckProxy<KeyValueService> vcp = new VersionCheckProxy<>(
+                serverVersionProvider,
+                remoteVersionClientCtx,
+                kvsWithVersionCheckIterators);
         return (KeyValueService) Proxy.newProxyInstance(
-                KeyValueService.class.getClassLoader(), new Class<?>[] { KeyValueService.class }, vcp);
+                KeyValueService.class.getClassLoader(),
+                new Class<?>[] { KeyValueService.class },
+                vcp);
     }
 
     /**
@@ -130,7 +140,9 @@ public class VersionCheckProxy<T> extends AbstractInvocationHandler {
      * @return proxied closeable iterator
      */
     @SuppressWarnings("unchecked")
-    public static <T> ClosableIterator<RowResult<T>> invalidateOnVersionChangeProxy(ClosableIterator<RowResult<T>> delegate, Supplier<Long> currentVersionProvider) {
+    public static <T> ClosableIterator<RowResult<T>> invalidateOnVersionChangeProxy(
+            ClosableIterator<RowResult<T>> delegate,
+            Supplier<Long> currentVersionProvider) {
         VersionCheckProxy<ClosableIterator<RowResult<T>>> vcp = new VersionCheckProxy<>(
                 currentVersionProvider, Suppliers.ofInstance(currentVersionProvider.get()), delegate);
         return (ClosableIterator<RowResult<T>>) Proxy.newProxyInstance(
@@ -138,7 +150,6 @@ public class VersionCheckProxy<T> extends AbstractInvocationHandler {
     }
 
     public static class KeyValueServiceWithVersionCheckingIterators extends ForwardingKeyValueService {
-
         private final KeyValueService delegate;
         private final Supplier<Long> serverVersionSupplier;
 
@@ -156,21 +167,25 @@ public class VersionCheckProxy<T> extends AbstractInvocationHandler {
         @Override
         public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
                                                            RangeRequest rangeRequest, long timestamp) {
-            return invalidateOnVersionChangeProxy(super.getRange(tableRef, rangeRequest, timestamp), serverVersionSupplier);
+            return invalidateOnVersionChangeProxy(
+                    super.getRange(tableRef, rangeRequest, timestamp),
+                    serverVersionSupplier);
         }
 
         @Override
         public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(
                 TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
-            return invalidateOnVersionChangeProxy(super.getRangeWithHistory(tableRef, rangeRequest, timestamp), serverVersionSupplier);
+            return invalidateOnVersionChangeProxy(
+                    super.getRangeWithHistory(tableRef, rangeRequest, timestamp),
+                    serverVersionSupplier);
         }
 
         @Override
         public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
                 TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
-            return invalidateOnVersionChangeProxy(super.getRangeOfTimestamps(tableRef, rangeRequest, timestamp), serverVersionSupplier);
+            return invalidateOnVersionChangeProxy(
+                    super.getRangeOfTimestamps(tableRef, rangeRequest, timestamp),
+                    serverVersionSupplier);
         }
-
     }
-
 }

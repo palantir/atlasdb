@@ -19,16 +19,16 @@ import com.palantir.atlasdb.keyvalue.NamespacedKeyValueService;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
-/**
- * @author jweel
- */
-public class NamespacedKeyValueServices {
+public final class NamespacedKeyValueServices {
+    private NamespacedKeyValueServices() {
+        // Utility class
+    }
+
     public static KeyValueService wrapWithStaticNamespaceMappingKvs(KeyValueService keyValueService) {
         TableMappingService tableMap = StaticTableMappingService.create(keyValueService);
         NamespacedKeyValueService namespacedKeyValueService = TableRemappingKeyValueService.create(
                 keyValueService,
                 tableMap);
-        KeyValueService namespaceMappingKeyvalueService = NamespaceMappingKeyValueService.create(namespacedKeyValueService);
-        return namespaceMappingKeyvalueService;
+        return NamespaceMappingKeyValueService.create(namespacedKeyValueService);
     }
 }
