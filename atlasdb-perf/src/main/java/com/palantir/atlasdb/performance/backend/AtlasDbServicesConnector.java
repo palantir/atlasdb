@@ -22,6 +22,8 @@ import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 
+import com.jayway.awaitility.Awaitility;
+import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
@@ -47,7 +49,11 @@ public class AtlasDbServicesConnector {
         String dockerComposeResourceFileName = backend.getDockerComposeResourceFileName();
         store = DockerizedDatabase.create(backend.getKeyValueServicePort(), dockerComposeResourceFileName);
         InetSocketAddress addr = store.start();
-        KeyValueServiceConfig config = backend.getKeyValueServiceConfig(addr);
+        KeyValueServiceConfig config = KeyValueServiceType.getKeyValueServiceConfig(backend, addr);
+        Awaitility.await()
+                .atMost(Duration.ONE_MINUTE)
+                .pollInterval(Duration.ONE_SECOND)
+                .until(() -> KeyValueServiceType.canConnect(backend, addr));
         services = DaggerAtlasDbServices.builder()
                 .servicesConfigModule(
                         ServicesConfigModule.create(
