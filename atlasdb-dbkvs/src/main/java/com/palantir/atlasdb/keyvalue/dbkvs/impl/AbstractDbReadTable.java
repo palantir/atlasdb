@@ -24,11 +24,12 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -230,9 +231,34 @@ public abstract class AbstractDbReadTable implements DbReadTable {
         }
         Queue<Future<ClosableIterator<AgnosticLightResultRow>>> futures = Queues.newArrayDeque();
         for (final FullQuery query : queries) {
-            futures.add(submit(MoreExecutors.directExecutor(), query));
+            futures.add(getSupplierFuture(() -> run(query)));
         }
         return new LazyClosableIterator<AgnosticLightResultRow>(futures);
+    }
+
+    private static <T> Future<T> getSupplierFuture(Supplier<T> supplier) {
+        return new Future<T>() {
+            @Override
+            public boolean cancel(boolean mayInterruptIfRunning) {
+                return false;
+            }
+            @Override
+            public boolean isCancelled() {
+                return false;
+            }
+            @Override
+            public boolean isDone() {
+                return true;
+            }
+            @Override
+            public T get() {
+                return supplier.get();
+            }
+            @Override
+            public T get(long timeout, TimeUnit unit) {
+                return get();
+            }
+        };
     }
 
     private boolean isSingleton(Iterable<?> iterable) {
