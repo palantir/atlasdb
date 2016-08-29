@@ -71,4 +71,23 @@ public class KvsPutBenchmarks {
         return multiPutMap;
     }
 
+    @Benchmark
+    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
+    public Map<Cell, byte[]> putUnlessExistsAndExists(EmptyTables tables) {
+        Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
+        tables.getKvs().put(tables.getFirstTableRef(), batch, DUMMY_TIMESTAMP);
+        tables.getKvs().putUnlessExists(tables.getFirstTableRef(), batch);
+        return batch;
+    }
+
+    @Benchmark
+    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
+    public Map<Cell, byte[]> putUnlessExistsDoesNotExist(EmptyTables tables) {
+        Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
+        tables.getKvs().putUnlessExists(tables.getFirstTableRef(), batch);
+        return batch;
+    }
+
 }
