@@ -24,6 +24,7 @@ import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Strings;
 
@@ -33,7 +34,9 @@ public final class AtlasDbConfigs {
 
     public static final String ATLASDB_CONFIG_ROOT = "/atlasdb";
 
-    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory());
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
+            .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
+            .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
 
     static {
         OBJECT_MAPPER.setSubtypeResolver(new DiscoverableSubtypeResolver());
