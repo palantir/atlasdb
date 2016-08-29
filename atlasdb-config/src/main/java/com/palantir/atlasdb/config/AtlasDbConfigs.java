@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.google.common.base.Strings;
 
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;
@@ -41,6 +42,7 @@ public final class AtlasDbConfigs {
     static {
         OBJECT_MAPPER.setSubtypeResolver(new DiscoverableSubtypeResolver());
         OBJECT_MAPPER.registerModule(new GuavaModule());
+        OBJECT_MAPPER.registerModule(new Jdk7Module());
     }
 
     private AtlasDbConfigs() {
