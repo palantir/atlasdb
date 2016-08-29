@@ -84,16 +84,17 @@ public enum KeyValueServiceType {
                         .safetyDisabled(false)
                         .autoRefreshNodes(false)
                         .build();
+            default:
+                throw new UnsupportedOperationException("Unable to get the KVS config for " + type);
         }
-        throw new UnsupportedOperationException("Unable to get the KVS config for " + type);
     }
 
     public static boolean canConnect(KeyValueServiceType type, InetSocketAddress addr) {
-        try {
-            switch (type) {
-                case POSTGRES:
-                    return true;
-                case CASSANDRA:
+        switch (type) {
+            case POSTGRES:
+                return true;
+            case CASSANDRA:
+                try {
                     CassandraKeyValueService.create(
                             CassandraKeyValueServiceConfigManager.createSimpleManager(
                                     (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(type, addr)),
@@ -104,11 +105,12 @@ public enum KeyValueServiceType {
                                     .leaders(ImmutableSet.of(addr.getHostString()))
                                     .build()));
                     return true;
-            }
-        } catch (Exception e) {
-            return false;
+                } catch (Exception e) {
+                    return false;
+                }
+            default:
+                throw new UnsupportedOperationException("Trying to check connection for unknown KVS " + type);
         }
-        throw new UnsupportedOperationException("Trying to check connection for unknown KVS " + type);
     }
 
 }
