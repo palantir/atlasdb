@@ -21,11 +21,13 @@ import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -47,20 +49,42 @@ public class TransactionPutBenchmarks {
 
     @Benchmark
     public Map<Cell, byte[]> singleRandomPut(EmptyTables tables) {
-        return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
+        Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
+        tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
             txn.put(EmptyTables.TABLE_REF_1, batch);
             return batch;
         });
+        tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
+            txn.delete(EmptyTables.TABLE_REF_1, batch.keySet());
+            return batch;
+        });
+        return batch;
     }
 
     @Benchmark
     public Map<Cell, byte[]> batchRandomPut(EmptyTables tables) {
-        return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);
+        Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);
+        tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
             txn.put(EmptyTables.TABLE_REF_1, batch);
             return batch;
         });
+        tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
+            txn.delete(EmptyTables.TABLE_REF_1, batch.keySet());
+            return batch;
+        });
+        return batch;
+    }
+
+    /**
+     * Justification for using the potentially dangerous Level.Invocation:
+     * (a) It prevents DB polution after each invocation.
+     * (b) Each invocation takes over 1ms
+     * (c) Truncating takes about as long as the test does and so it would cloud the result output
+     *     if encapsulated in the test.
+     */
+    @TearDown(Level.Invocation)
+    public void truncateTable(EmptyTables tables) {
+        tables.getKvs().truncateTable(EmptyTables.TABLE_REF_1);
     }
 
 }
