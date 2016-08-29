@@ -17,25 +17,33 @@ package com.palantir.atlasdb.cli.command;
 
 import java.io.IOException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.cli.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.cli.services.ServicesConfigModule;
-import com.palantir.common.base.Throwables;
 
 public abstract class SingleBackendCommand extends AbstractCommand {
 
+    private static final Logger log = LoggerFactory.getLogger(SingleBackendCommand.class);
+
     @Override
-    public Integer call() {
+    public Integer call() throws Exception {
         Preconditions.checkState(isOnlineRunSupported() || isOffline(), "This CLI can only be run offline");
 
-        try (AtlasDbServices services = connect()) {
-            return execute(services);
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw Throwables.rewrapAndThrowUncheckedException(e);
+        try {
+            try (AtlasDbServices services = connect()) {
+                return execute(services);
+            }
+        } catch (Throwable t) {
+            System.err.println("FATAL: unhandled exception in execution of command");
+            t.printStackTrace(System.err);
+            log.error("FATAL: unhandled exception in execution of command", t);
+            throw t;
         }
     }
 
