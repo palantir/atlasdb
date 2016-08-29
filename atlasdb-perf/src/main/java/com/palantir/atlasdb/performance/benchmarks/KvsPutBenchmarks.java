@@ -30,6 +30,7 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.performance.benchmarks.table.EmptyTables;
@@ -53,6 +54,8 @@ public class KvsPutBenchmarks {
     public Map<Cell, byte[]> singleRandomPut(EmptyTables tables) {
         Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
         tables.getKvs().put(EmptyTables.TABLE_REF_1, batch, DUMMY_TIMESTAMP);
+        tables.getKvs().delete(EmptyTables.TABLE_REF_1,
+                Multimaps.forMap(Maps.transformValues(batch, $ -> DUMMY_TIMESTAMP)));
         return batch;
     }
 
@@ -60,6 +63,8 @@ public class KvsPutBenchmarks {
     public Map<Cell, byte[]> batchRandomPut(EmptyTables tables) {
         Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);
         tables.getKvs().put(EmptyTables.TABLE_REF_1, batch, DUMMY_TIMESTAMP);
+        tables.getKvs().delete(EmptyTables.TABLE_REF_1,
+                Multimaps.forMap(Maps.transformValues(batch, $ -> DUMMY_TIMESTAMP)));
         return batch;
     }
 
@@ -69,6 +74,10 @@ public class KvsPutBenchmarks {
         multiPutMap.put(EmptyTables.TABLE_REF_1, tables.generateBatchToInsert(BATCH_SIZE));
         multiPutMap.put(EmptyTables.TABLE_REF_2, tables.generateBatchToInsert(BATCH_SIZE));
         tables.getKvs().multiPut(multiPutMap, DUMMY_TIMESTAMP);
+        tables.getKvs().delete(EmptyTables.TABLE_REF_1,
+                Multimaps.forMap(Maps.transformValues(multiPutMap.get(EmptyTables.TABLE_REF_1), $ -> DUMMY_TIMESTAMP)));
+        tables.getKvs().delete(EmptyTables.TABLE_REF_2,
+                Multimaps.forMap(Maps.transformValues(multiPutMap.get(EmptyTables.TABLE_REF_2), $ -> DUMMY_TIMESTAMP)));
         return multiPutMap;
     }
 

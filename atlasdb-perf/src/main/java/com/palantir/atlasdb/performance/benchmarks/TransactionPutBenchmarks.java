@@ -47,18 +47,26 @@ public class TransactionPutBenchmarks {
 
     @Benchmark
     public Map<Cell, byte[]> singleRandomPut(EmptyTables tables) {
-        return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
+        Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
+        tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
             txn.put(EmptyTables.TABLE_REF_1, batch);
+            return batch;
+        });
+        return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
+            txn.delete(EmptyTables.TABLE_REF_1, batch.keySet());
             return batch;
         });
     }
 
     @Benchmark
     public Map<Cell, byte[]> batchRandomPut(EmptyTables tables) {
-        return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);
+        Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);
+        tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
             txn.put(EmptyTables.TABLE_REF_1, batch);
+            return batch;
+        });
+        return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
+            txn.delete(EmptyTables.TABLE_REF_1, batch.keySet());
             return batch;
         });
     }
