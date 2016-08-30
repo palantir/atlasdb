@@ -215,7 +215,7 @@ public class CassandraClientPool {
                     String.format("POOL STATUS: Current blacklist = %s,%n current hosts in pool = %s%n",
                     blacklistedHosts.keySet().toString(), currentPools.keySet().toString()));
             for (Entry<InetSocketAddress, CassandraClientPoolingContainer> entry : currentPools.entrySet()) {
-                int activeCheckouts = entry.getValue().getPoolUtilization();
+                int activeCheckouts = entry.getValue().getActiveCheckouts();
                 int totalAllowed = entry.getValue().getPoolSize();
 
                 currentState.append(
@@ -614,20 +614,20 @@ public class CassandraClientPool {
         private static NavigableMap<Integer, InetSocketAddress> buildHostsWeightedByActiveConnections(
                 Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
 
-            Map<InetSocketAddress, Integer> activeConnectionsByHost = new HashMap<>(pools.size());
-            int totalActiveConnections = 0;
+            Map<InetSocketAddress, Integer> openRequestsByHost = new HashMap<>(pools.size());
+            int totalOpenRequests = 0;
             for (Entry<InetSocketAddress, CassandraClientPoolingContainer> poolEntry : pools.entrySet()) {
-                int activeConnections = Math.max(poolEntry.getValue().getPoolUtilization(), 0);
-                activeConnectionsByHost.put(poolEntry.getKey(), activeConnections);
-                totalActiveConnections += activeConnections;
+                int openRequests = Math.max(poolEntry.getValue().getOpenRequests(), 0);
+                openRequestsByHost.put(poolEntry.getKey(), openRequests);
+                totalOpenRequests += openRequests;
             }
 
             int lowerBoundInclusive = 0;
             NavigableMap<Integer, InetSocketAddress> weightedHosts = new TreeMap<>();
-            for (Entry<InetSocketAddress, Integer> entry : activeConnectionsByHost.entrySet()) {
-                // We want the weight to be inversely proportional to the number of active connections so that we pick
+            for (Entry<InetSocketAddress, Integer> entry : openRequestsByHost.entrySet()) {
+                // We want the weight to be inversely proportional to the number of open requests so that we pick
                 // less-active hosts. We add 1 to make sure that all ranges are non-empty
-                int weight = totalActiveConnections - entry.getValue() + 1;
+                int weight = totalOpenRequests - entry.getValue() + 1;
                 weightedHosts.put(lowerBoundInclusive + weight, entry.getKey());
                 lowerBoundInclusive += weight;
             }

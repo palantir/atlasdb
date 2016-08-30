@@ -22,6 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.cassandra.thrift.Cassandra.Client;
@@ -47,6 +48,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     private final InetSocketAddress host;
     private CassandraKeyValueServiceConfig config;
     private final AtomicLong count = new AtomicLong();
+    private final AtomicInteger openRequests = new AtomicInteger();
     private final GenericObjectPool<Client> clientPool;
 
     public CassandraClientPoolingContainer(InetSocketAddress host, CassandraKeyValueServiceConfig config) {
@@ -59,9 +61,18 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         return host;
     }
 
+    /**
+     * Number of open requests to {@link #runWithPooledResource(FunctionCheckedException)}.
+     * This is different from the number of active objects in the pool, as creating a new
+     * pooled object can block on {@link CassandraClientFactory#create()}} before being added
+     * to the client pool.
+     */
+    protected int getOpenRequests() {
+        return openRequests.get();
+    }
 
     // returns negative if not available; only expected use is debugging
-    protected int getPoolUtilization() {
+    protected int getActiveCheckouts() {
         return clientPool.getNumActive();
     }
 
@@ -79,11 +90,13 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
                 + " started at " + DateTimeFormatter.ISO_INSTANT.format(Instant.now())
                 + " - " + count.getAndIncrement());
         try {
+            openRequests.getAndIncrement();
             return runWithGoodResource(fn);
         } catch (Throwable t) {
             log.warn("Error occurred talking to host '{}': {}", host, t.toString());
             throw t;
         } finally {
+            openRequests.getAndDecrement();
             Thread.currentThread().setName(origName);
         }
     }
