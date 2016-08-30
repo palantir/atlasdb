@@ -22,10 +22,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
@@ -40,10 +37,6 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 
 @State(Scope.Benchmark)
-@BenchmarkMode(Mode.SampleTime)
-@OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 1, time = 5, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 1, time = 30, timeUnit = TimeUnit.SECONDS)
 public class TransactionGetBenchmarks {
 
     private static final int RANGES_SINGLE_REQUEST_SIZE = 1;
@@ -114,84 +107,77 @@ public class TransactionGetBenchmarks {
     }
 
     @Benchmark
+    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object getCells(ConsecutiveNarrowTable.CleanNarrowTable table) {
         return getCellsInner(table);
     }
 
     @Benchmark
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object getCellsDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
         return getCellsInner(table);
     }
 
-    @Benchmark
-    public Object getCellsVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
-        return getCellsInner(table);
-    }
-
 
     @Benchmark
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object getSingleRowWithRangeQuery(ConsecutiveNarrowTable.CleanNarrowTable table) {
         return getSingleRowWithRangeQueryInner(table);
     }
 
     @Benchmark
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object getSingleRowWithRangeQueryDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
         return getSingleRowWithRangeQueryInner(table);
     }
 
-    @Benchmark
-    public Object getSingleRowWithRangeQueryVeryDirty(
-            ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
-        return getSingleRowWithRangeQueryInner(table);
-    }
-
 
     @Benchmark
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object getRange(ConsecutiveNarrowTable.CleanNarrowTable table) {
         return getRangeInner(table);
     }
 
     @Benchmark
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object getRangeDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
         return getRangeInner(table);
     }
 
-    @Benchmark
-    public Object getRangeVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
-        return getRangeInner(table);
-    }
-
 
     @Benchmark
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object getSingleCell(ConsecutiveNarrowTable.CleanNarrowTable table) {
         return getSingleCellInner(table);
     }
 
     @Benchmark
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object getSingleCellDirty(ConsecutiveNarrowTable.DirtyNarrowTable table) {
         return getSingleCellInner(table);
     }
 
-    @Benchmark
-    public Object getSingleCellVeryDirty(ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
-        return getSingleCellInner(table);
-    }
-
 
     @Benchmark
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object getRanges(ConsecutiveNarrowTable.CleanNarrowTable table) {
         return getRangesInner(table);
     }
 
     @Benchmark
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object getRangesDirty(
             ConsecutiveNarrowTable.DirtyNarrowTable table) {
-        return getRangesInner(table);
-    }
-
-    @Benchmark
-    public Object getRangesVeryDirty(
-            ConsecutiveNarrowTable.VeryDirtyNarrowTable table) {
         return getRangesInner(table);
     }
 

@@ -19,10 +19,7 @@ package com.palantir.atlasdb.performance.benchmarks;
 import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
@@ -32,10 +29,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.performance.benchmarks.table.RegeneratingTable;
 
 @State(Scope.Benchmark)
-@BenchmarkMode(Mode.SampleTime)
-@OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 1, time = 5, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 1, time = 30, timeUnit = TimeUnit.SECONDS)
 public class KvsDeleteBenchmarks {
 
     private Object doDelete(RegeneratingTable<Multimap<Cell, Long>> table) {
@@ -44,11 +37,15 @@ public class KvsDeleteBenchmarks {
     }
 
     @Benchmark
+    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object singleDelete(RegeneratingTable.KvsRowRegeneratingTable table) {
         return doDelete(table);
     }
 
     @Benchmark
+    @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public Object batchDelete(RegeneratingTable.KvsBatchRegeneratingTable table) {
         return doDelete(table);
     }
