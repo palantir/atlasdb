@@ -158,7 +158,7 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
      * If a default value of <code>null</code> is wanted, then consider
      * calling {@link BatchingVisitableView#getFirst()} instead.
      *
-     * @return the first element or <code>null</code> if the visitable is empty
+     * @return the first element or <code>defaultElement</code> if the visitable is empty
      */
     @Nullable
     public T getFirst(@Nullable T defaultElement) {
