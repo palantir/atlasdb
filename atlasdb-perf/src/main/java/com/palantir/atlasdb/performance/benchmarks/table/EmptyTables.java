@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Random;
 
+import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -48,7 +49,6 @@ public class EmptyTables {
 
     private static final int VALUE_BYTE_ARRAY_SIZE = 100;
     private static final int KEY_BYTE_ARRAY_SIZE = 32;
-    private static final int BATCH_SIZE = 250;
 
     private static final long VALUE_SEED = 279L;
     private Random random = new Random(VALUE_SEED);
@@ -65,7 +65,7 @@ public class EmptyTables {
         return services.getKeyValueService();
     }
 
-    @Setup
+    @Setup(Level.Trial)
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
         this.services = conn.connect();
@@ -73,7 +73,12 @@ public class EmptyTables {
         Benchmarks.createTable(services.getKeyValueService(), TABLE_REF_2, ROW_COMPONENT, COLUMN_NAME);
     }
 
-    @TearDown
+    @TearDown(Level.Invocation)
+    public void makeTableEmpty() {
+        this.services.getKeyValueService().truncateTables(Sets.newHashSet(TABLE_REF_1, TABLE_REF_2));
+    }
+
+    @TearDown(Level.Trial)
     public void cleanup() throws Exception {
         this.services.getKeyValueService().dropTables(Sets.newHashSet(TABLE_REF_1, TABLE_REF_2));
         this.connector.close();
