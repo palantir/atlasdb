@@ -128,6 +128,7 @@ public abstract class ConsecutiveNarrowTable {
                         generateBatch(table.getRandom(), i, Math.min(PUT_BATCH_SIZE, numRows - i));
                 table.getTransactionManager().runTaskThrowOnConflict(txn -> {
                     txn.put(TABLE_REF, values);
+
                     return null;
                 });
             }
@@ -150,4 +151,9 @@ public abstract class ConsecutiveNarrowTable {
         return value;
     }
 
+    public static Cell getRandomCell() {
+        Random generator = new Random();
+        byte[] key = Ints.toByteArray(generator.nextInt(DEFAULT_NUM_ROWS));
+        return Cell.create(key, COLUMN_NAME_IN_BYTES.array());
+    }
 }
