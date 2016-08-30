@@ -39,7 +39,9 @@ public abstract class AtlasDbCommand<T extends Configuration & AtlasDbConfigurat
 
     @Override
     public void configure(Subparser subparser) {
-        super.configure(subparser);
+        subparser.addArgument("file")
+                .nargs(1)
+                .help("application configuration file");
 
         subparser.addArgument("--offline")
                 .help("run this cli offline")
