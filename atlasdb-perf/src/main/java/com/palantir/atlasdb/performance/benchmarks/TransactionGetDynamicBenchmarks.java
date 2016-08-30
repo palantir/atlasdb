@@ -36,6 +36,7 @@ import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.performance.benchmarks.table.Tables;
 import com.palantir.atlasdb.performance.benchmarks.table.WideRowTable;
 
 /**
@@ -52,9 +53,9 @@ import com.palantir.atlasdb.performance.benchmarks.table.WideRowTable;
 public class TransactionGetDynamicBenchmarks {
 
     @Benchmark
-    public Map<Cell, byte[]> getAllColumnsExplicitly(WideRowTable table) {
+    public Object getAllColumnsExplicitly(WideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> result = txn.get(WideRowTable.TABLE_REF, table.getAllCells());
+            Map<Cell, byte[]> result = txn.get(table.getTableRef(), table.getAllCells());
             Benchmarks.validate(result.values().size() == WideRowTable.NUM_COLS,
                     "Should be %s columns, but were: %s", WideRowTable.NUM_COLS, result.values().size());
             return result;
@@ -62,10 +63,10 @@ public class TransactionGetDynamicBenchmarks {
     }
 
     @Benchmark
-    public SortedMap<byte[], RowResult<byte[]>> getAllColumnsImplicitly(WideRowTable table) {
+    public Object getAllColumnsImplicitly(WideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(WideRowTable.TABLE_REF,
-                    Collections.singleton(WideRowTable.ROW_BYTES.array()),
+            SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(table.getTableRef(),
+                    Collections.singleton(Tables.ROW_BYTES.array()),
                     ColumnSelection.all());
             int count = Iterables.getOnlyElement(result.values()).getColumns().size();
             Benchmarks.validate(count == WideRowTable.NUM_COLS,
@@ -75,9 +76,9 @@ public class TransactionGetDynamicBenchmarks {
     }
 
     @Benchmark
-    public Map<Cell, byte[]> getFirstColumnExplicitly(WideRowTable table) {
+    public Object getFirstColumnExplicitly(WideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> result = txn.get(WideRowTable.TABLE_REF, table.getFirstCellAsSet());
+            Map<Cell, byte[]> result = txn.get(table.getTableRef(), table.getFirstCellAsSet());
             Benchmarks.validate(result.values().size() == 1,
                     "Should be %s column, but were: %s", 1, result.values().size());
             int value = Ints.fromByteArray(Iterables.getOnlyElement(result.values()));
@@ -87,10 +88,10 @@ public class TransactionGetDynamicBenchmarks {
     }
 
     @Benchmark
-    public SortedMap<byte[], RowResult<byte[]>> getFirstColumnExplicitlyGetRows(WideRowTable table) {
+    public Object getFirstColumnExplicitlyGetRows(WideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(WideRowTable.TABLE_REF,
-                    Collections.singleton(WideRowTable.ROW_BYTES.array()),
+            SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(table.getTableRef(),
+                    Collections.singleton(Tables.ROW_BYTES.array()),
                     ColumnSelection.create(
                             table.getFirstCellAsSet().stream().map(Cell::getColumnName).collect(Collectors.toList())
                     ));

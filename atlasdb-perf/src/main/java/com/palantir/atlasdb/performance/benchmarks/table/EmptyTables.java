@@ -15,16 +15,15 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Random;
 
+import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -40,19 +39,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 @State(Scope.Benchmark)
 public class EmptyTables {
 
-    public static final TableReference TABLE_REF_1 = TableReference.createFromFullyQualifiedName("performance.table1");
-    public static final TableReference TABLE_REF_2 = TableReference.createFromFullyQualifiedName("performance.table2");
-    private static final String ROW_COMPONENT = "key";
-    private static final String COLUMN_NAME = "value";
-    private static final byte [] COLUMN_NAME_IN_BYTES = EmptyTables.COLUMN_NAME.getBytes(StandardCharsets.UTF_8);
-
-    private static final int VALUE_BYTE_ARRAY_SIZE = 100;
-    private static final int KEY_BYTE_ARRAY_SIZE = 32;
-    private static final int BATCH_SIZE = 250;
-
-    private static final long VALUE_SEED = 279L;
-    private Random random = new Random(VALUE_SEED);
-
+    private Random random = new Random(Tables.RANDOM_SEED);
 
     private AtlasDbServicesConnector connector;
     private AtlasDbServices services;
@@ -65,41 +52,42 @@ public class EmptyTables {
         return services.getKeyValueService();
     }
 
-    @Setup
+    public TableReference getFirstTableRef() {
+        return TableReference.createFromFullyQualifiedName("performance.table1");
+    }
+
+    public TableReference getSecondTableRef() {
+        return TableReference.createFromFullyQualifiedName("performance.table2");
+    }
+
+    @Setup(Level.Trial)
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
         this.services = conn.connect();
-        Benchmarks.createTable(services.getKeyValueService(), TABLE_REF_1, ROW_COMPONENT, COLUMN_NAME);
-        Benchmarks.createTable(services.getKeyValueService(), TABLE_REF_2, ROW_COMPONENT, COLUMN_NAME);
+        Benchmarks.createTable(services.getKeyValueService(),
+                getFirstTableRef(),
+                Tables.ROW_COMPONENT,
+                Tables.COLUMN_NAME);
+        Benchmarks.createTable(services.getKeyValueService(),
+                getSecondTableRef(),
+                Tables.ROW_COMPONENT,
+                Tables.COLUMN_NAME);
     }
 
-    @TearDown
+    @TearDown(Level.Invocation)
+    public void makeTableEmpty() {
+        this.services.getKeyValueService().truncateTables(Sets.newHashSet(getFirstTableRef(), getSecondTableRef()));
+    }
+
+    @TearDown(Level.Trial)
     public void cleanup() throws Exception {
-        this.services.getKeyValueService().dropTables(Sets.newHashSet(TABLE_REF_1, TABLE_REF_2));
+        this.services.getKeyValueService().dropTables(Sets.newHashSet(
+                getFirstTableRef(), getSecondTableRef()));
         this.connector.close();
     }
 
-
-    private byte[] generateValue() {
-        byte[] value = new byte[VALUE_BYTE_ARRAY_SIZE];
-        random.nextBytes(value);
-        return value;
-    }
-
-    private byte[] generateKey() {
-        byte[] key = new byte[KEY_BYTE_ARRAY_SIZE];
-        random.nextBytes(key);
-        return key;
-    }
-
     public Map<Cell, byte[]> generateBatchToInsert(int size) {
-        Map<Cell, byte[]> map = Maps.newHashMapWithExpectedSize(size);
-        for (int j = 0; j < size; j++) {
-            byte[] key = generateKey();
-            byte[] value = generateValue();
-            map.put(Cell.create(key, COLUMN_NAME_IN_BYTES), value);
-        }
-        return map;
+        return Tables.generateRandomBatch(random, size);
     }
 
 }
