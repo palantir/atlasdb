@@ -90,7 +90,7 @@ public abstract class RegeneratingTable<T> {
         @Override
         public void setupTableData() {
             getKvs().truncateTable(getTableRef());
-            Map<Cell, byte[]> batch = Tables.generateBatch(random, 1);
+            Map<Cell, byte[]> batch = Tables.generateRandomBatch(random, 1);
             getKvs().put(getTableRef(), batch, Tables.DUMMY_TIMESTAMP);
             data = Multimaps.forMap(Maps.transformValues(batch, $ -> Tables.DUMMY_TIMESTAMP));
         }
@@ -108,7 +108,7 @@ public abstract class RegeneratingTable<T> {
         @Override
         public void setupTableData() {
             getKvs().truncateTable(getTableRef());
-            Map<Cell, byte[]> batch = Tables.generateBatch(random, BATCH_SIZE);
+            Map<Cell, byte[]> batch = Tables.generateRandomBatch(random, BATCH_SIZE);
             getKvs().put(getTableRef(), batch, Tables.DUMMY_TIMESTAMP);
             data = Multimaps.forMap(Maps.transformValues(batch, $ -> Tables.DUMMY_TIMESTAMP));
         }
@@ -126,7 +126,7 @@ public abstract class RegeneratingTable<T> {
         @Override
         public void setupTableData() {
             getKvs().truncateTable(getTableRef());
-            Map<Cell, byte[]> batch = Tables.generateBatch(random, BATCH_SIZE);
+            Map<Cell, byte[]> batch = Tables.generateRandomBatch(random, BATCH_SIZE);
             getTransactionManager().runTaskThrowOnConflict(txn -> {
                 txn.put(getTableRef(), batch);
                 return null;
@@ -147,7 +147,7 @@ public abstract class RegeneratingTable<T> {
         @Override
         public void setupTableData() {
             getKvs().truncateTable(getTableRef());
-            Map<Cell, byte[]> batch = Tables.generateBatch(random, BATCH_SIZE);
+            Map<Cell, byte[]> batch = Tables.generateRandomBatch(random, BATCH_SIZE);
             getTransactionManager().runTaskThrowOnConflict(txn -> {
                 txn.put(getTableRef(), batch);
                 return null;

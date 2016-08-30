@@ -19,9 +19,7 @@ package com.palantir.atlasdb.performance.benchmarks;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -33,7 +31,6 @@ import org.openjdk.jmh.annotations.Warmup;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -49,7 +46,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public class KvsGetRangeBenchmarks {
 
     private Object getSingleRangeInner(ConsecutiveNarrowTable table, int sliceSize) {
-        RangeRequest request = Iterables.getOnlyElement(getRangeRequests(table, 1, sliceSize));
+        RangeRequest request = Iterables.getOnlyElement(table.getRangeRequests(1, sliceSize));
         int startRow = Ints.fromByteArray(request.getStartInclusive());
         ClosableIterator<RowResult<Value>> result =
                 table.getKvs().getRange(table.getTableRef(), request, Long.MAX_VALUE);
@@ -64,29 +61,8 @@ public class KvsGetRangeBenchmarks {
         return result;
     }
 
-    private Iterable<RangeRequest> getRangeRequests(ConsecutiveNarrowTable table, int numRequests, int sliceSize) {
-        List<RangeRequest> requests = Lists.newArrayList();
-        Set<Integer> used = Sets.newHashSet();
-        for (int i = 0; i < numRequests; i++) {
-            int startRow;
-            do {
-                startRow = table.getRandom().nextInt(table.getNumRows() - sliceSize);
-            } while (used.contains(startRow));
-            int endRow = startRow + sliceSize;
-            RangeRequest request = RangeRequest.builder()
-                    .batchHint(1 + sliceSize)
-                    .startRowInclusive(Ints.toByteArray(startRow))
-                    .endRowExclusive(Ints.toByteArray(endRow))
-                    .build();
-            requests.add(request);
-            used.add(startRow);
-        }
-        return requests;
-    }
-
-
     private Object getMultiRangeInner(ConsecutiveNarrowTable table) {
-        Iterable<RangeRequest> requests = getRangeRequests(table, (int) (table.getNumRows() * 0.1), 1);
+        Iterable<RangeRequest> requests = table.getRangeRequests((int) (table.getNumRows() * 0.1), 1);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> results =
                 table.getKvs().getFirstBatchForRanges(table.getTableRef(), requests, Long.MAX_VALUE);
 

@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Random;
 
 import com.google.common.collect.Maps;
+import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
@@ -59,11 +60,21 @@ public final class Tables {
         return key;
     }
 
-    static Map<Cell, byte[]> generateBatch(Random random, int size) {
+    static Map<Cell, byte[]> generateRandomBatch(Random random, int size) {
         Map<Cell, byte[]> map = Maps.newHashMapWithExpectedSize(size);
         for (int j = 0; j < size; j++) {
             byte[] key = generateKey(random);
             byte[] value = generateValue(random);
+            map.put(Cell.create(key, Tables.COLUMN_NAME_IN_BYTES.array()), value);
+        }
+        return map;
+    }
+
+    static Map<Cell, byte[]> generateContinuousBatch(Random random, int startKey, int size) {
+        Map<Cell, byte[]> map = Maps.newHashMapWithExpectedSize(size);
+        for (int j = 0; j < size; j++) {
+            byte[] key = Ints.toByteArray(startKey + j);
+            byte[] value = Tables.generateValue(random);
             map.put(Cell.create(key, Tables.COLUMN_NAME_IN_BYTES.array()), value);
         }
         return map;

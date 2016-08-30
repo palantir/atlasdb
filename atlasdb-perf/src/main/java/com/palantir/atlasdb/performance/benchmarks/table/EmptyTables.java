@@ -87,7 +87,7 @@ public class EmptyTables {
     }
 
     public Map<Cell, byte[]> generateBatchToInsert(int size) {
-        return Tables.generateBatch(random, size);
+        return Tables.generateRandomBatch(random, size);
     }
 
 }
