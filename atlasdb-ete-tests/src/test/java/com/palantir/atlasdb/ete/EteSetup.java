@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import org.joda.time.Duration;
 import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
@@ -67,7 +68,7 @@ public class EteSetup {
     protected static RuleChain setupComposition(String name, String composeFile) {
         docker = DockerComposeRule.builder()
                 .file(composeFile)
-                .waitingForService(FIRST_ETE_CONTAINER, toBeReady())
+                .waitingForService(FIRST_ETE_CONTAINER, toBeReady(), Duration.standardMinutes(9))
                 .saveLogsTo("container-logs/" + name)
                 .build();
 

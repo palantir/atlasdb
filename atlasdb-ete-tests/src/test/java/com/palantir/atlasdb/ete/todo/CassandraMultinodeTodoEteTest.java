@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.ete.todo;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasItem;
-
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -43,26 +39,21 @@ public class CassandraMultinodeTodoEteTest extends TodoEteTest {
     @Test
     public void runForever() throws InterruptedException {
         TodoResource clientToSingleNode = createClientToSingleNode(TodoResource.class);
-        for (int i = 0; true; i++) {
-            Todo todo = ImmutableTodo.of(i + ": some stuff to do");
+        Todo todo = ImmutableTodo.of("some stuff to do");
+        clientToSingleNode.addTodo(todo);
+        shouldWork(todo, clientToSingleNode);
+    }
 
-            shouldWork(todo, clientToSingleNode);
+    private void shouldWork(Todo todo, TodoResource todoClient) throws InterruptedException {
+        for (int i = 0; true; i++) {
+            if (todoClient.getTodoList().contains(todo)) {
+                System.out.println(i + ": Success found " + todo);
+            } else {
+                System.out.println(i + ": Failure, could not find " + todo);
+            }
+            System.out.println("The time is : " + System.currentTimeMillis());
             System.out.println(i + ": Success");
             Thread.sleep(1000);
         }
     }
-
-    private void shouldWork(Todo todo, TodoResource todoClient) {
-
-        todoClient.addTodo(todo);
-
-       // assertThat(todoClient.getTodoList(), hasItem(todo));
-        if (todoClient.getTodoList().contains(todo)) {
-            System.out.println("Success found " + todo);
-        } else {
-            System.out.println("Failure, could not find " + todo);
-        }
-
-    }
-
 }

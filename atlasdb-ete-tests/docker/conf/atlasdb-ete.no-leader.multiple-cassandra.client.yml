@@ -16,13 +16,14 @@ atlasdb:
       - cassandra1:9160
       - cassandra2:9160
       - cassandra3:9160
+      - cassandra4:9160
     poolSize: 20
     keyspace: atlasete
     credentials:
       username: cassandra
       password: cassandra
     ssl: false
-    replicationFactor: 2
+    replicationFactor: 3
     mutationBatchCount: 10000
     mutationBatchSizeBytes: 10000000
     fetchBatchCount: 1000
