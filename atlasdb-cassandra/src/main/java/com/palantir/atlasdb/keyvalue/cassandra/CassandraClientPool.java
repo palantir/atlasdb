@@ -427,7 +427,6 @@ public class CassandraClientPool {
         while (true) {
             CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
 
-            // TODO: why did it throw
             if (blacklistedHosts.containsKey(specifiedHost) || hostPool == null || shouldRetryOnDifferentHost) {
                 log.warn("Randomly redirected a query intended for host {}.", specifiedHost);
                 hostPool = getRandomGoodHost();
