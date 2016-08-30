@@ -8,6 +8,10 @@ services:
       - "9042"
       - "7199"
      environment:
+      - CASSANDRA_SEEDS=cassandra1
+      - CASSANDRA_RACK=rack1
+      - CASSANDRA_DC=dc1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
       - LOCAL_JMX=no
 
   cassandra2:
@@ -18,6 +22,9 @@ services:
       - cassandra1
     environment:
       - CASSANDRA_SEEDS=cassandra1
+      - CASSANDRA_RACK=rack2
+      - CASSANDRA_DC=dc1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
       - LOCAL_JMX=no
 
   cassandra3:
@@ -27,12 +34,15 @@ services:
     depends_on:
       - cassandra1
     environment:
-      - CASSANDRA_SEEDS=cassandra1,cassandra2
+      - CASSANDRA_SEEDS=cassandra1
+      - CASSANDRA_RACK=rack3
+      - CASSANDRA_DC=dc1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
       - LOCAL_JMX=no
 
   ete1:
     build: .
-    command: bash -c 'cp var/conf/atlasdb-ete.no-leader.multiple-cassandra.client.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://cassandra1:9160 && service/bin/init.sh console'
+    command: bash -c 'cp var/conf/atlasdb-ete.no-leader.multiple-cassandra.client.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://cassandra1:9160 -wait tcp://cassandra2:9160 -wait tcp://cassandra3:9160 && service/bin/init.sh console'
     depends_on:
       - cassandra1
     environment:
