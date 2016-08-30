@@ -9,9 +9,7 @@ services:
       - "7199"
      environment:
       - CASSANDRA_SEEDS=cassandra1
-      - CASSANDRA_RACK=rack1
-      - CASSANDRA_DC=dc1
-      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
       - LOCAL_JMX=no
 
   cassandra2:
@@ -24,9 +22,7 @@ services:
       - cassandra1
     environment:
       - CASSANDRA_SEEDS=cassandra1
-      - CASSANDRA_RACK=rack2
-      - CASSANDRA_DC=dc1
-      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
       - LOCAL_JMX=no
 
   cassandra3:
@@ -39,9 +35,7 @@ services:
       - cassandra1
     environment:
       - CASSANDRA_SEEDS=cassandra1
-      - CASSANDRA_RACK=rack3
-      - CASSANDRA_DC=dc1
-      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
       - LOCAL_JMX=no
 
   ete1:
