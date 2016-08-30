@@ -278,9 +278,9 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
         return collection;
     }
 
-  /**
-   * Returns {@code true} iff one or more elements satisfy the predicate.
-   */
+    /**
+     * Returns {@code true} iff one or more elements satisfy the predicate.
+     */
     public boolean any(final Predicate<? super T> predicate) {
         Preconditions.checkNotNull(predicate, "Cannot check against a null predicate");
         return !delegate().batchAccept(
@@ -298,10 +298,10 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
                 });
     }
 
-  /**
-   * Returns {@code true} iff every element satisfies the
-   * predicate. If empty, {@code true} is returned.
-   */
+    /**
+     * Returns {@code true} iff every element satisfies the
+     * predicate. If empty, {@code true} is returned.
+     */
     public boolean all(final Predicate<? super T> predicate) {
         Preconditions.checkNotNull(predicate, "Cannot check against a null predicate");
         return delegate().batchAccept(
