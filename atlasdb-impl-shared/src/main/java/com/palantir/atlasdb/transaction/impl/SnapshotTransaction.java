@@ -1482,7 +1482,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     + "Failed to delete keys for table" + tableRef
                     + " from an uncommitted transaction; "
                     + " sweep should eventually clean this when it processes this table.";
-	    if (log.isDebugEnabled()) {
+            if (log.isDebugEnabled()) {
                 msg += " The keys that failed to be deleted during rollback were " + keysToDelete;
             }
             log.warn(msg, e);
