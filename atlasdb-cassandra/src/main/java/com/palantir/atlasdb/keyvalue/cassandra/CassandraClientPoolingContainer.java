@@ -62,9 +62,10 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     }
 
     /**
-     * Number of open requests to {@link CassandraClientPoolingContainer#runWithPooledResource(Function)}.
-     * This is different from the number of active objects in the pool, as creating a new pooled object can
-     * block on {@link CassandraClientFactory#create()}} before being added to the client pool.
+     * Number of open requests to {@link #runWithPooledResource(FunctionCheckedException)}.
+     * This is different from the number of active objects in the pool, as creating a new
+     * pooled object can block on {@link CassandraClientFactory#create()}} before being added
+     * to the client pool.
      */
     protected int getOpenRequests() {
         return openRequests.get();
