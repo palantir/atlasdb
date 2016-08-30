@@ -60,3 +60,7 @@ For example, to run the ``fast-forward`` command with default settings, run ``./
 The ``--offline`` flag will make the CLI ignore the leader, timestamp, and lock configuration blocks, and start an embedded timestamp and lock server.
 Once the CLI has completed, you can resume your AtlasDB clients.
 
+Running Other Commands with an Embedded Server
+----------------------------------------------
+
+If you want another commend to run with an embedded server, you can either use the ``--offline`` flag, or pass in a configuration file without leader, lock, or timestamp blocks.
