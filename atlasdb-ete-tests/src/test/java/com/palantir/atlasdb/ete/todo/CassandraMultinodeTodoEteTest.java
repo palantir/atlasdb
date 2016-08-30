@@ -39,21 +39,21 @@ public class CassandraMultinodeTodoEteTest extends TodoEteTest {
     @Test
     public void runForever() throws InterruptedException {
         TodoResource clientToSingleNode = createClientToSingleNode(TodoResource.class);
-        Todo todo = ImmutableTodo.of("some stuff to do");
-        clientToSingleNode.addTodo(todo);
-        shouldWork(todo, clientToSingleNode);
+        for (int i = 0; true; i++) {
+            Todo todo = ImmutableTodo.of("some stuff to do : " + i);
+            shouldWork(todo, clientToSingleNode);
+            System.out.println("The time is : " + System.currentTimeMillis());
+        }
     }
 
     private void shouldWork(Todo todo, TodoResource todoClient) throws InterruptedException {
-        for (int i = 0; true; i++) {
-            if (todoClient.getTodoList().contains(todo)) {
-                System.out.println(i + ": Success found " + todo);
-            } else {
-                System.out.println(i + ": Failure, could not find " + todo);
-            }
-            System.out.println("The time is : " + System.currentTimeMillis());
-            System.out.println(i + ": Success");
-            Thread.sleep(1000);
+        todoClient.addTodo(todo);
+
+        if (todoClient.getTodoList().contains(todo)) {
+            System.out.println("Success found " + todo);
+        } else {
+            System.out.println("Failure, could not find " + todo);
         }
+        Thread.sleep(1000);
     }
 }

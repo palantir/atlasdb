@@ -26,6 +26,7 @@ atlasdb:
     replicationFactor: 3
     mutationBatchCount: 10000
     mutationBatchSizeBytes: 10000000
+    socketQueryTimeoutMillis: 5000
     fetchBatchCount: 1000
     safetyDisabled: false
     autoRefreshNodes: false
