@@ -15,19 +15,19 @@
  */
 package com.palantir.atlasdb.config;
 
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 public class AtlasDbConfigTest {
-    private static final KeyValueServiceConfig KVS_CONFIG = Mockito.mock(KeyValueServiceConfig.class);
-    private static final LeaderConfig LEADER_CONFIG = Mockito.mock(LeaderConfig.class);
-    private static final ServerListConfig DEFAULT_SERVER_LIST = Mockito.mock(ServerListConfig.class);
+    private static final KeyValueServiceConfig KVS_CONFIG = mock(KeyValueServiceConfig.class);
+    private static final LeaderConfig LEADER_CONFIG = mock(LeaderConfig.class);
+    private static final ServerListConfig DEFAULT_SERVER_LIST = mock(ServerListConfig.class);
 
     @Test
     public void configWithNoLeaderOrLockIsValid() {
