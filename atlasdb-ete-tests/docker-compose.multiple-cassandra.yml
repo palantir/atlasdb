@@ -44,24 +44,9 @@ services:
       - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
       - LOCAL_JMX=no
 
-  cassandra4:
-    image: com.palantir.docker/atlas-cassandra:2.2-v0.1
-    ports:
-      - "9160"
-      - "9042"
-      - "7199"
-    depends_on:
-      - cassandra1
-    environment:
-      - CASSANDRA_SEEDS=cassandra1
-      - CASSANDRA_RACK=rack4
-      - CASSANDRA_DC=dc1
-      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
-      - LOCAL_JMX=no
-
   ete1:
     build: .
-    command: bash -c 'cp var/conf/atlasdb-ete.no-leader.multiple-cassandra.client.yml var/conf/atlasdb-ete.yml && dockerize -timeout 240s -wait tcp://cassandra1:9160 -wait tcp://cassandra2:9160 -wait tcp://cassandra3:9160  -wait tcp://cassandra4:9160 && service/bin/init.sh console'
+    command: bash -c 'cp var/conf/atlasdb-ete.no-leader.multiple-cassandra.client.yml var/conf/atlasdb-ete.yml && dockerize -timeout 240s -wait tcp://cassandra1:9160 -wait tcp://cassandra2:9160 -wait tcp://cassandra3:9160 && service/bin/init.sh console'
     depends_on:
       - cassandra1
     environment:
