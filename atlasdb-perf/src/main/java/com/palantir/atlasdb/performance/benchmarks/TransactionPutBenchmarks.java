@@ -20,10 +20,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
@@ -37,15 +34,13 @@ import com.palantir.atlasdb.performance.benchmarks.table.EmptyTables;
  * @author mwakerman
  */
 @State(Scope.Benchmark)
-@BenchmarkMode(Mode.SampleTime)
-@OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 1, time = 5, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 1, time = 30, timeUnit = TimeUnit.SECONDS)
 public class TransactionPutBenchmarks {
 
     private static final int BATCH_SIZE = 250;
 
     @Benchmark
+    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object singleRandomPut(EmptyTables tables) {
         return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
@@ -55,6 +50,8 @@ public class TransactionPutBenchmarks {
     }
 
     @Benchmark
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object batchRandomPut(EmptyTables tables) {
         return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);
