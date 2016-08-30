@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.performance.benchmarks;
 
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -29,38 +29,30 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.performance.benchmarks.table.EmptyTables;
+import com.palantir.atlasdb.performance.benchmarks.table.RegeneratingTable;
 
-/**
- * Performance benchmarks for KVS put operations.
- *
- * @author mwakerman
- */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.SampleTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @Warmup(iterations = 1, time = 5, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 1, time = 30, timeUnit = TimeUnit.SECONDS)
-public class TransactionPutBenchmarks {
+public class TransactionDeleteBenchmarks {
 
-    private static final int BATCH_SIZE = 250;
-
-    @Benchmark
-    public Object singleRandomPut(EmptyTables tables) {
-        return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
-            txn.put(tables.getFirstTableRef(), batch);
-            return batch;
+    private Object doDelete(RegeneratingTable<Set<Cell>> table) {
+        return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
+            txn.delete(table.getTableRef(), table.getTableCells());
+            return table.getTableCells();
         });
     }
 
     @Benchmark
-    public Object batchRandomPut(EmptyTables tables) {
-        return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);
-            txn.put(tables.getFirstTableRef(), batch);
-            return batch;
-        });
+    public Object singleDelete(RegeneratingTable.TransactionRowRegeneratingTable table) {
+        return doDelete(table);
+    }
+
+    @Benchmark
+    public Object batchDelete(RegeneratingTable.TransactionBatchRegeneratingTable table) {
+        return doDelete(table);
     }
 
 }
