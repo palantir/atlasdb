@@ -15,6 +15,12 @@
  */
 package com.palantir.atlasdb.ete.todo;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsCollectionContaining.hasItem;
+
+import java.util.List;
+import java.util.UUID;
+
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -37,23 +43,26 @@ public class CassandraMultinodeTodoEteTest extends TodoEteTest {
     }
 
     @Test
-    public void runForever() throws InterruptedException {
+    public void shouldWorkWithAnyContainerDown() throws InterruptedException {
         TodoResource clientToSingleNode = createClientToSingleNode(TodoResource.class);
-        for (int i = 0; true; i++) {
-            Todo todo = ImmutableTodo.of("some stuff to do : " + i);
-            shouldWork(todo, clientToSingleNode);
-            System.out.println("The time is : " + System.currentTimeMillis());
-        }
+        tryWithContainerDown("cassandra1", clientToSingleNode);
+        tryWithContainerDown("cassandra2", clientToSingleNode);
+        tryWithContainerDown("cassandra3", clientToSingleNode);
     }
 
-    private void shouldWork(Todo todo, TodoResource todoClient) throws InterruptedException {
-        todoClient.addTodo(todo);
+    private void tryWithContainerDown(String container, TodoResource todoClient) {
+        System.out.println("Running without container " + container);
+        stopCassandraContainer(container);
+        assertNewTodoWasAdded(todoClient);
+        startCassandraContainer(container);
+    }
 
-        if (todoClient.getTodoList().contains(todo)) {
-            System.out.println("Success found " + todo);
-        } else {
-            System.out.println("Failure, could not find " + todo);
-        }
-        Thread.sleep(1000);
+    private void assertNewTodoWasAdded(TodoResource todoClient) {
+        Todo todo = ImmutableTodo.of("some unique TODO item with UUID=" + UUID.randomUUID());
+
+        todoClient.addTodo(todo);
+        List<Todo> todoList = todoClient.getTodoList();
+
+        assertThat(todoList, hasItem(todo));
     }
 }

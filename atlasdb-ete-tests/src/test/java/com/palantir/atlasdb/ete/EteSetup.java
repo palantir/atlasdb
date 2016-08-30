@@ -17,6 +17,9 @@ package com.palantir.atlasdb.ete;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -26,6 +29,7 @@ import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.docker.compose.DockerComposeRule;
@@ -99,5 +103,33 @@ public class EteSetup {
                 return true;
             });
         };
+    }
+
+    // TODO (gbrova) these need to be pause and unpause, not stop and start!!!
+    // Pendng PR to docker-compose-rule.
+    protected void stopCassandraContainer(String containerName) {
+        try {
+            docker.containers().container(containerName).stop();
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected void startCassandraContainer(String containerName) {
+        Container container = docker.containers().container(containerName);
+        try {
+            container.start();
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        waitForCassandraContainerToBeReady(container);
+    }
+
+    private void waitForCassandraContainerToBeReady(Container container) {
+        Awaitility.await()
+                .atMost(120, TimeUnit.SECONDS)
+                .pollInterval(5, TimeUnit.SECONDS)
+                .until(() -> container.areAllPortsOpen().succeeded());
     }
 }
