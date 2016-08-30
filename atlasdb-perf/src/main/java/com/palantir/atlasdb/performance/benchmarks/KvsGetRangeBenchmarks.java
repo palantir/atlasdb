@@ -52,7 +52,7 @@ public class KvsGetRangeBenchmarks {
         RangeRequest request = Iterables.getOnlyElement(getRangeRequests(table, 1, sliceSize));
         int startRow = Ints.fromByteArray(request.getStartInclusive());
         ClosableIterator<RowResult<Value>> result =
-                table.getKvs().getRange(ConsecutiveNarrowTable.TABLE_REF, request, Long.MAX_VALUE);
+                table.getKvs().getRange(table.getTableRef(), request, Long.MAX_VALUE);
         ArrayList<RowResult<Value>> list = Lists.newArrayList(result);
         Benchmarks.validate(list.size() == sliceSize, "List size %s != %s", sliceSize, list.size());
         list.forEach(rowResult -> {
@@ -88,7 +88,7 @@ public class KvsGetRangeBenchmarks {
     private Object getMultiRangeInner(ConsecutiveNarrowTable table) {
         Iterable<RangeRequest> requests = getRangeRequests(table, (int) (table.getNumRows() * 0.1), 1);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> results =
-                table.getKvs().getFirstBatchForRanges(ConsecutiveNarrowTable.TABLE_REF, requests, Long.MAX_VALUE);
+                table.getKvs().getFirstBatchForRanges(table.getTableRef(), requests, Long.MAX_VALUE);
 
         int numRequests = Iterables.size(requests);
 

@@ -46,19 +46,19 @@ public class TransactionPutBenchmarks {
     private static final int BATCH_SIZE = 250;
 
     @Benchmark
-    public Map<Cell, byte[]> singleRandomPut(EmptyTables tables) {
+    public Object singleRandomPut(EmptyTables tables) {
         return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
-            txn.put(EmptyTables.TABLE_REF_1, batch);
+            txn.put(tables.getFirstTableRef(), batch);
             return batch;
         });
     }
 
     @Benchmark
-    public Map<Cell, byte[]> batchRandomPut(EmptyTables tables) {
+    public Object batchRandomPut(EmptyTables tables) {
         return tables.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);
-            txn.put(EmptyTables.TABLE_REF_1, batch);
+            txn.put(tables.getFirstTableRef(), batch);
             return batch;
         });
     }

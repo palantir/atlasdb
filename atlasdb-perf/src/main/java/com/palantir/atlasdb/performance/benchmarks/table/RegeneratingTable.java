@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -44,20 +42,9 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 @State(Scope.Benchmark)
 public abstract class RegeneratingTable<T> {
 
-    public static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("performance.table");
-    private static final String ROW_COMPONENT = "key";
-    private static final String COLUMN_NAME = "value";
-    private static final ByteBuffer COLUMN_NAME_IN_BYTES =
-            ByteBuffer.wrap(RegeneratingTable.COLUMN_NAME.getBytes(StandardCharsets.UTF_8));
-
-    private static final int VALUE_BYTE_ARRAY_SIZE = 100;
-    private static final int KEY_BYTE_ARRAY_SIZE = 32;
     private static final int BATCH_SIZE = 250;
 
-    private static final long DUMMY_TIMESTAMP = 1L;
-    private static final long VALUE_SEED = 279L;
-    private Random random = new Random(VALUE_SEED);
-
+    protected Random random = new Random(Tables.RANDOM_SEED);
 
     private AtlasDbServicesConnector connector;
     private AtlasDbServices services;
@@ -70,11 +57,18 @@ public abstract class RegeneratingTable<T> {
         return services.getKeyValueService();
     }
 
+    public TableReference getTableRef() {
+        return Tables.TABLE_REF;
+    }
+
     @Setup(Level.Trial)
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
         this.services = conn.connect();
-        Benchmarks.createTable(services.getKeyValueService(), TABLE_REF, ROW_COMPONENT, COLUMN_NAME);
+        Benchmarks.createTable(services.getKeyValueService(),
+                getTableRef(),
+                Tables.ROW_COMPONENT,
+                Tables.COLUMN_NAME);
         setupTableData();
     }
 
@@ -85,7 +79,7 @@ public abstract class RegeneratingTable<T> {
 
     @TearDown(Level.Trial)
     public void cleanup() throws Exception {
-        this.services.getKeyValueService().dropTable(TABLE_REF);
+        this.services.getKeyValueService().dropTable(getTableRef());
         this.connector.close();
     }
 
@@ -95,10 +89,10 @@ public abstract class RegeneratingTable<T> {
 
         @Override
         public void setupTableData() {
-            getKvs().truncateTable(TABLE_REF);
-            Map<Cell, byte[]> batch = generateBatchToInsert(1);
-            getKvs().put(TABLE_REF, batch, DUMMY_TIMESTAMP);
-            data = Multimaps.forMap(Maps.transformValues(batch, $ -> DUMMY_TIMESTAMP));
+            getKvs().truncateTable(getTableRef());
+            Map<Cell, byte[]> batch = Tables.generateBatch(random, 1);
+            getKvs().put(getTableRef(), batch, Tables.DUMMY_TIMESTAMP);
+            data = Multimaps.forMap(Maps.transformValues(batch, $ -> Tables.DUMMY_TIMESTAMP));
         }
 
         @Override
@@ -113,10 +107,10 @@ public abstract class RegeneratingTable<T> {
 
         @Override
         public void setupTableData() {
-            getKvs().truncateTable(TABLE_REF);
-            Map<Cell, byte[]> batch = generateBatchToInsert(BATCH_SIZE);
-            getKvs().put(TABLE_REF, batch, DUMMY_TIMESTAMP);
-            data = Multimaps.forMap(Maps.transformValues(batch, $ -> DUMMY_TIMESTAMP));
+            getKvs().truncateTable(getTableRef());
+            Map<Cell, byte[]> batch = Tables.generateBatch(random, BATCH_SIZE);
+            getKvs().put(getTableRef(), batch, Tables.DUMMY_TIMESTAMP);
+            data = Multimaps.forMap(Maps.transformValues(batch, $ -> Tables.DUMMY_TIMESTAMP));
         }
 
         @Override
@@ -131,10 +125,10 @@ public abstract class RegeneratingTable<T> {
 
         @Override
         public void setupTableData() {
-            getKvs().truncateTable(TABLE_REF);
-            Map<Cell, byte[]> batch = generateBatchToInsert(BATCH_SIZE);
+            getKvs().truncateTable(getTableRef());
+            Map<Cell, byte[]> batch = Tables.generateBatch(random, BATCH_SIZE);
             getTransactionManager().runTaskThrowOnConflict(txn -> {
-                txn.put(TABLE_REF, batch);
+                txn.put(getTableRef(), batch);
                 return null;
             });
             cells = batch.keySet();
@@ -152,10 +146,10 @@ public abstract class RegeneratingTable<T> {
 
         @Override
         public void setupTableData() {
-            getKvs().truncateTable(TABLE_REF);
-            Map<Cell, byte[]> batch = generateBatchToInsert(BATCH_SIZE);
+            getKvs().truncateTable(getTableRef());
+            Map<Cell, byte[]> batch = Tables.generateBatch(random, BATCH_SIZE);
             getTransactionManager().runTaskThrowOnConflict(txn -> {
-                txn.put(TABLE_REF, batch);
+                txn.put(getTableRef(), batch);
                 return null;
             });
             cells = batch.keySet();
@@ -165,28 +159,6 @@ public abstract class RegeneratingTable<T> {
         public Set<Cell> getTableCells() {
             return cells;
         }
-    }
-
-    private byte[] generateValue() {
-        byte[] value = new byte[VALUE_BYTE_ARRAY_SIZE];
-        random.nextBytes(value);
-        return value;
-    }
-
-    private byte[] generateKey() {
-        byte[] key = new byte[KEY_BYTE_ARRAY_SIZE];
-        random.nextBytes(key);
-        return key;
-    }
-
-    protected Map<Cell, byte[]> generateBatchToInsert(int size) {
-        Map<Cell, byte[]> map = Maps.newHashMapWithExpectedSize(size);
-        for (int j = 0; j < size; j++) {
-            byte[] key = generateKey();
-            byte[] value = generateValue();
-            map.put(Cell.create(key, COLUMN_NAME_IN_BYTES.array()), value);
-        }
-        return map;
     }
 
 }

@@ -39,7 +39,7 @@ import com.palantir.atlasdb.performance.benchmarks.table.RegeneratingTable;
 public class KvsDeleteBenchmarks {
 
     private Object doDelete(RegeneratingTable<Multimap<Cell, Long>> table) {
-        table.getKvs().delete(RegeneratingTable.TABLE_REF, table.getTableCells());
+        table.getKvs().delete(table.getTableRef(), table.getTableCells());
         return table.getTableCells();
     }
 

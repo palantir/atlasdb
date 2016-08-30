@@ -50,24 +50,24 @@ public class KvsPutBenchmarks {
     private static final int BATCH_SIZE = 250;
 
     @Benchmark
-    public Map<Cell, byte[]> singleRandomPut(EmptyTables tables) {
+    public Object singleRandomPut(EmptyTables tables) {
         Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
-        tables.getKvs().put(EmptyTables.TABLE_REF_1, batch, DUMMY_TIMESTAMP);
+        tables.getKvs().put(tables.getFirstTableRef(), batch, DUMMY_TIMESTAMP);
         return batch;
     }
 
     @Benchmark
-    public Map<Cell, byte[]> batchRandomPut(EmptyTables tables) {
+    public Object batchRandomPut(EmptyTables tables) {
         Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);
-        tables.getKvs().put(EmptyTables.TABLE_REF_1, batch, DUMMY_TIMESTAMP);
+        tables.getKvs().put(tables.getFirstTableRef(), batch, DUMMY_TIMESTAMP);
         return batch;
     }
 
     @Benchmark
-    public Map<TableReference, Map<Cell, byte[]>> batchRandomMultiPut(EmptyTables tables) {
+    public Object batchRandomMultiPut(EmptyTables tables) {
         Map<TableReference, Map<Cell, byte[]>> multiPutMap = Maps.newHashMap();
-        multiPutMap.put(EmptyTables.TABLE_REF_1, tables.generateBatchToInsert(BATCH_SIZE));
-        multiPutMap.put(EmptyTables.TABLE_REF_2, tables.generateBatchToInsert(BATCH_SIZE));
+        multiPutMap.put(tables.getFirstTableRef(), tables.generateBatchToInsert(BATCH_SIZE));
+        multiPutMap.put(tables.getSecondTableRef(), tables.generateBatchToInsert(BATCH_SIZE));
         tables.getKvs().multiPut(multiPutMap, DUMMY_TIMESTAMP);
         return multiPutMap;
     }

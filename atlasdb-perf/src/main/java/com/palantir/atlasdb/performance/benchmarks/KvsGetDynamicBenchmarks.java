@@ -37,6 +37,7 @@ import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.performance.benchmarks.table.Tables;
 import com.palantir.atlasdb.performance.benchmarks.table.WideRowTable;
 
 /**
@@ -53,18 +54,18 @@ import com.palantir.atlasdb.performance.benchmarks.table.WideRowTable;
 public class KvsGetDynamicBenchmarks {
 
     @Benchmark
-    public Map<Cell, Value> getAllColumnsExplicitly(WideRowTable table) {
-        Map<Cell, Value> result = table.getKvs().get(WideRowTable.TABLE_REF, table.getAllCellsAtMaxTimestamp());
+    public Object getAllColumnsExplicitly(WideRowTable table) {
+        Map<Cell, Value> result = table.getKvs().get(table.getTableRef(), table.getAllCellsAtMaxTimestamp());
         Benchmarks.validate(result.size() == WideRowTable.NUM_COLS,
                 "Should be %s columns, but were: %s", WideRowTable.NUM_COLS, result.size());
         return result;
     }
 
     @Benchmark
-    public Map<Cell, Value> getAllColumnsImplicitly(WideRowTable table) throws UnsupportedEncodingException {
+    public Object getAllColumnsImplicitly(WideRowTable table) throws UnsupportedEncodingException {
         Map<Cell, Value> result = table.getKvs().getRows(
-                WideRowTable.TABLE_REF,
-                Collections.singleton(WideRowTable.ROW_BYTES.array()),
+                table.getTableRef(),
+                Collections.singleton(Tables.ROW_BYTES.array()),
                 ColumnSelection.all(),
                 Long.MAX_VALUE);
         Benchmarks.validate(result.size() == WideRowTable.NUM_COLS,
@@ -73,8 +74,8 @@ public class KvsGetDynamicBenchmarks {
     }
 
     @Benchmark
-    public Map<Cell, Value> getFirstColumnExplicitly(WideRowTable table) {
-        Map<Cell, Value> result = table.getKvs().get(WideRowTable.TABLE_REF, table.getFirstCellAtMaxTimestampAsMap());
+    public Object getFirstColumnExplicitly(WideRowTable table) {
+        Map<Cell, Value> result = table.getKvs().get(table.getTableRef(), table.getFirstCellAtMaxTimestampAsMap());
         Benchmarks.validate(result.size() == 1, "Should be %s column, but were: %s", 1, result.size());
         int value = Ints.fromByteArray(Iterables.getOnlyElement(result.values()).getContents());
         Benchmarks.validate(value == 0, "Value should be %s but is %s", 0,  value);
@@ -82,9 +83,9 @@ public class KvsGetDynamicBenchmarks {
     }
 
     @Benchmark
-    public Map<Cell, Value> getFirstColumnExplicitlyGetRows(WideRowTable table) throws UnsupportedEncodingException {
+    public Object getFirstColumnExplicitlyGetRows(WideRowTable table) throws UnsupportedEncodingException {
         Map<Cell, Value> result = table.getKvs()
-                .getRows(WideRowTable.TABLE_REF, Collections.singleton(WideRowTable.ROW_BYTES.array()),
+                .getRows(table.getTableRef(), Collections.singleton(Tables.ROW_BYTES.array()),
                         ColumnSelection.create(
                                 table.getFirstCellAsSet().stream().map(Cell::getColumnName).collect(Collectors.toList())
                         ),

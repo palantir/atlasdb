@@ -15,8 +15,9 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
+import static com.palantir.atlasdb.performance.benchmarks.table.Tables.ROW_BYTES;
+
 import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Set;
@@ -42,12 +43,6 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
  */
 @State(Scope.Benchmark)
 public class WideRowTable {
-
-    public static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("performance.table");
-    private static final String ROW_COMPONENT = "BIG_ROW_OF_INTS";
-    private static final String COLUMN_COMPONENT = "col";
-    public static final ByteBuffer ROW_BYTES = ByteBuffer.wrap(ROW_COMPONENT.getBytes(StandardCharsets.UTF_8));
-
     public static final int NUM_COLS = 50000;
 
     private AtlasDbServicesConnector connector;
@@ -64,6 +59,10 @@ public class WideRowTable {
 
     public KeyValueService getKvs() {
         return services.getKeyValueService();
+    }
+
+    public TableReference getTableRef() {
+        return Tables.TABLE_REF;
     }
 
     public Map<Cell, Long> getAllCellsAtMaxTimestamp() {
@@ -87,7 +86,10 @@ public class WideRowTable {
         this.connector = conn;
         services = conn.connect();
         tableRef = Benchmarks.createTableWithDynamicColumns(
-                services.getKeyValueService(), TABLE_REF, ROW_COMPONENT, COLUMN_COMPONENT);
+                services.getKeyValueService(),
+                getTableRef(),
+                Tables.ROW_COMPONENT,
+                Tables.COLUMN_COMPONENT);
         storeData();
     }
 

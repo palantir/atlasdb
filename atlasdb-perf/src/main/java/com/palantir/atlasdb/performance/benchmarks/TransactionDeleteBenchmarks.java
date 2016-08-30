@@ -40,7 +40,7 @@ public class TransactionDeleteBenchmarks {
 
     private Object doDelete(RegeneratingTable<Set<Cell>> table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            txn.delete(RegeneratingTable.TABLE_REF, table.getTableCells());
+            txn.delete(table.getTableRef(), table.getTableCells());
             return table.getTableCells();
         });
     }

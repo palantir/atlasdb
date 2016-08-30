@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+import static com.palantir.atlasdb.performance.benchmarks.table.Tables.ROW_COMPONENT;
+
 import java.util.Map;
 import java.util.Random;
 import java.util.stream.IntStream;
@@ -45,17 +45,11 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 @State(Scope.Benchmark)
 public abstract class ConsecutiveNarrowTable {
 
-    public static final TableReference TABLE_REF = TableReference.createFromFullyQualifiedName("performance.table");
-    private static final String ROW_COMPONENT = "key";
-    private static final String COLUMN_NAME = "value";
-    public static final ByteBuffer COLUMN_NAME_IN_BYTES = ByteBuffer.wrap(COLUMN_NAME.getBytes(StandardCharsets.UTF_8));
-
     private static final int VALUE_BYTE_ARRAY_SIZE = 100;
     private static final int PUT_BATCH_SIZE = 1000;
     private static final int DEFAULT_NUM_ROWS = 10000;
 
-    private static final long VALUE_SEED = 279L;
-    private Random random = new Random(VALUE_SEED);
+    private Random random = new Random(Tables.RANDOM_SEED);
 
     private AtlasDbServicesConnector connector;
     private AtlasDbServices services;
@@ -72,6 +66,10 @@ public abstract class ConsecutiveNarrowTable {
         return services.getKeyValueService();
     }
 
+    public TableReference getTableRef() {
+        return Tables.TABLE_REF;
+    }
+
     public int getNumRows() {
         return DEFAULT_NUM_ROWS;
     }
@@ -80,7 +78,7 @@ public abstract class ConsecutiveNarrowTable {
 
     @TearDown(Level.Trial)
     public void cleanup() throws Exception {
-        getKvs().dropTables(Sets.newHashSet(TABLE_REF));
+        getKvs().dropTables(Sets.newHashSet(getTableRef()));
         this.connector.close();
     }
 
@@ -88,7 +86,7 @@ public abstract class ConsecutiveNarrowTable {
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
         services = conn.connect();
-        Benchmarks.createTable(getKvs(), TABLE_REF, ROW_COMPONENT, COLUMN_NAME);
+        Benchmarks.createTable(getKvs(), getTableRef(), ROW_COMPONENT, Tables.COLUMN_NAME);
         setupData();
     }
 
@@ -127,7 +125,7 @@ public abstract class ConsecutiveNarrowTable {
                 final Map<Cell, byte[]> values =
                         generateBatch(table.getRandom(), i, Math.min(PUT_BATCH_SIZE, numRows - i));
                 table.getTransactionManager().runTaskThrowOnConflict(txn -> {
-                    txn.put(TABLE_REF, values);
+                    txn.put(table.getTableRef(), values);
                     return null;
                 });
             }
@@ -139,7 +137,7 @@ public abstract class ConsecutiveNarrowTable {
         for (int j = 0; j < size; j++) {
             byte[] key = Ints.toByteArray(startKey + j);
             byte[] value = generateValue(random);
-            map.put(Cell.create(key, COLUMN_NAME_IN_BYTES.array()), value);
+            map.put(Cell.create(key, Tables.COLUMN_NAME_IN_BYTES.array()), value);
         }
         return map;
     }
