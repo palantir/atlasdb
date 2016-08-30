@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Supplier;
@@ -331,7 +330,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
     /*
      * These tests have been ignored pending internal ticket 94009
      * They are fragile when run with test suites that do not properly
@@ -354,7 +352,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
     public void testBackgroundSweepWritesPriorityTableWithDifferentTime() {
         createTable(SweepStrategy.CONSERVATIVE);
         put("foo", "bar", 50);
@@ -382,7 +379,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
     public void testBackgroundSweeperWritesToProgressTable() {
         setupBackgroundSweeper(2);
         createTable(SweepStrategy.CONSERVATIVE);
@@ -405,7 +401,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
     public void testBackgroundSweeperDoesNotOverwriteProgressMinimumTimestamp() {
         setupBackgroundSweeper(2);
         createTable(SweepStrategy.CONSERVATIVE);
@@ -448,7 +443,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
     public void testBackgroundSweeperWritesFromProgressToPriority() {
         setupBackgroundSweeper(3);
         createTable(SweepStrategy.CONSERVATIVE);
@@ -480,7 +474,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
     public void testBackgroundSweepCanHandleNegativeImmutableTimestamp() {
         createTable(SweepStrategy.CONSERVATIVE);
         put("foo", "bar", 50);
