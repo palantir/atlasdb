@@ -16,19 +16,21 @@
 package com.palantir.atlasdb.ete;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.Duration;
 import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.CharStreams;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.todo.TodoResource;
@@ -37,6 +39,8 @@ import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
+import com.palantir.docker.compose.execution.DockerComposeExecArgument;
+import com.palantir.docker.compose.execution.DockerComposeExecOption;
 import com.palantir.docker.compose.execution.DockerComposeRunArgument;
 import com.palantir.docker.compose.execution.DockerComposeRunOption;
 
@@ -46,6 +50,7 @@ public class EteSetup {
 
     private static final String FIRST_ETE_CONTAINER = "ete1";
     private static final int ETE_PORT = 3828;
+    public static final int NUM_CASSANDRA_NODES = 3;
 
     private static DockerComposeRule docker;
 
@@ -72,7 +77,7 @@ public class EteSetup {
     protected static RuleChain setupComposition(String name, String composeFile) {
         docker = DockerComposeRule.builder()
                 .file(composeFile)
-                .waitingForService(FIRST_ETE_CONTAINER, toBeReady(), Duration.standardMinutes(9))
+                .waitingForService(FIRST_ETE_CONTAINER, toBeReady(), Duration.standardMinutes(3))
                 .saveLogsTo("container-logs/" + name)
                 .build();
 
@@ -127,9 +132,29 @@ public class EteSetup {
     }
 
     private void waitForCassandraContainerToBeReady(Container container) {
+        waitForAllPorts(container);
+        waitForNodetoolToRecognizeAllNodes(container);
+    }
+
+    private void waitForAllPorts(Container container) {
+        Awaitility.await()
+                .atMost(120, TimeUnit.SECONDS)
+                .until(() -> container.areAllPortsOpen().succeeded());
+    }
+
+    private void waitForNodetoolToRecognizeAllNodes(Container container) {
         Awaitility.await()
                 .atMost(120, TimeUnit.SECONDS)
                 .pollInterval(5, TimeUnit.SECONDS)
-                .until(() -> container.areAllPortsOpen().succeeded());
+                .until(() -> {
+                    try {
+                        String exec = docker.exec(DockerComposeExecOption.options("-T"),
+                                container.getContainerName(),
+                                DockerComposeExecArgument.arguments("bash", "-c", "nodetool status | grep UN"));
+                        return StringUtils.countMatches(exec, "UN  ") == NUM_CASSANDRA_NODES;
+                    } catch (Exception e) {
+                        return false;
+                    }
+                });
     }
 }

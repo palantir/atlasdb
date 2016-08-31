@@ -26,6 +26,8 @@ atlasdb:
     mutationBatchCount: 10000
     mutationBatchSizeBytes: 10000000
     socketQueryTimeoutMillis: 5000
+    poolRefreshIntervalSeconds: 3
+    unresponsiveHostBackoffTimeSeconds: 1
     fetchBatchCount: 1000
     safetyDisabled: false
     autoRefreshNodes: false
