@@ -24,7 +24,7 @@ services:
 
   ete1:
     build: .
-    command: bash -c 'cp var/conf/atlasdb-ete.no-leader.multiple-cassandra.client.yml var/conf/atlasdb-ete.yml && dockerize -timeout 240s -wait tcp://cassandra1:9160 -wait tcp://cassandra2:9160 -wait tcp://cassandra3:9160 && service/bin/init.sh console'
+    command: bash -c 'cp var/conf/atlasdb-ete.multiple-cassandra.yml var/conf/atlasdb-ete.yml && dockerize -timeout 240s -wait tcp://cassandra1:9160 -wait tcp://cassandra2:9160 -wait tcp://cassandra3:9160 && service/bin/init.sh console'
     environment:
       - ME=ete1
     ports:
