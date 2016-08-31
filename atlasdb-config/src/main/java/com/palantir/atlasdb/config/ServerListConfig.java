@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */ 
+ */
 package com.palantir.atlasdb.config;
 
 import java.util.Set;
@@ -23,6 +23,8 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Optional;
+import com.palantir.remoting.ssl.SslConfiguration;
 
 @JsonDeserialize(as = ImmutableServerListConfig.class)
 @JsonSerialize(as = ImmutableServerListConfig.class)
@@ -31,5 +33,7 @@ public interface ServerListConfig {
 
     @Size(min=1)
     Set<String> servers();
+
+    public abstract Optional<SslConfiguration> sslConfiguration();
 
 }

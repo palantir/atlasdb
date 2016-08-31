@@ -15,9 +15,6 @@
  */
 package com.palantir.atlasdb.server;
 
-import javax.net.ssl.SSLSocketFactory;
-
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
@@ -37,7 +34,7 @@ public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
 
     @Override
     public void run(AtlasDbServerConfiguration config, final Environment environment) throws Exception {
-        SerializableTransactionManager tm = TransactionManagers.create(config.getConfig(), Optional.<SSLSocketFactory>absent(), ImmutableSet.<Schema>of(),
+        SerializableTransactionManager tm = TransactionManagers.create(config.getConfig(), ImmutableSet.<Schema>of(),
                 new com.palantir.atlasdb.factory.TransactionManagers.Environment() {
                     @Override
                     public void register(Object resource) {

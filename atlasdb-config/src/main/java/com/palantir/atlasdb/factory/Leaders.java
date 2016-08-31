@@ -50,7 +50,6 @@ public class Leaders {
      * registers appropriate endpoints for that service.
      */
     public static LeaderElectionService create(
-            Optional<SSLSocketFactory> sslSocketFactory,
             Environment env,
             LeaderConfig config) {
 
@@ -59,6 +58,8 @@ public class Leaders {
 
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
         remoteLeaderUris.remove(config.localServer());
+
+        Optional<SSLSocketFactory> sslSocketFactory = TransactionManagers.createSslSocketFactory(config.sslConfiguration());
 
         List<PaxosLearner> learners =
                 AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosLearner.class);
