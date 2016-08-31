@@ -30,7 +30,6 @@ import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.CharStreams;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.todo.TodoResource;
@@ -114,8 +113,9 @@ public class EteSetup {
     // Pendng PR to docker-compose-rule.
     protected void stopCassandraContainer(String containerName) {
         try {
-            docker.dockerExecutable().execute("kill", getContainerIdForNodeContaining(containerName));
-        } catch (IOException e) {
+            Process stopContainer = docker.dockerExecutable().execute("kill", getContainerIdWithName(containerName));
+            stopContainer.waitFor(30, TimeUnit.SECONDS);
+        } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
@@ -159,7 +159,7 @@ public class EteSetup {
     }
 
     // TODO (gbrova) this is ugly, is there native support in docker-compoase-rule?
-    private String getContainerIdForNodeContaining(String containing) {
+    private String getContainerIdWithName(String containing) {
         // for example, "cassandra2" -> "c04459db63b0".  Couldn't figure out a way to get this with DCR
         try {
             Process exec = Runtime.getRuntime().exec(ImmutableList.of("docker", "ps").toArray(new String[0]));
