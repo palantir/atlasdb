@@ -4,21 +4,21 @@ services:
   cassandra1:
      image: com.palantir.docker/atlas-cassandra:2.2-v0.1
      environment:
-      - CASSANDRA_SEEDS=cassandra1
+      - CASSANDRA_SEEDS=cassandra1,cassandra2
       - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
       - LOCAL_JMX=no
 
   cassandra2:
     image: com.palantir.docker/atlas-cassandra:2.2-v0.1
     environment:
-      - CASSANDRA_SEEDS=cassandra1
+      - CASSANDRA_SEEDS=cassandra1,cassandra2
       - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
       - LOCAL_JMX=no
 
   cassandra3:
     image: com.palantir.docker/atlas-cassandra:2.2-v0.1
     environment:
-      - CASSANDRA_SEEDS=cassandra1
+      - CASSANDRA_SEEDS=cassandra1,cassandra2
       - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
       - LOCAL_JMX=no
 
