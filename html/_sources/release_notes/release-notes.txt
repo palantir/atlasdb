@@ -54,6 +54,23 @@ v0.13.0
            Removed the advice to restart the client, as it will not help in this scenario.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/805>`__)
 
+    *    - |fixed|
+         - Cassandra support for non-standard ports
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/771>`__)
+
+    *    - |fixed|
+         - A bug that could require Cassandra schema mutations every startup, which breaks HA guarantees
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/771>`__)
+
+    *    - |improved|
+         - Performance and reliability enhancements to the in-beta CQL KVS
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/771>`__)
+
+    *    - |fixed|
+         - A bug that meant a single JVM could not connect to multiple Postgres servers
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/771>`__)
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

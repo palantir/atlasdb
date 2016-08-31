@@ -178,6 +178,22 @@ Use <code class="docutils literal"><span class="pre">updateManyUnregisteredQuery
 Removed the advice to restart the client, as it will not help in this scenario.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/805">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Cassandra support for non-standard ports
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/771">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>A bug that could require Cassandra schema mutations every startup, which breaks HA guarantees
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/771">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Performance and reliability enhancements to the in-beta CQL KVS
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/771">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>A bug that meant a single JVM could not connect to multiple Postgres servers
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/771">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
