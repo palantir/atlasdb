@@ -25,6 +25,7 @@ Required parameters:
 
 Optional parameters:
 
+- ``sslConfiguration``: The security settings to apply to client-side connections to the atlas services at the endpoints, other than ``localServer``, listed in the ``leaders`` array, specified according to the `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java>`__ library. (defaults to not using SSL)
 - ``learnerLogDir`` : Path to the paxos learner logs (defaults to var/data/paxos/learner)
 - ``acceptorLogDir`` : Path to the paxos acceptor logs (defaults to var/data/paxos/acceptor)
 - ``lockCreator`` : The host responsible for creation of the schema mutation lock table. If specified, this must be same across all hosts. (defaults to the first host in the sorted leaders list)
@@ -50,4 +51,6 @@ A minimal AtlasDB configuration for the leader block will look like :
       - https://host1:3828 # If ssl is not enabled, then the hosts must be specified as http
       - https://host2:3828
       - https://host3:3828
+    sslConfiguration:
+      trustStorePath: var/security/truststore.jks
 

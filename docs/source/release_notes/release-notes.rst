@@ -31,6 +31,24 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.14.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |breaking|
+         - ``TransactionManagers.create()`` no longer takes in an argument of ``Optional<SSLSocketFactory> sslSocketFactory``. Instead, client-side security settings for connections to other Atlas services when running multiple Atlas clients are now specified directly in configuration via the ``leader`` block's optional ``sslConfiguration``. Details can be found in the `Leader configuration documentation <https://palantir.github.io/atlasdb/html/configuration/leader_config.html>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/801>`__)
+
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.13.0
 =======
 
