@@ -15,9 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import org.junit.After;
@@ -44,7 +47,7 @@ public class CassandraKeyValueServiceTableCreationTest {
                 CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig), CassandraTestSuite.LEADER_CONFIG);
 
         ImmutableCassandraKeyValueServiceConfig slowTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
-                .withSchemaMutationTimeoutMillis(60 * 1000);
+                .withSchemaMutationTimeoutMillis(6 * 1000);
         slowTimeoutKvs = CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(slowTimeoutConfig), CassandraTestSuite.LEADER_CONFIG);
 
@@ -68,7 +71,7 @@ public class CassandraKeyValueServiceTableCreationTest {
     }
 
     @Test
-    public void testCreatingMultipleTablesAtOnce() {
+    public void testCreatingMultipleTablesAtOnce() throws InterruptedException {
         int threadCount =  16;
         CyclicBarrier barrier = new CyclicBarrier(threadCount);
         ForkJoinPool threadPool = new ForkJoinPool(threadCount);
@@ -83,6 +86,9 @@ public class CassandraKeyValueServiceTableCreationTest {
                 }
             });
         });
+
+        threadPool.shutdown();
+        assertTrue(threadPool.awaitTermination(60, TimeUnit.SECONDS));
 
         slowTimeoutKvs.dropTable(GOOD_TABLE);
     }
