@@ -52,6 +52,8 @@ public class EteSetup {
     public static final int NUM_CASSANDRA_NODES = 3;
 
     private static DockerComposeRule docker;
+    private static final String NODE_UP_STATUS = "UN  ";
+    private static final String NODE_DOWN_STATUS = "DN  ";
 
     protected <T> T createClientToSingleNode(Class<T> clazz) {
         return createClientFor(clazz, asPort(FIRST_ETE_CONTAINER));
@@ -109,15 +111,15 @@ public class EteSetup {
         };
     }
 
-    // TODO (gbrova) these need to be pause and unpause, not stop and start!!!
-    // Pendng PR to docker-compose-rule.
     protected void stopCassandraContainer(String containerName) {
+        Container container = docker.containers().container(containerName);
         try {
-            Process stopContainer = docker.dockerExecutable().execute("kill", getContainerIdWithName(containerName));
-            stopContainer.waitFor(30, TimeUnit.SECONDS);
+            container.kill();
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
+
+        waitForNodetoolToConfirmStatus(container, NODE_DOWN_STATUS, 1);
     }
 
     protected void startCassandraContainer(String containerName) {
@@ -133,7 +135,7 @@ public class EteSetup {
 
     private void waitForCassandraContainerToBeReady(Container container) {
         waitForAllPorts(container);
-        waitForNodetoolToRecognizeAllNodes(container);
+        waitForNodetoolToConfirmStatus(container, NODE_UP_STATUS, NUM_CASSANDRA_NODES);
     }
 
     private void waitForAllPorts(Container container) {
@@ -142,37 +144,19 @@ public class EteSetup {
                 .until(() -> container.areAllPortsOpen().succeeded());
     }
 
-    private void waitForNodetoolToRecognizeAllNodes(Container container) {
+    private void waitForNodetoolToConfirmStatus(Container container, String status, int expectedNodeCount) {
         Awaitility.await()
                 .atMost(120, TimeUnit.SECONDS)
                 .pollInterval(5, TimeUnit.SECONDS)
                 .until(() -> {
                     try {
-                        String exec = docker.exec(DockerComposeExecOption.options("-T"),
+                        String nodetoolStatus = docker.exec(DockerComposeExecOption.options("-T"),
                                 container.getContainerName(),
                                 DockerComposeExecArgument.arguments("bash", "-c", "nodetool status | grep UN"));
-                        return StringUtils.countMatches(exec, "UN  ") == NUM_CASSANDRA_NODES;
+                        return StringUtils.countMatches(nodetoolStatus, status) == expectedNodeCount;
                     } catch (Exception e) {
                         return false;
                     }
                 });
-    }
-
-    // TODO (gbrova) this is ugly, is there native support in docker-compoase-rule?
-    private String getContainerIdWithName(String containing) {
-        // for example, "cassandra2" -> "c04459db63b0".  Couldn't figure out a way to get this with DCR
-        try {
-            Process exec = Runtime.getRuntime().exec(ImmutableList.of("docker", "ps").toArray(new String[0]));
-            String output = IOUtils.toString(exec.getInputStream());
-            String[] lines = output.split("\n");
-            String cassandraLine = Arrays.stream(lines)
-                    .filter(line -> line.contains(containing))
-                    .findAny()
-                    .get();
-            String[] lineParts = cassandraLine.split(" ");
-            return lineParts[0]; // CONTAINER ID is always the first element
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
