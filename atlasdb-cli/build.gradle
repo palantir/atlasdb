@@ -15,7 +15,7 @@ dependencies {
 
   testCompile project(':atlasdb-rocksdb')
 
-  processor 'com.google.dagger:dagger-compiler:2.0.2'
+  processor 'com.google.dagger:dagger-compiler:' + libVersions.dagger
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
