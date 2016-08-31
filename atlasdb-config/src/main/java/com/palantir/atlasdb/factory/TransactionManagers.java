@@ -66,6 +66,8 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.remoting.ssl.SslConfiguration;
+import com.palantir.remoting.ssl.SslSocketFactories;
 import com.palantir.timestamp.TimestampService;
 
 public final class TransactionManagers {
@@ -85,11 +87,10 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            Optional<SSLSocketFactory> sslSocketFactory,
             Schema schema,
             Environment env,
             boolean allowHiddenTableAccess) {
-        return create(config, sslSocketFactory, ImmutableSet.of(schema), env, allowHiddenTableAccess);
+        return create(config, ImmutableSet.of(schema), env, allowHiddenTableAccess);
     }
 
     /**
@@ -98,7 +99,6 @@ public final class TransactionManagers {
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
-            Optional<SSLSocketFactory> sslSocketFactory,
             Set<Schema> schemas,
             Environment env,
             boolean allowHiddenTableAccess) {
@@ -108,7 +108,6 @@ public final class TransactionManagers {
 
         LockAndTimestampServices lts = createLockAndTimestampServices(
                 config,
-                sslSocketFactory,
                 env,
                 LockServiceImpl::create,
                 atlasFactory::getTimestampService);
@@ -190,12 +189,11 @@ public final class TransactionManagers {
 
     public static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
-            Optional<SSLSocketFactory> sslSocketFactory,
             Environment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
         LockAndTimestampServices lockAndTimestampServices =
-                createRawServices(config, sslSocketFactory, env, lock, time);
+                createRawServices(config, env, lock, time);
         return withRefreshingLockService(lockAndTimestampServices);
     }
 
@@ -209,12 +207,11 @@ public final class TransactionManagers {
 
     private static LockAndTimestampServices createRawServices(
             AtlasDbConfig config,
-            Optional<SSLSocketFactory> sslSocketFactory,
             Environment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
         if (config.leader().isPresent()) {
-            LeaderElectionService leader = Leaders.create(sslSocketFactory, env, config.leader().get());
+            LeaderElectionService leader = Leaders.create(env, config.leader().get());
             env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
             env.register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader));
 
@@ -222,6 +219,9 @@ public final class TransactionManagers {
                     "Ignoring lock server configuration because leadership election is enabled");
             warnIf(config.timestamp().isPresent(),
                     "Ignoring timestamp server configuration because leadership election is enabled");
+
+            Optional<SSLSocketFactory> sslSocketFactory =
+                    createSslSocketFactory(config.leader().get().sslConfiguration());
 
             return ImmutableLockAndTimestampServices.builder()
                     .lock(createService(sslSocketFactory, config.leader().get().leaders(), RemoteLockService.class))
@@ -232,10 +232,10 @@ public final class TransactionManagers {
                     "Using embedded instances for one (but not both) of lock and timestamp services");
 
             RemoteLockService lockService = config.lock()
-                    .transform(new ServiceCreator<>(sslSocketFactory, RemoteLockService.class))
+                    .transform(new ServiceCreator<>(RemoteLockService.class))
                     .or(lock);
             TimestampService timeService = config.timestamp()
-                    .transform(new ServiceCreator<>(sslSocketFactory, TimestampService.class))
+                    .transform(new ServiceCreator<>(TimestampService.class))
                     .or(time);
 
             if (!config.lock().isPresent()) {
@@ -258,6 +258,13 @@ public final class TransactionManagers {
         }
     }
 
+    /**
+     * Utility method for transforming an optional {@link SslConfiguration} into an optional {@link SSLSocketFactory}.
+     */
+    public static Optional<SSLSocketFactory> createSslSocketFactory(Optional<SslConfiguration> sslConfiguration) {
+        return sslConfiguration.transform(config -> SslSocketFactories.createSslSocketFactory(config));
+    }
+
     private static <T> T createService(
             Optional<SSLSocketFactory> sslSocketFactory,
             Set<String> uris,
@@ -266,16 +273,15 @@ public final class TransactionManagers {
     }
 
     private static class ServiceCreator<T> implements Function<ServerListConfig, T> {
-        private Optional<SSLSocketFactory> sslSocketFactory;
         private Class<T> serviceClass;
 
-        ServiceCreator(Optional<SSLSocketFactory> sslSocketFactory, Class<T> serviceClass) {
-            this.sslSocketFactory = sslSocketFactory;
+        ServiceCreator(Class<T> serviceClass) {
             this.serviceClass = serviceClass;
         }
 
         @Override
         public T apply(ServerListConfig input) {
+            Optional<SSLSocketFactory> sslSocketFactory = createSslSocketFactory(input.sslConfiguration());
             return createService(sslSocketFactory, input.servers(), serviceClass);
         }
     }
