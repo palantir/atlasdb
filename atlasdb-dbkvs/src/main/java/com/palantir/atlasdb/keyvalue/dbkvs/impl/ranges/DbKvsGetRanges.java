@@ -21,9 +21,6 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.SortedMap;
 import java.util.SortedSet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +29,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Supplier;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -52,7 +48,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.common.collect.IterableView;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
@@ -77,8 +72,6 @@ public class DbKvsGetRanges {
     private final DBType dbType;
     private final Supplier<SqlConnection> connectionSupplier;
 
-    private static final ExecutorService service = PTExecutors.newFixedThreadPool(100);
-
     public DbKvsGetRanges(
             DbKvs kvs,
             DdlConfig config,
@@ -95,22 +88,9 @@ public class DbKvsGetRanges {
             Iterable<RangeRequest> rangeRequests,
             long timestamp) {
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> results = Maps.newHashMap();
-
-        // ADDING A PERFORMANCE REGRESSION FOR TEST PURPOSES, DO NOT MERGE INTO DEVELOP
-
-        List<Future<Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>>> futures = Lists.newArrayList();
-        for (List<RangeRequest> batch : Iterables.partition(rangeRequests, 1)) {
-            futures.add(service.submit(() ->
-                    getFirstPages(tableRef, batch, timestamp)));
+        for (List<RangeRequest> batch : Iterables.partition(rangeRequests, 500)) {
+            results.putAll(getFirstPages(tableRef, batch, timestamp));
         }
-
-        futures.forEach(f -> {
-            try {
-                results.putAll(f.get());
-            } catch (InterruptedException | ExecutionException e) {
-                throw Throwables.propagate(e);
-            }
-        });
         return results;
     }
 
