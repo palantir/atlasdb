@@ -114,8 +114,8 @@ public class EteSetup {
     // Pendng PR to docker-compose-rule.
     protected void stopCassandraContainer(String containerName) {
         try {
-            docker.containers().container(containerName).stop();
-        } catch (IOException | InterruptedException e) {
+            docker.dockerExecutable().execute("kill", getContainerIdForNodeContaining(containerName));
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -156,5 +156,23 @@ public class EteSetup {
                         return false;
                     }
                 });
+    }
+
+    // TODO (gbrova) this is ugly, is there native support in docker-compoase-rule?
+    private String getContainerIdForNodeContaining(String containing) {
+        // for example, "cassandra2" -> "c04459db63b0".  Couldn't figure out a way to get this with DCR
+        try {
+            Process exec = Runtime.getRuntime().exec(ImmutableList.of("docker", "ps").toArray(new String[0]));
+            String output = IOUtils.toString(exec.getInputStream());
+            String[] lines = output.split("\n");
+            String cassandraLine = Arrays.stream(lines)
+                    .filter(line -> line.contains(containing))
+                    .findAny()
+                    .get();
+            String[] lineParts = cassandraLine.split(" ");
+            return lineParts[0]; // CONTAINER ID is always the first element
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
