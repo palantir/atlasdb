@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cli.services;
+package com.palantir.atlasdb.services.test;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
