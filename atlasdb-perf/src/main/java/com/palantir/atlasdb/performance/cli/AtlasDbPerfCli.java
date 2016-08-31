@@ -22,11 +22,13 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
 import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
@@ -105,6 +107,10 @@ public class AtlasDbPerfCli {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
                 .forks(1)
                 .threads(1)
+                .warmupIterations(1)
+                .measurementIterations(1)
+                .mode(Mode.SampleTime)
+                .timeUnit(TimeUnit.MICROSECONDS)
                 .param(BenchmarkParam.BACKEND.getKey(), getBackends(cli.backends));
         if (cli.logFile != null) {
             optBuilder.output(cli.logFile);

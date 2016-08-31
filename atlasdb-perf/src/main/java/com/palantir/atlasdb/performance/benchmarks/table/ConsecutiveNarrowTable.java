@@ -103,19 +103,7 @@ public abstract class ConsecutiveNarrowTable {
     public static class DirtyNarrowTable extends ConsecutiveNarrowTable {
         @Override
         protected void setupData() {
-            storeDataInTable(this, 10);
-        }
-    }
-
-    @State(Scope.Benchmark)
-    public static class VeryDirtyNarrowTable extends ConsecutiveNarrowTable {
-        @Override
-        protected void setupData() {
-            storeDataInTable(this, 1000);
-        }
-        @Override
-        public int getNumRows() {
-            return 10;
+            storeDataInTable(this, 100);
         }
     }
 

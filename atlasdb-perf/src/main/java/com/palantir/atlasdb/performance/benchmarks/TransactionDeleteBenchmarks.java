@@ -20,10 +20,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
@@ -32,10 +29,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.performance.benchmarks.table.RegeneratingTable;
 
 @State(Scope.Benchmark)
-@BenchmarkMode(Mode.SampleTime)
-@OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 1, time = 5, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 1, time = 30, timeUnit = TimeUnit.SECONDS)
 public class TransactionDeleteBenchmarks {
 
     private Object doDelete(RegeneratingTable<Set<Cell>> table) {
@@ -46,11 +39,15 @@ public class TransactionDeleteBenchmarks {
     }
 
     @Benchmark
+    @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public Object singleDelete(RegeneratingTable.TransactionRowRegeneratingTable table) {
         return doDelete(table);
     }
 
     @Benchmark
+    @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public Object batchDelete(RegeneratingTable.TransactionBatchRegeneratingTable table) {
         return doDelete(table);
     }

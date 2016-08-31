@@ -21,10 +21,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Measurement;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
@@ -40,16 +37,14 @@ import com.palantir.atlasdb.performance.benchmarks.table.EmptyTables;
  * @author mwakerman
  */
 @State(Scope.Benchmark)
-@BenchmarkMode(Mode.SampleTime)
-@OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 1, time = 5, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 1, time = 30, timeUnit = TimeUnit.SECONDS)
 public class KvsPutBenchmarks {
 
     private static final long DUMMY_TIMESTAMP = 1L;
     private static final int BATCH_SIZE = 250;
 
     @Benchmark
+    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object singleRandomPut(EmptyTables tables) {
         Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
         tables.getKvs().put(tables.getFirstTableRef(), batch, DUMMY_TIMESTAMP);
@@ -57,6 +52,8 @@ public class KvsPutBenchmarks {
     }
 
     @Benchmark
+    @Warmup(iterations = 1, time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(iterations = 1, time = 10, timeUnit = TimeUnit.SECONDS)
     public Object batchRandomPut(EmptyTables tables) {
         Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);
         tables.getKvs().put(tables.getFirstTableRef(), batch, DUMMY_TIMESTAMP);
@@ -64,6 +61,8 @@ public class KvsPutBenchmarks {
     }
 
     @Benchmark
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object batchRandomMultiPut(EmptyTables tables) {
         Map<TableReference, Map<Cell, byte[]>> multiPutMap = Maps.newHashMap();
         multiPutMap.put(tables.getFirstTableRef(), tables.generateBatchToInsert(BATCH_SIZE));
