@@ -20,6 +20,7 @@ import java.util.concurrent.Callable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.cli.command.CleanCassLocksStateCommand;
 import com.palantir.atlasdb.cli.command.KvsMigrationCommand;
 import com.palantir.atlasdb.cli.command.SweepCommand;
 import com.palantir.atlasdb.cli.command.timestamp.CleanTransactionRange;
@@ -40,7 +41,8 @@ public class AtlasCli {
                 .withCommands(
                         Help.class,
                         SweepCommand.class,
-                        KvsMigrationCommand.class);
+                        KvsMigrationCommand.class,
+                        CleanCassLocksStateCommand.class);
 
         builder.withGroup("timestamp")
                 .withDescription("Timestamp-centric commands")
