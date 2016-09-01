@@ -89,8 +89,6 @@ v0.13.0
          - A bug that meant a single JVM could not connect to multiple Postgres servers
            (`Pull Request <https://github.com/palantir/atlasdb/pull/771>`__)
 
->>>>>>> develop
-
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
