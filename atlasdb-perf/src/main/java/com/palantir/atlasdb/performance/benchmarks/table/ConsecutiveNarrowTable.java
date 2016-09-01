@@ -150,15 +150,15 @@ public abstract class ConsecutiveNarrowTable {
 
     private static void storeDataInTable(ConsecutiveNarrowTable table, int numOverwrites) {
         int numRows = table.getNumRows();
-        IntStream.range(0, numOverwrites + 1).forEach($ -> {
-            for (int i = 0; i < numRows; i += PUT_BATCH_SIZE) {
-                final Map<Cell, byte[]> values =
-                        Tables.generateContinuousBatch(table.getRandom(), i, Math.min(PUT_BATCH_SIZE, numRows - i));
-                table.getTransactionManager().runTaskThrowOnConflict(txn -> {
+        table.getTransactionManager().runTaskThrowOnConflict(txn -> {
+            IntStream.range(0, numOverwrites + 1).forEach($ -> {
+                for (int i = 0; i < numRows; i += PUT_BATCH_SIZE) {
+                    final Map<Cell, byte[]> values =
+                            Tables.generateContinuousBatch(table.getRandom(), i, Math.min(PUT_BATCH_SIZE, numRows - i));
                     txn.put(table.getTableRef(), values);
-                    return null;
-                });
-            }
+                }
+            });
+            return null;
         });
     }
 
