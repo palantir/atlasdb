@@ -21,11 +21,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
+import org.apache.cassandra.thrift.CfDef;
 import org.apache.thrift.TException;
+import org.hamcrest.MatcherAssert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -33,11 +37,17 @@ import org.junit.Test;
 import org.slf4j.Logger;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
+import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.table.description.TableDefinition;
+import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
     private KeyValueService keyValueService;
@@ -90,6 +100,43 @@ public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueService
         Preconditions.checkArgument(allTables.contains(table1));
         Preconditions.checkArgument(!allTables.contains(table2));
         Preconditions.checkArgument(!allTables.contains(table3));
+    }
+
+    @Test
+    public void testCfEqualityChecker() throws TException {
+        TableReference testTable = TableReference.createFromFullyQualifiedName("ns.never_seen");
+        byte[] tableMetadata = new TableDefinition() {{
+            rowName();
+            rowComponent("blob", ValueType.BLOB);
+            columns();
+            column("boblawblowlawblob", "col", ValueType.BLOB);
+            conflictHandler(ConflictHandler.IGNORE_ALL);
+            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+            explicitCompressionBlockSizeKB(8);
+            rangeScanAllowed();
+            ignoreHotspottingChecks();
+            negativeLookups();
+            cachePriority(TableMetadataPersistence.CachePriority.COLD);
+        }}.toTableMetadata().persistToBytes();
+
+        CassandraKeyValueService kvs;
+        if (keyValueService instanceof CassandraKeyValueService) {
+            kvs = (CassandraKeyValueService) keyValueService;
+        } else if (keyValueService instanceof TableSplittingKeyValueService) { // scylla tests
+            KeyValueService delegate = ((TableSplittingKeyValueService) keyValueService).getDelegate(testTable);
+            MatcherAssert.assertThat("The nesting of Key Value Services has apparently changed", delegate instanceof CassandraKeyValueService);
+            kvs = (CassandraKeyValueService) delegate;
+        } else {
+            throw new IllegalArgumentException("Can't run this cassandra-specific test against a non-cassandra KVS");
+        }
+
+        kvs.createTable(testTable, tableMetadata);
+
+        List<CfDef> knownCfs = kvs.clientPool.runWithRetry(client ->
+                client.describe_keyspace("atlasdb").getCf_defs());
+        CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream().filter(cf -> cf.getName().equals("ns__never_seen")).collect(Collectors.toList()));
+
+        MatcherAssert.assertThat("After serialization and deserialization to database, Cf metadata did not match.", (CassandraKeyValueServices.isMatchingCf(kvs.getCfForTable(testTable, tableMetadata), clusterSideCf)));
     }
 
     @Test

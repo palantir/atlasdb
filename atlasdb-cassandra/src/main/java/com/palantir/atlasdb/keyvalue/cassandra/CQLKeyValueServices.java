@@ -250,22 +250,6 @@ public final class CQLKeyValueServices {
         throw new IllegalStateException(sb.toString());
     }
 
-    static byte[] getRowName(Row row) {
-        return CassandraKeyValueServices.getBytesFromByteBuffer(row.getBytes(CassandraConstants.ROW_NAME));
-    }
-
-    static byte[] getColName(Row row) {
-        return CassandraKeyValueServices.getBytesFromByteBuffer(row.getBytes(CassandraConstants.COL_NAME_COL));
-    }
-
-    static long getTs(Row row) {
-        return ~row.getLong(CassandraConstants.TS_COL);
-    }
-
-    static byte[] getValue(Row row) {
-        return CassandraKeyValueServices.getBytesFromByteBuffer(row.getBytes(CassandraConstants.VALUE_COL));
-    }
-
     void createTableWithSettings(TableReference tableRef, byte[] rawMetadata, CQLKeyValueService kvs) {
         StringBuilder queryBuilder = new StringBuilder();
 
@@ -293,16 +277,15 @@ public final class CQLKeyValueServices {
             chunkLength = explicitCompressionBlockSizeKB;
         }
 
-        queryBuilder.append("CREATE TABLE IF NOT EXISTS "
-                + kvs.getFullTableName(tableRef) + " ( " // full table name (ks.cf)
-                + CassandraConstants.ROW_NAME + " blob, "
-                + CassandraConstants.COL_NAME_COL + " blob, "
-                + CassandraConstants.TS_COL + " bigint, "
-                + CassandraConstants.VALUE_COL + " blob, "
+        queryBuilder.append("CREATE TABLE IF NOT EXISTS " + kvs.getFullTableName(tableRef) + " ( "
+                + kvs.fieldNameProvider.row() + " blob, "
+                + kvs.fieldNameProvider.column() + " blob, "
+                + kvs.fieldNameProvider.timestamp() + " bigint, "
+                + kvs.fieldNameProvider.value() + " blob, "
                 + "PRIMARY KEY ("
-                + CassandraConstants.ROW_NAME + ", "
-                + CassandraConstants.COL_NAME_COL + ", "
-                + CassandraConstants.TS_COL + ")) "
+                + kvs.fieldNameProvider.row() + ", "
+                + kvs.fieldNameProvider.column() + ", "
+                + kvs.fieldNameProvider.timestamp() + ")) "
                 + "WITH COMPACT STORAGE ");
         queryBuilder.append("AND " + "bloom_filter_fp_chance = " + falsePositiveChance + " ");
         queryBuilder.append("AND caching = '{\"keys\":\"ALL\", \"rows_per_partition\":\"ALL\"}' ");
@@ -316,8 +299,8 @@ public final class CQLKeyValueServices {
         queryBuilder.append("AND compression = {'chunk_length_kb': '" + chunkLength + "', "
                 + "'sstable_compression': '" + CassandraConstants.DEFAULT_COMPRESSION_TYPE + "'}");
         queryBuilder.append("AND CLUSTERING ORDER BY ("
-                + CassandraConstants.COL_NAME_COL + " ASC, "
-                + CassandraConstants.TS_COL + " ASC) ");
+                + kvs.fieldNameProvider.column() + " ASC, "
+                + kvs.fieldNameProvider.timestamp() + " ASC) ");
 
         BoundStatement createTableStatement =
                 kvs.getPreparedStatement(tableRef, queryBuilder.toString(), kvs.longRunningQuerySession)

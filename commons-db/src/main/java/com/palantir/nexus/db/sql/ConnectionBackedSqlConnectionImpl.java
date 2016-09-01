@@ -304,11 +304,6 @@ public class ConnectionBackedSqlConnectionImpl implements ConnectionBackedSqlCon
     }
 
     @Override
-    public void updateManyUnregisteredQuery(String sql) throws PalantirSqlException {
-        sqlConnectionHelper.updateManyUnregisteredQuery(c, sql);
-    }
-
-    @Override
     public boolean updateUnregisteredQuery(String sql, Object... vs)
         throws PalantirSqlException {
         return sqlConnectionHelper.updateUnregisteredQuery(c, sql, vs);

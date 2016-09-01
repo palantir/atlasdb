@@ -15,9 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +32,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.NotFoundException;
@@ -47,7 +50,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
@@ -62,6 +64,7 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 
 /**
@@ -215,7 +218,7 @@ public class CassandraClientPool {
                     String.format("POOL STATUS: Current blacklist = %s,%n current hosts in pool = %s%n",
                     blacklistedHosts.keySet().toString(), currentPools.keySet().toString()));
             for (Entry<InetSocketAddress, CassandraClientPoolingContainer> entry : currentPools.entrySet()) {
-                int activeCheckouts = entry.getValue().getPoolUtilization();
+                int activeCheckouts = entry.getValue().getActiveCheckouts();
                 int totalAllowed = entry.getValue().getPoolSize();
 
                 currentState.append(
@@ -369,6 +372,32 @@ public class CassandraClientPool {
         return tableName.replaceFirst("\\.", "__");
     }
 
+    private InetSocketAddress getAddressForHostThrowUnchecked(String host) {
+        try {
+            return getAddressForHost(host);
+        } catch (UnknownHostException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
+    }
+
+    private InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
+        InetAddress resolvedHost = InetAddress.getByName(host);
+
+        for (InetSocketAddress address : Sets.union(currentPools.keySet(), config.servers())) {
+            if (address.getAddress().equals(resolvedHost)) {
+                return address;
+            }
+        }
+
+        Set<Integer> ports = Sets.union(currentPools.keySet(), config.servers()).stream()
+                .map(address -> address.getPort()).collect(Collectors.toSet());
+        if (ports.size() == 1) { // if everyone is on one port, try and use that
+            return new InetSocketAddress(resolvedHost, Iterables.getOnlyElement(ports));
+        } else {
+            throw new UnknownHostException("Couldn't find the provided host in server list or current servers");
+        }
+    }
+
     private void refreshTokenRanges() {
         try {
             ImmutableRangeMap.Builder<LightweightOppToken, List<InetSocketAddress>> newTokenRing =
@@ -380,14 +409,12 @@ public class CassandraClientPool {
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
                 String onlyEndpoint = Iterables.getOnlyElement(Iterables.getOnlyElement(tokenRanges).getEndpoints());
-                InetSocketAddress onlyHost = new InetSocketAddress(
-                        onlyEndpoint,
-                        CassandraConstants.DEFAULT_THRIFT_PORT);
+                InetSocketAddress onlyHost = getAddressForHost(onlyEndpoint);
                 newTokenRing.put(Range.all(), ImmutableList.of(onlyHost));
             } else { // normal case, large cluster with many vnodes
                 for (TokenRange tokenRange : tokenRanges) {
-                    List<InetSocketAddress> hosts = Lists.transform(tokenRange.getEndpoints(),
-                            endpoint -> new InetSocketAddress(endpoint, CassandraConstants.DEFAULT_THRIFT_PORT));
+                    List<InetSocketAddress> hosts = tokenRange.getEndpoints().stream()
+                            .map(host -> getAddressForHostThrowUnchecked(host)).collect(Collectors.toList());
                     LightweightOppToken startToken = new LightweightOppToken(
                             BaseEncoding.base16().decode(tokenRange.getStart_token().toUpperCase()));
                     LightweightOppToken endToken = new LightweightOppToken(
@@ -614,20 +641,20 @@ public class CassandraClientPool {
         private static NavigableMap<Integer, InetSocketAddress> buildHostsWeightedByActiveConnections(
                 Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
 
-            Map<InetSocketAddress, Integer> activeConnectionsByHost = new HashMap<>(pools.size());
-            int totalActiveConnections = 0;
+            Map<InetSocketAddress, Integer> openRequestsByHost = new HashMap<>(pools.size());
+            int totalOpenRequests = 0;
             for (Entry<InetSocketAddress, CassandraClientPoolingContainer> poolEntry : pools.entrySet()) {
-                int activeConnections = Math.max(poolEntry.getValue().getPoolUtilization(), 0);
-                activeConnectionsByHost.put(poolEntry.getKey(), activeConnections);
-                totalActiveConnections += activeConnections;
+                int openRequests = Math.max(poolEntry.getValue().getOpenRequests(), 0);
+                openRequestsByHost.put(poolEntry.getKey(), openRequests);
+                totalOpenRequests += openRequests;
             }
 
             int lowerBoundInclusive = 0;
             NavigableMap<Integer, InetSocketAddress> weightedHosts = new TreeMap<>();
-            for (Entry<InetSocketAddress, Integer> entry : activeConnectionsByHost.entrySet()) {
-                // We want the weight to be inversely proportional to the number of active connections so that we pick
+            for (Entry<InetSocketAddress, Integer> entry : openRequestsByHost.entrySet()) {
+                // We want the weight to be inversely proportional to the number of open requests so that we pick
                 // less-active hosts. We add 1 to make sure that all ranges are non-empty
-                int weight = totalActiveConnections - entry.getValue() + 1;
+                int weight = totalOpenRequests - entry.getValue() + 1;
                 weightedHosts.put(lowerBoundInclusive + weight, entry.getKey());
                 lowerBoundInclusive += weight;
             }

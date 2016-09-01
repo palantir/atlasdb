@@ -256,7 +256,7 @@ public class CassandraClientPoolTest {
 
     private static CassandraClientPoolingContainer createMockClientPoolingContainerWithUtilization(int utilization) {
         CassandraClientPoolingContainer mock = Mockito.mock(CassandraClientPoolingContainer.class);
-        Mockito.when(mock.getPoolUtilization()).thenReturn(utilization);
+        Mockito.when(mock.getOpenRequests()).thenReturn(utilization);
         return mock;
     }
 }

@@ -87,7 +87,7 @@ class AgnosticLightResultSetImpl implements AgnosticLightResultSet {
             results.close();
             hasBeenClosed = true;
             long elapsed = System.currentTimeMillis() - creationLocation.getCreatingThreadInfo().getTimestamp();
-            log.info("Closed {} after {}ms", this, elapsed);
+            log.debug("Closed {} after {}ms", this, elapsed);
         } catch(SQLException sqlex) {
             log.error("Caught SQLException", sqlex); //$NON-NLS-1$
         }

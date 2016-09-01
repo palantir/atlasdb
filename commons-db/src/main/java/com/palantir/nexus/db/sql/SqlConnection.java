@@ -15,13 +15,12 @@
  */
 package com.palantir.nexus.db.sql;
 
-import static com.palantir.nexus.db.sql.SQLString.RegisteredSQLString;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 
 import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.sql.SQLString.RegisteredSQLString;
 
 public interface SqlConnection {
     void executeUnregisteredQuery(String sql, Object... vs) throws PalantirSqlException;
@@ -48,7 +47,6 @@ public interface SqlConnection {
     boolean update(final RegisteredSQLString sql, Object... vs) throws PalantirSqlException;
     int updateCountRows(String key, Object... vs) throws PalantirSqlException;
     int updateCountRows(RegisteredSQLString sql, Object... vs) throws PalantirSqlException;
-    void updateManyUnregisteredQuery(String sql) throws PalantirSqlException;
     void updateManyUnregisteredQuery(String sql, Iterable<Object[]> list) throws PalantirSqlException;
     void updateMany(String key) throws PalantirSqlException;
     void updateMany(String key, Iterable<Object[]> list) throws PalantirSqlException;
