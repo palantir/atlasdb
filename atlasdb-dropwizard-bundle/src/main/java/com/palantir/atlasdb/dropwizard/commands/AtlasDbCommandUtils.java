@@ -43,6 +43,7 @@ public final class AtlasDbCommandUtils {
 
         ServerListConfig leaders = ImmutableServerListConfig.builder()
                 .servers(serverConfig.leader().get().leaders())
+                .sslConfiguration(serverConfig.leader().get().sslConfiguration())
                 .build();
 
         return ImmutableAtlasDbConfig.builder()

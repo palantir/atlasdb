@@ -48,6 +48,9 @@ Optional parameters:
     *    - Property
          - Description
 
+    *    - sslConfiguration
+         - The security settings to apply to client-side connections to the AtlasDB services at the endpoints, other than ``localServer``, listed in the ``leaders`` array, specified according to the `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java>`__ library. (defaults to not using SSL)
+
     *    - learnerLogDir
          - Path to the paxos learner logs (defaults to var/data/paxos/learner)
 
@@ -60,13 +63,13 @@ Optional parameters:
            This defaults to the first host in the sorted leaders list, so it should be consistent across nodes if not specifed.
 
     *    - pingRateMs
-         - Defaults to 5000
+         - Defaults to 5000.
 
     *    - randomWaitBeforeProposingLeadershipMs
-         - Defaults to 1000
+         - Defaults to 1000.
 
     *    - leaderPingResponseWaitMs
-         - Defaults to 5000
+         - Defaults to 5000.
 
 Example Configurations
 ======================
@@ -117,6 +120,8 @@ Failure to specify a leader configuration could lead to data corruption.
           - https://host1:3828 # If ssl is not enabled, then the hosts must be specified as http
           - https://host2:3828
           - https://host3:3828
+        sslConfiguration:
+          trustStorePath: var/security/truststore.jks
 
 Single AtlasDB Client with Leader Block
 ---------------------------------------
@@ -190,8 +195,12 @@ If you are running multiple AtlasDB clients, ensure your CLI is pointing at the 
           - "http://host1:3828/api"
           - "http://host2:3828/api"
           - "http://host3:3828/api"
+        sslConfiguration:
+          trustStorePath: var/security/truststore.jks
       timestamp:
         servers:
           - "http://host1:3828/api"
           - "http://host2:3828/api"
           - "http://host3:3828/api"
+        sslConfiguration:
+          trustStorePath: var/security/truststore.jks
