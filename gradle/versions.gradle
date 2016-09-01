@@ -17,6 +17,7 @@ ext.libVersions =
     http_remoting: '0.13.0',
     joda_time: '2.7',
     snappy: '1.1.1.7',
+    dagger: '2.4',
     immutables: '2.2.8',
     jackson: '2.5.1',
     jackson_annotation: '2.5.0',
