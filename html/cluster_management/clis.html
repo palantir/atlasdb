@@ -193,6 +193,10 @@ offers default AtlasDB configuration and connection out of the box.</p>
 <p>For example, to run the <code class="docutils literal"><span class="pre">fast-forward</span></code> command with default settings, run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">--offline</span> <span class="pre">-c</span> <span class="pre">&lt;path/to/atlasConfig.yaml&gt;</span> <span class="pre">timestamp</span> <span class="pre">-t</span> <span class="pre">&lt;targetTimestamp&gt;</span> <span class="pre">fast-forward</span></code>.</p>
 <p>The <code class="docutils literal"><span class="pre">--offline</span></code> flag will make the CLI ignore the leader, timestamp, and lock configuration blocks, and start an embedded timestamp and lock server.
 Once the CLI has completed, you can resume your AtlasDB clients.</p>
+<div class="section" id="running-commands-without-any-servers-being-up">
+<h3>Running commands without any servers being up<a class="headerlink" href="#running-commands-without-any-servers-being-up" title="Permalink to this headline">¶</a></h3>
+<p>If you want a command to run without any servers being up, you can either use the <code class="docutils literal"><span class="pre">--offline</span></code> flag, or pass in a configuration file without leader, lock, or timestamp blocks. Either option will start an embedded timestamp and lock server.</p>
+</div>
 </div>
 </div>
 
