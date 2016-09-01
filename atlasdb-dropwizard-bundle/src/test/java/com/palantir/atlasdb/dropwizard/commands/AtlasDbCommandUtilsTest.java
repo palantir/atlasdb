@@ -129,12 +129,17 @@ public class AtlasDbCommandUtilsTest {
 
     @Test
     public void canSerializeAndDeserializeAtlasDbConfig() throws IOException {
+        SslConfiguration ssl = SslConfiguration.of(
+                new File("var/security/truststore.jks").toPath(),
+                new File("var/security/keystore.jks").toPath(),
+                "keystorePassword");
         @SuppressWarnings("deprecation")
         AtlasDbConfig bigConfig = ImmutableAtlasDbConfig.builder()
                 .leader(ImmutableLeaderConfig.builder()
                         .quorumSize(1)
                         .addLeaders(LOCAL_SERVER_NAME)
                         .localServer(LOCAL_SERVER_NAME)
+                        .sslConfiguration(ssl)
                         // jackson serializes files to absolute file path so we need to
                         // getAbsoluteFile() to ensure the equals works at the end
                         .learnerLogDir(new File("var/data/paxos/learner").getAbsoluteFile())
@@ -148,10 +153,7 @@ public class AtlasDbCommandUtilsTest {
                                 new InetSocketAddress("host2", 9160),
                                 new InetSocketAddress("host3", 9160)))
                         .ssl(true)
-                        .sslConfiguration(SslConfiguration.of(
-                                new File("var/security/truststore.jks").toPath(),
-                                new File("var/security/keystore.jks").toPath(),
-                                "keystorePassword"))
+                        .sslConfiguration(ssl)
                         .build())
                 .build();
         String configAsString = AtlasDbCommandUtils.serialiseConfiguration(bigConfig);
