@@ -182,9 +182,8 @@ public class SchemaMutationLock {
         return new TimeoutException(String.format("We have timed out waiting on the current"
                         + " schema mutation lock holder. We have tried to grab the lock for %d milliseconds"
                         + " unsuccessfully. This indicates that the current lock holder has died without"
-                        + " releasing the lock and will require manual intervention. This will require"
-                        + " restarting all atlasDB clients and then using cqlsh to truncate the _locks table."
-                        + " Please contact the AtlasDB team for assistance.",
+                        + " releasing the lock and will require manual intervention. This will shutting"
+                        + " down all atlasDB clients and then running the clean-cass-locks-state command.",
                 stopwatch.elapsed(TimeUnit.MILLISECONDS)));
     }
 

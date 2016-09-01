@@ -145,6 +145,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final Optional<LeaderConfig> leaderConfig;
     private final HiddenTables hiddenTables;
 
+    private final SchemaMutationLockTables lockTables;
     private final UniqueSchemaMutationLockTable schemaMutationLockTable;
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
@@ -187,7 +188,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();
 
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, configManager.getConfig());
+        this.lockTables = new SchemaMutationLockTables(clientPool, configManager.getConfig());
         this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
 
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
@@ -1059,7 +1060,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
                 });
             } catch (UnavailableException e) {
-                throw new PalantirRuntimeException("Creating tables requires all Cassandra nodes"
+                throw new PalantirRuntimeException("Truncating tables requires all Cassandra nodes"
                         + " to be up and available.");
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
@@ -1771,6 +1772,27 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     tableRef,
                     e);
         }
+    }
+
+    public void cleanUpSchemaMutationLockTablesState() throws Exception {
+        // get a unique table and create it if it doesn't exist
+        Set<TableReference> tables = lockTables.getAllLockTables();
+        TableReference unique;
+        if (tables.size() == 0) {
+            unique = lockTables.createLockTable();
+            log.info("There were no locks tables, so one was succesfully created: {}", unique.toString());
+            return;
+        }
+        unique = tables.iterator().next();
+        tables.remove(unique);
+
+        // drop additional unwanted tables
+        if (tables.size() > 0) {
+            dropTablesWithLock(tables);
+        }
+        // truncate the unique table
+        truncateTable(unique);
+        log.info("Succesfully cleaned up the Cassandra schema mutation locks. Empty unique lock table is: {}", tables.toString());
     }
 
     private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
