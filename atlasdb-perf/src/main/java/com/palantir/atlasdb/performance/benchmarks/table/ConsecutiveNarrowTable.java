@@ -47,7 +47,6 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 @State(Scope.Benchmark)
 public abstract class ConsecutiveNarrowTable {
 
-    private static final int PUT_BATCH_SIZE = 1000;
     private static final int DEFAULT_NUM_ROWS = 10000;
 
     private Random random = new Random(Tables.RANDOM_SEED);
@@ -149,16 +148,12 @@ public abstract class ConsecutiveNarrowTable {
     }
 
     private static void storeDataInTable(ConsecutiveNarrowTable table, int numOverwrites) {
-        int numRows = table.getNumRows();
-        table.getTransactionManager().runTaskThrowOnConflict(txn -> {
-            IntStream.range(0, numOverwrites + 1).forEach($ -> {
-                for (int i = 0; i < numRows; i += PUT_BATCH_SIZE) {
-                    final Map<Cell, byte[]> values =
-                            Tables.generateContinuousBatch(table.getRandom(), i, Math.min(PUT_BATCH_SIZE, numRows - i));
-                    txn.put(table.getTableRef(), values);
-                }
+        IntStream.range(0, numOverwrites + 1).forEach($ -> {
+            table.getTransactionManager().runTaskThrowOnConflict(txn -> {
+                Map<Cell, byte[]> values = Tables.generateContinuousBatch(table.getRandom(), 0, table.getNumRows());
+                txn.put(table.getTableRef(), values);
+                return null;
             });
-            return null;
         });
     }
 
