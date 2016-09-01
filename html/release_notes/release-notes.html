@@ -165,6 +165,10 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<td><code class="docutils literal"><span class="pre">TransactionManagers.create()</span></code> no longer takes in an argument of <code class="docutils literal"><span class="pre">Optional&lt;SSLSocketFactory&gt;</span> <span class="pre">sslSocketFactory</span></code>. Instead, client-side security settings for connections to other Atlas services when running multiple Atlas clients are now specified directly in configuration via the <code class="docutils literal"><span class="pre">leader</span></code> block&#8217;s optional <code class="docutils literal"><span class="pre">sslConfiguration</span></code>. Details can be found in the <a class="reference external" href="https://palantir.github.io/atlasdb/html/configuration/leader_config.html">Leader configuration documentation</a>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/801">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
 <td>Enforced validity constraints on configuration, as per <a class="reference external" href="https://github.com/palantir/atlasdb/issue/790">issue 790</a>.
 AtlasDB will now fail to start if your configuration is invalid.
 Please refer to the <a class="reference external" href="https://palantir.github.io/atlasdb/html/configuration/index.html">documentation</a> for guidance on valid configurations.

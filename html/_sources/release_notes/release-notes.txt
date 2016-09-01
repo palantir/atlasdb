@@ -42,6 +42,10 @@ v0.14.0
          - Change
 
     *    - |breaking|
+         - ``TransactionManagers.create()`` no longer takes in an argument of ``Optional<SSLSocketFactory> sslSocketFactory``. Instead, client-side security settings for connections to other Atlas services when running multiple Atlas clients are now specified directly in configuration via the ``leader`` block's optional ``sslConfiguration``. Details can be found in the `Leader configuration documentation <https://palantir.github.io/atlasdb/html/configuration/leader_config.html>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/801>`__)
+
+    *    - |breaking|
          - Enforced validity constraints on configuration, as per `issue 790 <https://github.com/palantir/atlasdb/issue/790>`__.
            AtlasDB will now fail to start if your configuration is invalid.
            Please refer to the `documentation <https://palantir.github.io/atlasdb/html/configuration/index.html>`__ for guidance on valid configurations.

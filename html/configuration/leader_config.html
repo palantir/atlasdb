@@ -201,25 +201,28 @@ The protocol must be http/https depending on if ssl is configured.</td>
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>learnerLogDir</td>
+<tr class="row-even"><td>sslConfiguration</td>
+<td>The security settings to apply to client-side connections to the AtlasDB services at the endpoints, other than <code class="docutils literal"><span class="pre">localServer</span></code>, listed in the <code class="docutils literal"><span class="pre">leaders</span></code> array, specified according to the <a class="reference external" href="https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java">palantir/http-remoting</a> library. (defaults to not using SSL)</td>
+</tr>
+<tr class="row-odd"><td>learnerLogDir</td>
 <td>Path to the paxos learner logs (defaults to var/data/paxos/learner)</td>
 </tr>
-<tr class="row-odd"><td>acceptorLogDir</td>
+<tr class="row-even"><td>acceptorLogDir</td>
 <td>Path to the paxos acceptor logs (defaults to var/data/paxos/acceptor)</td>
 </tr>
-<tr class="row-even"><td>lockCreator</td>
+<tr class="row-odd"><td>lockCreator</td>
 <td>The host responsible for creation of the schema mutation lock table.
 If specified, this must be same across all hosts.
 This defaults to the first host in the sorted leaders list, so it should be consistent across nodes if not specifed.</td>
 </tr>
-<tr class="row-odd"><td>pingRateMs</td>
-<td>Defaults to 5000</td>
+<tr class="row-even"><td>pingRateMs</td>
+<td>Defaults to 5000.</td>
 </tr>
-<tr class="row-even"><td>randomWaitBeforeProposingLeadershipMs</td>
-<td>Defaults to 1000</td>
+<tr class="row-odd"><td>randomWaitBeforeProposingLeadershipMs</td>
+<td>Defaults to 1000.</td>
 </tr>
-<tr class="row-odd"><td>leaderPingResponseWaitMs</td>
-<td>Defaults to 5000</td>
+<tr class="row-even"><td>leaderPingResponseWaitMs</td>
+<td>Defaults to 5000.</td>
 </tr>
 </tbody>
 </table>
@@ -272,6 +275,8 @@ Failure to specify a leader configuration could lead to data corruption.</p>
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span> <span class="c1"># If ssl is not enabled, then the hosts must be specified as http</span>
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host2:3828</span>
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host3:3828</span>
+    <span class="l l-Scalar l-Scalar-Plain">sslConfiguration</span><span class="p p-Indicator">:</span>
+      <span class="l l-Scalar l-Scalar-Plain">trustStorePath</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
 </pre></div>
 </div>
 </div>
@@ -339,11 +344,15 @@ If you are running multiple AtlasDB clients, ensure your CLI is pointing at the 
       <span class="p p-Indicator">-</span> <span class="s">&quot;http://host1:3828/api&quot;</span>
       <span class="p p-Indicator">-</span> <span class="s">&quot;http://host2:3828/api&quot;</span>
       <span class="p p-Indicator">-</span> <span class="s">&quot;http://host3:3828/api&quot;</span>
+    <span class="l l-Scalar l-Scalar-Plain">sslConfiguration</span><span class="p p-Indicator">:</span>
+      <span class="l l-Scalar l-Scalar-Plain">trustStorePath</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
   <span class="l l-Scalar l-Scalar-Plain">timestamp</span><span class="p p-Indicator">:</span>
     <span class="l l-Scalar l-Scalar-Plain">servers</span><span class="p p-Indicator">:</span>
       <span class="p p-Indicator">-</span> <span class="s">&quot;http://host1:3828/api&quot;</span>
       <span class="p p-Indicator">-</span> <span class="s">&quot;http://host2:3828/api&quot;</span>
       <span class="p p-Indicator">-</span> <span class="s">&quot;http://host3:3828/api&quot;</span>
+    <span class="l l-Scalar l-Scalar-Plain">sslConfiguration</span><span class="p p-Indicator">:</span>
+      <span class="l l-Scalar l-Scalar-Plain">trustStorePath</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">var/security/truststore.jks</span>
 </pre></div>
 </div>
 </div>
