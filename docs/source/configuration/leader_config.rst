@@ -120,6 +120,8 @@ Failure to specify a leader configuration could lead to data corruption.
           - https://host1:3828 # If ssl is not enabled, then the hosts must be specified as http
           - https://host2:3828
           - https://host3:3828
+        sslConfiguration:
+          trustStorePath: var/security/truststore.jks
 
 Single AtlasDB Client with Leader Block
 ---------------------------------------
@@ -193,8 +195,12 @@ If you are running multiple AtlasDB clients, ensure your CLI is pointing at the 
           - "http://host1:3828/api"
           - "http://host2:3828/api"
           - "http://host3:3828/api"
+        sslConfiguration:
+          trustStorePath: var/security/truststore.jks
       timestamp:
         servers:
           - "http://host1:3828/api"
           - "http://host2:3828/api"
           - "http://host3:3828/api"
+        sslConfiguration:
+          trustStorePath: var/security/truststore.jks
