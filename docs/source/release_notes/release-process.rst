@@ -11,10 +11,7 @@ Release Schedule
 ================
 
 We aim to release once a week, but may release faster to patch bugs or
-slower if there is low code churn. We are still setting up a formal
-branching model, but for now the ``develop`` branch serves as
-``develop`` and ``release`` (we have no ``release`` branch) and we merge
-releases into ``master``. This should change soon.
+slower if there is low code churn.
 
 Cutting for Release
 ===================
