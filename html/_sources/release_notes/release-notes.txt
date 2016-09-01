@@ -31,6 +31,25 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.14.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |breaking|
+         - Enforced validity constraints on configuration, as per `issue 790 <https://github.com/palantir/atlasdb/issue/790>`__.
+           AtlasDB will now fail to start if your configuration is invalid.
+           Please refer to the `documentation <https://palantir.github.io/atlasdb/html/configuration/index.html>`__ for guidance on valid configurations.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/854>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.13.0
 =======
 
@@ -70,6 +89,7 @@ v0.13.0
          - A bug that meant a single JVM could not connect to multiple Postgres servers
            (`Pull Request <https://github.com/palantir/atlasdb/pull/771>`__)
 
+>>>>>>> develop
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
