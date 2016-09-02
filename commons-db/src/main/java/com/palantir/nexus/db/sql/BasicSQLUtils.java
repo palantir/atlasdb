@@ -55,26 +55,6 @@ public class BasicSQLUtils {
         return TextUtils.makeStringList("?", ",", n); //$NON-NLS-1$ //$NON-NLS-2$
     }
 
-    /**
-     *  Makes a list of n copies of the given string, separated by the given delimiter.
-     */
-    // TODO this method was copied from TextUtils, which is being moved to an internal product.
-    // If this class follows it there, then the duplication should be removed.
-    private static String makeStringList(String str, String delimiter, int count) {
-        if (count == 0) {
-            return "";
-        }
-        StringBuilder buf = new StringBuilder(str.length() * count + delimiter.length() * (count - 1));
-
-        for (int i = 0; i < count - 1; i++) {
-            buf.append(str);
-            buf.append(delimiter);
-        }
-        buf.append(str);
-
-        return buf.toString();
-    }
-
     // convert ints to longs, to ensure that we do not overflow our bind variables.
     // private, so that clients can only pass in values that we know will not overflow
     public static String internalLimitQuery(String query, long maxRows, long offset, List<Object> varbinds, DBType dbType) {
