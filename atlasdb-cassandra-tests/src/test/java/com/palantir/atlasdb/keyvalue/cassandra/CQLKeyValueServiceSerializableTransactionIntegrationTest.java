@@ -15,22 +15,29 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import org.junit.Ignore;
+
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 
-public class CassandraKeyValueServiceSerializableTransactionTest extends
+public class CQLKeyValueServiceSerializableTransactionIntegrationTest extends
         AbstractSerializableTransactionTest {
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), CassandraTestSuite.LEADER_CONFIG);
+        return CQLKeyValueService.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CQLTestSuite.CQLKVS_CONFIG));
     }
 
     @Override
     protected boolean supportsReverse() {
         return false;
+    }
+
+    @Override
+    @Ignore
+    public void testRangePaging() {
     }
 
 }

@@ -29,7 +29,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public class CassandraKeyValueServiceTableCreationTest {
+public class CassandraKeyValueServiceTableCreationIntegrationTest {
     public static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
     public static final TableReference BAD_TABLE = TableReference.createFromFullyQualifiedName("foo.b@r");
 

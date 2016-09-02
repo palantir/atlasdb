@@ -49,7 +49,7 @@ import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
-public class CassandraKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
+public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyValueServiceTest {
     private KeyValueService keyValueService;
     private ExecutorService executorService;
     private Logger logger = mock(Logger.class);

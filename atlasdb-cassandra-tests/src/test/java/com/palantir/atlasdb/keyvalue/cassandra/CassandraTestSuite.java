@@ -43,14 +43,14 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-        CassandraConnectionTest.class,
-        CassandraKeyValueServiceTableCreationTest.class,
-        CassandraKeyValueServiceSerializableTransactionTest.class,
-        CassandraKeyValueServiceSweeperTest.class,
-        CassandraTimestampTest.class,
-        CassandraKeyValueServiceTest.class,
-        SchemaMutationLockTest.class,
-        SchemaMutationLockTablesTest.class,
+        CassandraConnectionIntegrationTest.class,
+        CassandraKeyValueServiceTableCreationIntegrationTest.class,
+        CassandraKeyValueServiceSerializableTransactionIntegrationTest.class,
+        CassandraKeyValueServiceSweeperIntegrationTest.class,
+        CassandraTimestampIntegrationTest.class,
+        CassandraKeyValueServiceIntegrationTest.class,
+        SchemaMutationLockIntegrationTest.class,
+        SchemaMutationLockTablesIntegrationTest.class,
 })
 public class CassandraTestSuite {
 

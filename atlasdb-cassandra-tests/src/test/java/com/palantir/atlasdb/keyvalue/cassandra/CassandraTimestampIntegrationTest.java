@@ -25,7 +25,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
-public class CassandraTimestampTest {
+public class CassandraTimestampIntegrationTest {
     private CassandraKeyValueService kv;
 
     @Before

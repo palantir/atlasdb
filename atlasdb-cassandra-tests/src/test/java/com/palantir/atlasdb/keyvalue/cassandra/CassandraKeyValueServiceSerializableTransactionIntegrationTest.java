@@ -17,12 +17,20 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.sweep.AbstractSweeperTest;
+import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 
-public class CQLKeyValueServiceSweeperTest extends AbstractSweeperTest {
+public class CassandraKeyValueServiceSerializableTransactionIntegrationTest extends
+        AbstractSerializableTransactionTest {
+
     @Override
     protected KeyValueService getKeyValueService() {
-        return CQLKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CQLTestSuite.CQLKVS_CONFIG));
+        return CassandraKeyValueService.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), CassandraTestSuite.LEADER_CONFIG);
     }
+
+    @Override
+    protected boolean supportsReverse() {
+        return false;
+    }
+
 }

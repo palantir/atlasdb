@@ -42,7 +42,7 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public class SchemaMutationLockTablesTest {
+public class SchemaMutationLockTablesIntegrationTest {
     private SchemaMutationLockTables lockTables;
     private CassandraKeyValueServiceConfig config;
     private CassandraClientPool clientPool;

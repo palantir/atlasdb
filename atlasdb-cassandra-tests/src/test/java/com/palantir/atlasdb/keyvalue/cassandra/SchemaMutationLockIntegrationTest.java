@@ -42,7 +42,7 @@ import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.common.exception.PalantirRuntimeException;
 
 @RunWith(Parameterized.class)
-public class SchemaMutationLockTest {
+public class SchemaMutationLockIntegrationTest {
     public static final SchemaMutationLock.Action DO_NOTHING = () -> {};
     protected SchemaMutationLock schemaMutationLock;
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);

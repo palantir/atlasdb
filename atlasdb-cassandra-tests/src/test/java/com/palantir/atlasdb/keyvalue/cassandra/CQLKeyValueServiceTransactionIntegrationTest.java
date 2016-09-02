@@ -15,14 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import org.junit.Ignore;
-
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
+import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 
-public class CQLKeyValueServiceSerializableTransactionTest extends
-        AbstractSerializableTransactionTest {
+public class CQLKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
 
     @Override
     protected KeyValueService getKeyValueService() {
@@ -33,11 +30,6 @@ public class CQLKeyValueServiceSerializableTransactionTest extends
     @Override
     protected boolean supportsReverse() {
         return false;
-    }
-
-    @Override
-    @Ignore
-    public void testRangePaging() {
     }
 
 }

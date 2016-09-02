@@ -29,9 +29,9 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-        CQLKeyValueServiceSerializableTransactionTest.class,
-        CQLKeyValueServiceTransactionTest.class,
-        CQLKeyValueServiceSweeperTest.class
+        CQLKeyValueServiceSerializableTransactionIntegrationTest.class,
+        CQLKeyValueServiceTransactionIntegrationTest.class,
+        CQLKeyValueServiceSweeperIntegrationTest.class
 })
 @Ignore
 public class CQLTestSuite {
