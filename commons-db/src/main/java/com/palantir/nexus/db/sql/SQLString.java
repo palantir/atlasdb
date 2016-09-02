@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Pattern;
@@ -38,7 +39,6 @@ import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.SqlClause;
-import com.palantir.util.TextUtils;
 
 
 public class SQLString extends BasicSQLString {
@@ -201,13 +201,34 @@ public class SQLString extends BasicSQLString {
      */
     static FinalSQLString getUnregisteredQuery(String sql) {
         assert !isValidKey(sql) : "Unregistered Queries should not look like keys"; //$NON-NLS-1$
-        FinalSQLString cached = cachedUnregistered.get(TextUtils.removeAllWhitespace(canonicalizeString(sql)));
+        FinalSQLString cached = cachedUnregistered.get(removeAllWhitespace(canonicalizeString(sql)));
         if(null != cached) {
             callbackOnUse.noteUse((SQLString) cached.delegate);
             return cached;
         }
 
         return new FinalSQLString(new SQLString(sql));
+    }
+
+    // TODO: this code was copied from TextUtils, which is being moved to an internal product.
+    // If this code follows it there, then the duplication should be removed.
+    private static String removeAllWhitespace(String text) {
+        return replaceAllWhitespace(text, "");
+    }
+
+    private static String replaceAllWhitespace(String text, String newSeparator) {
+        StringBuilder sb = new StringBuilder();
+        StringTokenizer st = new StringTokenizer(text);
+
+        if (st.hasMoreTokens()) {
+            sb.append(st.nextToken());
+        }
+        while (st.hasMoreTokens()) {
+            sb.append(newSeparator);
+            sb.append(st.nextToken());
+        }
+
+        return sb.toString();
     }
 
     /**
