@@ -37,7 +37,6 @@ import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.SQLConstants;
 import com.palantir.nexus.db.ThreadConfinedProxy;
 import com.palantir.nexus.db.sql.monitoring.logger.SqlLoggers;
-import com.palantir.util.TextUtils;
 
 public class BasicSQLUtils {
 

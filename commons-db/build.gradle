@@ -7,7 +7,6 @@ ideaSetModuleLevel(idea, targetCompatibility)
 dependencies {
   compile project(":commons-api")
   compile project(":commons-proxy")
-  compile project(":papaya")
 
   compile(group: 'commons-dbutils', name: 'commons-dbutils', version: libVersions.commons_dbutils)
   compile(group: 'commons-lang', name: 'commons-lang', version: libVersions.commons_lang)
