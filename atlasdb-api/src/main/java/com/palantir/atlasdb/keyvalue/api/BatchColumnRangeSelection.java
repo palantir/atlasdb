@@ -91,7 +91,7 @@ public class BatchColumnRangeSelection implements Serializable {
         String[] split = deserializeRegex.split(serialized);
         byte[] startCol = PtBytes.decodeBase64(split[0]);
         byte[] endCol = PtBytes.decodeBase64(split[1]);
-        int batchHint = Integer.valueOf(split[2]);
+        int batchHint = Integer.parseInt(split[2]);
         return new BatchColumnRangeSelection(startCol, endCol, batchHint);
     }
 
