@@ -11,27 +11,8 @@ dependencies {
   testCompile 'junit:junit:' + libVersions.junit
 }
 
-jacoco {
-    toolVersion = "0.7.1.201405082137"
-    reportsDir = file("$buildDir/customJacocoReportDir")
-}
-
 test {
-    jacoco {
-        append = false
-        destinationFile = file("$buildDir/jacoco/jacocoTest.exec")
-        classDumpFile = file("$buildDir/jacoco/classpathdumps")
-    }
     maxHeapSize = "1024m"
     include '**/*Suite.class'
     maxParallelForks 2
-}
-
-jacocoTestReport {
-    reports {
-        xml.enabled true
-        csv.enabled false
-        html.enabled true
-        html.destination "${buildDir}/jacocoHtml"
-    }
 }
