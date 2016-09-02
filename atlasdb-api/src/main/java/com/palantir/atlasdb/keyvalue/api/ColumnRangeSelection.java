@@ -36,8 +36,8 @@ public class ColumnRangeSelection implements Serializable {
     private final byte[] endCol;
 
     @JsonCreator
-    public ColumnRangeSelection(@JsonProperty("startInclusive") byte[] startCol,
-                                @JsonProperty("endExclusive") byte[] endCol) {
+    public ColumnRangeSelection(@JsonProperty("startCol") byte[] startCol,
+                                @JsonProperty("endCol") byte[] endCol) {
         this.startCol = MoreObjects.firstNonNull(startCol, PtBytes.EMPTY_BYTE_ARRAY);
         this.endCol = MoreObjects.firstNonNull(endCol, PtBytes.EMPTY_BYTE_ARRAY);
     }

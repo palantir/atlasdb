@@ -31,8 +31,8 @@ public class BatchColumnRangeSelection implements Serializable {
     private final int batchHint;
 
     @JsonCreator
-    public BatchColumnRangeSelection(@JsonProperty("startInclusive") byte[] startCol,
-                                     @JsonProperty("endExclusive") byte[] endCol,
+    public BatchColumnRangeSelection(@JsonProperty("startCol") byte[] startCol,
+                                     @JsonProperty("endCol") byte[] endCol,
                                      @JsonProperty("batchHint") int batchHint) {
         this.columnRangeSelection = new ColumnRangeSelection(startCol, endCol);
         this.batchHint = batchHint;
