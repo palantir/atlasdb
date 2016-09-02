@@ -71,8 +71,10 @@ Optional parameters:
     *    - leaderPingResponseWaitMs
          - Defaults to 5000.
 
-Example Configurations
-======================
+.. _leader-config-examples:
+
+Leader Configuration Examples
+=============================
 
 Some example leader block configurations are listed below.
 

@@ -165,13 +165,15 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
-<td><code class="docutils literal"><span class="pre">TransactionManagers.create()</span></code> no longer takes in an argument of <code class="docutils literal"><span class="pre">Optional&lt;SSLSocketFactory&gt;</span> <span class="pre">sslSocketFactory</span></code>. Instead, client-side security settings for connections to other Atlas services when running multiple Atlas clients are now specified directly in configuration via the <code class="docutils literal"><span class="pre">leader</span></code> block&#8217;s optional <code class="docutils literal"><span class="pre">sslConfiguration</span></code>. Details can be found in the <a class="reference external" href="https://palantir.github.io/atlasdb/html/configuration/leader_config.html">Leader configuration documentation</a>.
+<td><code class="docutils literal"><span class="pre">TransactionManagers.create()</span></code> no longer takes in an argument of <code class="docutils literal"><span class="pre">Optional&lt;SSLSocketFactory&gt;</span> <span class="pre">sslSocketFactory</span></code>.
+Instead, security settings between AtlasDB clients are now specified directly in configuration via the new optional parameter <code class="docutils literal"><span class="pre">sslConfiguration</span></code> located in the <code class="docutils literal"><span class="pre">leader</span></code> block.
+Details can be found in the <a class="reference internal" href="../configuration/leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a> documentation.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/801">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
-<td>Enforced validity constraints on configuration, as per <a class="reference external" href="https://github.com/palantir/atlasdb/issue/790">issue 790</a>.
+<td>Enforced validity constraints on configuration, as per <a class="reference external" href="https://github.com/palantir/atlasdb/issue/790">#790</a>.
 AtlasDB will now fail to start if your configuration is invalid.
-Please refer to the <a class="reference external" href="https://palantir.github.io/atlasdb/html/configuration/index.html">documentation</a> for guidance on valid configurations.
+Please refer to <a class="reference internal" href="../configuration/leader_config.html#leader-config-examples"><span class="std std-ref">Example Leader Configurations</span></a> for guidance on valid configurations.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/854">Pull Request</a>)</td>
 </tr>
 </tbody>
@@ -191,7 +193,8 @@ Please refer to the <a class="reference external" href="https://palantir.github.
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
-<td><code class="docutils literal"><span class="pre">AtlasDbServer</span></code> has been renamed to <code class="docutils literal"><span class="pre">AtlasDbServiceServer</span></code>. Any products that are using this should switch to using the Java Feign client instead.
+<td><code class="docutils literal"><span class="pre">AtlasDbServer</span></code> has been renamed to <code class="docutils literal"><span class="pre">AtlasDbServiceServer</span></code>.
+Any products that are using this should switch to using the Java Feign client instead.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/801">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
@@ -205,19 +208,17 @@ Removed the advice to restart the client, as it will not help in this scenario.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/805">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Cassandra support for non-standard ports
+<td>Connections to Cassandra can be established over arbitrary ports.
+Previously AtlasDB clients would assume the default Cassandra port of 9160 despite what is specified in the <a class="reference internal" href="../configuration/cassandra_KVS_configuration.html#cassandra-kvs-config"><span class="std std-ref">Cassandra keyValueService configuration</span></a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/771">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>A bug that could require Cassandra schema mutations every startup, which breaks HA guarantees
+<td>Fixed an issue when starting an AtlasDB client using the Cassandra KVS where we always grab the schema mutation lock, even if we are not making schema mutations.
+This reduces the likelihood of clients losing the schema mutation lock and having to manually truncate the _locks table.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/771">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Performance and reliability enhancements to the in-beta CQL KVS
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/771">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>A bug that meant a single JVM could not connect to multiple Postgres servers
+<td>Performance and reliability enhancements to the in-beta CQL KVS.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/771">Pull Request</a>)</td>
 </tr>
 </tbody>

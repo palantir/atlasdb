@@ -163,7 +163,7 @@
 </div>
 </div>
 <div class="section" id="configuring-a-running-application-to-use-cassandra">
-<h2>Configuring a Running Application to Use Cassandra<a class="headerlink" href="#configuring-a-running-application-to-use-cassandra" title="Permalink to this headline">¶</a></h2>
+<span id="cassandra-kvs-config"></span><h2>Configuring a Running Application to Use Cassandra<a class="headerlink" href="#configuring-a-running-application-to-use-cassandra" title="Permalink to this headline">¶</a></h2>
 <p>A minimal AtlasDB configuration for running against cassandra will look like the below.</p>
 <p>Importantly - your lock creator must be consistent across all nodes. If you do not provide a lock creator, it will default to the first host
 in the leaders list. If you do not specify a lock creator, the leaders block should be exactly the same across all nodes.</p>
