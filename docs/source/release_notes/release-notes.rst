@@ -77,7 +77,7 @@ v0.13.0
 
     *    - |breaking|
          - ``AtlasDbServer`` has been renamed to ``AtlasDbServiceServer``.
-           Any products that are using this should switch to using the Java Feign client instead.
+           Any products that are using this should switch to using the standard AtlasDB java API instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/801>`__)
 
     *    - |breaking|
