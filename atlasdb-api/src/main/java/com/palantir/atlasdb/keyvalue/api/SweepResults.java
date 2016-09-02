@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -64,24 +65,22 @@ public class SweepResults {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        SweepResults results = (SweepResults) o;
-
-        if (cellsExamined != results.cellsExamined) return false;
-        if (cellsSwept != results.cellsSwept) return false;
-        if (sweptTimestamp != results.sweptTimestamp) return false;
-        return Arrays.equals(nextStartRow, results.nextStartRow);
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        SweepResults that = (SweepResults) obj;
+        return cellsExamined == that.cellsExamined
+                && cellsSwept == that.cellsSwept
+                && sweptTimestamp == that.sweptTimestamp
+                && Arrays.equals(nextStartRow, that.nextStartRow);
     }
 
     @Override
     public int hashCode() {
-        int result = Arrays.hashCode(nextStartRow);
-        result = 31 * result + (int) (cellsExamined ^ (cellsExamined >>> 32));
-        result = 31 * result + (int) (cellsSwept ^ (cellsSwept >>> 32));
-        result = 31 * result + (int) (sweptTimestamp ^ (sweptTimestamp >>> 32));
-        return result;
+        return Objects.hash(Arrays.hashCode(nextStartRow), cellsExamined, cellsSwept, sweptTimestamp);
     }
 }

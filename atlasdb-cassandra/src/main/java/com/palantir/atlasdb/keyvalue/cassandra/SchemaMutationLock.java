@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -42,16 +43,21 @@ import com.palantir.common.base.Throwables;
 
 public class SchemaMutationLock {
     private static final Logger LOGGER = LoggerFactory.getLogger(SchemaMutationLock.class);
-    private boolean supportsCAS;
 
+    private final boolean supportsCas;
     private final CassandraKeyValueServiceConfigManager configManager;
     private final CassandraClientPool clientPool;
     private final ConsistencyLevel writeConsistency;
     private final UniqueSchemaMutationLockTable lockTable;
     private final ReentrantLock schemaMutationLockForEarlierVersionsOfCassandra = new ReentrantLock(true);
 
-    public SchemaMutationLock(boolean supportsCAS, CassandraKeyValueServiceConfigManager configManager, CassandraClientPool clientPool, ConsistencyLevel writeConsistency, UniqueSchemaMutationLockTable lockTable) {
-        this.supportsCAS = supportsCAS;
+    public SchemaMutationLock(
+            boolean supportsCas,
+            CassandraKeyValueServiceConfigManager configManager,
+            CassandraClientPool clientPool,
+            ConsistencyLevel writeConsistency,
+            UniqueSchemaMutationLockTable lockTable) {
+        this.supportsCas = supportsCas;
         this.configManager = configManager;
         this.clientPool = clientPool;
         this.writeConsistency = writeConsistency;
@@ -85,7 +91,8 @@ public class SchemaMutationLock {
      * though it accepts an empty expected column to mean that non-existance was expected
      * (see putUnlessExists for example, which has the luck of not having to ever deal with deleted values)
      *
-     * I can't hold this against them though, because Atlas has a semi-similar problem with empty byte[] values meaning deleted internally.
+     * I can't hold this against them though, because Atlas has a semi-similar problem with empty byte[] values
+     * meaning deleted internally.
      *
      * @return an ID to be passed into a subsequent unlock call
      */
@@ -93,11 +100,17 @@ public class SchemaMutationLock {
         final long perOperationNodeIdentifier = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
 
         try {
-            if (!supportsCAS) {
-                LOGGER.info("Because your version of Cassandra does not support check and set, we will use a java level lock to synchronise schema mutations. If this is a clustered service, this could lead to corruption.");
-                String message = "AtlasDB was unable to get a lock on Cassandra system schema mutations for your cluster. Likely cause: Service(s) performing heavy schema mutations in parallel, or extremely heavy Cassandra cluster load.";
+            if (!supportsCas) {
+                LOGGER.info("Because your version of Cassandra does not support check and set,"
+                        + " we will use a java level lock to synchronise schema mutations."
+                        + " If this is a clustered service, this could lead to corruption.");
+                String message = "AtlasDB was unable to get a lock on Cassandra system schema mutations"
+                        + " for your cluster. Likely cause: Service(s) performing heavy schema mutations"
+                        + " in parallel, or extremely heavy Cassandra cluster load.";
                 try {
-                    if (!schemaMutationLockForEarlierVersionsOfCassandra.tryLock(configManager.getConfig().schemaMutationTimeoutMillis(), TimeUnit.MILLISECONDS)) {
+                    if (!schemaMutationLockForEarlierVersionsOfCassandra.tryLock(
+                            configManager.getConfig().schemaMutationTimeoutMillis(),
+                            TimeUnit.MILLISECONDS)) {
                         throw new TimeoutException(message);
                     }
                 } catch (InterruptedException e) {
@@ -107,19 +120,22 @@ public class SchemaMutationLock {
             }
 
             clientPool.runWithRetry((FunctionCheckedException<Cassandra.Client, Void, Exception>) client -> {
-                Cell globalDdlLockCell = Cell.create(CassandraConstants.GLOBAL_DDL_LOCK.getBytes(), CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes());
+                Cell globalDdlLockCell = Cell.create(
+                        CassandraConstants.GLOBAL_DDL_LOCK.getBytes(),
+                        CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes());
                 ByteBuffer rowName = ByteBuffer.wrap(globalDdlLockCell.getRowName());
                 Column ourUpdate = lockColumnWithValue(Longs.toByteArray(perOperationNodeIdentifier));
 
-                List<Column> expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
+                List<Column> expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(
+                        CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
 
-                CASResult casResult = writeLockWithCAS(client, rowName, expected, ourUpdate);
+                CASResult casResult = writeLockWithCas(client, rowName, expected, ourUpdate);
 
                 int timesAttempted = 0;
 
                 Stopwatch stopwatch = Stopwatch.createStarted();
-                while (!casResult.isSuccess()) { // could have a timeout controlling this level, confusing for users to set both timeouts though
-
+                // could have a timeout controlling this level, confusing for users to set both timeouts though
+                while (!casResult.isSuccess()) {
                     if (casResult.getCurrent_valuesSize() == 0) { // never has been an existing lock
                         // special case, no one has ever made a lock ever before
                         // this becomes analogous to putUnlessExists now
@@ -127,27 +143,32 @@ public class SchemaMutationLock {
                     } else {
                         Column existingValue = Iterables.getOnlyElement(casResult.getCurrent_values(), null);
                         if (existingValue == null) {
-                            throw new IllegalStateException("Something is wrong with underlying locks. Consult support for guidance on manually examining and clearing locks from " + lockTable.getOnlyTable() + " table.");
+                            throw new IllegalStateException("Something is wrong with underlying locks."
+                                    + " Consult support for guidance on manually examining and clearing"
+                                    + " locks from " + lockTable.getOnlyTable() + " table.");
                         }
-                        expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
+                        expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(
+                                CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
                     }
 
-                    if (stopwatch.elapsed(TimeUnit.MILLISECONDS) > configManager.getConfig().schemaMutationTimeoutMillis() * 4) { // possibly dead remote locker
-                        throw new TimeoutException(String.format("We have timed out waiting on the current schema mutation lock holder.  " +
-                                "We have tried to grab the lock for %d milliseconds unsuccessfully.  Please try restarting the AtlasDB client." +
-                                "If this occurs repeatedly it may indicate that the current lock holder has died without releasing the lock " +
-                                "and will require manual intervention. This will require restarting all atlasDB clients and then using cqlsh " +
-                                "to truncate the _locks table. Please contact support for help with this in important situations.", stopwatch.elapsed(TimeUnit.MILLISECONDS)));
+                    int mutationTimeoutMillis = configManager.getConfig().schemaMutationTimeoutMillis();
+                    // possibly dead remote locker
+                    if (stopwatch.elapsed(TimeUnit.MILLISECONDS) > mutationTimeoutMillis * 4) {
+                        TimeoutException schemaLockTimeoutError = generateSchemaLockTimeoutException(stopwatch);
+                        LOGGER.error(schemaLockTimeoutError.getMessage(), schemaLockTimeoutError);
+                        throw Throwables.rewrapAndThrowUncheckedException(schemaLockTimeoutError);
                     }
 
-                    long timeToSleep = CassandraConstants.TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS * (long) Math.pow(2, timesAttempted++);
+                    long timeToSleep = CassandraConstants.TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS
+                            * (long) Math.pow(2, timesAttempted++);
 
                     Thread.sleep(timeToSleep);
 
-                    casResult = writeLockWithCAS(client, rowName, expected, ourUpdate);
+                    casResult = writeLockWithCas(client, rowName, expected, ourUpdate);
                 }
 
                 // we won the lock!
+                LOGGER.info("Successfully acquired schema mutation lock.");
                 return null;
             });
         } catch (Exception e) {
@@ -157,20 +178,34 @@ public class SchemaMutationLock {
         return perOperationNodeIdentifier;
     }
 
+    private TimeoutException generateSchemaLockTimeoutException(Stopwatch stopwatch) {
+        return new TimeoutException(String.format("We have timed out waiting on the current"
+                        + " schema mutation lock holder. We have tried to grab the lock for %d milliseconds"
+                        + " unsuccessfully. This indicates that the current lock holder has died without"
+                        + " releasing the lock and will require manual intervention. This will require"
+                        + " restarting all atlasDB clients and then using cqlsh to truncate the _locks table."
+                        + " Please contact the AtlasDB team for assistance.",
+                stopwatch.elapsed(TimeUnit.MILLISECONDS)));
+    }
+
     private void schemaMutationUnlock(long perOperationNodeIdentifier) {
-        if (!supportsCAS) {
+        if (!supportsCas) {
             schemaMutationLockForEarlierVersionsOfCassandra.unlock();
             return;
         }
 
         try {
             clientPool.runWithRetry((FunctionCheckedException<Cassandra.Client, Void, Exception>) client -> {
-                Cell globalDdlLockCell = Cell.create(CassandraConstants.GLOBAL_DDL_LOCK.getBytes(), CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes());
+                Cell globalDdlLockCell = Cell.create(
+                        CassandraConstants.GLOBAL_DDL_LOCK.getBytes(),
+                        CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes());
                 ByteBuffer rowName = ByteBuffer.wrap(globalDdlLockCell.getRowName());
 
-                List<Column> ourExpectedLock = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(perOperationNodeIdentifier)));
-                Column clearedLock = lockColumnWithValue(Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE));
-                CASResult casResult = writeLockWithCAS(client, rowName, ourExpectedLock, clearedLock);
+                List<Column> ourExpectedLock = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(
+                        perOperationNodeIdentifier)));
+                Column clearedLock = lockColumnWithValue(Longs.toByteArray(
+                        CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE));
+                CASResult casResult = writeLockWithCas(client, rowName, ourExpectedLock, clearedLock);
 
                 if (!casResult.isSuccess()) {
                     String remoteLock = "(unknown)";
@@ -178,11 +213,17 @@ public class SchemaMutationLock {
                         Column column = Iterables.getOnlyElement(casResult.getCurrent_values(), null);
                         if (column != null) {
                             long remoteId = Longs.fromByteArray(column.getValue());
-                            remoteLock = (remoteId == CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE) ? "(Cleared Value)" : Long.toString(remoteId);
+                            remoteLock = (remoteId == CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)
+                                    ? "(Cleared Value)"
+                                    : Long.toString(remoteId);
                         }
                     }
-                    throw new IllegalStateException(String.format("Another process cleared our schema mutation lock from underneath us. Our ID, which we expected, was %s, the value we saw in the database was instead %s.", Long.toString(perOperationNodeIdentifier), remoteLock));
+                    throw new IllegalStateException(String.format("Another process cleared our schema mutation lock"
+                            + " from underneath us. Our ID, which we expected, was %s, the value we saw in the"
+                            + " database was instead %s.", Long.toString(perOperationNodeIdentifier), remoteLock));
                 }
+
+                LOGGER.info("Successfully released schema mutation lock.");
                 return null;
             });
         } catch (Exception e) {
@@ -190,7 +231,11 @@ public class SchemaMutationLock {
         }
     }
 
-    private CASResult writeLockWithCAS(Cassandra.Client client, ByteBuffer rowName, List<Column> expectedLockValue, Column newLockValue) throws TException {
+    private CASResult writeLockWithCas(
+            Cassandra.Client client,
+            ByteBuffer rowName,
+            List<Column> expectedLockValue,
+            Column newLockValue) throws TException {
         return client.cas(
                 rowName,
                 lockTable.getOnlyTable().getQualifiedName(),
@@ -203,7 +248,9 @@ public class SchemaMutationLock {
 
     private Column lockColumnWithValue(byte[] value) {
         return new Column()
-                .setName(CassandraKeyValueServices.makeCompositeBuffer(CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(), AtlasDbConstants.TRANSACTION_TS).array())
+                .setName(CassandraKeyValueServices.makeCompositeBuffer(
+                        CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8),
+                        AtlasDbConstants.TRANSACTION_TS).array())
                 .setValue(value) // expected previous
                 .setTimestamp(AtlasDbConstants.TRANSACTION_TS);
     }

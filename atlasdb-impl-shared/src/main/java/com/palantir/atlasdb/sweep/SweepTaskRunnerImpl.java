@@ -99,17 +99,17 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
     }
 
     @Override
-    public SweepResults run(TableReference tableRef, int batchSize, @Nullable byte[] startRow) {
-        Preconditions.checkNotNull(tableRef);
+    public SweepResults run(TableReference tableRef, int batchSize, @Nullable byte[] nullableStartRow) {
+        Preconditions.checkNotNull(tableRef, "tableRef cannot be null");
         Preconditions.checkState(!AtlasDbConstants.hiddenTables.contains(tableRef));
 
         if (tableRef.getQualifiedName().startsWith(AtlasDbConstants.NAMESPACE_PREFIX)) {
-                // this happens sometimes; I think it's because some places in the code can
-                // start this sweeper without doing the full normally ordered KVSModule startup.
-                // I did check and sweep.stats did contain the FQ table name for all of the tables,
-                // so it is at least broken in some way that still allows namespaced tables to eventually be swept.
-                log.warn("The sweeper should not be run on tables passed through namespace mapping.");
-                return SweepResults.createEmptySweepResult(0L);
+            // this happens sometimes; I think it's because some places in the code can
+            // start this sweeper without doing the full normally ordered KVSModule startup.
+            // I did check and sweep.stats did contain the FQ table name for all of the tables,
+            // so it is at least broken in some way that still allows namespaced tables to eventually be swept.
+            log.warn("The sweeper should not be run on tables passed through namespace mapping.");
+            return SweepResults.createEmptySweepResult(0L);
         }
         if (keyValueService.getMetadataForTable(tableRef).length == 0) {
             log.warn("The sweeper tried to sweep table '{}', but the table does not exist. Skipping table.", tableRef);
@@ -129,30 +129,32 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         //     we encounter
         SweepStrategy sweepStrategy = sweepStrategyManager.get().getOrDefault(tableRef, SweepStrategy.CONSERVATIVE);
 
-        startRow = MoreObjects.firstNonNull(startRow, PtBytes.EMPTY_BYTE_ARRAY);
-        RangeRequest rangeRequest = RangeRequest.builder()
+        byte[] startRow = MoreObjects.firstNonNull(nullableStartRow, PtBytes.EMPTY_BYTE_ARRAY);
+        RangeRequest range = RangeRequest.builder()
                 .startRowInclusive(startRow)
                 .batchHint(batchSize)
                 .build();
 
         Sweeper sweeper = getSweeperFor(sweepStrategy);
 
-        long sweepTimestamp = sweeper.getSweepTimestamp();
+        long sweepTs = sweeper.getSweepTimestamp();
 
-        try (ClosableIterator<RowResult<Value>> valueResults = sweeper.getValues(tableRef, rangeRequest, sweepTimestamp);
-             ClosableIterator<RowResult<Set<Long>>> rowResults = sweeper.getCellTimestamps(tableRef, rangeRequest, sweepTimestamp)) {
-            List<RowResult<Set<Long>>> rowResultTimestamps = ImmutableList.copyOf(Iterators.limit(rowResults, batchSize));
+        try (ClosableIterator<RowResult<Value>> valueResults = sweeper.getValues(tableRef, range, sweepTs);
+             ClosableIterator<RowResult<Set<Long>>> rowResults = sweeper.getCellTimestamps(tableRef, range, sweepTs)) {
+            List<RowResult<Set<Long>>> rowResultTimestamps =
+                    ImmutableList.copyOf(Iterators.limit(rowResults, batchSize));
             PeekingIterator<RowResult<Value>> peekingValues = Iterators.peekingIterator(valueResults);
 
             Multimap<Cell, Long> rowTimestamps = getTimestampsFromRowResults(rowResultTimestamps, sweeper);
-            CellsAndSentinels cellsAndSentinels = getStartTimestampsPerRowToSweep(rowTimestamps, peekingValues, sweepTimestamp, sweeper);
+            CellsAndSentinels cellsAndSentinels = getStartTimestampsPerRowToSweep(
+                    rowTimestamps, peekingValues, sweepTs, sweeper);
 
             Multimap<Cell, Long> startTimestampsToSweepPerCell = cellsAndSentinels.startTimestampsToSweepPerCell();
             sweepCells(tableRef, startTimestampsToSweepPerCell, cellsAndSentinels.sentinelsToAdd());
 
             byte[] nextRow = rowResultTimestamps.size() < batchSize ? null :
                 RangeRequests.getNextStartRow(false, Iterables.getLast(rowResultTimestamps).getRowName());
-            return new SweepResults(nextRow, rowResultTimestamps.size(), startTimestampsToSweepPerCell.size(), sweepTimestamp);
+            return new SweepResults(nextRow, rowResultTimestamps.size(), startTimestampsToSweepPerCell.size(), sweepTs);
         }
     }
 
@@ -161,9 +163,14 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             case NOTHING:
                 return new NothingSweeper();
             case CONSERVATIVE:
-                return new ConservativeSweeper(keyValueService, immutableTimestampSupplier, unreadableTimestampSupplier);
+                return new ConservativeSweeper(
+                        keyValueService,
+                        immutableTimestampSupplier,
+                        unreadableTimestampSupplier);
             case THOROUGH:
-                return new ThoroughSweeper(keyValueService, immutableTimestampSupplier);
+                return new ThoroughSweeper(
+                        keyValueService,
+                        immutableTimestampSupplier);
             default:
                 throw new IllegalArgumentException("Unknown sweep strategy: " + sweepStrategy);
         }
@@ -244,7 +251,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             boolean sweepLastCommitted,
             Sweeper sweeper) {
         Set<Long> uncommittedTimestamps = new HashSet<>();
-        SortedSet<Long> committedTimestampsToSweep = new TreeSet<>();
+        SortedSet<Long> commitedTssToSweep = new TreeSet<>();
         long maxStartTs = TransactionConstants.FAILED_COMMIT_TS;
         boolean maxStartTsIsCommitted = false;
         for (long startTs : startTimestamps) {
@@ -260,17 +267,17 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             // (2) their start timestamp is NOT the greatest possible start timestamp
             //     passing condition (1)
             if (commitTs > 0 && commitTs < sweepTimestamp) {
-                committedTimestampsToSweep.add(startTs);
+                commitedTssToSweep.add(startTs);
             } else if (commitTs == TransactionConstants.FAILED_COMMIT_TS) {
                 uncommittedTimestamps.add(startTs);
             }
         }
 
-        Set<Long> sweepTimestamps = (committedTimestampsToSweep.isEmpty() || (sweepLastCommitted && maxStartTsIsCommitted))
-                ? Sets.union(uncommittedTimestamps, committedTimestampsToSweep)
-                : Sets.union(uncommittedTimestamps, committedTimestampsToSweep.subSet(0L, committedTimestampsToSweep.last()));
+        Set<Long> sweepTimestamps = commitedTssToSweep.isEmpty() || (sweepLastCommitted && maxStartTsIsCommitted)
+                ? Sets.union(uncommittedTimestamps, commitedTssToSweep)
+                : Sets.union(uncommittedTimestamps, commitedTssToSweep.subSet(0L, commitedTssToSweep.last()));
 
-        Set<Cell> sentinelsToAdd = (sweeper.shouldAddSentinels() && committedTimestampsToSweep.size() > 1)
+        Set<Cell> sentinelsToAdd = (sweeper.shouldAddSentinels() && commitedTssToSweep.size() > 1)
                 ? ImmutableSet.of(cell) // We need to add a sentinel if we are removing a committed value
                 : ImmutableSet.of();
 

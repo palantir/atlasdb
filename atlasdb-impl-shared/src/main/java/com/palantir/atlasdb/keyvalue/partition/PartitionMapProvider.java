@@ -48,7 +48,6 @@ import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
  *
  */
 public class PartitionMapProvider {
-
     private static final Logger log = LoggerFactory.getLogger(PartitionMapProvider.class);
 
     private final ImmutableList<PartitionMapService> partitionMapProviders;
@@ -126,7 +125,9 @@ public class PartitionMapProvider {
         }
     }
 
-    protected PartitionMapProvider(ImmutableList<PartitionMapService> partitionMapProviders, int partitionMapProvidersReadFactor) {
+    protected PartitionMapProvider(
+            ImmutableList<PartitionMapService> partitionMapProviders,
+            int partitionMapProvidersReadFactor) {
         this.partitionMapProviders = partitionMapProviders;
         this.partitionMapProvidersReadFactor = partitionMapProvidersReadFactor;
         updatePartitionMapFromSeedServers(true);
@@ -136,7 +137,8 @@ public class PartitionMapProvider {
      *
      * @param mustSucceed If set to <tt>true</tt>, will throw if less than quorum
      * seed servers responded.
-     * @return <tt>true</tt> if an update has taken place.
+     *
+     * @return <tt>true</tt> if an update has taken place
      */
     private boolean updatePartitionMapFromSeedServers(boolean mustSucceed) {
         int numSucc = 0;

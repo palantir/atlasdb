@@ -20,9 +20,11 @@ dependencies {
 
   compile 'org.apache.commons:commons-pool2:2.4.2'
 
-  compile ('com.palantir.remoting:ssl-config:0.13.0') {
+  compile ('com.palantir.remoting:ssl-config:' + libVersions.http_remoting) {
     exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
   }
+
+  compile group: 'com.google.code.findbugs', name: 'annotations', version: libVersions.findbugsAnnotations
 
   processor 'org.immutables:value:' + libVersions.immutables
   processor 'com.google.auto.service:auto-service:1.0-rc2'

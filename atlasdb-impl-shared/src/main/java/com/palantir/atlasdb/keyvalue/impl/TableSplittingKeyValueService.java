@@ -51,7 +51,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  *          Code also assumes that the more specific mapping (by table)
  *          trumps the more generic mapping (by namespace).
  */
-public class TableSplittingKeyValueService implements KeyValueService {
+public final class TableSplittingKeyValueService implements KeyValueService {
     public static TableSplittingKeyValueService create(List<KeyValueService> delegates,
                                                        Map<TableReference, KeyValueService> delegateByTable) {
         Map<Namespace, KeyValueService> delegateByNamespace = ImmutableMap.of();
@@ -75,8 +75,10 @@ public class TableSplittingKeyValueService implements KeyValueService {
     private final Map<TableReference, KeyValueService> delegateByTable;
     private final Map<Namespace, KeyValueService> delegateByNamespace;
 
-    private TableSplittingKeyValueService(List<KeyValueService> delegates,
-                                         Map<TableReference, KeyValueService> delegateByTable, Map<Namespace, KeyValueService> delegateByNamespace) {
+    private TableSplittingKeyValueService(
+            List<KeyValueService> delegates,
+            Map<TableReference, KeyValueService> delegateByTable,
+            Map<Namespace, KeyValueService> delegateByNamespace) {
         this.delegates = ImmutableList.copyOf(delegates);
         this.delegateByTable = ImmutableMap.copyOf(delegateByTable);
         this.delegateByNamespace = ImmutableMap.copyOf(delegateByNamespace);
@@ -94,13 +96,13 @@ public class TableSplittingKeyValueService implements KeyValueService {
 
     @Override
     public void createTables(Map<TableReference, byte[]> tableNamesToTableMetadata) {
-        Map<KeyValueService, Map<TableReference, byte[]>> splitTableNamesToTableMetadata = groupByDelegate(tableNamesToTableMetadata);
-        for (KeyValueService delegate : splitTableNamesToTableMetadata.keySet()) {
-            delegate.createTables(splitTableNamesToTableMetadata.get(delegate));
-        }
+        Map<KeyValueService, Map<TableReference, byte[]>> splitTableNamesToTableMetadata =
+                groupByDelegate(tableNamesToTableMetadata);
+        splitTableNamesToTableMetadata.forEach(KeyValueService::createTables);
     }
 
-    private Map<KeyValueService, Map<TableReference, byte[]>> groupByDelegate(Map<TableReference, byte[]> tableRefsToTableMetadata) {
+    private Map<KeyValueService, Map<TableReference, byte[]>> groupByDelegate(
+            Map<TableReference, byte[]> tableRefsToTableMetadata) {
         Map<KeyValueService, Map<TableReference, byte[]>> splitTableNamesToTableMetadata = Maps.newHashMap();
         for (Entry<TableReference, byte[]> tableEntry : tableRefsToTableMetadata.entrySet()) {
             TableReference tableRef = tableEntry.getKey();
@@ -130,18 +132,18 @@ public class TableSplittingKeyValueService implements KeyValueService {
 
     @Override
     public void dropTables(Set<TableReference> tableRefs) {
-        Map<KeyValueService, Set<TableReference>> tablesByKVS = Maps.newHashMap();
+        Map<KeyValueService, Set<TableReference>> tablesByKvs = Maps.newHashMap();
         for (TableReference tableRef : tableRefs) {
             KeyValueService delegate = getDelegate(tableRef);
-            if (tablesByKVS.containsKey(delegate)) {
-                tablesByKVS.get(delegate).add(tableRef);
+            if (tablesByKvs.containsKey(delegate)) {
+                tablesByKvs.get(delegate).add(tableRef);
             } else {
                 Set<TableReference> tablesBelongingToThisDelegate = Sets.newHashSet(tableRef);
-                tablesByKVS.put(delegate, tablesBelongingToThisDelegate);
+                tablesByKvs.put(delegate, tablesBelongingToThisDelegate);
             }
         }
 
-        for (Entry<KeyValueService, Set<TableReference>> kvsEntry : tablesByKVS.entrySet()) {
+        for (Entry<KeyValueService, Set<TableReference>> kvsEntry : tablesByKvs.entrySet()) {
             kvsEntry.getKey().dropTables(kvsEntry.getValue());
         }
     }
@@ -174,7 +176,7 @@ public class TableSplittingKeyValueService implements KeyValueService {
         return getDelegate(tableRef).getAllTimestamps(tableRef, cells, timestamp);
     }
 
-    private KeyValueService getDelegate(TableReference tableRef) {
+    public KeyValueService getDelegate(TableReference tableRef) {
         return tableDelegateFor(tableRef)
                 .or(namespaceDelegateFor(tableRef))
                 .or(delegates.get(0));
@@ -198,9 +200,10 @@ public class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef,
-                                                                                                           Iterable<RangeRequest> rangeRequests,
-                                                                                                           long timestamp) {
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
+            TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            long timestamp) {
         return getDelegate(tableRef).getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
     }
 
@@ -253,7 +256,11 @@ public class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection, long timestamp) {
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection columnRangeSelection,
+            long timestamp) {
         return getDelegate(tableRef).getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
     }
 
@@ -302,10 +309,9 @@ public class TableSplittingKeyValueService implements KeyValueService {
 
     @Override
     public void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata) {
-        Map<KeyValueService, Map<TableReference, byte[]>> splitTableNameToMetadata = groupByDelegate(tableRefToMetadata);
-        for (KeyValueService delegate : splitTableNameToMetadata.keySet()) {
-            delegate.putMetadataForTables(splitTableNameToMetadata.get(delegate));
-        }
+        Map<KeyValueService, Map<TableReference, byte[]>> splitTableNameToMetadata =
+                groupByDelegate(tableRefToMetadata);
+        splitTableNameToMetadata.forEach(KeyValueService::putMetadataForTables);
     }
 
     @Override
@@ -334,7 +340,7 @@ public class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void truncateTable(TableReference tableRef){
+    public void truncateTable(TableReference tableRef) {
         getDelegate(tableRef).truncateTable(tableRef);
     }
 

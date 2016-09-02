@@ -20,9 +20,13 @@ import java.io.Serializable;
 import com.google.common.base.Preconditions;
 import com.palantir.common.persist.Persistable;
 
-public class ColumnRangeSelections implements Serializable {
+public final class ColumnRangeSelections implements Serializable {
+    private ColumnRangeSelections() {
+        // Utility class
+    }
+
     public static BatchColumnRangeSelection createPrefixRange(byte[] prefix, int batchSize) {
-        byte[] startCol = Preconditions.checkNotNull(prefix).clone();
+        byte[] startCol = Preconditions.checkNotNull(prefix, "prefix cannot be null").clone();
         byte[] endCol = RangeRequests.createEndNameForPrefixScan(prefix);
         return new BatchColumnRangeSelection(startCol, endCol, batchSize);
     }

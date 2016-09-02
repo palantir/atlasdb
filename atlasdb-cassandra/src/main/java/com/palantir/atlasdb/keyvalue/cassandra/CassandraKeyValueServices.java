@@ -25,13 +25,10 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.InvalidRequestException;
-import org.apache.cassandra.thrift.KeySlice;
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,17 +44,22 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.annotation.Output;
-import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.util.Pair;
 
-public class CassandraKeyValueServices {
+public final class CassandraKeyValueServices {
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class); // did this on purpose
 
-    private static long INITIAL_SLEEP_TIME = 100;
-    private static long MAX_SLEEP_TIME = 5000;
-    static void waitForSchemaVersions(Cassandra.Client client, String tableName, int schemaTimeoutMillis) throws InvalidRequestException, TException {
+    private static final long INITIAL_SLEEP_TIME = 100;
+    private static final long MAX_SLEEP_TIME = 5000;
+
+    private CassandraKeyValueServices() {
+        // Utility class
+    }
+
+    static void waitForSchemaVersions(Cassandra.Client client, String tableName, int schemaTimeoutMillis)
+            throws TException {
         long start = System.currentTimeMillis();
         long sleepTime = INITIAL_SLEEP_TIME;
         Map<String, List<String>> versions;
@@ -72,39 +74,53 @@ public class CassandraKeyValueServices {
                 throw Throwables.throwUncheckedException(e);
             }
             sleepTime = Math.min(sleepTime * 2, MAX_SLEEP_TIME);
-        } while (System.currentTimeMillis() < start + schemaTimeoutMillis);
+        }
+        while (System.currentTimeMillis() < start + schemaTimeoutMillis);
+
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("Cassandra cluster cannot come to agreement on schema versions, after attempting to modify table %s.", tableName));
-        for ( Entry<String, List<String>> version : versions.entrySet()) {
+        sb.append(String.format("Cassandra cluster cannot come to agreement on schema versions,"
+                + " after attempting to modify table %s.", tableName));
+        for (Entry<String, List<String>> version : versions.entrySet()) {
             sb.append(String.format("%nAt schema version %s:", version.getKey()));
-            for (String node: version.getValue()) {
+            for (String node : version.getValue()) {
                 sb.append(String.format("%n\tNode: %s", node));
             }
         }
-        sb.append("\nFind the nodes above that diverge from the majority schema " +
-                "(or have schema 'UNKNOWN', which likely means they are down/unresponsive) " +
-                "and examine their logs to determine the issue. Fixing the underlying issue and restarting Cassandra " +
-                "should resolve the problem. You can quick-check this with 'nodetool describecluster'.");
+        sb.append("\nFind the nodes above that diverge from the majority schema")
+                .append(" (or have schema 'UNKNOWN', which likely means they are down/unresponsive)")
+                .append(" and examine their logs to determine the issue.")
+                .append(" Fixing the underlying issue and restarting Cassandra")
+                .append(" should resolve the problem. You can quick-check this with 'nodetool describecluster'.");
         throw new IllegalStateException(sb.toString());
     }
 
     /**
-     * This is a request from pbrown / FDEs; basically it's a pain to do DB surgery to get out of failed patch upgrades, the majority of which requires schema mutations; they would find it preferable to stop before starting the actual patch upgrade / setting APPLYING state.
+     * This is a request from pbrown / FDEs; basically it's a pain to do DB surgery to get out
+     * of failed patch upgrades, the majority of which requires schema mutations; they would find
+     * it preferable to stop before starting the actual patch upgrade / setting APPLYING state.
      */
-    static void failQuickInInitializationIfClusterAlreadyInInconsistentState(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config) {
+    static void failQuickInInitializationIfClusterAlreadyInInconsistentState(
+            CassandraClientPool clientPool,
+            CassandraKeyValueServiceConfig config) {
         if (config.safetyDisabled()) {
-            log.error("Skipped checking the cassandra cluster during initialization, because safety checks are disabled. Please re-enable safety checks when you are outside of your unusual migration period.");
+            log.error("Skipped checking the cassandra cluster during initialization, because safety checks are"
+                    + " disabled. Please re-enable safety checks when you are outside of your unusual"
+                    + " migration period.");
             return;
         }
-        String errorMessage = "While checking the cassandra cluster during initialization, we noticed schema versions could not settle. Failing quickly to avoid getting into harder to fix states (i.e. partially applied patch upgrades, etc). " +
-                "This state is in rare cases the correct one to be in; for instance schema versions will be incapable of settling in a cluster of heterogenous Cassandra 1.2/2.0 nodes. If that is the case, disable safety checks in your Cassandra KVS preferences.";
+        String errorMessage = "While checking the cassandra cluster during initialization, we noticed schema versions"
+                + " could not settle. Failing quickly to avoid getting into harder to fix states (i.e. partially"
+                + " applied patch upgrades, etc). This state is in rare cases the correct one to be in; for"
+                + " instance schema versions will be incapable of settling in a cluster of heterogenous"
+                + " Cassandra 1.2/2.0 nodes. If that is the case, disable safety checks in your Cassandra"
+                + " KVS preferences.";
         try {
-            clientPool.run(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
-                @Override
-                public Void apply(Client client) throws TException {
-                    waitForSchemaVersions(client, "(none, just an initialization check)", config.schemaMutationTimeoutMillis());
-                    return null;
-                }
+            clientPool.run(client -> {
+                waitForSchemaVersions(
+                        client,
+                        "(none, just an initialization check)",
+                        config.schemaMutationTimeoutMillis());
+                return null;
             });
         } catch (TException e) {
             throw new RuntimeException(errorMessage, e);
@@ -117,7 +133,9 @@ public class CassandraKeyValueServices {
     static ByteBuffer makeCompositeBuffer(byte[] colName, long ts) {
         assert colName.length <= 1 << 16 : "Cannot use column names larger than 64KiB, was " + colName.length;
 
-        ByteBuffer buffer = ByteBuffer.allocate(6 /* misc */ + 8 /* timestamp */ + colName.length).order(ByteOrder.BIG_ENDIAN);
+        ByteBuffer buffer = ByteBuffer
+                .allocate(6 /* misc */ + 8 /* timestamp */ + colName.length)
+                .order(ByteOrder.BIG_ENDIAN);
 
         buffer.put((byte) ((colName.length >> 8) & 0xFF));
         buffer.put((byte) (colName.length & 0xFF));
@@ -134,8 +152,8 @@ public class CassandraKeyValueServices {
         return buffer;
     }
 
-    static Pair<byte[], Long> decompose(ByteBuffer composite) {
-        composite = composite.slice().order(ByteOrder.BIG_ENDIAN);
+    static Pair<byte[], Long> decompose(ByteBuffer inputComposite) {
+        ByteBuffer composite = inputComposite.slice().order(ByteOrder.BIG_ENDIAN);
 
         short len = composite.getShort();
         byte[] colName = new byte[len];
@@ -148,7 +166,7 @@ public class CassandraKeyValueServices {
         Validate.isTrue(shouldBe8 == 8);
         long ts = composite.getLong();
 
-        return Pair.create(colName, (~ts));
+        return Pair.create(colName, ~ts);
     }
 
     /**
@@ -179,16 +197,8 @@ public class CassandraKeyValueServices {
         return bytes;
     }
 
-    static Map<ByteBuffer, List<ColumnOrSuperColumn>> getColsByKey(List<KeySlice> firstPage) {
-        Map<ByteBuffer, List<ColumnOrSuperColumn>> ret = Maps.newHashMapWithExpectedSize(firstPage.size());
-        for (KeySlice e : firstPage) {
-            ret.put(ByteBuffer.wrap(e.getKey()), e.getColumns());
-        }
-        return ret;
-    }
-
     // /Obviously/ this is long (internal cassandra timestamp) + long (internal cassandra clock sequence and node id)
-    static String convertCassandraByteBufferUUIDtoString(ByteBuffer uuid) {
+    static String convertCassandraByteBufferUuidToString(ByteBuffer uuid) {
         return new UUID(uuid.getLong(uuid.position()), uuid.getLong(uuid.position() + 8)).toString();
     }
 
@@ -205,8 +215,8 @@ public class CassandraKeyValueServices {
 
 
     static String getFilteredStackTrace(String filter) {
-        Exception e = new Exception();
-        StackTraceElement[] stackTrace = e.getStackTrace();
+        Exception ex = new Exception();
+        StackTraceElement[] stackTrace = ex.getStackTrace();
         StringBuilder sb = new StringBuilder();
         for (StackTraceElement element : stackTrace) {
             if (element.getClassName().contains(filter)) {
@@ -216,7 +226,7 @@ public class CassandraKeyValueServices {
         return sb.toString();
     }
 
-    static interface ThreadSafeResultVisitor extends Visitor<Map<ByteBuffer, List<ColumnOrSuperColumn>>> {
+    interface ThreadSafeResultVisitor extends Visitor<Map<ByteBuffer, List<ColumnOrSuperColumn>>> {
         // marker
     }
 
@@ -225,7 +235,7 @@ public class CassandraKeyValueServices {
         final ValueExtractor extractor = new ValueExtractor(collectedResults);
         final long startTs;
 
-        public StartTsResultsCollector(long startTs) {
+        StartTsResultsCollector(long startTs) {
             this.startTs = startTs;
         }
 
@@ -244,7 +254,7 @@ public class CassandraKeyValueServices {
         }
     }
 
-    static private void extractTimestampResults(@Output Multimap<Cell, Long> ret,
+    private static void extractTimestampResults(@Output Multimap<Cell, Long> ret,
                                                 Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
         for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> result : results.entrySet()) {
             byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(result.getKey());
@@ -255,32 +265,34 @@ public class CassandraKeyValueServices {
         }
     }
 
-    static protected int convertTtl(final long durationMillis, TimeUnit sourceTimeUnit) {
+    protected static int convertTtl(final long durationMillis, TimeUnit sourceTimeUnit) {
         long ttlSeconds = TimeUnit.SECONDS.convert(durationMillis, sourceTimeUnit);
-        Preconditions.checkArgument((ttlSeconds > 0 && ttlSeconds < Integer.MAX_VALUE), "Expiration time must be between 0 and ~68 years");
+        Preconditions.checkArgument(ttlSeconds > 0 && ttlSeconds < Integer.MAX_VALUE,
+                "Expiration time must be between 0 and ~68 years");
         return (int) ttlSeconds;
     }
 
     // because unfortunately .equals takes into account if fields with defaults are populated or not
-    // also because compression_options after serialization / deserialization comes back as blank for the ones we set 4K chunk on... ?!
-    public static final boolean isMatchingCf(CfDef clientSide, CfDef clusterSide) {
+    // also because compression_options after serialization / deserialization comes back as blank
+    // for the ones we set 4K chunk on... ?!
+    public static boolean isMatchingCf(CfDef clientSide, CfDef clusterSide) {
         String tableName = clientSide.name;
         if (!Objects.equal(clientSide.compaction_strategy_options, clusterSide.compaction_strategy_options)) {
-            log.debug("Found client/server disagreement on compaction strategy options for {}. (client = ({}), server = ({}))",
+            logMismatch("compaction strategy",
                     tableName,
                     clientSide.compaction_strategy_options,
                     clusterSide.compaction_strategy_options);
             return false;
         }
         if (clientSide.gc_grace_seconds != clusterSide.gc_grace_seconds) {
-            log.debug("Found client/server disagreement on gc_grace_seconds for {}. (client = ({}), server = ({}))",
+            logMismatch("gc_grace_seconds period",
                     tableName,
                     clientSide.gc_grace_seconds,
                     clusterSide.gc_grace_seconds);
             return false;
         }
         if (clientSide.bloom_filter_fp_chance != clusterSide.bloom_filter_fp_chance) {
-            log.debug("Found client/server disagreement on bloom filter false positive chance for {}. (client = ({}), server = ({}))",
+            logMismatch("bloom filter false positive chance",
                     tableName,
                     clientSide.bloom_filter_fp_chance,
                     clusterSide.bloom_filter_fp_chance);
@@ -288,21 +300,27 @@ public class CassandraKeyValueServices {
         }
         if (!(clientSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY).equals(
                 clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY)))) {
-            log.debug("Found client/server disagreement on compression chunk length for {}. (client = ({}), server = ({}))",
+            logMismatch("compression chunk length",
                     tableName,
                     clientSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY),
                     clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY));
             return false;
         }
         if (!Objects.equal(clientSide.compaction_strategy, clusterSide.compaction_strategy)) {
-            log.debug("Found client/server disagreement on compaction_strategy for {}. (client = ({}), server = ({}))",
-                    tableName,
-                    clientSide.compaction_strategy,
-                    clusterSide.compaction_strategy);
-            return false;
+            // consider equal "com.whatever.LevelledCompactionStrategy" and "LevelledCompactionStrategy"
+            if (clientSide.compaction_strategy != null
+                    && clusterSide.compaction_strategy != null
+                    && !(clientSide.compaction_strategy.endsWith(clusterSide.compaction_strategy)
+                    || clusterSide.compaction_strategy.endsWith(clientSide.compaction_strategy))) {
+                logMismatch("compaction strategy",
+                        tableName,
+                        clientSide.compaction_strategy,
+                        clusterSide.compaction_strategy);
+                return false;
+            }
         }
         if (clientSide.isSetPopulate_io_cache_on_flush() != clusterSide.isSetPopulate_io_cache_on_flush()) {
-            log.debug("Found client/server disagreement on populate_io_cache_on_flush for {}. (client = ({}), server = ({}))",
+            logMismatch("populate_io_cache_on_flush",
                     tableName,
                     clientSide.isSetPopulate_io_cache_on_flush(),
                     clusterSide.isSetPopulate_io_cache_on_flush());
@@ -312,8 +330,19 @@ public class CassandraKeyValueServices {
         return true;
     }
 
+    private static void logMismatch(String fieldName, String tableName,
+            Object clientSideVersion, Object clusterSideVersion) {
+        log.info("Found client/server disagreement on {} for table {}. (client = ({}), server = ({}))",
+                fieldName,
+                tableName,
+                clientSideVersion,
+                clusterSideVersion);
+    }
+
     public static boolean isEmptyOrInvalidMetadata(byte[] metadata) {
-        if (metadata == null || Arrays.equals(metadata, AtlasDbConstants.EMPTY_TABLE_METADATA) || Arrays.equals(metadata, AtlasDbConstants.GENERIC_TABLE_METADATA)) {
+        if (metadata == null
+                || Arrays.equals(metadata, AtlasDbConstants.EMPTY_TABLE_METADATA)
+                || Arrays.equals(metadata, AtlasDbConstants.GENERIC_TABLE_METADATA)) {
             return true;
         }
         return false;

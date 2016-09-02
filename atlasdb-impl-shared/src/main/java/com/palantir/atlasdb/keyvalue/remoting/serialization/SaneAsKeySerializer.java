@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.remoting.serialization;
 import java.io.IOException;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
@@ -31,17 +30,20 @@ import com.fasterxml.jackson.databind.SerializerProvider;
  *
  */
 public final class SaneAsKeySerializer extends JsonSerializer<Object> {
+    private static final SaneAsKeySerializer instance = new SaneAsKeySerializer();
 
     private final ObjectMapper mapper = new ObjectMapper();
-    private SaneAsKeySerializer() { }
-    private static final SaneAsKeySerializer instance = new SaneAsKeySerializer();
+
+    private SaneAsKeySerializer() {
+        // singleton
+    }
+
     public static SaneAsKeySerializer instance() {
         return instance;
     }
 
     @Override
-    public void serialize(Object value, JsonGenerator gen, SerializerProvider serializers)
-            throws IOException, JsonProcessingException {
+    public void serialize(Object value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
         gen.writeFieldName(mapper.writeValueAsString(value));
     }
 }

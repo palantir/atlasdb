@@ -365,6 +365,7 @@
             <property name="minLineCount" value="99999999"/>
             <property name="allowedAnnotations" value="Override, Test"/>
             <property name="allowThrowsTagsForSubclasses" value="true"/>
+            <property name="suppressLoadErrors" value="true" />
         </module>
         <module name="JavadocStyle"/> <!-- Java Style Guide: Javadoc -->
         <module name="JavadocTagContinuationIndentation"> <!-- Java Style Guide: At-clauses -->

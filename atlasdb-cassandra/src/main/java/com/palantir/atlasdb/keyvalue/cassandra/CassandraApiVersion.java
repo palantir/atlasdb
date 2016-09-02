@@ -31,13 +31,16 @@ public class CassandraApiVersion {
         this.versionString = versionString;
         String[] components = versionString.split("\\.");
         if (components.length != 3) {
-            throw new UnsupportedOperationException(String.format("Illegal version of Thrift protocol detected; expected format '#.#.#', got '%s'", Arrays.toString(components)));
+            throw new UnsupportedOperationException(String.format(
+                    "Illegal version of Thrift protocol detected; expected format '#.#.#', got '%s'",
+                    Arrays.toString(components)));
         }
         majorVersion = Integer.parseInt(components[0]);
         minorVersion = Integer.parseInt(components[1]);
     }
 
-    // This corresponds to the version change in https://github.com/apache/cassandra/commit/8b0e1868e8cf813ddfc98d11448aa2ad363eccc1#diff-2fa34d46c5a51e59f77d866bbe7ca02aR55
+    // This corresponds to the version change in
+    // https://github.com/apache/cassandra/commit/8b0e1868e8cf8
     public boolean supportsCheckAndSet() {
         boolean supportsCheckAndSet = majorVersion > 19 || (majorVersion == 19 && minorVersion >= 37);
 
@@ -46,5 +49,10 @@ public class CassandraApiVersion {
         LOGGER.info("Your cassandra api version ({}) " + supportMessage, versionString);
 
         return supportsCheckAndSet;
+    }
+
+    @Override
+    public String toString() {
+        return versionString;
     }
 }

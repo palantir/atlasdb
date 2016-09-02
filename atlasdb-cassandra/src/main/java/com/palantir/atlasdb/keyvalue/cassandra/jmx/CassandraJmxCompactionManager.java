@@ -38,17 +38,19 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
  * CassandraJmxCompactionManager manages all JMX compaction clients for C* cluster.
  * Each node in C* cluster will have one CassandraJmxCompactionClient connection.
  */
-public class CassandraJmxCompactionManager {
+public final class CassandraJmxCompactionManager {
     private static final Logger log = LoggerFactory.getLogger(CassandraJmxCompactionManager.class);
     private final ImmutableSet<CassandraJmxCompactionClient> clients;
     private final ExecutorService exec;
 
     private CassandraJmxCompactionManager(ImmutableSet<CassandraJmxCompactionClient> clients, ExecutorService exec) {
-        this.clients = Preconditions.checkNotNull(clients);
-        this.exec = Preconditions.checkNotNull(exec);
+        this.clients = Preconditions.checkNotNull(clients, "clients cannot be null");
+        this.exec = Preconditions.checkNotNull(exec, "exec cannot be null");
     }
 
-    public static CassandraJmxCompactionManager create(ImmutableSet<CassandraJmxCompactionClient> clients, ExecutorService exec) {
+    public static CassandraJmxCompactionManager create(
+            ImmutableSet<CassandraJmxCompactionClient> clients,
+            ExecutorService exec) {
         return new CassandraJmxCompactionManager(clients, exec);
     }
 
@@ -81,35 +83,37 @@ public class CassandraJmxCompactionManager {
             hintedHandoffDeletionTasks.add(new HintedHandOffDeletionTask(client));
         }
 
-        return executeInParallel(exec, hintedHandoffDeletionTasks, timeoutInSeconds);
+        return executeInParallel(hintedHandoffDeletionTasks, timeoutInSeconds);
     }
 
-    private boolean deleteTombstone(String keyspace, TableReference tableRef, long timeoutInSeconds) throws InterruptedException, TimeoutException {
+    private boolean deleteTombstone(String keyspace, TableReference tableRef, long timeoutInSeconds)
+            throws InterruptedException, TimeoutException {
         List<TombstoneCompactionTask> compactionTasks = Lists.newArrayListWithExpectedSize(clients.size());
         for (CassandraJmxCompactionClient client : clients) {
             compactionTasks.add(new TombstoneCompactionTask(client, keyspace, tableRef));
         }
 
-        return executeInParallel(exec, compactionTasks, timeoutInSeconds);
+        return executeInParallel(compactionTasks, timeoutInSeconds);
     }
 
-    private boolean executeInParallel(ExecutorService exec, List<? extends Callable<Void>> tasks, long timeoutInSeconds)
+    private boolean executeInParallel(List<? extends Callable<Void>> tasks, long timeoutInSeconds)
             throws InterruptedException, TimeoutException {
         Stopwatch stopWatch = Stopwatch.createStarted();
         List<Future<Void>> futures = exec.invokeAll(tasks, timeoutInSeconds, TimeUnit.SECONDS);
 
         for (Future<Void> f : futures) {
             if (f.isCancelled()) {
-                log.error("Task execution timeouts in {} seconds. Timeout seconds:{}.", stopWatch.stop().elapsed(TimeUnit.SECONDS), timeoutInSeconds);
-                throw new TimeoutException(String.format("Task execution timeouts in %d seconds. Timeout seconds:%d.",
+                log.error("Task execution timeouts in {} seconds. Timeout seconds: {}.",
+                        stopWatch.stop().elapsed(TimeUnit.SECONDS), timeoutInSeconds);
+                throw new TimeoutException(String.format("Task execution timeouts in %d seconds. Timeout seconds: %d.",
                         stopWatch.elapsed(TimeUnit.SECONDS), timeoutInSeconds));
             }
 
             try {
                 f.get();
             } catch (ExecutionException e) {
-                Throwable t = e.getCause();
-                if (t instanceof UndeclaredThrowableException) {
+                Throwable cause = e.getCause();
+                if (cause instanceof UndeclaredThrowableException) {
                     log.error("Major LCS compactions are only supported against C* 2.2+; "
                             + "you will need to manually re-arrange SSTables into L0 "
                             + "if you want all deleted data immediately removed from the cluster.");
@@ -133,7 +137,7 @@ public class CassandraJmxCompactionManager {
     }
 
     /**
-     * close all the JMX compaction connection
+     * Close all the JMX compaction connections.
      */
     public void close() {
         log.info("shutting down...");

@@ -16,25 +16,25 @@
 package com.palantir.atlasdb.transaction.api;
 
 public enum AtlasDbConstraintCheckingMode {
-    FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS(ShouldThrowException.YES),
-    FULL_CONSTRAINT_CHECKING_LOGS_EXCEPTIONS(ShouldThrowException.NO),
-    PERFORMANCE_OPTIMAL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS(ShouldThrowException.YES),
-    PERFORMANCE_OPTIMAL_CONSTRAINT_CHECKING_LOGS_EXCEPTIONS(ShouldThrowException.NO),
-    NO_CONSTRAINT_CHECKING(ShouldThrowException.NO);
+    FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS(ShouldThrow.YES),
+    FULL_CONSTRAINT_CHECKING_LOGS_EXCEPTIONS(ShouldThrow.NO),
+    PERFORMANCE_OPTIMAL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS(ShouldThrow.YES),
+    PERFORMANCE_OPTIMAL_CONSTRAINT_CHECKING_LOGS_EXCEPTIONS(ShouldThrow.NO),
+    NO_CONSTRAINT_CHECKING(ShouldThrow.NO);
 
-    private static enum ShouldThrowException {
+    private enum ShouldThrow {
         YES,
         NO
     }
 
-    private final ShouldThrowException shouldThrowException;
+    private final ShouldThrow shouldThrow;
 
-    private AtlasDbConstraintCheckingMode(ShouldThrowException shouldThrowException) {
-        this.shouldThrowException = shouldThrowException;
+    AtlasDbConstraintCheckingMode(ShouldThrow shouldThrow) {
+        this.shouldThrow = shouldThrow;
     }
 
     public boolean shouldThrowException() {
-        return shouldThrowException == ShouldThrowException.YES;
+        return shouldThrow == ShouldThrow.YES;
     }
 
 }

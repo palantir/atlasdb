@@ -20,8 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,22 +69,45 @@ import feign.jackson.JacksonDecoder;
 import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
 
-public class RemotingKeyValueService extends ForwardingKeyValueService {
+public final class RemotingKeyValueService extends ForwardingKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(RemotingKeyValueService.class);
-    private final static ServiceContext<KeyValueService> serviceContext = ExecutorInheritableServiceContext.create();
+    private static final ServiceContext<KeyValueService> serviceContext = ExecutorInheritableServiceContext.create();
+    private static final SimpleModule kvsModule = new SimpleModule();
+    private static final ObjectMapper kvsMapper = new ObjectMapper();
 
     private final KeyValueService delegate;
+
+    static {
+        kvsModule.addKeyDeserializer(Cell.class, CellAsKeyDeserializer.instance());
+        kvsModule.addKeyDeserializer(byte[].class, BytesAsKeyDeserializer.instance());
+        kvsModule.addKeySerializer(Cell.class, SaneAsKeySerializer.instance());
+        kvsModule.addKeySerializer(byte[].class, SaneAsKeySerializer.instance());
+        kvsModule.addSerializer(RowResult.class, RowResultSerializer.instance());
+        kvsModule.addDeserializer(RowResult.class, RowResultDeserializer.instance());
+        kvsModule.addSerializer(DynamicPartitionMapImpl.class, DynamicPartitionMapImpl.Serializer.instance());
+        kvsModule.addDeserializer(DynamicPartitionMapImpl.class, DynamicPartitionMapImpl.Deserializer.instance());
+        kvsModule.addAbstractTypeMapping(RowColumnRangeIterator.class, RemoteRowColumnRangeIterator.class);
+
+        kvsMapper.registerModule(kvsModule);
+        kvsMapper.registerModule(new GuavaModule());
+    }
+
 
     public static ServiceContext<KeyValueService> getServiceContext() {
         return serviceContext;
     }
 
+    public static SimpleModule kvsModule() {
+        return kvsModule;
+    }
+
+    public static ObjectMapper kvsMapper() {
+        return kvsMapper;
+    }
+
     /**
      * This is to inject the local KVS instance reference into the context.
      * It is used by the range iterators to download additional pages of data.
-     *
-     * @param remoteService
-     * @return
      */
     private static KeyValueService createClientSideInternal(final KeyValueService remoteService) {
         return new ForwardingKeyValueService() {
@@ -123,25 +144,15 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
             }
 
             @Override
-            public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef,
-                                                                          Iterable<byte[]> rows,
-                                                                          BatchColumnRangeSelection columnRangeSelection,
-                                                                          long timestamp) {
+            public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+                    TableReference tableRef,
+                    Iterable<byte[]> rows,
+                    BatchColumnRangeSelection columnRangeSelection,
+                    long timestamp) {
                 Map<byte[], RowColumnRangeIterator> rowsColumnRange =
                         super.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
                 return Maps.transformValues(canonicalizeRows(rowsColumnRange, rows),
-                                            iter -> withKvs(iter, RowColumnRangeIterator.class));
-            }
-
-            private <T> Map<byte[], T> canonicalizeRows(Map<byte[], T> map, Iterable<byte[]> canonicalRows) {
-                Map<Sha256Hash, byte[]> canonicalRowsByHash = Maps.uniqueIndex(canonicalRows, Sha256Hash::computeHash);
-                Map<byte[], T> canonicalized = new HashMap<>(map.size());
-                for (Map.Entry<byte[], T> entry : map.entrySet()) {
-                    byte[] row = entry.getKey();
-                    byte[] canonicalRow = canonicalRowsByHash.get(Sha256Hash.computeHash(row));
-                    canonicalized.put(canonicalRow, entry.getValue());
-                }
-                return canonicalized;
+                        iter -> withKvs(iter, RowColumnRangeIterator.class));
             }
 
             @Override
@@ -157,10 +168,21 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
                                                                                   cellBatchHint,
                                                                                   timestamp);
             }
+
+            private <T> Map<byte[], T> canonicalizeRows(Map<byte[], T> map, Iterable<byte[]> canonicalRows) {
+                Map<Sha256Hash, byte[]> canonicalRowsByHash = Maps.uniqueIndex(canonicalRows, Sha256Hash::computeHash);
+                Map<byte[], T> canonicalized = new HashMap<>(map.size());
+                for (Map.Entry<byte[], T> entry : map.entrySet()) {
+                    byte[] row = entry.getKey();
+                    byte[] canonicalRow = canonicalRowsByHash.get(Sha256Hash.computeHash(row));
+                    canonicalized.put(canonicalRow, entry.getValue());
+                }
+                return canonicalized;
+            }
         };
     }
 
-    public enum LONG_HOLDER implements RemoteContextType<Long> {
+    public enum LongContextType implements RemoteContextType<Long> {
         PM_VERSION {
             @Override
             public Class<Long> getValueType() {
@@ -169,7 +191,7 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
         }
     }
 
-    public enum STRING_HOLDER implements RemoteContextType<String> {
+    public enum StringContextType implements RemoteContextType<String> {
         PMS_URI {
             @Override
             public Class<String> getValueType() {
@@ -183,12 +205,11 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
      * that supports empty byte arrays, exceptions and sends the partition map version out-of-band
      * automatically.
      *
-     * @param uri
      * @param localVersionSupplier The version of local partition map to be sent out-of-band.
-     * @return
      */
     public static KeyValueService createClientSide(String uri, Supplier<Long> localVersionSupplier) {
-        ServiceContext<Long> outboxVersionCtx = RemoteContextHolder.OUTBOX.getProviderForKey(LONG_HOLDER.PM_VERSION);
+        ServiceContext<Long> outboxVersionCtx = RemoteContextHolder.OUTBOX
+                .getProviderForKey(LongContextType.PM_VERSION);
 
         KeyValueService remotingKvs = Feign.builder()
                 .encoder(new OctetStreamDelegateEncoder(new JacksonEncoder(kvsMapper())))
@@ -208,9 +229,8 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
     /**
      * This will convert the range iterators to serializable page-based versions and will
      * ensure that the partition map version of the client and of the server are compatible.
-     * @param delegate
-     * @param serverVersionSupplier Use <code>Suppliers.<Long>ofInstance(-1L)</code> if you want to disable version check.
-     * @return
+     * @param serverVersionSupplier Use <code>Suppliers.&lt;Long&gt;ofInstance(-1L)</code>
+     *                              if you want to disable version check.
      */
     public static KeyValueService createServerSide(KeyValueService delegate, Supplier<Long> serverVersionSupplier) {
         final KeyValueService versionCheckingKvs = VersionCheckProxy.newProxyInstance(delegate, serverVersionSupplier);
@@ -230,50 +250,50 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
     public RangeIterator<Value> getRange(final TableReference tableRef,
                                          final RangeRequest range,
                                          final long timestamp) {
-        return transformIterator(tableRef, range, timestamp, super.getRange(tableRef, range, timestamp),
-            new Function<Pair<Boolean, ImmutableList<RowResult<Value>>>, RangeIterator<Value>>() {
-                @Override @Nullable
-                public RangeIterator<Value> apply(@Nullable Pair<Boolean, ImmutableList<RowResult<Value>>> input) {
-                    return new ValueRangeIterator(tableRef, range, timestamp, input.lhSide, input.rhSide);
-                }
-            });
+        return transformIterator(
+                range,
+                super.getRange(tableRef, range, timestamp),
+                input -> new ValueRangeIterator(tableRef, range, timestamp, input.lhSide, input.rhSide));
     }
 
     @Override
     public RangeIterator<Set<Value>> getRangeWithHistory(final TableReference tableRef,
                                                          final RangeRequest rangeRequest,
                                                          final long timestamp) {
-        return transformIterator(tableRef, rangeRequest, timestamp, super.getRangeWithHistory(tableRef, rangeRequest, timestamp),
-            new Function<Pair<Boolean, ImmutableList<RowResult<Set<Value>>>>, RangeIterator<Set<Value>>>(){
-                @Override @Nullable
-                public RangeIterator<Set<Value>> apply(@Nullable Pair<Boolean, ImmutableList<RowResult<Set<Value>>>> input) {
-                    return new HistoryRangeIterator(tableRef, rangeRequest, timestamp, input.lhSide, input.rhSide);
-                }
-            });
+        return transformIterator(
+                rangeRequest,
+                super.getRangeWithHistory(tableRef, rangeRequest, timestamp),
+                input -> new HistoryRangeIterator(tableRef, rangeRequest, timestamp, input.lhSide, input.rhSide));
     }
 
     @Override
     public RangeIterator<Set<Long>> getRangeOfTimestamps(final TableReference tableRef,
                                                          final RangeRequest rangeRequest,
                                                          final long timestamp) {
-        return transformIterator(tableRef, rangeRequest, timestamp, super.getRangeOfTimestamps(tableRef, rangeRequest, timestamp),
-            new Function<Pair<Boolean, ImmutableList<RowResult<Set<Long>>>>, RangeIterator<Set<Long>>>() {
-                @Override @Nullable
-                public RangeIterator<Set<Long>> apply(@Nullable Pair<Boolean, ImmutableList<RowResult<Set<Long>>>> input) {
-                    return new TimestampsRangeIterator(tableRef, rangeRequest, timestamp, input.lhSide, input.rhSide);
-                }
-            });
+        return transformIterator(
+                rangeRequest,
+                super.getRangeOfTimestamps(tableRef, rangeRequest, timestamp),
+                input -> new TimestampsRangeIterator(tableRef, rangeRequest, timestamp, input.lhSide, input.rhSide));
     }
 
     @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
-                                                                  BatchColumnRangeSelection columnRangeSelection, long timestamp) {
-        Map<byte[], RowColumnRangeIterator> rowsColumnRange = super.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
-        Map<byte[], RowColumnRangeIterator> transformed = Maps.transformValues(rowsColumnRange,
-                it -> {
-                    List<Map.Entry<Cell, Value>> page = ImmutableList.copyOf(Iterators.limit(it, columnRangeSelection.getBatchHint()));
-                    return (RowColumnRangeIterator) new RemoteRowColumnRangeIterator(tableRef, columnRangeSelection, timestamp, it.hasNext(), page);
-                });
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection columnRangeSelection,
+            long timestamp) {
+        Map<byte[], RowColumnRangeIterator> rowsColumnRange =
+                super.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+        Map<byte[], RowColumnRangeIterator> transformed = Maps.transformValues(rowsColumnRange, it -> {
+            List<Map.Entry<Cell, Value>> page =
+                    ImmutableList.copyOf(Iterators.limit(it, columnRangeSelection.getBatchHint()));
+            return new RemoteRowColumnRangeIterator(
+                    tableRef,
+                    columnRangeSelection,
+                    timestamp,
+                    it.hasNext(),
+                    page);
+        });
         return transformed;
     }
 
@@ -286,33 +306,12 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
         throw new UnsupportedOperationException("This method shouldn't get called");
     }
 
-    private static final SimpleModule kvsModule = new SimpleModule(); static {
-        kvsModule.addKeyDeserializer(Cell.class, CellAsKeyDeserializer.instance());
-        kvsModule.addKeyDeserializer(byte[].class, BytesAsKeyDeserializer.instance());
-        kvsModule.addKeySerializer(Cell.class, SaneAsKeySerializer.instance());
-        kvsModule.addKeySerializer(byte[].class, SaneAsKeySerializer.instance());
-        kvsModule.addSerializer(RowResult.class, RowResultSerializer.instance());
-        kvsModule.addDeserializer(RowResult.class, RowResultDeserializer.instance());
-        kvsModule.addSerializer(DynamicPartitionMapImpl.class, DynamicPartitionMapImpl.Serializer.instance());
-        kvsModule.addDeserializer(DynamicPartitionMapImpl.class, DynamicPartitionMapImpl.Deserializer.instance());
-        kvsModule.addAbstractTypeMapping(RowColumnRangeIterator.class, RemoteRowColumnRangeIterator.class);
-    }
-    private static final ObjectMapper kvsMapper = new ObjectMapper(); static {
-        kvsMapper.registerModule(kvsModule);
-        kvsMapper.registerModule(new GuavaModule());
-    }
-    public static SimpleModule kvsModule() {
-        return kvsModule;
-    }
-    public static ObjectMapper kvsMapper() {
-        return kvsMapper;
-    }
-
     // This method transforms an iterator into paging iterator that can be
     // sent over-the-wire in json.
-    private static <T> RangeIterator<T> transformIterator(TableReference tableRef, RangeRequest range,
-                                                   long timestamp, ClosableIterator<RowResult<T>> closableIterator,
-                                                   Function<Pair<Boolean, ImmutableList<RowResult<T>>>, RangeIterator<T>> resultSupplier) {
+    private static <T> RangeIterator<T> transformIterator(
+            RangeRequest range,
+            ClosableIterator<RowResult<T>> closableIterator,
+            Function<Pair<Boolean, ImmutableList<RowResult<T>>>, RangeIterator<T>> resultSupplier) {
         try {
             int pageSize = range.getBatchHint() != null ? range.getBatchHint() : 100;
             if (pageSize == 1) {

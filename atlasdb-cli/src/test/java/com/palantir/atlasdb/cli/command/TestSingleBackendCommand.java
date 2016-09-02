@@ -26,8 +26,8 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.runner.AbstractTestRunner;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
-import com.palantir.atlasdb.cli.services.AtlasDbServices;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.services.AtlasDbServices;
 
 import io.airlift.airline.Cli;
 import io.airlift.airline.Command;
@@ -47,6 +47,11 @@ public class TestSingleBackendCommand {
 
         @Option(name = {"-f2", "--flag2"}, description = "flag 2")
         String flag2;
+
+        @Override
+        public boolean isOnlineRunSupported() {
+            return true;
+        }
 
         @Override
         public int execute(AtlasDbServices services) {

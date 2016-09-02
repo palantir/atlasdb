@@ -1,0 +1,11 @@
+apply plugin: 'org.inferred.processors'
+
+apply from: '../gradle/shared.gradle'
+
+dependencies {
+  compile project(':atlasdb-service')
+  compile 'com.google.dagger:dagger:' + libVersions.dagger
+
+  processor 'com.google.dagger:dagger-compiler:' + libVersions.dagger
+  processor 'org.immutables:value:' + libVersions.immutables
+}

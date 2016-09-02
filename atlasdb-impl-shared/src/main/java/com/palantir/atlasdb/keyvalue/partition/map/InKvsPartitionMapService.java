@@ -32,7 +32,7 @@ import com.palantir.atlasdb.keyvalue.partition.api.DynamicPartitionMap;
 import com.palantir.common.base.ClosableIterator;
 
 /**
- * Only instances of {@code DynamicPartitionMapImpl} are supported by this implementation!
+ * Only instances of {@code DynamicPartitionMapImpl} are supported by this implementation.
  *
  * @author htarasiuk
  *
@@ -44,11 +44,11 @@ public final class InKvsPartitionMapService implements PartitionMapService {
     public static final TableReference PARTITION_MAP_TABLE = AtlasDbConstants.PARTITION_MAP_TABLE;
 
     private InKvsPartitionMapService(DynamicPartitionMapImpl partitionMap, KeyValueService storage) {
-    	this.storage = storage;
-    	storage.createTable(PARTITION_MAP_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-    	if (partitionMap != null) {
-    	    updateMap(partitionMap);
-    	}
+        this.storage = storage;
+        storage.createTable(PARTITION_MAP_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        if (partitionMap != null) {
+            updateMap(partitionMap);
+        }
     }
 
     private InKvsPartitionMapService(KeyValueService storage) {
@@ -58,9 +58,6 @@ public final class InKvsPartitionMapService implements PartitionMapService {
     /**
      * This can be used if the partition map has been previously stored to {@code storage}
      * or if you want to first create an empty service.
-     *
-     * @param storage
-     * @return
      */
     public static InKvsPartitionMapService create(KeyValueService storage) {
         return new InKvsPartitionMapService(storage);
@@ -69,31 +66,22 @@ public final class InKvsPartitionMapService implements PartitionMapService {
     /**
      * This will put the {@code partitionMap} to {@code storage} overwriting any previous
      * values stored in the {@link #PARTITION_MAP_TABLE}.
-     *
-     * @param storage
-     * @param partitionMap
-     * @return
      */
     public static InKvsPartitionMapService create(KeyValueService storage, DynamicPartitionMapImpl partitionMap) {
-        Preconditions.checkNotNull(partitionMap);
+        Preconditions.checkNotNull(partitionMap, "partitionMap cannot be null");
         return new InKvsPartitionMapService(partitionMap, storage);
     }
 
     /**
      * This will use a newly created InMemoryKeyValueService to store the map.
-     *
-     * @param partitionMap
-     * @return
      */
     public static InKvsPartitionMapService createInMemory(DynamicPartitionMapImpl partitionMap) {
-        Preconditions.checkNotNull(partitionMap);
+        Preconditions.checkNotNull(partitionMap, "partitionMap cannot be null");
         return new InKvsPartitionMapService(partitionMap, new InMemoryKeyValueService(false));
     }
 
     /**
      * This will use a newly created InMemoryKeyValueService to store the map.
-     *
-     * @return
      */
     public static InKvsPartitionMapService createEmptyInMemory() {
         return new InKvsPartitionMapService(new InMemoryKeyValueService(false));

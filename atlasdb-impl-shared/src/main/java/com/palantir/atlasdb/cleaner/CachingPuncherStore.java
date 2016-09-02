@@ -27,12 +27,12 @@ import com.google.common.cache.LoadingCache;
  *
  * @author jweel
  */
-public class CachingPuncherStore implements PuncherStore {
+public final class CachingPuncherStore implements PuncherStore {
     private static final int CACHE_SIZE = 64000;
 
     public static CachingPuncherStore create(final PuncherStore puncherStore, long granularityMillis) {
         LoadingCache<Long, Long> timeMillisToTimestamp =
-                CacheBuilder.newBuilder().maximumSize(CACHE_SIZE).<Long, Long> build(
+                CacheBuilder.newBuilder().maximumSize(CACHE_SIZE).build(
                         new CacheLoader<Long, Long>() {
                             @Override
                             public Long load(Long timeMillis) throws Exception {

@@ -25,21 +25,19 @@ public interface ConstraintCheckable {
      * This method checks row, table, and foreign-key constraints on the values given in writes.
      * This method may require additional reads from the database, dependong on the value of
      * constraintCheckingMode. This is intended to be used to check constraints on writes.
-     * @param writes
-     * @param transaction
-     * @param constraintCheckingMode
-     * @return
      */
-    public List<String> findConstraintFailures(Map<Cell,byte[]> writes, ConstraintCheckingTransaction transaction, AtlasDbConstraintCheckingMode constraintCheckingMode);
+    List<String> findConstraintFailures(
+            Map<Cell, byte[]> writes,
+            ConstraintCheckingTransaction transaction,
+            AtlasDbConstraintCheckingMode constraintCheckingMode);
 
     /**
      * Calling this method will not cause any read calls from the database. It assumes that all necessary
      * information for constraint checking is given in writes. For dynamic tables, any constraint between
      * columns of a single row will probably require writes to have all columns for each given row. This
      * is intended to be used for garbage collection (where all values are being read).
-     * @param reads
-     * @param constraintCheckingMode
-     * @return
      */
-    public List<String> findConstraintFailuresNoRead(Map<Cell,byte[]> reads, AtlasDbConstraintCheckingMode constraintCheckingMode);
+    List<String> findConstraintFailuresNoRead(
+            Map<Cell, byte[]> reads,
+            AtlasDbConstraintCheckingMode constraintCheckingMode);
 }

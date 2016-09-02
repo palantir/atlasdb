@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 
@@ -50,7 +51,8 @@ import com.palantir.util.Pair;
  * To restrict the rows or columns,  call
  * the methods on the <code>RangeRequest</code> class.
  */
-@Immutable public final class RangeRequest implements Serializable {
+@Immutable
+public final class RangeRequest implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private final byte[] startInclusive;
@@ -69,12 +71,12 @@ import com.palantir.util.Pair;
         return new Builder(false);
     }
 
-    public static Builder reverseBuilder() {
-        return new Builder(true);
-    }
-
     public static Builder builder(boolean reverse) {
         return new Builder(reverse);
+    }
+
+    public static Builder reverseBuilder() {
+        return new Builder(true);
     }
 
     public static RangeRequest all() {
@@ -149,11 +151,15 @@ import com.palantir.util.Pair;
         final boolean afterStart;
         final boolean afterEnd;
         if (reverse) {
-            afterStart = getStartInclusive().length == 0 || UnsignedBytes.lexicographicalComparator().compare(getStartInclusive(), position) >= 0;
-            afterEnd = getEndExclusive().length == 0 || UnsignedBytes.lexicographicalComparator().compare(getEndExclusive(), position) < 0;
+            afterStart = getStartInclusive().length == 0
+                    || UnsignedBytes.lexicographicalComparator().compare(getStartInclusive(), position) >= 0;
+            afterEnd = getEndExclusive().length == 0
+                    || UnsignedBytes.lexicographicalComparator().compare(getEndExclusive(), position) < 0;
         } else {
-            afterStart = getStartInclusive().length == 0 || UnsignedBytes.lexicographicalComparator().compare(getStartInclusive(), position) <= 0;
-            afterEnd = getEndExclusive().length == 0 || UnsignedBytes.lexicographicalComparator().compare(getEndExclusive(), position) > 0;
+            afterStart = getStartInclusive().length == 0
+                    || UnsignedBytes.lexicographicalComparator().compare(getStartInclusive(), position) <= 0;
+            afterEnd = getEndExclusive().length == 0
+                    || UnsignedBytes.lexicographicalComparator().compare(getEndExclusive(), position) > 0;
         }
 
         return afterStart && afterEnd;
@@ -183,11 +189,29 @@ import com.palantir.util.Pair;
         PtBytes.addIfNotEmpty(helper, "startInclusive", startInclusive);
         PtBytes.addIfNotEmpty(helper, "endExclusive", endExclusive);
         if (columns != null && !columns.isEmpty()) {
-            helper.add("columns", FluentIterable.from(columns).filter(Predicates.notNull()).transform(PtBytes.BYTES_TO_HEX_STRING));
+            helper.add("columns", FluentIterable.from(columns)
+                    .filter(Predicates.notNull())
+                    .transform(PtBytes.BYTES_TO_HEX_STRING));
         }
         helper.add("batchHint", batchHint);
         helper.add("reverse", reverse);
         return helper.toString();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        RangeRequest that = (RangeRequest) obj;
+        return reverse == that.reverse
+                && Arrays.equals(startInclusive, that.startInclusive)
+                && Arrays.equals(endExclusive, that.endExclusive)
+                && Objects.equals(columns, that.columns)
+                && Objects.equals(batchHint, that.batchHint);
     }
 
     @Override
@@ -198,48 +222,19 @@ import com.palantir.util.Pair;
          * allow for benign data races.
          */
         if (hashCode == 0) {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + ((batchHint == null) ? 0 : batchHint.hashCode());
-            result = prime * result + ((columns == null) ? 0 : columns.hashCode());
-            result = prime * result + Arrays.hashCode(endExclusive);
-            result = prime * result + (reverse ? 1231 : 1237);
-            result = prime * result + Arrays.hashCode(startInclusive);
-            hashCode = result;
+            hashCode = Objects.hash(
+                    Arrays.hashCode(startInclusive),
+                    Arrays.hashCode(endExclusive),
+                    columns,
+                    batchHint,
+                    reverse);
         }
         return hashCode;
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        RangeRequest other = (RangeRequest) obj;
-        if (batchHint == null) {
-            if (other.batchHint != null)
-                return false;
-        } else if (!batchHint.equals(other.batchHint))
-            return false;
-        if (columns == null) {
-            if (other.columns != null)
-                return false;
-        } else if (!columns.equals(other.columns))
-            return false;
-        if (!Arrays.equals(endExclusive, other.endExclusive))
-            return false;
-        if (reverse != other.reverse)
-            return false;
-        if (!Arrays.equals(startInclusive, other.startInclusive))
-            return false;
-        return true;
-    }
-
     private static ImmutableSortedSet<byte[]> cloneSet(Iterable<byte[]> set) {
-        ImmutableSortedSet.Builder<byte[]> builder = ImmutableSortedSet.orderedBy(UnsignedBytes.lexicographicalComparator());
+        ImmutableSortedSet.Builder<byte[]> builder =
+                ImmutableSortedSet.orderedBy(UnsignedBytes.lexicographicalComparator());
         for (byte[] col : set) {
             builder.add(col.clone());
         }
@@ -253,13 +248,15 @@ import com.palantir.util.Pair;
      * start will be on the left hand side and will be greater lexicographically
      */
     private static Pair<byte[], byte[]> createNamesForReversePrefixScan(@Nonnull byte[] name) {
-        Preconditions.checkArgument(Preconditions.checkNotNull(name).length <= Cell.MAX_NAME_LENGTH, "name is too long");
+        Preconditions.checkNotNull(name, "name cannot be null");
+        Preconditions.checkArgument(name.length <= Cell.MAX_NAME_LENGTH, "name is too long");
+
         if (name.length == 0) {
             return Pair.create(name, name);
         }
         byte[] startName = new byte[Cell.MAX_NAME_LENGTH];
         System.arraycopy(name, 0, startName, 0, name.length);
-        for (int i = name.length ; i < startName.length ; i++) {
+        for (int i = name.length; i < startName.length; i++) {
             startName[i] = (byte) 0xff;
         }
         byte[] endName = RangeRequests.previousLexicographicName(name);
@@ -292,19 +289,22 @@ import com.palantir.util.Pair;
          * This will set the start and the end to get all rows that have a given prefix.
          */
         public Builder prefixRange(byte[] prefix) {
+            Preconditions.checkNotNull(prefix, "prefix cannot be null");
+
             if (reverse) {
                 Pair<byte[], byte[]> pair = createNamesForReversePrefixScan(prefix);
                 this.startInclusive = pair.lhSide;
                 this.endExclusive = pair.rhSide;
             } else {
-                this.startInclusive = Preconditions.checkNotNull(prefix).clone();
+                this.startInclusive = prefix.clone();
                 this.endExclusive = RangeRequests.createEndNameForPrefixScan(prefix);
             }
+
             return this;
         }
 
         public Builder startRowInclusive(byte[] start) {
-            this.startInclusive = Preconditions.checkNotNull(start).clone();
+            this.startInclusive = Preconditions.checkNotNull(start, "start cannot be null").clone();
             return this;
         }
 
@@ -317,7 +317,7 @@ import com.palantir.util.Pair;
         }
 
         public Builder endRowExclusive(byte[] end) {
-            this.endExclusive = Preconditions.checkNotNull(end).clone();
+            this.endExclusive = Preconditions.checkNotNull(end, "end cannot be null").clone();
             return this;
         }
 
@@ -346,7 +346,8 @@ import com.palantir.util.Pair;
          * read a lot from this range, then this should be pretty large for performance.  If we are only going to read
          * the first thing in a range, then this should be set to 1.
          * <p>
-         * If hint is null then the range will use the default. Usually for {@link Transaction#getRange(TableReference, RangeRequest)}
+         * If hint is null then the range will use the default. Usually for
+         * {@link Transaction#getRange(TableReference, RangeRequest)}
          * this means the batch size will be whatever is passed as the batch size to
          * BatchingVisitable#batchAccept(int, com.palantir.common.base.AbortingVisitor)
          */
@@ -370,7 +371,8 @@ import com.palantir.util.Pair;
         public RangeRequest build() {
             RangeRequest rangeRequest = new RangeRequest(startInclusive, endExclusive, columns, batchHint, reverse);
             if (isInvalidRange()) {
-                throw new IllegalArgumentException("Invalid range request, check row byte ordering for reverse ordered values: " + rangeRequest);
+                throw new IllegalArgumentException(
+                        "Invalid range request, check row byte ordering for reverse ordered values: " + rangeRequest);
             }
             return rangeRequest;
         }

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,12 +29,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra.Client;
@@ -43,9 +42,6 @@ import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnParent;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.Deletion;
-import org.apache.cassandra.thrift.InvalidRequestException;
-import org.apache.cassandra.thrift.KeyRange;
-import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
@@ -60,7 +56,6 @@ import com.google.common.base.Functions;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
-import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
@@ -91,7 +86,6 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -104,6 +98,9 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTs
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ThreadSafeResultVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRangePagingIterable;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
@@ -122,9 +119,8 @@ import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
- *
- * each service can have one or many C* KVS.
- * For each C* KVS, it maintains a list of active nodes, and the client connections attached to each node
+ * Each service can have one or many C* KVS.
+ * For each C* KVS, it maintains a list of active nodes, and the client connections attached to each node:
  *
  * n1->c1, c2, c3
  * n2->c5, c4, c9
@@ -139,14 +135,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private final Logger log;
 
-    private static final Function<Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = new Function<Entry<Cell, Value>, Long>() {
-        @Override
-        public Long apply(Entry<Cell, Value> input) {
-            return input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
-        }
-    };
+    private static final Function<Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = input ->
+            input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
 
-    private final CassandraKeyValueServiceConfigManager configManager;
+    protected final CassandraKeyValueServiceConfigManager configManager;
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     protected final CassandraClientPool clientPool;
     private SchemaMutationLock schemaMutationLock;
@@ -159,13 +151,25 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
 
-    public static CassandraKeyValueService create(CassandraKeyValueServiceConfigManager configManager, Optional<LeaderConfig> leaderConfig) {
+    private final TracingQueryRunner queryRunner;
+
+    public static CassandraKeyValueService create(
+            CassandraKeyValueServiceConfigManager configManager,
+            Optional<LeaderConfig> leaderConfig) {
         return create(configManager, leaderConfig, LoggerFactory.getLogger(CassandraKeyValueService.class));
     }
 
-    public static CassandraKeyValueService create(CassandraKeyValueServiceConfigManager configManager, Optional<LeaderConfig> leaderConfig, Logger log) {
-        Optional<CassandraJmxCompactionManager> compactionManager = CassandraJmxCompaction.createJmxCompactionManager(configManager);
-        CassandraKeyValueService ret = new CassandraKeyValueService(log, configManager, compactionManager, leaderConfig);
+    public static CassandraKeyValueService create(
+            CassandraKeyValueServiceConfigManager configManager,
+            Optional<LeaderConfig> leaderConfig,
+            Logger log) {
+        Optional<CassandraJmxCompactionManager> compactionManager =
+                CassandraJmxCompaction.createJmxCompactionManager(configManager);
+        CassandraKeyValueService ret = new CassandraKeyValueService(
+                log,
+                configManager,
+                compactionManager,
+                leaderConfig);
         ret.init();
         return ret;
     }
@@ -185,6 +189,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, configManager.getConfig());
         this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
+
+        this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
     }
 
     private LockLeader whoIsTheLockCreator() {
@@ -194,16 +200,30 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     protected void init() {
+        if (configManager.getConfig().scyllaDb() && !configManager.getConfig().safetyDisabled()) {
+            throw new IllegalArgumentException("Not currently allowing Thrift-based access to ScyllaDB clusters;"
+                    + " there appears to be from our tests"
+                    + " an existing correctness bug with semi-complex column selections");
+        }
+
         clientPool.runOneTimeStartupChecks();
 
-        boolean supportsCAS = clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
+        boolean supportsCas = !configManager.getConfig().scyllaDb()
+                && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
 
-        schemaMutationLock = new SchemaMutationLock(supportsCAS, configManager, clientPool, writeConsistency, schemaMutationLockTable);
+        schemaMutationLock = new SchemaMutationLock(
+                supportsCas,
+                configManager,
+                clientPool,
+                writeConsistency,
+                schemaMutationLockTable);
 
         createTable(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
-        CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(clientPool, configManager.getConfig());
+        CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(
+                clientPool,
+                configManager.getConfig());
     }
 
     @Override
@@ -223,16 +243,22 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 TableReference tableRef = fromInternalTableName(clusterSideCf.getName());
                 if (metadataForTables.containsKey(tableRef)) {
                     byte[] clusterSideMetadata = metadataForTables.get(tableRef);
-                    CfDef clientSideCf = getCfForTable(fromInternalTableName(clusterSideCf.getName()), clusterSideMetadata);
-                    if (!CassandraKeyValueServices.isMatchingCf(clientSideCf, clusterSideCf)) { // mismatch; we have changed how we generate schema since we last persisted
+                    CfDef clientSideCf = getCfForTable(
+                            fromInternalTableName(clusterSideCf.getName()),
+                            clusterSideMetadata);
+                    if (!CassandraKeyValueServices.isMatchingCf(clientSideCf, clusterSideCf)) {
+                        // mismatch; we have changed how we generate schema since we last persisted
                         log.warn("Upgrading table {} to new internal Cassandra schema", tableRef);
                         tablesToUpgrade.put(tableRef, clusterSideMetadata);
                     }
                 } else if (!hiddenTables.isHidden(tableRef)) {
-                    // Possible to get here from a race condition with another service starting up and performing schema upgrades concurrent with us doing this check
-                    log.error("Found a table " + tableRef.getQualifiedName() + " that did not have persisted AtlasDB metadata. "
-                            + "If you recently did a Palantir update, try waiting until schema upgrades are completed on all backend CLIs/services etc and restarting this service. "
-                            + "If this error re-occurs on subsequent attempted startups, please contact Palantir support.");
+                    // Possible to get here from a race condition with another service starting up
+                    // and performing schema upgrades concurrent with us doing this check
+                    log.error("Found a table " + tableRef.getQualifiedName() + " that did not have persisted"
+                            + " AtlasDB metadata. If you recently did a Palantir update, try waiting until"
+                            + " schema upgrades are completed on all backend CLIs/services etc and restarting"
+                            + " this service. If this error re-occurs on subsequent attempted startups, please"
+                            + " contact Palantir support.");
                 }
             }
 
@@ -241,7 +267,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 putMetadataForTables(tablesToUpgrade);
             }
         } catch (TException e) {
-            log.error("Couldn't upgrade from an older internal Cassandra schema. New table-related settings may not have taken effect.");
+            log.error("Couldn't upgrade from an older internal Cassandra schema."
+                    + " New table-related settings may not have taken effect.");
         }
     }
 
@@ -252,7 +279,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         try {
             dcs = clientPool.runWithRetry(client ->
-                    CassandraVerifier.sanityCheckDatacenters(client, config.replicationFactor(), config.safetyDisabled()));
+                    CassandraVerifier.sanityCheckDatacenters(
+                            client,
+                            config.replicationFactor(),
+                            config.safetyDisabled()));
             KsDef ksDef = clientPool.runWithRetry(client ->
                     client.describe_keyspace(config.keyspace()));
             strategyOptions = Maps.newHashMap(ksDef.getStrategy_options());
@@ -260,35 +290,37 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             if (dcs.size() == 1) {
                 String dc = dcs.iterator().next();
                 if (strategyOptions.get(dc) != null) {
-                    int currentRF = Integer.parseInt(strategyOptions.get(dc));
-                    if (currentRF == config.replicationFactor()) {
-                        if (currentRF == 2 && config.clusterMeetsNormalConsistencyGuarantees()) {
+                    int currentRf = Integer.parseInt(strategyOptions.get(dc));
+                    if (currentRf == config.replicationFactor()) {
+                        if (currentRf == 2 && config.clusterMeetsNormalConsistencyGuarantees()) {
                             log.info("Setting Read Consistency to ONE, as cluster has only one datacenter at RF2.");
                             readConsistency = ConsistencyLevel.ONE;
                         }
                     }
                 }
             }
-        } catch (InvalidRequestException e) {
-            return;
         } catch (TException e) {
             return;
         }
     }
 
     @Override
-    public Map<Cell, Value> getRows(final TableReference tableRef, final Iterable<byte[]> rows, ColumnSelection selection, final long startTs) {
+    public Map<Cell, Value> getRows(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnSelection selection,
+            long startTs) {
         if (!selection.allColumnsSelected()) {
             return getRowsForSpecificColumns(tableRef, rows, selection, startTs);
         }
 
-        Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost =
-                partitionByHost(rows, Functions.<byte[]>identity()).entrySet();
+        Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost = partitionByHost(rows, Functions.identity()).entrySet();
         List<Callable<Map<Cell, Value>>> tasks = Lists.newArrayListWithCapacity(rowsByHost.size());
         for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(ThreadNamingCallable.wrapWithThreadName(
-                    () -> CassandraKeyValueService.this.getRowsForSingleHost(hostAndRows.getKey(), tableRef, hostAndRows.getValue(), startTs),
-                    "Atlas getRows " + hostAndRows.getValue().size() + " rows from " + tableRef + " on " + hostAndRows.getKey(),
+                    () -> getRowsForSingleHost(hostAndRows.getKey(), tableRef, hostAndRows.getValue(), startTs),
+                    "Atlas getRows " + hostAndRows.getValue().size()
+                            + " rows from " + tableRef + " on " + hostAndRows.getKey(),
                     ThreadNamingCallable.Type.PREPEND));
         }
         List<Map<Cell, Value>> perHostResults = runAllTasksCancelOnFailure(tasks);
@@ -309,32 +341,45 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             int fetchBatchCount = configManager.getConfig().fetchBatchCount();
             for (final List<byte[]> batch : Lists.partition(rows, fetchBatchCount)) {
                 rowCount += batch.size();
-                result.putAll(clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Map<Cell, Value>, Exception>() {
-                    @Override
-                    public Map<Cell, Value> apply(Client client) throws Exception {
-                        // We want to get all the columns in the row so set start and end to empty.
-                        SliceRange slice = new SliceRange(ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), false, Integer.MAX_VALUE);
-                        SlicePredicate pred = new SlicePredicate();
-                        pred.setSlice_range(slice);
+                result.putAll(clientPool.runWithRetryOnHost(host,
+                        new FunctionCheckedException<Client, Map<Cell, Value>, Exception>() {
+                            @Override
+                            public Map<Cell, Value> apply(Client client) throws Exception {
+                                // We want to get all the columns in the row so set start and end to empty.
+                                SliceRange slice = new SliceRange(
+                                        ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
+                                        ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY),
+                                        false,
+                                        Integer.MAX_VALUE);
+                                SlicePredicate pred = new SlicePredicate();
+                                pred.setSlice_range(slice);
 
-                        List<ByteBuffer> rowNames = wrap(rows);
+                                List<ByteBuffer> rowNames = wrap(rows);
 
-                        ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
-                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, rowNames, colFam, pred, readConsistency);
-                        Map<Cell, Value> ret = Maps.newHashMap();
-                        new ValueExtractor(ret).extractResults(results, startTs, ColumnSelection.all());
-                        return ret;
-                    }
+                                ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
+                                Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(
+                                        client,
+                                        tableRef,
+                                        rowNames,
+                                        colFam,
+                                        pred,
+                                        readConsistency);
+                                Map<Cell, Value> ret = Maps.newHashMap();
+                                new ValueExtractor(ret).extractResults(results, startTs, ColumnSelection.all());
+                                return ret;
+                            }
 
-                    @Override
-                    public String toString() {
-                        return "multiget_slice(" + tableRef.getQualifiedName() + ", " + batch.size() + " rows" + ")";
-                    }
-                }));
+                            @Override
+                            public String toString() {
+                                return "multiget_slice(" + tableRef.getQualifiedName() + ", "
+                                        + batch.size() + " rows" + ")";
+                            }
+                        }));
             }
             if (rowCount > fetchBatchCount) {
-                log.warn("Rebatched in getRows a call to " + tableRef.getQualifiedName() + " that attempted to multiget "
-                        + rowCount + " rows; this may indicate overly-large batching on a higher level.\n"
+                log.warn("Rebatched in getRows a call to " + tableRef.getQualifiedName()
+                        + " that attempted to multiget " + rowCount
+                        + " rows; this may indicate overly-large batching on a higher level.\n"
                         + CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
             }
             return ImmutableMap.copyOf(result);
@@ -365,13 +410,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             }
         }
 
-        try {
-            StartTsResultsCollector collector = new StartTsResultsCollector(startTs);
-            loadWithTs(tableRef, cells, startTs, false, collector, readConsistency);
-            return collector.collectedResults;
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        }
+        StartTsResultsCollector collector = new StartTsResultsCollector(startTs);
+        loadWithTs(tableRef, cells, startTs, false, collector, readConsistency);
+        return collector.collectedResults;
     }
 
     @Override
@@ -407,8 +448,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             Set<Cell> cells,
                             long startTs,
                             boolean loadAllTs,
-                            ThreadSafeResultVisitor v,
-                            ConsistencyLevel consistency) throws Exception {
+                            ThreadSafeResultVisitor visitor,
+                            ConsistencyLevel consistency) {
         Map<InetSocketAddress, List<Cell>> hostsAndCells =  partitionByHost(cells, Cells.getRowFunction());
         int totalPartitions = hostsAndCells.keySet().size();
 
@@ -421,7 +462,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         for (Map.Entry<InetSocketAddress, List<Cell>> hostAndCells : hostsAndCells.entrySet()) {
             if (log.isTraceEnabled()) {
                 log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
-                        hostsAndCells.values().size(), tableRef, loadAllTs ? "for all timestamps " : "", startTs, hostAndCells.getKey());
+                        hostsAndCells.values().size(),
+                        tableRef,
+                        loadAllTs ? "for all timestamps " : "",
+                        startTs,
+                        hostAndCells.getKey());
             }
 
             tasks.addAll(getLoadWithTsTasksForSingleHost(hostAndCells.getKey(),
@@ -429,7 +474,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     hostAndCells.getValue(),
                     startTs,
                     loadAllTs,
-                    v,
+                    visitor,
                     consistency));
         }
         runAllTasksCancelOnFailure(tasks);
@@ -441,19 +486,19 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                                                  final Collection<Cell> cells,
                                                                  final long startTs,
                                                                  final boolean loadAllTs,
-                                                                 final ThreadSafeResultVisitor v,
-                                                                 final ConsistencyLevel consistency) throws Exception {
+                                                                 final ThreadSafeResultVisitor visitor,
+                                                                 final ConsistencyLevel consistency) {
         final ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
-        TreeMultimap<byte[], Cell> cellsByCol =
+        Multimap<byte[], Cell> cellsByCol =
                 TreeMultimap.create(UnsignedBytes.lexicographicalComparator(), Ordering.natural());
         for (Cell cell : cells) {
             cellsByCol.put(cell.getColumnName(), cell);
         }
         List<Callable<Void>> tasks = Lists.newArrayList();
         int fetchBatchCount = configManager.getConfig().fetchBatchCount();
-        for (Entry<byte[], SortedSet<Cell>> entry : Multimaps.asMap(cellsByCol).entrySet()) {
+        for (Entry<byte[], Collection<Cell>> entry : Multimaps.asMap(cellsByCol).entrySet()) {
             final byte[] col = entry.getKey();
-            SortedSet<Cell> columnCells = entry.getValue();
+            Collection<Cell> columnCells = entry.getValue();
             if (columnCells.size() > fetchBatchCount) {
                 log.warn("Re-batching in getLoadWithTsTasksForSingleHost a call to {} for table {} that attempted to "
                                 + "multiget {} rows; this may indicate overly-large batching on a higher level.\n{}",
@@ -463,37 +508,43 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
             }
             for (final List<Cell> partition : Lists.partition(ImmutableList.copyOf(columnCells), fetchBatchCount)) {
-                Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
-                    @Override
-                    public Void apply(Client client) throws Exception {
-                        ByteBuffer start = CassandraKeyValueServices.makeCompositeBuffer(col, startTs - 1);
-                        ByteBuffer end = CassandraKeyValueServices.makeCompositeBuffer(col, -1);
-                        SliceRange slice = new SliceRange(start, end, false, loadAllTs ? Integer.MAX_VALUE : 1);
-                        SlicePredicate predicate = new SlicePredicate();
-                        predicate.setSlice_range(slice);
+                Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnHost(host,
+                        new FunctionCheckedException<Client, Void, Exception>() {
+                            @Override
+                            public Void apply(Client client) throws Exception {
+                                ByteBuffer start = CassandraKeyValueServices.makeCompositeBuffer(col, startTs - 1);
+                                ByteBuffer end = CassandraKeyValueServices.makeCompositeBuffer(col, -1);
+                                SliceRange slice = new SliceRange(start, end, false, loadAllTs ? Integer.MAX_VALUE : 1);
+                                SlicePredicate predicate = new SlicePredicate();
+                                predicate.setSlice_range(slice);
 
-                        List<ByteBuffer> rowNames = Lists.newArrayListWithCapacity(partition.size());
-                        for (Cell c : partition) {
-                            rowNames.add(ByteBuffer.wrap(c.getRowName()));
-                        }
+                                List<ByteBuffer> rowNames = Lists.newArrayListWithCapacity(partition.size());
+                                for (Cell c : partition) {
+                                    rowNames.add(ByteBuffer.wrap(c.getRowName()));
+                                }
 
-                        if (log.isTraceEnabled()) {
-                            log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
-                                    partition.size(), tableRef, loadAllTs ? "for all timestamps " : "", startTs, host);
-                        }
+                                if (log.isTraceEnabled()) {
+                                    log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
+                                            partition.size(),
+                                            tableRef,
+                                            loadAllTs ? "for all timestamps " : "",
+                                            startTs,
+                                            host);
+                                }
 
-                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results =
-                                multigetInternal(client, tableRef, rowNames, colFam, predicate, consistency);
-                        v.visit(results);
-                        return null;
-                    }
+                                Map<ByteBuffer, List<ColumnOrSuperColumn>> results =
+                                        multigetInternal(client, tableRef, rowNames, colFam, predicate, consistency);
+                                visitor.visit(results);
+                                return null;
+                            }
 
-                    @Override
-                    public String toString() {
-                        return "multiget_slice(" + host + ", " + colFam + ", " + partition.size() + " cells" + ")";
-                    }
+                            @Override
+                            public String toString() {
+                                return "multiget_slice(" + host + ", " + colFam + ", "
+                                        + partition.size() + " cells" + ")";
+                            }
 
-                });
+                        });
                 tasks.add(ThreadNamingCallable.wrapWithThreadName(
                         multiGetCallable,
                         "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on " + host,
@@ -515,7 +566,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             tasks.add(ThreadNamingCallable.wrapWithThreadName(() ->
                     getRowsColumnRangeIteratorForSingleHost(hostAndRows.getKey(), tableRef,
                             hostAndRows.getValue(), batchColumnRangeSelection, timestamp),
-                    "Atlas getRowsColumnRange " + hostAndRows.getValue().size() + " rows from " + tableRef + " on " + hostAndRows.getKey(),
+                    "Atlas getRowsColumnRange " + hostAndRows.getValue().size()
+                            + " rows from " + tableRef + " on " + hostAndRows.getKey(),
                     ThreadNamingCallable.Type.PREPEND));
         }
         List<Map<byte[], RowColumnRangeIterator>> perHostResults = runAllTasksCancelOnFailure(tasks);
@@ -526,11 +578,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return result;
     }
 
-    private Map<byte[], RowColumnRangeIterator> getRowsColumnRangeIteratorForSingleHost(InetSocketAddress host,
-                                                                                        TableReference tableRef,
-                                                                                        List<byte[]> rows,
-                                                                                        BatchColumnRangeSelection batchColumnRangeSelection,
-                                                                                        long startTs) {
+    private Map<byte[], RowColumnRangeIterator> getRowsColumnRangeIteratorForSingleHost(
+            InetSocketAddress host,
+            TableReference tableRef,
+            List<byte[]> rows,
+            BatchColumnRangeSelection batchColumnRangeSelection,
+            long startTs) {
         try {
             RowColumnRangeExtractor.RowColumnRangeResult firstPage =
                     getRowsColumnRangeForSingleHost(host, tableRef, rows, batchColumnRangeSelection, startTs);
@@ -541,11 +594,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             for (Entry<byte[], Column> e : rowsToLastCompositeColumns.entrySet()) {
                 byte[] row = e.getKey();
                 byte[] col = CassandraKeyValueServices.decomposeName(e.getValue()).getLhSide();
-                // If we read a version of the cell before our start timestamp, it will be the most recent version readable to
-                // us and we can continue to the next column. Otherwise we have to continue reading this column.
-                LinkedHashMap<Cell, Value> rowResult = results.get(row);
+                // If we read a version of the cell before our start timestamp, it will be the most recent version
+                // readable to us and we can continue to the next column. Otherwise we have to continue reading
+                // this column.
+                Map<Cell, Value> rowResult = results.get(row);
                 boolean completedCell = (rowResult != null) && rowResult.containsKey(Cell.create(row, col));
-                boolean endOfRange = isEndOfColumnRange(completedCell, col, firstPage.getRowsToRawColumnCount().get(row), batchColumnRangeSelection);
+                boolean endOfRange = isEndOfColumnRange(
+                        completedCell,
+                        col,
+                        firstPage.getRowsToRawColumnCount().get(row),
+                        batchColumnRangeSelection);
                 if (!endOfRange) {
                     byte[] nextCol = getNextColumnRangeColumn(completedCell, col);
                     incompleteRowsToNextColumns.put(row, nextCol);
@@ -555,7 +613,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             Map<byte[], RowColumnRangeIterator> ret = Maps.newHashMapWithExpectedSize(rows.size());
             for (byte[] row : rowsToLastCompositeColumns.keySet()) {
                 Iterator<Entry<Cell, Value>> resultIterator;
-                LinkedHashMap<Cell, Value> result = results.get(row);
+                Map<Cell, Value> result = results.get(row);
                 if (result != null) {
                     resultIterator = result.entrySet().iterator();
                 } else {
@@ -567,7 +625,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 } else {
                     BatchColumnRangeSelection newColumnRange = new BatchColumnRangeSelection(nextCol,
                             batchColumnRangeSelection.getEndCol(), batchColumnRangeSelection.getBatchHint());
-                    ret.put(row, new LocalRowColumnRangeIterator(Iterators.concat(resultIterator, getRowColumnRange(host, tableRef, row, newColumnRange, startTs))));
+                    ret.put(row, new LocalRowColumnRangeIterator(Iterators.concat(
+                            resultIterator,
+                            getRowColumnRange(host, tableRef, row, newColumnRange, startTs))));
                 }
             }
             // We saw no Cassandra results at all for these rows, so the entire column range is empty for these rows.
@@ -583,64 +643,85 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private RowColumnRangeExtractor.RowColumnRangeResult getRowsColumnRangeForSingleHost(InetSocketAddress host,
                                                              TableReference tableRef,
                                                              List<byte[]> rows,
-                                                             BatchColumnRangeSelection batchColumnRangeSelection,
+                                                             BatchColumnRangeSelection columnRangeSelection,
                                                              long startTs) {
         try {
-            return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, RowColumnRangeExtractor.RowColumnRangeResult, Exception>() {
-                @Override
-                public RowColumnRangeExtractor.RowColumnRangeResult apply(Client client) throws Exception {
-                    ByteBuffer start = batchColumnRangeSelection.getStartCol().length == 0 ?
-                            ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY) :
-                            CassandraKeyValueServices.makeCompositeBuffer(batchColumnRangeSelection.getStartCol(), startTs - 1);
-                    ByteBuffer end = batchColumnRangeSelection.getEndCol().length == 0 ?
-                            ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY) :
-                            CassandraKeyValueServices.makeCompositeBuffer(RangeRequests.previousLexicographicName(batchColumnRangeSelection.getEndCol()), -1);
-                    SliceRange slice = new SliceRange(start, end, false, batchColumnRangeSelection.getBatchHint());
-                    SlicePredicate pred = new SlicePredicate();
-                    pred.setSlice_range(slice);
+            return clientPool.runWithRetryOnHost(host,
+                    new FunctionCheckedException<Client, RowColumnRangeExtractor.RowColumnRangeResult, Exception>() {
+                        @Override
+                        public RowColumnRangeExtractor.RowColumnRangeResult apply(Client client) throws Exception {
+                            ByteBuffer start = columnRangeSelection.getStartCol().length == 0
+                                    ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
+                                    : CassandraKeyValueServices.makeCompositeBuffer(
+                                            columnRangeSelection.getStartCol(),
+                                            startTs - 1);
+                            ByteBuffer end = columnRangeSelection.getEndCol().length == 0
+                                    ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
+                                    : CassandraKeyValueServices.makeCompositeBuffer(
+                                            RangeRequests.previousLexicographicName(columnRangeSelection.getEndCol()),
+                                            -1);
+                            SliceRange slice = new SliceRange(start, end, false, columnRangeSelection.getBatchHint());
+                            SlicePredicate pred = new SlicePredicate();
+                            pred.setSlice_range(slice);
 
-                    ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
-                    Map<ByteBuffer, List<ColumnOrSuperColumn>> results = multigetInternal(client, tableRef, wrap(rows), colFam, pred, readConsistency);
+                            ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
+                            Map<ByteBuffer, List<ColumnOrSuperColumn>> results =
+                                    multigetInternal(client, tableRef, wrap(rows), colFam, pred, readConsistency);
 
-                    RowColumnRangeExtractor extractor = new RowColumnRangeExtractor();
-                    extractor.extractResults(rows, results, startTs);
+                            RowColumnRangeExtractor extractor = new RowColumnRangeExtractor();
+                            extractor.extractResults(rows, results, startTs);
 
-                    return extractor.getRowColumnRangeResult();
-                }
+                            return extractor.getRowColumnRangeResult();
+                        }
 
-                @Override
-                public String toString() {
-                    return "multiget_slice(" + tableRef.getQualifiedName() + ", " + rows.size() + " rows, " + batchColumnRangeSelection.getBatchHint() + " max columns)";
-                }
-            });
+                        @Override
+                        public String toString() {
+                            return "multiget_slice(" + tableRef.getQualifiedName() + ", "
+                                    + rows.size() + " rows, " + columnRangeSelection.getBatchHint() + " max columns)";
+                        }
+                    });
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
     }
 
-    private Iterator<Entry<Cell, Value>> getRowColumnRange(InetSocketAddress host, TableReference tableRef, final byte[] row,
-                                                           final BatchColumnRangeSelection columnRangeSelection, long startTs) {
-        return ClosableIterators.wrap(new AbstractPagingIterable<Entry<Cell, Value>, TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]>>() {
+    private Iterator<Entry<Cell, Value>> getRowColumnRange(
+            InetSocketAddress host,
+            TableReference tableRef,
+            byte[] row,
+            BatchColumnRangeSelection columnRangeSelection,
+            long startTs) {
+        return ClosableIterators.wrap(new AbstractPagingIterable<
+                Entry<Cell, Value>,
+                TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]>>() {
             @Override
             protected TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> getFirstPage() throws Exception {
                 return page(columnRangeSelection.getStartCol());
             }
 
             @Override
-            protected TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> getNextPage(TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> previous) throws Exception {
+            protected TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> getNextPage(
+                    TokenBackedBasicResultsPage<Entry<Cell, Value>,
+                            byte[]> previous) throws Exception {
                 return page(previous.getTokenForNextPage());
             }
 
             TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> page(final byte[] startCol) throws Exception {
-                return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]>, Exception>() {
+                return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<
+                        Client,
+                        TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]>,
+                        Exception>() {
                     @Override
-                    public TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> apply(Client client) throws Exception {
-                        ByteBuffer start = startCol.length == 0 ?
-                                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY) :
-                                CassandraKeyValueServices.makeCompositeBuffer(startCol, startTs - 1);
-                        ByteBuffer end = columnRangeSelection.getEndCol().length == 0 ?
-                                ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY) :
-                                CassandraKeyValueServices.makeCompositeBuffer(RangeRequests.previousLexicographicName(columnRangeSelection.getEndCol()), -1);
+                    public TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> apply(Client client)
+                            throws Exception {
+                        ByteBuffer start = startCol.length == 0
+                                ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
+                                : CassandraKeyValueServices.makeCompositeBuffer(startCol, startTs - 1);
+                        ByteBuffer end = columnRangeSelection.getEndCol().length == 0
+                                ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
+                                : CassandraKeyValueServices.makeCompositeBuffer(
+                                        RangeRequests.previousLexicographicName(columnRangeSelection.getEndCol()),
+                                        -1);
                         SliceRange slice = new SliceRange(start, end, false, columnRangeSelection.getBatchHint());
                         SlicePredicate pred = new SlicePredicate();
                         pred.setSlice_range(slice);
@@ -652,13 +733,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                 ImmutableList.of(rowByteBuffer), colFam, pred, readConsistency);
 
                         if (results.isEmpty()) {
-                            return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.<Entry<Cell, Value>>of(), false);
+                            return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.of(), false);
                         }
                         Map<Cell, Value> ret = Maps.newHashMap();
                         new ValueExtractor(ret).extractResults(results, startTs, ColumnSelection.all());
                         List<ColumnOrSuperColumn> values = Iterables.getOnlyElement(results.values());
                         if (values.isEmpty()) {
-                            return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.<Entry<Cell, Value>>of(), false);
+                            return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.of(), false);
                         }
                         ColumnOrSuperColumn lastColumn = values.get(values.size() - 1);
                         byte[] lastCol = CassandraKeyValueServices.decomposeName(lastColumn.getColumn()).getLhSide();
@@ -673,7 +754,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                     @Override
                     public String toString() {
-                        return "multiget_slice(" + tableRef.getQualifiedName() + ", single row, " + columnRangeSelection.getBatchHint() + " batch hint)";
+                        return "multiget_slice(" + tableRef.getQualifiedName()
+                                + ", single row, " + columnRangeSelection.getBatchHint() + " batch hint)";
                     }
                 });
             }
@@ -683,10 +765,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private boolean isEndOfColumnRange(boolean completedCell, byte[] lastCol, int numRawResults,
                                        BatchColumnRangeSelection columnRangeSelection) {
-        return (numRawResults < columnRangeSelection.getBatchHint()) ||
-                (completedCell &&
-                        (RangeRequests.isLastRowName(lastCol)
-                                || Arrays.equals(RangeRequests.nextLexicographicName(lastCol), columnRangeSelection.getEndCol())));
+        return (numRawResults < columnRangeSelection.getBatchHint())
+                || (completedCell
+                        && (RangeRequests.isLastRowName(lastCol)
+                                || Arrays.equals(
+                                        RangeRequests.nextLexicographicName(lastCol),
+                                        columnRangeSelection.getEndCol())));
     }
 
     private byte[] getNextColumnRangeColumn(boolean completedCell, byte[] lastCol) {
@@ -737,11 +821,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = partitionMapByHost(values);
         List<Callable<Void>> tasks = Lists.newArrayListWithCapacity(cellsByHost.size());
         for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
-            tasks.add(ThreadNamingCallable.wrapWithThreadName(() -> {
+            tasks.add(
+                    ThreadNamingCallable.wrapWithThreadName(() -> {
                         putForSingleHostInternal(entry.getKey(), tableRef, entry.getValue().entrySet(), ttl);
                         return null;
                     },
-                    "Atlas putInternal " + entry.getValue().size() + " cell values to " + tableRef + " on " + entry.getKey(),
+                    "Atlas putInternal " + entry.getValue().size() + " cell values to "
+                            + tableRef + " on " + entry.getKey(),
                     ThreadNamingCallable.Type.PREPEND));
         }
         runAllTasksCancelOnFailure(tasks);
@@ -766,24 +852,24 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                         ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
                         colOrSup.setColumn(col);
-                        Mutation m = new Mutation();
-                        m.setColumn_or_supercolumn(colOrSup);
+                        Mutation mutation = new Mutation();
+                        mutation.setColumn_or_supercolumn(colOrSup);
 
                         ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());
 
                         Map<String, List<Mutation>> rowPuts = map.get(rowName);
                         if (rowPuts == null) {
-                            rowPuts = Maps.<String, List<Mutation>>newHashMap();
+                            rowPuts = Maps.newHashMap();
                             map.put(rowName, rowPuts);
                         }
 
                         List<Mutation> tableMutations = rowPuts.get(internalTableName(tableRef));
                         if (tableMutations == null) {
-                            tableMutations = Lists.<Mutation>newArrayList();
+                            tableMutations = Lists.newArrayList();
                             rowPuts.put(internalTableName(tableRef), tableMutations);
                         }
 
-                        tableMutations.add(m);
+                        tableMutations.add(mutation);
                     }
                     batchMutateInternal(client, tableRef, map, writeConsistency);
                 }
@@ -792,14 +878,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
             @Override
             public String toString() {
-                return "batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", " + Iterables.size(values) + " values, " + ttl + " ttl sec)";
+                return "batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", "
+                        + Iterables.size(values) + " values, " + ttl + " ttl sec)";
             }
         });
     }
 
     // Overridden to batch more intelligently than the default implementation.
     @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp) throws KeyAlreadyExistsException {
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
+            throws KeyAlreadyExistsException {
         List<TableCellAndValue> flattened = Lists.newArrayList();
         for (Map.Entry<TableReference, ? extends Map<Cell, byte[]>> tableAndValues : valuesByTable.entrySet()) {
             for (Map.Entry<Cell, byte[]> entry : tableAndValues.getValue().entrySet()) {
@@ -828,7 +916,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         List<Callable<Void>> tasks = Lists.newArrayList();
         for (final List<TableCellAndValue> batch : partitioned) {
             final Set<TableReference> tableRefs = extractTableNames(batch);
-            tasks.add(ThreadNamingCallable.wrapWithThreadName(() -> {
+            tasks.add(
+                    ThreadNamingCallable.wrapWithThreadName(() -> {
                         multiPutForSingleHostInternal(host, tableRefs, batch, timestamp);
                         return null;
                     },
@@ -870,12 +959,15 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         Map<ByteBuffer, Map<String, List<Mutation>>> map = Maps.newHashMap();
         for (TableCellAndValue tableCellAndValue : batch) {
             Cell cell = tableCellAndValue.cell;
-            Column col = createColumn(cell, Value.create(tableCellAndValue.value, timestamp), CassandraConstants.NO_TTL);
+            Column col = createColumn(
+                    cell,
+                    Value.create(tableCellAndValue.value, timestamp),
+                    CassandraConstants.NO_TTL);
 
             ColumnOrSuperColumn colOrSup = new ColumnOrSuperColumn();
             colOrSup.setColumn(col);
-            Mutation m = new Mutation();
-            m.setColumn_or_supercolumn(colOrSup);
+            Mutation mutation = new Mutation();
+            mutation.setColumn_or_supercolumn(colOrSup);
 
             ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());
 
@@ -891,7 +983,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 rowPuts.put(internalTableName(tableCellAndValue.tableRef), tableMutations);
             }
 
-            tableMutations.add(m);
+            tableMutations.add(mutation);
         }
         return map;
     }
@@ -923,48 +1015,24 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         batchMutateInternal(client, ImmutableSet.of(tableRef), map, consistency);
     }
 
-    private void batchMutateInternal(final Client client,
-                                     final Set<TableReference> tableRefs,
-                                     final Map<ByteBuffer, Map<String, List<Mutation>>> map,
-                                     final ConsistencyLevel consistency) throws TException {
-        run(client, tableRefs, () -> {
+    private void batchMutateInternal(Client client,
+                                     Set<TableReference> tableRefs,
+                                     Map<ByteBuffer, Map<String, List<Mutation>>> map,
+                                     ConsistencyLevel consistency) throws TException {
+        queryRunner.run(client, tableRefs, () -> {
             client.batch_mutate(map, consistency);
             return true;
         });
     }
 
-    private boolean shouldTraceQuery(Set<TableReference> tableRefs) {
-        for (TableReference tableRef : tableRefs) {
-            if (shouldTraceQuery(tableRef)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private void logFailedCall(Set<TableReference> tableRefs) {
-        log.error("A call to table(s) {} failed with an exception.",
-                tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")));
-    }
-
-    private void logTraceResults(long duration, Set<TableReference> tableRefs, ByteBuffer recv_trace, boolean failed) {
-        if (failed || duration > getMinimumDurationToTraceMillis()) {
-            log.error("Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
-                    tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")),
-                    failed ? "failed and " : "",
-                    duration,
-                    CassandraKeyValueServices.convertCassandraByteBufferUUIDtoString(recv_trace));
-        }
-    }
-
-    private Map<ByteBuffer, List<ColumnOrSuperColumn>> multigetInternal(Client client,
-                                                                        TableReference tableRef,
-                                                                        List<ByteBuffer> rowNames,
-                                                                        ColumnParent colFam,
-                                                                        SlicePredicate pred,
-                                                                        ConsistencyLevel consistency) throws TException {
-        return run(client, tableRef,
-                () -> client.multiget_slice(rowNames, colFam, pred, consistency));
+    private Map<ByteBuffer, List<ColumnOrSuperColumn>> multigetInternal(
+            Client client,
+            TableReference tableRef,
+            List<ByteBuffer> rowNames,
+            ColumnParent colFam,
+            SlicePredicate pred,
+            ConsistencyLevel consistency) throws TException {
+        return queryRunner.run(client, tableRef, () -> client.multiget_slice(rowNames, colFam, pred, consistency));
     }
 
     @Override
@@ -991,7 +1059,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
                 });
             } catch (UnavailableException e) {
-                throw new PalantirRuntimeException("Creating tables requires all Cassandra nodes to be up and available.");
+                throw new PalantirRuntimeException("Creating tables requires all Cassandra nodes"
+                        + " to be up and available.");
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
             }
@@ -1002,18 +1071,21 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         for (int tries = 1; tries <= CassandraConstants.MAX_TRUNCATION_ATTEMPTS; tries++) {
             boolean successful = true;
             try {
-                run(client, tableRef, () -> {
+                queryRunner.run(client, tableRef, () -> {
                     client.truncate(internalTableName(tableRef));
                     return true;
                 });
             } catch (TException e) {
-                log.error("Cluster was unavailable while we attempted a truncate for table " + tableRef.getQualifiedName() + "; we will try " + (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries) + " additional time(s). (" + e.getMessage() + ")");
+                log.error("Cluster was unavailable while we attempted a truncate for table "
+                        + tableRef.getQualifiedName() + "; we will try "
+                        + (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries) + " additional time(s).", e);
                 if (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries == 0) {
                     throw e;
                 }
                 successful = false;
                 try {
-                    Thread.sleep(new Random().nextInt((1 << (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries)) - 1) * 1000);
+                    Thread.sleep(new Random()
+                            .nextInt((1 << (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries)) - 1) * 1000);
                 } catch (InterruptedException e1) {
                     Thread.currentThread().interrupt();
                 }
@@ -1052,14 +1124,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                 maps.put(mapIndex, Maps.<ByteBuffer, Map<String, List<Mutation>>>newHashMap());
                             }
                             Map<ByteBuffer, Map<String, List<Mutation>>> map = maps.get(mapIndex);
-                            ByteBuffer colName = CassandraKeyValueServices.makeCompositeBuffer(cellVersions.getKey().getColumnName(), ts);
+                            ByteBuffer colName = CassandraKeyValueServices.makeCompositeBuffer(
+                                    cellVersions.getKey().getColumnName(),
+                                    ts);
                             SlicePredicate pred = new SlicePredicate();
                             pred.setColumn_names(Arrays.asList(colName));
                             Deletion del = new Deletion();
                             del.setPredicate(pred);
                             del.setTimestamp(Long.MAX_VALUE);
-                            Mutation m = new Mutation();
-                            m.setDeletion(del);
+                            Mutation mutation = new Mutation();
+                            mutation.setDeletion(del);
                             ByteBuffer rowName = ByteBuffer.wrap(cellVersions.getKey().getRowName());
                             if (!map.containsKey(rowName)) {
                                 map.put(rowName, Maps.<String, List<Mutation>>newHashMap());
@@ -1068,7 +1142,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             if (!rowPuts.containsKey(internalTableName(tableRef))) {
                                 rowPuts.put(internalTableName(tableRef), Lists.<Mutation>newArrayList());
                             }
-                            rowPuts.get(internalTableName(tableRef)).add(m);
+                            rowPuts.get(internalTableName(tableRef)).add(mutation);
                             mapIndex++;
                             numVersions += cellVersions.getValue().size();
                         }
@@ -1083,7 +1157,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                 @Override
                 public String toString() {
-                    return "delete_batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", " + numVersions + " total versions of " + cellVersionsMap.size() + " keys)";
+                    return "delete_batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", "
+                            + numVersions + " total versions of " + cellVersionsMap.size() + " keys)";
                 }
             });
         } catch (Exception e) {
@@ -1092,33 +1167,41 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     // update CKVS.isMatchingCf if you update this method
-    private CfDef getCfForTable(TableReference tableRef, byte[] rawMetadata) {
+    protected CfDef getCfForTable(TableReference tableRef, byte[] rawMetadata) {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         Map<String, String> compressionOptions = Maps.newHashMap();
         CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
 
         boolean negativeLookups = false;
         double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
-        int explicitCompressionBlockSizeKB = 0;
+        int explicitCompressionBlockSizeKb = 0;
         boolean appendHeavyAndReadLight = false;
         TableMetadataPersistence.CachePriority cachePriority = TableMetadataPersistence.CachePriority.WARM;
 
         if (!CassandraKeyValueServices.isEmptyOrInvalidMetadata(rawMetadata)) {
             TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
             negativeLookups = tableMetadata.hasNegativeLookups();
-            explicitCompressionBlockSizeKB = tableMetadata.getExplicitCompressionBlockSizeKB();
+            explicitCompressionBlockSizeKb = tableMetadata.getExplicitCompressionBlockSizeKB();
             appendHeavyAndReadLight = tableMetadata.isAppendHeavyAndReadLight();
             cachePriority = tableMetadata.getCachePriority();
         }
 
-        if (explicitCompressionBlockSizeKB != 0) {
-            compressionOptions.put(CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY, CassandraConstants.DEFAULT_COMPRESSION_TYPE);
-            compressionOptions.put(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY, Integer.toString(explicitCompressionBlockSizeKB));
+        if (explicitCompressionBlockSizeKb != 0) {
+            compressionOptions.put(
+                    CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY,
+                    CassandraConstants.DEFAULT_COMPRESSION_TYPE);
+            compressionOptions.put(
+                    CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY,
+                    Integer.toString(explicitCompressionBlockSizeKb));
         } else {
             // We don't really need compression here nor anticipate it will garner us any gains
             // (which is why we're doing such a small chunk size), but this is how we can get "free" CRC checking.
-            compressionOptions.put(CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY, CassandraConstants.DEFAULT_COMPRESSION_TYPE);
-            compressionOptions.put(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY, Integer.toString(AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB));
+            compressionOptions.put(
+                    CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY,
+                    CassandraConstants.DEFAULT_COMPRESSION_TYPE);
+            compressionOptions.put(
+                    CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY,
+                    Integer.toString(AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB));
         }
 
         if (negativeLookups) {
@@ -1127,7 +1210,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         if (appendHeavyAndReadLight) {
             cf.setCompaction_strategy(CassandraConstants.SIZE_TIERED_COMPACTION_STRATEGY);
-            cf.setCompaction_strategy_optionsIsSet(false); // clear out the now nonsensical "keep it at 80MB per sstable" option from LCS
+            // clear out the now nonsensical "keep it at 80MB per sstable" option from LCS
+            cf.setCompaction_strategy_optionsIsSet(false);
             if (!negativeLookups) {
                 falsePositiveChance = CassandraConstants.DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
             } else {
@@ -1146,6 +1230,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 break;
             case HOTTEST:
                 cf.setPopulate_io_cache_on_flushIsSet(true);
+                break;
+            default:
+                throw new PalantirRuntimeException("Unknown cache priority: " + cachePriority);
         }
 
         cf.setBloom_filter_fp_chance(falsePositiveChance);
@@ -1156,9 +1243,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     //TODO: after cassandra change: handle multiRanges
     @Override
     @Idempotent
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef,
-                                                                                                           Iterable<RangeRequest> rangeRequests,
-                                                                                                           long timestamp) {
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
+            TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            long timestamp) {
         int concurrency = configManager.getConfig().rangesConcurrency();
         return KeyValueServices.getFirstBatchForRangesUsingGetRangeConcurrent(
                 executor, this, tableRef, rangeRequests, timestamp, concurrency);
@@ -1169,101 +1257,75 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     // TODO: after cassandra change: handle column filtering
     @Override
     @Idempotent
-    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, final RangeRequest rangeRequest, final long timestamp) {
+    public ClosableIterator<RowResult<Value>> getRange(
+            TableReference tableRef,
+            RangeRequest rangeRequest,
+            long timestamp) {
         return getRangeWithPageCreator(tableRef, rangeRequest, timestamp, readConsistency, ValueExtractor.SUPPLIER);
     }
 
     @Override
     @Idempotent
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
-        return getRangeWithPageCreator(tableRef, rangeRequest, timestamp, deleteConsistency, TimestampExtractor.SUPPLIER);
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
+            TableReference tableRef,
+            RangeRequest rangeRequest,
+            long timestamp) {
+        return getRangeWithPageCreator(
+                tableRef,
+                rangeRequest,
+                timestamp,
+                deleteConsistency,
+                TimestampExtractor.SUPPLIER);
     }
 
     @Override
     @Idempotent
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
-        return getRangeWithPageCreator(tableRef, rangeRequest, timestamp, deleteConsistency, HistoryExtractor.SUPPLIER);
+    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(
+            TableReference tableRef,
+            RangeRequest rangeRequest,
+            long timestamp) {
+        return getRangeWithPageCreator(
+                tableRef,
+                rangeRequest,
+                timestamp,
+                deleteConsistency,
+                HistoryExtractor.SUPPLIER);
     }
 
-    public <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(final TableReference tableRef,
-                                                                         final RangeRequest rangeRequest,
-                                                                         final long timestamp,
-                                                                         final ConsistencyLevel consistency,
-                                                                         final Supplier<ResultsExtractor<T, U>> resultsExtractor) {
+    private <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(
+            TableReference tableRef,
+            RangeRequest rangeRequest,
+            long timestamp,
+            ConsistencyLevel consistency,
+            Supplier<ResultsExtractor<T, U>> resultsExtractor) {
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef);
+        ColumnGetter columnGetter = new ColumnGetter();
+
+        return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, resultsExtractor, timestamp);
+    }
+
+    private <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(
+            RowGetter rowGetter,
+            ColumnGetter columnGetter,
+            RangeRequest rangeRequest,
+            Supplier<ResultsExtractor<T, U>> resultsExtractor,
+            long timestamp) {
         if (rangeRequest.isReverse()) {
             throw new UnsupportedOperationException();
         }
         if (rangeRequest.isEmptyRange()) {
             return ClosableIterators.wrap(ImmutableList.<RowResult<U>>of().iterator());
         }
-        final int batchHint = rangeRequest.getBatchHint() == null ? 100 : rangeRequest.getBatchHint();
-        SliceRange slice = new SliceRange(ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY), false, Integer.MAX_VALUE);
-        final SlicePredicate pred = new SlicePredicate();
-        pred.setSlice_range(slice);
 
-        final ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
-        final ColumnSelection selection = rangeRequest.getColumnNames().isEmpty() ? ColumnSelection.all()
-                : ColumnSelection.create(rangeRequest.getColumnNames());
-        return ClosableIterators.wrap(
-                new AbstractPagingIterable<RowResult<U>, TokenBackedBasicResultsPage<RowResult<U>, byte[]>>() {
-                    @Override
-                    protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getFirstPage() throws Exception {
-                        return page(rangeRequest.getStartInclusive());
-                    }
+        CassandraRangePagingIterable<T, U> rowResults = new CassandraRangePagingIterable<>(
+                rowGetter,
+                columnGetter,
+                rangeRequest,
+                resultsExtractor,
+                timestamp
+        );
 
-                    @Override
-                    protected TokenBackedBasicResultsPage<RowResult<U>, byte[]> getNextPage(TokenBackedBasicResultsPage<RowResult<U>, byte[]> previous) throws Exception {
-                        return page(previous.getTokenForNextPage());
-                    }
-
-                    TokenBackedBasicResultsPage<RowResult<U>, byte[]> page(final byte[] startKey) throws Exception {
-                        InetSocketAddress host = clientPool.getRandomHostForKey(startKey);
-                        return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, TokenBackedBasicResultsPage<RowResult<U>, byte[]>, Exception>() {
-                            @Override
-                            public TokenBackedBasicResultsPage<RowResult<U>, byte[]> apply(Client client) throws Exception {
-                                final byte[] endExclusive = rangeRequest.getEndExclusive();
-
-                                KeyRange keyRange = new KeyRange(batchHint);
-                                keyRange.setStart_key(startKey);
-                                if (endExclusive.length == 0) {
-                                    keyRange.setEnd_key(endExclusive);
-                                } else {
-                                    // We need the previous name because this is inclusive, not exclusive
-                                    keyRange.setEnd_key(RangeRequests.previousLexicographicName(endExclusive));
-                                }
-
-                                List<KeySlice> firstPage;
-
-                                try {
-                                    firstPage = run(client, tableRef,
-                                            () -> client.get_range_slices(colFam, pred, keyRange, consistency));
-                                } catch (UnavailableException e) {
-                                    if (consistency.equals(ConsistencyLevel.ALL)) {
-                                        throw new InsufficientConsistencyException("This operation requires all Cassandra nodes to be up and available.", e);
-                                    } else {
-                                        throw e;
-                                    }
-                                }
-
-                                Map<ByteBuffer, List<ColumnOrSuperColumn>> colsByKey = CassandraKeyValueServices.getColsByKey(firstPage);
-                                TokenBackedBasicResultsPage<RowResult<U>, byte[]> page =
-                                        resultsExtractor.get().getPageFromRangeResults(colsByKey, timestamp, selection, endExclusive);
-                                if (page.moreResultsAvailable() && firstPage.size() < batchHint) {
-                                    // If get_range_slices didn't return the full number of results, there's no
-                                    // point to trying to get another page
-                                    page = SimpleTokenBackedResultsPage.create(endExclusive, page.getResults(), false);
-                                }
-                                return page;
-                            }
-
-                            @Override
-                            public String toString() {
-                                return "get_range_slices(" + colFam + ")";
-                            }
-                        });
-                    }
-
-                }.iterator());
+        return ClosableIterators.wrap(rowResults.iterator());
     }
 
     @Override
@@ -1305,7 +1367,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             log.warn("Ignored call to drop a table ({}) that did not exist.", table);
                         }
                     }
-                    CassandraKeyValueServices.waitForSchemaVersions(client, "(all tables in a call to dropTables)", configManager.getConfig().schemaMutationTimeoutMillis());
+                    CassandraKeyValueServices.waitForSchemaVersions(
+                            client,
+                            "(all tables in a call to dropTables)",
+                            configManager.getConfig().schemaMutationTimeoutMillis());
                     return null;
                 }
             });
@@ -1336,25 +1401,33 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         try {
             clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
                 KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
-                Set<TableReference> tablesToCreate = tableNamesToTableMetadata.keySet();
                 Set<TableReference> existingTablesLowerCased = Sets.newHashSet();
 
                 for (CfDef cf : ks.getCf_defs()) {
                     existingTablesLowerCased.add(fromInternalTableName(cf.getName().toLowerCase()));
                 }
 
-                for (TableReference table : tablesToCreate) {
+
+                Set<Entry<TableReference, byte[]>> tablesToCreate = tableNamesToTableMetadata.entrySet();
+                for (Entry<TableReference, byte[]> tableAndMetadataPair : tablesToCreate) {
+                    TableReference table = tableAndMetadataPair.getKey();
+                    byte[] metadata = tableAndMetadataPair.getValue();
+
                     CassandraVerifier.sanityCheckTableName(table);
 
-                    TableReference tableRefLowerCased = TableReference.createUnsafe(table.getQualifiedName().toLowerCase());
+                    TableReference tableRefLowerCased = TableReference
+                            .createUnsafe(table.getQualifiedName().toLowerCase());
                     if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
-                        client.system_add_column_family(getCfForTable(table, tableNamesToTableMetadata.get(table)));
+                        client.system_add_column_family(getCfForTable(table, metadata));
                     } else {
-                        log.warn("Ignored call to create a table ({}) that already existed (case insensitive).", table);
+                        log.debug("Ignored call to create table ({}) that already existed (case insensitive).", table);
                     }
                 }
                 if (!tablesToCreate.isEmpty()) {
-                    CassandraKeyValueServices.waitForSchemaVersions(client, "(all tables in a call to createTables)", configManager.getConfig().schemaMutationTimeoutMillis());
+                    CassandraKeyValueServices.waitForSchemaVersions(
+                            client,
+                            "(all tables in a call to createTables)",
+                            configManager.getConfig().schemaMutationTimeoutMillis());
                 }
                 return null;
             });
@@ -1397,31 +1470,31 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
         Cell cell = getMetadataCell(tableRef);
-        Value v = get(AtlasDbConstants.METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE)).get(cell);
-        if (v == null) {
+        Value value = get(AtlasDbConstants.METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE)).get(cell);
+        if (value == null) {
             return AtlasDbConstants.EMPTY_TABLE_METADATA;
         } else {
             if (!getAllTablenamesInternal().contains(tableRef)) {
-                log.error("While getting metadata, found a table, {}, with stored table metadata " +
-                        "but no corresponding existing table in the underlying KVS. " +
-                        "This is not necessarily a bug, but warrants further inquiry.", tableRef.getQualifiedName());
-                }
-            return v.getContents();
+                log.error("While getting metadata, found a table, {}, with stored table metadata "
+                        + "but no corresponding existing table in the underlying KVS. "
+                        + "This is not necessarily a bug, but warrants further inquiry.", tableRef.getQualifiedName());
+            }
+            return value.getContents();
         }
     }
 
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
         Map<TableReference, byte[]> tableToMetadataContents = Maps.newHashMap();
-        ClosableIterator<RowResult<Value>> range = getRange(AtlasDbConstants.METADATA_TABLE, RangeRequest.all(), Long.MAX_VALUE);
-        try {
+        try (ClosableIterator<RowResult<Value>> range =
+                getRange(AtlasDbConstants.METADATA_TABLE, RangeRequest.all(), Long.MAX_VALUE)) {
             while (range.hasNext()) {
                 RowResult<Value> valueRow = range.next();
                 Iterable<Entry<Cell, Value>> cells = valueRow.getCells();
 
                 for (Entry<Cell, Value> entry : cells) {
                     Value value = entry.getValue();
-                    TableReference tableRef = TableReference.createUnsafe(new String(entry.getKey().getRowName()));
+                    TableReference tableRef = tableReferenceFromBytes(entry.getKey().getRowName());
                     byte[] contents;
                     if (value == null) {
                         contents = AtlasDbConstants.EMPTY_TABLE_METADATA;
@@ -1433,14 +1506,25 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
                 }
             }
-        } finally {
-            range.close();
         }
         return tableToMetadataContents;
     }
 
-    private Cell getMetadataCell(TableReference tableRef) { // would have preferred an explicit charset, but thrift uses default internally
-        return Cell.create(tableRef.getQualifiedName().getBytes(Charset.defaultCharset()), "m".getBytes());
+    private static Cell getMetadataCell(TableReference tableRef) {
+        // would have preferred an explicit charset, but thrift uses default internally
+        return Cell.create(
+                tableReferenceToBytes(tableRef),
+                "m".getBytes(StandardCharsets.UTF_8));
+    }
+
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
+    private static TableReference tableReferenceFromBytes(byte[] name) {
+        return TableReference.createUnsafe(new String(name, Charset.defaultCharset()));
+    }
+
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
+    private static byte[] tableReferenceToBytes(TableReference tableRef) {
+        return tableRef.getQualifiedName().getBytes(Charset.defaultCharset());
     }
 
     @Override
@@ -1453,21 +1537,29 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         internalPutMetadataForTables(tableRefToMetadata, true);
     }
 
-    private void internalPutMetadataForTables(final Map<TableReference, byte[]> unfilteredTableNameToMetadata, final boolean possiblyNeedToPerformSettingsChanges) {
-        Map<TableReference, byte[]> tableNameToMetadata = Maps.filterValues(unfilteredTableNameToMetadata, Predicates.not(Predicates.equalTo(AtlasDbConstants.EMPTY_TABLE_METADATA)));
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
+    private void internalPutMetadataForTables(
+            Map<TableReference, byte[]> unfilteredTableNameToMetadata,
+            boolean possiblyNeedToPerformSettingsChanges) {
+        Map<TableReference, byte[]> tableNameToMetadata = Maps.filterValues(
+                unfilteredTableNameToMetadata,
+                Predicates.not(Predicates.equalTo(AtlasDbConstants.EMPTY_TABLE_METADATA)));
         if (tableNameToMetadata.isEmpty()) {
             return;
         }
 
-        final Map<Cell, byte[]> metadataRequestedForUpdate = Maps.newHashMapWithExpectedSize(tableNameToMetadata.size());
+        Map<Cell, byte[]> metadataRequestedForUpdate = Maps.newHashMapWithExpectedSize(tableNameToMetadata.size());
         for (Entry<TableReference, byte[]> tableEntry : tableNameToMetadata.entrySet()) {
             metadataRequestedForUpdate.put(getMetadataCell(tableEntry.getKey()), tableEntry.getValue());
         }
 
-        Map<Cell, Long> requestForLatestDbSideMetadata = Maps.transformValues(metadataRequestedForUpdate, Functions.constant(Long.MAX_VALUE));
+        Map<Cell, Long> requestForLatestDbSideMetadata = Maps.transformValues(
+                metadataRequestedForUpdate,
+                Functions.constant(Long.MAX_VALUE));
 
         // technically we're racing other services from here on, during an update period,
-        // but the penalty for not caring is just some superfluous schema mutations and a few dead rows in the metadata table.
+        // but the penalty for not caring is just some superfluous schema mutations and a
+        // few dead rows in the metadata table.
         Map<Cell, Value> persistedMetadata = get(AtlasDbConstants.METADATA_TABLE, requestForLatestDbSideMetadata);
         final Map<Cell, byte[]> newMetadata = Maps.newHashMap();
         final Collection<CfDef> updatedCfs = Lists.newArrayList();
@@ -1475,7 +1567,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             Value val = persistedMetadata.get(entry.getKey());
             if (val == null || !Arrays.equals(val.getContents(), entry.getValue())) {
                 newMetadata.put(entry.getKey(), entry.getValue());
-                updatedCfs.add(getCfForTable(TableReference.createUnsafe(new String(entry.getKey().getRowName())), entry.getValue()));
+                updatedCfs.add(getCfForTable(
+                        tableReferenceFromBytes(entry.getKey().getRowName()),
+                        entry.getValue()));
             }
         }
 
@@ -1484,7 +1578,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
 
         if (possiblyNeedToPerformSettingsChanges) {
-            schemaMutationLock.runWithLock(() -> putMetadataForTablesWithLock(possiblyNeedToPerformSettingsChanges, newMetadata, updatedCfs));
+            schemaMutationLock.runWithLock(() ->
+                    putMetadataForTablesWithLock(possiblyNeedToPerformSettingsChanges, newMetadata, updatedCfs));
         } else {
             try {
                 putMetadataForTablesWithLock(possiblyNeedToPerformSettingsChanges, newMetadata, updatedCfs);
@@ -1494,26 +1589,31 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    private void putMetadataForTablesWithLock(final boolean possiblyNeedToPerformSettingsChanges, final Map<Cell, byte[]> newMetadata, final Collection<CfDef> updatedCfs) throws Exception {
-        clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
-            @Override
-            public Void apply(Client client) throws Exception {
-                if (possiblyNeedToPerformSettingsChanges) {
-                    for (CfDef cf : updatedCfs) {
-                        client.system_update_column_family(cf);
-                    }
-
-                    CassandraKeyValueServices.waitForSchemaVersions(client, "(all tables in a call to putMetadataForTables)", configManager.getConfig().schemaMutationTimeoutMillis());
+    private void putMetadataForTablesWithLock(
+            boolean possiblyNeedToPerformSettingsChanges,
+            Map<Cell, byte[]> newMetadata,
+            Collection<CfDef> updatedCfs) throws Exception {
+        clientPool.runWithRetry(client -> {
+            if (possiblyNeedToPerformSettingsChanges) {
+                for (CfDef cf : updatedCfs) {
+                    client.system_update_column_family(cf);
                 }
-                // Done with actual schema mutation, push the metadata
-                put(AtlasDbConstants.METADATA_TABLE, newMetadata, System.currentTimeMillis());
-                return null;
+
+                CassandraKeyValueServices.waitForSchemaVersions(
+                        client,
+                        "(all tables in a call to putMetadataForTables)",
+                        configManager.getConfig().schemaMutationTimeoutMillis());
             }
+            // Done with actual schema mutation, push the metadata
+            put(AtlasDbConstants.METADATA_TABLE, newMetadata, System.currentTimeMillis());
+            return null;
         });
     }
 
     private void putMetadataWithoutChangingSettings(final TableReference tableRef, final byte[] meta) {
-        put(AtlasDbConstants.METADATA_TABLE, ImmutableMap.of(getMetadataCell(tableRef), meta), System.currentTimeMillis());
+        put(AtlasDbConstants.METADATA_TABLE, ImmutableMap.of(
+                getMetadataCell(tableRef), meta),
+                System.currentTimeMillis());
     }
 
     @Override
@@ -1543,13 +1643,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts) {
         AllTimestampsCollector collector = new AllTimestampsCollector();
-        try {
-            loadWithTs(tableRef, cells, ts, true, collector, deleteConsistency);
-        } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException("Get all timestamps requires all Cassandra nodes to be up and available.", e);
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        }
+        loadWithTs(tableRef, cells, ts, true, collector, deleteConsistency);
         return collector.collectedResults;
     }
 
@@ -1565,20 +1659,23 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         ByteBuffer rowName = ByteBuffer.wrap(e.getKey().getRowName());
                         byte[] contents = e.getValue();
                         long timestamp = AtlasDbConstants.TRANSACTION_TS;
-                        byte[] colName = CassandraKeyValueServices.makeCompositeBuffer(e.getKey().getColumnName(), timestamp).array();
+                        byte[] colName = CassandraKeyValueServices
+                                .makeCompositeBuffer(e.getKey().getColumnName(), timestamp)
+                                .array();
                         Column col = new Column();
                         col.setName(colName);
                         col.setValue(contents);
                         col.setTimestamp(timestamp);
-                        CASResult casResult = run(client, tableRef, () -> client.cas(
+                        CASResult casResult = queryRunner.run(client, tableRef, () -> client.cas(
                                 rowName,
                                 tableName,
-                                ImmutableList.<Column>of(),
+                                ImmutableList.of(),
                                 ImmutableList.of(col),
                                 ConsistencyLevel.SERIAL,
                                 writeConsistency));
                         if (!casResult.isSuccess()) {
-                            throw new KeyAlreadyExistsException("This transaction row already exists.", ImmutableList.of(e.getKey()));
+                            throw new KeyAlreadyExistsException("This transaction row already exists.",
+                                    ImmutableList.of(e.getKey()));
                         }
                     }
                     return null;
@@ -1589,50 +1686,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    private interface Action<V> {
-        V run() throws TException;
-    }
-
-    private <V> V run(Client client, Set<TableReference> tableRefs, Action<V> action) throws TException {
-        if (shouldTraceQuery(tableRefs)) {
-            return trace(action, client, tableRefs);
-        } else {
-            try {
-                return action.run();
-            } catch (TException e) {
-                logFailedCall(tableRefs);
-                throw e;
-            }
-        }
-    }
-
-    private <V> V run(Client client, TableReference tableRef, Action<V> action) throws TException {
-        return run(client, ImmutableSet.of(tableRef), action);
-    }
-
-    private <V> V trace(Action<V> action, Client client, Set<TableReference> tableRefs) throws TException {
-        ByteBuffer traceId = client.trace_next_query();
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        boolean failed = false;
-        try {
-            return action.run();
-        } catch (TException e) {
-            failed = true;
-            logFailedCall(tableRefs);
-            throw e;
-        } finally {
-            long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-            logTraceResults(duration, tableRefs, traceId, failed);
-        }
-    }
-
     @Override
     public void compactInternally(TableReference tableRef) {
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()), "tableRef:[%s] should not be null or empty.", tableRef);
+        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()),
+                "tableRef:[%s] should not be null or empty.", tableRef);
         CassandraKeyValueServiceConfig config = configManager.getConfig();
         if (!compactionManager.isPresent()) {
-            log.error("No compaction client was configured, but compact was called. If you actually want to clear deleted data immediately " +
-                    "from Cassandra, lower your gc_grace_seconds setting and run `nodetool compact {} {}`.", config.keyspace(), tableRef);
+            log.error("No compaction client was configured, but compact was called."
+                    + " If you actually want to clear deleted data immediately"
+                    + " from Cassandra, lower your gc_grace_seconds setting and"
+                    + " run `nodetool compact {} {}`.", config.keyspace(), tableRef);
             return;
         }
         long timeoutInSeconds = config.jmx().get().compactionTimeoutSeconds();
@@ -1646,21 +1709,37 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } catch (InterruptedException e) {
             log.error("Compaction for {}.{} was interrupted.", keyspace, tableRef);
         } finally {
-            alterGcAndTombstone(keyspace, tableRef, CassandraConstants.GC_GRACE_SECONDS, CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
+            alterGcAndTombstone(
+                    keyspace,
+                    tableRef,
+                    CassandraConstants.GC_GRACE_SECONDS,
+                    CassandraConstants.TOMBSTONE_THRESHOLD_RATIO);
         }
     }
 
-    private void alterGcAndTombstone(final String keyspace, final TableReference tableRef, final int gcGraceSeconds, final float tombstoneThresholdRatio) {
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(keyspace), "keyspace:[%s] should not be null or empty.", keyspace);
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()), "tableRef:[%s] should not be null or empty.", tableRef);
-        Preconditions.checkArgument(gcGraceSeconds >= 0, "gc_grace_seconds:[%s] should not be negative.", gcGraceSeconds);
+    private void alterGcAndTombstone(
+            String keyspace,
+            TableReference tableRef,
+            int gcGraceSeconds,
+            float tombstoneThresholdRatio) {
+        Preconditions.checkArgument(!Strings.isNullOrEmpty(keyspace),
+                "keyspace:[%s] should not be null or empty.", keyspace);
+        Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()),
+                "tableRef:[%s] should not be null or empty.", tableRef);
+        Preconditions.checkArgument(gcGraceSeconds >= 0,
+                "gc_grace_seconds:[%s] should not be negative.", gcGraceSeconds);
         Preconditions.checkArgument(tombstoneThresholdRatio >= 0.0f && tombstoneThresholdRatio <= 1.0f,
                 "tombstone_threshold_ratio:[%s] should be between [0.0, 1.0]", tombstoneThresholdRatio);
 
-        schemaMutationLock.runWithLock(() -> alterGcAndTombstoneWithLock(keyspace, tableRef, gcGraceSeconds, tombstoneThresholdRatio));
+        schemaMutationLock.runWithLock(() ->
+                alterGcAndTombstoneWithLock(keyspace, tableRef, gcGraceSeconds, tombstoneThresholdRatio));
     }
 
-    private void alterGcAndTombstoneWithLock(final String keyspace, final TableReference tableRef, final int gcGraceSeconds, final float tombstoneThresholdRatio) {
+    private void alterGcAndTombstoneWithLock(
+            String keyspace,
+            TableReference tableRef,
+            int gcGraceSeconds,
+            float tombstoneThresholdRatio) {
         try {
             clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
                 KsDef ks = client.describe_keyspace(keyspace);
@@ -1668,11 +1747,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 for (CfDef cf : cfs) {
                     if (cf.getName().equalsIgnoreCase(internalTableName(tableRef))) {
                         cf.setGc_grace_seconds(gcGraceSeconds);
-                        cf.setCompaction_strategy_options(ImmutableMap.of("tombstone_threshold", String.valueOf(tombstoneThresholdRatio)));
+                        cf.setCompaction_strategy_options(ImmutableMap.of(
+                                "tombstone_threshold",
+                                String.valueOf(tombstoneThresholdRatio)));
                         client.system_update_column_family(cf);
-                        CassandraKeyValueServices.waitForSchemaVersions(client, tableRef.getQualifiedName(), configManager.getConfig().schemaMutationTimeoutMillis());
-                        log.trace("gc_grace_seconds is set to {} for {}.{}", gcGraceSeconds, keyspace, tableRef);
-                        log.trace("tombstone_threshold_ratio is set to {} for {}.{}", tombstoneThresholdRatio, keyspace, tableRef);
+                        CassandraKeyValueServices.waitForSchemaVersions(
+                                client,
+                                tableRef.getQualifiedName(),
+                                configManager.getConfig().schemaMutationTimeoutMillis());
+                        log.trace("gc_grace_seconds is set to {} for {}.{}",
+                                gcGraceSeconds, keyspace, tableRef);
+                        log.trace("tombstone_threshold_ratio is set to {} for {}.{}",
+                                tombstoneThresholdRatio, keyspace, tableRef);
                     }
                 }
                 return null;
@@ -1706,7 +1792,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return cellsByHost;
     }
 
-    private <V> Map<InetSocketAddress, List<V>> partitionByHost(Iterable<V> iterable, Function<V, byte[]> keyExtractor) {
+    private <V> Map<InetSocketAddress, List<V>> partitionByHost(
+            Iterable<V> iterable,
+            Function<V, byte[]> keyExtractor) {
         // Ensure that the same key goes to the same partition. This is important when writing multiple columns
         // to the same row, since this is a normally a single write in cassandra, whereas splitting the columns
         // into different requests results in multiple writes.
@@ -1756,27 +1844,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private static class TableCellAndValue {
+        public static final Function<TableCellAndValue, byte[]> EXTRACT_ROW_NAME_FUNCTION =
+                input -> input.cell.getRowName();
+
+        public static final Function<TableCellAndValue, Long> SIZING_FUNCTION =
+                input -> input.value.length + Cells.getApproxSizeOfCell(input.cell);
+
         private final TableReference tableRef;
         private final Cell cell;
         private final byte[] value;
 
-        public static Function<TableCellAndValue, byte[]> EXTRACT_ROW_NAME_FUNCTION =
-                new Function<TableCellAndValue, byte[]>() {
-                    @Override
-                    public byte[] apply(TableCellAndValue input) {
-                        return input.cell.getRowName();
-                    }
-                };
-
-        public static Function<TableCellAndValue, Long> SIZING_FUNCTION =
-                new Function<CassandraKeyValueService.TableCellAndValue, Long>() {
-                    @Override
-                    public Long apply(TableCellAndValue input) {
-                        return input.value.length + Cells.getApproxSizeOfCell(input.cell);
-                    }
-                };
-
-        public TableCellAndValue(TableReference tableRef, Cell cell, byte[] value) {
+        TableCellAndValue(TableReference tableRef, Cell cell, byte[] value) {
             this.tableRef = tableRef;
             this.cell = cell;
             this.value = value;

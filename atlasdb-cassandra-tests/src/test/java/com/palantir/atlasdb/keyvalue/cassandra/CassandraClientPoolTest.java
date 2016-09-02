@@ -21,8 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.NoSuchElementException;
-import java.util.TreeMap;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.TimedOutException;
@@ -43,7 +43,7 @@ import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.LightweightOPPToken;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.LightweightOppToken;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.WeightedHosts;
 import com.palantir.common.base.FunctionCheckedException;
 
@@ -81,10 +81,10 @@ public class CassandraClientPoolTest {
     @Test
     public void testTokenMapping() {
         CassandraClientPool clientPool = kv.clientPool;
-        Map<Range<LightweightOPPToken>, List<InetSocketAddress>> mapOfRanges = kv.clientPool.tokenMap.asMapOfRanges();
+        Map<Range<LightweightOppToken>, List<InetSocketAddress>> mapOfRanges = kv.clientPool.tokenMap.asMapOfRanges();
 
-        for (Entry<Range<LightweightOPPToken>, List<InetSocketAddress>> entry : mapOfRanges.entrySet()) {
-            Range<LightweightOPPToken> tokenRange = entry.getKey();
+        for (Entry<Range<LightweightOppToken>, List<InetSocketAddress>> entry : mapOfRanges.entrySet()) {
+            Range<LightweightOppToken> tokenRange = entry.getKey();
             List<InetSocketAddress> hosts = entry.getValue();
 
             clientPool.getRandomHostForKey("A".getBytes());
@@ -150,7 +150,7 @@ public class CassandraClientPoolTest {
                 new InetSocketAddress(1), createMockClientPoolingContainerWithUtilization(10),
                 new InetSocketAddress(2), createMockClientPoolingContainerWithUtilization(10));
 
-        TreeMap<Integer, InetSocketAddress> result = CassandraClientPool.WeightedHosts.create(pools).hosts;
+        NavigableMap<Integer, InetSocketAddress> result = CassandraClientPool.WeightedHosts.create(pools).hosts;
 
         int expectedWeight = result.firstEntry().getKey();
         int prevKey = 0;
@@ -169,7 +169,7 @@ public class CassandraClientPoolTest {
                 new InetSocketAddress(1), createMockClientPoolingContainerWithUtilization(10),
                 lowActivityHost, createMockClientPoolingContainerWithUtilization(0));
 
-        TreeMap<Integer, InetSocketAddress> result = CassandraClientPool.WeightedHosts.create(pools).hosts;
+        NavigableMap<Integer, InetSocketAddress> result = CassandraClientPool.WeightedHosts.create(pools).hosts;
 
         int largestWeight = result.firstEntry().getKey();
         InetSocketAddress hostWithLargestWeight = result.firstEntry().getValue();
@@ -193,7 +193,7 @@ public class CassandraClientPoolTest {
                 new InetSocketAddress(1), createMockClientPoolingContainerWithUtilization(5),
                 highActivityHost, createMockClientPoolingContainerWithUtilization(20));
 
-        TreeMap<Integer, InetSocketAddress> result = CassandraClientPool.WeightedHosts.create(pools).hosts;
+        NavigableMap<Integer, InetSocketAddress> result = CassandraClientPool.WeightedHosts.create(pools).hosts;
 
         int smallestWeight = result.firstEntry().getKey();
         InetSocketAddress hostWithSmallestWeight = result.firstEntry().getValue();
@@ -216,7 +216,7 @@ public class CassandraClientPoolTest {
                 new InetSocketAddress(1), createMockClientPoolingContainerWithUtilization(10),
                 new InetSocketAddress(2), createMockClientPoolingContainerWithUtilization(15));
 
-        TreeMap<Integer, InetSocketAddress> result = CassandraClientPool.WeightedHosts.create(pools).hosts;
+        NavigableMap<Integer, InetSocketAddress> result = CassandraClientPool.WeightedHosts.create(pools).hosts;
 
         int prevKey = 0;
         for (Map.Entry<Integer, InetSocketAddress> entry : result.entrySet()) {
@@ -256,7 +256,7 @@ public class CassandraClientPoolTest {
 
     private static CassandraClientPoolingContainer createMockClientPoolingContainerWithUtilization(int utilization) {
         CassandraClientPoolingContainer mock = Mockito.mock(CassandraClientPoolingContainer.class);
-        Mockito.when(mock.getPoolUtilization()).thenReturn(utilization);
+        Mockito.when(mock.getOpenRequests()).thenReturn(utilization);
         return mock;
     }
 }

@@ -25,9 +25,11 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
-@JsonSubTypes({@JsonSubTypes.Type(PostgresDdlConfig.class), @JsonSubTypes.Type(OracleDdlConfig.class), @JsonSubTypes.Type(H2DdlConfig.class)})
+@JsonSubTypes({
+        @JsonSubTypes.Type(PostgresDdlConfig.class),
+        @JsonSubTypes.Type(OracleDdlConfig.class),
+        @JsonSubTypes.Type(H2DdlConfig.class)})
 public abstract class DdlConfig {
-
     public abstract String type();
 
     public abstract Supplier<DbTableFactory> tableFactorySupplier();
@@ -61,5 +63,4 @@ public abstract class DdlConfig {
     public int mutationBatchSizeBytes() {
         return 2 * 1024 * 1024;
     }
-
 }

@@ -29,7 +29,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.PostgresDbTableFactory;
 @JsonTypeName(H2DdlConfig.TYPE)
 @Value.Immutable
 public abstract class H2DdlConfig extends DdlConfig {
-
     public static final String TYPE = "h2";
 
     @Override
@@ -42,5 +41,4 @@ public abstract class H2DdlConfig extends DdlConfig {
     public final String type() {
         return TYPE;
     }
-
 }

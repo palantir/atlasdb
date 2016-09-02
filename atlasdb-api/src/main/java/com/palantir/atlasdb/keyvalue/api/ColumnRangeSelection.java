@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -50,22 +51,21 @@ public class ColumnRangeSelection implements Serializable {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ColumnRangeSelection that = (ColumnRangeSelection) o;
-
-        if (!Arrays.equals(startCol, that.startCol)) return false;
-        return Arrays.equals(endCol, that.endCol);
-
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        ColumnRangeSelection that = (ColumnRangeSelection) obj;
+        return Arrays.equals(startCol, that.startCol)
+                && Arrays.equals(endCol, that.endCol);
     }
 
     @Override
     public int hashCode() {
-        int result = Arrays.hashCode(startCol);
-        result = 31 * result + Arrays.hashCode(endCol);
-        return result;
+        return Objects.hash(Arrays.hashCode(startCol), Arrays.hashCode(endCol));
     }
 
     private static final Pattern deserializeRegex = Pattern.compile("\\s*,\\s*");

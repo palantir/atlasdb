@@ -27,7 +27,8 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 public interface DbQueryFactory {
     FullQuery getLatestRowQuery(byte[] row, long ts, ColumnSelection columns, boolean includeValue);
     FullQuery getLatestRowsQuery(Iterable<byte[]> rows, long ts, ColumnSelection columns, boolean includeValue);
-    FullQuery getLatestRowsQuery(Collection<Map.Entry<byte[], Long>> rows, ColumnSelection columns, boolean includeValue);
+    FullQuery getLatestRowsQuery(
+            Collection<Map.Entry<byte[], Long>> rows, ColumnSelection columns, boolean includeValue);
 
     FullQuery getAllRowQuery(byte[] row, long ts, ColumnSelection columns, boolean includeValue);
     FullQuery getAllRowsQuery(Iterable<byte[]> rows, long ts, ColumnSelection columns, boolean includeValue);

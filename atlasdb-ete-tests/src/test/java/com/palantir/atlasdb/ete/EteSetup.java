@@ -15,9 +15,9 @@
  */
 package com.palantir.atlasdb.ete;
 
-import static java.util.stream.Collectors.toList;
-
+import java.io.IOException;
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -32,41 +32,52 @@ import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
+import com.palantir.docker.compose.execution.DockerComposeRunArgument;
+import com.palantir.docker.compose.execution.DockerComposeRunOption;
 
 public class EteSetup {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
+
+    private static final String FIRST_ETE_CONTAINER = "ete1";
     private static final int ETE_PORT = 3828;
 
     private static DockerComposeRule docker;
 
     protected <T> T createClientToSingleNode(Class<T> clazz) {
-        return createClientFor(clazz, asPort("ete1"));
+        return createClientFor(clazz, asPort(FIRST_ETE_CONTAINER));
     }
 
-    public <T> T createClientToMultipleNodes(Class<T> clazz, String... nodeNames) {
+    protected <T> T createClientToMultipleNodes(Class<T> clazz, String... nodeNames) {
         Collection<String> uris = ImmutableList.copyOf(nodeNames).stream()
                 .map(node -> asPort(node))
                 .map(port -> port.inFormat("http://$HOST:$EXTERNAL_PORT"))
-                .collect(toList());
+                .collect(Collectors.toList());
 
         return AtlasDbHttpClients.createProxyWithFailover(NO_SSL, uris, clazz);
     }
 
-    private DockerPort asPort(String node) {
-        return docker.containers().container(node).port(ETE_PORT);
+    protected String runCommand(String command) throws IOException, InterruptedException {
+        return docker.run(
+                DockerComposeRunOption.options("-T"),
+                "ete-cli",
+                DockerComposeRunArgument.arguments("bash", "-c", command));
     }
 
     protected static RuleChain setupComposition(String name, String composeFile) {
         docker = DockerComposeRule.builder()
                 .file(composeFile)
-                .waitingForService("ete1", toBeReady())
+                .waitingForService(FIRST_ETE_CONTAINER, toBeReady())
                 .saveLogsTo("container-logs/" + name)
                 .build();
 
         return RuleChain
                 .outerRule(GRADLE_PREPARE_TASK)
                 .around(docker);
+    }
+
+    private DockerPort asPort(String node) {
+        return docker.containers().container(node).port(ETE_PORT);
     }
 
     private static <T> T createClientFor(Class<T> clazz, Container container) {

@@ -28,13 +28,13 @@ public class FullQuery {
         this.query = query;
     }
 
-    public FullQuery withArgs(Iterable<? extends Object> newArgs) {
-        Iterables.addAll(args, newArgs);
+    public FullQuery withArg(Object arg) {
+        this.args.add(arg);
         return this;
     }
 
-    public FullQuery withArg(Object arg) {
-        this.args.add(arg);
+    public FullQuery withArgs(Iterable<?> newArgs) {
+        Iterables.addAll(args, newArgs);
         return this;
     }
 

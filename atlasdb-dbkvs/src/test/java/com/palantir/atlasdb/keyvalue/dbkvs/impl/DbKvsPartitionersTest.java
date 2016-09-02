@@ -83,7 +83,7 @@ public class DbKvsPartitionersTest {
     public void testLarge() {
         Random random = new Random(0);
 
-        LinkedHashMap<Integer, Integer> counts = new LinkedHashMap<>();
+        Map<Integer, Integer> counts = new LinkedHashMap<>();
         for (int i = 0; i < 1000; i++) {
             int key;
             do {

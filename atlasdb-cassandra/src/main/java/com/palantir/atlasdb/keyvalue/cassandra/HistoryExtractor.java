@@ -36,7 +36,7 @@ class HistoryExtractor extends ResultsExtractor<SetMultimap<Cell, Value>, Set<Va
         }
     };
 
-    public HistoryExtractor(SetMultimap<Cell, Value> collector) {
+    HistoryExtractor(SetMultimap<Cell, Value> collector) {
         super(collector);
     }
 

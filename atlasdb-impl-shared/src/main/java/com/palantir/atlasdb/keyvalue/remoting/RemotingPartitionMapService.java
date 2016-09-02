@@ -22,7 +22,10 @@ import feign.jackson.JacksonDecoder;
 import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
 
-public class RemotingPartitionMapService {
+public final class RemotingPartitionMapService {
+    private RemotingPartitionMapService() {
+        // Utility class
+    }
 
     public static PartitionMapService createClientSide(String uri) {
         return Feign.builder()
@@ -31,5 +34,4 @@ public class RemotingPartitionMapService {
                 .contract(new JAXRSContract())
                 .target(PartitionMapService.class, uri);
     }
-
 }

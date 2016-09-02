@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -65,6 +66,8 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      * This configuration value is deprecated in favor of using sslConfiguration.  If
      * true, read in trust and key store information from system properties unless
      * the sslConfiguration object is specified.
+     *
+     * @deprecated Use {@link #sslConfiguration()} instead.
      */
     @Deprecated
     public abstract Optional<Boolean> ssl();
@@ -90,7 +93,9 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     }
 
     @Value.Default
-    public int fetchBatchCount() { return 5000; }
+    public int fetchBatchCount() {
+        return 5000;
+    }
 
     @Value.Default
     public boolean safetyDisabled() {
@@ -103,7 +108,9 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     }
 
     @Value.Default
-    public boolean clusterMeetsNormalConsistencyGuarantees() { return true; }
+    public boolean clusterMeetsNormalConsistencyGuarantees() {
+        return true;
+    }
 
     /**
      * This is how long we will wait when we first open a socket to the cassandra server.
@@ -128,15 +135,22 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     @Value.Default
     public int cqlPoolTimeoutMillis() {
-        return 5 * 1000;
+        return 20 * 1000;
     }
 
     @Value.Default
-    public int schemaMutationTimeoutMillis() { return 60 * 1000; }
+    public int schemaMutationTimeoutMillis() {
+        return 60 * 1000;
+    }
 
     @Value.Default
     public int rangesConcurrency() {
         return 64;
+    }
+
+    @Value.Default
+    public boolean scyllaDb() {
+        return false;
     }
 
     public abstract Optional<CassandraJmxCompactionConfig> jmx();
@@ -146,6 +160,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return TYPE;
     }
 
+    @JsonIgnore
     @Value.Derived
     public boolean usingSsl() {
         return ssl().or(sslConfiguration().isPresent());

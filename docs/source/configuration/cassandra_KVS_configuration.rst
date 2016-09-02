@@ -1,3 +1,5 @@
+.. _cassandra-configuration:
+
 =========================================
 Cassandra Key Value Service Configuration
 =========================================
@@ -17,10 +19,12 @@ e.g.
 
   runtime 'com.palantir.atlasdb:atlasdb-cassandra:0.7.0'
 
+.. _cassandra-kvs-config:
+
 Configuring a Running Application to Use Cassandra
 ==================================================
 
-A minimal atlas configuration for running against cassandra will look like the below.
+A minimal AtlasDB configuration for running against cassandra will look like the below.
 
 Importantly - your lock creator must be consistent across all nodes. If you do not provide a lock creator, it will default to the first host
 in the leaders list. If you do not specify a lock creator, the leaders block should be exactly the same across all nodes.
@@ -38,7 +42,7 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
           username: cassandra
           password: cassandra
         sslConfiguration:
-            trustStorePath: var/security/truststore.jks
+          trustStorePath: var/security/truststore.jks
         replicationFactor: 1
         mutationBatchCount: 10000
         mutationBatchSizeBytes: 10000000
@@ -51,22 +55,37 @@ in the leaders list. If you do not specify a lock creator, the leaders block sho
         quorumSize: 2
         learnerLogDir: var/data/paxosLogs
         acceptorLogDir: var/data/paxosLogs
-        # This should be different for every node
-        localServer: http://<yourhost>:3828
-        # This should be the same for every node
-        lockCreator: http://host1:3828
+        # This should be different for every node. If ssl is not enabled, then the host must be specified as http
+        localServer: https://<yourhost>:3828
+        # This should be the same for every node. If ssl is not enabled, then the host must be specified as http
+        lockCreator: https://host1:3828
         # This should be the same for every node
         leaders:
-          - http://host1:3828
-          - http://host2:3828
-          - http://host3:3828
+          - https://host1:3828 # If ssl is not enabled, then the hosts must be specified as http
+          - https://host2:3828
+          - https://host3:3828
 
 .. _cass-config-ssl:
+
+For more details on the leader block, see :ref:`Leader Configuration <leader-config>`.
 
 Communicating Over SSL
 ======================
 
-Atlas currently supports two different ways of specifying SSL options in the Cassandra KVS configuration: The ``sslConfiguration`` block and the deprecated ``ssl`` property.  Both means are supported but ``sslConfiguration`` is preferred and will always be respected in favor of ``ssl`` when both are specified.  In the future, support for ``ssl`` will be removed.
+Atlas currently supports two different ways of specifying SSL options in the Cassandra KVS configuration: The ``sslConfiguration`` block and the ``ssl`` property.  Both means are supported but ``ssl`` is preferred and will always be respected in favor of ``sslConfiguration`` when both are specified.
+
+The following table summarizes whether SSL is enabled:
+
++-------------------+------------------+-----------------+
+|                   |sslConfiguration  |sslConfiguration |
+|                   |not present       |present          |
++===================+==================+=================+
+| ssl not present   | no               | yes             |
++-------------------+------------------+-----------------+
+| ssl is true       | yes              | yes             |
++-------------------+------------------+-----------------+
+| ssl is false      | no               | no              |
++-------------------+------------------+-----------------+
 
 sslConfiguration
 ----------------
@@ -77,3 +96,4 @@ ssl
 ---
 
 This property is a boolean value saying whether or not to use ssl.  When ``true``, it will use java system properties that are passed in as jvm arguments to determine how to set up the ssl connection.  For example, you would use the jvm option ``-Djavax.net.ssl.trustStore=<path-to-truststore>`` to tell atlas where to find the truststore to use.
+

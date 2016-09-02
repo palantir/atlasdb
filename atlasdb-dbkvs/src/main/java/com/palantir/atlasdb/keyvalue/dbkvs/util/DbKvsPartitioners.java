@@ -21,7 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class DbKvsPartitioners {
+public final class DbKvsPartitioners {
     private DbKvsPartitioners() {
         // Utility class
     }
@@ -34,7 +34,7 @@ public class DbKvsPartitioners {
      */
     public static <T> List<Map<T, Integer>> partitionByTotalCount(Map<T, Integer> counts, int limit) {
         List<Map<T, Integer>> batches = new ArrayList<>();
-        LinkedHashMap<T, Integer> currentBatch = new LinkedHashMap<>();
+        Map<T, Integer> currentBatch = new LinkedHashMap<>();
         batches.add(currentBatch);
         int currBatchColumns = 0;
 

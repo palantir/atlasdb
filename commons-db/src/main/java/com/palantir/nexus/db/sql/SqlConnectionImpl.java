@@ -214,11 +214,6 @@ public class SqlConnectionImpl implements SqlConnection {
     }
 
     @Override
-    public void updateManyUnregisteredQuery(String sql) throws PalantirSqlException {
-        helper.updateManyUnregisteredQuery(connectionSupplier.get(), sql);
-    }
-
-    @Override
     public boolean updateUnregisteredQuery(String sql, Object... vs)
             throws PalantirSqlException {
         return helper.updateUnregisteredQuery(connectionSupplier.get(), sql, vs);

@@ -22,6 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.cassandra.thrift.Cassandra.Client;
@@ -47,6 +48,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     private final InetSocketAddress host;
     private CassandraKeyValueServiceConfig config;
     private final AtomicLong count = new AtomicLong();
+    private final AtomicInteger openRequests = new AtomicInteger();
     private final GenericObjectPool<Client> clientPool;
 
     public CassandraClientPoolingContainer(InetSocketAddress host, CassandraKeyValueServiceConfig config) {
@@ -59,9 +61,18 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         return host;
     }
 
+    /**
+     * Number of open requests to {@link #runWithPooledResource(FunctionCheckedException)}.
+     * This is different from the number of active objects in the pool, as creating a new
+     * pooled object can block on {@link CassandraClientFactory#create()}} before being added
+     * to the client pool.
+     */
+    protected int getOpenRequests() {
+        return openRequests.get();
+    }
 
     // returns negative if not available; only expected use is debugging
-    protected int getPoolUtilization() {
+    protected int getActiveCheckouts() {
         return clientPool.getNumActive();
     }
 
@@ -71,7 +82,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     }
 
     @Override
-    public <V, K extends Exception> V runWithPooledResource(FunctionCheckedException<Client, V, K> f)
+    public <V, K extends Exception> V runWithPooledResource(FunctionCheckedException<Client, V, K> fn)
             throws K {
         final String origName = Thread.currentThread().getName();
         Thread.currentThread().setName(origName
@@ -79,23 +90,31 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
                 + " started at " + DateTimeFormatter.ISO_INSTANT.format(Instant.now())
                 + " - " + count.getAndIncrement());
         try {
-            return runWithGoodResource(f);
+            openRequests.getAndIncrement();
+            return runWithGoodResource(fn);
         } catch (Throwable t) {
             log.warn("Error occurred talking to host '{}': {}", host, t.toString());
             throw t;
         } finally {
+            openRequests.getAndDecrement();
             Thread.currentThread().setName(origName);
         }
     }
 
+    @Override
+    public <V> V runWithPooledResource(Function<Client, V> fn) {
+        throw new UnsupportedOperationException("you should use FunctionCheckedException<?, ?, Exception> "
+                + "to ensure the TTransportException type is propagated correctly.");
+    }
+
     @SuppressWarnings("unchecked")
-    private <V, K extends Exception> V runWithGoodResource(FunctionCheckedException<Client, V, K> f)
+    private <V, K extends Exception> V runWithGoodResource(FunctionCheckedException<Client, V, K> fn)
             throws K {
         boolean shouldReuse = true;
         Client resource = null;
         try {
             resource = clientPool.borrowObject();
-            return f.apply(resource);
+            return fn.apply(resource);
         } catch (Exception e) {
             if (isInvalidClientConnection(e)) {
                 log.warn("Not reusing resource {} due to {}", resource, e.toString(), e);
@@ -125,13 +144,14 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         try {
             TTransport transport = idleClient.getInputProtocol().getTransport();
             if (transport instanceof TFramedTransport) {
-                Field readBuffer_ = ((TFramedTransport) transport).getClass().getDeclaredField("readBuffer_");
-                readBuffer_.setAccessible(true);
-                TMemoryInputTransport tMemoryInputTransport = (TMemoryInputTransport) readBuffer_.get(transport);
-                byte[] underlyingBuffer = tMemoryInputTransport.getBuffer();
+                Field readBuffer = ((TFramedTransport) transport).getClass().getDeclaredField("readBuffer_");
+                readBuffer.setAccessible(true);
+                TMemoryInputTransport memoryInputTransport = (TMemoryInputTransport) readBuffer.get(transport);
+                byte[] underlyingBuffer = memoryInputTransport.getBuffer();
                 if (underlyingBuffer != null) {
-                    log.debug("During {} check-in, cleaned up a read buffer of {} bytes", idleClient, underlyingBuffer.length);
-                    tMemoryInputTransport.clear();
+                    log.debug("During {} check-in, cleaned up a read buffer of {} bytes",
+                            idleClient, underlyingBuffer.length);
+                    memoryInputTransport.clear();
                 }
             }
         } catch (Exception e) {
@@ -139,10 +159,10 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         }
     }
 
-    private static boolean isInvalidClientConnection(Exception e) {
-        return e instanceof TTransportException
-                || e instanceof TProtocolException
-                || e instanceof NoSuchElementException;
+    private static boolean isInvalidClientConnection(Exception ex) {
+        return ex instanceof TTransportException
+                || ex instanceof TProtocolException
+                || ex instanceof NoSuchElementException;
     }
 
     private void invalidateQuietly(Client resource) {
@@ -152,12 +172,6 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         } catch (Exception e) {
             // Ignore
         }
-    }
-
-    @Override
-    public <V> V runWithPooledResource(Function<Client, V> f) {
-        throw new UnsupportedOperationException("you should use FunctionCheckedException<?, ?, Exception> "
-                + "to ensure the TTransportException type is propagated correctly.");
     }
 
     @Override
@@ -171,7 +185,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
                 .add("host", this.host)
                 .add("keyspace", config.keyspace())
                 .add("usingSsl", config.usingSsl())
-                .add("sslConfiguration", config.sslConfiguration().isPresent() ? config.sslConfiguration().get() : "unspecified")
+                .add("sslConfiguration", config.sslConfiguration().isPresent()
+                        ? config.sslConfiguration().get()
+                        : "unspecified")
                 .add("socketTimeoutMillis", config.socketTimeoutMillis())
                 .add("socketQueryTimeoutMillis", config.socketQueryTimeoutMillis())
                 .toString();
@@ -206,19 +222,24 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         poolConfig.setMaxIdle(5 * config.poolSize());
         poolConfig.setMaxTotal(5 * config.poolSize());
 
-        poolConfig.setBlockWhenExhausted(false); // immediately throw when we try and borrow from a full pool; dealt with at higher level
+        // immediately throw when we try and borrow from a full pool; dealt with at higher level
+        poolConfig.setBlockWhenExhausted(false);
         poolConfig.setMaxWaitMillis(config.socketTimeoutMillis());
 
-        poolConfig.setTestOnBorrow(true); // this test is free/just checks a boolean and does not block; borrow is still fast
+        // this test is free/just checks a boolean and does not block; borrow is still fast
+        poolConfig.setTestOnBorrow(true);
 
         poolConfig.setMinEvictableIdleTimeMillis(TimeUnit.MILLISECONDS.convert(3, TimeUnit.MINUTES));
-        // the randomness here is to prevent all of the pools for all of the hosts evicting all at at once, which isn't great for C*.
-        poolConfig.setTimeBetweenEvictionRunsMillis(TimeUnit.MILLISECONDS.convert(60 + ThreadLocalRandom.current().nextInt(10), TimeUnit.SECONDS));
-        poolConfig.setNumTestsPerEvictionRun(-3); // test one third of objects per eviction run  // (Apache Commons Pool has the worst API)
+        // the randomness here is to prevent all of the pools for all of the hosts
+        // evicting all at at once, which isn't great for C*.
+        poolConfig.setTimeBetweenEvictionRunsMillis(
+                TimeUnit.MILLISECONDS.convert(60 + ThreadLocalRandom.current().nextInt(10), TimeUnit.SECONDS));
+        // test one third of objects per eviction run  // (Apache Commons Pool has the worst API)
+        poolConfig.setNumTestsPerEvictionRun(-3);
         poolConfig.setTestWhileIdle(true);
 
         poolConfig.setJmxNamePrefix(host.getHostString());
 
-        return new GenericObjectPool<Client>(cassandraClientFactory, poolConfig);
+        return new GenericObjectPool<>(cassandraClientFactory, poolConfig);
     }
 }

@@ -51,11 +51,18 @@ public interface NamespacedKeyValueService {
     TableMappingService getTableMapper();
 
     @Idempotent
-    Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows,
-                             ColumnSelection columnSelection,long timestamp);
+    Map<Cell, Value> getRows(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnSelection columnSelection,
+            long timestamp);
 
     @Idempotent
-    Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection, long timestamp);
+    Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection columnRangeSelection,
+            long timestamp);
 
     @Idempotent
     RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
@@ -107,7 +114,8 @@ public interface NamespacedKeyValueService {
                                                                 long timestamp);
 
     @Idempotent
-    Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef,
+    Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
+            TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             long timestamp);
 

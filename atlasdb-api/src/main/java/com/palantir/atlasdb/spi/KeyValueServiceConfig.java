@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2015 Palantir Technologies
  * ​
  * Licensed under the BSD-3 License (the "License");

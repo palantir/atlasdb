@@ -39,6 +39,7 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
+import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
@@ -65,45 +66,54 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.remoting.ssl.SslConfiguration;
+import com.palantir.remoting.ssl.SslSocketFactories;
 import com.palantir.timestamp.TimestampService;
 
-public class TransactionManagers {
-
+public final class TransactionManagers {
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
 
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
 
+    private TransactionManagers() {
+        // Utility class
+    }
+
     /**
-     * Create a {@link SerializableTransactionManager} with provided configuration, {@link SSLSocketFactory}, {@link Schema},
-     * and an environment in which to register HTTP server endpoints.
+     * Create a {@link SerializableTransactionManager} with provided configuration,
+     * {@link SSLSocketFactory}, {@link Schema}, and an environment in which to
+     * register HTTP server endpoints.
      */
-    public static SerializableTransactionManager create(AtlasDbConfig config,
-                                                        Optional<SSLSocketFactory> sslSocketFactory,
-                                                        Schema schema,
-                                                        Environment env,
-                                                        boolean allowHiddenTableAccess) {
-        return create(config, sslSocketFactory, ImmutableSet.of(schema), env, allowHiddenTableAccess);
+    public static SerializableTransactionManager create(
+            AtlasDbConfig config,
+            Schema schema,
+            Environment env,
+            boolean allowHiddenTableAccess) {
+        return create(config, ImmutableSet.of(schema), env, allowHiddenTableAccess);
     }
 
     /**
      * Create a {@link SerializableTransactionManager} with provided configuration, {@link SSLSocketFactory}, a set of
      * {@link Schema}s, and an environment in which to register HTTP server endpoints.
      */
-    public static SerializableTransactionManager create(AtlasDbConfig config,
-                                                        Optional<SSLSocketFactory> sslSocketFactory,
-                                                        Set<Schema> schemas,
-                                                        Environment env,
-                                                        boolean allowHiddenTableAccess) {
-        final ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
-        final KeyValueService rawKvs = atlasFactory.getKeyValueService();
+    public static SerializableTransactionManager create(
+            AtlasDbConfig config,
+            Set<Schema> schemas,
+            Environment env,
+            boolean allowHiddenTableAccess) {
+        ServiceDiscoveringAtlasSupplier atlasFactory =
+                new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
+        KeyValueService rawKvs = atlasFactory.getKeyValueService();
 
-        LockAndTimestampServices lts = createLockAndTimestampServices(config, sslSocketFactory, env,
+        LockAndTimestampServices lts = createLockAndTimestampServices(
+                config,
+                env,
                 LockServiceImpl::create,
-                atlasFactory::getTimestampService
-        );
+                atlasFactory::getTimestampService);
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
+        kvs = ProfilingKeyValueService.create(kvs);
         kvs = new SweepStatsKeyValueService(kvs, lts.time());
 
         TransactionTables.createTables(kvs);
@@ -112,7 +122,11 @@ public class TransactionManagers {
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(kvs);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(kvs);
 
-        for (Schema schema : ImmutableSet.<Schema>builder().add(SweepSchema.INSTANCE.getLatestSchema()).addAll(schemas).build()) {
+        Set<Schema> allSchemas = ImmutableSet.<Schema>builder()
+                .add(SweepSchema.INSTANCE.getLatestSchema())
+                .addAll(schemas)
+                .build();
+        for (Schema schema : allSchemas) {
             Schemas.createTablesAndIndexes(schema, kvs);
         }
 
@@ -166,59 +180,63 @@ public class TransactionManagers {
     }
 
     private static Supplier<Long> getImmutableTsSupplier(final TransactionManager txManager) {
-        return new Supplier<Long>() {
-            @Override
-            public Long get() {
-                return txManager.getImmutableTimestamp();
-            }
-        };
+        return () -> txManager.getImmutableTimestamp();
     }
 
     private static Supplier<Long> getUnreadableTsSupplier(final TransactionManager txManager) {
-        return new Supplier<Long>() {
-            @Override
-            public Long get() {
-                return txManager.getUnreadableTimestamp();
-            }
-        };
+        return () -> txManager.getUnreadableTimestamp();
     }
 
     public static LockAndTimestampServices createLockAndTimestampServices(
             AtlasDbConfig config,
-            Optional<SSLSocketFactory> sslSocketFactory,
             Environment env,
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
-
-        LockAndTimestampServices lockAndTimestampServices = createRawServices(config, sslSocketFactory, env, lock, time);
+        LockAndTimestampServices lockAndTimestampServices =
+                createRawServices(config, env, lock, time);
         return withRefreshingLockService(lockAndTimestampServices);
     }
 
-    private static LockAndTimestampServices withRefreshingLockService(LockAndTimestampServices lockAndTimestampServices) {
+    private static LockAndTimestampServices withRefreshingLockService(
+            LockAndTimestampServices lockAndTimestampServices) {
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
                 .lock(LockRefreshingRemoteLockService.create(lockAndTimestampServices.lock()))
                 .build();
     }
 
-    private static LockAndTimestampServices createRawServices(AtlasDbConfig config, Optional<SSLSocketFactory> sslSocketFactory, Environment env, Supplier<RemoteLockService> lock, Supplier<TimestampService> time) {
+    private static LockAndTimestampServices createRawServices(
+            AtlasDbConfig config,
+            Environment env,
+            Supplier<RemoteLockService> lock,
+            Supplier<TimestampService> time) {
         if (config.leader().isPresent()) {
-            LeaderElectionService leader = Leaders.create(sslSocketFactory, env, config.leader().get());
+            LeaderElectionService leader = Leaders.create(env, config.leader().get());
             env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
             env.register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader));
 
-            warnIf(config.lock().isPresent(), "Ignoring lock server configuration because leadership election is enabled");
-            warnIf(config.timestamp().isPresent(), "Ignoring timestamp server configuration because leadership election is enabled");
+            warnIf(config.lock().isPresent(),
+                    "Ignoring lock server configuration because leadership election is enabled");
+            warnIf(config.timestamp().isPresent(),
+                    "Ignoring timestamp server configuration because leadership election is enabled");
+
+            Optional<SSLSocketFactory> sslSocketFactory =
+                    createSslSocketFactory(config.leader().get().sslConfiguration());
 
             return ImmutableLockAndTimestampServices.builder()
                     .lock(createService(sslSocketFactory, config.leader().get().leaders(), RemoteLockService.class))
                     .time(createService(sslSocketFactory, config.leader().get().leaders(), TimestampService.class))
                     .build();
         } else {
-            warnIf(config.lock().isPresent() != config.timestamp().isPresent(), "Using embedded instances for one (but not both) of lock and timestamp services");
+            warnIf(config.lock().isPresent() != config.timestamp().isPresent(),
+                    "Using embedded instances for one (but not both) of lock and timestamp services");
 
-            RemoteLockService lockService = config.lock().transform(new ServiceCreator<>(sslSocketFactory, RemoteLockService.class)).or(lock);
-            TimestampService timeService = config.timestamp().transform(new ServiceCreator<>(sslSocketFactory, TimestampService.class)).or(time);
+            RemoteLockService lockService = config.lock()
+                    .transform(new ServiceCreator<>(RemoteLockService.class))
+                    .or(lock);
+            TimestampService timeService = config.timestamp()
+                    .transform(new ServiceCreator<>(TimestampService.class))
+                    .or(time);
 
             if (!config.lock().isPresent()) {
                 env.register(lockService);
@@ -240,21 +258,30 @@ public class TransactionManagers {
         }
     }
 
-    private static <T> T createService(Optional<SSLSocketFactory> sslSocketFactory, Set<String> uris, Class<T> serviceClass) {
+    /**
+     * Utility method for transforming an optional {@link SslConfiguration} into an optional {@link SSLSocketFactory}.
+     */
+    public static Optional<SSLSocketFactory> createSslSocketFactory(Optional<SslConfiguration> sslConfiguration) {
+        return sslConfiguration.transform(config -> SslSocketFactories.createSslSocketFactory(config));
+    }
+
+    private static <T> T createService(
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Set<String> uris,
+            Class<T> serviceClass) {
         return AtlasDbHttpClients.createProxyWithFailover(sslSocketFactory, uris, serviceClass);
     }
 
     private static class ServiceCreator<T> implements Function<ServerListConfig, T> {
-        private Optional<SSLSocketFactory> sslSocketFactory;
         private Class<T> serviceClass;
 
-        public ServiceCreator(Optional<SSLSocketFactory> sslSocketFactory, Class<T> serviceClass) {
-            this.sslSocketFactory = sslSocketFactory;
+        ServiceCreator(Class<T> serviceClass) {
             this.serviceClass = serviceClass;
         }
 
         @Override
         public T apply(ServerListConfig input) {
+            Optional<SSLSocketFactory> sslSocketFactory = createSslSocketFactory(input.sslConfiguration());
             return createService(sslSocketFactory, input.servers(), serviceClass);
         }
     }

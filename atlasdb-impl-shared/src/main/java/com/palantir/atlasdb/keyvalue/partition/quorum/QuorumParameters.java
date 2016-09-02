@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.partition.quorum;
 
+import java.util.Objects;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -23,36 +25,36 @@ import com.palantir.common.annotation.Immutable;
 
 @Immutable
 public final class QuorumParameters {
-    final int replicationFactor;
-    final int readFactor;
-    final int writeFactor;
+    private final int replicationFactor;
+    private final int readFactor;
+    private final int writeFactor;
 
     @Immutable
-    public final static class QuorumRequestParameters {
-        final int replicationFator;
-        final int successFactor;
+    public static final class QuorumRequestParameters {
+        private final int replicationFactor;
+        private final int successFactor;
 
-        public int getReplicationFator() {
-            return replicationFator;
+        private QuorumRequestParameters(int replicationFactor, int successFactor) {
+            this.replicationFactor = replicationFactor;
+            this.successFactor = successFactor;
+        }
+
+        public int getReplicationFactor() {
+            return replicationFactor;
         }
 
         /**
-         * After this many successes a success can be concluded
+         * After this many successes a success can be concluded.
          */
         public int getSuccessFactor() {
             return successFactor;
         }
 
         /**
-         * After this many failures a failure can be concluded
+         * After this many failures a failure can be concluded.
          */
         public int getFailureFactor() {
-            return replicationFator - successFactor + 1;
-        }
-
-        private QuorumRequestParameters(int replicationFactor, int successFactor) {
-            this.replicationFator = replicationFactor;
-            this.successFactor = successFactor;
+            return replicationFactor - successFactor + 1;
         }
     }
 
@@ -100,31 +102,21 @@ public final class QuorumParameters {
     }
 
     @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + readFactor;
-        result = prime * result + replicationFactor;
-        result = prime * result + writeFactor;
-        return result;
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        QuorumParameters that = (QuorumParameters) obj;
+        return replicationFactor == that.replicationFactor
+                && readFactor == that.readFactor
+                && writeFactor == that.writeFactor;
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        QuorumParameters other = (QuorumParameters) obj;
-        if (readFactor != other.readFactor)
-            return false;
-        if (replicationFactor != other.replicationFactor)
-            return false;
-        if (writeFactor != other.writeFactor)
-            return false;
-        return true;
+    public int hashCode() {
+        return Objects.hash(replicationFactor, readFactor, writeFactor);
     }
-
 }

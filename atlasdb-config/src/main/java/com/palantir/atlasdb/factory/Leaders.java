@@ -43,14 +43,16 @@ import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 
-public class Leaders {
+public final class Leaders {
+    private Leaders() {
+        // Utility class
+    }
 
     /**
      * Creates a LeaderElectionService using the supplied configuration and
      * registers appropriate endpoints for that service.
      */
     public static LeaderElectionService create(
-            Optional<SSLSocketFactory> sslSocketFactory,
             Environment env,
             LeaderConfig config) {
 
@@ -59,6 +61,9 @@ public class Leaders {
 
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
         remoteLeaderUris.remove(config.localServer());
+
+        Optional<SSLSocketFactory> sslSocketFactory =
+                TransactionManagers.createSslSocketFactory(config.sslConfiguration());
 
         List<PaxosLearner> learners =
                 AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosLearner.class);
@@ -99,18 +104,19 @@ public class Leaders {
         return leader;
     }
 
-    public static Map<PingableLeader, HostAndPort> generatePingables(Collection<String> remoteEndpoints,
-                                                                    Optional<SSLSocketFactory> sslSocketFactory) {
+    public static Map<PingableLeader, HostAndPort> generatePingables(
+            Collection<String> remoteEndpoints,
+            Optional<SSLSocketFactory> sslSocketFactory) {
         /* The interface used as a key here may be a proxy, which may have strange .equals() behavior.
          * This is circumvented by using an IdentityHashMap which will just use native == for equality.
          */
-        Map<PingableLeader, HostAndPort> pingables = new IdentityHashMap<PingableLeader, HostAndPort>();
+        Map<PingableLeader, HostAndPort> pingables = new IdentityHashMap<>();
         for (String endpoint : remoteEndpoints) {
-            PingableLeader remoteInterface = AtlasDbHttpClients.createProxy(sslSocketFactory, endpoint, PingableLeader.class);
+            PingableLeader remoteInterface = AtlasDbHttpClients
+                    .createProxy(sslSocketFactory, endpoint, PingableLeader.class);
             HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
             pingables.put(remoteInterface, hostAndPort);
         }
         return pingables;
     }
-
 }

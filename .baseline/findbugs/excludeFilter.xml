@@ -14,11 +14,18 @@
     <Match>
         <Or>
             <!-- Too time consuming to fix these for now -->
+            <Bug pattern="EI_EXPOSE_REP" />
             <Bug pattern="EI_EXPOSE_REP2" />
+            <Bug pattern="MS_EXPOSE_REP" />
             <Bug pattern="PT_EXTENDS_CONCRETE_TYPE" />
             <Bug pattern="PT_FINAL_TYPE_CONSTRUCTOR" />
             <Bug pattern="PT_FINAL_TYPE_PARAM" />
             <Bug pattern="PT_FINAL_TYPE_RETURN" />
+
+            <And>
+                <Class name="~.*\.DynamicPartitionMapImpl" />
+                <Bug pattern="IS_FIELD_NOT_GUARDED" />
+            </And>
         </Or>
     </Match>
 

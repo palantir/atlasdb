@@ -31,7 +31,6 @@ import com.palantir.nexus.db.pool.config.ConnectionConfig;
 @JsonTypeName(DbAtlasDbFactory.TYPE)
 @Value.Immutable
 public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
-
     public abstract DdlConfig ddl();
 
     public abstract ConnectionConfig connection();
@@ -47,5 +46,4 @@ public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
                 "ddl config (%s) and connection config (%s) must be for the same physical store",
                 ddl().type(), connection().type());
     }
-
 }

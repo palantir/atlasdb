@@ -29,26 +29,23 @@ import com.palantir.atlasdb.keyvalue.partition.map.PartitionMapService;
  * @author htarasiuk
  *
  */
-public class InMemoryKeyValueEndpoint implements KeyValueEndpoint {
-
-    transient final KeyValueService kvs;
-    transient final PartitionMapService pms;
-    transient final String rack;
+public final class InMemoryKeyValueEndpoint implements KeyValueEndpoint {
+    final transient KeyValueService kvs;
+    final transient PartitionMapService pms;
+    final transient String rack;
 
     private InMemoryKeyValueEndpoint(KeyValueService kvs, PartitionMapService pms, String rack) {
-        this.kvs = Preconditions.checkNotNull(kvs);
-        this.pms = Preconditions.checkNotNull(pms);
+        this.kvs = Preconditions.checkNotNull(kvs, "kvs cannot be null");
+        this.pms = Preconditions.checkNotNull(pms, "pms cannot be null");
         this.rack = KeyValueEndpoints.makeUniqueRackIfNoneSpecified(rack);
     }
 
     /**
+     * Creates an {@link InMemoryKeyValueEndpoint}.
      *
-     * @param kvs
-     * @param pms
      * @param rack Use <tt>PartitionedKeyValueConstants.NO_RACK</tt> if you want a unique
      * rack name to be created for this endpoint. Also see a convenience method
      * {@link #create(KeyValueService, PartitionMapService)}.
-     * @return
      */
     public static InMemoryKeyValueEndpoint create(KeyValueService kvs, PartitionMapService pms, String rack) {
         return new InMemoryKeyValueEndpoint(kvs, pms, rack);
@@ -59,9 +56,6 @@ public class InMemoryKeyValueEndpoint implements KeyValueEndpoint {
      * for this endpoint.
      * Equivalent to calling {@link #create(KeyValueService, PartitionMapService, String)}
      * with <tt>rack=PartitionedKeyValueConstants.NO_RACK</tt>.
-     * @param kvs
-     * @param pms
-     * @return
      */
     public static InMemoryKeyValueEndpoint create(KeyValueService kvs, PartitionMapService pms) {
         return create(kvs, pms, PartitionedKeyValueConstants.NO_RACK);

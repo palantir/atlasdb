@@ -60,9 +60,9 @@ public class FutureClosableIteratorTask<T> extends FutureTask<ClosableIterator<T
     }
 
     private void close() {
-        log.warn("Query was interrupted before a closable iterator was returned. " +
+        log.warn("Query was interrupted before a closable iterator was returned."
                 // and query-er did the responsible thing and interrupted us.
-                "closing resoures to prevent leaks.");
+                + " Closing resources to prevent leaks.");
         try {
             outcome.close();
         } catch (RuntimeException e) {

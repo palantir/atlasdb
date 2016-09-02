@@ -20,7 +20,7 @@ public enum TableSize {
 
     private final int id;
 
-    private TableSize(int id) {
+    TableSize(int id) {
         this.id = id;
     }
 
@@ -30,9 +30,12 @@ public enum TableSize {
 
     public static TableSize byId(int id) {
         switch (id) {
-        case 3: return RAW;
-        case 4: return OVERFLOW;
+            case 3:
+                return RAW;
+            case 4:
+                return OVERFLOW;
+            default:
+                throw new IllegalArgumentException("Unknown table size: " + id);
         }
-        throw new IllegalArgumentException("Unknown table size: " + id);
     }
 }

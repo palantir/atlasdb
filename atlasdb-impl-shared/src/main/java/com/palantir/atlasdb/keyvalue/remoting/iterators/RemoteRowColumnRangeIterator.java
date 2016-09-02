@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.remoting.iterators;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -47,11 +48,12 @@ public class RemoteRowColumnRangeIterator implements RowColumnRangeIterator {
     int position = 0;
 
     @JsonCreator
-    public RemoteRowColumnRangeIterator(@JsonProperty("tableRef") TableReference tableRef,
-                                        @JsonProperty("columnRangeSelection") BatchColumnRangeSelection columnRangeSelection,
-                                        @JsonProperty("timestamp") long timestamp,
-                                        @JsonProperty("hasNext") boolean hasNext,
-                                        @JsonProperty("page") List<Map.Entry<Cell, Value>> page) {
+    public RemoteRowColumnRangeIterator(
+            @JsonProperty("tableRef") TableReference tableRef,
+            @JsonProperty("columnRangeSelection") BatchColumnRangeSelection columnRangeSelection,
+            @JsonProperty("timestamp") long timestamp,
+            @JsonProperty("hasNext") boolean hasNext,
+            @JsonProperty("page") List<Map.Entry<Cell, Value>> page) {
         this.tableRef = tableRef;
         this.columnRangeSelection = columnRangeSelection;
         this.timestamp = timestamp;
@@ -62,8 +64,9 @@ public class RemoteRowColumnRangeIterator implements RowColumnRangeIterator {
             this.page = page;
         }
         if (this.page.isEmpty() && hasNext) {
-            throw new IllegalStateException("Attempting to create a row column page claiming to have more results available while having " +
-                    "no results in the current page.");
+            throw new IllegalStateException(
+                    "Attempting to create a row column page claiming to have more results available while having"
+                    + " no results in the current page.");
         }
     }
 
@@ -96,15 +99,27 @@ public class RemoteRowColumnRangeIterator implements RowColumnRangeIterator {
         }
     }
 
-    protected RemoteRowColumnRangeIterator getMoreRows(KeyValueService kvs, TableReference tableRef, byte[] row, byte[] nextCol) {
-        BatchColumnRangeSelection newColumnRange = new BatchColumnRangeSelection(nextCol, columnRangeSelection.getEndCol(), columnRangeSelection.getBatchHint());
-        Map<byte[], RowColumnRangeIterator> result = kvs.getRowsColumnRange(tableRef, ImmutableList.of(row), newColumnRange, timestamp);
+    protected RemoteRowColumnRangeIterator getMoreRows(
+            KeyValueService kvs,
+            TableReference table,
+            byte[] row,
+            byte[] nextCol) {
+        BatchColumnRangeSelection newColumnRange = new BatchColumnRangeSelection(
+                nextCol,
+                columnRangeSelection.getEndCol(),
+                columnRangeSelection.getBatchHint());
+        Map<byte[], RowColumnRangeIterator> result = kvs.getRowsColumnRange(
+                table,
+                ImmutableList.of(row),
+                newColumnRange,
+                timestamp);
         if (result.isEmpty()) {
-            return new RemoteRowColumnRangeIterator(tableRef, columnRangeSelection, timestamp, false, ImmutableList.of());
+            return new RemoteRowColumnRangeIterator(table, columnRangeSelection, timestamp, false, ImmutableList.of());
         }
         RowColumnRangeIterator it = Iterables.getOnlyElement(result.values());
-        List<Map.Entry<Cell, Value>> page = ImmutableList.copyOf(Iterators.limit(it, columnRangeSelection.getBatchHint()));
-        return new RemoteRowColumnRangeIterator(tableRef, columnRangeSelection, timestamp, it.hasNext(), page);
+        List<Map.Entry<Cell, Value>> pageToReturn =
+                ImmutableList.copyOf(Iterators.limit(it, columnRangeSelection.getBatchHint()));
+        return new RemoteRowColumnRangeIterator(table, columnRangeSelection, timestamp, it.hasNext(), pageToReturn);
     }
 
     private void swapWithNewRows(RemoteRowColumnRangeIterator other) {
@@ -126,38 +141,33 @@ public class RemoteRowColumnRangeIterator implements RowColumnRangeIterator {
         throw new UnsupportedOperationException();
     }
 
+    static RemoteRowColumnRangeIterator validateIsRangeIterator(RowColumnRangeIterator it) {
+        if (!(it instanceof RemoteRowColumnRangeIterator)) {
+            throw new IllegalArgumentException(
+                    "The server-side kvs must be wrapper with RemotingKeyValueService.createServerSide()");
+        }
+        return (RemoteRowColumnRangeIterator) it;
+    }
+
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        RemoteRowColumnRangeIterator that = (RemoteRowColumnRangeIterator) o;
-
-        if (timestamp != that.timestamp) return false;
-        if (hasNext != that.hasNext) return false;
-        if (position != that.position) return false;
-        if (tableRef != null ? !tableRef.equals(that.tableRef) : that.tableRef != null) return false;
-        if (columnRangeSelection != null ? !columnRangeSelection.equals(that.columnRangeSelection) : that.columnRangeSelection != null)
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
             return false;
-        return page != null ? page.equals(that.page) : that.page == null;
-
+        }
+        RemoteRowColumnRangeIterator that = (RemoteRowColumnRangeIterator) obj;
+        return timestamp == that.timestamp
+                && hasNext == that.hasNext
+                && position == that.position
+                && Objects.equals(tableRef, that.tableRef)
+                && Objects.equals(columnRangeSelection, that.columnRangeSelection)
+                && Objects.equals(page, that.page);
     }
 
     @Override
     public int hashCode() {
-        int result = tableRef != null ? tableRef.hashCode() : 0;
-        result = 31 * result + (columnRangeSelection != null ? columnRangeSelection.hashCode() : 0);
-        result = 31 * result + (int) (timestamp ^ (timestamp >>> 32));
-        result = 31 * result + (hasNext ? 1 : 0);
-        result = 31 * result + (page != null ? page.hashCode() : 0);
-        result = 31 * result + position;
-        return result;
-    }
-
-    static RemoteRowColumnRangeIterator validateIsRangeIterator(RowColumnRangeIterator it) {
-        if (!(it instanceof RemoteRowColumnRangeIterator)) {
-            throw new IllegalArgumentException("The server-side kvs must be wrapper with RemotingKeyValueService.createServerSide()");
-        }
-        return (RemoteRowColumnRangeIterator) it;
+        return Objects.hash(tableRef, columnRangeSelection, timestamp, hasNext, page, position);
     }
 }
