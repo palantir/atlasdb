@@ -1370,10 +1370,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      */
     @Override
     public void dropTables(final Set<TableReference> tablesToDrop) {
-        schemaMutationLock.runWithLock(() -> dropTablesWithLock(tablesToDrop));
+        schemaMutationLock.runWithLock(() -> dropTablesInternal(tablesToDrop));
     }
 
-    private void dropTablesWithLock(final Set<TableReference> tablesToDrop) throws Exception {
+    private void dropTablesInternal(final Set<TableReference> tablesToDrop) throws Exception {
         try {
             clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
@@ -1421,11 +1421,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      */
     @Override
     public void createTables(final Map<TableReference, byte[]> tableNamesToTableMetadata) {
-        schemaMutationLock.runWithLock(() -> createTablesWithLock(tableNamesToTableMetadata));
+        schemaMutationLock.runWithLock(() -> createTablesInternal(tableNamesToTableMetadata));
         internalPutMetadataForTables(tableNamesToTableMetadata, false);
     }
 
-    private void createTablesWithLock(final Map<TableReference, byte[]> tableNamesToTableMetadata) throws Exception {
+    private void createTablesInternal(final Map<TableReference, byte[]> tableNamesToTableMetadata) throws Exception {
         try {
             clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
                 KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
@@ -1607,17 +1607,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         if (possiblyNeedToPerformSettingsChanges) {
             schemaMutationLock.runWithLock(() ->
-                    putMetadataForTablesWithLock(possiblyNeedToPerformSettingsChanges, newMetadata, updatedCfs));
+                    putMetadataForTablesInternal(possiblyNeedToPerformSettingsChanges, newMetadata, updatedCfs));
         } else {
             try {
-                putMetadataForTablesWithLock(possiblyNeedToPerformSettingsChanges, newMetadata, updatedCfs);
+                putMetadataForTablesInternal(possiblyNeedToPerformSettingsChanges, newMetadata, updatedCfs);
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
             }
         }
     }
 
-    private void putMetadataForTablesWithLock(
+    private void putMetadataForTablesInternal(
             boolean possiblyNeedToPerformSettingsChanges,
             Map<Cell, byte[]> newMetadata,
             Collection<CfDef> updatedCfs) throws Exception {
@@ -1760,10 +1760,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 "tombstone_threshold_ratio:[%s] should be between [0.0, 1.0]", tombstoneThresholdRatio);
 
         schemaMutationLock.runWithLock(() ->
-                alterGcAndTombstoneWithLock(keyspace, tableRef, gcGraceSeconds, tombstoneThresholdRatio));
+                alterGcAndTombstoneInternal(keyspace, tableRef, gcGraceSeconds, tombstoneThresholdRatio));
     }
 
-    private void alterGcAndTombstoneWithLock(
+    private void alterGcAndTombstoneInternal(
             String keyspace,
             TableReference tableRef,
             int gcGraceSeconds,
@@ -1804,22 +1804,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public void cleanUpSchemaMutationLockTablesState() throws Exception {
         // get a unique table and create it if it doesn't exist
         Set<TableReference> tables = lockTables.getAllLockTables();
-        TableReference unique;
-        if (tables.size() == 0) {
-            unique = lockTables.createLockTable();
-            log.info("There were no locks tables, so one was succesfully created: {}", unique.toString());
-            return;
-        }
-        unique = tables.iterator().next();
-        tables.remove(unique);
-
-        // drop additional unwanted tables
-        if (tables.size() > 0) {
-            dropTablesWithLock(tables);
-        }
-        // truncate the unique table
-        truncateTable(unique);
-        log.info("Succesfully cleaned up the Cassandra schema mutation locks. Empty unique lock table is: {}", tables.toString());
+        dropTablesInternal(tables);
+        log.info("Dropped all schema mutation lock tables [{}]", tables.toString());
     }
 
     private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
