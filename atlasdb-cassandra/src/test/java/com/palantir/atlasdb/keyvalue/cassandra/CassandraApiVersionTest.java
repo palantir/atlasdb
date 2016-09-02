@@ -20,8 +20,6 @@ import static org.hamcrest.core.Is.is;
 
 import org.junit.Test;
 
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraApiVersion;
-
 public class CassandraApiVersionTest {
     @Test public void
     version_19_36_0_does_not_support_cas() {
