@@ -16,7 +16,7 @@ dependencies {
 
 test {
     maxHeapSize = "1024m"
-    include '**/*Suite.class'
+    exclude '**/*IntegrationTest*'
     maxParallelForks 2
     dependsOn ':atlasdb-ete-test-utils:buildCassandraImage'
 }
