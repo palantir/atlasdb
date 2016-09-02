@@ -36,6 +36,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -44,7 +45,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -160,7 +160,7 @@ public class KeyValueServices {
     }
 
     // TODO: kill this when we can properly implement this on all KVSes
-    public static Map<byte[], RowColumnRangeIterator> filterGetRowsToColumnRange(KeyValueService kvs, TableReference tableRef, Iterable<byte[]> rows, SizedColumnRangeSelection columnRangeSelection, long timestamp) {
+    public static Map<byte[], RowColumnRangeIterator> filterGetRowsToColumnRange(KeyValueService kvs, TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection, long timestamp) {
         log.warn("Using inefficient postfiltering for getRowsColumnRange because the KVS doesn't support it natively. Production " +
                 "environments should use a KVS with a proper implementation.");
         Map<Cell, Value> allValues = kvs.getRows(tableRef, rows, ColumnSelection.all(), timestamp);
@@ -211,12 +211,13 @@ public class KeyValueServices {
         }
         log.warn("This KVS does not support getRowsColumnRange with paging through all results simultaneously. Falling "
                 + "back to the less efficient per-row paging version.");
-        SizedColumnRangeSelection sizedColumnRangeSelection =
-                new SizedColumnRangeSelection(columnRangeSelection.getStartCol(),
+        int columnBatchSize = batchHint / Iterables.size(rows);
+        BatchColumnRangeSelection batchColumnRangeSelection =
+                new BatchColumnRangeSelection(columnRangeSelection.getStartCol(),
                                               columnRangeSelection.getEndCol(),
-                                              batchHint / Iterables.size(rows));
+                                              columnBatchSize);
         Map<byte[], RowColumnRangeIterator> rowsColumnRanges =
-                kvs.getRowsColumnRange(tableRef, rows, sizedColumnRangeSelection, timestamp);
+                kvs.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
         // Return results in the same order as the provided rows.
         Iterable<RowColumnRangeIterator> orderedRanges = Iterables.transform(rows, rowsColumnRanges::get);
         return new LocalRowColumnRangeIterator(Iterators.concat(orderedRanges.iterator()));

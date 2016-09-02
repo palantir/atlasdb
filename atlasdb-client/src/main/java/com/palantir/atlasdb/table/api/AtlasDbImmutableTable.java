@@ -21,9 +21,9 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.common.base.BatchingVisitable;
 
@@ -43,7 +43,7 @@ public interface AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> extends Co
                                                      ColumnSelection columnSelection,
                                                      ExecutorService exec);
     Map<ROW, BatchingVisitable<COLUMN_VALUE>> getRowsColumnRange(Iterable<ROW> rows,
-                                                                 SizedColumnRangeSelection columnRangeSelection);
+                                                                 BatchColumnRangeSelection columnRangeSelection);
 
     Iterator<Map.Entry<ROW, COLUMN_VALUE>> getRowsColumnRange(Iterable<ROW> rows,
                                                               ColumnRangeSelection columnRangeSelection,

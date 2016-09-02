@@ -32,10 +32,10 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -158,7 +158,7 @@ public class BatchedDbReadTable extends AbstractDbReadTable {
     }
 
     @Override
-    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(Map<byte[], SizedColumnRangeSelection> columnRangeSelectionsByRow,
+    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow,
                                                                        long ts) {
         Queue<Future<ClosableIterator<AgnosticLightResultRow>>> futures = Queues.newArrayDeque();
         for (List<byte[]> batch : Iterables.partition(columnRangeSelectionsByRow.keySet(), getBatchSize())) {

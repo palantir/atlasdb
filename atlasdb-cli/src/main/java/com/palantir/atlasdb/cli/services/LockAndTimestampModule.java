@@ -15,11 +15,11 @@
  */
 package com.palantir.atlasdb.cli.services;
 
-import static com.palantir.atlasdb.factory.TransactionManagers.LockAndTimestampServices;
 import static com.palantir.atlasdb.factory.TransactionManagers.createLockAndTimestampServices;
 
 import javax.inject.Singleton;
 
+import com.palantir.atlasdb.factory.TransactionManagers.LockAndTimestampServices;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.TimestampService;

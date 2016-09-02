@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -25,38 +24,26 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 
-public class SizedColumnRangeSelection implements Serializable {
+public class BatchColumnRangeSelection implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    // Inclusive start column name.
-    private final byte[] startCol;
-    // Exclusive end column name.
-    private final byte[] endCol;
+    private final ColumnRangeSelection columnRangeSelection;
     private final int batchHint;
 
     @JsonCreator
-    public SizedColumnRangeSelection(@JsonProperty("startInclusive") byte[] startCol,
+    public BatchColumnRangeSelection(@JsonProperty("startInclusive") byte[] startCol,
                                      @JsonProperty("endExclusive") byte[] endCol,
                                      @JsonProperty("batchHint") int batchHint) {
-        if (startCol == null) {
-            this.startCol = PtBytes.EMPTY_BYTE_ARRAY;
-        } else {
-            this.startCol = startCol;
-        }
-        if (endCol == null) {
-            this.endCol = PtBytes.EMPTY_BYTE_ARRAY;
-        } else {
-            this.endCol = endCol;
-        }
+        this.columnRangeSelection = new ColumnRangeSelection(startCol, endCol);
         this.batchHint = batchHint;
     }
 
     public byte[] getStartCol() {
-        return startCol;
+        return columnRangeSelection.getStartCol();
     }
 
     public byte[] getEndCol() {
-        return endCol;
+        return columnRangeSelection.getEndCol();
     }
 
     public int getBatchHint() {
@@ -64,40 +51,54 @@ public class SizedColumnRangeSelection implements Serializable {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        SizedColumnRangeSelection that = (SizedColumnRangeSelection) o;
-
-        if (batchHint != that.batchHint) return false;
-        if (!Arrays.equals(startCol, that.startCol)) return false;
-        return Arrays.equals(endCol, that.endCol);
-
-    }
-
-    @Override
     public int hashCode() {
-        int result = Arrays.hashCode(startCol);
-        result = 31 * result + Arrays.hashCode(endCol);
-        result = 31 * result + batchHint;
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + batchHint;
+        result = prime * result + ((columnRangeSelection == null) ? 0 : columnRangeSelection.hashCode());
         return result;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        BatchColumnRangeSelection other = (BatchColumnRangeSelection) obj;
+        if (batchHint != other.batchHint) {
+            return false;
+        }
+        if (columnRangeSelection == null) {
+            if (other.columnRangeSelection != null) {
+                return false;
+            }
+        } else if (!columnRangeSelection.equals(other.columnRangeSelection)) {
+            return false;
+        }
+        return true;
+    }
+
+
     private static final Pattern deserializeRegex = Pattern.compile("\\s*,\\s*");
 
-    public static SizedColumnRangeSelection valueOf(String serialized) {
+    public static BatchColumnRangeSelection valueOf(String serialized) {
         String[] split = deserializeRegex.split(serialized);
         byte[] startCol = PtBytes.decodeBase64(split[0]);
         byte[] endCol = PtBytes.decodeBase64(split[1]);
         int batchHint = Integer.valueOf(split[2]);
-        return new SizedColumnRangeSelection(startCol, endCol, batchHint);
+        return new BatchColumnRangeSelection(startCol, endCol, batchHint);
     }
 
     @Override
     public String toString() {
-        String start = PtBytes.encodeBase64String(startCol);
-        String end = PtBytes.encodeBase64String(endCol);
+        String start = PtBytes.encodeBase64String(getStartCol());
+        String end = PtBytes.encodeBase64String(getEndCol());
         String batch = String.valueOf(batchHint);
         return Joiner.on(',').join(ImmutableList.of(start, end, batch));
     }

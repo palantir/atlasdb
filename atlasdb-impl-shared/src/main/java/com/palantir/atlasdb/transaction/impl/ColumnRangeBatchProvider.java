@@ -24,11 +24,11 @@ import javax.annotation.Nullable;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
@@ -38,10 +38,10 @@ public class ColumnRangeBatchProvider implements BatchProvider<Map.Entry<Cell, V
     private final KeyValueService keyValueService;
     private final TableReference tableRef;
     private final byte[] row;
-    private final SizedColumnRangeSelection columnRangeSelection;
+    private final BatchColumnRangeSelection columnRangeSelection;
     private final long timestamp;
 
-    public ColumnRangeBatchProvider(KeyValueService keyValueService, TableReference tableRef, byte[] row, SizedColumnRangeSelection columnRangeSelection, long timestamp) {
+    public ColumnRangeBatchProvider(KeyValueService keyValueService, TableReference tableRef, byte[] row, BatchColumnRangeSelection columnRangeSelection, long timestamp) {
         this.keyValueService = keyValueService;
         this.tableRef = tableRef;
         this.row = row;
@@ -55,7 +55,7 @@ public class ColumnRangeBatchProvider implements BatchProvider<Map.Entry<Cell, V
         if (lastToken != null) {
             startCol = RangeRequests.nextLexicographicName(lastToken);
         }
-        SizedColumnRangeSelection newRange = new SizedColumnRangeSelection(startCol, columnRangeSelection.getEndCol(), batchSize);
+        BatchColumnRangeSelection newRange = new BatchColumnRangeSelection(startCol, columnRangeSelection.getEndCol(), batchSize);
         Map<byte[], RowColumnRangeIterator> range = keyValueService.getRowsColumnRange(tableRef, ImmutableList.of(row), newRange, timestamp);
         if (range.isEmpty()) {
             return ClosableIterators.wrap(ImmutableList.<Map.Entry<Cell, Value>>of().iterator());

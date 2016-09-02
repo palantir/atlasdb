@@ -107,6 +107,7 @@ import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.jdbc.config.JdbcDataSourceConfiguration;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -117,7 +118,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
@@ -1094,7 +1094,7 @@ public class JdbcKeyValueService implements KeyValueService {
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef,
                                                                   Iterable<byte[]> rows,
-                                                                  SizedColumnRangeSelection columnRangeSelection,
+                                                                  BatchColumnRangeSelection columnRangeSelection,
                                                                   long timestamp) {
         return KeyValueServices.filterGetRowsToColumnRange(this, tableRef, rows, columnRangeSelection, timestamp);
     }
@@ -1103,13 +1103,13 @@ public class JdbcKeyValueService implements KeyValueService {
     public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
                                                      Iterable<byte[]> rows,
                                                      ColumnRangeSelection columnRangeSelection,
-                                                     int batchHint,
+                                                     int cellBatchHint,
                                                      long timestamp) {
         return KeyValueServices.mergeGetRowsColumnRangeIntoSingleIterator(this,
                                                                           tableRef,
                                                                           rows,
                                                                           columnRangeSelection,
-                                                                          batchHint,
+                                                                          cellBatchHint,
                                                                           timestamp);
     }
 }

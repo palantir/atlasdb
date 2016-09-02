@@ -113,12 +113,13 @@ public interface KeyValueService extends AutoCloseable {
     @Idempotent
     Map<byte[], RowColumnRangeIterator> getRowsColumnRange(@QueryParam("tableRef") TableReference tableRef,
                                                            Iterable<byte[]> rows,
-                                                           @QueryParam("sizedColumnRangeSelection") SizedColumnRangeSelection sizedColumnRangeSelection,
+                                                           @QueryParam("batchColumnRangeSelection") BatchColumnRangeSelection batchColumnRangeSelection,
                                                            @QueryParam("timestamp") long timestamp);
 
     /**
-     * All columns for a given row are adjacent in the returned {@link RowColumnRangeIterator} and sorted by increasing
-     * column name. Results for different rows are returned in the same order as they are provided in {@code rows}.
+     * Returns a single iterator over all matching cells. All columns for a given row are adjacent in the returned
+     * {@link RowColumnRangeIterator} and sorted by increasing column name. Results for different rows are returned in
+     * the same order as they are provided in {@code rows}.
      * <p/>
      * Behavior is undefined if {@code rows} contains duplicates (as defined by
      * {@link java.util.Arrays#equals(byte[], byte[])}).
@@ -131,7 +132,7 @@ public interface KeyValueService extends AutoCloseable {
     RowColumnRangeIterator getRowsColumnRange(@QueryParam("tableRef") TableReference tableRef,
                                               Iterable<byte[]> rows,
                                               @QueryParam("columnRangeSelection") ColumnRangeSelection columnRangeSelection,
-                                              @QueryParam("batchHint") int batchHint,
+                                              @QueryParam("cellBatchHint") int cellBatchHint,
                                               @QueryParam("timestamp") long timestamp);
 
     /**

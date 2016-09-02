@@ -33,13 +33,13 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
@@ -125,7 +125,7 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
             @Override
             public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef,
                                                                           Iterable<byte[]> rows,
-                                                                          SizedColumnRangeSelection columnRangeSelection,
+                                                                          BatchColumnRangeSelection columnRangeSelection,
                                                                           long timestamp) {
                 Map<byte[], RowColumnRangeIterator> rowsColumnRange =
                         super.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
@@ -148,13 +148,13 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
             public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
                                                              Iterable<byte[]> rows,
                                                              ColumnRangeSelection columnRangeSelection,
-                                                             int batchHint,
+                                                             int cellBatchHint,
                                                              long timestamp) {
                 return KeyValueServices.mergeGetRowsColumnRangeIntoSingleIterator(this,
                                                                                   tableRef,
                                                                                   rows,
                                                                                   columnRangeSelection,
-                                                                                  batchHint,
+                                                                                  cellBatchHint,
                                                                                   timestamp);
             }
         };
@@ -267,7 +267,7 @@ public class RemotingKeyValueService extends ForwardingKeyValueService {
 
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
-                                                                  SizedColumnRangeSelection columnRangeSelection, long timestamp) {
+                                                                  BatchColumnRangeSelection columnRangeSelection, long timestamp) {
         Map<byte[], RowColumnRangeIterator> rowsColumnRange = super.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
         Map<byte[], RowColumnRangeIterator> transformed = Maps.transformValues(rowsColumnRange,
                 it -> {

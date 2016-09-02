@@ -24,11 +24,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.remoting.RemotingKeyValueService;
@@ -37,7 +37,7 @@ public class RemoteRowColumnRangeIterator implements RowColumnRangeIterator {
     @JsonProperty("tableRef")
     final TableReference tableRef;
     @JsonProperty("columnRangeSelection")
-    final SizedColumnRangeSelection columnRangeSelection;
+    final BatchColumnRangeSelection columnRangeSelection;
     @JsonProperty("timestamp")
     final long timestamp;
     @JsonProperty("hasNext")
@@ -48,7 +48,7 @@ public class RemoteRowColumnRangeIterator implements RowColumnRangeIterator {
 
     @JsonCreator
     public RemoteRowColumnRangeIterator(@JsonProperty("tableRef") TableReference tableRef,
-                                        @JsonProperty("columnRangeSelection") SizedColumnRangeSelection columnRangeSelection,
+                                        @JsonProperty("columnRangeSelection") BatchColumnRangeSelection columnRangeSelection,
                                         @JsonProperty("timestamp") long timestamp,
                                         @JsonProperty("hasNext") boolean hasNext,
                                         @JsonProperty("page") List<Map.Entry<Cell, Value>> page) {
@@ -97,7 +97,7 @@ public class RemoteRowColumnRangeIterator implements RowColumnRangeIterator {
     }
 
     protected RemoteRowColumnRangeIterator getMoreRows(KeyValueService kvs, TableReference tableRef, byte[] row, byte[] nextCol) {
-        SizedColumnRangeSelection newColumnRange = new SizedColumnRangeSelection(nextCol, columnRangeSelection.getEndCol(), columnRangeSelection.getBatchHint());
+        BatchColumnRangeSelection newColumnRange = new BatchColumnRangeSelection(nextCol, columnRangeSelection.getEndCol(), columnRangeSelection.getBatchHint());
         Map<byte[], RowColumnRangeIterator> result = kvs.getRowsColumnRange(tableRef, ImmutableList.of(row), newColumnRange, timestamp);
         if (result.isEmpty()) {
             return new RemoteRowColumnRangeIterator(tableRef, columnRangeSelection, timestamp, false, ImmutableList.of());

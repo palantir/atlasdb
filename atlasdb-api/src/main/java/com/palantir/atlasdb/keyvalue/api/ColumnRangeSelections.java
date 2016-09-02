@@ -21,13 +21,13 @@ import com.google.common.base.Preconditions;
 import com.palantir.common.persist.Persistable;
 
 public class ColumnRangeSelections implements Serializable {
-    public static SizedColumnRangeSelection createPrefixRange(byte[] prefix, int batchSize) {
+    public static BatchColumnRangeSelection createPrefixRange(byte[] prefix, int batchSize) {
         byte[] startCol = Preconditions.checkNotNull(prefix).clone();
         byte[] endCol = RangeRequests.createEndNameForPrefixScan(prefix);
-        return new SizedColumnRangeSelection(startCol, endCol, batchSize);
+        return new BatchColumnRangeSelection(startCol, endCol, batchSize);
     }
 
-    public static SizedColumnRangeSelection createPrefixRange(Persistable persistable, int batchSize) {
+    public static BatchColumnRangeSelection createPrefixRange(Persistable persistable, int batchSize) {
         return createPrefixRange(persistable.persistToBytes(), batchSize);
     }
 }

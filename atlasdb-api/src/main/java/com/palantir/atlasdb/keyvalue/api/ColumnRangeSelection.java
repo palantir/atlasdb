@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Joiner;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 
@@ -36,16 +37,8 @@ public class ColumnRangeSelection implements Serializable {
     @JsonCreator
     public ColumnRangeSelection(@JsonProperty("startInclusive") byte[] startCol,
                                 @JsonProperty("endExclusive") byte[] endCol) {
-        if (startCol == null) {
-            this.startCol = PtBytes.EMPTY_BYTE_ARRAY;
-        } else {
-            this.startCol = startCol;
-        }
-        if (endCol == null) {
-            this.endCol = PtBytes.EMPTY_BYTE_ARRAY;
-        } else {
-            this.endCol = endCol;
-        }
+        this.startCol = MoreObjects.firstNonNull(startCol, PtBytes.EMPTY_BYTE_ARRAY);
+        this.endCol = MoreObjects.firstNonNull(endCol, PtBytes.EMPTY_BYTE_ARRAY);
     }
 
     public byte[] getStartCol() {

@@ -70,6 +70,7 @@ import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -79,7 +80,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
@@ -351,7 +351,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(TableReference tableRef,
                                                                                       Iterable<byte[]> rows,
-                                                                                      SizedColumnRangeSelection columnRangeSelection) {
+                                                                                      BatchColumnRangeSelection columnRangeSelection) {
         if (Iterables.isEmpty(rows)) {
             return ImmutableMap.of();
         }
@@ -369,12 +369,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getPostfilteredColumns(TableReference tableRef,
-                                                                     SizedColumnRangeSelection sizedColumnRangeSelection,
+                                                                     BatchColumnRangeSelection batchColumnRangeSelection,
                                                                      byte[] row,
                                                                      RowColumnRangeIterator rawIterator) {
         Iterator<Map.Entry<Cell, byte[]>> postfilterIterator =
-                getRowColumnRangePostfiltered(tableRef, row, sizedColumnRangeSelection, rawIterator);
-        SortedMap<Cell, byte[]> localWrites = getLocalWritesForColumnRange(tableRef, sizedColumnRangeSelection, row);
+                getRowColumnRangePostfiltered(tableRef, row, batchColumnRangeSelection, rawIterator);
+        SortedMap<Cell, byte[]> localWrites = getLocalWritesForColumnRange(tableRef, batchColumnRangeSelection, row);
         Iterator<Map.Entry<Cell, byte[]>> localIterator = localWrites.entrySet().iterator();
         Iterator<Map.Entry<Cell, byte[]>> mergedIterator =
                 IteratorUtils.mergeIterators(localIterator,
@@ -386,7 +386,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return Iterators.filter(mergedIterator, entry -> entry.getValue().length > 0);
     }
 
-    private Iterator<Map.Entry<Cell, byte[]>> getRowColumnRangePostfiltered(TableReference tableRef, byte[] row, SizedColumnRangeSelection columnRangeSelection,
+    private Iterator<Map.Entry<Cell, byte[]>> getRowColumnRangePostfiltered(TableReference tableRef, byte[] row, BatchColumnRangeSelection columnRangeSelection,
                                                                            RowColumnRangeIterator rawIterator) {
         ColumnRangeBatchProvider batchProvider = new ColumnRangeBatchProvider(keyValueService, tableRef, row, columnRangeSelection, getStartTimestamp());
         BatchSizeIncreasingIterator<Map.Entry<Cell, Value>> batchIterator =
@@ -430,11 +430,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Iterator<Iterator<Map.Entry<Cell, byte[]>>> postfiltered = Iterators.transform(rawResultsByRow, e -> {
             byte[] row = e.getKey();
             RowColumnRangeIterator rawIterator = e.getValue();
-            SizedColumnRangeSelection sizedColumnRangeSelection =
-                    new SizedColumnRangeSelection(columnRangeSelection.getStartCol(),
+            BatchColumnRangeSelection batchColumnRangeSelection =
+                    new BatchColumnRangeSelection(columnRangeSelection.getStartCol(),
                                                   columnRangeSelection.getEndCol(),
                                                   batchHint);
-            return getPostfilteredColumns(tableRef, sizedColumnRangeSelection, row, rawIterator);
+            return getPostfilteredColumns(tableRef, batchColumnRangeSelection, row, rawIterator);
         });
         return Iterators.concat(postfiltered);
     }
@@ -849,7 +849,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return writes;
     }
 
-    private SortedMap<Cell, byte[]> getLocalWritesForColumnRange(TableReference tableRef, SizedColumnRangeSelection columnRangeSelection, byte[] row) {
+    private SortedMap<Cell, byte[]> getLocalWritesForColumnRange(TableReference tableRef, BatchColumnRangeSelection columnRangeSelection, byte[] row) {
         SortedMap<Cell, byte[]> writes = getLocalWrites(tableRef);
         Cell startCell;
         if (columnRangeSelection.getStartCol().length != 0) {

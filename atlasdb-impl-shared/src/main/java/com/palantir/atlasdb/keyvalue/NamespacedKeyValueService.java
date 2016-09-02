@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -28,7 +29,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.annotation.Idempotent;
@@ -55,7 +55,7 @@ public interface NamespacedKeyValueService {
                              ColumnSelection columnSelection,long timestamp);
 
     @Idempotent
-    Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, SizedColumnRangeSelection columnRangeSelection, long timestamp);
+    Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection, long timestamp);
 
     @Idempotent
     RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,

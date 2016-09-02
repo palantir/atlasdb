@@ -64,6 +64,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
@@ -72,7 +73,6 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.Prefix;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
@@ -1176,7 +1176,7 @@ public class TableRenderer {
 
         private void renderGetRowsColumnRange(boolean isDynamic) {
             line("@Override");
-            line("public Map<", Row, ", BatchingVisitable<", ColumnValue, ">> getRowsColumnRange(Iterable<", Row, "> rows, SizedColumnRangeSelection columnRangeSelection) {"); {
+            line("public Map<", Row, ", BatchingVisitable<", ColumnValue, ">> getRowsColumnRange(Iterable<", Row, "> rows, BatchColumnRangeSelection columnRangeSelection) {"); {
                 line("Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);");
                 line("Map<", Row, ", BatchingVisitable<", ColumnValue, ">> transformed = Maps.newHashMapWithExpectedSize(results.size());");
                 line("for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {"); {
@@ -1376,7 +1376,7 @@ public class TableRenderer {
         ValueType.class,
         Generated.class,
         TableReference.class,
-        SizedColumnRangeSelection.class,
+        BatchColumnRangeSelection.class,
         ColumnRangeSelections.class,
         ColumnRangeSelection.class,
         Iterators.class,

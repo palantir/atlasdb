@@ -24,11 +24,11 @@ import java.util.Map.Entry;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
@@ -297,15 +297,15 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
     }
 
     @Override
-    public FullQuery getRowsColumnRangeQuery(Map<byte[], SizedColumnRangeSelection> columnRangeSelectionsByRow, long ts) {
+    public FullQuery getRowsColumnRangeQuery(Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow, long ts) {
         List<String> subQueries = new ArrayList<>(columnRangeSelectionsByRow.size());
         int totalArgs = 0;
-        for (SizedColumnRangeSelection columnRangeSelection : columnRangeSelectionsByRow.values()) {
+        for (BatchColumnRangeSelection columnRangeSelection : columnRangeSelectionsByRow.values()) {
             totalArgs += 2 + ((columnRangeSelection.getStartCol().length > 0) ? 1 : 0)
                     + ((columnRangeSelection.getEndCol().length > 0) ? 1 : 0);
         }
         List<Object> args = new ArrayList<>(totalArgs);
-        for (Map.Entry<byte[], SizedColumnRangeSelection> entry : columnRangeSelectionsByRow.entrySet()) {
+        for (Map.Entry<byte[], BatchColumnRangeSelection> entry : columnRangeSelectionsByRow.entrySet()) {
             FullQuery query = getRowsColumnRangeSubQuery(entry.getKey(), ts, entry.getValue());
             subQueries.add(query.getQuery());
             for (Object arg : query.getArgs()) {
@@ -317,7 +317,7 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
         return new FullQuery(query).withArgs(args);
     }
 
-    private FullQuery getRowsColumnRangeSubQuery(byte[] row, long ts, SizedColumnRangeSelection columnRangeSelection) {
+    private FullQuery getRowsColumnRangeSubQuery(byte[] row, long ts, BatchColumnRangeSelection columnRangeSelection) {
         String query =
                 " /* GET_ROWS_COLUMN_RANGE (" + tableName + ") */ " +
                         "SELECT * FROM ( SELECT m.row_name, m.col_name, max(m.ts) as ts" +

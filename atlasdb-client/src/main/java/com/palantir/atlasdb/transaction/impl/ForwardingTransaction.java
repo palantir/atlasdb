@@ -22,12 +22,12 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import com.google.common.collect.ForwardingObject;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -56,7 +56,7 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     @Override
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(TableReference tableRef,
                                                                                      Iterable<byte[]> rows,
-                                                                                     SizedColumnRangeSelection columnRangeSelection) {
+                                                                                     BatchColumnRangeSelection columnRangeSelection) {
         return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection);
     }
 

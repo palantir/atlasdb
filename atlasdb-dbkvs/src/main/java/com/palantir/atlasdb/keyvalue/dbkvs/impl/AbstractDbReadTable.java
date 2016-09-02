@@ -29,11 +29,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
@@ -223,10 +223,10 @@ public abstract class AbstractDbReadTable implements DbReadTable {
     }
 
     @Override
-    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(Map<byte[], SizedColumnRangeSelection> columnRangeSelectionsByRow, long ts) {
+    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow, long ts) {
         FullQuery query = queryFactory.getRowsColumnRangeQuery(columnRangeSelectionsByRow, ts);
         AgnosticLightResultSet results = conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
-        int totalSize = columnRangeSelectionsByRow.values().stream().mapToInt(SizedColumnRangeSelection::getBatchHint).sum();
+        int totalSize = columnRangeSelectionsByRow.values().stream().mapToInt(BatchColumnRangeSelection::getBatchHint).sum();
         results.setFetchSize(Math.max(totalSize, MAX_ROW_COLUMN_RANGES_FETCH_SIZE));
         return ClosableIterators.wrap(results.iterator(), results);
     }

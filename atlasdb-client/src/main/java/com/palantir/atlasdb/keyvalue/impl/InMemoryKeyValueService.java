@@ -46,6 +46,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -54,7 +55,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.SizedColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.annotation.Output;
@@ -303,13 +303,13 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef,
                                                                   Iterable<byte[]> rows,
-                                                                  SizedColumnRangeSelection sizedColumnRangeSelection,
+                                                                  BatchColumnRangeSelection batchColumnRangeSelection,
                                                                   long timestamp) {
         Map<byte[], RowColumnRangeIterator> result = Maps.newHashMap();
         ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
 
         ColumnRangeSelection columnRangeSelection =
-                new ColumnRangeSelection(sizedColumnRangeSelection.getStartCol(), sizedColumnRangeSelection.getEndCol());
+                new ColumnRangeSelection(batchColumnRangeSelection.getStartCol(), batchColumnRangeSelection.getEndCol());
         for (byte[] row : rows) {
             result.put(row, getColumnRangeForSingleRow(table, row, columnRangeSelection, timestamp));
         }
@@ -321,7 +321,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
                                                      Iterable<byte[]> rows,
                                                      ColumnRangeSelection columnRangeSelection,
-                                                     int batchHint,
+                                                     int cellBatchHint,
                                                      long timestamp) {
         ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
         Iterator<RowColumnRangeIterator> rowColumnRanges =
