@@ -52,7 +52,7 @@ public class BasicSQLUtils {
     }
 
     public static String nArguments(int n) {
-        return makeStringList("?", ",", n); //$NON-NLS-1$ //$NON-NLS-2$
+        return TextUtils.makeStringList("?", ",", n); //$NON-NLS-1$ //$NON-NLS-2$
     }
 
     /**
