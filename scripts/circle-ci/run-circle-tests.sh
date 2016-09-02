@@ -16,9 +16,9 @@ CONTAINER_2=(':atlasdb-tests-shared:check' ':atlasdb-ete-tests:check')
 #Container 3
 CONTAINER_3=(':atlasdb-timelock-ete:check' ':lock-impl:check' ':atlasdb-dbkvs-tests:check')
 
-CONTAINER_4=(':atlasdb-dropwizard-tests:check')
+CONTAINER_4=(':atlasdb-impl-shared:check' ':atlasdb-ete-test-utils:check' ':atlasdb-dropwizard-tests:check')
 
-CONTAINER_5=(':atlasdb-cassandra-multinode-tests:check')
+CONTAINER_5=(':atlasdb-dbkvs:check' ':atlasdb-tests-shared:check' ':atlasdb-cassandra-multinode-tests:check')
 
 # Container 0 - runs tasks not found in the below containers
 CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}"  "${CONTAINER_5[@]}")
