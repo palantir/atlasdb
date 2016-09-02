@@ -47,25 +47,13 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.LightweightOp
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.WeightedHosts;
 import com.palantir.common.base.FunctionCheckedException;
 
-public class CassandraClientPoolTest {
+public class CassandraClientPoolIntegrationTest {
     private CassandraKeyValueService kv;
 
     @Before
     public void setUp() {
         kv = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(
-                        ImmutableCassandraKeyValueServiceConfig.builder()
-                                .addServers(new InetSocketAddress("localhost", 9160))
-                                .poolSize(20)
-                                .keyspace("atlasdb")
-                                .ssl(false)
-                                .replicationFactor(1)
-                                .mutationBatchCount(10000)
-                                .mutationBatchSizeBytes(10000000)
-                                .fetchBatchCount(1000)
-                                .safetyDisabled(true)
-                                .autoRefreshNodes(true)
-                                .build()),
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG),
                 CassandraTestSuite.LEADER_CONFIG);
         kv.initializeFromFreshInstance();
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
