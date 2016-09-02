@@ -168,13 +168,22 @@
 <td><code class="docutils literal"><span class="pre">TransactionManagers.create()</span></code> no longer takes in an argument of <code class="docutils literal"><span class="pre">Optional&lt;SSLSocketFactory&gt;</span> <span class="pre">sslSocketFactory</span></code>.
 Instead, security settings between AtlasDB clients are now specified directly in configuration via the new optional parameter <code class="docutils literal"><span class="pre">sslConfiguration</span></code> located in the <code class="docutils literal"><span class="pre">leader</span></code> block.
 Details can be found in the <a class="reference internal" href="../configuration/leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a> documentation.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/801">Pull Request</a>)</td>
+This will only affect deployments who run with more than one server (i.e. in HA mode).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/873">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
 <td>Enforced validity constraints on configuration, as per <a class="reference external" href="https://github.com/palantir/atlasdb/issue/790">#790</a>.
 AtlasDB will now fail to start if your configuration is invalid.
 Please refer to <a class="reference internal" href="../configuration/leader_config.html#leader-config-examples"><span class="std std-ref">Example Leader Configurations</span></a> for guidance on valid configurations.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/854">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed and standardized serialization and deserialization of AtlasDBConfig.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/875">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Updated our Dagger dependency from 2.0.2 to 2.4, so that our generated code matches with that of internal products.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/878">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -194,7 +203,7 @@ Please refer to <a class="reference internal" href="../configuration/leader_conf
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
 <td><code class="docutils literal"><span class="pre">AtlasDbServer</span></code> has been renamed to <code class="docutils literal"><span class="pre">AtlasDbServiceServer</span></code>.
-Any products that are using this should switch to using the Java Feign client instead.
+Any products that are using this should switch to using the standard AtlasDB java API instead.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/801">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
