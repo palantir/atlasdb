@@ -42,13 +42,15 @@ v0.14.0
          - Change
 
     *    - |breaking|
-         - ``TransactionManagers.create()`` no longer takes in an argument of ``Optional<SSLSocketFactory> sslSocketFactory``. Instead, client-side security settings for connections to other Atlas services when running multiple Atlas clients are now specified directly in configuration via the ``leader`` block's optional ``sslConfiguration``. Details can be found in the `Leader configuration documentation <https://palantir.github.io/atlasdb/html/configuration/leader_config.html>`__.
+         - ``TransactionManagers.create()`` no longer takes in an argument of ``Optional<SSLSocketFactory> sslSocketFactory``.
+           Instead, security settings between AtlasDB clients are now specified directly in configuration via the new optional parameter ``sslConfiguration`` located in the ``leader`` block.
+           Details can be found in the :ref:`Leader Configuration <leader-config>` documentation.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/801>`__)
 
     *    - |breaking|
-         - Enforced validity constraints on configuration, as per `issue 790 <https://github.com/palantir/atlasdb/issue/790>`__.
+         - Enforced validity constraints on configuration, as per `#790 <https://github.com/palantir/atlasdb/issue/790>`__.
            AtlasDB will now fail to start if your configuration is invalid.
-           Please refer to the `documentation <https://palantir.github.io/atlasdb/html/configuration/index.html>`__ for guidance on valid configurations.
+           Please refer to :ref:`Example Leader Configurations <leader-config-examples>` for guidance on valid configurations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/854>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
@@ -65,8 +67,10 @@ v0.13.0
          - Change
 
     *    - |breaking|
-         - ``AtlasDbServer`` has been renamed to ``AtlasDbServiceServer``. Any products that are using this should switch to using the Java Feign client instead.
+         - ``AtlasDbServer`` has been renamed to ``AtlasDbServiceServer``.
+           Any products that are using this should switch to using the Java Feign client instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/801>`__)
+
     *    - |breaking|
          - The method ``updateManyUnregisteredQuery(String sql)`` has been removed from the ``SqlConnection`` interface, as it was broken, unused, and unnecessary.
            Use ``updateManyUnregisteredQuery(String sql, Iterable<Object[] list>)`` instead.
@@ -78,19 +82,17 @@ v0.13.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/805>`__)
 
     *    - |fixed|
-         - Cassandra support for non-standard ports
+         - Connections to Cassandra can be established over arbitrary ports.
+           Previously AtlasDB clients would assume the default Cassandra port of 9160 despite what is specified in the :ref:`Cassandra keyValueService configuration <cassandra-kvs-config>`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/771>`__)
 
     *    - |fixed|
-         - A bug that could require Cassandra schema mutations every startup, which breaks HA guarantees
+         - Fixed an issue when starting an AtlasDB client using the Cassandra KVS where we always grab the schema mutation lock, even if we are not making schema mutations.
+           This reduces the likelihood of clients losing the schema mutation lock and having to manually truncate the _locks table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/771>`__)
 
     *    - |improved|
-         - Performance and reliability enhancements to the in-beta CQL KVS
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/771>`__)
-
-    *    - |fixed|
-         - A bug that meant a single JVM could not connect to multiple Postgres servers
+         - Performance and reliability enhancements to the in-beta CQL KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/771>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
