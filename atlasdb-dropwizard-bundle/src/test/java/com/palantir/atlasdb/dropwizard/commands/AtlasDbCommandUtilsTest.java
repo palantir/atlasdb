@@ -56,28 +56,32 @@ public class AtlasDbCommandUtilsTest {
 
     @Test
     public void leaderBlockNoLongerExistsAfterConvertingConfig() {
-        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(MINIMAL_LEADER_CONFIG, NO_SSL);
+        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(
+                MINIMAL_LEADER_CONFIG, NO_SSL);
 
         assertThat(clientConfig.leader().isPresent()).isFalse();
     }
 
     @Test
     public void timestampBlockExistsAfterConvertingConfig() {
-        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(MINIMAL_LEADER_CONFIG, NO_SSL);
+        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(
+                MINIMAL_LEADER_CONFIG, NO_SSL);
 
         assertThat(clientConfig.timestamp().isPresent()).isTrue();
     }
 
     @Test
     public void timestampBlockContainsLeadersAfterConvertingConfig() {
-        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(MINIMAL_LEADER_CONFIG, NO_SSL);
+        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(
+                MINIMAL_LEADER_CONFIG, NO_SSL);
 
         assertThat(clientConfig.timestamp().get().servers()).containsExactly(LOCAL_SERVER_NAME);
     }
 
     @Test
     public void lockBlockExistsAfterConvertingConfig() {
-        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(MINIMAL_LEADER_CONFIG, NO_SSL);
+        AtlasDbConfig clientConfig = AtlasDbCommandUtils.convertServerConfigToClientConfig(
+                MINIMAL_LEADER_CONFIG, NO_SSL);
 
         assertThat(clientConfig.lock().get().servers()).containsExactly(LOCAL_SERVER_NAME);
     }
