@@ -30,11 +30,12 @@ public class CassandraKeyValueServiceConfigTest {
     private static final InetSocketAddress SERVER_ADDRESS = InetSocketAddress.createUnresolved("localhost", 9160);
     private static final SslConfiguration SSL_CONFIGURATION = SslConfiguration.of(Paths.get("./trustStore.jks"));
 
-    private static final ImmutableCassandraKeyValueServiceConfig CASSANDRA_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(SERVER_ADDRESS)
-            .replicationFactor(1)
-            .keyspace("atlasdb")
-            .build();
+    private static final ImmutableCassandraKeyValueServiceConfig CASSANDRA_CONFIG =
+            ImmutableCassandraKeyValueServiceConfig.builder()
+                    .addServers(SERVER_ADDRESS)
+                    .replicationFactor(1)
+                    .keyspace("atlasdb")
+                    .build();
 
 
     @Test

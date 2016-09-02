@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.Collections;
 
 import org.apache.thrift.TException;
 import org.junit.Before;
@@ -39,21 +37,23 @@ public class UniqueSchemaMutationLockTableTest {
 
     private UniqueSchemaMutationLockTable uniqueLockTable;
     private SchemaMutationLockTables lockTables;
-    private TableReference lockTable1 = TableReference.createWithEmptyNamespace(SchemaMutationLockTables.LOCK_TABLE_PREFIX + "_1");
-    private TableReference lockTable2 = TableReference.createWithEmptyNamespace(SchemaMutationLockTables.LOCK_TABLE_PREFIX + "_2");
+    private TableReference lockTable1 = TableReference.createWithEmptyNamespace(
+            SchemaMutationLockTables.LOCK_TABLE_PREFIX + "_1");
+    private TableReference lockTable2 = TableReference.createWithEmptyNamespace(
+            SchemaMutationLockTables.LOCK_TABLE_PREFIX + "_2");
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
     @Before
-    public void setupKVS() throws TException, InterruptedException {
+    public void setupKvs() throws TException, InterruptedException {
         lockTables = mock(SchemaMutationLockTables.class);
         uniqueLockTable = new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER);
     }
 
     @Test
     public void shouldReturnALockTableIfNoneExist() throws TException {
-        when(lockTables.getAllLockTables()).thenReturn(Collections.EMPTY_SET, ImmutableSet.of(lockTable1));
+        when(lockTables.getAllLockTables()).thenReturn(ImmutableSet.of(), ImmutableSet.of(lockTable1));
         when(lockTables.createLockTable()).thenReturn(lockTable1);
 
         assertThat(uniqueLockTable.getOnlyTable(), is(lockTable1));

@@ -33,54 +33,54 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionClient;
 
 public class CassandraJmxCompactionClientTest {
-    private JMXConnector mockedJmxConnector;
-    private StorageServiceMBean mockedSSProxy;
-    private HintedHandOffManagerMBean mockedHHProxy;
-    private CompactionManagerMBean mockedCMProxy;
+    private JMXConnector jmxConnector;
+    private StorageServiceMBean storageServiceProxy;
+    private HintedHandOffManagerMBean hintedHandoffProxy;
+    private CompactionManagerMBean compactionManagerProxy;
     private CassandraJmxCompactionClient jmxClient;
 
-    private static String FAKE_HOST = "localhost";
-    private static int FAKE_JMX_PORT = 7199;
+    private static final String FAKE_HOST = "localhost";
+    private static final int FAKE_JMX_PORT = 7199;
     private static final String TEST_KEY_SPACE = "testKeySpace";
     private static final TableReference TEST_TABLE_NAME = TableReference.createWithEmptyNamespace("testTableName");
 
     @Before
     public void setUp() {
-        mockedJmxConnector = mock(JMXConnector.class);
-        mockedSSProxy = mock(StorageServiceMBean.class);
-        mockedHHProxy = mock(HintedHandOffManagerMBean.class);
-        mockedCMProxy = mock(CompactionManagerMBean.class);
+        jmxConnector = mock(JMXConnector.class);
+        storageServiceProxy = mock(StorageServiceMBean.class);
+        hintedHandoffProxy = mock(HintedHandOffManagerMBean.class);
+        compactionManagerProxy = mock(CompactionManagerMBean.class);
         jmxClient = CassandraJmxCompactionClient.create(FAKE_HOST, FAKE_JMX_PORT,
-                mockedJmxConnector, mockedSSProxy, mockedHHProxy, mockedCMProxy);
+                jmxConnector, storageServiceProxy, hintedHandoffProxy, compactionManagerProxy);
     }
 
     @Test
     public void verifyDeleteLocalHints() {
         jmxClient.deleteLocalHints();
-        verify(mockedHHProxy).deleteHintsForEndpoint(FAKE_HOST);
+        verify(hintedHandoffProxy).deleteHintsForEndpoint(FAKE_HOST);
     }
 
     @Test
     public void verifyForceTableFlush() throws InterruptedException, ExecutionException, IOException {
         jmxClient.forceTableFlush(TEST_KEY_SPACE, TEST_TABLE_NAME);
-        verify(mockedSSProxy).forceKeyspaceFlush(TEST_KEY_SPACE, TEST_TABLE_NAME.getQualifiedName());
+        verify(storageServiceProxy).forceKeyspaceFlush(TEST_KEY_SPACE, TEST_TABLE_NAME.getQualifiedName());
     }
 
     @Test
     public void verifyForceTableCompaction() throws InterruptedException, ExecutionException, IOException {
         jmxClient.forceTableCompaction(TEST_KEY_SPACE, TEST_TABLE_NAME);
-        verify(mockedSSProxy).forceKeyspaceCompaction(true, TEST_KEY_SPACE, TEST_TABLE_NAME.getQualifiedName());
+        verify(storageServiceProxy).forceKeyspaceCompaction(true, TEST_KEY_SPACE, TEST_TABLE_NAME.getQualifiedName());
     }
 
     @Test
     public void verifyGetCompactionStatus() {
         jmxClient.getCompactionStatus();
-        verify(mockedCMProxy).getCompactionSummary();
+        verify(compactionManagerProxy).getCompactionSummary();
     }
 
     @Test
     public void verifyClose() throws IOException {
         jmxClient.close();
-        verify(mockedJmxConnector).close();
+        verify(jmxConnector).close();
     }
 }

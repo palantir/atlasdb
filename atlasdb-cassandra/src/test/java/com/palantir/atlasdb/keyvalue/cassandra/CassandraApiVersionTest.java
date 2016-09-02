@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 
@@ -57,7 +57,7 @@ public class CassandraApiVersionTest {
         assertThat(version.supportsCheckAndSet(), is(true));
     }
 
-    @Test(expected=UnsupportedOperationException.class) public void
+    @Test(expected = UnsupportedOperationException.class) public void
     invalid_version_strings_throw_an_error() {
         new CassandraApiVersion("20_4.1");
     }
