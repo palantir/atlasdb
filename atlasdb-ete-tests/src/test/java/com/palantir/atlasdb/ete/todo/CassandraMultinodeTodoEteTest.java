@@ -42,7 +42,7 @@ public class CassandraMultinodeTodoEteTest extends EteSetup {
 
     private static final List<String> CASSANDRA_NODES = ImmutableList.of("cassandra1", "cassandra2", "cassandra3");
 
-    private static final long MAX_CASSANDRA_NODE_DOWN_MILLIS = 32000;
+    private static final long MAX_CASSANDRA_NODE_DOWN_MILLIS = 35000;
     private static final long MAX_CASSANDRA_NODES_RUNNING_MILLIS = 3000;
 
     @Test
@@ -55,7 +55,9 @@ public class CassandraMultinodeTodoEteTest extends EteSetup {
 
         long transactionTimeWithAllNodesRunning = transactionEndTime - transactionStartTime;
 
-        assertThat(transactionTimeWithAllNodesRunning, is(lessThan(MAX_CASSANDRA_NODES_RUNNING_MILLIS)));
+        assertThat("transactionTimeWithAllNodesRunning",
+                transactionTimeWithAllNodesRunning,
+                is(lessThan(MAX_CASSANDRA_NODES_RUNNING_MILLIS)));
     }
 
     @Test
@@ -75,7 +77,9 @@ public class CassandraMultinodeTodoEteTest extends EteSetup {
 
         startCassandraContainer(cassandraNodeToKill);
 
-        assertThat(transactionTimeAfterNodeIsKilled, is(lessThan(MAX_CASSANDRA_NODE_DOWN_MILLIS)));
+        assertThat("transactionTimeAfterNodeIsKilled",
+                transactionTimeAfterNodeIsKilled,
+                is(lessThan(MAX_CASSANDRA_NODE_DOWN_MILLIS)));
     }
 
     private String getRandomCassandraNodeToShutdown() {
