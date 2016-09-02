@@ -25,9 +25,10 @@ atlasdb:
     replicationFactor: 3
     mutationBatchCount: 10000
     mutationBatchSizeBytes: 10000000
-    socketQueryTimeoutMillis: 5000
+    # TODO: Remove this parameter to use default value
+    socketQueryTimeoutMillis: 15000
     poolRefreshIntervalSeconds: 3
-    unresponsiveHostBackoffTimeSeconds: 1
+    unresponsiveHostBackoffTimeSeconds: 20
     fetchBatchCount: 1000
     safetyDisabled: false
     autoRefreshNodes: false

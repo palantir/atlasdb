@@ -52,8 +52,7 @@ public class EteSetup {
     public static final int NUM_CASSANDRA_NODES = 3;
 
     private static DockerComposeRule docker;
-    private static final String NODE_UP_STATUS = "UN  ";
-    private static final String NODE_DOWN_STATUS = "DN  ";
+    private static final String NODE_UP_STATUS = "UN";
 
     protected <T> T createClientToSingleNode(Class<T> clazz) {
         return createClientFor(clazz, asPort(FIRST_ETE_CONTAINER));
@@ -111,15 +110,13 @@ public class EteSetup {
         };
     }
 
-    protected void stopCassandraContainer(String containerName) {
+    protected void killCassandraContainer(String containerName) {
         Container container = docker.containers().container(containerName);
         try {
             container.kill();
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
-
-        waitForNodetoolToConfirmStatus(container, NODE_DOWN_STATUS, 1);
     }
 
     protected void startCassandraContainer(String containerName) {
@@ -129,7 +126,6 @@ public class EteSetup {
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
-
         waitForCassandraContainerToBeReady(container);
     }
 
@@ -152,7 +148,7 @@ public class EteSetup {
                     try {
                         String nodetoolStatus = docker.exec(DockerComposeExecOption.options("-T"),
                                 container.getContainerName(),
-                                DockerComposeExecArgument.arguments("bash", "-c", "nodetool status | grep UN"));
+                                DockerComposeExecArgument.arguments("bash", "-c", "nodetool status | grep " + status));
                         return StringUtils.countMatches(nodetoolStatus, status) == expectedNodeCount;
                     } catch (Exception e) {
                         return false;

@@ -16,48 +16,74 @@
 package com.palantir.atlasdb.ete.todo;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.ete.EteSetup;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
-import com.palantir.timestamp.TimestampService;
 
-public class CassandraMultinodeTodoEteTest extends TodoEteTest {
+public class CassandraMultinodeTodoEteTest extends EteSetup {
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
             "cassandra-multinode",
             "docker-compose.multiple-cassandra.yml");
 
-    @Override
-    protected TimestampService createTimestampClient() {
-        return createClientToMultipleNodes(TimestampService.class, "ete1");
+    private static final List<String> CASSANDRA_NODES = ImmutableList.of("cassandra1", "cassandra2", "cassandra3");
+
+    private static final long MAX_CASSANDRA_NODE_DOWN_MILLIS = 32000;
+    private static final long MAX_CASSANDRA_NODES_RUNNING_MILLIS = 3000;
+
+    @Test
+    public void shouldRunTransactionsWithAllCassandraNodesRunningWithoutUnacceptableDelay() throws InterruptedException {
+        TodoResource clientToSingleNode = createClientToSingleNode(TodoResource.class);
+
+        long transactionStartTime = System.currentTimeMillis();
+        assertAddTodoTransactionWasSuccessful(clientToSingleNode);
+        long transactionEndTime = System.currentTimeMillis();
+
+        long transactionTimeWithAllNodesRunning = transactionEndTime - transactionStartTime;
+
+        assertThat(transactionTimeWithAllNodesRunning, is(lessThan(MAX_CASSANDRA_NODES_RUNNING_MILLIS)));
     }
 
     @Test
-    public void shouldWorkWithAnyContainerDown() throws InterruptedException {
+    public void shouldRunTransactionsAfterCassandraNodeIsShutDownWithoutUnacceptableDelay() throws InterruptedException {
         TodoResource clientToSingleNode = createClientToSingleNode(TodoResource.class);
-        tryWithContainerDown("cassandra1", clientToSingleNode);
-        tryWithContainerDown("cassandra2", clientToSingleNode);
-        tryWithContainerDown("cassandra3", clientToSingleNode);
+
+        assertAddTodoTransactionWasSuccessful(clientToSingleNode);
+
+        String cassandraNodeToKill = getRandomCassandraNodeToShutdown();
+        killCassandraContainer(cassandraNodeToKill);
+
+        long transactionStartTime = System.currentTimeMillis();
+        assertAddTodoTransactionWasSuccessful(clientToSingleNode);
+        long transactionEndTime = System.currentTimeMillis();
+
+        long transactionTimeAfterNodeIsKilled = transactionEndTime - transactionStartTime;
+
+        startCassandraContainer(cassandraNodeToKill);
+
+        assertThat(transactionTimeAfterNodeIsKilled, is(lessThan(MAX_CASSANDRA_NODE_DOWN_MILLIS)));
     }
 
-    private void tryWithContainerDown(String container, TodoResource todoClient) {
-        System.out.println("Running without container " + container);
-        stopCassandraContainer(container);
-        assertNewTodoWasAdded(todoClient);
-        startCassandraContainer(container);
+    private String getRandomCassandraNodeToShutdown() {
+        int index = ThreadLocalRandom.current().nextInt(CASSANDRA_NODES.size());
+        return CASSANDRA_NODES.get(index);
     }
 
-    private void assertNewTodoWasAdded(TodoResource todoClient) {
+    private void assertAddTodoTransactionWasSuccessful(TodoResource todoClient) {
         Todo todo = ImmutableTodo.of("some unique TODO item with UUID=" + UUID.randomUUID());
 
         todoClient.addTodo(todo);
