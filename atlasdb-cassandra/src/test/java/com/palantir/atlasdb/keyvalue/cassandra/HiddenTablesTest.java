@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.cassandra.unittest;
+package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -22,7 +22,6 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.HiddenTables;
 
 public class HiddenTablesTest {
     private final HiddenTables hiddenTables = new HiddenTables();

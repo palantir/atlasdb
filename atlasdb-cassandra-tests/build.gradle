@@ -27,8 +27,7 @@ test {
         classDumpFile = file("$buildDir/jacoco/classpathdumps")
     }
     maxHeapSize = "1024m"
-    include 'com/palantir/atlasdb/keyvalue/cassandra/*Suite.class'
-    include 'com/palantir/atlasdb/keyvalue/cassandra/unittest/**'
+    include '**/*Suite.class'
     maxParallelForks 2
     dependsOn ':atlasdb-ete-test-utils:buildCassandraImage'
 }
