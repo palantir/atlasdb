@@ -107,9 +107,13 @@ public abstract class AbstractSweeperTest {
     }
 
     private static void tearDownTables(KeyValueService kvs) {
+        Set<TableReference> before = kvs.getAllTableNames();
+        System.out.println("All tables before cleanup: " + before);
         kvs.dropTable(TABLE_NAME);
         TransactionTables.deleteTables(kvs);
         Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
+        Set<TableReference> after = kvs.getAllTableNames();
+        System.out.println("All tables after cleanup: " + after);
     }
 
     protected void setupBackgroundSweeper(int batchSize) {
@@ -364,13 +368,14 @@ public abstract class AbstractSweeperTest {
         for (SweepPriorityRowResult result : results) {
             switch (result.getRowName().getFullTableName()) {
                 case "sweep.priority":
-                    Assert.assertEquals(new Long(110), result.getMinimumSweptTimestamp());
+                    Assert.assertEquals(
+                            "priority has wrong sweep timestamp", new Long(110), result.getMinimumSweptTimestamp());
                     break;
                 case "sweep.progress":
-                    Assert.assertEquals(new Long(110), result.getMinimumSweptTimestamp());
+                    Assert.assertEquals("progress has wrong sweep timestamp", new Long(110), result.getMinimumSweptTimestamp());
                     break;
                 case "table":
-                    Assert.assertEquals(new Long(120), result.getMinimumSweptTimestamp());
+                    Assert.assertEquals("table has wrong sweep timestamp", new Long(120), result.getMinimumSweptTimestamp());
                     Assert.assertEquals(new Long(1), result.getCellsDeleted());
                     Assert.assertEquals(new Long(1), result.getCellsExamined());
                     break;
