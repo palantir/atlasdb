@@ -19,7 +19,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 
-public class CassandraKeyValueServiceTransactionTest extends AbstractTransactionTest {
+public class CassandraKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
 
     @Override
     protected KeyValueService getKeyValueService() {
