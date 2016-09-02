@@ -29,6 +29,7 @@ import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.remoting.ssl.SslConfiguration;
 
 public final class AtlasDbCommandUtils {
     public static final Object ZERO_ARITY_ARG_CONSTANT = "<ZERO ARITY ARG CONSTANT>";
@@ -37,13 +38,15 @@ public final class AtlasDbCommandUtils {
         // Static utility class
     }
 
-    public static AtlasDbConfig convertServerConfigToClientConfig(AtlasDbConfig serverConfig) {
+    public static AtlasDbConfig convertServerConfigToClientConfig(AtlasDbConfig serverConfig,
+            Optional<SslConfiguration> sslConfig) {
         Preconditions.checkArgument(serverConfig.leader().isPresent(),
                 "Only server configurations with a leader block can be converted to client configurations");
 
         ServerListConfig leaders = ImmutableServerListConfig.builder()
                 .servers(serverConfig.leader().get().leaders())
-                .sslConfiguration(serverConfig.leader().get().sslConfiguration())
+                .sslConfiguration(serverConfig.leader().get().sslConfiguration()
+                        .or(sslConfig))
                 .build();
 
         return ImmutableAtlasDbConfig.builder()

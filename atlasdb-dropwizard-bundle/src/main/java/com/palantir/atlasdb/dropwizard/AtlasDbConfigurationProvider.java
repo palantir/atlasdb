@@ -15,8 +15,14 @@
  */
 package com.palantir.atlasdb.dropwizard;
 
+import com.google.common.base.Optional;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.remoting.ssl.SslConfiguration;
 
 public interface AtlasDbConfigurationProvider {
+
     AtlasDbConfig getAtlasDbConfig();
+
+    Optional<SslConfiguration> getLeaderSslConfiguration();
+
 }
