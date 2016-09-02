@@ -17,6 +17,9 @@ package com.palantir.atlasdb;
 
 import java.util.Set;
 
+import javax.net.ssl.SSLSocketFactory;
+
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.CheckAndSetSchema;
@@ -37,6 +40,7 @@ import io.dropwizard.setup.Environment;
 
 public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     private static final boolean DONT_SHOW_HIDDEN_TABLES = false;
+    private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
     private static final Set<Schema> ETE_SCHEMAS = ImmutableSet.of(
             CheckAndSetSchema.getSchema(),
             TodoSchema.getSchema());
@@ -53,7 +57,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     @Override
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
-        TransactionManager transactionManager = TransactionManagers.create(config.getAtlasDbConfig(), ETE_SCHEMAS, environment.jersey()::register, DONT_SHOW_HIDDEN_TABLES);
+        TransactionManager transactionManager = TransactionManagers.create(config.getAtlasDbConfig(), NO_SSL, ETE_SCHEMAS, environment.jersey()::register, DONT_SHOW_HIDDEN_TABLES);
         environment.jersey().register(new SimpleTodoResource(new TodoClient(transactionManager)));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(transactionManager)));
     }
