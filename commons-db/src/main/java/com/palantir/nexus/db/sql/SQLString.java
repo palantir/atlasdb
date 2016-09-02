@@ -38,7 +38,6 @@ import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.SqlClause;
-import com.palantir.util.TextUtils;
 
 
 public class SQLString extends BasicSQLString {
