@@ -13,12 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.cassandra;
+package com.palantir.atlasdb.keyvalue.cassandra.unittest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
 import org.junit.Test;
+
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraApiVersion;
 
 public class CassandraApiVersionTest {
     @Test public void

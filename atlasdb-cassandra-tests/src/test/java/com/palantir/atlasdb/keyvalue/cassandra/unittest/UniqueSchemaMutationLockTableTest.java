@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.cassandra;
+package com.palantir.atlasdb.keyvalue.cassandra.unittest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -34,6 +34,8 @@ import org.junit.rules.ExpectedException;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.SchemaMutationLockTables;
+import com.palantir.atlasdb.keyvalue.cassandra.UniqueSchemaMutationLockTable;
 
 public class UniqueSchemaMutationLockTableTest {
 
