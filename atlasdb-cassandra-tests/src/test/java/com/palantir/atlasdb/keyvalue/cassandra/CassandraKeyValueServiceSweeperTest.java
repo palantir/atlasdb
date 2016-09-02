@@ -87,7 +87,7 @@ public class CassandraKeyValueServiceSweeperTest extends AbstractSweeperTest {
     private void insertMultipleValues(long numInsertions) {
         for (int ts = 1; ts <= numInsertions; ts++) {
             System.out.println("putting with ts = " + ts);
-            put("row", makeLongRandomString(), ts);
+            putIntoDefaultColumn("row", makeLongRandomString(), ts);
         }
     }
 

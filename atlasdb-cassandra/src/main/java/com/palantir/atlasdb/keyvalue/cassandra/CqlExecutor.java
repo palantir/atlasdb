@@ -33,12 +33,12 @@ public class CqlExecutor {
     private CassandraClientPool clientPool;
     private ConsistencyLevel consistency;
 
-    public CqlExecutor(CassandraClientPool clientPool, ConsistencyLevel consistency) {
+    CqlExecutor(CassandraClientPool clientPool, ConsistencyLevel consistency) {
         this.clientPool = clientPool;
         this.consistency = consistency;
     }
 
-    public CqlResult getColumnsForRow(TableReference tableRef, String row, int limit) {
+    CqlResult getColumnsForRow(TableReference tableRef, String row, int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s LIMIT %s;",
                 getTableName(tableRef),
@@ -47,7 +47,7 @@ public class CqlExecutor {
         return executeQueryOnHost(query, getHostForRow(row));
     }
 
-    public CqlResult getTimestampsForRowAndColumn(
+    CqlResult getTimestampsForRowAndColumn(
             TableReference tableRef,
             String row,
             String column,
@@ -63,7 +63,7 @@ public class CqlExecutor {
         return executeQueryOnHost(query, getHostForRow(row));
     }
 
-    public CqlResult getNextColumnsForRow(TableReference tableRef, String row, String previousColumn, int limit) {
+    CqlResult getNextColumnsForRow(TableReference tableRef, String row, String previousColumn, int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s AND column1 > %s LIMIT %s;",
                 getTableName(tableRef),
