@@ -35,10 +35,13 @@ import javax.annotation.concurrent.GuardedBy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -84,6 +87,7 @@ public final class Scrubber {
     private static final Logger log = LoggerFactory.getLogger(Scrubber.class);
     private static final int MAX_RETRY_ATTEMPTS = 100;
     private static final int RETRY_SLEEP_INTERVAL_IN_MILLIS = 1000;
+    private static final int MAX_DELETES_IN_BATCH = 10_000;
 
     private final ScheduledExecutorService service = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory("scrubber", true /* daemon */));
@@ -218,7 +222,8 @@ public final class Scrubber {
         scrubTaskLaunched = true;
     }
 
-    private void runBackgroundScrubTask(final TransactionManager txManager) {
+    @VisibleForTesting
+    void runBackgroundScrubTask(final TransactionManager txManager) {
         log.info("Starting scrub task");
 
         // Warning: Let T be the hard delete transaction that triggered a scrub, and let S be its
@@ -542,7 +547,15 @@ public final class Scrubber {
             keyValueService.addGarbageCollectionSentinelValues(
                     tableRef,
                     cellToTimestamp.keySet());
-            keyValueService.delete(tableRef, cellToTimestamp);
+            if (cellToTimestamp.size() <= MAX_DELETES_IN_BATCH) {
+                keyValueService.delete(tableRef, cellToTimestamp);
+            } else {
+                for (List<Entry<Cell, Long>> batch : Iterables.partition(cellToTimestamp.entries(), MAX_DELETES_IN_BATCH)) {
+                    Builder<Cell, Long> builder = ImmutableMultimap.builder();
+                    batch.stream().forEach(e -> builder.put(e));
+                    keyValueService.delete(tableRef, builder.build());
+                }
+            }
         }
     }
 
