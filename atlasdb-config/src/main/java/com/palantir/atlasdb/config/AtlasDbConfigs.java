@@ -68,7 +68,8 @@ public final class AtlasDbConfigs {
         return OBJECT_MAPPER.treeToValue(rootNode, AtlasDbConfig.class);
     }
 
-    public static AtlasDbConfig loadFromStream(InputStream configStream, @Nullable String configRoot) throws IOException {
+    public static AtlasDbConfig loadFromStream(InputStream configStream, @Nullable String configRoot)
+            throws IOException {
         JsonNode rootNode = getConfigNode(configStream, configRoot);
         return OBJECT_MAPPER.treeToValue(rootNode, AtlasDbConfig.class);
     }
