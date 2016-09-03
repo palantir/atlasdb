@@ -17,6 +17,7 @@ package com.palantir.atlasdb.config;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 
 import javax.annotation.Nullable;
 
@@ -53,6 +54,10 @@ public final class AtlasDbConfigs {
         return load(configFile, ATLASDB_CONFIG_ROOT);
     }
 
+    public static AtlasDbConfig load(InputStream configStream) throws IOException {
+        return loadFromStream(configStream, ATLASDB_CONFIG_ROOT);
+    }
+
     public static AtlasDbConfig load(File configFile, @Nullable String configRoot) throws IOException {
         JsonNode rootNode = getConfigNode(configFile, configRoot);
         return OBJECT_MAPPER.treeToValue(rootNode, AtlasDbConfig.class);
@@ -60,6 +65,11 @@ public final class AtlasDbConfigs {
 
     public static AtlasDbConfig loadFromString(String fileContents, @Nullable String configRoot) throws IOException {
         JsonNode rootNode = getConfigNode(fileContents, configRoot);
+        return OBJECT_MAPPER.treeToValue(rootNode, AtlasDbConfig.class);
+    }
+
+    public static AtlasDbConfig loadFromStream(InputStream configStream, @Nullable String configRoot) throws IOException {
+        JsonNode rootNode = getConfigNode(configStream, configRoot);
         return OBJECT_MAPPER.treeToValue(rootNode, AtlasDbConfig.class);
     }
 
@@ -80,6 +90,17 @@ public final class AtlasDbConfigs {
 
         if (configNode == null) {
             throw new IllegalArgumentException("Could not find " + configRoot + " in given string");
+        }
+
+        return configNode;
+    }
+
+    private static JsonNode getConfigNode(InputStream configStream, @Nullable String configRoot) throws IOException {
+        JsonNode node = OBJECT_MAPPER.readTree(configStream);
+        JsonNode configNode = findRoot(node, configRoot);
+
+        if (configNode == null) {
+            throw new IllegalArgumentException("Could not find " + configRoot + " in given stream");
         }
 
         return configNode;

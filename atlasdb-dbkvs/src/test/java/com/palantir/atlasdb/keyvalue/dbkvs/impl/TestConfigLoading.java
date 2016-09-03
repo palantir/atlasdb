@@ -23,6 +23,7 @@ import static org.junit.Assert.assertThat;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 
 import org.junit.Test;
@@ -36,7 +37,11 @@ import com.palantir.nexus.db.pool.config.ConnectionConfig;
 public class TestConfigLoading {
     @Test
     public void testLoadingConfig() throws IOException {
-        AtlasDbConfigs.load(new File(getClass().getClassLoader().getResource("postgresTestConfig.yml").getFile()));
+        // Palantir internal runs this test from the jar rather than from source. This means that the resource
+        // cannot be loaded as a file. Instead it must be loaded as a stream.
+        try (InputStream stream = getClass().getClassLoader().getResourceAsStream("postgresTestConfig.yml")) {
+            AtlasDbConfigs.load(stream);
+        }
     }
 
     @Test
@@ -78,8 +83,12 @@ public class TestConfigLoading {
     }
 
     private ConnectionConfig getConnectionConfig() throws IOException {
-        AtlasDbConfig config = AtlasDbConfigs.load(
-                new File(getClass().getClassLoader().getResource("postgresTestConfig.yml").getFile()));
+        final AtlasDbConfig config;
+        // Palantir internal runs this test from the jar rather than from source. This means that the resource
+        // cannot be loaded as a file. Instead it must be loaded as a stream.
+        try (InputStream stream = getClass().getClassLoader().getResourceAsStream("postgresTestConfig.yml")) {
+            config = AtlasDbConfigs.load(stream);
+        }
         KeyValueServiceConfig keyValueServiceConfig = config.keyValueService();
         DbKeyValueServiceConfig dbkvsConfig = (DbKeyValueServiceConfig) keyValueServiceConfig;
         return dbkvsConfig.connection();
