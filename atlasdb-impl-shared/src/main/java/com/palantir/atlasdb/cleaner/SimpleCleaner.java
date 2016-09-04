@@ -80,6 +80,10 @@ public class SimpleCleaner implements Cleaner {
         return transactionReadTimeoutMillisSupplier.get();
     }
 
+    public Scrubber getScrubber() {
+        return scrubber;
+    }
+
     @Override
     public long getUnreadableTimestamp() {
         return scrubber.getUnreadableTimestamp();

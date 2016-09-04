@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.commons.lang3.StringUtils;
@@ -106,6 +107,12 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
                     batchMap,
                     scrubTimestamp);
         }
+    }
+
+    @Override
+    public void markCellsAsScrubbed(Set<Cell> cells, long scrubTimestamp, int batchSize) {
+        Multimap<Cell, Long> map = keyValueService.getAllTimestamps(AtlasDbConstants.SCRUB_TABLE, cells, scrubTimestamp);
+        markCellsAsScrubbed(map, batchSize);
     }
 
     @Override

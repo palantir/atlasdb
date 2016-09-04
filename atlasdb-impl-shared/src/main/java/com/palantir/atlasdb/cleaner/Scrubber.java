@@ -36,7 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Functions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -174,6 +173,14 @@ public final class Scrubber {
         NamedThreadFactory threadFactory = new NamedThreadFactory(SCRUBBER_THREAD_PREFIX, true);
         this.readerExec = PTExecutors.newFixedThreadPool(readThreadCount, threadFactory);
         this.exec = PTExecutors.newFixedThreadPool(threadCount, threadFactory);
+    }
+
+    @VisibleForTesting
+    Scrubber withAggressiveScrub(Supplier<Long> immutableTsSupplier) {
+        return new Scrubber(keyValueService, scrubberStore, backgroundScrubFrequencyMillisSupplier, isScrubEnabled,
+                unreadableTimestampSupplier, immutableTsSupplier, transactionService, true,
+                batchSizeSupplier, threadCount, readThreadCount, followers);
+
     }
 
     /**
@@ -340,13 +347,8 @@ public final class Scrubber {
                 // AFTER the transaction commits
                 scrubCells(txManager, batchMultimap, scrubTimestamp, TransactionType.AGGRESSIVE_HARD_DELETE);
 
-                Multimap<Cell, Long> cellToScrubTimestamp = HashMultimap.create();
-
-                cellToScrubTimestamp = Multimaps.invertFrom(
-                        Multimaps.index(batchMultimap.values(), Functions.constant(scrubTimestamp)),
-                        cellToScrubTimestamp);
-
-                scrubberStore.markCellsAsScrubbed(cellToScrubTimestamp, batchSizeSupplier.get());
+                Set<Cell> scrubbedCells = ImmutableSet.copyOf(batchMultimap.values());
+                scrubberStore.markCellsAsScrubbed(scrubbedCells, scrubTimestamp + 1, batchSizeSupplier.get());
 
                 if (log.isInfoEnabled()) {
                     log.info("Completed scrub immediately.");
@@ -446,7 +448,8 @@ public final class Scrubber {
             return 0; // No cells left to scrub
         }
 
-        Multimap<Long, Cell> toRemoveFromScrubQueue = HashMultimap.create();
+        Set<Cell> successfullyScrubbed = Sets.newHashSet();
+        Multimap<Long, Cell> toRemoveDueToFailedCommit = HashMultimap.create();
 
         int numCellsReadFromScrubTable = 0;
         List<Future<Void>> scrubFutures = Lists.newArrayList();
@@ -477,18 +480,20 @@ public final class Scrubber {
                                 aggressiveScrub ? TransactionType.AGGRESSIVE_HARD_DELETE : TransactionType.HARD_DELETE);
                         return null;
                     }));
+                    successfullyScrubbed.addAll(batchMultimap.values());
                 }
+            } else {
+                toRemoveDueToFailedCommit.putAll(scrubTimestamp, tableNameToCell.values());
             }
-            toRemoveFromScrubQueue.putAll(scrubTimestamp, tableNameToCell.values());
         }
 
         for (Future<Void> future : scrubFutures) {
             Futures.getUnchecked(future);
         }
 
-        Multimap<Cell, Long> cellToScrubTimestamp = HashMultimap.create();
+        scrubberStore.markCellsAsScrubbed(successfullyScrubbed, maxScrubTimestamp, batchSizeSupplier.get());
         scrubberStore.markCellsAsScrubbed(
-                Multimaps.invertFrom(toRemoveFromScrubQueue, cellToScrubTimestamp),
+                Multimaps.invertFrom(toRemoveDueToFailedCommit, HashMultimap.create()),
                 batchSizeSupplier.get());
 
         if (log.isTraceEnabled()) {
