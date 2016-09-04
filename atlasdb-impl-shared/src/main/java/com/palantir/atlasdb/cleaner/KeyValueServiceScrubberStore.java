@@ -110,8 +110,8 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
     }
 
     @Override
-    public void markCellsAsScrubbed(Set<Cell> cells, long scrubTimestamp, int batchSize) {
-        Multimap<Cell, Long> map = keyValueService.getAllTimestamps(AtlasDbConstants.SCRUB_TABLE, cells, scrubTimestamp);
+    public void markCellsAsScrubbed(Set<Cell> cells, long scrubTs, int batchSize) {
+        Multimap<Cell, Long> map = keyValueService.getAllTimestamps(AtlasDbConstants.SCRUB_TABLE, cells, scrubTs);
         markCellsAsScrubbed(map, batchSize);
     }
 
@@ -122,9 +122,7 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
             for (Entry<Cell, Long> e : batch) {
                 batchMultimap.put(e.getKey(), e.getValue());
             }
-            keyValueService.delete(
-                    AtlasDbConstants.SCRUB_TABLE,
-                    batchMultimap);
+            keyValueService.delete(AtlasDbConstants.SCRUB_TABLE, batchMultimap);
         }
     }
 

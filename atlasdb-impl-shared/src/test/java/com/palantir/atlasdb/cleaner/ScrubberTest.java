@@ -68,18 +68,18 @@ public class ScrubberTest {
 
     @Test
     public void testSimpleScrub() {
-        mgr.runTaskThrowOnConflict((t) -> {
-            t.put(table, ImmutableMap.of(cell, "val1".getBytes()));
+        mgr.runTaskThrowOnConflict((tx) -> {
+            tx.put(table, ImmutableMap.of(cell, "val1".getBytes()));
             return null;
         });
-        mgr.runTaskThrowOnConflict((t) -> {
-            t.put(table, ImmutableMap.of(cell, "val2".getBytes()));
-            t.setTransactionType(TransactionType.HARD_DELETE);
+        mgr.runTaskThrowOnConflict((tx) -> {
+            tx.put(table, ImmutableMap.of(cell, "val2".getBytes()));
+            tx.setTransactionType(TransactionType.HARD_DELETE);
             return null;
         });
-        mgr.runTaskThrowOnConflict((t) -> {
-            t.put(table, ImmutableMap.of(cell, "val3".getBytes()));
-            t.setTransactionType(TransactionType.HARD_DELETE);
+        mgr.runTaskThrowOnConflict((tx) -> {
+            tx.put(table, ImmutableMap.of(cell, "val3".getBytes()));
+            tx.setTransactionType(TransactionType.HARD_DELETE);
             return null;
         });
         KeyValueService kv = mgr.getKeyValueService();
@@ -108,21 +108,21 @@ public class ScrubberTest {
     @Test
     public void testScrubInvalid() {
         KeyValueService kv = mgr.getKeyValueService();
-        mgr.runTaskThrowOnConflict((t) -> {
-            t.put(table, ImmutableMap.of(cell, "val1".getBytes()));
+        mgr.runTaskThrowOnConflict((tx) -> {
+            tx.put(table, ImmutableMap.of(cell, "val1".getBytes()));
             return null;
         });
-        mgr.runTaskThrowOnConflict((t) -> {
-            t.put(table, ImmutableMap.of(cell, "val2".getBytes()));
-            t.setTransactionType(TransactionType.HARD_DELETE);
+        mgr.runTaskThrowOnConflict((tx) -> {
+            tx.put(table, ImmutableMap.of(cell, "val2".getBytes()));
+            tx.setTransactionType(TransactionType.HARD_DELETE);
             return null;
         });
         try {
-            mgr.runTaskThrowOnConflict((t) -> {
-                t.put(table, ImmutableMap.of(cell, "val3".getBytes()));
-                t.setTransactionType(TransactionType.HARD_DELETE);
+            mgr.runTaskThrowOnConflict((tx) -> {
+                tx.put(table, ImmutableMap.of(cell, "val3".getBytes()));
+                tx.setTransactionType(TransactionType.HARD_DELETE);
                 kv.put(TransactionConstants.TRANSACTION_TABLE,
-                        ImmutableMap.of(Cell.create(TransactionConstants.getValueForTimestamp(t.getTimestamp()),
+                        ImmutableMap.of(Cell.create(TransactionConstants.getValueForTimestamp(tx.getTimestamp()),
                                 TransactionConstants.COMMIT_TS_COLUMN),
                                 TransactionConstants.getValueForTimestamp(TransactionConstants.FAILED_COMMIT_TS)),
                         0L);

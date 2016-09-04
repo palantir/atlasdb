@@ -544,19 +544,19 @@ public final class Scrubber {
 
     private void deleteCellsAtTimestamps(TransactionManager txManager,
                                          TableReference tableRef,
-                                         Multimap<Cell, Long> cellToTimestamp,
+                                         Multimap<Cell, Long> cellToTs,
                                          Transaction.TransactionType transactionType) {
-        if (!cellToTimestamp.isEmpty()) {
+        if (!cellToTs.isEmpty()) {
             for (Follower follower : followers) {
-                follower.run(txManager, tableRef, cellToTimestamp.keySet(), transactionType);
+                follower.run(txManager, tableRef, cellToTs.keySet(), transactionType);
             }
             keyValueService.addGarbageCollectionSentinelValues(
                     tableRef,
-                    cellToTimestamp.keySet());
-            if (cellToTimestamp.size() <= MAX_DELETES_IN_BATCH) {
-                keyValueService.delete(tableRef, cellToTimestamp);
+                    cellToTs.keySet());
+            if (cellToTs.size() <= MAX_DELETES_IN_BATCH) {
+                keyValueService.delete(tableRef, cellToTs);
             } else {
-                for (List<Entry<Cell, Long>> batch : Iterables.partition(cellToTimestamp.entries(), MAX_DELETES_IN_BATCH)) {
+                for (List<Entry<Cell, Long>> batch : Iterables.partition(cellToTs.entries(), MAX_DELETES_IN_BATCH)) {
                     Builder<Cell, Long> builder = ImmutableMultimap.builder();
                     batch.stream().forEach(e -> builder.put(e));
                     keyValueService.delete(tableRef, builder.build());
