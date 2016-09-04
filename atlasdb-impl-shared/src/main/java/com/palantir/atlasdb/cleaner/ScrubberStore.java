@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.cleaner;
 
+import java.util.Set;
 import java.util.SortedMap;
 
 import com.google.common.collect.Multimap;
@@ -31,6 +32,7 @@ import com.palantir.common.base.BatchingVisitable;
 public interface ScrubberStore {
     void queueCellsForScrubbing(Multimap<Cell, TableReference> cellToTableRefs, long scrubTimestamp, int batchSize);
 
+    void markCellsAsScrubbed(Set<Cell> cells, long scrubTimestamp, int batchSize);
     void markCellsAsScrubbed(Multimap<Cell, Long> cellToScrubTimestamp, int batchSize);
 
     BatchingVisitable<SortedMap<Long, Multimap<TableReference, Cell>>> getBatchingVisitableScrubQueue(

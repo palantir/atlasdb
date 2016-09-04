@@ -35,10 +35,12 @@ import javax.annotation.concurrent.GuardedBy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Functions;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -83,6 +85,7 @@ public final class Scrubber {
     private static final Logger log = LoggerFactory.getLogger(Scrubber.class);
     private static final int MAX_RETRY_ATTEMPTS = 100;
     private static final int RETRY_SLEEP_INTERVAL_IN_MILLIS = 1000;
+    private static final int MAX_DELETES_IN_BATCH = 10_000;
 
     private final ScheduledExecutorService service = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory("scrubber", true /* daemon */));
@@ -172,6 +175,14 @@ public final class Scrubber {
         this.exec = PTExecutors.newFixedThreadPool(threadCount, threadFactory);
     }
 
+    @VisibleForTesting
+    Scrubber withAggressiveScrub(Supplier<Long> immutableTsSupplier) {
+        return new Scrubber(keyValueService, scrubberStore, backgroundScrubFrequencyMillisSupplier, isScrubEnabled,
+                unreadableTimestampSupplier, immutableTsSupplier, transactionService, true,
+                batchSizeSupplier, threadCount, readThreadCount, followers);
+
+    }
+
     /**
      * The background scrub task has the same semantics as a "CONSERVATIVE_HARD_DELETE" transaction,
      * specifically, it will wait until all transactions that may be affected by scrub have completed
@@ -219,7 +230,8 @@ public final class Scrubber {
         scrubTaskLaunched = true;
     }
 
-    private void runBackgroundScrubTask(final TransactionManager txManager) {
+    @VisibleForTesting
+    void runBackgroundScrubTask(final TransactionManager txManager) {
         log.info("Starting scrub task");
 
         // Warning: Let T be the hard delete transaction that triggered a scrub, and let S be its
@@ -335,13 +347,8 @@ public final class Scrubber {
                 // AFTER the transaction commits
                 scrubCells(txManager, batchMultimap, scrubTimestamp, TransactionType.AGGRESSIVE_HARD_DELETE);
 
-                Multimap<Cell, Long> cellToScrubTimestamp = HashMultimap.create();
-
-                cellToScrubTimestamp = Multimaps.invertFrom(
-                        Multimaps.index(batchMultimap.values(), Functions.constant(scrubTimestamp)),
-                        cellToScrubTimestamp);
-
-                scrubberStore.markCellsAsScrubbed(cellToScrubTimestamp, batchSizeSupplier.get());
+                Set<Cell> scrubbedCells = ImmutableSet.copyOf(batchMultimap.values());
+                scrubberStore.markCellsAsScrubbed(scrubbedCells, scrubTimestamp + 1, batchSizeSupplier.get());
 
                 if (log.isInfoEnabled()) {
                     log.info("Completed scrub immediately.");
@@ -441,7 +448,8 @@ public final class Scrubber {
             return 0; // No cells left to scrub
         }
 
-        Multimap<Long, Cell> toRemoveFromScrubQueue = HashMultimap.create();
+        Set<Cell> successfullyScrubbed = Sets.newHashSet();
+        Multimap<Long, Cell> toRemoveDueToFailedCommit = HashMultimap.create();
 
         int numCellsReadFromScrubTable = 0;
         List<Future<Void>> scrubFutures = Lists.newArrayList();
@@ -472,18 +480,20 @@ public final class Scrubber {
                                 aggressiveScrub ? TransactionType.AGGRESSIVE_HARD_DELETE : TransactionType.HARD_DELETE);
                         return null;
                     }));
+                    successfullyScrubbed.addAll(batchMultimap.values());
                 }
+            } else {
+                toRemoveDueToFailedCommit.putAll(scrubTimestamp, tableNameToCell.values());
             }
-            toRemoveFromScrubQueue.putAll(scrubTimestamp, tableNameToCell.values());
         }
 
         for (Future<Void> future : scrubFutures) {
             Futures.getUnchecked(future);
         }
 
-        Multimap<Cell, Long> cellToScrubTimestamp = HashMultimap.create();
+        scrubberStore.markCellsAsScrubbed(successfullyScrubbed, maxScrubTimestamp, batchSizeSupplier.get());
         scrubberStore.markCellsAsScrubbed(
-                Multimaps.invertFrom(toRemoveFromScrubQueue, cellToScrubTimestamp),
+                Multimaps.invertFrom(toRemoveDueToFailedCommit, HashMultimap.create()),
                 batchSizeSupplier.get());
 
         if (log.isTraceEnabled()) {
@@ -534,16 +544,24 @@ public final class Scrubber {
 
     private void deleteCellsAtTimestamps(TransactionManager txManager,
                                          TableReference tableRef,
-                                         Multimap<Cell, Long> cellToTimestamp,
+                                         Multimap<Cell, Long> cellToTs,
                                          Transaction.TransactionType transactionType) {
-        if (!cellToTimestamp.isEmpty()) {
+        if (!cellToTs.isEmpty()) {
             for (Follower follower : followers) {
-                follower.run(txManager, tableRef, cellToTimestamp.keySet(), transactionType);
+                follower.run(txManager, tableRef, cellToTs.keySet(), transactionType);
             }
             keyValueService.addGarbageCollectionSentinelValues(
                     tableRef,
-                    cellToTimestamp.keySet());
-            keyValueService.delete(tableRef, cellToTimestamp);
+                    cellToTs.keySet());
+            if (cellToTs.size() <= MAX_DELETES_IN_BATCH) {
+                keyValueService.delete(tableRef, cellToTs);
+            } else {
+                for (List<Entry<Cell, Long>> batch : Iterables.partition(cellToTs.entries(), MAX_DELETES_IN_BATCH)) {
+                    Builder<Cell, Long> builder = ImmutableMultimap.builder();
+                    batch.stream().forEach(e -> builder.put(e));
+                    keyValueService.delete(tableRef, builder.build());
+                }
+            }
         }
     }
 

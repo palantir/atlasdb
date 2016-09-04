@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.commons.lang3.StringUtils;
@@ -109,15 +110,19 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
     }
 
     @Override
+    public void markCellsAsScrubbed(Set<Cell> cells, long scrubTs, int batchSize) {
+        Multimap<Cell, Long> map = keyValueService.getAllTimestamps(AtlasDbConstants.SCRUB_TABLE, cells, scrubTs);
+        markCellsAsScrubbed(map, batchSize);
+    }
+
+    @Override
     public void markCellsAsScrubbed(Multimap<Cell, Long> cellToScrubTimestamp, int batchSize) {
         for (List<Entry<Cell, Long>> batch : Iterables.partition(cellToScrubTimestamp.entries(), batchSize)) {
             Multimap<Cell, Long> batchMultimap = HashMultimap.create();
             for (Entry<Cell, Long> e : batch) {
                 batchMultimap.put(e.getKey(), e.getValue());
             }
-            keyValueService.delete(
-                    AtlasDbConstants.SCRUB_TABLE,
-                    batchMultimap);
+            keyValueService.delete(AtlasDbConstants.SCRUB_TABLE, batchMultimap);
         }
     }
 
