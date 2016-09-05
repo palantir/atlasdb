@@ -380,7 +380,8 @@ public class CassandraClientPool {
         }
     }
 
-    protected InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
+    @VisibleForTesting
+    InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
         InetAddress resolvedHost = InetAddress.getByName(host);
 
         Set<InetSocketAddress> allKnownHosts = Sets.union(currentPools.keySet(), config.servers());
