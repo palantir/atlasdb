@@ -21,11 +21,8 @@ import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.CqlResult;
-import org.apache.cassandra.thrift.CqlRow;
 
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.PageGetter;
@@ -45,8 +42,8 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
 
     @Override
     public List<ColumnOrSuperColumn> getFirstPage() {
-        CqlResult cqlResult = cqlExecutor.getColumnsForRow(tableRef, row, pageSize);
-        return getColumns(cqlResult);
+        List<CellWithTimestamp> result = cqlExecutor.getColumnsForRow(tableRef, row, pageSize);
+        return getColumns(result);
     }
 
     @Override
@@ -58,14 +55,14 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
         String columnName = CassandraKeyValueServices.encodeAsHex(nameAndTimestamp.getLhSide());
         long timestamp = ~nameAndTimestamp.getRhSide();
 
-        CqlResult cqlResult = cqlExecutor.getTimestampsForRowAndColumn(tableRef, row, columnName, timestamp, pageSize);
-        List<ColumnOrSuperColumn> columns = getColumns(cqlResult);
+        List<CellWithTimestamp> result = cqlExecutor.getTimestampsForRowAndColumn(tableRef, row, columnName, timestamp, pageSize);
+        List<ColumnOrSuperColumn> columns = getColumns(result);
 
         if (columns.size() < pageSize) {
             // We finished with this column, but there might be more, so let's capture them
-            CqlResult secondCqlResult =
+            List<CellWithTimestamp> secondResult =
                     cqlExecutor.getNextColumnsForRow(tableRef, row, columnName, pageSize - columns.size());
-            columns.addAll(getColumns(secondCqlResult));
+            columns.addAll(getColumns(secondResult));
         }
 
         return columns;
@@ -76,19 +73,13 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
         return pageSize;
     }
 
-    private List<ColumnOrSuperColumn> getColumns(CqlResult cqlResult) {
-        return cqlResult.getRows().stream()
+    private List<ColumnOrSuperColumn> getColumns(List<CellWithTimestamp> result) {
+        return result.stream()
                 .map(this::getColumn)
                 .collect(Collectors.toList());
     }
 
-    private ColumnOrSuperColumn getColumn(CqlRow cqlRow) {
-        byte[] columnName = cqlRow.getColumns().get(0).getValue();
-        byte[] flippedTimestampAsBytes = cqlRow.getColumns().get(1).getValue();
-        long timestampLong = ~PtBytes.toLong(flippedTimestampAsBytes);
-
-        return CassandraKeyValueServices.getColumnOrSuperColumn(columnName, timestampLong);
+    private ColumnOrSuperColumn getColumn(CellWithTimestamp cell) {
+        return CassandraKeyValueServices.getColumnOrSuperColumn(cell.column(), cell.timestamp());
     }
-
-
 }

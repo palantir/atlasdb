@@ -20,12 +20,16 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.CqlRow;
 import org.apache.thrift.TException;
 
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
 
@@ -42,15 +46,16 @@ public class CqlExecutor {
      * @param tableRef the table from which to select
      * @param row the row key
      * @param limit the maximum number of results to return.
-     * @return a CqlResult with two columns, the first being the column name, and the second being the timestamp
+     * @return up to <code>limit</code> cells that match the row name.
      */
-    CqlResult getColumnsForRow(TableReference tableRef, String row, int limit) {
+    List<CellWithTimestamp> getColumnsForRow(TableReference tableRef, String row, int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s LIMIT %s;",
                 getTableName(tableRef),
                 row,
                 limit);
-        return executeQueryOnHost(query, getHostForRow(row));
+        CqlResult cqlResult = executeQueryOnHost(query, getHostForRow(row));
+        return getCells(row, cqlResult);
     }
 
     /**
@@ -62,7 +67,7 @@ public class CqlExecutor {
      * @return up to <code>limit</code> cells that exactly match the row and column name,
      * and have a timestamp greater than <code>minTimestamp</code>.
      */
-    CqlResult getTimestampsForRowAndColumn(
+    List<CellWithTimestamp> getTimestampsForRowAndColumn(
             TableReference tableRef,
             String row,
             String column,
@@ -75,7 +80,8 @@ public class CqlExecutor {
                 column,
                 minTimestamp,
                 limit);
-        return executeQueryOnHost(query, getHostForRow(row));
+        CqlResult cqlResult = executeQueryOnHost(query, getHostForRow(row));
+        return getCells(row, cqlResult);
     }
 
     /**
@@ -86,14 +92,19 @@ public class CqlExecutor {
      * @return up to <code>limit</code> results where the column name is lexicographically later than the supplied
      * <code>previousColumn</code>. Note that this can return results from multiple columns.
      */
-    CqlResult getNextColumnsForRow(TableReference tableRef, String row, String previousColumn, int limit) {
+    List<CellWithTimestamp> getNextColumnsForRow(
+            TableReference tableRef,
+            String row,
+            String previousColumn,
+            int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s AND column1 > %s LIMIT %s;",
                 getTableName(tableRef),
                 row,
                 previousColumn,
                 limit);
-        return executeQueryOnHost(query, getHostForRow(row));
+        CqlResult cqlResult = executeQueryOnHost(query, getHostForRow(row));
+        return getCells(row, cqlResult);
     }
 
     private InetSocketAddress getHostForRow(String row) {
@@ -116,5 +127,17 @@ public class CqlExecutor {
 
     private String getTableName(TableReference tableRef) {
         return CassandraKeyValueService.internalTableName(tableRef);
+    }
+
+    private List<CellWithTimestamp> getCells(String key, CqlResult cqlResult) {
+        return cqlResult.getRows().stream().map(cqlRow -> getCell(key, cqlRow)).collect(Collectors.toList());
+    }
+
+    private CellWithTimestamp getCell(String key, CqlRow cqlRow) {
+        byte[] columnName = cqlRow.getColumns().get(0).getValue();
+        byte[] flippedTimestampAsBytes = cqlRow.getColumns().get(1).getValue();
+        long timestampLong = ~PtBytes.toLong(flippedTimestampAsBytes);
+
+        return new CellWithTimestamp.Builder().row(key).column(columnName).timestamp(timestampLong).build();
     }
 }

@@ -32,10 +32,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.function.Supplier;
 
-import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.CqlResult;
-import org.apache.cassandra.thrift.CqlRow;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -67,8 +64,8 @@ public class AllCellsPerRowPagerTest {
     @Test
     public void getFirstPageShouldReturnSingleResult() {
         long timestamp = 1L;
-        CqlRow row = makeCqlRow(DEFAULT_COLUMN_NAME, timestamp);
-        allQueriesReturn(ImmutableList.of(row));
+        CellWithTimestamp cell = makeCell(DEFAULT_COLUMN_NAME, timestamp);
+        allQueriesReturn(ImmutableList.of(cell));
 
         verifySingletonListIsReturnedCorrectly(() -> pager.getFirstPage(), timestamp);
     }
@@ -76,26 +73,26 @@ public class AllCellsPerRowPagerTest {
     @Test
     public void getNextPageShouldReturnSingleResult() {
         long timestamp = 1L;
-        CqlRow row = makeCqlRow(DEFAULT_COLUMN_NAME, timestamp);
-        allQueriesReturn(ImmutableList.of(row));
+        CellWithTimestamp cell = makeCell(DEFAULT_COLUMN_NAME, timestamp);
+        allQueriesReturn(ImmutableList.of(cell));
 
         verifySingletonListIsReturnedCorrectly(() -> pager.getNextPage(PREVIOUS_PAGE), timestamp);
     }
 
     @Test
     public void getFirstPageShouldReturnMultipleResults() {
-        CqlRow row1 = makeCqlRow(DEFAULT_COLUMN_NAME, 1L);
-        CqlRow row2 = makeCqlRow(DEFAULT_COLUMN_NAME, 2L);
-        allQueriesReturn(ImmutableList.of(row1, row2));
+        CellWithTimestamp cell1 = makeCell(DEFAULT_COLUMN_NAME, 1L);
+        CellWithTimestamp cell2 = makeCell(DEFAULT_COLUMN_NAME, 2L);
+        allQueriesReturn(ImmutableList.of(cell1, cell2));
 
         verifyMultipleElementListIsReturnedCorrectly(() -> pager.getFirstPage());
     }
 
     @Test
     public void getNextPageShouldReturnMultipleResults() {
-        CqlRow row1 = makeCqlRow(DEFAULT_COLUMN_NAME, 1L);
-        CqlRow row2 = makeCqlRow(DEFAULT_COLUMN_NAME, 2L);
-        allQueriesReturn(ImmutableList.of(row1, row2));
+        CellWithTimestamp cell1 = makeCell(DEFAULT_COLUMN_NAME, 1L);
+        CellWithTimestamp cell2 = makeCell(DEFAULT_COLUMN_NAME, 2L);
+        allQueriesReturn(ImmutableList.of(cell1, cell2));
 
         verifyMultipleElementListIsReturnedCorrectly(() -> pager.getNextPage(PREVIOUS_PAGE));
     }
@@ -128,11 +125,11 @@ public class AllCellsPerRowPagerTest {
 
     @Test
     public void getNextPageShouldSpanMultipleColumns() {
-        CqlRow row1 = makeCqlRow(DEFAULT_COLUMN_NAME, 10L);
-        CqlRow row2 = makeCqlRow(OTHER_COLUMN_NAME, 20L);
+        CellWithTimestamp cell1 = makeCell(DEFAULT_COLUMN_NAME, 10L);
+        CellWithTimestamp cell2 = makeCell(OTHER_COLUMN_NAME, 20L);
 
-        allQueriesWithColumnAndTimestampReturn(ImmutableList.of(row1));
-        allQueriesWithColumnReturn(ImmutableList.of(row2));
+        allQueriesWithColumnAndTimestampReturn(ImmutableList.of(cell1));
+        allQueriesWithColumnReturn(ImmutableList.of(cell2));
 
         List<ColumnOrSuperColumn> nextPage = pager.getNextPage(PREVIOUS_PAGE);
 
@@ -155,11 +152,12 @@ public class AllCellsPerRowPagerTest {
         assertThat(firstPage, hasSize(2));
     }
 
-    private CqlRow makeCqlRow(String columnName, long timestamp) {
-        List<Column> columns = ImmutableList.of(
-                new Column().setValue(columnName.getBytes()),
-                new Column().setValue(PtBytes.toBytes(~timestamp)));
-        return new CqlRow(rowKey, columns);
+    private CellWithTimestamp makeCell(String columnName, long timestamp) {
+        return new CellWithTimestamp.Builder()
+                .row(rowName)
+                .column(columnName.getBytes())
+                .timestamp(timestamp)
+                .build();
     }
 
     private static ColumnOrSuperColumn makeColumnOrSuperColumn(String columnName, long timestamp) {
@@ -167,30 +165,24 @@ public class AllCellsPerRowPagerTest {
         return CassandraKeyValueServices.getColumnOrSuperColumn(columnName.getBytes(), timestampLong);
     }
 
-    private void allQueriesReturn(List<CqlRow> rows) {
-        allQueriesSimpleReturn(rows);
-        allQueriesWithColumnAndTimestampReturn(rows);
+    private void allQueriesReturn(List<CellWithTimestamp> cells) {
+        allQueriesSimpleReturn(cells);
+        allQueriesWithColumnAndTimestampReturn(cells);
         allQueriesWithColumnReturn(ImmutableList.of());
     }
 
-    private void allQueriesSimpleReturn(List<CqlRow> rows) {
-        CqlResult cqlResult = mock(CqlResult.class);
-        when(cqlResult.getRows()).thenReturn(rows);
-        when(executor.getColumnsForRow(any(TableReference.class), anyString(), anyInt())).thenReturn(cqlResult);
+    private void allQueriesSimpleReturn(List<CellWithTimestamp> cells) {
+        when(executor.getColumnsForRow(any(TableReference.class), anyString(), anyInt())).thenReturn(cells);
     }
 
-    private void allQueriesWithColumnAndTimestampReturn(List<CqlRow> rows) {
-        CqlResult cqlResult = mock(CqlResult.class);
-        when(cqlResult.getRows()).thenReturn(rows);
+    private void allQueriesWithColumnAndTimestampReturn(List<CellWithTimestamp> cells) {
         when(executor.getTimestampsForRowAndColumn(
-                any(TableReference.class), anyString(), anyString(), anyLong(), anyInt())).thenReturn(cqlResult);
+                any(TableReference.class), anyString(), anyString(), anyLong(), anyInt())).thenReturn(cells);
     }
 
-    private void allQueriesWithColumnReturn(List<CqlRow> rows) {
-        CqlResult result2 = mock(CqlResult.class);
-        when(result2.getRows()).thenReturn(rows);
+    private void allQueriesWithColumnReturn(List<CellWithTimestamp> cells) {
         when(executor.getNextColumnsForRow(
-                any(TableReference.class), anyString(), anyString(), anyInt())).thenReturn(result2);
+                any(TableReference.class), anyString(), anyString(), anyInt())).thenReturn(cells);
     }
 
     private void assertColumnOrSuperColumnHasCorrectNameAndTimestamp(
