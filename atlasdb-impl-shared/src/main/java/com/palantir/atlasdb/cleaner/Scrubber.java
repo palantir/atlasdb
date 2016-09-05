@@ -545,17 +545,11 @@ public final class Scrubber {
             for (Follower follower : followers) {
                 follower.run(txManager, tableRef, cellToTimestamp.keySet(), transactionType);
             }
-            keyValueService.addGarbageCollectionSentinelValues(
-                    tableRef,
-                    cellToTimestamp.keySet());
-            if (cellToTimestamp.size() <= MAX_DELETES_IN_BATCH) {
-                keyValueService.delete(tableRef, cellToTimestamp);
-            } else {
-                for (List<Entry<Cell, Long>> batch : Iterables.partition(cellToTimestamp.entries(), MAX_DELETES_IN_BATCH)) {
-                    Builder<Cell, Long> builder = ImmutableMultimap.builder();
-                    batch.stream().forEach(e -> builder.put(e));
-                    keyValueService.delete(tableRef, builder.build());
-                }
+            keyValueService.addGarbageCollectionSentinelValues(tableRef, cellToTimestamp.keySet());
+            for (List<Entry<Cell, Long>> batch : Iterables.partition(cellToTimestamp.entries(), MAX_DELETES_IN_BATCH)) {
+                Builder<Cell, Long> builder = ImmutableMultimap.builder();
+                batch.stream().forEach(e -> builder.put(e));
+                keyValueService.delete(tableRef, builder.build());
             }
         }
     }
