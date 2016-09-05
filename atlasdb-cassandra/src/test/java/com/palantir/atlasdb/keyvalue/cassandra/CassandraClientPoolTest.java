@@ -30,7 +30,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 
-public class CassandraClientPoolUnitTest {
+public class CassandraClientPoolTest {
     public static final int POOL_REFRESH_INTERVAL_SECONDS = 10;
     public static final int DEFAULT_PORT = 5000;
     public static final int OTHER_PORT = 6000;
