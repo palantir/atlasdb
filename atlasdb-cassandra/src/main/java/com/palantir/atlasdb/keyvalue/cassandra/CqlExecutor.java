@@ -62,23 +62,24 @@ public class CqlExecutor {
      * @param tableRef the table from which to select
      * @param row the row key
      * @param column the column name
-     * @param minTimestamp the minimum timestamp, exclusive
+     * @param maxTimestampExclusive the maximum timestamp, exclusive
      * @param limit the maximum number of results to return.
      * @return up to <code>limit</code> cells that exactly match the row and column name,
-     * and have a timestamp greater than <code>minTimestamp</code>.
+     * and have a timestamp less than <code>maxTimestampExclusive</code>.
      */
     List<CellWithTimestamp> getTimestampsForRowAndColumn(
             TableReference tableRef,
             String row,
             String column,
-            long minTimestamp,
+            long maxTimestampExclusive,
             int limit) {
+        long invertedTimestamp = ~maxTimestampExclusive;
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s AND column1 = %s AND column2 > %s LIMIT %s;",
                 getTableName(tableRef),
                 row,
                 column,
-                minTimestamp,
+                invertedTimestamp,
                 limit);
         CqlResult cqlResult = executeQueryOnHost(query, getHostForRow(row));
         return getCells(row, cqlResult);
