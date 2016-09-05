@@ -38,6 +38,12 @@ public class CqlExecutor {
         this.consistency = consistency;
     }
 
+    /**
+     * @param tableRef the table from which to select
+     * @param row the row key
+     * @param limit the maximum number of results to return.
+     * @return a CqlResult with two columns, the first being the column name, and the second being the timestamp
+     */
     CqlResult getColumnsForRow(TableReference tableRef, String row, int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s LIMIT %s;",
@@ -47,6 +53,15 @@ public class CqlExecutor {
         return executeQueryOnHost(query, getHostForRow(row));
     }
 
+    /**
+     * @param tableRef the table from which to select
+     * @param row the row key
+     * @param column the column name
+     * @param minTimestamp the minimum timestamp, exclusive
+     * @param limit the maximum number of results to return.
+     * @return up to <code>limit</code> cells that exactly match the row and column name,
+     * and have a timestamp greater than <code>minTimestamp</code>.
+     */
     CqlResult getTimestampsForRowAndColumn(
             TableReference tableRef,
             String row,
@@ -63,6 +78,14 @@ public class CqlExecutor {
         return executeQueryOnHost(query, getHostForRow(row));
     }
 
+    /**
+     * @param tableRef the table from which to select
+     * @param row the row key
+     * @param previousColumn the lexicographic lower bound (exclusive) for the column name
+     * @param limit the maximum number of results to return.
+     * @return up to <code>limit</code> results where the column name is lexicographically later than the supplied
+     * <code>previousColumn</code>. Note that this can return results from multiple columns.
+     */
     CqlResult getNextColumnsForRow(TableReference tableRef, String row, String previousColumn, int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s AND column1 > %s LIMIT %s;",
