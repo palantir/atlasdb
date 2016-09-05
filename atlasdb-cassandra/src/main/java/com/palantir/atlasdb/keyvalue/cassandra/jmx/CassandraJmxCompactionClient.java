@@ -38,7 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 /**
  * Maintains a JMX client for each node in C* cluster.
  */
-public final class CassandraJmxCompactionClient {
+public class CassandraJmxCompactionClient {
     private static final Logger log = LoggerFactory.getLogger(CassandraJmxCompactionClient.class);
     private final String host;
     private final int port;
@@ -47,12 +47,13 @@ public final class CassandraJmxCompactionClient {
     private final HintedHandOffManagerMBean hintedHandoffProxy;
     private final CompactionManagerMBean compactionManagerProxy;
 
-    private CassandraJmxCompactionClient(String host,
-                                         int port,
-                                         JMXConnector jmxConnector,
-                                         StorageServiceMBean storageServiceProxy,
-                                         HintedHandOffManagerMBean hintedHandoffProxy,
-                                         CompactionManagerMBean compactionManagerProxy) {
+    protected CassandraJmxCompactionClient(
+            String host,
+            int port,
+            JMXConnector jmxConnector,
+            StorageServiceMBean storageServiceProxy,
+            HintedHandOffManagerMBean hintedHandoffProxy,
+            CompactionManagerMBean compactionManagerProxy) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(host));
         Preconditions.checkArgument(port > 0);
         this.host = host;

@@ -26,6 +26,8 @@ dependencies {
 
   compile group: 'com.google.code.findbugs', name: 'annotations', version: libVersions.findbugsAnnotations
 
+  testCompile 'org.mockito:mockito-core:' + libVersions.mockito
+
   processor 'org.immutables:value:' + libVersions.immutables
   processor 'com.google.auto.service:auto-service:1.0-rc2'
 }
