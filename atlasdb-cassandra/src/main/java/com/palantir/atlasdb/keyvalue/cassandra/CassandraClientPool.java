@@ -383,7 +383,7 @@ public class CassandraClientPool {
     protected InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
         InetAddress resolvedHost = InetAddress.getByName(host);
 
-        SetView<InetSocketAddress> allKnownHosts = Sets.union(currentPools.keySet(), config.servers());
+        Set<InetSocketAddress> allKnownHosts = Sets.union(currentPools.keySet(), config.servers());
         for (InetSocketAddress address : allKnownHosts) {
             if (address.getAddress().equals(resolvedHost)) {
                 return address;
@@ -391,7 +391,7 @@ public class CassandraClientPool {
         }
 
         Set<Integer> allKnownPorts = allKnownHosts.stream()
-                .map(address -> address.getPort())
+                .map(InetSocketAddress::getPort)
                 .collect(Collectors.toSet());
 
         if (allKnownPorts.size() == 1) { // if everyone is on one port, try and use that
