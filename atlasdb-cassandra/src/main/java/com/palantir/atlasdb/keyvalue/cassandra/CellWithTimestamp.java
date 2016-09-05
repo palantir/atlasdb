@@ -15,7 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.immutables.value.Value;
+
+import com.google.common.base.Preconditions;
 
 @Value.Immutable
 public abstract class CellWithTimestamp {
@@ -26,4 +29,13 @@ public abstract class CellWithTimestamp {
     public abstract long timestamp();
 
     public static class Builder extends ImmutableCellWithTimestamp.Builder { }
+
+    public ColumnOrSuperColumn asColumnOrSuperColumn() {
+        return CassandraKeyValueServices.getColumnOrSuperColumn(column(), timestamp());
+    }
+
+    @Value.Check
+    protected final void check() {
+        Preconditions.checkState(timestamp() >= 0, "Timestamp must be non-negative; got %s", timestamp());
+    }
 }

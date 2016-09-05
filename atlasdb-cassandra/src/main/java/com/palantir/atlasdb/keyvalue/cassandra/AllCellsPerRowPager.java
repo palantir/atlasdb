@@ -75,11 +75,8 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
 
     private List<ColumnOrSuperColumn> getColumns(List<CellWithTimestamp> result) {
         return result.stream()
-                .map(this::getColumn)
+                .map(CellWithTimestamp::asColumnOrSuperColumn)
                 .collect(Collectors.toList());
     }
 
-    private ColumnOrSuperColumn getColumn(CellWithTimestamp cell) {
-        return CassandraKeyValueServices.getColumnOrSuperColumn(cell.column(), cell.timestamp());
-    }
 }
