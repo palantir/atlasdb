@@ -163,7 +163,8 @@ public class AllCellsPerRowPagerTest {
     }
 
     private static ColumnOrSuperColumn makeColumnOrSuperColumn(String columnName, long timestamp) {
-        return CassandraKeyValueServices.makeColumnOrSuperColumn(columnName.getBytes(), PtBytes.toBytes(timestamp));
+        long timestampLong = ~PtBytes.toLong(PtBytes.toBytes(timestamp));
+        return CassandraKeyValueServices.getColumnOrSuperColumn(columnName.getBytes(), timestampLong);
     }
 
     private void allQueriesReturn(List<CqlRow> rows) {
