@@ -16,8 +16,10 @@
 package com.palantir.atlasdb;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Optional;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.dropwizard.AtlasDbConfigurationProvider;
+import com.palantir.remoting.ssl.SslConfiguration;
 
 import io.dropwizard.Configuration;
 
@@ -31,5 +33,10 @@ public class AtlasDbEteConfiguration extends Configuration implements AtlasDbCon
     @Override
     public AtlasDbConfig getAtlasDbConfig() {
         return atlasdb;
+    }
+
+    @Override
+    public Optional<SslConfiguration> getLeaderSslConfiguration() {
+        return Optional.absent();
     }
 }

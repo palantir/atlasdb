@@ -15,11 +15,8 @@
  */
 package com.palantir.atlasdb.console.module
 
-import groovy.json.JsonBuilder
-import groovy.json.JsonOutput
-import groovy.transform.CompileStatic
-
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.google.common.base.Optional
 import com.google.common.collect.ImmutableSet
 import com.palantir.atlasdb.api.AtlasDbService
 import com.palantir.atlasdb.api.TransactionToken
@@ -35,6 +32,11 @@ import com.palantir.atlasdb.impl.TableMetadataCache
 import com.palantir.atlasdb.jackson.AtlasJacksonModule
 import com.palantir.atlasdb.table.description.Schema
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager
+import groovy.json.JsonBuilder
+import groovy.json.JsonOutput
+import groovy.transform.CompileStatic
+
+import javax.net.ssl.SSLSocketFactory
 
 /**
  * Public methods that clients can call within AtlasConsole.
@@ -141,7 +143,7 @@ class AtlasCoreModule implements AtlasConsoleModule {
     }
 
     private setupConnection(AtlasDbConfig config) {
-        SerializableTransactionManager tm = TransactionManagers.create(config, ImmutableSet.<Schema>of(),
+        SerializableTransactionManager tm = TransactionManagers.create(config, Optional.<SSLSocketFactory>absent(), ImmutableSet.<Schema>of(),
                 new com.palantir.atlasdb.factory.TransactionManagers.Environment() {
                     @Override
                     public void register(Object resource) {

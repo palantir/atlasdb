@@ -34,6 +34,7 @@ public class LockAndTimestampModule {
     public TransactionManagers.LockAndTimestampServices provideLockAndTimestampServices(ServicesConfig config) {
         return TransactionManagers.createLockAndTimestampServices(
                 config.atlasDbConfig(),
+                config.sslSocketFactory(),
                 resource -> { },
                 LockServiceImpl::create,
                 () -> config.atlasDbSupplier().getTimestampService());
