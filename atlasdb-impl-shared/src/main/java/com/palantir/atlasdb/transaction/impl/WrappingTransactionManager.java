@@ -102,4 +102,9 @@ public abstract class WrappingTransactionManager extends ForwardingLockAwareTran
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
         return delegate().runTaskReadOnly(wrapTask(task));
     }
+
+    @Override
+    public void close() {
+        delegate().close();
+    }
 }

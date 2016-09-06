@@ -209,6 +209,12 @@ import com.palantir.timestamp.TimestampService;
         return runTaskThrowOnConflict(task, new OnlyWriteTempTablesTransaction(transaction, sweepStrategyManager));
     }
 
+    @Override
+    public void close() {
+        keyValueService.close();
+        cleaner.close();
+    }
+
     private Supplier<Long> getStartTimestampSupplier() {
         return Suppliers.memoize(new Supplier<Long>() {
             @Override
