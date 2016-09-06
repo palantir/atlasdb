@@ -15,7 +15,7 @@
  */
 package com.palantir.nexus.db.sql;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;

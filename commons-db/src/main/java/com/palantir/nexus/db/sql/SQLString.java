@@ -29,8 +29,8 @@ import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.GuardedBy;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Validate;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
