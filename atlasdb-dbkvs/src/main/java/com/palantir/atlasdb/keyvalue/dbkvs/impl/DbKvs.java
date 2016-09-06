@@ -80,6 +80,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
+import com.palantir.atlasdb.keyvalue.dbkvs.util.DbKvsPartitioners;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
@@ -603,10 +604,13 @@ public class DbKvs extends AbstractKeyValueService {
             } else {
                 byte[] nextCol = RangeRequests.nextLexicographicName(lastCol);
                 BatchColumnRangeSelection nextColumnRangeSelection =
-                        new BatchColumnRangeSelection(nextCol,
+                        BatchColumnRangeSelection.create(
+                                nextCol,
                                 columnRangeSelection.getEndCol(),
                                 columnRangeSelection.getBatchHint());
-                Iterator<Map.Entry<Cell, Value>> nextPagesIter = getRowColumnRange(tableRef, e.getKey(),
+                Iterator<Map.Entry<Cell, Value>> nextPagesIter = getRowColumnRange(
+                        tableRef,
+                        e.getKey(),
                         nextColumnRangeSelection,
                         timestamp);
                 ret.put(e.getKey(), new LocalRowColumnRangeIterator(Iterators.concat(firstPageIter, nextPagesIter)));
@@ -622,12 +626,13 @@ public class DbKvs extends AbstractKeyValueService {
                                                      int cellBatchHint,
                                                      long timestamp) {
         List<byte[]> rowList = ImmutableList.copyOf(rows);
-        Map<Sha256Hash, byte[]> hashesToBytes = Maps.uniqueIndex(rowList, Sha256Hash::computeHash);
+        Map<Sha256Hash, byte[]> rowHashesToBytes = Maps.uniqueIndex(rowList, Sha256Hash::computeHash);
 
         Map<Sha256Hash, Integer> ordered =
                 getColumnCounts(tableRef, rowList, columnRangeSelection, timestamp);
 
-        Iterator<Map<Sha256Hash, Integer>> batches = partitionByTotalCount(ordered, cellBatchHint).iterator();
+        Iterator<Map<Sha256Hash, Integer>> batches =
+                DbKvsPartitioners.partitionByTotalCount(ordered, cellBatchHint).iterator();
         Iterator<Iterator<Map.Entry<Cell, Value>>> results = new AbstractIterator<Iterator<Map.Entry<Cell, Value>>>() {
             private Sha256Hash lastRowHashInPreviousBatch = null;
             private byte[] lastColumnInPreviousBatch = null;
@@ -638,49 +643,64 @@ public class DbKvs extends AbstractKeyValueService {
                     return endOfData();
                 }
                 Map<Sha256Hash, Integer> currBatch = batches.next();
-                Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow = new HashMap<>(currBatch.size());
-                for (Map.Entry<Sha256Hash, Integer> entry : currBatch.entrySet()) {
-                    Sha256Hash rowHash = entry.getKey();
-                    byte[] startCol = Objects.equals(lastRowHashInPreviousBatch, rowHash)
-                            ? RangeRequests.nextLexicographicName(lastColumnInPreviousBatch)
-                            : columnRangeSelection.getStartCol();
-                    BatchColumnRangeSelection batchColumnRangeSelection =
-                            new BatchColumnRangeSelection(startCol, columnRangeSelection.getEndCol(), entry.getValue());
-                    columnRangeSelectionsByRow.put(hashesToBytes.get(rowHash), batchColumnRangeSelection);
-                }
+                Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow =
+                        getBatchColumnRangeSelectionsByRow(currBatch);
 
                 Map<byte[], List<Map.Entry<Cell, Value>>> resultsByRow =
-                        runRead(tableRef,
-                                dbReadTable -> extractRowColumnRangePage(dbReadTable, columnRangeSelectionsByRow,
-                                        timestamp));
+                        runRead(tableRef, dbReadTable ->
+                            extractRowColumnRangePage(dbReadTable, columnRangeSelectionsByRow, timestamp));
                 int totalEntries = resultsByRow.values().stream().mapToInt(List::size).sum();
                 if (totalEntries == 0) {
                     return Collections.emptyIterator();
                 }
                 // Ensure order matches that of the provided batch.
-                List<Map.Entry<Cell, Value>> ret = new ArrayList<>(totalEntries);
+                List<Map.Entry<Cell, Value>> loadedColumns = new ArrayList<>(totalEntries);
                 for (Sha256Hash rowHash : currBatch.keySet()) {
-                    byte[] row = hashesToBytes.get(rowHash);
-                    ret.addAll(resultsByRow.get(row));
+                    byte[] row = rowHashesToBytes.get(rowHash);
+                    loadedColumns.addAll(resultsByRow.get(row));
                 }
-                Cell lastCell = Iterables.getLast(ret).getKey();
+
+                Cell lastCell = Iterables.getLast(loadedColumns).getKey();
                 lastRowHashInPreviousBatch = Sha256Hash.computeHash(lastCell.getRowName());
                 lastColumnInPreviousBatch = lastCell.getColumnName();
-                return ret.iterator();
+
+                return loadedColumns.iterator();
+            }
+
+            private Map<byte[], BatchColumnRangeSelection> getBatchColumnRangeSelectionsByRow(
+                    Map<Sha256Hash, Integer> columnCountsByRowHash) {
+                Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow =
+                        new HashMap<>(columnCountsByRowHash.size());
+                for (Map.Entry<Sha256Hash, Integer> entry : columnCountsByRowHash.entrySet()) {
+                    Sha256Hash rowHash = entry.getKey();
+                    byte[] startCol = Objects.equals(lastRowHashInPreviousBatch, rowHash)
+                            ? RangeRequests.nextLexicographicName(lastColumnInPreviousBatch)
+                            : columnRangeSelection.getStartCol();
+                    BatchColumnRangeSelection batchColumnRangeSelection =
+                            BatchColumnRangeSelection.create(
+                                    startCol,
+                                    columnRangeSelection.getEndCol(),
+                                    entry.getValue());
+                    columnRangeSelectionsByRow.put(rowHashesToBytes.get(rowHash), batchColumnRangeSelection);
+                }
+                return columnRangeSelectionsByRow;
             }
         };
         return new LocalRowColumnRangeIterator(Iterators.concat(results));
     }
 
-    private Iterator<Map.Entry<Cell, Value>> getRowColumnRange(TableReference tableRef, final byte[] row,
-            final BatchColumnRangeSelection columnRangeSelection, long ts) {
+    private Iterator<Map.Entry<Cell, Value>> getRowColumnRange(
+            TableReference tableRef,
+            byte[] row,
+            BatchColumnRangeSelection batchColumnRangeSelection,
+            long timestamp) {
         List<byte[]> rowList = ImmutableList.of(row);
         return ClosableIterators.wrap(new AbstractPagingIterable<
                 Entry<Cell, Value>,
                 TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]>>() {
             @Override
             protected TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> getFirstPage() throws Exception {
-                return page(columnRangeSelection.getStartCol());
+                return page(batchColumnRangeSelection.getStartCol());
             }
 
             @Override
@@ -690,19 +710,18 @@ public class DbKvs extends AbstractKeyValueService {
             }
 
             TokenBackedBasicResultsPage<Map.Entry<Cell, Value>, byte[]> page(byte[] startCol) throws Exception {
-                BatchColumnRangeSelection range =
-                        new BatchColumnRangeSelection(startCol,
-                                columnRangeSelection.getEndCol(),
-                                columnRangeSelection.getBatchHint());
+                BatchColumnRangeSelection range = BatchColumnRangeSelection.create(
+                                startCol,
+                                batchColumnRangeSelection.getEndCol(),
+                                batchColumnRangeSelection.getBatchHint());
                 List<Map.Entry<Cell, Value>> nextPage =
-                        runRead(tableRef,
-                                table -> Iterables.getOnlyElement(
-                                        extractRowColumnRangePage(table, range, ts, rowList).values()));
+                        runRead(tableRef, table -> Iterables.getOnlyElement(
+                                        extractRowColumnRangePage(table, range, timestamp, rowList).values()));
                 if (nextPage.isEmpty()) {
                     return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.<Entry<Cell, Value>>of(), false);
                 }
                 byte[] lastCol = nextPage.get(nextPage.size() - 1).getKey().getColumnName();
-                if (isEndOfColumnRange(lastCol, columnRangeSelection.getEndCol())) {
+                if (isEndOfColumnRange(lastCol, batchColumnRangeSelection.getEndCol())) {
                     return SimpleTokenBackedResultsPage.create(lastCol, nextPage, false);
                 }
                 byte[] nextCol = RangeRequests.nextLexicographicName(lastCol);
@@ -849,46 +868,6 @@ public class DbKvs extends AbstractKeyValueService {
             ordered.put(rowHash, countsByRow.getOrDefault(rowHash, 0));
         }
         return ordered;
-    }
-
-    /**
-     * Partitions the provided map into batches, where the total count of every batch except the last is {@code limit}.
-     * Note this means that a single element may be split into multiple batches. The ordering of the batches matches the
-     * ordering of the provided counts, i.e. if x appears before y in {@code counts}, then no batch containing x will
-     * appear after a batch containing y, and if a batch contains both, then x will appear before y in that batch.
-     */
-    private <T> List<Map<T, Integer>> partitionByTotalCount(Map<T, Integer> counts, int limit) {
-        List<Map<T, Integer>> batches = new ArrayList<>();
-        Map<T, Integer> currentBatch = new LinkedHashMap<>();
-        batches.add(currentBatch);
-        int currBatchColumns = 0;
-
-        T currElem = null;
-        int remainingCountForCurrElem = 0;
-        Iterator<T> iter = counts.keySet().iterator();
-        while (remainingCountForCurrElem > 0 || iter.hasNext()) {
-            if (remainingCountForCurrElem == 0) {
-                currElem = iter.next();
-                remainingCountForCurrElem = counts.getOrDefault(currElem, 0);
-            }
-
-            if (currBatchColumns + remainingCountForCurrElem > limit) {
-                // Fill up current batch
-                int columnsToInclude = limit - currBatchColumns;
-                currentBatch.put(currElem, columnsToInclude);
-                remainingCountForCurrElem -= columnsToInclude;
-
-                // Create new batch
-                currentBatch = new LinkedHashMap<>();
-                batches.add(currentBatch);
-                currBatchColumns = 0;
-            } else {
-                currentBatch.put(currElem, remainingCountForCurrElem);
-                currBatchColumns += remainingCountForCurrElem;
-                remainingCountForCurrElem = 0;
-            }
-        }
-        return batches;
     }
 
     @Override

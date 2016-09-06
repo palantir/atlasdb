@@ -209,11 +209,9 @@ public class KeyValueServices {
         if (Iterables.isEmpty(rows)) {
             return new LocalRowColumnRangeIterator(Collections.emptyIterator());
         }
-        log.warn("This KVS does not support getRowsColumnRange with paging through all results simultaneously. Falling "
-                + "back to the less efficient per-row paging version.");
         int columnBatchSize = batchHint / Iterables.size(rows);
         BatchColumnRangeSelection batchColumnRangeSelection =
-                new BatchColumnRangeSelection(columnRangeSelection.getStartCol(),
+                BatchColumnRangeSelection.create(columnRangeSelection.getStartCol(),
                                               columnRangeSelection.getEndCol(),
                                               columnBatchSize);
         Map<byte[], RowColumnRangeIterator> rowsColumnRanges =

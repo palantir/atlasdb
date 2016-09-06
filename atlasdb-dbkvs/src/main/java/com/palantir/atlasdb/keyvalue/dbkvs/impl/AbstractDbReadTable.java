@@ -234,8 +234,8 @@ public abstract class AbstractDbReadTable implements DbReadTable {
             long ts,
             ColumnRangeSelection columnRangeSelection) {
         FullQuery query = queryFactory.getRowsColumnRangeCountsQuery(rows, ts, columnRangeSelection);
-        AgnosticLightResultSet results =
-                conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
+        AgnosticLightResultSet results = conns.get()
+                .selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
         results.setFetchSize(Math.max(rows.size(), MAX_ROW_COLUMN_RANGES_FETCH_SIZE));
         return ClosableIterators.wrap(results.iterator(), results);
     }

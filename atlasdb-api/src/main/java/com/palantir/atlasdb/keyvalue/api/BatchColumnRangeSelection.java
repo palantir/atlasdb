@@ -30,12 +30,16 @@ public class BatchColumnRangeSelection implements Serializable {
     private final ColumnRangeSelection columnRangeSelection;
     private final int batchHint;
 
-    @JsonCreator
-    public BatchColumnRangeSelection(@JsonProperty("startCol") byte[] startCol,
-                                     @JsonProperty("endCol") byte[] endCol,
-                                     @JsonProperty("batchHint") int batchHint) {
-        this.columnRangeSelection = new ColumnRangeSelection(startCol, endCol);
+    public BatchColumnRangeSelection(ColumnRangeSelection columnRangeSelection, int batchHint) {
+        this.columnRangeSelection = columnRangeSelection;
         this.batchHint = batchHint;
+    }
+
+    @JsonCreator
+    public static BatchColumnRangeSelection create(@JsonProperty("startCol") byte[] startCol,
+                                                   @JsonProperty("endCol") byte[] endCol,
+                                                   @JsonProperty("batchHint") int batchHint) {
+        return new BatchColumnRangeSelection(new ColumnRangeSelection(startCol, endCol), batchHint);
     }
 
     public byte[] getStartCol() {
@@ -92,7 +96,7 @@ public class BatchColumnRangeSelection implements Serializable {
         byte[] startCol = PtBytes.decodeBase64(split[0]);
         byte[] endCol = PtBytes.decodeBase64(split[1]);
         int batchHint = Integer.parseInt(split[2]);
-        return new BatchColumnRangeSelection(startCol, endCol, batchHint);
+        return BatchColumnRangeSelection.create(startCol, endCol, batchHint);
     }
 
     @Override

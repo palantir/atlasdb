@@ -104,7 +104,7 @@ public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceT
         assertEquals(rowResult, rowResultDeserialized);
 
         RemoteRowColumnRangeIterator rowColumnRangeIterator = new RemoteRowColumnRangeIterator(TableReference.create(Namespace.create("ns"), "test_table"),
-                new BatchColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1), 100L, true,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1), 100L, true,
                 ImmutableList.copyOf(ImmutableMap.of(cell, value).entrySet()));
         String serializedRowColumnRangeIterator = mapper.writeValueAsString(rowColumnRangeIterator);
         RowColumnRangeIterator rowColumnRangeIteratorDeserialized = mapper.readValue(serializedRowColumnRangeIterator, RowColumnRangeIterator.class);
@@ -112,7 +112,7 @@ public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceT
         assertEquals(rowColumnRangeIterator, rowColumnRangeIteratorDeserialized);
 
         rowColumnRangeIterator = new RemoteRowColumnRangeIterator(TableReference.create(Namespace.create("ns"), "test_table"),
-                new BatchColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1), 100L, false,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1), 100L, false,
                 ImmutableList.of());
         serializedRowColumnRangeIterator = mapper.writeValueAsString(rowColumnRangeIterator);
         rowColumnRangeIteratorDeserialized = mapper.readValue(serializedRowColumnRangeIterator, RowColumnRangeIterator.class);

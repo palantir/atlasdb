@@ -39,12 +39,14 @@ public class DbKvsPartitionersTest {
                                                        2, 2,
                                                        3, 2);
         List<Map<Integer, Integer>> partitioned = DbKvsPartitioners.partitionByTotalCount(counts, 5);
-        Assert.assertEquals(2, partitioned.size());
-        Assert.assertEquals(ImmutableMap.of(0, 5), partitioned.get(0));
-        Assert.assertEquals(ImmutableMap.of(1, 1,
-                                            2, 2,
-                                            3, 2),
-                            partitioned.get(1));
+
+        Assert.assertEquals(
+                ImmutableList.of(
+                        ImmutableMap.of(0, 5),
+                        ImmutableMap.of(1, 1,
+                                        2, 2,
+                                        3, 2)),
+                partitioned);
     }
 
     @Test
@@ -54,15 +56,16 @@ public class DbKvsPartitionersTest {
                                                        1, 3,
                                                        4, 3);
         List<Map<Integer, Integer>> partitioned = DbKvsPartitioners.partitionByTotalCount(counts, 5);
-        Assert.assertEquals(3, partitioned.size());
-        Assert.assertEquals(ImmutableMap.of(0, 3,
-                                            3, 2),
-                            partitioned.get(0));
-        Assert.assertEquals(ImmutableMap.of(3, 1,
-                                            1, 3,
-                                            4, 1),
-                            partitioned.get(1));
-        Assert.assertEquals(ImmutableMap.of(4, 2), partitioned.get(2));
+
+        Assert.assertEquals(
+                ImmutableList.of(
+                        ImmutableMap.of(0, 3,
+                                        3, 2),
+                        ImmutableMap.of(3, 1,
+                                        1, 3,
+                                        4, 1),
+                        ImmutableMap.of(4, 2)),
+                partitioned);
     }
 
     @Test

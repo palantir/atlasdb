@@ -104,7 +104,7 @@ public class RemoteRowColumnRangeIterator implements RowColumnRangeIterator {
             TableReference table,
             byte[] row,
             byte[] nextCol) {
-        BatchColumnRangeSelection newColumnRange = new BatchColumnRangeSelection(
+        BatchColumnRangeSelection newColumnRange = BatchColumnRangeSelection.create(
                 nextCol,
                 columnRangeSelection.getEndCol(),
                 columnRangeSelection.getBatchHint());

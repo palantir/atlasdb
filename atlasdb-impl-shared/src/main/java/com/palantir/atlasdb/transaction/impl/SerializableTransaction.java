@@ -619,7 +619,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                     BatchColumnRangeSelection range = e.getKey();
                     byte[] rangeEnd = e.getValue();
                     if (rangeEnd.length != 0 && !RangeRequests.isTerminalRow(false, rangeEnd)) {
-                        range = new BatchColumnRangeSelection(
+                        range = BatchColumnRangeSelection.create(
                                 range.getStartCol(),
                                 RangeRequests.getNextStartRow(false, rangeEnd),
                                 range.getBatchHint());

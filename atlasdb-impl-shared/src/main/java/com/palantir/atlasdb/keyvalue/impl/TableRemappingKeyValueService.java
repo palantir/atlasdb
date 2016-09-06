@@ -236,12 +236,12 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
                                                      Iterable<byte[]> rows,
                                                      ColumnRangeSelection columnRangeSelection,
-                                                     int batchHint,
+                                                     int cellBatchHint,
                                                      long timestamp) {
         return delegate().getRowsColumnRange(tableMapper.getMappedTableName(tableRef),
                                              rows,
                                              columnRangeSelection,
-                                             batchHint,
+                                             cellBatchHint,
                                              timestamp);
     }
 

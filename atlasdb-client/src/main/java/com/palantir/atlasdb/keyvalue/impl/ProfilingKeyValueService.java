@@ -479,13 +479,13 @@ public class ProfilingKeyValueService implements KeyValueService {
             Stopwatch stopwatch = Stopwatch.createStarted();
             RowColumnRangeIterator result =
                     delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
-            log.trace("Call to KVS.getRowsColumnRange2 on table {} for {} rows with range {} and batch hint {} took {} ms.",
+            log.trace("Call to KVS.getRowsColumnRangeCellBatch on table {} for {} rows with range {} and batch hint {} took {} ms.",
                       tableRef.getQualifiedName(),
                       Iterables.size(rows),
                       columnRangeSelection,
                       cellBatchHint,
                       stopwatch.elapsed(TimeUnit.MILLISECONDS));
-            logTimeAndTable("getRowsColumnRange2", tableRef.getQualifiedName(), stopwatch);
+            logTimeAndTable("getRowsColumnRangeCellBatch", tableRef.getQualifiedName(), stopwatch);
             return result;
         } else {
             return delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);

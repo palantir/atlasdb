@@ -61,7 +61,7 @@ public class ColumnRangeBatchProvider implements BatchProvider<Map.Entry<Cell, V
             startCol = RangeRequests.nextLexicographicName(lastToken);
         }
         BatchColumnRangeSelection newRange =
-                new BatchColumnRangeSelection(startCol, columnRangeSelection.getEndCol(), batchSize);
+                BatchColumnRangeSelection.create(startCol, columnRangeSelection.getEndCol(), batchSize);
         Map<byte[], RowColumnRangeIterator> range = keyValueService.getRowsColumnRange(
                 tableRef,
                 ImmutableList.of(row),

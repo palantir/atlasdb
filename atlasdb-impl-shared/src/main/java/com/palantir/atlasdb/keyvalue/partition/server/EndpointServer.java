@@ -185,11 +185,8 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
                                                      ColumnRangeSelection columnRangeSelection,
                                                      int cellBatchHint,
                                                      long timestamp) {
-        return runPartitionMapReadOperation(input -> kvs().getRowsColumnRange(tableRef,
-                                                                              rows,
-                                                                              columnRangeSelection,
-                                                                              cellBatchHint,
-                                                                              timestamp));
+        return runPartitionMapReadOperation(input ->
+                kvs().getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp));
     }
 
     @Override

@@ -709,7 +709,7 @@ public abstract class AbstractTransactionTest {
         byte[] row = PtBytes.toBytes("row1");
         Transaction t = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new BatchColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         List<Map.Entry<Cell, byte[]>> expected = ImmutableList.of();
         verifyMatchingResult(expected, row, columnRange);
 
@@ -719,13 +719,13 @@ public abstract class AbstractTransactionTest {
         t = startTransaction();
         delete(t, "row1", "col1");
         columnRange =
-                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new BatchColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         verifyMatchingResult(expected, row, columnRange);
         t.commit();
 
         t = startTransaction();
         columnRange =
-                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new BatchColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         verifyMatchingResult(expected, row, columnRange);
     }
 
@@ -745,25 +745,25 @@ public abstract class AbstractTransactionTest {
 
         t = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new BatchColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         List<Map.Entry<Cell, byte[]>> expected = ImmutableList.copyOf(writes.build().entrySet());
         verifyMatchingResult(expected, row, columnRange);
 
         columnRange =
-                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new BatchColumnRangeSelection(PtBytes.toBytes("col"), PtBytes.EMPTY_BYTE_ARRAY, 1));
+                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.EMPTY_BYTE_ARRAY, 1));
         verifyMatchingResult(expected, row, columnRange);
 
         columnRange =
-                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new BatchColumnRangeSelection(PtBytes.toBytes("col"), PtBytes.EMPTY_BYTE_ARRAY, 101));
+                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.EMPTY_BYTE_ARRAY, 101));
         verifyMatchingResult(expected, row, columnRange);
 
         columnRange =
-                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new BatchColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY,
+                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY,
                         RangeRequests.nextLexicographicName(expected.get(expected.size() - 1).getKey().getColumnName()), 1));
         verifyMatchingResult(expected, row, columnRange);
 
         columnRange =
-                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new BatchColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY,
+                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY,
                         expected.get(expected.size() - 1).getKey().getColumnName(), 1));
         verifyMatchingResult(ImmutableList.copyOf(Iterables.limit(expected, 100)), row, columnRange);
     }
@@ -806,7 +806,7 @@ public abstract class AbstractTransactionTest {
         }
 
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new BatchColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         List<Map.Entry<Cell, byte[]>> expected = ImmutableList.copyOf(writes.build().entrySet());
         verifyMatchingResult(expected, row, columnRange);
     }
@@ -836,7 +836,7 @@ public abstract class AbstractTransactionTest {
         }
 
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), new BatchColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+                t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         List<Map.Entry<Cell, byte[]>> expected = ImmutableList.copyOf(writes.build().entrySet());
         verifyMatchingResult(expected, row, columnRange);
     }
