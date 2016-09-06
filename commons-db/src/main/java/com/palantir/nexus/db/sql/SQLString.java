@@ -200,7 +200,7 @@ public class SQLString extends BasicSQLString {
      */
     static FinalSQLString getUnregisteredQuery(String sql) {
         assert !isValidKey(sql) : "Unregistered Queries should not look like keys"; //$NON-NLS-1$
-        FinalSQLString cached = cachedUnregistered.get(TextUtils.removeAllWhitespace(canonicalizeString(sql)));
+        FinalSQLString cached = cachedUnregistered.get(StringUtils.deleteWhitespace(canonicalizeString(sql)));
         if(null != cached) {
             callbackOnUse.noteUse((SQLString) cached.delegate);
             return cached;
