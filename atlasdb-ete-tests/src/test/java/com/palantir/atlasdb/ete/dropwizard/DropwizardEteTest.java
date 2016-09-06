@@ -21,10 +21,12 @@ import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.palantir.atlasdb.ete.EteSetup;
 
+@Ignore
 public abstract class DropwizardEteTest extends EteSetup {
     private static final Pattern TIMESTAMP_REGEX = Pattern.compile("The Fresh timestamp is: (\\d+)");
 

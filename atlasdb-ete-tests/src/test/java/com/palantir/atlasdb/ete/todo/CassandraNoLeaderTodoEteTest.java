@@ -16,11 +16,13 @@
 package com.palantir.atlasdb.ete.todo;
 
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.rules.RuleChain;
 
 import com.palantir.atlasdb.ete.EteSetup;
 import com.palantir.timestamp.TimestampService;
 
+@Ignore
 public class CassandraNoLeaderTodoEteTest extends TodoEteTest {
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("cassandra-no-leader", "docker-compose.no-leader.cassandra.yml");

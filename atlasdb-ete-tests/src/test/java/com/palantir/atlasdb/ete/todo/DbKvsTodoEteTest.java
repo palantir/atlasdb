@@ -16,11 +16,13 @@
 package com.palantir.atlasdb.ete.todo;
 
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.rules.RuleChain;
 
 import com.palantir.atlasdb.ete.EteSetup;
 import com.palantir.timestamp.TimestampService;
 
+@Ignore
 public class DbKvsTodoEteTest extends TodoEteTest {
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("dbkvs", "docker-compose.dbkvs.yml");

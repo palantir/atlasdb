@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.palantir.atlasdb.ete.EteSetup;
@@ -29,6 +30,7 @@ import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.timestamp.TimestampService;
 
+@Ignore
 public abstract class TodoEteTest extends EteSetup {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
 
