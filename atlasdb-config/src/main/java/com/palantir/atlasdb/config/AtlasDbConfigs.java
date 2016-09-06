@@ -76,32 +76,24 @@ public final class AtlasDbConfigs {
 
     private static JsonNode getConfigNode(File configFile, @Nullable String configRoot) throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(configFile);
-        JsonNode configNode = findRoot(node, configRoot);
-
-        if (configNode == null) {
-            throw new IllegalArgumentException("Could not find " + configRoot + " in yaml file " + configFile);
-        }
-
-        return configNode;
+        return getConfigNode(node, configRoot);
     }
 
     private static JsonNode getConfigNode(String fileContents, @Nullable String configRoot) throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(fileContents);
-        JsonNode configNode = findRoot(node, configRoot);
-
-        if (configNode == null) {
-            throw new IllegalArgumentException("Could not find " + configRoot + " in given string");
-        }
-
-        return configNode;
+        return getConfigNode(node, configRoot);
     }
 
     private static JsonNode getConfigNode(InputStream configStream, @Nullable String configRoot) throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(configStream);
+        return getConfigNode(node, configRoot);
+    }
+
+    private static JsonNode getConfigNode(JsonNode node, @Nullable String configRoot) {
         JsonNode configNode = findRoot(node, configRoot);
 
         if (configNode == null) {
-            throw new IllegalArgumentException("Could not find " + configRoot + " in given stream");
+            throw new IllegalArgumentException("Could not find " + configRoot + " in input");
         }
 
         return configNode;
