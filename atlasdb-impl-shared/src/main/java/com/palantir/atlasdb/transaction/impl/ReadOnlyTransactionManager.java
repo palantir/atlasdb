@@ -107,6 +107,11 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     }
 
     @Override
+    public void close() {
+        keyValueService.close();
+    }
+
+    @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(Supplier<LockRequest> lockSupplier,
                                                                 LockAwareTransactionTask<T, E> task)
             throws E, InterruptedException {
