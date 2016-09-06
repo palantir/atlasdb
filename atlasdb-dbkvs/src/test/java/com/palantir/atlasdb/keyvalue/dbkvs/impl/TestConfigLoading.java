@@ -36,11 +36,7 @@ import com.palantir.nexus.db.pool.config.ConnectionConfig;
 public class TestConfigLoading {
     @Test
     public void testLoadingConfig() throws IOException {
-        // Palantir internal runs this test from the jar rather than from source. This means that the resource
-        // cannot be loaded as a file. Instead it must be loaded as a stream.
-        try (InputStream stream = getClass().getClassLoader().getResourceAsStream("postgresTestConfig.yml")) {
-            AtlasDbConfigs.load(stream);
-        }
+        getPostgresTestConfig();
     }
 
     @Test
@@ -82,15 +78,18 @@ public class TestConfigLoading {
     }
 
     private ConnectionConfig getConnectionConfig() throws IOException {
-        final AtlasDbConfig config;
-        // Palantir internal runs this test from the jar rather than from source. This means that the resource
-        // cannot be loaded as a file. Instead it must be loaded as a stream.
-        try (InputStream stream = getClass().getClassLoader().getResourceAsStream("postgresTestConfig.yml")) {
-            config = AtlasDbConfigs.load(stream);
-        }
+        AtlasDbConfig config = getPostgresTestConfig();
         KeyValueServiceConfig keyValueServiceConfig = config.keyValueService();
         DbKeyValueServiceConfig dbkvsConfig = (DbKeyValueServiceConfig) keyValueServiceConfig;
         return dbkvsConfig.connection();
+    }
+
+    private AtlasDbConfig getPostgresTestConfig() throws IOException {
+        // Palantir internal runs this test from the jar rather than from source. This means that the resource
+        // cannot be loaded as a file. Instead it must be loaded as a stream.
+        try (InputStream stream = getClass().getClassLoader().getResourceAsStream("postgresTestConfig.yml")) {
+            return AtlasDbConfigs.load(stream);
+        }
     }
 
     private void verifyHikariProperty(ConnectionConfig connectionConfig, String property, int expectedValueSeconds) {
