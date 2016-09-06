@@ -46,7 +46,8 @@ public class CassandraMultinodeTodoEteTest extends EteSetup {
     private static final long MAX_CASSANDRA_NODES_RUNNING_MILLIS = 3000;
 
     @Test
-    public void shouldRunTransactionsWithAllCassandraNodesRunningWithoutUnacceptableDelay() throws InterruptedException {
+    public void shouldRunTransactionsWithAllCassandraNodesRunningWithoutUnacceptableDelay()
+            throws InterruptedException {
         TodoResource clientToSingleNode = createClientToSingleNode(TodoResource.class);
 
         long transactionStartTime = System.currentTimeMillis();
@@ -61,7 +62,8 @@ public class CassandraMultinodeTodoEteTest extends EteSetup {
     }
 
     @Test
-    public void shouldRunTransactionsAfterCassandraNodeIsShutDownWithoutUnacceptableDelay() throws InterruptedException {
+    public void shouldRunTransactionsAfterCassandraNodeIsShutDownWithoutUnacceptableDelay()
+            throws InterruptedException {
         TodoResource clientToSingleNode = createClientToSingleNode(TodoResource.class);
 
         assertAddTodoTransactionWasSuccessful(clientToSingleNode);
