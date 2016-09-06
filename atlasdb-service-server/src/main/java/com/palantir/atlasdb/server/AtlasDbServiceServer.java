@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.server;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
@@ -36,7 +35,6 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
     public void run(AtlasDbServiceServerConfiguration config, final Environment environment) throws Exception {
         SerializableTransactionManager tm = TransactionManagers.create(
                 config.getConfig(),
-                Optional.absent(),
                 ImmutableSet.of(),
                 environment.jersey()::register,
                 false);

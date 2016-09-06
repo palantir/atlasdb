@@ -19,7 +19,7 @@ import java.sql.SQLException;
 
 import javax.annotation.Nonnull;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 
 import com.palantir.common.visitor.Visitor;
 import com.palantir.nexus.db.chunked.ChunkedRowVisitor;

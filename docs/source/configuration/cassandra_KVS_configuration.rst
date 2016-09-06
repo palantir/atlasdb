@@ -1,3 +1,5 @@
+.. _cassandra-configuration:
+
 =========================================
 Cassandra Key Value Service Configuration
 =========================================
@@ -16,6 +18,8 @@ e.g.
 .. code-block:: groovy
 
   runtime 'com.palantir.atlasdb:atlasdb-cassandra:0.7.0'
+
+.. _cassandra-kvs-config:
 
 Configuring a Running Application to Use Cassandra
 ==================================================

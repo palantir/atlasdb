@@ -8,7 +8,7 @@ function checkDocsBuild {
 }
 
 # Container 1
-CONTAINER_1=(':atlasdb-cassandra-tests:check')
+CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
 
 # Container 2
 CONTAINER_2=(':atlasdb-tests-shared:check' ':atlasdb-ete-tests:check')

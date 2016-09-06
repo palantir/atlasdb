@@ -25,6 +25,7 @@ plugins {
 }
 
 repositories {
+    mavenCentral()
     maven {
         url 'https://dl.bintray.com/palantir/releases/'
     }
@@ -38,6 +39,12 @@ description = 'Transactional distributed database layer'
 
 task clean(type: Delete) {
     delete buildDir
+}
+
+apply plugin: 'com.palantir.jacoco-full-report'
+
+jacoco {
+    toolVersion = libVersions.jacoco
 }
 
 subprojects {

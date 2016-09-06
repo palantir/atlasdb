@@ -1,5 +1,5 @@
 List<String> blacklistedBaselineProjects = [
-        'atlasdb-cassandra-tests',
+        'atlasdb-cassandra-integration-tests',
         'atlasdb-cli',
         'atlasdb-client',
         'atlasdb-client-protobufs',

@@ -4,8 +4,8 @@ apply from: '../gradle/shared.gradle'
 
 dependencies {
   compile project(':atlasdb-service')
-  compile 'com.google.dagger:dagger:2.0.2'
+  compile 'com.google.dagger:dagger:' + libVersions.dagger
 
-  processor 'com.google.dagger:dagger-compiler:2.0.2'
+  processor 'com.google.dagger:dagger-compiler:' + libVersions.dagger
   processor 'org.immutables:value:' + libVersions.immutables
 }
