@@ -1,4 +1,5 @@
 apply plugin: 'com.jfrog.bintray'
+apply plugin: 'com.jfrog.artifactory'
 apply plugin: 'maven-publish'
 
 task sourceJar(type: Jar) {
@@ -30,6 +31,23 @@ publishing {
                 license.appendNode('url', 'http://opensource.org/licenses/BSD-3-Clause')
             }
         }
+        artifactory (MavenPublication) {
+          from components.java
+          artifact(sourceJar) {
+              classifier 'sources'
+          }
+          artifact(testJar) {
+              classifier 'tests'
+          }
+          pom.withXml {
+              def scm = asNode().appendNode('scm')
+              scm.appendNode('url', 'https://github.com/palantir/atlasdb')
+              def licenses = asNode().appendNode('licenses')
+              def license = licenses.appendNode('license')
+              license.appendNode('name', 'BSD-3')
+              license.appendNode('url', 'http://opensource.org/licenses/BSD-3-Clause')
+          }
+        }
     }
 }
 
@@ -55,3 +73,20 @@ bintrayUpload.dependsOn { sourceJar }
 bintrayUpload.dependsOn { testJar }
 bintrayUpload.dependsOn { build }
 
+artifactory {
+  publish {
+    contextUrl = 'https://oss.jfrog.info/artifactory/'
+    repository {
+      repoKey = 'oss-snapshot-local'
+      username = System.env.ARTIFACTORY_USERNAME
+      password = System.env.ARTIFACTORY_PASSWORD
+      maven = true
+    }
+    defaults {
+      publications ('artifactory')
+      properties = ['git': project.version.toString()]
+    }
+  }
+}
+
+artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
