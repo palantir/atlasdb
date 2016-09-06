@@ -15,11 +15,11 @@
  */
 package com.palantir.nexus.db.sql;
 
-import java.util.StringTokenizer;
+import org.apache.commons.lang3.StringUtils;
 
 // TODO: This code was copied from papaya's TextUtils class, which will be moved to an internal product.
 // If this project is also moved, then the duplication should be fixed.
-public class TextUtils {
+public final class TextUtils {
     private TextUtils() {
         // Utility class
     }
@@ -28,36 +28,11 @@ public class TextUtils {
      *  Makes a list of n copies of the given string, separated by the given delimiter.
      */
     public static String makeStringList(String str, String delimiter, int count) {
-        if (count == 0) {
-            return "";
-        }
-        StringBuilder buf = new StringBuilder(str.length() * count + delimiter.length() * (count - 1));
-
-        for (int i = 0; i < count - 1; i++) {
-            buf.append(str);
-            buf.append(delimiter);
-        }
-        buf.append(str);
-
-        return buf.toString();
+        return StringUtils.repeat(str, delimiter, count);
     }
 
     public static String removeAllWhitespace(String text) {
-        return replaceAllWhitespace(text, "");
+        return StringUtils.deleteWhitespace(text);
     }
 
-    private static String replaceAllWhitespace(String text, String newSeparator) {
-        StringBuilder sb = new StringBuilder();
-        StringTokenizer st = new StringTokenizer(text);
-
-        if (st.hasMoreTokens()) {
-            sb.append(st.nextToken());
-        }
-        while (st.hasMoreTokens()) {
-            sb.append(newSeparator);
-            sb.append(st.nextToken());
-        }
-
-        return sb.toString();
-    }
 }
