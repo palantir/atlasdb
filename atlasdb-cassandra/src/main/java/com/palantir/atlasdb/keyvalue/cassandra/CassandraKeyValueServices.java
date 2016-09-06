@@ -136,8 +136,7 @@ public final class CassandraKeyValueServices {
     }
 
     static ColumnOrSuperColumn getColumnOrSuperColumn(byte[] columnName, long timestampLong) {
-        Column col = new Column()
-            .setName(CassandraKeyValueServices.makeCompositeBuffer(columnName, timestampLong));
+        Column col = new Column().setName(CassandraKeyValueServices.makeCompositeBuffer(columnName, timestampLong));
         return new ColumnOrSuperColumn().setColumn(col);
     }
 

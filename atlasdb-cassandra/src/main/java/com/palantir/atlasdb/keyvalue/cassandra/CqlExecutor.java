@@ -46,7 +46,7 @@ public class CqlExecutor {
      * @param tableRef the table from which to select
      * @param row the row key
      * @param limit the maximum number of results to return.
-     * @return up to <code>limit</code> cells that match the row name.
+     * @return up to <code>limit</code> cells that match the row name
      */
     List<CellWithTimestamp> getColumnsForRow(TableReference tableRef, String row, int limit) {
         String query = String.format(
@@ -65,7 +65,7 @@ public class CqlExecutor {
      * @param maxTimestampExclusive the maximum timestamp, exclusive
      * @param limit the maximum number of results to return.
      * @return up to <code>limit</code> cells that exactly match the row and column name,
-     * and have a timestamp less than <code>maxTimestampExclusive</code>.
+     * and have a timestamp less than <code>maxTimestampExclusive</code>
      */
     List<CellWithTimestamp> getTimestampsForRowAndColumn(
             TableReference tableRef,
@@ -91,7 +91,7 @@ public class CqlExecutor {
      * @param previousColumn the lexicographic lower bound (exclusive) for the column name
      * @param limit the maximum number of results to return.
      * @return up to <code>limit</code> results where the column name is lexicographically later than the supplied
-     * <code>previousColumn</code>. Note that this can return results from multiple columns.
+     * <code>previousColumn</code>. Note that this can return results from multiple columns
      */
     List<CellWithTimestamp> getNextColumnsForRow(
             TableReference tableRef,
