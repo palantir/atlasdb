@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.util.Set;
 import java.util.UUID;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,6 +47,11 @@ public class ProfileStoreTest {
     @Before
     public void setup() {
         txnMgr = InMemoryAtlasDbFactory.createInMemoryTransactionManager(ProfileSchema.INSTANCE);
+    }
+
+    @After
+    public void tearDown() {
+        txnMgr.close();
     }
 
     interface ProfileStoreTask<T> {
