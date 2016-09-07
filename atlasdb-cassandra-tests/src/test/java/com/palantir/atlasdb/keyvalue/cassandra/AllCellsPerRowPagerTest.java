@@ -32,6 +32,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.function.Supplier;
 
+import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.junit.Test;
 
@@ -164,7 +165,9 @@ public class AllCellsPerRowPagerTest {
 
     private static ColumnOrSuperColumn makeColumnOrSuperColumn(String columnName, long timestamp) {
         long timestampLong = ~PtBytes.toLong(PtBytes.toBytes(timestamp));
-        return CassandraKeyValueServices.getColumnOrSuperColumn(columnName.getBytes(), timestampLong);
+        Column col = new Column().setName(CassandraKeyValueServices.makeCompositeBuffer(columnName.getBytes(),
+                timestampLong));
+        return new ColumnOrSuperColumn().setColumn(col);
     }
 
     private void allQueriesReturn(List<CellWithTimestamp> cells) {

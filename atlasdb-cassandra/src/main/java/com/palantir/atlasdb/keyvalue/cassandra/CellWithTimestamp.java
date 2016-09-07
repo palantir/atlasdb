@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.immutables.value.Value;
 
@@ -31,7 +32,8 @@ public abstract class CellWithTimestamp {
     public static class Builder extends ImmutableCellWithTimestamp.Builder { }
 
     public ColumnOrSuperColumn asColumnOrSuperColumn() {
-        return CassandraKeyValueServices.getColumnOrSuperColumn(column(), timestamp());
+        Column col = new Column().setName(CassandraKeyValueServices.makeCompositeBuffer(column(), timestamp()));
+        return new ColumnOrSuperColumn().setColumn(col);
     }
 
     @Value.Check

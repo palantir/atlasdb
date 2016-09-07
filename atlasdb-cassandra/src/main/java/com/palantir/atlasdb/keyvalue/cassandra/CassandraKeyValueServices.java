@@ -135,11 +135,6 @@ public final class CassandraKeyValueServices {
         return "0x" + PtBytes.encodeHexString(array);
     }
 
-    static ColumnOrSuperColumn getColumnOrSuperColumn(byte[] columnName, long timestampLong) {
-        Column col = new Column().setName(CassandraKeyValueServices.makeCompositeBuffer(columnName, timestampLong));
-        return new ColumnOrSuperColumn().setColumn(col);
-    }
-
     static ByteBuffer makeCompositeBuffer(byte[] colName, long positiveTimestamp) {
         assert colName.length <= 1 << 16 : "Cannot use column names larger than 64KiB, was " + colName.length;
 

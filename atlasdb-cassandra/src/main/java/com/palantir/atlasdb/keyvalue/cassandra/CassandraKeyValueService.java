@@ -1275,7 +1275,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             long timestamp) {
         Optional<Integer> timestampsGetterBatchSize = configManager.getConfig().timestampsGetterBatchSize();
         if (timestampsGetterBatchSize.isPresent()) {
-            return getTimestampsWithPageCreator(
+            return getTimestampsInBatchesWithPageCreator(
                     tableRef,
                     rangeRequest,
                     timestampsGetterBatchSize.get(),
@@ -1306,7 +1306,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 HistoryExtractor.SUPPLIER);
     }
 
-    private <T, U> ClosableIterator<RowResult<U>> getTimestampsWithPageCreator(
+    private <T, U> ClosableIterator<RowResult<U>> getTimestampsInBatchesWithPageCreator(
             TableReference tableRef,
             RangeRequest rangeRequest,
             int columnBatchSize,
