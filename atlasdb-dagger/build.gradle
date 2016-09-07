@@ -8,4 +8,10 @@ dependencies {
 
   processor 'com.google.dagger:dagger-compiler:' + libVersions.dagger
   processor 'org.immutables:value:' + libVersions.immutables
+
+  configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+    resolutionStrategy {
+      force 'com.google.guava:guava:19.0'
+    }
+  }
 }
