@@ -633,6 +633,17 @@ public class DbKvs extends AbstractKeyValueService {
 
         Iterator<Map<Sha256Hash, Integer>> batches =
                 DbKvsPartitioners.partitionByTotalCount(ordered, cellBatchHint).iterator();
+        Iterator<Iterator<Map.Entry<Cell, Value>>> results =
+                loadColumnsForBatches(tableRef, columnRangeSelection, timestamp, rowHashesToBytes, batches);
+        return new LocalRowColumnRangeIterator(Iterators.concat(results));
+    }
+
+    private Iterator<Iterator<Map.Entry<Cell, Value>>> loadColumnsForBatches(
+            TableReference tableRef,
+            ColumnRangeSelection columnRangeSelection,
+            long timestamp,
+            Map<Sha256Hash, byte[]> rowHashesToBytes,
+            Iterator<Map<Sha256Hash, Integer>> batches) {
         Iterator<Iterator<Map.Entry<Cell, Value>>> results = new AbstractIterator<Iterator<Map.Entry<Cell, Value>>>() {
             private Sha256Hash lastRowHashInPreviousBatch = null;
             private byte[] lastColumnInPreviousBatch = null;
@@ -642,9 +653,9 @@ public class DbKvs extends AbstractKeyValueService {
                 if (!batches.hasNext()) {
                     return endOfData();
                 }
-                Map<Sha256Hash, Integer> currBatch = batches.next();
+                Map<Sha256Hash, Integer> currentBatch = batches.next();
                 Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow =
-                        getBatchColumnRangeSelectionsByRow(currBatch);
+                        getBatchColumnRangeSelectionsByRow(currentBatch);
 
                 Map<byte[], List<Map.Entry<Cell, Value>>> resultsByRow =
                         runRead(tableRef, dbReadTable ->
@@ -655,7 +666,7 @@ public class DbKvs extends AbstractKeyValueService {
                 }
                 // Ensure order matches that of the provided batch.
                 List<Map.Entry<Cell, Value>> loadedColumns = new ArrayList<>(totalEntries);
-                for (Sha256Hash rowHash : currBatch.keySet()) {
+                for (Sha256Hash rowHash : currentBatch.keySet()) {
                     byte[] row = rowHashesToBytes.get(rowHash);
                     loadedColumns.addAll(resultsByRow.get(row));
                 }
@@ -686,7 +697,7 @@ public class DbKvs extends AbstractKeyValueService {
                 return columnRangeSelectionsByRow;
             }
         };
-        return new LocalRowColumnRangeIterator(Iterators.concat(results));
+        return results;
     }
 
     private Iterator<Map.Entry<Cell, Value>> getRowColumnRange(
@@ -714,9 +725,8 @@ public class DbKvs extends AbstractKeyValueService {
                                 startCol,
                                 batchColumnRangeSelection.getEndCol(),
                                 batchColumnRangeSelection.getBatchHint());
-                List<Map.Entry<Cell, Value>> nextPage =
-                        runRead(tableRef, table -> Iterables.getOnlyElement(
-                                        extractRowColumnRangePage(table, range, timestamp, rowList).values()));
+                List<Map.Entry<Cell, Value>> nextPage = runRead(tableRef, table -> Iterables.getOnlyElement(
+                        extractRowColumnRangePage(table, range, timestamp, rowList).values()));
                 if (nextPage.isEmpty()) {
                     return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.<Entry<Cell, Value>>of(), false);
                 }

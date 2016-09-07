@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.util;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,35 +35,28 @@ public final class DbKvsPartitioners {
         List<Map<T, Integer>> batches = new ArrayList<>();
         Map<T, Integer> currentBatch = new LinkedHashMap<>();
         batches.add(currentBatch);
-        int currBatchColumns = 0;
+        int currentBatchColumns = 0;
 
-        T currElem = null;
-        int remainingCountForCurrElem = 0;
-        Iterator<T> iter = counts.keySet().iterator();
-        while (remainingCountForCurrElem > 0 || iter.hasNext()) {
-            if (remainingCountForCurrElem == 0) {
-                currElem = iter.next();
-                remainingCountForCurrElem = counts.getOrDefault(currElem, 0);
-            }
+        for (Map.Entry<T, Integer> entry : counts.entrySet()) {
+            T currentElement = entry.getKey();
+            int remainingCountForCurrentElement = entry.getValue();
 
-            if (currBatchColumns + remainingCountForCurrElem > limit) {
-                // Fill up current batch
-                int columnsToInclude = limit - currBatchColumns;
-                if (columnsToInclude > 0) {
-                    currentBatch.put(currElem, columnsToInclude);
+            while (currentBatchColumns + remainingCountForCurrentElement > limit) {
+                int numColumnsToInclude = limit - currentBatchColumns;
+                if (numColumnsToInclude > 0) {
+                    currentBatch.put(currentElement, numColumnsToInclude);
                 }
-                remainingCountForCurrElem -= columnsToInclude;
+                remainingCountForCurrentElement -= numColumnsToInclude;
 
-                // Create new batch. Note that since we have exceeded the limit, the next iteration will ensure that
-                // this new batch is non-empty.
+                // Create new batch. Note that since we have exceeded the limit, something will eventually get added to
+                // this batch
                 currentBatch = new LinkedHashMap<>();
                 batches.add(currentBatch);
-                currBatchColumns = 0;
-            } else {
-                currentBatch.put(currElem, remainingCountForCurrElem);
-                currBatchColumns += remainingCountForCurrElem;
-                remainingCountForCurrElem = 0;
+                currentBatchColumns = 0;
             }
+
+            currentBatch.put(currentElement, remainingCountForCurrentElement);
+            currentBatchColumns += remainingCountForCurrentElement;
         }
         return batches;
     }
