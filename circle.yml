@@ -55,7 +55,7 @@ deployment:
     commands:
       - ./scripts/circle-ci/publish-github-page.sh
   snapshot-oss-jfrog:
-    branch: develop
+    branch: feature/publish-snapshots
     owner: palantir
     commands:
       - ./gradlew artifactoryPublish -x test
