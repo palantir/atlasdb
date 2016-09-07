@@ -42,7 +42,7 @@ public class CassandraMultinodeTodoEteTest extends EteSetup {
 
     private static final List<String> CASSANDRA_NODES = ImmutableList.of("cassandra1", "cassandra2", "cassandra3");
 
-    private static final long MAX_CASSANDRA_NODE_DOWN_MILLIS = 35000;
+    private static final long MAX_CASSANDRA_NODE_DOWN_MILLIS = 30000;
     private static final long MAX_CASSANDRA_NODES_RUNNING_MILLIS = 3000;
 
     @Test

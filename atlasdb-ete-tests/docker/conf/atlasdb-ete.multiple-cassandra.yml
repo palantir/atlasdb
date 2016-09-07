@@ -16,22 +16,12 @@ atlasdb:
       - cassandra1:9160
       - cassandra2:9160
       - cassandra3:9160
-    poolSize: 20
     keyspace: atlasete
     credentials:
       username: cassandra
       password: cassandra
     ssl: false
     replicationFactor: 3
-    mutationBatchCount: 10000
-    mutationBatchSizeBytes: 10000000
-    # TODO: Remove this parameter to use default value
-    socketQueryTimeoutMillis: 15000
-    poolRefreshIntervalSeconds: 3
-    unresponsiveHostBackoffTimeSeconds: 20
-    fetchBatchCount: 1000
-    safetyDisabled: false
-    autoRefreshNodes: false
 
   leader:
     quorumSize: 1

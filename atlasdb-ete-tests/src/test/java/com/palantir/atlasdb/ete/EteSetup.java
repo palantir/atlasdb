@@ -140,7 +140,7 @@ public class EteSetup {
 
     private void waitForNodetoolToConfirmStatus(Container container, String status, int expectedNodeCount) {
         Awaitility.await()
-                .atMost(200, TimeUnit.SECONDS)
+                .atMost(360, TimeUnit.SECONDS)
                 .pollInterval(5, TimeUnit.SECONDS)
                 .until(() -> {
                     try {
