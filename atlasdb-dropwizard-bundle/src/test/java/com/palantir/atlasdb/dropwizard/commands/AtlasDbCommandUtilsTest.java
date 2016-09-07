@@ -18,6 +18,9 @@ package com.palantir.atlasdb.dropwizard.commands;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,10 +29,14 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.remoting.ssl.SslConfiguration;
 
 public class AtlasDbCommandUtilsTest {
     private static final String LOCAL_SERVER_NAME = "Local Server";
@@ -118,5 +125,40 @@ public class AtlasDbCommandUtilsTest {
                 ImmutableMap.of("--zero-arity-arg", AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT));
 
         assertThat(gatheredArgs).containsExactly("--zero-arity-arg");
+    }
+
+    @Test
+    public void canSerializeAndDeserializeAtlasDbConfig() throws IOException {
+        SslConfiguration ssl = SslConfiguration.of(
+                new File("var/security/truststore.jks").toPath(),
+                new File("var/security/keystore.jks").toPath(),
+                "keystorePassword");
+        @SuppressWarnings("deprecation")
+        AtlasDbConfig bigConfig = ImmutableAtlasDbConfig.builder()
+                .leader(ImmutableLeaderConfig.builder()
+                        .quorumSize(1)
+                        .addLeaders(LOCAL_SERVER_NAME)
+                        .localServer(LOCAL_SERVER_NAME)
+                        .sslConfiguration(ssl)
+                        // jackson serializes files to absolute file path so we need to
+                        // getAbsoluteFile() to ensure the equals works at the end
+                        .learnerLogDir(new File("var/data/paxos/learner").getAbsoluteFile())
+                        .acceptorLogDir(new File("var/data/paxos/acceptor").getAbsoluteFile())
+                        .build())
+                .keyValueService(ImmutableCassandraKeyValueServiceConfig.builder()
+                        .keyspace("test")
+                        .replicationFactor(3)
+                        .servers(ImmutableSet.of(
+                                new InetSocketAddress("host1", 9160),
+                                new InetSocketAddress("host2", 9160),
+                                new InetSocketAddress("host3", 9160)))
+                        .ssl(true)
+                        .sslConfiguration(ssl)
+                        .build())
+                .build();
+        String configAsString = AtlasDbCommandUtils.serialiseConfiguration(bigConfig);
+        AtlasDbConfig deserializedConfig = AtlasDbConfigs.loadFromString(configAsString, "");
+
+        assertThat(bigConfig).isEqualTo(deserializedConfig);
     }
 }

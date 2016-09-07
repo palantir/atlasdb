@@ -22,27 +22,16 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 
 public final class AtlasDbCommandUtils {
     public static final Object ZERO_ARITY_ARG_CONSTANT = "<ZERO ARITY ARG CONSTANT>";
-    private static final ObjectMapper OBJECT_MAPPER;
-
-    static {
-        YAMLFactory yamlFactory = new YAMLFactory();
-        yamlFactory.configure(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID, false);
-        OBJECT_MAPPER = new ObjectMapper(yamlFactory);
-        OBJECT_MAPPER.registerModule(new GuavaModule());
-    }
 
     private AtlasDbCommandUtils() {
         // Static utility class
@@ -54,6 +43,7 @@ public final class AtlasDbCommandUtils {
 
         ServerListConfig leaders = ImmutableServerListConfig.builder()
                 .servers(serverConfig.leader().get().leaders())
+                .sslConfiguration(serverConfig.leader().get().sslConfiguration())
                 .build();
 
         return ImmutableAtlasDbConfig.builder()
@@ -81,6 +71,6 @@ public final class AtlasDbCommandUtils {
     }
 
     public static String serialiseConfiguration(AtlasDbConfig cliConfiguration) throws JsonProcessingException {
-        return OBJECT_MAPPER.writeValueAsString(cliConfiguration);
+        return AtlasDbConfigs.OBJECT_MAPPER.writeValueAsString(cliConfiguration);
     }
 }

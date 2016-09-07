@@ -141,7 +141,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private static final Function<Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = input ->
             input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
 
-    private final CassandraKeyValueServiceConfigManager configManager;
+    protected final CassandraKeyValueServiceConfigManager configManager;
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     protected final CassandraClientPool clientPool;
     private SchemaMutationLock schemaMutationLock;
@@ -203,10 +203,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     protected void init() {
+        if (configManager.getConfig().scyllaDb() && !configManager.getConfig().safetyDisabled()) {
+            throw new IllegalArgumentException("Not currently allowing Thrift-based access to ScyllaDB clusters;"
+                    + " there appears to be from our tests"
+                    + " an existing correctness bug with semi-complex column selections");
+        }
+
         clientPool.runOneTimeStartupChecks();
 
-        boolean supportsCas = clientPool.runWithRetry(
-                CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
+        boolean supportsCas = !configManager.getConfig().scyllaDb()
+                && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
 
         schemaMutationLock = new SchemaMutationLock(
                 supportsCas,
@@ -1164,7 +1170,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     // update CKVS.isMatchingCf if you update this method
-    private CfDef getCfForTable(TableReference tableRef, byte[] rawMetadata) {
+    protected CfDef getCfForTable(TableReference tableRef, byte[] rawMetadata) {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         Map<String, String> compressionOptions = Maps.newHashMap();
         CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
@@ -1443,7 +1449,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
                         client.system_add_column_family(getCfForTable(table, metadata));
                     } else {
-                        log.warn("Ignored call to create a table ({}) that already existed (case insensitive).", table);
+                        log.debug("Ignored call to create table ({}) that already existed (case insensitive).", table);
                     }
                 }
                 if (!tablesToCreate.isEmpty()) {

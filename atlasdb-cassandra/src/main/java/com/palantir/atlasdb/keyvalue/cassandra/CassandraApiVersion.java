@@ -50,4 +50,9 @@ public class CassandraApiVersion {
 
         return supportsCheckAndSet;
     }
+
+    @Override
+    public String toString() {
+        return versionString;
+    }
 }

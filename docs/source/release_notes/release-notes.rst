@@ -31,6 +31,40 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.14.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |breaking|
+         - ``TransactionManagers.create()`` no longer takes in an argument of ``Optional<SSLSocketFactory> sslSocketFactory``.
+           Instead, security settings between AtlasDB clients are now specified directly in configuration via the new optional parameter ``sslConfiguration`` located in the ``leader`` block.
+           Details can be found in the :ref:`Leader Configuration <leader-config>` documentation.
+           This will only affect deployments who run with more than one server (i.e. in HA mode).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/873>`__)
+
+    *    - |breaking|
+         - Enforced validity constraints on configuration, as per `#790 <https://github.com/palantir/atlasdb/issue/790>`__.
+           AtlasDB will now fail to start if your configuration is invalid.
+           Please refer to :ref:`Example Leader Configurations <leader-config-examples>` for guidance on valid configurations.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/854>`__)
+
+    *    - |fixed|
+         - Fixed and standardized serialization and deserialization of AtlasDBConfig.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/875>`__)
+
+    *    - |fixed|
+         - Updated our Dagger dependency from 2.0.2 to 2.4, so that our generated code matches with that of internal products.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/878>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.13.0
 =======
 
@@ -42,8 +76,33 @@ v0.13.0
          - Change
 
     *    - |breaking|
-         - ``AtlasDbServer`` has been renamed to ``AtlasDbServiceServer``. Any products that are using this should switch to using the Java Feign client instead.
+         - ``AtlasDbServer`` has been renamed to ``AtlasDbServiceServer``.
+           Any products that are using this should switch to using the standard AtlasDB java API instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/801>`__)
+
+    *    - |breaking|
+         - The method ``updateManyUnregisteredQuery(String sql)`` has been removed from the ``SqlConnection`` interface, as it was broken, unused, and unnecessary.
+           Use ``updateManyUnregisteredQuery(String sql, Iterable<Object[] list>)`` instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/796>`__)
+
+    *    - |improved|
+         - Improved logging for schema mutation lock timeouts and added logging for obtaining and releasing locks.
+           Removed the advice to restart the client, as it will not help in this scenario.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/805>`__)
+
+    *    - |fixed|
+         - Connections to Cassandra can be established over arbitrary ports.
+           Previously AtlasDB clients would assume the default Cassandra port of 9160 despite what is specified in the :ref:`Cassandra keyValueService configuration <cassandra-kvs-config>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/771>`__)
+
+    *    - |fixed|
+         - Fixed an issue when starting an AtlasDB client using the Cassandra KVS where we always grab the schema mutation lock, even if we are not making schema mutations.
+           This reduces the likelihood of clients losing the schema mutation lock and having to manually truncate the _locks table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/771>`__)
+
+    *    - |improved|
+         - Performance and reliability enhancements to the in-beta CQL KVS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/771>`__)
 
     *    - |new|
          - ``CassandraKeyValueServiceConfiguration`` now supports :ref:`column paging <cassandra-sweep-config>`

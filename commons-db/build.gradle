@@ -7,10 +7,9 @@ ideaSetModuleLevel(idea, targetCompatibility)
 dependencies {
   compile project(":commons-api")
   compile project(":commons-proxy")
-  compile project(":papaya")
 
   compile(group: 'commons-dbutils', name: 'commons-dbutils', version: libVersions.commons_dbutils)
-  compile(group: 'commons-lang', name: 'commons-lang', version: libVersions.commons_lang)
+  compile(group: 'org.apache.commons', name: 'commons-lang3', version: libVersions.commons_lang3)
   compile(group: 'commons-io', name: 'commons-io', version: libVersions.commons_io)
   compile(group: 'log4j', name: 'log4j', version: libVersions.log4j)
   { transitive = false }

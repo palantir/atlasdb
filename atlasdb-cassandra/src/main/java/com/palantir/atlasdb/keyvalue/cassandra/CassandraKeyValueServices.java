@@ -288,24 +288,21 @@ public final class CassandraKeyValueServices {
     public static boolean isMatchingCf(CfDef clientSide, CfDef clusterSide) {
         String tableName = clientSide.name;
         if (!Objects.equal(clientSide.compaction_strategy_options, clusterSide.compaction_strategy_options)) {
-            log.debug("Found client/server disagreement on compaction strategy options for {}."
-                    + " (client = ({}), server = ({}))",
+            logMismatch("compaction strategy",
                     tableName,
                     clientSide.compaction_strategy_options,
                     clusterSide.compaction_strategy_options);
             return false;
         }
         if (clientSide.gc_grace_seconds != clusterSide.gc_grace_seconds) {
-            log.debug("Found client/server disagreement on gc_grace_seconds for {}."
-                    + " (client = ({}), server = ({}))",
+            logMismatch("gc_grace_seconds period",
                     tableName,
                     clientSide.gc_grace_seconds,
                     clusterSide.gc_grace_seconds);
             return false;
         }
         if (clientSide.bloom_filter_fp_chance != clusterSide.bloom_filter_fp_chance) {
-            log.debug("Found client/server disagreement on bloom filter false positive chance for {}."
-                    + " (client = ({}), server = ({}))",
+            logMismatch("bloom filter false positive chance",
                     tableName,
                     clientSide.bloom_filter_fp_chance,
                     clusterSide.bloom_filter_fp_chance);
@@ -313,24 +310,27 @@ public final class CassandraKeyValueServices {
         }
         if (!(clientSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY).equals(
                 clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY)))) {
-            log.debug("Found client/server disagreement on compression chunk length for {}."
-                    + " (client = ({}), server = ({}))",
+            logMismatch("compression chunk length",
                     tableName,
                     clientSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY),
                     clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY));
             return false;
         }
         if (!Objects.equal(clientSide.compaction_strategy, clusterSide.compaction_strategy)) {
-            log.debug("Found client/server disagreement on compaction_strategy for {}."
-                    + " (client = ({}), server = ({}))",
-                    tableName,
-                    clientSide.compaction_strategy,
-                    clusterSide.compaction_strategy);
-            return false;
+            // consider equal "com.whatever.LevelledCompactionStrategy" and "LevelledCompactionStrategy"
+            if (clientSide.compaction_strategy != null
+                    && clusterSide.compaction_strategy != null
+                    && !(clientSide.compaction_strategy.endsWith(clusterSide.compaction_strategy)
+                    || clusterSide.compaction_strategy.endsWith(clientSide.compaction_strategy))) {
+                logMismatch("compaction strategy",
+                        tableName,
+                        clientSide.compaction_strategy,
+                        clusterSide.compaction_strategy);
+                return false;
+            }
         }
         if (clientSide.isSetPopulate_io_cache_on_flush() != clusterSide.isSetPopulate_io_cache_on_flush()) {
-            log.debug("Found client/server disagreement on populate_io_cache_on_flush for {}."
-                    + " (client = ({}), server = ({}))",
+            logMismatch("populate_io_cache_on_flush",
                     tableName,
                     clientSide.isSetPopulate_io_cache_on_flush(),
                     clusterSide.isSetPopulate_io_cache_on_flush());
@@ -338,6 +338,15 @@ public final class CassandraKeyValueServices {
         }
 
         return true;
+    }
+
+    private static void logMismatch(String fieldName, String tableName,
+            Object clientSideVersion, Object clusterSideVersion) {
+        log.info("Found client/server disagreement on {} for table {}. (client = ({}), server = ({}))",
+                fieldName,
+                tableName,
+                clientSideVersion,
+                clusterSideVersion);
     }
 
     public static boolean isEmptyOrInvalidMetadata(byte[] metadata) {

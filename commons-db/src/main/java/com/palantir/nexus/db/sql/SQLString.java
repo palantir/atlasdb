@@ -29,8 +29,8 @@ import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.GuardedBy;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Validate;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
@@ -38,7 +38,6 @@ import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.SqlClause;
-import com.palantir.util.TextUtils;
 
 
 public class SQLString extends BasicSQLString {
@@ -201,7 +200,7 @@ public class SQLString extends BasicSQLString {
      */
     static FinalSQLString getUnregisteredQuery(String sql) {
         assert !isValidKey(sql) : "Unregistered Queries should not look like keys"; //$NON-NLS-1$
-        FinalSQLString cached = cachedUnregistered.get(TextUtils.removeAllWhitespace(canonicalizeString(sql)));
+        FinalSQLString cached = cachedUnregistered.get(StringUtils.deleteWhitespace(canonicalizeString(sql)));
         if(null != cached) {
             callbackOnUse.noteUse((SQLString) cached.delegate);
             return cached;

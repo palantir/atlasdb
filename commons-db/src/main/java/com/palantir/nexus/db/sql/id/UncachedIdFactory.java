@@ -15,7 +15,7 @@
  */
 package com.palantir.nexus.db.sql.id;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
