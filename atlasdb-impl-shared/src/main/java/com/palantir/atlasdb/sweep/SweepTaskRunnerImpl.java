@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 
@@ -31,6 +32,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -69,6 +72,7 @@ import com.palantir.common.base.ClosableIterators;
 public class SweepTaskRunnerImpl implements SweepTaskRunner {
     private static final Logger log = LoggerFactory.getLogger(SweepTaskRunnerImpl.class);
     private static final Set<Long> invalidTimestamps = ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP);
+    private static final int MAX_VALUES_TO_DELETE_BATCH = 10_000;
 
     private final TransactionManager txManager;
     private final KeyValueService keyValueService;
@@ -307,11 +311,17 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         for (Follower follower : followers) {
             follower.run(txManager, tableRef, cellTsPairsToSweep.keySet(), TransactionType.HARD_DELETE);
         }
+
         if (!sentinelsToAdd.isEmpty()) {
             keyValueService.addGarbageCollectionSentinelValues(
                     tableRef,
                     sentinelsToAdd);
         }
-        keyValueService.delete(tableRef, cellTsPairsToSweep);
+
+        for (List<Entry<Cell, Long>> batch : Iterables.partition(cellTsPairsToSweep.entries(), MAX_VALUES_TO_DELETE_BATCH)) {
+            Builder<Cell, Long> builder = ImmutableMultimap.builder();
+            batch.stream().forEach(e -> builder.put(e));
+            keyValueService.delete(tableRef, builder.build());
+        }
     }
 }
