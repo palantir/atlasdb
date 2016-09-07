@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.sweep;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -238,7 +239,9 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                                    Set<TableReference> allTables,
                                    List<SweepPriorityRowResult> oldPriorities,
                                    Map<TableReference, SweepPriorityRowResult> newPrioritiesByTableName) {
-        Set<TableReference> unsweptTables = Sets.difference(allTables, newPrioritiesByTableName.keySet());
+        // Arbitrariliy pick the first table alphabetically from the never-before-swept tables
+        List<TableReference> unsweptTables = Sets.difference(allTables, newPrioritiesByTableName.keySet())
+                .stream().sorted(Comparator.comparing(TableReference::getTablename)).collect(Collectors.toList());
         if (!unsweptTables.isEmpty()) {
             return Iterables.get(unsweptTables, 0);
         }

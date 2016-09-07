@@ -335,7 +335,7 @@ public abstract class AbstractSweeperTest {
 
     @Test
     /*
-     * These tests have been ignored pending internal ticket 94009
+     * These tests were ignored pending internal ticket 94009
      * They are fragile when run with test suites that do not properly
      * clean up tables from the kvs.
      */
@@ -362,6 +362,7 @@ public abstract class AbstractSweeperTest {
         put("foo", "baz", 100);
         put("foo", "buzz", 125);
         // the expectation is that the sweep tables will be chosen first
+        // TODO ^ why? Alphabetical?
         runBackgroundSweep(110, 2);
         runBackgroundSweep(120, 1);
         List<SweepPriorityRowResult> results = getPriorityTable();
