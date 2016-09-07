@@ -82,9 +82,8 @@ public final class TransactionManagers {
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} with provided configuration,
-     * {@link SSLSocketFactory}, {@link Schema}, and an environment in which to
-     * register HTTP server endpoints.
+     * Create a {@link SerializableTransactionManager} with provided configuration, {@link Schema},
+     * and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
@@ -95,7 +94,7 @@ public final class TransactionManagers {
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} with provided configuration, {@link SSLSocketFactory}, a set of
+     * Create a {@link SerializableTransactionManager} with provided configuration, a set of
      * {@link Schema}s, and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(
@@ -230,8 +229,7 @@ public final class TransactionManagers {
         env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
         env.register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader));
 
-        Optional<SSLSocketFactory> sslSocketFactory =
-                createSslSocketFactory(leaderConfig.sslConfiguration());
+        Optional<SSLSocketFactory> sslSocketFactory = createSslSocketFactory(leaderConfig.sslConfiguration());
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(createService(sslSocketFactory, leaderConfig.leaders(), RemoteLockService.class))
