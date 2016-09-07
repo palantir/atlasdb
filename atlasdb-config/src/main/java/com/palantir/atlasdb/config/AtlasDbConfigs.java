@@ -122,9 +122,9 @@ public final class AtlasDbConfigs {
     private static Optional<ServerListConfig> addFallbackSslConfigurationToServerList(
             Optional<ServerListConfig> config,
             Optional<SslConfiguration> sslConfiguration) {
-        return config.transform(lock -> ImmutableServerListConfig.builder()
-                .from(lock)
-                .sslConfiguration(lock.sslConfiguration().or(sslConfiguration))
+        return config.transform(serverList -> ImmutableServerListConfig.builder()
+                .from(serverList)
+                .sslConfiguration(serverList.sslConfiguration().or(sslConfiguration))
                 .build());
     }
 }
