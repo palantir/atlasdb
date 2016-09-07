@@ -75,7 +75,7 @@ bintrayUpload.dependsOn { build }
 
 artifactory {
   publish {
-    contextUrl = 'https://oss.jfrog.info/artifactory/'
+    contextUrl = 'https://oss.jfrog.org/artifactory/'
     repository {
       repoKey = 'oss-snapshot-local'
       username = System.env.ARTIFACTORY_USERNAME
