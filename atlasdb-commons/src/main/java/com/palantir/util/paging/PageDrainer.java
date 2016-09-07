@@ -22,14 +22,14 @@ import java.util.List;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-public class Pager<T> {
+public class PageDrainer<T> {
     private final PageGetter<T> pageGetter;
 
-    public Pager(PageGetter<T> pageGetter) {
+    public PageDrainer(PageGetter<T> pageGetter) {
         this.pageGetter = pageGetter;
     }
 
-    public List<T> getPages() {
+    public List<T> drainAllPages() {
         List<T> pages = Lists.newArrayList();
         List<T> currentPage = pageGetter.getFirstPage();
         pages.addAll(currentPage);
@@ -41,7 +41,7 @@ public class Pager<T> {
         return pages;
     }
 
-    public boolean hasNextPage(List<T> currentPage) {
+    private boolean hasNextPage(List<T> currentPage) {
         return currentPage.size() >= pageGetter.getPageSize();
     }
 }

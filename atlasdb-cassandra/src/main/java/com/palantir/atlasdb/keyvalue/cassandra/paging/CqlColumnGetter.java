@@ -30,7 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.AllCellsPerRowPager;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.common.base.Throwables;
-import com.palantir.util.paging.Pager;
+import com.palantir.util.paging.PageDrainer;
 
 public class CqlColumnGetter implements ColumnGetter {
     private final TableReference tableRef;
@@ -65,7 +65,7 @@ public class CqlColumnGetter implements ColumnGetter {
                 row,
                 tableRef,
                 columnBatchSize);
-        return new Pager<>(allCellsPerRowPager).getPages();
+        return new PageDrainer<>(allCellsPerRowPager).drainAllPages();
     }
 
     private Set<ByteBuffer> getRowsFromPage(List<KeySlice> firstPage) {

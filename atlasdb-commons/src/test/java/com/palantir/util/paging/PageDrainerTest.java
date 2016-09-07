@@ -29,7 +29,7 @@ import org.junit.Test;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-public class PagerTest {
+public class PageDrainerTest {
     private static final int PAGE_SIZE = 10;
     private static final int INCOMPLETE_PAGE_SIZE = 5;
 
@@ -92,8 +92,8 @@ public class PagerTest {
     }
 
     private void assertGetsResultsUpTo(int limit) {
-        Pager<Integer> pager = new Pager<Integer>(new SimplePager(PAGE_SIZE, limit));
-        List<Integer> pages = pager.getPages();
+        PageDrainer<Integer> pageDrainer = new PageDrainer<Integer>(new SimplePager(PAGE_SIZE, limit));
+        List<Integer> pages = pageDrainer.drainAllPages();
         assertThat(pages, hasSize(limit));
     }
 }
