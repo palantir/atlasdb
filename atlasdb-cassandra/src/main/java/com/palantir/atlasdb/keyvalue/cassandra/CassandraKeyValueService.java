@@ -1280,8 +1280,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     rangeRequest,
                     timestampsGetterBatchSize.get(),
                     timestamp,
-                    deleteConsistency,
-                    TimestampExtractor.SUPPLIER);
+                    deleteConsistency);
         } else {
             return getRangeWithPageCreator(
                     tableRef,
@@ -1306,19 +1305,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 HistoryExtractor.SUPPLIER);
     }
 
-    private <T, U> ClosableIterator<RowResult<U>> getTimestampsInBatchesWithPageCreator(
+    private ClosableIterator<RowResult<Set<Long>>> getTimestampsInBatchesWithPageCreator(
             TableReference tableRef,
             RangeRequest rangeRequest,
             int columnBatchSize,
             long timestamp,
-            ConsistencyLevel consistency,
-            Supplier<ResultsExtractor<T, U>> resultsExtractor) {
+            ConsistencyLevel consistency) {
         RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, ColumnFetchMode.FETCH_ONE);
 
         CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
         ColumnGetter columnGetter = new CqlColumnGetter(cqlExecutor, tableRef, columnBatchSize);
 
-        return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, resultsExtractor, timestamp);
+        return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, TimestampExtractor.SUPPLIER, timestamp);
     }
 
     private <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(
