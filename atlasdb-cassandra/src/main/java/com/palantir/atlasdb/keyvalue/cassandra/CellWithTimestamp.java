@@ -31,7 +31,8 @@ public abstract class CellWithTimestamp {
     public static class Builder extends ImmutableCellWithTimestamp.Builder { }
 
     public ColumnOrSuperColumn asColumnOrSuperColumn() {
-        Column col = new Column().setName(CassandraKeyValueServices.makeCompositeBuffer(cell().getColumnName(), timestamp()));
+        Column col = new Column().setName(
+                CassandraKeyValueServices.makeCompositeBuffer(cell().getColumnName(), timestamp()));
         return new ColumnOrSuperColumn().setColumn(col);
     }
 
