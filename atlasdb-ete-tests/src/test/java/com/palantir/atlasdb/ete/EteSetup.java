@@ -17,6 +17,7 @@ package com.palantir.atlasdb.ete;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -43,12 +44,17 @@ public class EteSetup {
     private static final int ETE_PORT = 3828;
 
     private static DockerComposeRule docker;
+    private static List<String> availableClients;
 
     protected static <T> T createClientToSingleNode(Class<T> clazz) {
         return createClientFor(clazz, asPort(FIRST_ETE_CONTAINER));
     }
 
-    protected static <T> T createClientToMultipleNodes(Class<T> clazz, String... nodeNames) {
+    protected static <T> T createClientToAllNodes(Class<T> clazz) {
+        return createClientToMultipleNodes(clazz, availableClients);
+    }
+
+    protected static <T> T createClientToMultipleNodes(Class<T> clazz, List<String> nodeNames) {
         Collection<String> uris = ImmutableList.copyOf(nodeNames).stream()
                 .map(node -> asPort(node))
                 .map(port -> port.inFormat("http://$HOST:$EXTERNAL_PORT"))
@@ -64,7 +70,9 @@ public class EteSetup {
                 DockerComposeRunArgument.arguments("bash", "-c", command));
     }
 
-    protected static RuleChain setupComposition(String name, String composeFile) {
+    protected static RuleChain setupComposition(String name, String composeFile, List<String> availableClientNames) {
+        availableClients = ImmutableList.copyOf(availableClientNames);
+
         docker = DockerComposeRule.builder()
                 .file(composeFile)
                 .waitingForService(FIRST_ETE_CONTAINER, toBeReady())
