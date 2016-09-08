@@ -24,7 +24,7 @@ import java.util.concurrent.Callable;
 
 import javax.annotation.concurrent.GuardedBy;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 
 import com.google.common.base.Throwables;
 import com.google.common.reflect.AbstractInvocationHandler;

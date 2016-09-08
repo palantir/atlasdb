@@ -55,7 +55,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -279,16 +278,17 @@ public class CassandraClientPool {
 
     public InetSocketAddress getRandomHostForKey(byte[] key) {
         List<InetSocketAddress> hostsForKey = tokenMap.get(new LightweightOppToken(key));
-        SetView<InetSocketAddress> liveOwnerHosts;
 
         if (hostsForKey == null) {
             log.debug("We attempted to route your query to a cassandra host that already contains the relevant data."
                     + " However, the mapping of which host contains which data is not available yet."
                     + " We will choose a random host instead.");
             return getRandomGoodHost().getHost();
-        } else {
-            liveOwnerHosts = Sets.difference(ImmutableSet.copyOf(hostsForKey), blacklistedHosts.keySet());
         }
+
+        Set<InetSocketAddress> liveOwnerHosts = Sets.difference(
+                ImmutableSet.copyOf(hostsForKey),
+                blacklistedHosts.keySet());
 
         if (liveOwnerHosts.isEmpty()) {
             log.warn("Perf / cluster stability issue. Token aware query routing has failed because there are no known "
@@ -380,19 +380,23 @@ public class CassandraClientPool {
         }
     }
 
-    private InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
+    @VisibleForTesting
+    InetSocketAddress getAddressForHost(String host) throws UnknownHostException {
         InetAddress resolvedHost = InetAddress.getByName(host);
 
-        for (InetSocketAddress address : Sets.union(currentPools.keySet(), config.servers())) {
+        Set<InetSocketAddress> allKnownHosts = Sets.union(currentPools.keySet(), config.servers());
+        for (InetSocketAddress address : allKnownHosts) {
             if (address.getAddress().equals(resolvedHost)) {
                 return address;
             }
         }
 
-        Set<Integer> ports = Sets.union(currentPools.keySet(), config.servers()).stream()
-                .map(address -> address.getPort()).collect(Collectors.toSet());
-        if (ports.size() == 1) { // if everyone is on one port, try and use that
-            return new InetSocketAddress(resolvedHost, Iterables.getOnlyElement(ports));
+        Set<Integer> allKnownPorts = allKnownHosts.stream()
+                .map(InetSocketAddress::getPort)
+                .collect(Collectors.toSet());
+
+        if (allKnownPorts.size() == 1) { // if everyone is on one port, try and use that
+            return new InetSocketAddress(resolvedHost, Iterables.getOnlyElement(allKnownPorts));
         } else {
             throw new UnknownHostException("Couldn't find the provided host in server list or current servers");
         }

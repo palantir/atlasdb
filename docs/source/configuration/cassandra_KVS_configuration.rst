@@ -97,3 +97,19 @@ ssl
 
 This property is a boolean value saying whether or not to use ssl.  When ``true``, it will use java system properties that are passed in as jvm arguments to determine how to set up the ssl connection.  For example, you would use the jvm option ``-Djavax.net.ssl.trustStore=<path-to-truststore>`` to tell atlas where to find the truststore to use.
 
+.. _cassandra-sweep-config:
+
+Column Paging for Sweep (experimental)
+======================================
+
+If ``timestampsGetterBatchSize`` is set, the maximum number of entries loaded into memory for any
+Cassandra node during a :ref:`Sweep <physical-cleanup-sweep>` will be limited.
+
+Currently Cassandra does not provide a way to fetch columns and timestamps without also temporarily
+loading values into memory. Therefore, running a sweep job on a Cassandra-backed KVS
+with rows that (1) contain large (>1MB) values, and (2) are frequently updated, may cause
+the Cassandra node to run out of memory.
+
+In such cases, limiting the value of ``timestampsGetterBatchSize`` (which is infinite by default)
+could result in greater reliability.
+On the other hand, more aggressive paging could lead to slower sweep performance.
