@@ -44,10 +44,8 @@ public class EteSetup {
 
     private static final String FIRST_ETE_CONTAINER = "ete1";
     private static final int ETE_PORT = 3828;
-    public static final int NUM_CASSANDRA_NODES = 3;
 
     private static DockerComposeRule docker;
-    private static final String NODE_UP_STATUS = "UN";
 
     protected <T> T createClientToSingleNode(Class<T> clazz) {
         return createClientFor(clazz, asPort(FIRST_ETE_CONTAINER));
@@ -121,10 +119,6 @@ public class EteSetup {
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
-        waitForCassandraContainerToBeReady(container);
-    }
-
-    private void waitForCassandraContainerToBeReady(Container container) {
         waitForAllPorts(container);
     }
 
