@@ -29,13 +29,8 @@ import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.GuardedBy;
 
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
-=======
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.Validate;
->>>>>>> merge develop into perf cli branch (#820)
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;

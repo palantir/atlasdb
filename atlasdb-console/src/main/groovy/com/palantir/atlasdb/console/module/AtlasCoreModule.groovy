@@ -141,11 +141,7 @@ class AtlasCoreModule implements AtlasConsoleModule {
     }
 
     private setupConnection(AtlasDbConfig config) {
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
         SerializableTransactionManager tm = TransactionManagers.create(config, ImmutableSet.<Schema>of(),
-=======
-        SerializableTransactionManager tm = TransactionManagers.create(config, Optional.<SSLSocketFactory>absent(), ImmutableSet.<Schema>of(),
->>>>>>> merge develop into perf cli branch (#820)
                 new com.palantir.atlasdb.factory.TransactionManagers.Environment() {
                     @Override
                     public void register(Object resource) {
@@ -324,8 +320,8 @@ class AtlasCoreModule implements AtlasConsoleModule {
                 component = JsonOutput.prettyPrint(JsonOutput.toJson(component))
             }
             colValues.add(splitCellString(component.toString(),
-                                        val['width'] as int,
-                                        maxLines))
+                    val['width'] as int,
+                    maxLines))
         }
 
         int maxArraySize = (colValues.max { it.size() }).size()

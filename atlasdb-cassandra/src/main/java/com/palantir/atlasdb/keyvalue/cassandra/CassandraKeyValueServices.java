@@ -28,10 +28,6 @@ import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
-=======
-import org.apache.cassandra.thrift.KeySlice;
->>>>>>> merge develop into perf cli branch (#820)
 import org.apache.commons.lang3.Validate;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -264,7 +260,7 @@ public final class CassandraKeyValueServices {
     }
 
     private static void extractTimestampResults(@Output Multimap<Cell, Long> ret,
-                                                Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
+            Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
         for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> result : results.entrySet()) {
             byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(result.getKey());
             for (ColumnOrSuperColumn col : result.getValue()) {
@@ -287,36 +283,21 @@ public final class CassandraKeyValueServices {
     public static boolean isMatchingCf(CfDef clientSide, CfDef clusterSide) {
         String tableName = clientSide.name;
         if (!Objects.equal(clientSide.compaction_strategy_options, clusterSide.compaction_strategy_options)) {
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
             logMismatch("compaction strategy",
-=======
-            log.debug("Found client/server disagreement on compaction strategy options for {}."
-                    + " (client = ({}), server = ({}))",
->>>>>>> merge develop into perf cli branch (#820)
                     tableName,
                     clientSide.compaction_strategy_options,
                     clusterSide.compaction_strategy_options);
             return false;
         }
         if (clientSide.gc_grace_seconds != clusterSide.gc_grace_seconds) {
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
             logMismatch("gc_grace_seconds period",
-=======
-            log.debug("Found client/server disagreement on gc_grace_seconds for {}."
-                    + " (client = ({}), server = ({}))",
->>>>>>> merge develop into perf cli branch (#820)
                     tableName,
                     clientSide.gc_grace_seconds,
                     clusterSide.gc_grace_seconds);
             return false;
         }
         if (clientSide.bloom_filter_fp_chance != clusterSide.bloom_filter_fp_chance) {
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
             logMismatch("bloom filter false positive chance",
-=======
-            log.debug("Found client/server disagreement on bloom filter false positive chance for {}."
-                    + " (client = ({}), server = ({}))",
->>>>>>> merge develop into perf cli branch (#820)
                     tableName,
                     clientSide.bloom_filter_fp_chance,
                     clusterSide.bloom_filter_fp_chance);
@@ -324,19 +305,13 @@ public final class CassandraKeyValueServices {
         }
         if (!(clientSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY).equals(
                 clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY)))) {
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
             logMismatch("compression chunk length",
-=======
-            log.debug("Found client/server disagreement on compression chunk length for {}."
-                    + " (client = ({}), server = ({}))",
->>>>>>> merge develop into perf cli branch (#820)
                     tableName,
                     clientSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY),
                     clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY));
             return false;
         }
         if (!Objects.equal(clientSide.compaction_strategy, clusterSide.compaction_strategy)) {
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
             // consider equal "com.whatever.LevelledCompactionStrategy" and "LevelledCompactionStrategy"
             if (clientSide.compaction_strategy != null
                     && clusterSide.compaction_strategy != null
@@ -351,18 +326,6 @@ public final class CassandraKeyValueServices {
         }
         if (clientSide.isSetPopulate_io_cache_on_flush() != clusterSide.isSetPopulate_io_cache_on_flush()) {
             logMismatch("populate_io_cache_on_flush",
-=======
-            log.debug("Found client/server disagreement on compaction_strategy for {}."
-                    + " (client = ({}), server = ({}))",
-                    tableName,
-                    clientSide.compaction_strategy,
-                    clusterSide.compaction_strategy);
-            return false;
-        }
-        if (clientSide.isSetPopulate_io_cache_on_flush() != clusterSide.isSetPopulate_io_cache_on_flush()) {
-            log.debug("Found client/server disagreement on populate_io_cache_on_flush for {}."
-                    + " (client = ({}), server = ({}))",
->>>>>>> merge develop into perf cli branch (#820)
                     tableName,
                     clientSide.isSetPopulate_io_cache_on_flush(),
                     clusterSide.isSetPopulate_io_cache_on_flush());

@@ -47,17 +47,10 @@ import com.palantir.atlasdb.cleaner.SimplePuncher;
 import com.palantir.atlasdb.cli.command.timestamp.FetchTimestamp;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.cli.runner.SingleBackendCliTestRunner;
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.services.test.DaggerTestAtlasDbServices;
 import com.palantir.atlasdb.services.test.TestAtlasDbServices;
-=======
-import com.palantir.atlasdb.cli.services.AtlasDbServicesFactory;
-import com.palantir.atlasdb.cli.services.DaggerTestAtlasDbServices;
-import com.palantir.atlasdb.cli.services.ServicesConfigModule;
-import com.palantir.atlasdb.cli.services.TestAtlasDbServices;
->>>>>>> merge develop into perf cli branch (#820)
 import com.palantir.common.time.Clock;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;

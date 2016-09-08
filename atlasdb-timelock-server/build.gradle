@@ -27,11 +27,7 @@ dependencies {
     compile 'org.apache.thrift:libthrift:' + libVersions.libthrift
 
     processor 'org.immutables:value:' + libVersions.immutables
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
     processor('com.google.dagger:dagger-compiler:' + libVersions.dagger) {
-=======
-    processor('com.google.dagger:dagger-compiler:2.0.2') {
->>>>>>> merge develop into perf cli branch (#820)
         // We need to explicitly exclude these so that intellij does not label them as provided
         if(gradle.startParameter.taskNames.contains('idea')) {
             exclude group: 'com.google.guava'

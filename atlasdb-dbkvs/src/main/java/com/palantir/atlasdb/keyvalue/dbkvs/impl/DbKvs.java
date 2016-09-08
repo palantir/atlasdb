@@ -117,8 +117,8 @@ public class DbKvs extends AbstractKeyValueService {
      * ConnectionManagerAwareDbKvs which will instantiate a properly initialized DbKVS using the above create method
      */
     public DbKvs(DdlConfig config,
-                 DbTableFactory dbTables,
-                 SqlConnectionSupplier connections) {
+            DbTableFactory dbTables,
+            SqlConnectionSupplier connections) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Relational KVS", config.poolSize()));
         this.config = config;
         this.dbTables = dbTables;
@@ -442,8 +442,8 @@ public class DbKvs extends AbstractKeyValueService {
 
     @SuppressWarnings("deprecation")
     private TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getPageInternal(DbReadTable table,
-                                                                                  RangeRequest range,
-                                                                                  long timestamp) {
+            RangeRequest range,
+            long timestamp) {
         Comparator<byte[]> comp = UnsignedBytes.lexicographicalComparator();
         SortedSet<byte[]> rows = Sets.newTreeSet(comp);
         int maxRows = getMaxRowsFromBatchHint(range.getBatchHint());
@@ -520,19 +520,15 @@ public class DbKvs extends AbstractKeyValueService {
         try {
             return runRead(tableRef, table -> getTimestampsPageInternal(table, range, timestamp));
         } finally {
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
             log.debug("Call to KVS.getTimestampsPage on table {} took {} ms.",
-=======
-            log.info("Call to KVS.getTimestampsPage on table {} took {} ms.",
->>>>>>> merge develop into perf cli branch (#820)
                     tableRef, watch.elapsed(TimeUnit.MILLISECONDS));
         }
     }
 
     @SuppressWarnings("deprecation")
     private TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getTimestampsPageInternal(DbReadTable table,
-                                                                                                RangeRequest range,
-                                                                                                long timestamp) {
+            RangeRequest range,
+            long timestamp) {
         Comparator<byte[]> comp = UnsignedBytes.lexicographicalComparator();
         SortedSet<byte[]> rows = Sets.newTreeSet(comp);
         int maxRows = getMaxRowsFromBatchHint(range.getBatchHint());
@@ -759,11 +755,7 @@ public class DbKvs extends AbstractKeyValueService {
         try {
             return runRead(tableRef, table -> extractRowColumnRangePage(table, columnRangeSelection, ts, rows));
         } finally {
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
             log.debug("Call to KVS.getFirstRowColumnRangePage on table {} took {} ms.",
-=======
-            log.info("Call to KVS.getFirstRowColumnRangePage on table {} took {} ms.",
->>>>>>> merge develop into perf cli branch (#820)
                     tableRef, watch.elapsed(TimeUnit.MILLISECONDS));
         }
     }
@@ -830,8 +822,8 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     private void fillOverflowValues(DbReadTable table,
-                                    Map<Cell, OverflowValue> overflowValues,
-                                    @Output Map<Cell, Value> values) {
+            Map<Cell, OverflowValue> overflowValues,
+            @Output Map<Cell, Value> values) {
         Iterator<Entry<Cell, OverflowValue>> overflowIterator = overflowValues.entrySet().iterator();
         while (overflowIterator.hasNext()) {
             Entry<Cell, OverflowValue> entry = overflowIterator.next();
@@ -1125,11 +1117,7 @@ public class DbKvs extends AbstractKeyValueService {
      */
     private <T> T runWriteFreshConnection(
             ConnectionSupplier conns, TableReference tableRef, Function<DbWriteTable, T> runner) {
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
         log.debug("Running in a new thread to turn autocommit on for write");
-=======
-        log.info("Running in a new thread to turn autocommit on for write");
->>>>>>> merge develop into perf cli branch (#820)
         AtomicReference<T> result = Atomics.newReference();
         Thread writeThread = new Thread(() -> {
             SqlConnection freshConn = conns.getFresh();

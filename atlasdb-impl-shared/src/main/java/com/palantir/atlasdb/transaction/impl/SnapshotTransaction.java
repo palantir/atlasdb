@@ -1556,11 +1556,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         try {
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
             log.debug("For table: " + tableRef
-=======
-            log.warn("For table: " + tableRef
->>>>>>> merge develop into perf cli branch (#820)
                     + " we are deleting values of an uncommitted transaction: " + keysToDelete);
             keyValueService.delete(tableRef, Multimaps.forMap(keysToDelete));
         } catch (RuntimeException e) {

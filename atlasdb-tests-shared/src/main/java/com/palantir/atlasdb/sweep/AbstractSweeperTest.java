@@ -14,11 +14,6 @@
  * limitations under the License.
  */
 package com.palantir.atlasdb.sweep;
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56:atlasdb-tests-shared/src/main/java/com/palantir/atlasdb/sweep/AbstractSweeperTest.java
-=======
-
-import static com.palantir.atlasdb.schema.generated.SweepProgressTable.SweepProgressRowResult;
->>>>>>> merge develop into perf cli branch (#820):atlasdb-tests-shared/src/main/java/com/palantir/atlasdb/sweep/AbstractSweeperTest.java
 
 import java.util.List;
 import java.util.Set;

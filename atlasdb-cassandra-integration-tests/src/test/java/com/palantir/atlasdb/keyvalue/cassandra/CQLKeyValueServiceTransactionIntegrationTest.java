@@ -17,17 +17,12 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56:atlasdb-cassandra-integration-tests/src/test/java/com/palantir/atlasdb/keyvalue/cassandra/CQLKeyValueServiceTransactionIntegrationTest.java
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 
 public class CQLKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
-=======
-import com.palantir.atlasdb.sweep.AbstractSweeperTest;
->>>>>>> merge develop into perf cli branch (#820):atlasdb-cassandra-tests/src/test/java/com/palantir/atlasdb/keyvalue/cassandra/CassandraKeyValueServiceSweeperTest.java
 
     @Override
     protected KeyValueService getKeyValueService() {
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56:atlasdb-cassandra-integration-tests/src/test/java/com/palantir/atlasdb/keyvalue/cassandra/CQLKeyValueServiceTransactionIntegrationTest.java
         return CQLKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(CQLTestSuite.CQLKVS_CONFIG));
     }
@@ -37,9 +32,4 @@ import com.palantir.atlasdb.sweep.AbstractSweeperTest;
         return false;
     }
 
-=======
-        return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), CassandraTestSuite.LEADER_CONFIG);
-    }
->>>>>>> merge develop into perf cli branch (#820):atlasdb-cassandra-tests/src/test/java/com/palantir/atlasdb/keyvalue/cassandra/CassandraKeyValueServiceSweeperTest.java
 }
