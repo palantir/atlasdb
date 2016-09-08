@@ -17,7 +17,6 @@ package com.palantir.atlasdb.server;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.config.AtlasDbConfigs;
 
 import io.dropwizard.Configuration;
 
@@ -25,7 +24,7 @@ public class AtlasDbServiceServerConfiguration extends Configuration {
 
     private final AtlasDbConfig atlasdb;
 
-    public AtlasDbServiceServerConfiguration(@JsonProperty(AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_NAME) AtlasDbConfig atlasdb) {
+    public AtlasDbServiceServerConfiguration(@JsonProperty("atlasdb") AtlasDbConfig atlasdb) {
         this.atlasdb = atlasdb;
     }
 
