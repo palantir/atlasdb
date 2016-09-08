@@ -13,15 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete.todo;
+package com.palantir.atlasdb.ete;
 
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
-import com.palantir.atlasdb.ete.EteSetup;
-import com.palantir.timestamp.TimestampService;
-
-public class CassandraTodoEteTest extends TodoEteTest {
+@RunWith(Suite.class)
+@Suite.SuiteClasses({
+        TodoEteTest.class,
+        DropwizardEteTest.class
+})
+public class CassandraNoLeaderTestSuite extends EteSetup {
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("cassandra-ha", "docker-compose.cassandra.yml");
+    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("cassandra-no-leader", "docker-compose.no-leader.cassandra.yml");
 }

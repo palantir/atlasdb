@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete.dropwizard;
+package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -23,9 +23,7 @@ import java.util.regex.Pattern;
 
 import org.junit.Test;
 
-import com.palantir.atlasdb.ete.EteSetup;
-
-public abstract class DropwizardEteTest extends EteSetup {
+public class DropwizardEteTest extends EteSetup {
     private static final Pattern TIMESTAMP_REGEX = Pattern.compile("The Fresh timestamp is: (\\d+)");
 
     @Test

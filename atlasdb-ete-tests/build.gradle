@@ -78,6 +78,7 @@ task prepareForEteTests(type: Copy, dependsOn: ['distTar', ':atlasdb-ete-test-ut
 }
 
 test.dependsOn 'prepareForEteTests'
+test.exclude '**/*EteTest*'
 
 distribution {
     serviceName 'atlasdb-ete'
