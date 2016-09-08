@@ -31,6 +31,25 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.15.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new|
+         - Added another method to page through dynamic columns which returns results in a single iterator. This is expected
+           to perform better than the existing method with certain backing stores (e.g. SQL stores), so should be preferred
+           unless it is actually important to be able to page through the results for different rows separately.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/724>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.14.0
 =======
 
@@ -73,12 +92,6 @@ v0.14.0
     *    - |fixed|
          - Updated our Dagger dependency from 2.0.2 to 2.4, so that our generated code matches with that of internal products.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/878>`__)
-
-    *    - |new|
-         - Added another method to page through dynamic columns which returns results in a single iterator. This is expected
-           to perform better than the existing method with certain backing stores (e.g. SQL stores), so should be preferred
-           unless it is actually important to be able to page through the results for different rows separately.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/724>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
