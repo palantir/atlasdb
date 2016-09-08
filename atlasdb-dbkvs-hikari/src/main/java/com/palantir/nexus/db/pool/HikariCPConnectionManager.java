@@ -21,6 +21,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.TimeZone;
+import java.util.concurrent.ThreadLocalRandom;
 
 import javax.management.JMX;
 import javax.management.MBeanServer;
@@ -28,7 +29,7 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -284,12 +285,41 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     }
 
     private State initialState() throws SQLException {
+        HikariDataSource dataSourcePool = getDatasourcePool();
+        boolean keep = false;
+
+        try {
+            // Setup monitoring
+            HikariPoolMXBean poolProxy = initPoolMbeans();
+            testDataSource(dataSourcePool);
+            keep = true;
+            return new State(StateType.NORMAL, 0, dataSourcePool, poolProxy, null);
+        } finally {
+            if (!keep) {
+                IOUtils.closeQuietly(dataSourcePool);
+            }
+        }
+    }
+
+    private HikariDataSource getDatasourcePool() {
         // Print a stack trace whenever we initialize a pool
-        log.info("Initializing connection pool: {}", connConfig, new RuntimeException("Initializing connection pool"));
+        log.debug("Initializing connection pool: {}", connConfig, new RuntimeException("Initializing connection pool"));
 
         HikariDataSource dataSourcePool;
+
         try {
-            dataSourcePool = new HikariDataSource(connConfig.getHikariConfig());
+            try {
+                dataSourcePool = new HikariDataSource(connConfig.getHikariConfig());
+            } catch (IllegalArgumentException e) {
+                // allow multiple pools on same JVM (they need unique names / endpoints)
+                if (e.getMessage().contains("A metric named")) {
+                    String poolName = connConfig.getHikariConfig().getPoolName();
+                    connConfig.getHikariConfig().setPoolName((poolName + "-" + ThreadLocalRandom.current().nextInt()));
+                    dataSourcePool = new HikariDataSource(connConfig.getHikariConfig());
+                } else {
+                    throw e;
+                }
+            }
         } catch (PoolInitializationException e) {
             log.error("Failed to initialize hikari data source: {}", connConfig.getUrl(), e);
 
@@ -320,22 +350,10 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
             throw e2;
         }
 
-        boolean keep = false;
-
-        try {
-            // Setup monitoring
-            HikariPoolMXBean poolProxy = initPoolMbeans();
-
-            testDataSource(dataSourcePool);
-
-            keep = true;
-            return new State(StateType.NORMAL, 0, dataSourcePool, poolProxy, null);
-        } finally {
-            if (!keep) {
-                IOUtils.closeQuietly(dataSourcePool);
-            }
-        }
+        return dataSourcePool;
     }
+
+
 
     private State elevatedState(State oldState) {
         HikariDataSource dataSourcePool = oldState.dataSourcePool;

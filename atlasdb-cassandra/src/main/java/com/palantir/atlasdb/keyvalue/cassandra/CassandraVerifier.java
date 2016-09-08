@@ -283,6 +283,7 @@ public final class CassandraVerifier {
             underlyingCassandraClusterSupportsCASOperations = client -> {
                 try {
                     CassandraApiVersion serverVersion = new CassandraApiVersion(client.describe_version());
+                    log.debug("Connected cassandra thrift version is: " + serverVersion);
                     return serverVersion.supportsCheckAndSet();
                 } catch (TException ex) {
                     throw new UnsupportedOperationException("Couldn't determine underlying cassandra version;"

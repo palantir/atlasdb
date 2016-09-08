@@ -27,6 +27,7 @@ import java.util.concurrent.Future;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.joda.time.format.DateTimeFormat;
@@ -37,7 +38,6 @@ import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.SQLConstants;
 import com.palantir.nexus.db.ThreadConfinedProxy;
 import com.palantir.nexus.db.sql.monitoring.logger.SqlLoggers;
-import com.palantir.util.TextUtils;
 
 public class BasicSQLUtils {
 
@@ -53,7 +53,7 @@ public class BasicSQLUtils {
     }
 
     public static String nArguments(int n) {
-        return TextUtils.makeStringList("?", ",", n); //$NON-NLS-1$ //$NON-NLS-2$
+        return StringUtils.repeat("?", ",", n); //$NON-NLS-1$ //$NON-NLS-2$
     }
 
     // convert ints to longs, to ensure that we do not overflow our bind variables.

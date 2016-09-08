@@ -15,7 +15,7 @@
  */
 package com.palantir.nexus.db;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 
 public class SqlClause {
 

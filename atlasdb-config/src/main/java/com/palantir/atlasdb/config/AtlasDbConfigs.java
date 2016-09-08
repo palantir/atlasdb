@@ -24,8 +24,12 @@ import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
+import com.palantir.remoting.ssl.SslConfiguration;
 
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
@@ -33,11 +37,14 @@ public final class AtlasDbConfigs {
 
     public static final String ATLASDB_CONFIG_ROOT = "/atlasdb";
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory());
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
+            .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
+            .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
 
     static {
         OBJECT_MAPPER.setSubtypeResolver(new DiscoverableSubtypeResolver());
         OBJECT_MAPPER.registerModule(new GuavaModule());
+        OBJECT_MAPPER.registerModule(new Jdk7Module());
     }
 
     private AtlasDbConfigs() {
@@ -90,5 +97,34 @@ public final class AtlasDbConfigs {
             return null;
         }
         return root;
+    }
+
+    public static AtlasDbConfig addFallbackSslConfigurationToAtlasDbConfig(
+            AtlasDbConfig config,
+            Optional<SslConfiguration> sslConfiguration) {
+        return ImmutableAtlasDbConfig.builder()
+                .from(config)
+                .leader(addFallbackSslConfigurationToLeader(config.leader(), sslConfiguration))
+                .lock(addFallbackSslConfigurationToServerList(config.lock(), sslConfiguration))
+                .timestamp(addFallbackSslConfigurationToServerList(config.timestamp(), sslConfiguration))
+                .build();
+    }
+
+    private static Optional<LeaderConfig> addFallbackSslConfigurationToLeader(
+            Optional<LeaderConfig> config,
+            Optional<SslConfiguration> sslConfiguration) {
+        return config.transform(leader -> ImmutableLeaderConfig.builder()
+                .from(leader)
+                .sslConfiguration(leader.sslConfiguration().or(sslConfiguration))
+                .build());
+    }
+
+    private static Optional<ServerListConfig> addFallbackSslConfigurationToServerList(
+            Optional<ServerListConfig> config,
+            Optional<SslConfiguration> sslConfiguration) {
+        return config.transform(serverList -> ImmutableServerListConfig.builder()
+                .from(serverList)
+                .sslConfiguration(serverList.sslConfiguration().or(sslConfiguration))
+                .build());
     }
 }

@@ -23,11 +23,17 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Optional;
+import com.palantir.remoting.ssl.SslConfiguration;
 
 @JsonDeserialize(as = ImmutableServerListConfig.class)
 @JsonSerialize(as = ImmutableServerListConfig.class)
 @Value.Immutable
 public interface ServerListConfig {
+
     @Size(min = 1)
     Set<String> servers();
+
+    Optional<SslConfiguration> sslConfiguration();
+
 }

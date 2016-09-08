@@ -99,8 +99,11 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ThreadS
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompaction;
 import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRangePagingIterable;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnFetchMode;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.CqlColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
+import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
@@ -138,7 +141,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private static final Function<Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = input ->
             input.getValue().getContents().length + 4L + Cells.getApproxSizeOfCell(input.getKey());
 
-    private final CassandraKeyValueServiceConfigManager configManager;
+    protected final CassandraKeyValueServiceConfigManager configManager;
     private final Optional<CassandraJmxCompactionManager> compactionManager;
     protected final CassandraClientPool clientPool;
     private SchemaMutationLock schemaMutationLock;
@@ -200,10 +203,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     protected void init() {
+        if (configManager.getConfig().scyllaDb() && !configManager.getConfig().safetyDisabled()) {
+            throw new IllegalArgumentException("Not currently allowing Thrift-based access to ScyllaDB clusters;"
+                    + " there appears to be from our tests"
+                    + " an existing correctness bug with semi-complex column selections");
+        }
+
         clientPool.runOneTimeStartupChecks();
 
-        boolean supportsCas = clientPool.runWithRetry(
-                CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
+        boolean supportsCas = !configManager.getConfig().scyllaDb()
+                && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
 
         schemaMutationLock = new SchemaMutationLock(
                 supportsCas,
@@ -1161,7 +1170,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     // update CKVS.isMatchingCf if you update this method
-    private CfDef getCfForTable(TableReference tableRef, byte[] rawMetadata) {
+    protected CfDef getCfForTable(TableReference tableRef, byte[] rawMetadata) {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         Map<String, String> compressionOptions = Maps.newHashMap();
         CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
@@ -1264,12 +1273,22 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
-        return getRangeWithPageCreator(
-                tableRef,
-                rangeRequest,
-                timestamp,
-                deleteConsistency,
-                TimestampExtractor.SUPPLIER);
+        Optional<Integer> timestampsGetterBatchSize = configManager.getConfig().timestampsGetterBatchSize();
+        if (timestampsGetterBatchSize.isPresent()) {
+            return getTimestampsInBatchesWithPageCreator(
+                    tableRef,
+                    rangeRequest,
+                    timestampsGetterBatchSize.get(),
+                    timestamp,
+                    deleteConsistency);
+        } else {
+            return getRangeWithPageCreator(
+                    tableRef,
+                    rangeRequest,
+                    timestamp,
+                    deleteConsistency,
+                    TimestampExtractor.SUPPLIER);
+        }
     }
 
     @Override
@@ -1286,14 +1305,28 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 HistoryExtractor.SUPPLIER);
     }
 
+    private ClosableIterator<RowResult<Set<Long>>> getTimestampsInBatchesWithPageCreator(
+            TableReference tableRef,
+            RangeRequest rangeRequest,
+            int columnBatchSize,
+            long timestamp,
+            ConsistencyLevel consistency) {
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, ColumnFetchMode.FETCH_ONE);
+
+        CqlExecutor cqlExecutor = new CqlExecutor(clientPool, consistency);
+        ColumnGetter columnGetter = new CqlColumnGetter(cqlExecutor, tableRef, columnBatchSize);
+
+        return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, TimestampExtractor.SUPPLIER, timestamp);
+    }
+
     private <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp,
             ConsistencyLevel consistency,
             Supplier<ResultsExtractor<T, U>> resultsExtractor) {
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef);
-        ColumnGetter columnGetter = new ColumnGetter();
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef, ColumnFetchMode.FETCH_ALL);
+        ColumnGetter columnGetter = new ThriftColumnGetter();
 
         return getRangeWithPageCreator(rowGetter, columnGetter, rangeRequest, resultsExtractor, timestamp);
     }
@@ -1414,7 +1447,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
                         client.system_add_column_family(getCfForTable(table, metadata));
                     } else {
-                        log.warn("Ignored call to create a table ({}) that already existed (case insensitive).", table);
+                        log.debug("Ignored call to create table ({}) that already existed (case insensitive).", table);
                     }
                 }
                 if (!tablesToCreate.isEmpty()) {
