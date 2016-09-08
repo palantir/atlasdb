@@ -151,7 +151,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     }
 
     protected CQLKeyValueService(CassandraKeyValueServiceConfigManager configManager,
-            Optional<CassandraJmxCompactionManager> compactionManager) {
+                                 Optional<CassandraJmxCompactionManager> compactionManager) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas CQL KVS", configManager.getConfig().poolSize()));
         fieldNameProvider = new CqlFieldNameProvider(configManager.getConfig());
         this.configManager = configManager;
@@ -327,9 +327,9 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Map<Cell, Value> getRows(final TableReference tableRef,
-            final Iterable<byte[]> rows,
-            ColumnSelection selection,
-            final long startTs) {
+                                    final Iterable<byte[]> rows,
+                                    ColumnSelection selection,
+                                    final long startTs) {
         if (!selection.allColumnsSelected()) {
             Collection<byte[]> selectedColumns = selection.getSelectedColumns();
             Set<Cell> cells = Sets.newHashSetWithExpectedSize(selectedColumns.size() * Iterables.size(rows));
@@ -355,8 +355,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     }
 
     private Map<Cell, Value> getRowsAllColsInternal(final TableReference tableRef,
-            final Iterable<byte[]> rows,
-            final long startTs) throws Exception {
+                                                    final Iterable<byte[]> rows,
+                                                    final long startTs) throws Exception {
         int rowCount = 0;
         Map<Cell, Value> result = Maps.newHashMap();
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
@@ -430,11 +430,11 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     }
 
     private void loadWithTs(final TableReference tableRef,
-            final Set<Cell> cells,
-            final long startTs,
-            boolean loadAllTs,
-            final Visitor<Multimap<Cell, Value>> visitor,
-            final ConsistencyLevel consistency) throws Exception {
+                            final Set<Cell> cells,
+                            final long startTs,
+                            boolean loadAllTs,
+                            final Visitor<Multimap<Cell, Value>> visitor,
+                            final ConsistencyLevel consistency) throws Exception {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
 
         List<ResultSetFuture> resultSetFutures = Lists.newArrayListWithCapacity(cells.size());
@@ -459,7 +459,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                         + " = ? AND " + fieldNameProvider.timestamp()
                         + " > ?" + (!loadAllTs ? " LIMIT 1" : "");
                 final PreparedStatement preparedStatement = getPreparedStatement(tableRef, loadWithTsQuery, session)
-                        .setConsistencyLevel(consistency);
+                              .setConsistencyLevel(consistency);
 
                 Object[] args = new Object[batch.size() + 2];
                 for (int i = 0; i < batch.size(); i++) {
@@ -510,7 +510,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Map<Cell, Long> getLatestTimestamps(final TableReference tableRef,
-            Map<Cell, Long> timestampByCell) {
+                                               Map<Cell, Long> timestampByCell) {
         try {
             return getLatestTimestampsInternal(tableRef, timestampByCell);
         } catch (Throwable t) {
@@ -519,7 +519,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     }
 
     private Map<Cell, Long> getLatestTimestampsInternal(final TableReference tableRef,
-            Map<Cell, Long> timestampByCell) throws Exception {
+                                                        Map<Cell, Long> timestampByCell) throws Exception {
         CassandraKeyValueServiceConfig config = configManager.getConfig();
         int fetchBatchCount = config.fetchBatchCount();
         Iterable<List<Cell>> partitions = Iterables.partition(
@@ -746,15 +746,15 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     }
 
     protected ResultSetFuture getPutPartitionResultSetFuture(TableReference tableRef,
-            List<Entry<Cell, Value>> partition,
-            TransactionType transactionType) {
+                                                             List<Entry<Cell, Value>> partition,
+                                                             TransactionType transactionType) {
         return getPutPartitionResultSetFuture(tableRef, partition, transactionType, CassandraConstants.NO_TTL);
     }
 
     protected ResultSetFuture getPutPartitionResultSetFuture(TableReference tableRef,
-            List<Entry<Cell, Value>> partition,
-            TransactionType transactionType,
-            int ttl) {
+                                                             List<Entry<Cell, Value>> partition,
+                                                             TransactionType transactionType,
+                                                             int ttl) {
         PreparedStatement preparedStatement = getPreparedStatement(
                 tableRef,
                 getPutQueryForPossibleTransaction(tableRef, transactionType, ttl),
@@ -880,8 +880,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     @Override
     @Idempotent
     public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
-            final RangeRequest rangeRequest,
-            final long timestamp) {
+                                                       final RangeRequest rangeRequest,
+                                                       final long timestamp) {
         return getRangeWithPageCreator(
                 tableRef,
                 rangeRequest,
@@ -893,8 +893,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     @Override
     @Idempotent
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
-            RangeRequest rangeRequest,
-            long timestamp) {
+                                                                       RangeRequest rangeRequest,
+                                                                       long timestamp) {
         return getRangeWithPageCreator(
                 tableRef,
                 rangeRequest,
@@ -906,8 +906,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     @Override
     @Idempotent
     public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
-            RangeRequest rangeRequest,
-            long timestamp) {
+                                                                       RangeRequest rangeRequest,
+                                                                       long timestamp) {
         return getRangeWithPageCreator(
                 tableRef,
                 rangeRequest,
@@ -1013,7 +1013,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                                 Cells.breakCellsUpByRow(extractor.asMap());
                         return ResultsExtractor.getRowResults(endExclusive, maxRow, resultsByRow);
                     }
-                }.iterator());
+            }.iterator());
     }
 
     @Override
@@ -1045,8 +1045,8 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         CQLKeyValueServices.waitForSchemaVersionsToCoalesce("dropTables(" + tablesToDrop.size() + " tables)", this);
 
         put(AtlasDbConstants.METADATA_TABLE, Maps.toMap(
-                Lists.transform(Lists.newArrayList(tablesToDrop), CQLKeyValueServices::getMetadataCell),
-                Functions.constant(PtBytes.EMPTY_BYTE_ARRAY)),
+                        Lists.transform(Lists.newArrayList(tablesToDrop), CQLKeyValueServices::getMetadataCell),
+                        Functions.constant(PtBytes.EMPTY_BYTE_ARRAY)),
                 System.currentTimeMillis());
     }
 

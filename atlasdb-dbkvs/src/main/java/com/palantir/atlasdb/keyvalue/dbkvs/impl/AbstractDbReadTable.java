@@ -46,7 +46,7 @@ public abstract class AbstractDbReadTable implements DbReadTable {
     protected final DbQueryFactory queryFactory;
 
     protected AbstractDbReadTable(ConnectionSupplier conns,
-            DbQueryFactory queryFactory) {
+                                  DbQueryFactory queryFactory) {
         this.conns = conns;
         this.queryFactory = queryFactory;
     }

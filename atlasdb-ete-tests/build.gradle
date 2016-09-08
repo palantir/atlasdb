@@ -21,8 +21,6 @@ dependencies {
 
     compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
 
-    runtime project(':atlasdb-dbkvs')
-
     runtime(project(':atlasdb-cassandra')) {
         exclude(module:'log4j-over-slf4j')
         exclude(module:'jcl-over-slf4j')

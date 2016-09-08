@@ -260,7 +260,7 @@ public final class CassandraKeyValueServices {
     }
 
     private static void extractTimestampResults(@Output Multimap<Cell, Long> ret,
-            Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
+                                                Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
         for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> result : results.entrySet()) {
             byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(result.getKey());
             for (ColumnOrSuperColumn col : result.getValue()) {

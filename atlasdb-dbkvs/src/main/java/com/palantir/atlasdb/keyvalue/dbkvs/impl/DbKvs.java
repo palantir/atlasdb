@@ -117,8 +117,8 @@ public class DbKvs extends AbstractKeyValueService {
      * ConnectionManagerAwareDbKvs which will instantiate a properly initialized DbKVS using the above create method
      */
     public DbKvs(DdlConfig config,
-            DbTableFactory dbTables,
-            SqlConnectionSupplier connections) {
+                 DbTableFactory dbTables,
+                 SqlConnectionSupplier connections) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Relational KVS", config.poolSize()));
         this.config = config;
         this.dbTables = dbTables;
@@ -442,8 +442,8 @@ public class DbKvs extends AbstractKeyValueService {
 
     @SuppressWarnings("deprecation")
     private TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getPageInternal(DbReadTable table,
-            RangeRequest range,
-            long timestamp) {
+                                                                                  RangeRequest range,
+                                                                                  long timestamp) {
         Comparator<byte[]> comp = UnsignedBytes.lexicographicalComparator();
         SortedSet<byte[]> rows = Sets.newTreeSet(comp);
         int maxRows = getMaxRowsFromBatchHint(range.getBatchHint());
@@ -527,8 +527,8 @@ public class DbKvs extends AbstractKeyValueService {
 
     @SuppressWarnings("deprecation")
     private TokenBackedBasicResultsPage<RowResult<Set<Long>>, byte[]> getTimestampsPageInternal(DbReadTable table,
-            RangeRequest range,
-            long timestamp) {
+                                                                                                RangeRequest range,
+                                                                                                long timestamp) {
         Comparator<byte[]> comp = UnsignedBytes.lexicographicalComparator();
         SortedSet<byte[]> rows = Sets.newTreeSet(comp);
         int maxRows = getMaxRowsFromBatchHint(range.getBatchHint());
@@ -822,8 +822,8 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     private void fillOverflowValues(DbReadTable table,
-            Map<Cell, OverflowValue> overflowValues,
-            @Output Map<Cell, Value> values) {
+                                    Map<Cell, OverflowValue> overflowValues,
+                                    @Output Map<Cell, Value> values) {
         Iterator<Entry<Cell, OverflowValue>> overflowIterator = overflowValues.entrySet().iterator();
         while (overflowIterator.hasNext()) {
             Entry<Cell, OverflowValue> entry = overflowIterator.next();
