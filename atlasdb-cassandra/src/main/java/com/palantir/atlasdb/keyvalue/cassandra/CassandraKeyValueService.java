@@ -1802,7 +1802,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     public void cleanUpSchemaMutationLockTablesState() throws Exception {
-        // get a unique table and create it if it doesn't exist
         Set<TableReference> tables = lockTables.getAllLockTables();
         dropTablesInternal(tables);
         log.info("Dropped all schema mutation lock tables [{}]", tables.toString());

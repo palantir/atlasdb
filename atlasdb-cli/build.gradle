@@ -7,10 +7,10 @@ mainClassName = 'com.palantir.atlasdb.cli.AtlasCli'
 applicationName = 'atlasdb'
 
 dependencies {
+  compile project(':atlasdb-cassandra')
   compile project(':atlasdb-dagger')
   compile 'io.airlift:airline:0.7'
 
-  runtime project(':atlasdb-cassandra')
   runtime project(':atlasdb-rocksdb')
 
   testCompile project(':atlasdb-rocksdb')
