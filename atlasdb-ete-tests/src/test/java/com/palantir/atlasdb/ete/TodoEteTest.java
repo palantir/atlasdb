@@ -13,23 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete.todo;
+package com.palantir.atlasdb.ete;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Test;
 
-import com.palantir.atlasdb.ete.EteSetup;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
-import com.palantir.timestamp.TimestampService;
 
-public abstract class TodoEteTest extends EteSetup {
+// TODO (gbrova) does this still need to extend EteSetup?
+public class TodoEteTest extends EteSetup {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
 
     @Test
