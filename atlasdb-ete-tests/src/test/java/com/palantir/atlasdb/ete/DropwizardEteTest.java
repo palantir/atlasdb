@@ -36,18 +36,18 @@ public class DropwizardEteTest {
 
     @Test
     public void sweepAllTablesDoesntError() throws IOException, InterruptedException {
-        EteSetup.runCommand("service/bin/atlasdb-ete atlasdb sweep -a var/conf/atlasdb-ete.yml");
+        EteSetup.runCliCommand("service/bin/atlasdb-ete atlasdb sweep -a var/conf/atlasdb-ete.yml");
     }
 
     @Test
     public void consoleShouldLoadAndConnectToDb() throws IOException, InterruptedException {
-        String output = EteSetup.runCommand("echo | service/bin/atlasdb-ete atlasdb console var/conf/atlasdb-ete.yml");
+        String output = EteSetup.runCliCommand("echo | service/bin/atlasdb-ete atlasdb console var/conf/atlasdb-ete.yml");
 
         assertThat(output).contains("//AtlasConsole started!");
     }
 
     private int fetchTimestamp() throws IOException, InterruptedException {
-        String timestampFetched = EteSetup.runCommand("service/bin/atlasdb-ete atlasdb timestamp fetch var/conf/atlasdb-ete.yml");
+        String timestampFetched = EteSetup.runCliCommand("service/bin/atlasdb-ete atlasdb timestamp fetch var/conf/atlasdb-ete.yml");
 
         Matcher matcher = TIMESTAMP_REGEX.matcher(timestampFetched);
         assertThat(matcher.find()).isTrue();

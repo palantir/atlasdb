@@ -57,7 +57,7 @@ public class EteSetup {
         return AtlasDbHttpClients.createProxyWithFailover(NO_SSL, uris, clazz);
     }
 
-    protected static String runCommand(String command) throws IOException, InterruptedException {
+    protected static String runCliCommand(String command) throws IOException, InterruptedException {
         return docker.run(
                 DockerComposeRunOption.options("-T"),
                 "ete-cli",
