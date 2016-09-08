@@ -11,12 +11,12 @@ function checkDocsBuild {
 CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
 
 # Container 2
-CONTAINER_2=(':atlasdb-tests-shared:check' ':atlasdb-ete-tests:check')
+CONTAINER_2=(':atlasdb-ete-tests:check' ':atlasdb-ete-test-utils:check')
 
 #Container 3
-CONTAINER_3=(':atlasdb-timelock-ete:check' ':lock-impl:check' ':atlasdb-dbkvs-tests:check')
+CONTAINER_3=(':atlasdb-timelock-ete:check' ':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-tests-shared:check')
 
-CONTAINER_4=(':atlasdb-impl-shared:check' ':atlasdb-ete-test-utils:check' ':atlasdb-dropwizard-tests:check')
+CONTAINER_4=(':atlasdb-impl-shared:check' ':atlasdb-dropwizard-tests:check')
 
 CONTAINER_5=(':atlasdb-dbkvs:check' ':atlasdb-tests-shared:check' ':atlasdb-cassandra-multinode-tests:check')
 
