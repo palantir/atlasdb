@@ -30,6 +30,7 @@ import org.apache.cassandra.thrift.CqlRow;
 import org.apache.thrift.TException;
 
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
 
@@ -48,11 +49,11 @@ public class CqlExecutor {
      * @param limit the maximum number of results to return.
      * @return up to <code>limit</code> cells that match the row name
      */
-    List<CellWithTimestamp> getColumnsForRow(TableReference tableRef, String row, int limit) {
+    List<CellWithTimestamp> getColumnsForRow(TableReference tableRef, byte[] row, int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s LIMIT %s;",
                 getTableName(tableRef),
-                row,
+                CassandraKeyValueServices.encodeAsHex(row),
                 limit);
         CqlResult cqlResult = executeQueryOnHost(query, getHostForRow(row));
         return getCells(row, cqlResult);
@@ -69,7 +70,7 @@ public class CqlExecutor {
      */
     List<CellWithTimestamp> getTimestampsForRowAndColumn(
             TableReference tableRef,
-            String row,
+            byte[] row,
             String column,
             long maxTimestampExclusive,
             int limit) {
@@ -77,7 +78,7 @@ public class CqlExecutor {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s AND column1 = %s AND column2 > %s LIMIT %s;",
                 getTableName(tableRef),
-                row,
+                CassandraKeyValueServices.encodeAsHex(row),
                 column,
                 invertedTimestamp,
                 limit);
@@ -95,21 +96,21 @@ public class CqlExecutor {
      */
     List<CellWithTimestamp> getNextColumnsForRow(
             TableReference tableRef,
-            String row,
+            byte[] row,
             String previousColumn,
             int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s AND column1 > %s LIMIT %s;",
                 getTableName(tableRef),
-                row,
+                CassandraKeyValueServices.encodeAsHex(row),
                 previousColumn,
                 limit);
         CqlResult cqlResult = executeQueryOnHost(query, getHostForRow(row));
         return getCells(row, cqlResult);
     }
 
-    private InetSocketAddress getHostForRow(String row) {
-        return clientPool.getRandomHostForKey(row.getBytes(StandardCharsets.UTF_8));
+    private InetSocketAddress getHostForRow(byte[] row) {
+        return clientPool.getRandomHostForKey(row);
     }
 
     private CqlResult executeQueryOnHost(String query, InetSocketAddress host) {
@@ -130,15 +131,15 @@ public class CqlExecutor {
         return CassandraKeyValueService.internalTableName(tableRef);
     }
 
-    private List<CellWithTimestamp> getCells(String key, CqlResult cqlResult) {
+    private List<CellWithTimestamp> getCells(byte[] key, CqlResult cqlResult) {
         return cqlResult.getRows().stream().map(cqlRow -> getCell(key, cqlRow)).collect(Collectors.toList());
     }
 
-    private CellWithTimestamp getCell(String key, CqlRow cqlRow) {
+    private CellWithTimestamp getCell(byte[] key, CqlRow cqlRow) {
         byte[] columnName = cqlRow.getColumns().get(0).getValue();
         byte[] flippedTimestampAsBytes = cqlRow.getColumns().get(1).getValue();
         long timestampLong = ~PtBytes.toLong(flippedTimestampAsBytes);
 
-        return new CellWithTimestamp.Builder().row(key).column(columnName).timestamp(timestampLong).build();
+        return new CellWithTimestamp.Builder().cell(Cell.create(key, columnName)).timestamp(timestampLong).build();
     }
 }

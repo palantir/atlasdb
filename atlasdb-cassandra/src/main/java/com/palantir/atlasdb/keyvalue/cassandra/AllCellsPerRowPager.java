@@ -29,13 +29,13 @@ import com.palantir.util.paging.PageGetter;
 
 public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
     private CqlExecutor cqlExecutor;
-    private String row;
+    private byte[] row;
     private TableReference tableRef;
     private int pageSize;
 
     public AllCellsPerRowPager(CqlExecutor executor, ByteBuffer row, TableReference tableRef, int pageSize) {
         this.cqlExecutor = executor;
-        this.row = CassandraKeyValueServices.encodeAsHex(row.array());
+        this.row = row.array();
         this.tableRef = tableRef;
         this.pageSize = pageSize;
     }

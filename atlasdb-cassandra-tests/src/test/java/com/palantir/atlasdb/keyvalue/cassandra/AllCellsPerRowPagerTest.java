@@ -38,13 +38,13 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.util.Pair;
 
 public class AllCellsPerRowPagerTest {
     private CqlExecutor executor = mock(CqlExecutor.class);
-    private String rowName = "row";
-    private ByteBuffer rowKey = toByteBuffer(rowName);
+    private ByteBuffer rowKey = toByteBuffer("row");
     private int pageSize = 20;
 
     private static final TableReference DEFAULT_TABLE = TableReference.fromString("tr");
@@ -108,7 +108,7 @@ public class AllCellsPerRowPagerTest {
 
         verify(executor).getColumnsForRow(
                 DEFAULT_TABLE,
-                CassandraKeyValueServices.encodeAsHex(rowKey.array()),
+                rowKey.array(),
                 pageSize);
     }
 
@@ -120,7 +120,7 @@ public class AllCellsPerRowPagerTest {
 
         verify(executor).getTimestampsForRowAndColumn(
                 DEFAULT_TABLE,
-                CassandraKeyValueServices.encodeAsHex(rowKey.array()),
+                rowKey.array(),
                 CassandraKeyValueServices.encodeAsHex(PREVIOUS_COLUMN_NAME.getBytes()),
                 PREVIOUS_TIMESTAMP,
                 pageSize);
@@ -157,8 +157,7 @@ public class AllCellsPerRowPagerTest {
 
     private CellWithTimestamp makeCell(String columnName, long timestamp) {
         return new CellWithTimestamp.Builder()
-                .row(rowName)
-                .column(columnName.getBytes())
+                .cell(Cell.create(rowKey.array(), columnName.getBytes()))
                 .timestamp(timestamp)
                 .build();
     }
@@ -177,17 +176,17 @@ public class AllCellsPerRowPagerTest {
     }
 
     private void allQueriesSimpleReturn(List<CellWithTimestamp> cells) {
-        when(executor.getColumnsForRow(any(TableReference.class), anyString(), anyInt())).thenReturn(cells);
+        when(executor.getColumnsForRow(any(TableReference.class), any(byte[].class), anyInt())).thenReturn(cells);
     }
 
     private void allQueriesWithColumnAndTimestampReturn(List<CellWithTimestamp> cells) {
         when(executor.getTimestampsForRowAndColumn(
-                any(TableReference.class), anyString(), anyString(), anyLong(), anyInt())).thenReturn(cells);
+                any(TableReference.class), any(byte[].class), anyString(), anyLong(), anyInt())).thenReturn(cells);
     }
 
     private void allQueriesWithColumnReturn(List<CellWithTimestamp> cells) {
         when(executor.getNextColumnsForRow(
-                any(TableReference.class), anyString(), anyString(), anyInt())).thenReturn(cells);
+                any(TableReference.class), any(byte[].class), anyString(), anyInt())).thenReturn(cells);
     }
 
     private void assertColumnOrSuperColumnHasCorrectNameAndTimestamp(

@@ -20,19 +20,18 @@ import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.immutables.value.Value;
 
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 
 @Value.Immutable
 public abstract class CellWithTimestamp {
-    public abstract String row();
-
-    public abstract byte[] column();
+    public abstract Cell cell();
 
     public abstract long timestamp();
 
     public static class Builder extends ImmutableCellWithTimestamp.Builder { }
 
     public ColumnOrSuperColumn asColumnOrSuperColumn() {
-        Column col = new Column().setName(CassandraKeyValueServices.makeCompositeBuffer(column(), timestamp()));
+        Column col = new Column().setName(CassandraKeyValueServices.makeCompositeBuffer(cell().getColumnName(), timestamp()));
         return new ColumnOrSuperColumn().setColumn(col);
     }
 
