@@ -21,7 +21,9 @@ import javax.inject.Singleton;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
+import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
@@ -47,7 +49,9 @@ public class KeyValueServiceModule {
                                                          TimestampService tss,
                                                          ServicesConfig config) {
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
-        kvs = new SweepStatsKeyValueService(kvs, tss);
+        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
+        kvs = ProfilingKeyValueService.create(kvs);
+        kvs = SweepStatsKeyValueService.create(kvs, tss);
         TransactionTables.createTables(kvs);
         ImmutableSet<Schema> schemas =
                 ImmutableSet.<Schema>builder()
