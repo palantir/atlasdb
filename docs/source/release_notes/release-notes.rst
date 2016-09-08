@@ -62,6 +62,10 @@ v0.14.0
          - Updated our Dagger dependency from 2.0.2 to 2.4, so that our generated code matches with that of internal products.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/878>`__)
 
+    *    - |new|
+         - All TransactionManagers are now AutoCloseable and implement a close method that will free up the underlying resources.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/907>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

@@ -180,3 +180,8 @@ experience the same lock contention, but no write/write conflict.
 
 Avoid designs where you expect multiple clients to write into the same
 row but different cells.
+
+===================
+
+Note: It is a good practice to call ``TransactionManager.close()`` when you
+intend to no longer run transactions.
