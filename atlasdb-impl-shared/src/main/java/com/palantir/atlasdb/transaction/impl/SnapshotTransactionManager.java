@@ -211,8 +211,8 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public void close() {
-        keyValueService.close();
         cleaner.close();
+        keyValueService.close();
     }
 
     private Supplier<Long> getStartTimestampSupplier() {

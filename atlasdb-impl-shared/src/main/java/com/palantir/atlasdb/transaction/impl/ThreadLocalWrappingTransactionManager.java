@@ -41,7 +41,7 @@ public class ThreadLocalWrappingTransactionManager extends WrappingTransactionMa
 
     @Override
     public void close() {
-        wrapper.remove();
         super.close();
+        wrapper.remove();
     }
 }

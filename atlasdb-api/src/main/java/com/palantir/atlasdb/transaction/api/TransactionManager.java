@@ -17,7 +17,7 @@ package com.palantir.atlasdb.transaction.api;
 
 
 
-public interface TransactionManager {
+public interface TransactionManager extends AutoCloseable {
     /**
      * Runs the given {@link TransactionTask}. If the task completes successfully
      * and does not call {@link Transaction#commit()} or {@link Transaction#abort()},
@@ -106,5 +106,6 @@ public interface TransactionManager {
     /**
      * Performs non-destructive cleanup when the transaction manager is no longer needed.
      */
+    @Override
     void close();
 }
