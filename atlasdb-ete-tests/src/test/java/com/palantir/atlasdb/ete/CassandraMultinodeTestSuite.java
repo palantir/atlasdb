@@ -15,10 +15,14 @@
  */
 package com.palantir.atlasdb.ete;
 
+import java.util.List;
+
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
+
+import com.google.common.collect.ImmutableList;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -26,6 +30,9 @@ import org.junit.runners.Suite;
         DropwizardEteTest.class
 })
 public class CassandraMultinodeTestSuite extends EteSetup {
+    private static final List<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");
+
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("cassandra-ha", "docker-compose.cassandra.yml");
+    public static final RuleChain COMPOSITION_SETUP =
+            EteSetup.setupComposition("cassandra-ha", "docker-compose.cassandra.yml", CLIENTS);
 }
