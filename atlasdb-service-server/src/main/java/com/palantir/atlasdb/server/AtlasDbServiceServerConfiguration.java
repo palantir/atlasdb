@@ -25,7 +25,7 @@ public class AtlasDbServiceServerConfiguration extends Configuration {
 
     private final AtlasDbConfig atlasdb;
 
-    public AtlasDbServiceServerConfiguration(@JsonProperty(AtlasDbConfigs.ATLASDB_CONFIG_ROOT) AtlasDbConfig atlasdb) {
+    public AtlasDbServiceServerConfiguration(@JsonProperty(AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_NAME) AtlasDbConfig atlasdb) {
         this.atlasdb = atlasdb;
     }
 
