@@ -855,16 +855,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     new RuntimeException("This exception and stack trace are provided for debugging purposes."));
         }
 
-        if (isTempTable(tableRef)
-                || (AtlasDbConstants.SKIP_POSTFILTER_TABLES.contains(tableRef) && allowHiddenTableAccess)) {
-            // If we are reading from a temp table, we can just bypass postfiltering
-            // or skip postfiltering if reading the transaction or namespace table from atlasdb shell
-            for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
-                results.put(e.getKey(), transformer.apply(e.getValue()));
-            }
-            return;
-        }
-
         Map<Cell, Value> remainingResultsToPostfilter = rawResults;
         while (!remainingResultsToPostfilter.isEmpty()) {
             remainingResultsToPostfilter = getWithPostfilteringInternal(
@@ -969,9 +959,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     validConflictDetection(tableRef),
                     "Not a valid table for this transaction.  Make sure this table name has a namespace: " + tableRef);
         }
-        Validate.isTrue(
-                isTempTable(tableRef) || getAllTempTables().isEmpty(),
-                "Temp tables may only be used by read only transactions.");
         if (values.isEmpty()) {
             return;
         }
@@ -988,11 +975,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
             ConcurrentNavigableMap<Cell, byte[]> writes = getLocalWrites(tableRef);
 
-            if (isTempTable(tableRef)) {
-                putTempTableWrites(tableRef, valuesToWrite, writes);
-            } else {
-                putWritesAndLogIfTooLarge(valuesToWrite, writes);
-            }
+            putWritesAndLogIfTooLarge(valuesToWrite, writes);
         } finally {
             numWriters.decrementAndGet();
         }
@@ -1022,9 +1005,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean validConflictDetection(TableReference tableRef) {
-        if (isTempTable(tableRef)) {
-            return true;
-        }
         return conflictDetectionManager.isEmptyOrContainsTable(tableRef);
     }
 
@@ -1058,7 +1038,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         while (true) {
             Preconditions.checkState(state.get() == State.UNCOMMITTED, "Transaction must be uncommitted.");
             if (state.compareAndSet(State.UNCOMMITTED, State.ABORTED)) {
-                dropTempTables();
                 if (hasWrites()) {
                     throwIfExternalAndCommitLocksNotValid(null);
                 }
@@ -1116,14 +1095,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 throw new IllegalStateException("Cannot commit while other threads are still calling put.");
             }
 
-            if (!getAllTempTables().isEmpty()) {
-                dropTempTables();
-                Validate.isTrue(getAllTempTables().containsAll(writesByTable.keySet()),
-                        "Temp tables may only be used by read only transactions.");
-            } else {
-                checkConstraints();
-                commitWrites(transactionService);
-            }
+            checkConstraints();
+            commitWrites(transactionService);
             perfLogger.debug("Committed transaction {} in {}ms",
                     getStartTimestamp(),
                     getTrasactionTimer().elapsed(TimeUnit.MILLISECONDS));

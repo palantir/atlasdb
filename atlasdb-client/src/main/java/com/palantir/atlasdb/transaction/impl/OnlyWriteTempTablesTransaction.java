@@ -79,18 +79,12 @@ public class OnlyWriteTempTablesTransaction extends ForwardingTransaction {
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
-        if (!delegate.isTempTable(tableRef)) {
-            throw new IllegalArgumentException("This is a read only transaction. You may only write to temp tables.");
-        }
-        super.put(tableRef, values);
+        throw new IllegalArgumentException("This is a read only transaction. You may only write to temp tables.");
     }
 
     @Override
     public void delete(TableReference tableRef, Set<Cell> keys) {
-        if (!delegate.isTempTable(tableRef)) {
-            throw new IllegalArgumentException("This is a read only transaction. You may only write to temp tables.");
-        }
-        super.delete(tableRef, keys);
+        throw new IllegalArgumentException("This is a read only transaction. You may only write to temp tables.");
     }
 
 }
