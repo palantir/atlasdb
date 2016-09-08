@@ -211,7 +211,7 @@ public class KeyValueServices {
         }
         int columnBatchSize = batchHint / Iterables.size(rows);
         BatchColumnRangeSelection batchColumnRangeSelection =
-                new BatchColumnRangeSelection(columnRangeSelection, columnBatchSize);
+                BatchColumnRangeSelection.create(columnRangeSelection, columnBatchSize);
         Map<byte[], RowColumnRangeIterator> rowsColumnRanges =
                 kvs.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
         // Return results in the same order as the provided rows.

@@ -107,7 +107,7 @@ public interface KeyValueService extends AutoCloseable {
      * @param tableRef the name of the table to retrieve values from.
      * @param rows set containing the rows to retrieve values for. Behavior is undefined if {@code rows}
      *        contains duplicates (as defined by {@link java.util.Arrays#equals(byte[], byte[])}).
-     * @param batchColumnRangeSelection specifies the column range and the batchSize to fetch.
+     * @param batchColumnRangeSelection specifies the column range and the per-row batchSize to fetch.
      * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each rows's value.
      * @return map of row names to {@link RowColumnRangeIterator}. Each {@link RowColumnRangeIterator} can iterate over
      *         the values that are spanned by the {@code batchColumnRangeSelection} in increasing order by column name.
@@ -125,7 +125,10 @@ public interface KeyValueService extends AutoCloseable {
             @QueryParam("timestamp") long timestamp);
 
     /**
-     * Gets values from the key-value store for the specified rows and column range as a single iterator.
+     * Gets values from the key-value store for the specified rows and column range as a single iterator. This method
+     * should be at least as performant as
+     * {@link #getRowsColumnRange(TableReference, Iterable, BatchColumnRangeSelection, long)}, and may be more
+     * performant in some cases.
      *
      * @param tableRef the name of the table to retrieve values from.
      * @param rows set containing the rows to retrieve values for. Behavior is undefined if {@code rows}

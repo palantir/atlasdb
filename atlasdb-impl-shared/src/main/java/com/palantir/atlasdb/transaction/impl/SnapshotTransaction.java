@@ -389,7 +389,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             byte[] row = e.getKey();
             RowColumnRangeIterator rawIterator = e.getValue();
             BatchColumnRangeSelection batchColumnRangeSelection =
-                    new BatchColumnRangeSelection(columnRangeSelection, batchHint);
+                    BatchColumnRangeSelection.create(columnRangeSelection, batchHint);
             return getPostFilteredColumns(tableRef, batchColumnRangeSelection, row, rawIterator);
         });
         return Iterators.concat(postFiltered);

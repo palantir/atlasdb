@@ -24,15 +24,19 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 
-public class BatchColumnRangeSelection implements Serializable {
+public final class BatchColumnRangeSelection implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private final ColumnRangeSelection columnRangeSelection;
     private final int batchHint;
 
-    public BatchColumnRangeSelection(ColumnRangeSelection columnRangeSelection, int batchHint) {
+    private BatchColumnRangeSelection(ColumnRangeSelection columnRangeSelection, int batchHint) {
         this.columnRangeSelection = columnRangeSelection;
         this.batchHint = batchHint;
+    }
+
+    public static BatchColumnRangeSelection create(ColumnRangeSelection columnRangeSelection, int batchHint) {
+        return new BatchColumnRangeSelection(columnRangeSelection, batchHint);
     }
 
     @JsonCreator
