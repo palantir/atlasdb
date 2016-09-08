@@ -48,10 +48,11 @@ Read or recalculate the immutable timestamp. Run ``./bin/atlasdb help timestamp`
 Offline CLIs
 ============
 
-Due to their destructive nature for in-progress transactions, there are two sub-commands of the timestamp CLI which can only be run when AtlasDB is offline. These are:
+Due to their potentially destructive nature if run concurrently with active AtlasDB services, there a number of CLIs which can only be run when AtlasDB is offline. These are:
 
-  - ``clean-transactions``
-  - ``fast-forward``
+  - ``clean-cass-locks-state``
+  - ``timestamp clean-transactions``
+  - ``timestamp fast-forward``
 
 To run these CLIs, first ensure that all of your AtlasDB clients are shut down, and then run the CLI with the ``--offline`` flag.
 
