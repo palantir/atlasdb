@@ -243,7 +243,7 @@ public class ThrowingKeyValueService implements KeyValueService {
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
-            BatchColumnRangeSelection columnRangeSelection,
+            BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
         throw throwEx();
     }

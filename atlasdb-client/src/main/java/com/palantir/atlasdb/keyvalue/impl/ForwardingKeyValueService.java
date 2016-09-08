@@ -102,8 +102,8 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection, long timestamp) {
-        return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
+        return delegate().getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
     }
 
     @Override

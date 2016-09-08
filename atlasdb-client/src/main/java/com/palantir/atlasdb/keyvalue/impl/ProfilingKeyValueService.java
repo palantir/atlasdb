@@ -456,16 +456,17 @@ public class ProfilingKeyValueService implements KeyValueService {
 
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
-                                                                  BatchColumnRangeSelection columnRangeSelection, long timestamp) {
+                                                                  BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            Map<byte[], RowColumnRangeIterator> result = delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+            Map<byte[], RowColumnRangeIterator> result = delegate.getRowsColumnRange(tableRef, rows,
+                    batchColumnRangeSelection, timestamp);
             log.trace("Call to KVS.getRowsColumnRange on table {} for {} rows with range {} took {} ms.",
-                    tableRef.getQualifiedName(), Iterables.size(rows), columnRangeSelection, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                    tableRef.getQualifiedName(), Iterables.size(rows), batchColumnRangeSelection, stopwatch.elapsed(TimeUnit.MILLISECONDS));
             logTimeAndTable("getRowsColumnRange", tableRef.getQualifiedName(), stopwatch);
             return result;
         } else {
-            return delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+            return delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
         }
     }
 

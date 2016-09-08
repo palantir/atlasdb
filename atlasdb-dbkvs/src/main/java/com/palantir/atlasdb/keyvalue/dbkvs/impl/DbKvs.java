@@ -584,11 +584,11 @@ public class DbKvs extends AbstractKeyValueService {
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
-            BatchColumnRangeSelection columnRangeSelection,
+            BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
         List<byte[]> rowList = ImmutableList.copyOf(rows);
         Map<byte[], List<Map.Entry<Cell, Value>>> firstPage =
-                getFirstRowsColumnRangePage(tableRef, rowList, columnRangeSelection, timestamp);
+                getFirstRowsColumnRangePage(tableRef, rowList, batchColumnRangeSelection, timestamp);
 
         Map<byte[], RowColumnRangeIterator> ret = Maps.newHashMapWithExpectedSize(rowList.size());
         for (Entry<byte[], List<Map.Entry<Cell, Value>>> e : firstPage.entrySet()) {
@@ -599,15 +599,15 @@ public class DbKvs extends AbstractKeyValueService {
             }
             byte[] lastCol = results.get(results.size() - 1).getKey().getColumnName();
             RowColumnRangeIterator firstPageIter = new LocalRowColumnRangeIterator(e.getValue().iterator());
-            if (isEndOfColumnRange(lastCol, columnRangeSelection.getEndCol())) {
+            if (isEndOfColumnRange(lastCol, batchColumnRangeSelection.getEndCol())) {
                 ret.put(e.getKey(), firstPageIter);
             } else {
                 byte[] nextCol = RangeRequests.nextLexicographicName(lastCol);
                 BatchColumnRangeSelection nextColumnRangeSelection =
                         BatchColumnRangeSelection.create(
                                 nextCol,
-                                columnRangeSelection.getEndCol(),
-                                columnRangeSelection.getBatchHint());
+                                batchColumnRangeSelection.getEndCol(),
+                                batchColumnRangeSelection.getBatchHint());
                 Iterator<Map.Entry<Cell, Value>> nextPagesIter = getRowColumnRange(
                         tableRef,
                         e.getKey(),

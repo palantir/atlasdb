@@ -176,15 +176,15 @@ public final class TieredKeyValueService implements KeyValueService {
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
-            BatchColumnRangeSelection columnRangeSelection,
+            BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
         if (isNotTiered(tableRef)) {
-            return primary.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+            return primary.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
         }
         Map<byte[], RowColumnRangeIterator> primaryResults =
-                primary.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+                primary.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
         Map<byte[], RowColumnRangeIterator> results =
-                Maps.newHashMap(secondary.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp));
+                Maps.newHashMap(secondary.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp));
         results.putAll(primaryResults);
         return results;
     }

@@ -1094,9 +1094,9 @@ public class JdbcKeyValueService implements KeyValueService {
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef,
                                                                   Iterable<byte[]> rows,
-                                                                  BatchColumnRangeSelection columnRangeSelection,
+                                                                  BatchColumnRangeSelection batchColumnRangeSelection,
                                                                   long timestamp) {
-        return KeyValueServices.filterGetRowsToColumnRange(this, tableRef, rows, columnRangeSelection, timestamp);
+        return KeyValueServices.filterGetRowsToColumnRange(this, tableRef, rows, batchColumnRangeSelection, timestamp);
     }
 
     @Override

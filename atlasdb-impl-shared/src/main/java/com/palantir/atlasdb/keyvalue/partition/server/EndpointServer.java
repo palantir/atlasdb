@@ -172,10 +172,10 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
-            BatchColumnRangeSelection columnRangeSelection,
+            BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
         return runPartitionMapReadOperation(input ->
-                kvs().getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp));
+                kvs().getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp));
     }
 
     @Override

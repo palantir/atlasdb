@@ -147,10 +147,10 @@ public final class RemotingKeyValueService extends ForwardingKeyValueService {
             public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
                     TableReference tableRef,
                     Iterable<byte[]> rows,
-                    BatchColumnRangeSelection columnRangeSelection,
+                    BatchColumnRangeSelection batchColumnRangeSelection,
                     long timestamp) {
                 Map<byte[], RowColumnRangeIterator> rowsColumnRange =
-                        super.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+                        super.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
                 return Maps.transformValues(canonicalizeRows(rowsColumnRange, rows),
                         iter -> withKvs(iter, RowColumnRangeIterator.class));
             }
@@ -280,16 +280,16 @@ public final class RemotingKeyValueService extends ForwardingKeyValueService {
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
-            BatchColumnRangeSelection columnRangeSelection,
+            BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
         Map<byte[], RowColumnRangeIterator> rowsColumnRange =
-                super.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+                super.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
         Map<byte[], RowColumnRangeIterator> transformed = Maps.transformValues(rowsColumnRange, it -> {
             List<Map.Entry<Cell, Value>> page =
-                    ImmutableList.copyOf(Iterators.limit(it, columnRangeSelection.getBatchHint()));
+                    ImmutableList.copyOf(Iterators.limit(it, batchColumnRangeSelection.getBatchHint()));
             return new RemoteRowColumnRangeIterator(
                     tableRef,
-                    columnRangeSelection,
+                    batchColumnRangeSelection,
                     timestamp,
                     it.hasNext(),
                     page);

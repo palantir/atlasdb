@@ -660,8 +660,8 @@ public class RocksDbKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection, long timestamp) {
-        return KeyValueServices.filterGetRowsToColumnRange(this, tableRef, rows, columnRangeSelection, timestamp);
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
+        return KeyValueServices.filterGetRowsToColumnRange(this, tableRef, rows, batchColumnRangeSelection, timestamp);
     }
 
     @Override

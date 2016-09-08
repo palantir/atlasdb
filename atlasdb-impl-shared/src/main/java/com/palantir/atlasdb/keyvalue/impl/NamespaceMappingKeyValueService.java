@@ -94,9 +94,9 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
-            BatchColumnRangeSelection columnRangeSelection,
+            BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
-        return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+        return delegate().getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
     }
 
     @Override

@@ -101,10 +101,17 @@ public interface KeyValueService extends AutoCloseable {
                              @QueryParam("timestamp") long timestamp);
 
     /**
-     * Each returned {@link RowColumnRangeIterator} returns results in increasing order by column name.
-     * <p/>
-     * Behavior is undefined if {@code rows} contains duplicates (as defined by
-     * {@link java.util.Arrays#equals(byte[], byte[])}).
+     * Gets values from the key-value store for the specified rows and column range
+     * as separate iterators for each row.
+     *
+     * @param tableRef the name of the table to retrieve values from.
+     * @param rows set containing the rows to retrieve values for. Behavior is undefined if {@code rows}
+     *        contains duplicates (as defined by {@link java.util.Arrays#equals(byte[], byte[])}).
+     * @param batchColumnRangeSelection specifies the column range and the batchSize to fetch.
+     * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each rows's value.
+     * @return map of row names to {@link RowColumnRangeIterator}. Each {@link RowColumnRangeIterator} can iterate over
+     *         the values that are spanned by the {@code batchColumnRangeSelection} in increasing order by column name.
+     * @throws IllegalArgumentException if {@code rows} contains duplicates.
      */
     @POST
     @Path("get-rows-col-range")
@@ -114,16 +121,23 @@ public interface KeyValueService extends AutoCloseable {
     Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             @QueryParam("tableRef") TableReference tableRef,
             Iterable<byte[]> rows,
-            @QueryParam("batchColumnRangeSelection") BatchColumnRangeSelection columnRangeSelection,
+            @QueryParam("batchColumnRangeSelection") BatchColumnRangeSelection batchColumnRangeSelection,
             @QueryParam("timestamp") long timestamp);
 
     /**
-     * Returns a single iterator over all matching cells. All columns for a given row are adjacent in the returned
-     * {@link RowColumnRangeIterator} and sorted by increasing column name. Results for different rows are returned in
-     * the same order as they are provided in {@code rows}.
-     * <p/>
-     * Behavior is undefined if {@code rows} contains duplicates (as defined by
-     * {@link java.util.Arrays#equals(byte[], byte[])}).
+     * Gets values from the key-value store for the specified rows and column range as a single iterator.
+     *
+     * @param tableRef the name of the table to retrieve values from.
+     * @param rows set containing the rows to retrieve values for. Behavior is undefined if {@code rows}
+     *        contains duplicates (as defined by {@link java.util.Arrays#equals(byte[], byte[])}).
+     * @param columnRangeSelection specifies the column range to fetch.
+     * @param cellBatchHint specifies the batch size for fetching the values.
+     * @param timestamp specifies the maximum timestamp (exclusive) at which to
+     *        retrieve each rows's value.
+     * @return a {@link RowColumnRangeIterator} that can iterate over all the retrieved values. Results for different
+     *         rows are in the same order as they are provided in {@code rows}. All columns for a given row are adjacent
+     *         and sorted by increasing column name.
+     * @throws IllegalArgumentException if {@code rows} contains duplicates.
      */
     @POST
     @Path("get-rows-col-range-2")

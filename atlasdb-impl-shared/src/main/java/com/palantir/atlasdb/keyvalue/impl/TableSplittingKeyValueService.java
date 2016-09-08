@@ -259,9 +259,9 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
-            BatchColumnRangeSelection columnRangeSelection,
+            BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
-        return getDelegate(tableRef).getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+        return getDelegate(tableRef).getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
     }
 
     @Override
