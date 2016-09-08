@@ -206,7 +206,7 @@ import com.palantir.timestamp.TimestampService;
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess);
-        return runTaskThrowOnConflict(task, new OnlyWriteTempTablesTransaction(transaction, sweepStrategyManager));
+        return runTaskThrowOnConflict(task, transaction);
     }
 
     private Supplier<Long> getStartTimestampSupplier() {
