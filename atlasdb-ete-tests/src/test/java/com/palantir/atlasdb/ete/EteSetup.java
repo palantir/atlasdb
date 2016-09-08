@@ -129,28 +129,11 @@ public class EteSetup {
 
     private void waitForCassandraContainerToBeReady(Container container) {
         waitForAllPorts(container);
-        waitForNodetoolToConfirmStatus(container, NODE_UP_STATUS, NUM_CASSANDRA_NODES);
     }
 
     private void waitForAllPorts(Container container) {
         Awaitility.await()
                 .atMost(120, TimeUnit.SECONDS)
                 .until(() -> container.areAllPortsOpen().succeeded());
-    }
-
-    private void waitForNodetoolToConfirmStatus(Container container, String status, int expectedNodeCount) {
-        Awaitility.await()
-                .atMost(360, TimeUnit.SECONDS)
-                .pollInterval(5, TimeUnit.SECONDS)
-                .until(() -> {
-                    try {
-                        String nodetoolStatus = docker.exec(DockerComposeExecOption.options("-T"),
-                                container.getContainerName(),
-                                DockerComposeExecArgument.arguments("bash", "-c", "nodetool status | grep " + status));
-                        return StringUtils.countMatches(nodetoolStatus, status) == expectedNodeCount;
-                    } catch (Exception e) {
-                        return false;
-                    }
-                });
     }
 }
