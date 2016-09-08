@@ -246,6 +246,18 @@ present</th>
 <p>This property is a boolean value saying whether or not to use ssl.  When <code class="docutils literal"><span class="pre">true</span></code>, it will use java system properties that are passed in as jvm arguments to determine how to set up the ssl connection.  For example, you would use the jvm option <code class="docutils literal"><span class="pre">-Djavax.net.ssl.trustStore=&lt;path-to-truststore&gt;</span></code> to tell atlas where to find the truststore to use.</p>
 </div>
 </div>
+<div class="section" id="column-paging-for-sweep-experimental">
+<span id="cassandra-sweep-config"></span><h2>Column Paging for Sweep (experimental)<a class="headerlink" href="#column-paging-for-sweep-experimental" title="Permalink to this headline">¶</a></h2>
+<p>If <code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> is set, the maximum number of entries loaded into memory for any
+Cassandra node during a <a class="reference internal" href="../schemas/physical_cleanup.html#physical-cleanup-sweep"><span class="std std-ref">Sweep</span></a> will be limited.</p>
+<p>Currently Cassandra does not provide a way to fetch columns and timestamps without also temporarily
+loading values into memory. Therefore, running a sweep job on a Cassandra-backed KVS
+with rows that (1) contain large (&gt;1MB) values, and (2) are frequently updated, may cause
+the Cassandra node to run out of memory.</p>
+<p>In such cases, limiting the value of <code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> (which is infinite by default)
+could result in greater reliability.
+On the other hand, more aggressive paging could lead to slower sweep performance.</p>
+</div>
 </div>
 
 

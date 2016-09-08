@@ -177,11 +177,22 @@ AtlasDB will now fail to start if your configuration is invalid.
 Please refer to <a class="reference internal" href="../configuration/leader_config.html#leader-config-examples"><span class="std std-ref">Example Leader Configurations</span></a> for guidance on valid configurations.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/854">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td><p class="first"><code class="docutils literal"><span class="pre">CassandraKeyValueServiceConfiguration</span></code> now supports <a class="reference internal" href="../configuration/cassandra_KVS_configuration.html#cassandra-sweep-config"><span class="std std-ref">column paging</span></a>
+via the <code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> parameter.</p>
+<p>Enabling such paging could make <a class="reference internal" href="../schemas/physical_cleanup.html#physical-cleanup-sweep"><span class="std std-ref">Sweep</span></a> more reliable by helping
+prevent sweep jobs from causing Cassandra nodes to run out of memory if the underlying Cassandra
+KVS contains rows that store large values and change frequently.</p>
+<p class="last">This feature is experimental and disabled by default; please
+reach out to the AtlasDB dev team if you would like to enable it.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/834">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed and standardized serialization and deserialization of AtlasDBConfig.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/875">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Updated our Dagger dependency from 2.0.2 to 2.4, so that our generated code matches with that of internal products.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/878">Pull Request</a>)</td>
 </tr>
