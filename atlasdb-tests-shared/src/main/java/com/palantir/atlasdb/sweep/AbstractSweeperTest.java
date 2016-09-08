@@ -134,8 +134,8 @@ public abstract class AbstractSweeperTest {
     @Test
     public void testSweepOneConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
-        put("foo", "bar", 50);
-        put("foo", "baz", 100);
+        putIntoDefaultColumn("foo", "bar", 50);
+        putIntoDefaultColumn("foo", "baz", 100);
         SweepResults results = completeSweep(175);
         Assert.assertEquals(1, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
@@ -147,7 +147,7 @@ public abstract class AbstractSweeperTest {
     @Test
     public void testDontSweepLatestConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
-        put("foo", "bar", 50);
+        putIntoDefaultColumn("foo", "bar", 50);
         SweepResults results = completeSweep(75);
         Assert.assertEquals(0, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
@@ -158,7 +158,7 @@ public abstract class AbstractSweeperTest {
     @Test
     public void testSweepUncommittedConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
-        put("foo", "bar", 50);
+        putIntoDefaultColumn("foo", "bar", 50);
         putUncommitted("foo", "baz", 100);
         SweepResults results = completeSweep(175);
         Assert.assertEquals(1, results.getCellsDeleted());
@@ -168,12 +168,12 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    public void testSweepManyConservative() {
+    public void testSweepManyValuesConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
-        put("foo", "bar", 50);
+        putIntoDefaultColumn("foo", "bar", 50);
         putUncommitted("foo", "bad", 75);
-        put("foo", "baz", 100);
-        put("foo", "buzz", 125);
+        putIntoDefaultColumn("foo", "baz", 100);
+        putIntoDefaultColumn("foo", "buzz", 125);
         putUncommitted("foo", "foo", 150);
         SweepResults results = completeSweep(175);
         Assert.assertEquals(4, results.getCellsDeleted());
@@ -184,12 +184,17 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
+    public void testSweepManyRowsConservative() {
+        testSweepManyRows(SweepStrategy.CONSERVATIVE);
+    }
+
+    @Test
     public void testDontSweepFutureConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
-        put("foo", "bar", 50);
+        putIntoDefaultColumn("foo", "bar", 50);
         putUncommitted("foo", "bad", 75);
-        put("foo", "baz", 100);
-        put("foo", "buzz", 125);
+        putIntoDefaultColumn("foo", "baz", 100);
+        putIntoDefaultColumn("foo", "buzz", 125);
         putUncommitted("foo", "foo", 150);
         SweepResults results = completeSweep(110);
         Assert.assertEquals(2, results.getCellsDeleted());
@@ -200,8 +205,8 @@ public abstract class AbstractSweeperTest {
     @Test
     public void testSweepOneThorough() {
         createTable(SweepStrategy.THOROUGH);
-        put("foo", "bar", 50);
-        put("foo", "baz", 100);
+        putIntoDefaultColumn("foo", "bar", 50);
+        putIntoDefaultColumn("foo", "baz", 100);
         SweepResults results = completeSweep(175);
         Assert.assertEquals(1, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
@@ -213,7 +218,7 @@ public abstract class AbstractSweeperTest {
     @Test
     public void testDontSweepLatestThorough() {
         createTable(SweepStrategy.THOROUGH);
-        put("foo", "bar", 50);
+        putIntoDefaultColumn("foo", "bar", 50);
         SweepResults results = completeSweep(75);
         Assert.assertEquals(0, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
@@ -224,7 +229,7 @@ public abstract class AbstractSweeperTest {
     @Test
     public void testSweepLatestDeletedThorough() {
         createTable(SweepStrategy.THOROUGH);
-        put("foo", "", 50);
+        putIntoDefaultColumn("foo", "", 50);
         SweepResults results = completeSweep(75);
         Assert.assertEquals(1, results.getCellsDeleted());
         Assert.assertEquals(1, results.getCellsExamined());
@@ -235,7 +240,7 @@ public abstract class AbstractSweeperTest {
     @Test
     public void testSweepUncommittedThorough() {
         createTable(SweepStrategy.THOROUGH);
-        put("foo", "bar", 50);
+        putIntoDefaultColumn("foo", "bar", 50);
         putUncommitted("foo", "baz", 100);
         SweepResults results = completeSweep(175);
         Assert.assertEquals(1, results.getCellsDeleted());
@@ -245,12 +250,12 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    public void testSweepManyThorough() {
+    public void testSweepManyValuesThorough() {
         createTable(SweepStrategy.THOROUGH);
-        put("foo", "bar", 50);
+        putIntoDefaultColumn("foo", "bar", 50);
         putUncommitted("foo", "bad", 75);
-        put("foo", "baz", 100);
-        put("foo", "buzz", 125);
+        putIntoDefaultColumn("foo", "baz", 100);
+        putIntoDefaultColumn("foo", "buzz", 125);
         putUncommitted("foo", "foo", 150);
         SweepResults results = completeSweep(175);
         Assert.assertEquals(4, results.getCellsDeleted());
@@ -261,12 +266,17 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
+    public void testSweepManyRowsThorough() {
+        testSweepManyRows(SweepStrategy.THOROUGH);
+    }
+
+    @Test
     public void testSweepManyLatestDeletedThorough1() {
         createTable(SweepStrategy.THOROUGH);
-        put("foo", "bar", 50);
+        putIntoDefaultColumn("foo", "bar", 50);
         putUncommitted("foo", "bad", 75);
-        put("foo", "baz", 100);
-        put("foo", "", 125);
+        putIntoDefaultColumn("foo", "baz", 100);
+        putIntoDefaultColumn("foo", "", 125);
         putUncommitted("foo", "foo", 150);
         SweepResults results = completeSweep(175);
         Assert.assertEquals(4, results.getCellsDeleted());
@@ -283,10 +293,10 @@ public abstract class AbstractSweeperTest {
     @Test
     public void testSweepManyLatestDeletedThorough2() {
         createTable(SweepStrategy.THOROUGH);
-        put("foo", "bar", 50);
+        putIntoDefaultColumn("foo", "bar", 50);
         putUncommitted("foo", "bad", 75);
-        put("foo", "baz", 100);
-        put("foo", "foo", 125);
+        putIntoDefaultColumn("foo", "baz", 100);
+        putIntoDefaultColumn("foo", "foo", 125);
         putUncommitted("foo", "", 150);
         SweepResults results = completeSweep(175);
         Assert.assertEquals(4, results.getCellsDeleted());
@@ -298,10 +308,10 @@ public abstract class AbstractSweeperTest {
     @Test
     public void testDontSweepFutureThorough() {
         createTable(SweepStrategy.THOROUGH);
-        put("foo", "bar", 50);
+        putIntoDefaultColumn("foo", "bar", 50);
         putUncommitted("foo", "bad", 75);
-        put("foo", "baz", 100);
-        put("foo", "buzz", 125);
+        putIntoDefaultColumn("foo", "baz", 100);
+        putIntoDefaultColumn("foo", "buzz", 125);
         putUncommitted("foo", "foo", 150);
         SweepResults results = completeSweep(110);
         Assert.assertEquals(2, results.getCellsDeleted());
@@ -312,10 +322,10 @@ public abstract class AbstractSweeperTest {
     @Test
     public void testSweepStrategyNothing() {
         createTable(SweepStrategy.NOTHING);
-        put("foo", "bar", 50);
+        putIntoDefaultColumn("foo", "bar", 50);
         putUncommitted("foo", "bad", 75);
-        put("foo", "baz", 100);
-        put("foo", "buzz", 125);
+        putIntoDefaultColumn("foo", "baz", 100);
+        putIntoDefaultColumn("foo", "buzz", 125);
         putUncommitted("foo", "foo", 150);
         SweepResults results = completeSweep(200);
         Assert.assertEquals(0, results.getCellsDeleted());
@@ -339,9 +349,9 @@ public abstract class AbstractSweeperTest {
      */
     public void testBackgroundSweepWritesPriorityTable() {
         createTable(SweepStrategy.CONSERVATIVE);
-        put("foo", "bar", 50);
-        put("foo", "baz", 100);
-        put("foo", "buzz", 125);
+        putIntoDefaultColumn("foo", "bar", 50);
+        putIntoDefaultColumn("foo", "baz", 100);
+        putIntoDefaultColumn("foo", "buzz", 125);
         runBackgroundSweep(120, 3);
         List<SweepPriorityRowResult> results = txManager.runTaskReadOnly(t -> {
             SweepPriorityTable priorityTable = SweepTableFactory.of().getSweepPriorityTable(t);
@@ -357,9 +367,9 @@ public abstract class AbstractSweeperTest {
     @Ignore
     public void testBackgroundSweepWritesPriorityTableWithDifferentTime() {
         createTable(SweepStrategy.CONSERVATIVE);
-        put("foo", "bar", 50);
-        put("foo", "baz", 100);
-        put("foo", "buzz", 125);
+        putIntoDefaultColumn("foo", "bar", 50);
+        putIntoDefaultColumn("foo", "baz", 100);
+        putIntoDefaultColumn("foo", "buzz", 125);
         // the expectation is that the sweep tables will be chosen first
         runBackgroundSweep(110, 2);
         runBackgroundSweep(120, 1);
@@ -386,10 +396,10 @@ public abstract class AbstractSweeperTest {
     public void testBackgroundSweeperWritesToProgressTable() {
         setupBackgroundSweeper(2);
         createTable(SweepStrategy.CONSERVATIVE);
-        put("foo", "bar", 50);
-        put("foo2", "bang", 75);
-        put("foo3", "baz", 100);
-        put("foo4", "buzz", 125);
+        putIntoDefaultColumn("foo", "bar", 50);
+        putIntoDefaultColumn("foo2", "bang", 75);
+        putIntoDefaultColumn("foo3", "baz", 100);
+        putIntoDefaultColumn("foo4", "buzz", 125);
         runBackgroundSweep(150, 3);
 
         confirmOnlyTableRowUnwritten();
@@ -409,11 +419,11 @@ public abstract class AbstractSweeperTest {
     public void testBackgroundSweeperDoesNotOverwriteProgressMinimumTimestamp() {
         setupBackgroundSweeper(2);
         createTable(SweepStrategy.CONSERVATIVE);
-        put("foo", "bar", 50);
-        put("foo2", "bang", 75);
-        put("foo3", "baz", 100);
-        put("foo4", "buzz", 125);
-        put("foo5", "bing", 140);
+        putIntoDefaultColumn("foo", "bar", 50);
+        putIntoDefaultColumn("foo2", "bang", 75);
+        putIntoDefaultColumn("foo3", "baz", 100);
+        putIntoDefaultColumn("foo4", "buzz", 125);
+        putIntoDefaultColumn("foo5", "bing", 140);
         runBackgroundSweep(150, 3);
         runBackgroundSweep(175, 1);
 
@@ -452,10 +462,10 @@ public abstract class AbstractSweeperTest {
     public void testBackgroundSweeperWritesFromProgressToPriority() {
         setupBackgroundSweeper(3);
         createTable(SweepStrategy.CONSERVATIVE);
-        put("foo", "bar", 50);
-        put("foo2", "bang", 75);
-        put("foo3", "baz", 100);
-        put("foo4", "buzz", 125);
+        putIntoDefaultColumn("foo", "bar", 50);
+        putIntoDefaultColumn("foo2", "bang", 75);
+        putIntoDefaultColumn("foo3", "baz", 100);
+        putIntoDefaultColumn("foo4", "buzz", 125);
         runBackgroundSweep(150, 3);
         runBackgroundSweep(175, 1);
         List<SweepPriorityRowResult> results = getPriorityTable();
@@ -483,9 +493,9 @@ public abstract class AbstractSweeperTest {
     @Ignore
     public void testBackgroundSweepCanHandleNegativeImmutableTimestamp() {
         createTable(SweepStrategy.CONSERVATIVE);
-        put("foo", "bar", 50);
-        put("foo", "baz", 100);
-        put("foo", "buzz", 125);
+        putIntoDefaultColumn("foo", "bar", 50);
+        putIntoDefaultColumn("foo", "baz", 100);
+        putIntoDefaultColumn("foo", "buzz", 125);
         runBackgroundSweep(Long.MIN_VALUE, 3);
         List<SweepPriorityRowResult> results = txManager.runTaskReadOnly(t -> {
             SweepPriorityTable priorityTable = SweepTableFactory.of().getSweepPriorityTable(t);
@@ -500,10 +510,10 @@ public abstract class AbstractSweeperTest {
     @Test
     public void testSweeperFailsHalfwayThroughOnDeleteTable() {
         createTable(SweepStrategy.CONSERVATIVE);
-        put("foo", "bar", 50);
-        put("foo2", "bang", 75);
-        put("foo3", "baz", 100);
-        put("foo4", "buzz", 125);
+        putIntoDefaultColumn("foo", "bar", 50);
+        putIntoDefaultColumn("foo2", "bang", 75);
+        putIntoDefaultColumn("foo3", "baz", 100);
+        putIntoDefaultColumn("foo4", "buzz", 125);
         partialSweep(150, 2);
 
         kvs.dropTable(TABLE_NAME);
@@ -511,6 +521,19 @@ public abstract class AbstractSweeperTest {
         SweepResults results = completeSweep(175);
 
         Assert.assertEquals(results, SweepResults.createEmptySweepResult(0L));
+    }
+
+    private void testSweepManyRows(SweepStrategy strategy) {
+        createTable(strategy);
+        putIntoDefaultColumn("foo", "bar1", 5);
+        putIntoDefaultColumn("foo", "bar2", 10);
+        putIntoDefaultColumn("baz", "bar3", 15);
+        putIntoDefaultColumn("baz", "bar4", 20);
+
+        SweepResults results = completeSweep(175);
+
+        Assert.assertEquals(2, results.getCellsDeleted());
+        Assert.assertEquals(2, results.getCellsExamined());
     }
 
     private List<SweepProgressRowResult> getProgressTable() {
@@ -534,7 +557,7 @@ public abstract class AbstractSweeperTest {
         }
     }
 
-    private SweepResults completeSweep(long ts) {
+    protected SweepResults completeSweep(long ts) {
         SweepResults results = sweep(ts, DEFAULT_BATCH_SIZE);
         Assert.assertFalse(results.getNextStartRow().isPresent());
         return results;
@@ -562,8 +585,12 @@ public abstract class AbstractSweeperTest {
         return ImmutableSet.copyOf(kvs.getAllTimestamps(TABLE_NAME, ImmutableSet.of(cell), Long.MAX_VALUE).get(cell));
     }
 
-    private void put(final String row, final String val, final long ts) {
-        Cell cell = Cell.create(row.getBytes(), COL.getBytes());
+    protected void putIntoDefaultColumn(final String row, final String val, final long ts) {
+        put(row, COL, val, ts);
+    }
+
+    protected void put(final String row, final String column, final String val, final long ts) {
+        Cell cell = Cell.create(row.getBytes(), column.getBytes());
         kvs.put(TABLE_NAME, ImmutableMap.of(cell, val.getBytes()), ts);
         txService.putUnlessExists(ts, ts);
     }
@@ -573,7 +600,7 @@ public abstract class AbstractSweeperTest {
         kvs.put(TABLE_NAME, ImmutableMap.of(cell, val.getBytes()), ts);
     }
 
-    private void createTable(final SweepStrategy sweepStrategy) {
+    protected void createTable(final SweepStrategy sweepStrategy) {
         kvs.createTable(TABLE_NAME,
                 new TableDefinition() {{
                     rowName();
