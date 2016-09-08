@@ -14,11 +14,11 @@ dependencies {
 
   compile group: 'io.airlift', name: 'airline', version: '0.7'
   compile group: 'org.reflections', name: 'reflections', version: '0.9.10'
-  compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: '0.17.2'
+  compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: libVersions.dockerComposeRule
   compile group: 'ch.qos.logback', name: 'logback-classic', version: libVersions.logback
 
   compile group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.13'
-  processor 'org.immutables:value:2.0.21'
+  processor group: 'org.immutables', name: 'value', version: libVersions.immutables
   processor(group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.13') {
       // We need to explicitly exclude these so that intellij does not label them as provided
       if(gradle.startParameter.taskNames.contains('idea')) {
