@@ -121,7 +121,7 @@ public class AllCellsPerRowPagerTest {
         verify(executor).getTimestampsForRowAndColumn(
                 DEFAULT_TABLE,
                 rowKey.array(),
-                CassandraKeyValueServices.encodeAsHex(PREVIOUS_COLUMN_NAME.getBytes()),
+                PREVIOUS_COLUMN_NAME.getBytes(),
                 PREVIOUS_TIMESTAMP,
                 pageSize);
     }
@@ -181,12 +181,12 @@ public class AllCellsPerRowPagerTest {
 
     private void allQueriesWithColumnAndTimestampReturn(List<CellWithTimestamp> cells) {
         when(executor.getTimestampsForRowAndColumn(
-                any(TableReference.class), any(byte[].class), anyString(), anyLong(), anyInt())).thenReturn(cells);
+                any(TableReference.class), any(byte[].class), any(byte[].class), anyLong(), anyInt())).thenReturn(cells);
     }
 
     private void allQueriesWithColumnReturn(List<CellWithTimestamp> cells) {
         when(executor.getNextColumnsForRow(
-                any(TableReference.class), any(byte[].class), anyString(), anyInt())).thenReturn(cells);
+                any(TableReference.class), any(byte[].class), any(byte[].class), anyInt())).thenReturn(cells);
     }
 
     private void assertColumnOrSuperColumnHasCorrectNameAndTimestamp(

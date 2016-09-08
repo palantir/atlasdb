@@ -71,7 +71,7 @@ public class CqlExecutor {
     List<CellWithTimestamp> getTimestampsForRowAndColumn(
             TableReference tableRef,
             byte[] row,
-            String column,
+            byte[] column,
             long maxTimestampExclusive,
             int limit) {
         long invertedTimestamp = ~maxTimestampExclusive;
@@ -79,7 +79,7 @@ public class CqlExecutor {
                 "SELECT column1, column2 FROM %s WHERE key = %s AND column1 = %s AND column2 > %s LIMIT %s;",
                 getTableName(tableRef),
                 CassandraKeyValueServices.encodeAsHex(row),
-                column,
+                CassandraKeyValueServices.encodeAsHex(column),
                 invertedTimestamp,
                 limit);
         CqlResult cqlResult = executeQueryOnHost(query, getHostForRow(row));
@@ -97,13 +97,13 @@ public class CqlExecutor {
     List<CellWithTimestamp> getNextColumnsForRow(
             TableReference tableRef,
             byte[] row,
-            String previousColumn,
+            byte[] previousColumn,
             int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s AND column1 > %s LIMIT %s;",
                 getTableName(tableRef),
                 CassandraKeyValueServices.encodeAsHex(row),
-                previousColumn,
+                CassandraKeyValueServices.encodeAsHex(previousColumn),
                 limit);
         CqlResult cqlResult = executeQueryOnHost(query, getHostForRow(row));
         return getCells(row, cqlResult);

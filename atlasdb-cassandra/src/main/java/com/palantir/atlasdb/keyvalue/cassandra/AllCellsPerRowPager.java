@@ -52,7 +52,7 @@ public class AllCellsPerRowPager implements PageGetter<ColumnOrSuperColumn> {
 
         Column column = previousResult.getColumn();
         Pair<byte[], Long> nameAndTimestamp = CassandraKeyValueServices.decomposeName(column);
-        String columnName = CassandraKeyValueServices.encodeAsHex(nameAndTimestamp.getLhSide());
+        byte[] columnName = nameAndTimestamp.getLhSide();
         long timestamp = nameAndTimestamp.getRhSide();
 
         List<CellWithTimestamp> result = cqlExecutor.getTimestampsForRowAndColumn(
