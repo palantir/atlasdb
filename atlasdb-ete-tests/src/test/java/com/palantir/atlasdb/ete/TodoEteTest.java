@@ -24,13 +24,12 @@ import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 
-// TODO (gbrova) does this still need to extend EteSetup?
-public class TodoEteTest extends EteSetup {
+public class TodoEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
 
     @Test
     public void shouldBeAbleToWriteAndListTodos() {
-        TodoResource todoClient = createClientToSingleNode(TodoResource.class);
+        TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
         todoClient.addTodo(TODO);
         assertThat(todoClient.getTodoList(), contains(TODO));
