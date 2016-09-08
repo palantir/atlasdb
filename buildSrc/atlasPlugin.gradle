@@ -1,0 +1,49 @@
+
+sourceSets {
+    generated
+}
+
+idea {
+    module {
+        sourceDirs += file('src/generated/java')
+        generatedSourceDirs += file('src/generated/java')
+    }
+}
+
+configurations {
+    generatedCompile.extendsFrom compile
+}
+
+task cleanSchema(type: Delete) {
+    delete 'src/generated/java'
+}
+
+task generateSchema(type: JavaExec) {
+   main = 'com.palantir.salt.atlas.SaltSchema'
+   classpath = sourceSets.main.runtimeClasspath
+   dependsOn cleanSchema, classes
+}
+
+dependencies {
+    compile "com.palantir.atlasdb:atlasdb-client:$atlasVersion"
+    compile "com.palantir.atlasdb:atlasdb-config:$atlasVersion"
+    compile "com.palantir.atlasdb:atlasdb-impl-shared:$atlasVersion"
+    compile "com.palantir.atlasdb:leader-election-impl:$atlasVersion"
+    compile "com.palantir.atlasdb:lock-impl:$atlasVersion"
+
+    generatedCompile files(sourceSets.main.output.classesDir)
+}
+
+tasks.compileGeneratedJava.dependsOn generateSchema
+tasks.check.dependsOn compileGeneratedJava
+tasks.eclipse.dependsOn generateSchema
+tasks.idea.dependsOn generateSchema
+tasks.clean.dependsOn cleanSchema
+
+tasks.checkstyleGenerated.enabled = false
+tasks.findbugsGenerated.enabled = false
+
+jar {
+    from sourceSets.generated.output
+    dependsOn compileGeneratedJava
+}
