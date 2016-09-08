@@ -35,7 +35,7 @@ import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
 public final class AtlasDbConfigs {
 
-    public static final String ATLASDB_CONFIG_ROOT = "/atlasdb";
+    public static final String ATLASDB_CONFIG_ROOT = "atlasdb";
 
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
             .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
