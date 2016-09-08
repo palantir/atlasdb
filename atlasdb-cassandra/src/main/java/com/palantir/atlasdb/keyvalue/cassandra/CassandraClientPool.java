@@ -215,7 +215,7 @@ public class CassandraClientPool {
             StringBuilder currentState = new StringBuilder();
             currentState.append(
                     String.format("POOL STATUS: Current blacklist = %s,%n current hosts in pool = %s%n",
-                            blacklistedHosts.keySet().toString(), currentPools.keySet().toString()));
+                    blacklistedHosts.keySet().toString(), currentPools.keySet().toString()));
             for (Entry<InetSocketAddress, CassandraClientPoolingContainer> entry : currentPools.entrySet()) {
                 int activeCheckouts = entry.getValue().getActiveCheckouts();
                 int totalAllowed = entry.getValue().getPoolSize();
@@ -488,7 +488,7 @@ public class CassandraClientPool {
     }
 
     private <V, K extends Exception> V runOnHost(InetSocketAddress specifiedHost,
-            FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
+                                                 FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
         CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
         return hostPool.runWithPooledResource(fn);
     }

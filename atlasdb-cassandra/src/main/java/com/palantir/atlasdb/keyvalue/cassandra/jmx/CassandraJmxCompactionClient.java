@@ -38,7 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 /**
  * Maintains a JMX client for each node in C* cluster.
  */
-public final class CassandraJmxCompactionClient {
+public class CassandraJmxCompactionClient {
     private static final Logger log = LoggerFactory.getLogger(CassandraJmxCompactionClient.class);
     private final String host;
     private final int port;

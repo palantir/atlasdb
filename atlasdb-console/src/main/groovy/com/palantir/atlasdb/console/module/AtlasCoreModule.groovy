@@ -320,8 +320,8 @@ class AtlasCoreModule implements AtlasConsoleModule {
                 component = JsonOutput.prettyPrint(JsonOutput.toJson(component))
             }
             colValues.add(splitCellString(component.toString(),
-                    val['width'] as int,
-                    maxLines))
+                                        val['width'] as int,
+                                        maxLines))
         }
 
         int maxArraySize = (colValues.max { it.size() }).size()

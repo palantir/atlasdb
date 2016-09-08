@@ -15,11 +15,7 @@ general:
   artifacts:
     - "build/reports/profile"
     - "atlasdb-ete-tests/container-logs"
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
     - "atlasdb-cassandra-integration-tests/container-logs"
-=======
-    - "atlasdb-cassandra-tests/container-logs"
->>>>>>> merge develop into perf cli branch (#820)
     - "atlasdb-cassandra-multinode-tests/container-logs"
 
 dependencies:
