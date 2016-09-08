@@ -44,11 +44,11 @@ public class EteSetup {
 
     private static DockerComposeRule docker;
 
-    protected <T> T createClientToSingleNode(Class<T> clazz) {
+    protected static <T> T createClientToSingleNode(Class<T> clazz) {
         return createClientFor(clazz, asPort(FIRST_ETE_CONTAINER));
     }
 
-    protected <T> T createClientToMultipleNodes(Class<T> clazz, String... nodeNames) {
+    protected static <T> T createClientToMultipleNodes(Class<T> clazz, String... nodeNames) {
         Collection<String> uris = ImmutableList.copyOf(nodeNames).stream()
                 .map(node -> asPort(node))
                 .map(port -> port.inFormat("http://$HOST:$EXTERNAL_PORT"))
@@ -57,7 +57,7 @@ public class EteSetup {
         return AtlasDbHttpClients.createProxyWithFailover(NO_SSL, uris, clazz);
     }
 
-    protected String runCommand(String command) throws IOException, InterruptedException {
+    protected static String runCommand(String command) throws IOException, InterruptedException {
         return docker.run(
                 DockerComposeRunOption.options("-T"),
                 "ete-cli",
@@ -76,7 +76,7 @@ public class EteSetup {
                 .around(docker);
     }
 
-    private DockerPort asPort(String node) {
+    private static DockerPort asPort(String node) {
         return docker.containers().container(node).port(ETE_PORT);
     }
 
