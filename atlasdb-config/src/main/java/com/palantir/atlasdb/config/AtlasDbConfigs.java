@@ -59,44 +59,29 @@ public final class AtlasDbConfigs {
     }
 
     public static AtlasDbConfig load(File configFile, @Nullable String configRoot) throws IOException {
-        JsonNode rootNode = getConfigNode(configFile, configRoot);
-        return OBJECT_MAPPER.treeToValue(rootNode, AtlasDbConfig.class);
+        JsonNode node = OBJECT_MAPPER.readTree(configFile);
+        return getConfig(node, configRoot);
     }
 
     public static AtlasDbConfig loadFromString(String fileContents, @Nullable String configRoot) throws IOException {
-        JsonNode rootNode = getConfigNode(fileContents, configRoot);
-        return OBJECT_MAPPER.treeToValue(rootNode, AtlasDbConfig.class);
+        JsonNode node = OBJECT_MAPPER.readTree(fileContents);
+        return getConfig(node, configRoot);
     }
 
     public static AtlasDbConfig loadFromStream(InputStream configStream, @Nullable String configRoot)
             throws IOException {
-        JsonNode rootNode = getConfigNode(configStream, configRoot);
-        return OBJECT_MAPPER.treeToValue(rootNode, AtlasDbConfig.class);
-    }
-
-    private static JsonNode getConfigNode(File configFile, @Nullable String configRoot) throws IOException {
-        JsonNode node = OBJECT_MAPPER.readTree(configFile);
-        return getConfigNode(node, configRoot);
-    }
-
-    private static JsonNode getConfigNode(String fileContents, @Nullable String configRoot) throws IOException {
-        JsonNode node = OBJECT_MAPPER.readTree(fileContents);
-        return getConfigNode(node, configRoot);
-    }
-
-    private static JsonNode getConfigNode(InputStream configStream, @Nullable String configRoot) throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(configStream);
-        return getConfigNode(node, configRoot);
+        return getConfig(node, configRoot);
     }
 
-    private static JsonNode getConfigNode(JsonNode node, @Nullable String configRoot) {
+    private static AtlasDbConfig getConfig(JsonNode node, @Nullable String configRoot) throws IOException {
         JsonNode configNode = findRoot(node, configRoot);
 
         if (configNode == null) {
             throw new IllegalArgumentException("Could not find " + configRoot + " in input");
         }
 
-        return configNode;
+        return OBJECT_MAPPER.treeToValue(configNode, AtlasDbConfig.class);
     }
 
     private static JsonNode findRoot(JsonNode node, @Nullable String configRoot) {
