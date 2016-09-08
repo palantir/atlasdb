@@ -81,7 +81,11 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     private final Lock flushLock = new ReentrantLock();
     private final ScheduledExecutorService flushExecutor = PTExecutors.newSingleThreadScheduledExecutor();
 
-    public SweepStatsKeyValueService(KeyValueService delegate,
+    public static SweepStatsKeyValueService create(KeyValueService delegate, TimestampService timestampService) {
+        return new SweepStatsKeyValueService(delegate, timestampService);
+    }
+
+    private SweepStatsKeyValueService(KeyValueService delegate,
                                      TimestampService timestampService) {
         this.delegate = delegate;
         this.timestampService = timestampService;

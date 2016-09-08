@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import static com.palantir.atlasdb.schema.generated.SweepProgressTable.SweepProgressRowResult;
-
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -47,6 +45,7 @@ import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRowResult;
 import com.palantir.atlasdb.schema.generated.SweepProgressTable;
+import com.palantir.atlasdb.schema.generated.SweepProgressTable.SweepProgressRowResult;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.TableDefinition;
@@ -86,7 +85,7 @@ public abstract class AbstractSweeperTest {
     @Before
     public void setup() {
         TimestampService tsService = new InMemoryTimestampService();
-        this.kvs = new SweepStatsKeyValueService(getKeyValueService(), tsService);
+        this.kvs = SweepStatsKeyValueService.create(getKeyValueService(), tsService);
         LockClient lockClient = LockClient.of("sweep client");
         lockService = LockServiceImpl.create(new LockServerOptions() { @Override public boolean isStandaloneServer() { return false; }});
         txService = TransactionServices.createTransactionService(kvs);
