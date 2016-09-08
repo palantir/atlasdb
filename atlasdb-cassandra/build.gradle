@@ -20,21 +20,14 @@ dependencies {
 
   compile 'org.apache.commons:commons-pool2:2.4.2'
 
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
   compile ('com.palantir.remoting:ssl-config:' + libVersions.http_remoting) {
-=======
-  compile ('com.palantir.remoting:ssl-config:0.13.0') {
->>>>>>> merge develop into perf cli branch (#820)
     exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
   }
 
   compile group: 'com.google.code.findbugs', name: 'annotations', version: libVersions.findbugsAnnotations
 
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
   testCompile 'org.mockito:mockito-core:' + libVersions.mockito
 
-=======
->>>>>>> merge develop into perf cli branch (#820)
   processor 'org.immutables:value:' + libVersions.immutables
   processor 'com.google.auto.service:auto-service:1.0-rc2'
 }

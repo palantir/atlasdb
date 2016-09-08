@@ -1,20 +1,13 @@
 include ":atlasdb-api"
 include ":atlasdb-cassandra"
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
 include ":atlasdb-cassandra-integration-tests"
-=======
-include ":atlasdb-cassandra-tests"
->>>>>>> merge develop into perf cli branch (#820)
 include ":atlasdb-cassandra-multinode-tests"
 include ":atlasdb-cli"
 include ":atlasdb-client"
 include ":atlasdb-client-protobufs"
 include ":atlasdb-config"
 include ":atlasdb-console"
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
 include ":atlasdb-dagger"
-=======
->>>>>>> merge develop into perf cli branch (#820)
 include ":atlasdb-dropwizard-bundle"
 include ":atlasdb-dropwizard-tests"
 include ":atlasdb-dbkvs"
@@ -36,10 +29,7 @@ include ":atlasdb-timelock-ete"
 include ":atlasdb-timelock-server"
 include ":atlasdb-commons"
 include ":atlasdb-partition-manager"
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
-=======
 include ":atlasdb-perf"
->>>>>>> merge develop into perf cli branch (#820)
 include ":atlasdb-service"
 include ":atlasdb-service-server"
 include ":commons-annotations"

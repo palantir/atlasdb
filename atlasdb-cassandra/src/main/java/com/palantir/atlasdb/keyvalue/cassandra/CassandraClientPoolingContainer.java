@@ -90,10 +90,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
                 + " started at " + DateTimeFormatter.ISO_INSTANT.format(Instant.now())
                 + " - " + count.getAndIncrement());
         try {
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
             openRequests.getAndIncrement();
-=======
->>>>>>> merge develop into perf cli branch (#820)
             return runWithGoodResource(fn);
         } catch (Throwable t) {
             log.warn("Error occurred talking to host '{}': {}", host, t.toString());

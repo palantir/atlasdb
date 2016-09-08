@@ -1,8 +1,5 @@
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
 .. _cassandra-configuration:
 
-=======
->>>>>>> merge develop into perf cli branch (#820)
 =========================================
 Cassandra Key Value Service Configuration
 =========================================
@@ -22,11 +19,8 @@ e.g.
 
   runtime 'com.palantir.atlasdb:atlasdb-cassandra:0.7.0'
 
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
 .. _cassandra-kvs-config:
 
-=======
->>>>>>> merge develop into perf cli branch (#820)
 Configuring a Running Application to Use Cassandra
 ==================================================
 
@@ -103,7 +97,6 @@ ssl
 
 This property is a boolean value saying whether or not to use ssl.  When ``true``, it will use java system properties that are passed in as jvm arguments to determine how to set up the ssl connection.  For example, you would use the jvm option ``-Djavax.net.ssl.trustStore=<path-to-truststore>`` to tell atlas where to find the truststore to use.
 
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
 .. _cassandra-sweep-config:
 
 Column Paging for Sweep (experimental)
@@ -120,5 +113,3 @@ the Cassandra node to run out of memory.
 In such cases, limiting the value of ``timestampsGetterBatchSize`` (which is infinite by default)
 could result in greater reliability.
 On the other hand, more aggressive paging could lead to slower sweep performance.
-=======
->>>>>>> merge develop into perf cli branch (#820)

@@ -277,20 +277,11 @@ public final class CQLKeyValueServices {
             chunkLength = explicitCompressionBlockSizeKB;
         }
 
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
         queryBuilder.append("CREATE TABLE IF NOT EXISTS " + kvs.getFullTableName(tableRef) + " ( "
                 + kvs.fieldNameProvider.row() + " blob, "
                 + kvs.fieldNameProvider.column() + " blob, "
                 + kvs.fieldNameProvider.timestamp() + " bigint, "
                 + kvs.fieldNameProvider.value() + " blob, "
-=======
-        queryBuilder.append("CREATE TABLE IF NOT EXISTS "
-                + kvs.getFullTableName(tableRef) + " ( " // full table name (ks.cf)
-                + CassandraConstants.ROW_NAME + " blob, "
-                + CassandraConstants.COL_NAME_COL + " blob, "
-                + CassandraConstants.TS_COL + " bigint, "
-                + CassandraConstants.VALUE_COL + " blob, "
->>>>>>> merge develop into perf cli branch (#820)
                 + "PRIMARY KEY ("
                 + kvs.fieldNameProvider.row() + ", "
                 + kvs.fieldNameProvider.column() + ", "

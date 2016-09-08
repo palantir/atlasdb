@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.server;
 
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56:atlasdb-service-server/src/main/java/com/palantir/atlasdb/server/AtlasDbServiceServer.java
-=======
-import com.google.common.base.Optional;
->>>>>>> merge develop into perf cli branch (#820):atlasdb-service-server/src/main/java/com/palantir/atlasdb/server/AtlasDbServiceServer.java
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
@@ -39,10 +35,6 @@ public class AtlasDbServiceServer extends Application<AtlasDbServiceServerConfig
     public void run(AtlasDbServiceServerConfiguration config, final Environment environment) throws Exception {
         SerializableTransactionManager tm = TransactionManagers.create(
                 config.getConfig(),
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56:atlasdb-service-server/src/main/java/com/palantir/atlasdb/server/AtlasDbServiceServer.java
-=======
-                Optional.absent(),
->>>>>>> merge develop into perf cli branch (#820):atlasdb-service-server/src/main/java/com/palantir/atlasdb/server/AtlasDbServiceServer.java
                 ImmutableSet.of(),
                 environment.jersey()::register,
                 false);

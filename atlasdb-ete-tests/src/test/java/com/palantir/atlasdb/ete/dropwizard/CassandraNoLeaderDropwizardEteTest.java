@@ -22,9 +22,5 @@ import com.palantir.atlasdb.ete.EteSetup;
 
 public class CassandraNoLeaderDropwizardEteTest extends DropwizardEteTest {
     @ClassRule
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("cassandra-no-leader-dropwizard", "docker-compose.no-leader.cassandra.yml");
-=======
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("cassandra-no-leader", "docker-compose.no-leader.cassandra.yml");
->>>>>>> merge develop into perf cli branch (#820)
 }

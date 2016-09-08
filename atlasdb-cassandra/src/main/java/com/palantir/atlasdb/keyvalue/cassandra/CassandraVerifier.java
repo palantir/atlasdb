@@ -195,16 +195,11 @@ public final class CassandraVerifier {
                         throw ire;
                     }
                 } catch (Exception f) {
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
                     log.warn("Couldn't use host {} to create keyspace."
                             + " It returned exception \"{}\" during the attempt."
                             + " We will retry on other nodes, so this shouldn't be a problem unless all nodes failed."
                             + " See the debug-level log for the stack trace.", host, f.toString(), f);
                     log.debug("Specifically, creating the keyspace failed with the following stack trace", f);
-=======
-                    log.error("Couldn't use host {} to create keyspace, it returned exception \"{}\" during"
-                            + " the attempt.", host, f.toString(), f);
->>>>>>> merge develop into perf cli branch (#820)
                 }
             }
             if (!someHostWasAbleToCreateTheKeyspace) {
@@ -286,16 +281,13 @@ public final class CassandraVerifier {
 
     static final FunctionCheckedException<Cassandra.Client, Boolean, UnsupportedOperationException>
             underlyingCassandraClusterSupportsCASOperations = client -> {
-                try {
-                    CassandraApiVersion serverVersion = new CassandraApiVersion(client.describe_version());
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
-                    log.debug("Connected cassandra thrift version is: " + serverVersion);
-=======
->>>>>>> merge develop into perf cli branch (#820)
-                    return serverVersion.supportsCheckAndSet();
-                } catch (TException ex) {
-                    throw new UnsupportedOperationException("Couldn't determine underlying cassandra version;"
-                            + " received an exception while checking the thrift version.", ex);
-                }
-            };
+        try {
+            CassandraApiVersion serverVersion = new CassandraApiVersion(client.describe_version());
+            log.debug("Connected cassandra thrift version is: " + serverVersion);
+            return serverVersion.supportsCheckAndSet();
+        } catch (TException ex) {
+            throw new UnsupportedOperationException("Couldn't determine underlying cassandra version;"
+                    + " received an exception while checking the thrift version.", ex);
+        }
+    };
 }

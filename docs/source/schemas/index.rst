@@ -128,7 +128,6 @@ characteristics, among other things. The supported types are:
 | Name                          | Java Type    | Format        | Anywhere in    | Range    |
 |                               |              |               | table?         | Scans?   |
 +===============================+==============+===============+================+==========+
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
 | FIXED_LONG                    | long         | byte[8]       | YES            | YES      |
 +-------------------------------+--------------+---------------+----------------+----------+
 | FIXED_LONG_LITTLE_ENDIAN      | long         | byte[8]       | YES            | NO [4]_  |
@@ -163,49 +162,12 @@ characteristics, among other things. The supported types are:
 
 .. [2]
   A ``STRING`` or ``BLOB`` can only be a row or column component
-=======
-| FIXED\_LONG                   | long         | byte[8]       | YES            | YES      |
-+-------------------------------+--------------+---------------+----------------+----------+
-| FIXED\_LONG\_LITTLE\_ENDIAN   | long         | byte[8]       | YES            | NO       |
-| [3]_                          |              |               |                |          |
-+-------------------------------+--------------+---------------+----------------+----------+
-| NULLABLE\_FIXED\_LONG         | long         | byte[9]       | YES            | YES      |
-+-------------------------------+--------------+---------------+----------------+----------+
-| VAR\_LONG                     | long         | byte[len] [1]_| YES            | YES      |
-+-------------------------------+--------------+---------------+----------------+----------+
-| VAR\_SIGNED\_LONG             | long         | byte[len] [1]_| YES            | YES      |
-+-------------------------------+--------------+---------------+----------------+----------+
-| UUID                          | UUID         | byte[16]      | YES            | YES      |
-+-------------------------------+--------------+---------------+----------------+----------+
-| SHA\_256\_HASH                | Sha256Hash   | byte[32]      | YES            | YES      |
-+-------------------------------+--------------+---------------+----------------+----------+
-| STRING                        | String       | byte[]        | NO [2]_        | YES      |
-+-------------------------------+--------------+---------------+----------------+----------+
-| VAR\_STRING                   | String       | byte[len]     | YES            | NO       |
-+-------------------------------+--------------+---------------+----------------+----------+
-| BLOB                          | byte[]       | byte[]        | NO [2]_        | YES      |
-+-------------------------------+--------------+---------------+----------------+----------+
-| SIZED\_BLOB                   | byte[]       | byte[len]     | YES            | NO       |
-+-------------------------------+--------------+---------------+----------------+----------+
-
-.. [1]
-  All long data types are signed, but VAR\_SIGNED\_LONG is
-  encoded in a manner which stores negative numbers more efficiently than
-  VAR\_LONG.
-  In particular, 0 to 127 are 1 byte for VAR\_LONG and -64 to 63 are 1 byte for
-  VAR\_SIGNED\_LONG. VAR\_LONG will always use 10 bytes to encode negative
-  numbers.
-
-.. [2]
-  A STRING or BLOB can only be a row or column component
->>>>>>> merge develop into perf cli branch (#820)
   if it is the last component of the component list.
 
 .. [3]
   This type can be useful on some key value stores because keys next
   to each other won't be written next to each other.  This can be good because
   it will spread out the load of writes to many different ranges.
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
 
 .. [4]
   If a type does not support range-scanning, **range scans will still be available
@@ -218,8 +180,6 @@ characteristics, among other things. The supported types are:
     - (“ab”, 10) will match
     - (“ab”, 20) will match
     - (“abc”, 30) will not match
-=======
->>>>>>> merge develop into perf cli branch (#820)
 
 Protobufs and Persistables
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

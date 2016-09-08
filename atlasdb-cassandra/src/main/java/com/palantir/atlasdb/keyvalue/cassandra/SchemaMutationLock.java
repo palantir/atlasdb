@@ -154,20 +154,9 @@ public class SchemaMutationLock {
                     int mutationTimeoutMillis = configManager.getConfig().schemaMutationTimeoutMillis();
                     // possibly dead remote locker
                     if (stopwatch.elapsed(TimeUnit.MILLISECONDS) > mutationTimeoutMillis * 4) {
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
                         TimeoutException schemaLockTimeoutError = generateSchemaLockTimeoutException(stopwatch);
                         LOGGER.error(schemaLockTimeoutError.getMessage(), schemaLockTimeoutError);
                         throw Throwables.rewrapAndThrowUncheckedException(schemaLockTimeoutError);
-=======
-                        throw new TimeoutException(String.format("We have timed out waiting on the current"
-                                + " schema mutation lock holder. We have tried to grab the lock for %d milliseconds"
-                                + " unsuccessfully.  Please try restarting the AtlasDB client. If this occurs"
-                                + " repeatedly it may indicate that the current lock holder has died without"
-                                + " releasing the lock and will require manual intervention. This will require"
-                                + " restarting all atlasDB clients and then using cqlsh to truncate the _locks table."
-                                + " Please contact support for help with this in important situations.",
-                                stopwatch.elapsed(TimeUnit.MILLISECONDS)));
->>>>>>> merge develop into perf cli branch (#820)
                     }
 
                     long timeToSleep = CassandraConstants.TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS
@@ -179,10 +168,7 @@ public class SchemaMutationLock {
                 }
 
                 // we won the lock!
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
                 LOGGER.info("Successfully acquired schema mutation lock.");
-=======
->>>>>>> merge develop into perf cli branch (#820)
                 return null;
             });
         } catch (Exception e) {
@@ -192,7 +178,6 @@ public class SchemaMutationLock {
         return perOperationNodeIdentifier;
     }
 
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
     private TimeoutException generateSchemaLockTimeoutException(Stopwatch stopwatch) {
         return new TimeoutException(String.format("We have timed out waiting on the current"
                         + " schema mutation lock holder. We have tried to grab the lock for %d milliseconds"
@@ -203,8 +188,6 @@ public class SchemaMutationLock {
                 stopwatch.elapsed(TimeUnit.MILLISECONDS)));
     }
 
-=======
->>>>>>> merge develop into perf cli branch (#820)
     private void schemaMutationUnlock(long perOperationNodeIdentifier) {
         if (!supportsCas) {
             schemaMutationLockForEarlierVersionsOfCassandra.unlock();
@@ -239,11 +222,8 @@ public class SchemaMutationLock {
                             + " from underneath us. Our ID, which we expected, was %s, the value we saw in the"
                             + " database was instead %s.", Long.toString(perOperationNodeIdentifier), remoteLock));
                 }
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
 
                 LOGGER.info("Successfully released schema mutation lock.");
-=======
->>>>>>> merge develop into perf cli branch (#820)
                 return null;
             });
         } catch (Exception e) {

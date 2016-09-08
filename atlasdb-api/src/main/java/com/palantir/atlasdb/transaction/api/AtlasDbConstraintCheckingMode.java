@@ -35,14 +35,6 @@ public enum AtlasDbConstraintCheckingMode {
 
     public boolean shouldThrowException() {
         return shouldThrow == ShouldThrow.YES;
-    private final ShouldThrow shouldThrowException;
-
-    AtlasDbConstraintCheckingMode(ShouldThrow shouldThrowException) {
-        this.shouldThrowException = shouldThrowException;
-    }
-
-    public boolean shouldThrowException() {
-        return shouldThrowException == ShouldThrow.YES;
     }
 
 }

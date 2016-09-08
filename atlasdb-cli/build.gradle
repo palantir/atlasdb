@@ -7,37 +7,26 @@ mainClassName = 'com.palantir.atlasdb.cli.AtlasCli'
 applicationName = 'atlasdb'
 
 dependencies {
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
-  compile project(':atlasdb-dagger')
-=======
-  compile project(':atlasdb-service')
-  compile project(':atlasdb-impl-shared')
->>>>>>> merge develop into perf cli branch (#820)
-  compile 'io.airlift:airline:0.7'
+    compile project(':atlasdb-dagger')
+    compile 'io.airlift:airline:0.7'
 
-  runtime project(':atlasdb-cassandra')
-  runtime project(':atlasdb-rocksdb')
+    runtime project(':atlasdb-cassandra')
+    runtime project(':atlasdb-rocksdb')
 
-  testCompile project(':atlasdb-rocksdb')
-<<<<<<< 7033b8fc57203bf309772ac48101c6126fb91d56
-=======
-
-  processor 'com.google.dagger:dagger-compiler:2.0.2'
-  processor 'org.immutables:value:' + libVersions.immutables
->>>>>>> merge develop into perf cli branch (#820)
+    testCompile project(':atlasdb-rocksdb')
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
-      resolutionStrategy {
-          force 'com.google.code.findbugs:jsr305:' + libVersions.jsr305
-          force 'org.slf4j:slf4j-api:' + libVersions.slf4j
-          force 'org.apache.commons:commons-lang3:' + libVersions.commons_lang3
-          force 'org.apache.thrift:libthrift:' + libVersions.libthrift
-          force 'ch.qos.logback:logback-classic:1.1.3'
-          force 'commons-codec:commons-codec:' + libVersions.commons_codec
-          force 'com.googlecode.json-simple:json-simple:1.1.1'
-          force 'joda-time:joda-time:' + libVersions.joda_time
-          force 'org.yaml:snakeyaml:1.12'
-          force 'javax.validation:validation-api:1.1.0.Final'
-      }
+    resolutionStrategy {
+        force 'com.google.code.findbugs:jsr305:' + libVersions.jsr305
+        force 'org.slf4j:slf4j-api:' + libVersions.slf4j
+        force 'org.apache.commons:commons-lang3:' + libVersions.commons_lang3
+        force 'org.apache.thrift:libthrift:' + libVersions.libthrift
+        force 'ch.qos.logback:logback-classic:1.1.3'
+        force 'commons-codec:commons-codec:' + libVersions.commons_codec
+        force 'com.googlecode.json-simple:json-simple:1.1.1'
+        force 'joda-time:joda-time:' + libVersions.joda_time
+        force 'org.yaml:snakeyaml:1.12'
+        force 'javax.validation:validation-api:1.1.0.Final'
+    }
 }
