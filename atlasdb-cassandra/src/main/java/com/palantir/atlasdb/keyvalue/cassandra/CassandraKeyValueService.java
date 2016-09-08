@@ -1369,6 +1369,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      */
     @Override
     public void dropTables(final Set<TableReference> tablesToDrop) {
+        if (tablesToDrop.isEmpty()) {
+            return;
+        }
         schemaMutationLock.runWithLock(() -> dropTablesWithLock(tablesToDrop));
     }
 
@@ -1420,6 +1423,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      */
     @Override
     public void createTables(final Map<TableReference, byte[]> tableNamesToTableMetadata) {
+        if (tableNamesToTableMetadata.isEmpty()) {
+            return;
+        }
         schemaMutationLock.runWithLock(() -> createTablesWithLock(tableNamesToTableMetadata));
         internalPutMetadataForTables(tableNamesToTableMetadata, false);
     }
