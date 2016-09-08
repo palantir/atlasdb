@@ -24,9 +24,4 @@ import com.palantir.timestamp.TimestampService;
 public class CassandraTodoEteTest extends TodoEteTest {
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("cassandra-ha", "docker-compose.cassandra.yml");
-
-    @Override
-    protected TimestampService createTimestampClient() {
-        return createClientToMultipleNodes(TimestampService.class, "ete1", "ete2", "ete3");
-    }
 }

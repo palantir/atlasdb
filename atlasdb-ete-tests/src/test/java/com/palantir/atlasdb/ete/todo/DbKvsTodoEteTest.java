@@ -24,9 +24,4 @@ import com.palantir.timestamp.TimestampService;
 public class DbKvsTodoEteTest extends TodoEteTest {
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("dbkvs", "docker-compose.dbkvs.yml");
-
-    @Override
-    protected TimestampService createTimestampClient() {
-        return createClientToMultipleNodes(TimestampService.class, "ete1", "ete2", "ete3");
-    }
 }

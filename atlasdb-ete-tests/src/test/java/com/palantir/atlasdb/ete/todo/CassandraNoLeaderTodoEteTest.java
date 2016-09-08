@@ -24,9 +24,4 @@ import com.palantir.timestamp.TimestampService;
 public class CassandraNoLeaderTodoEteTest extends TodoEteTest {
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("cassandra-no-leader", "docker-compose.no-leader.cassandra.yml");
-
-    @Override
-    protected TimestampService createTimestampClient() {
-        return createClientToSingleNode(TimestampService.class);
-    }
 }
