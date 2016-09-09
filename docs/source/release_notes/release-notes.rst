@@ -42,9 +42,23 @@ v0.15.0
          - Change
 
     *    - |new|
-         - Added another method to page through dynamic columns which returns results in a single iterator. This is expected
-           to perform better than the existing method with certain backing stores (e.g. SQL stores), so should be preferred
-           unless it is actually important to be able to page through the results for different rows separately.
+         - ``CassandraKeyValueServiceConfiguration`` now supports :ref:`column paging <cassandra-sweep-config>`
+           via the ``timestampsGetterBatchSize`` parameter.
+
+           Enabling such paging could make :ref:`Sweep <physical-cleanup-sweep>` more reliable by helping
+           prevent sweep jobs from causing Cassandra nodes to run out of memory if the underlying Cassandra
+           KVS contains rows that store large values and change frequently.
+
+           This feature is experimental and disabled by default; please
+           reach out to the AtlasDB dev team if you would like to enable it.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/834>`__)
+
+    *    - |new|
+         - Added a second implementation of ``getRowsColumnRange`` method which allows you to page through dynamic columns
+           in a single iterator. This is expected to perform better than the previous ``getRowsColumnRange`` which allows
+           you to page through columns per row with certain KVS stores (e.g. SQL stores), so should be preferred
+           unless it is necessary to page through the results for different rows separately. Products or clients
+           using wide rows should consider using ``getRowsColumnRange`` instead of ``getRows`` in ``KeyValueService``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/724>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
@@ -67,23 +81,11 @@ v0.14.0
            This will only affect deployments who run with more than one server (i.e. in HA mode).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/873>`__)
 
-    *    - |breaking|
+    *    - |fixed|
          - Enforced validity constraints on configuration, as per `#790 <https://github.com/palantir/atlasdb/issue/790>`__.
            AtlasDB will now fail to start if your configuration is invalid.
            Please refer to :ref:`Example Leader Configurations <leader-config-examples>` for guidance on valid configurations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/854>`__)
-
-    *    - |new|
-         - ``CassandraKeyValueServiceConfiguration`` now supports :ref:`column paging <cassandra-sweep-config>`
-           via the ``timestampsGetterBatchSize`` parameter.
-
-           Enabling such paging could make :ref:`Sweep <physical-cleanup-sweep>` more reliable by helping
-           prevent sweep jobs from causing Cassandra nodes to run out of memory if the underlying Cassandra
-           KVS contains rows that store large values and change frequently.
-
-           This feature is experimental and disabled by default; please
-           reach out to the AtlasDB dev team if you would like to enable it.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/834>`__)
 
     *    - |fixed|
          - Fixed and standardized serialization and deserialization of AtlasDBConfig.
