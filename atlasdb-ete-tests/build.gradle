@@ -67,6 +67,9 @@ configurations.matching({ it.name in ['compile', 'runtime'] }).all {
         force 'commons-codec:commons-codec:' + libVersions.commons_codec
         force 'org.hibernate:hibernate-validator:5.1.3.Final'
         force 'commons-cli:commons-cli:1.2'
+
+        // Some AtlasDB users might be on guava 18, so use the older version for testing.
+        force 'com.google.guava:guava:' + "18.0"
     }
 }
 
