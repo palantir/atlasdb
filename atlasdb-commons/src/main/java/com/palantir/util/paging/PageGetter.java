@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -12,16 +12,17 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
-package com.palantir.atlasdb.keyvalue.cassandra.paging;
 
-import java.nio.ByteBuffer;
+package com.palantir.util.paging;
+
 import java.util.List;
-import java.util.Map;
 
-import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.KeySlice;
+public interface PageGetter<T> {
+    List<T> getFirstPage();
 
-public interface ColumnGetter {
-    Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(List<KeySlice> firstPage);
+    List<T> getNextPage(List<T> currentPage);
+
+    int getPageSize();
 }

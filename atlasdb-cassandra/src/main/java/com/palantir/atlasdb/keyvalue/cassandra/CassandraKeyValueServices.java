@@ -40,6 +40,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -130,7 +131,11 @@ public final class CassandraKeyValueServices {
         }
     }
 
-    static ByteBuffer makeCompositeBuffer(byte[] colName, long ts) {
+    static String encodeAsHex(byte[] array) {
+        return "0x" + PtBytes.encodeHexString(array);
+    }
+
+    static ByteBuffer makeCompositeBuffer(byte[] colName, long positiveTimestamp) {
         assert colName.length <= 1 << 16 : "Cannot use column names larger than 64KiB, was " + colName.length;
 
         ByteBuffer buffer = ByteBuffer
@@ -144,7 +149,7 @@ public final class CassandraKeyValueServices {
 
         buffer.put((byte) 0);
         buffer.put((byte) (8 & 0xFF));
-        buffer.putLong(~ts);
+        buffer.putLong(~positiveTimestamp);
         buffer.put((byte) 0);
 
         buffer.flip();

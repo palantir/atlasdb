@@ -31,6 +31,32 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.15.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new|
+         - ``CassandraKeyValueServiceConfiguration`` now supports :ref:`column paging <cassandra-sweep-config>`
+           via the ``timestampsGetterBatchSize`` parameter.
+
+           Enabling such paging could make :ref:`Sweep <physical-cleanup-sweep>` more reliable by helping
+           prevent sweep jobs from causing Cassandra nodes to run out of memory if the underlying Cassandra
+           KVS contains rows that store large values and change frequently.
+
+           This feature is experimental and disabled by default; please
+           reach out to the AtlasDB dev team if you would like to enable it.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/834>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+
+=======
 v0.14.0
 =======
 
@@ -104,6 +130,7 @@ v0.13.0
     *    - |improved|
          - Performance and reliability enhancements to the in-beta CQL KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/771>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
