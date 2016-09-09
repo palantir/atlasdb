@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.performance.backend;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -30,7 +31,7 @@ import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
-public final class DockerizedDatabase {
+public final class DockerizedDatabase implements Closeable {
 
     private static final String DOCKER_LOGS_DIR = "container-logs";
 
@@ -88,7 +89,7 @@ public final class DockerizedDatabase {
         }
     }
 
-    public void close() throws Exception {
+    public void close() {
         if (docker != null) {
             docker.after();
         }

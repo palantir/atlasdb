@@ -47,6 +47,7 @@ public class KvsGetRangeBenchmarks {
         ClosableIterator<RowResult<Value>> result =
                 table.getKvs().getRange(table.getTableRef(), request, Long.MAX_VALUE);
         ArrayList<RowResult<Value>> list = Lists.newArrayList(result);
+        result.close();
         Benchmarks.validate(list.size() == sliceSize, "List size %s != %s", sliceSize, list.size());
         list.forEach(rowResult -> {
             byte[] rowName = rowResult.getRowName();

@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.performance.backend;
 
+import java.io.Closeable;
 import java.net.InetSocketAddress;
 
 import org.openjdk.jmh.annotations.Param;
@@ -31,7 +32,7 @@ import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 @State(Scope.Benchmark)
-public class AtlasDbServicesConnector {
+public class AtlasDbServicesConnector implements Closeable {
 
     /**
      * Edit this instance variable name ("backend") with care as it must match {@code BenchmarkParam.BACKEND}.getKey().
@@ -64,7 +65,7 @@ public class AtlasDbServicesConnector {
         return services;
     }
 
-    public void close() throws Exception {
+    public void close() {
         if (services != null) {
             services.close();
         }
