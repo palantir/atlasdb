@@ -7,3 +7,4 @@ Miscellaneous
    :titlesonly:
 
    contributing
+   performance
