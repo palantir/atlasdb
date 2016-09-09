@@ -83,6 +83,7 @@ v0.14.0
 
     *    - |fixed|
          - Fixed and standardized serialization and deserialization of AtlasDBConfig.
+           This prevented CLIs deployed via the :ref:`Dropwizard bundle <dropwizard-bundle>` from loading configuration properly.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/875>`__)
 
     *    - |fixed|
