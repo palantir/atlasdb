@@ -40,14 +40,13 @@ public class EteSetup {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
 
-    private static final String FIRST_ETE_CONTAINER = "ete1";
-    private static final int ETE_PORT = 3828;
+    private static final int TIMELOCK_SERVER_PORT = 3828;
 
     private static DockerComposeRule docker;
     private static List<String> availableClients;
 
     protected static <T> T createClientToSingleNode(Class<T> clazz) {
-        return createClientFor(clazz, asPort(FIRST_ETE_CONTAINER));
+        return createClientFor(clazz, asPort(getSingleClient()));
     }
 
     protected static <T> T createClientToAllNodes(Class<T> clazz) {
@@ -75,7 +74,7 @@ public class EteSetup {
 
         docker = DockerComposeRule.builder()
                 .file(composeFile)
-                .waitingForService(FIRST_ETE_CONTAINER, toBeReady())
+                .waitingForService(getSingleClient(), toBeReady())
                 .saveLogsTo("container-logs/" + name)
                 .build();
 
@@ -85,11 +84,15 @@ public class EteSetup {
     }
 
     private static DockerPort asPort(String node) {
-        return docker.containers().container(node).port(ETE_PORT);
+        return docker.containers().container(node).port(TIMELOCK_SERVER_PORT);
+    }
+
+    private static String getSingleClient() {
+        return availableClients.get(0);
     }
 
     private static <T> T createClientFor(Class<T> clazz, Container container) {
-        return createClientFor(clazz, container.portMappedInternallyTo(ETE_PORT));
+        return createClientFor(clazz, container.port(TIMELOCK_SERVER_PORT));
     }
 
     private static <T> T createClientFor(Class<T> clazz, DockerPort port) {
