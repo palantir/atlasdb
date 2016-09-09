@@ -191,7 +191,7 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
         long immutableTs = getApproximateImmutableTimestamp();
-        SnapshotTransaction transaction = new SnapshotTransaction(
+        SnapshotTransaction transaction = new ReadOnlyTransaction(
                 keyValueService,
                 lockService,
                 timestampService,

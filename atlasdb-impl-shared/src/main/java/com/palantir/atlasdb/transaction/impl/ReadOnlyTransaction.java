@@ -20,6 +20,8 @@ import java.util.List;
 import org.apache.commons.lang3.Validate;
 
 import com.google.common.base.Functions;
+import com.google.common.base.Supplier;
+import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -34,6 +36,9 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableFromIterable;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.RemoteLockService;
+import com.palantir.timestamp.TimestampService;
 
 /**
  * This will read the values of all committed transactions.
@@ -53,6 +58,36 @@ public class ReadOnlyTransaction extends SnapshotTransaction {
               constraintCheckingMode,
               readSentinelBehavior,
               allowHiddenTableAccess);
+    }
+    /* package */ ReadOnlyTransaction(
+            KeyValueService keyValueService,
+            RemoteLockService lockService,
+            TimestampService timestampService,
+            TransactionService transactionService,
+            Cleaner cleaner,
+            Supplier<Long> startTimeStamp,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            long immutableTimestamp,
+            Iterable<LockRefreshToken> tokensValidForCommit,
+            AtlasDbConstraintCheckingMode constraintCheckingMode,
+            Long transactionTimeoutMillis,
+            TransactionReadSentinelBehavior readSentinelBehavior,
+            boolean allowHiddenTableAccess) {
+        super(keyValueService,
+                lockService,
+                timestampService,
+                transactionService,
+                cleaner,
+                startTimeStamp,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                immutableTimestamp,
+                tokensValidForCommit,
+                constraintCheckingMode,
+                transactionTimeoutMillis,
+                readSentinelBehavior,
+                allowHiddenTableAccess);
     }
 
     @Override
