@@ -86,8 +86,10 @@ v0.14.0
            This prevented CLIs deployed via the :ref:`Dropwizard bundle <dropwizard-bundle>` from loading configuration properly.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/875>`__)
 
-    *    - |fixed|
+    *    - |breaking|
          - Updated our Dagger dependency from 2.0.2 to 2.4, so that our generated code matches with that of internal products.
+           This also bumps our Guava dependency from 18.0 to 19.0 to accommodate a Dagger compile dependency.
+           Products can force a Guava 18.0 runtime dependency to workaround the issue.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/878>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
