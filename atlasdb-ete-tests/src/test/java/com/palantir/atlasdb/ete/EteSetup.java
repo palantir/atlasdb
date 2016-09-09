@@ -45,31 +45,7 @@ public class EteSetup {
     private static DockerComposeRule docker;
     private static List<String> availableClients;
 
-    protected static <T> T createClientToSingleNode(Class<T> clazz) {
-        return createClientFor(clazz, asPort(getSingleClient()));
-    }
-
-    protected static <T> T createClientToAllNodes(Class<T> clazz) {
-        return createClientToMultipleNodes(clazz, availableClients);
-    }
-
-    protected static <T> T createClientToMultipleNodes(Class<T> clazz, List<String> nodeNames) {
-        Collection<String> uris = ImmutableList.copyOf(nodeNames).stream()
-                .map(node -> asPort(node))
-                .map(port -> port.inFormat("http://$HOST:$EXTERNAL_PORT"))
-                .collect(Collectors.toList());
-
-        return AtlasDbHttpClients.createProxyWithFailover(NO_SSL, uris, clazz);
-    }
-
-    protected static String runCliCommand(String command) throws IOException, InterruptedException {
-        return docker.run(
-                DockerComposeRunOption.options("-T"),
-                "ete-cli",
-                DockerComposeRunArgument.arguments("bash", "-c", command));
-    }
-
-    protected static RuleChain setupComposition(String name, String composeFile, List<String> availableClientNames) {
+    static RuleChain setupComposition(String name, String composeFile, List<String> availableClientNames) {
         availableClients = ImmutableList.copyOf(availableClientNames);
 
         docker = DockerComposeRule.builder()
@@ -81,6 +57,30 @@ public class EteSetup {
         return RuleChain
                 .outerRule(GRADLE_PREPARE_TASK)
                 .around(docker);
+    }
+
+    static String runCliCommand(String command) throws IOException, InterruptedException {
+        return docker.run(
+                DockerComposeRunOption.options("-T"),
+                "ete-cli",
+                DockerComposeRunArgument.arguments("bash", "-c", command));
+    }
+
+    static <T> T createClientToSingleNode(Class<T> clazz) {
+        return createClientFor(clazz, asPort(getSingleClient()));
+    }
+
+    static <T> T createClientToAllNodes(Class<T> clazz) {
+        return createClientToMultipleNodes(clazz, availableClients);
+    }
+
+    private static <T> T createClientToMultipleNodes(Class<T> clazz, List<String> nodeNames) {
+        Collection<String> uris = ImmutableList.copyOf(nodeNames).stream()
+                .map(node -> asPort(node))
+                .map(port -> port.inFormat("http://$HOST:$EXTERNAL_PORT"))
+                .collect(Collectors.toList());
+
+        return AtlasDbHttpClients.createProxyWithFailover(NO_SSL, uris, clazz);
     }
 
     private static DockerPort asPort(String node) {
