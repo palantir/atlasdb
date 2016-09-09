@@ -175,6 +175,14 @@ reach out to the AtlasDB dev team if you would like to enable it.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/834">Pull Request</a>)</p>
 </td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Added a second implementation of <code class="docutils literal"><span class="pre">getRowsColumnRange</span></code> method which allows you to page through dynamic columns
+in a single iterator. This is expected to perform better than the previous <code class="docutils literal"><span class="pre">getRowsColumnRange</span></code> which allows
+you to page through columns per row with certain KVS stores (e.g. SQL stores), so should be preferred
+unless it is necessary to page through the results for different rows separately. Products or clients
+using wide rows should consider using <code class="docutils literal"><span class="pre">getRowsColumnRange</span></code> instead of <code class="docutils literal"><span class="pre">getRows</span></code> in <code class="docutils literal"><span class="pre">KeyValueService</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/724">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>

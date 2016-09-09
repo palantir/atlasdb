@@ -53,8 +53,15 @@ v0.15.0
            reach out to the AtlasDB dev team if you would like to enable it.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/834>`__)
 
-.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+    *    - |new|
+         - Added a second implementation of ``getRowsColumnRange`` method which allows you to page through dynamic columns
+           in a single iterator. This is expected to perform better than the previous ``getRowsColumnRange`` which allows
+           you to page through columns per row with certain KVS stores (e.g. SQL stores), so should be preferred
+           unless it is necessary to page through the results for different rows separately. Products or clients
+           using wide rows should consider using ``getRowsColumnRange`` instead of ``getRows`` in ``KeyValueService``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/724>`__)
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
 v0.14.0
