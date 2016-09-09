@@ -20,7 +20,6 @@ dependencies {
     compile project(':atlasdb-rocksdb')
 
     compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
-    compile 'com.google.dagger:dagger:' + libVersions.dagger
 
     runtime project(':atlasdb-dbkvs')
 
@@ -42,13 +41,6 @@ dependencies {
     compile 'org.apache.thrift:libthrift:' + libVersions.libthrift
 
     processor 'org.immutables:value:' + libVersions.immutables
-    processor('com.google.dagger:dagger-compiler:' + libVersions.dagger) {
-        // We need to explicitly exclude these so that intellij does not label them as provided
-        if(gradle.startParameter.taskNames.contains('idea')) {
-            exclude group: 'com.google.guava'
-            exclude group: 'com.google.dagger', module: 'dagger'
-        }
-    }
 
     testCompile project(':atlasdb-ete-test-utils')
 

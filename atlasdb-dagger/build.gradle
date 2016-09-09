@@ -1,11 +1,33 @@
+buildscript {
+  repositories {
+    jcenter()
+  }
+  dependencies {
+    classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+  }
+}
+
 apply plugin: 'org.inferred.processors'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 apply from: '../gradle/shared.gradle'
 
 dependencies {
   compile project(':atlasdb-service')
-  compile 'com.google.dagger:dagger:' + libVersions.dagger
+  compile group: 'com.google.dagger', name: 'dagger', version: libVersions.dagger
 
-  processor 'com.google.dagger:dagger-compiler:' + libVersions.dagger
-  processor 'org.immutables:value:' + libVersions.immutables
+  processor group: 'com.google.dagger', name: 'dagger-compiler', version: libVersions.dagger
+  processor group: 'org.immutables', name: 'value', version: libVersions.immutables
+
+  shadow project(':atlasdb-service')
+}
+
+shadowJar {
+  mergeServiceFiles()
+
+  relocate('dagger', 'com.palantir.atlasdb.shaded.dagger')
+
+  dependencies {
+    include dependency(group: 'com.google.dagger', name: 'dagger', version: libVersions.dagger)
+  }
 }
