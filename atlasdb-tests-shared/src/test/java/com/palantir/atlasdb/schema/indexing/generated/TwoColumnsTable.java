@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -32,6 +31,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -43,6 +43,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
@@ -790,7 +791,7 @@ public final class TwoColumnsTable implements
     }
 
     @Override
-    public Map<TwoColumnsRow, BatchingVisitable<TwoColumnsNamedColumnValue<?>>> getRowsColumnRange(Iterable<TwoColumnsRow> rows, ColumnRangeSelection columnRangeSelection) {
+    public Map<TwoColumnsRow, BatchingVisitable<TwoColumnsNamedColumnValue<?>>> getRowsColumnRange(Iterable<TwoColumnsRow> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
         Map<TwoColumnsRow, BatchingVisitable<TwoColumnsNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
@@ -801,6 +802,16 @@ public final class TwoColumnsTable implements
             transformed.put(row, bv);
         }
         return transformed;
+    }
+
+    @Override
+    public Iterator<Map.Entry<TwoColumnsRow, TwoColumnsNamedColumnValue<?>>> getRowsColumnRange(Iterable<TwoColumnsRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+        return Iterators.transform(results, e -> {
+            TwoColumnsRow row = TwoColumnsRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            TwoColumnsNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
+            return Maps.immutableEntry(row, colValue);
+        });
     }
 
     private Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> getAffectedCells(Multimap<TwoColumnsRow, ? extends TwoColumnsNamedColumnValue<?>> rows) {
@@ -1104,7 +1115,7 @@ public final class TwoColumnsTable implements
                 }
             };
 
-            public static ColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
+            public static BatchColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
                 byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
                 return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
             }
@@ -1114,7 +1125,7 @@ public final class TwoColumnsTable implements
                 return new Prefix(EncodingUtils.add(rowNameBytes));
             }
 
-            public static ColumnRangeSelection createPrefixRange(byte[] rowName, byte[] columnName, int batchSize) {
+            public static BatchColumnRangeSelection createPrefixRange(byte[] rowName, byte[] columnName, int batchSize) {
                 byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
                 byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
                 return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes, columnNameBytes), batchSize);
@@ -1479,7 +1490,7 @@ public final class TwoColumnsTable implements
         }
 
         @Override
-        public Map<FooToIdCondIdxRow, BatchingVisitable<FooToIdCondIdxColumnValue>> getRowsColumnRange(Iterable<FooToIdCondIdxRow> rows, ColumnRangeSelection columnRangeSelection) {
+        public Map<FooToIdCondIdxRow, BatchingVisitable<FooToIdCondIdxColumnValue>> getRowsColumnRange(Iterable<FooToIdCondIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
             Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
             Map<FooToIdCondIdxRow, BatchingVisitable<FooToIdCondIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
             for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
@@ -1492,6 +1503,18 @@ public final class TwoColumnsTable implements
                 transformed.put(row, bv);
             }
             return transformed;
+        }
+
+        @Override
+        public Iterator<Map.Entry<FooToIdCondIdxRow, FooToIdCondIdxColumnValue>> getRowsColumnRange(Iterable<FooToIdCondIdxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+            Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+            return Iterators.transform(results, e -> {
+                FooToIdCondIdxRow row = FooToIdCondIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+                FooToIdCondIdxColumn col = FooToIdCondIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
+                Long val = FooToIdCondIdxColumnValue.hydrateValue(e.getValue());
+                FooToIdCondIdxColumnValue colValue = FooToIdCondIdxColumnValue.of(col, val);
+                return Maps.immutableEntry(row, colValue);
+            });
         }
 
         public BatchingVisitableView<FooToIdCondIdxRowResult> getAllRowsUnordered() {
@@ -1745,7 +1768,7 @@ public final class TwoColumnsTable implements
                 }
             };
 
-            public static ColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
+            public static BatchColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
                 byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
                 return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
             }
@@ -1755,7 +1778,7 @@ public final class TwoColumnsTable implements
                 return new Prefix(EncodingUtils.add(rowNameBytes));
             }
 
-            public static ColumnRangeSelection createPrefixRange(byte[] rowName, byte[] columnName, int batchSize) {
+            public static BatchColumnRangeSelection createPrefixRange(byte[] rowName, byte[] columnName, int batchSize) {
                 byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
                 byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
                 return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes, columnNameBytes), batchSize);
@@ -2120,7 +2143,7 @@ public final class TwoColumnsTable implements
         }
 
         @Override
-        public Map<FooToIdIdxRow, BatchingVisitable<FooToIdIdxColumnValue>> getRowsColumnRange(Iterable<FooToIdIdxRow> rows, ColumnRangeSelection columnRangeSelection) {
+        public Map<FooToIdIdxRow, BatchingVisitable<FooToIdIdxColumnValue>> getRowsColumnRange(Iterable<FooToIdIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
             Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
             Map<FooToIdIdxRow, BatchingVisitable<FooToIdIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
             for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
@@ -2133,6 +2156,18 @@ public final class TwoColumnsTable implements
                 transformed.put(row, bv);
             }
             return transformed;
+        }
+
+        @Override
+        public Iterator<Map.Entry<FooToIdIdxRow, FooToIdIdxColumnValue>> getRowsColumnRange(Iterable<FooToIdIdxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+            Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+            return Iterators.transform(results, e -> {
+                FooToIdIdxRow row = FooToIdIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+                FooToIdIdxColumn col = FooToIdIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
+                Long val = FooToIdIdxColumnValue.hydrateValue(e.getValue());
+                FooToIdIdxColumnValue colValue = FooToIdIdxColumnValue.of(col, val);
+                return Maps.immutableEntry(row, colValue);
+            });
         }
 
         public BatchingVisitableView<FooToIdIdxRowResult> getAllRowsUnordered() {
@@ -2217,6 +2252,7 @@ public final class TwoColumnsTable implements
      * {@link IterableView}
      * {@link Iterables}
      * {@link Iterator}
+     * {@link Iterators}
      * {@link Joiner}
      * {@link List}
      * {@link Lists}
@@ -2238,6 +2274,7 @@ public final class TwoColumnsTable implements
      * {@link Set}
      * {@link Sets}
      * {@link Sha256Hash}
+     * {@link BatchColumnRangeSelection}
      * {@link SortedMap}
      * {@link Supplier}
      * {@link TableReference}
@@ -2248,5 +2285,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "7GRVAi0WA3eAZGEPT28KwQ==";
+    static String __CLASS_HASH = "ECOL+1PLpES26L2U9fKefQ==";
 }

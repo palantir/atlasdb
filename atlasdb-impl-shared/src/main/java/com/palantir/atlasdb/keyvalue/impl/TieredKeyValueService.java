@@ -33,6 +33,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -41,6 +42,7 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -174,17 +176,33 @@ public final class TieredKeyValueService implements KeyValueService {
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
-            ColumnRangeSelection columnRangeSelection,
+            BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
         if (isNotTiered(tableRef)) {
-            return primary.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+            return primary.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
         }
         Map<byte[], RowColumnRangeIterator> primaryResults =
-                primary.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+                primary.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
         Map<byte[], RowColumnRangeIterator> results =
-                Maps.newHashMap(secondary.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp));
+                Maps.newHashMap(secondary.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp));
         results.putAll(primaryResults);
         return results;
+    }
+
+    @Override
+    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
+                                                     Iterable<byte[]> rows,
+                                                     ColumnRangeSelection columnRangeSelection,
+                                                     int cellBatchHint,
+                                                     long timestamp) {
+        if (isNotTiered(tableRef)) {
+            return primary.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
+        }
+        RowColumnRangeIterator primaryResults =
+                primary.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
+        RowColumnRangeIterator secondaryResults =
+                secondary.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
+        return new LocalRowColumnRangeIterator(Iterators.concat(primaryResults, secondaryResults));
     }
 
     @Override

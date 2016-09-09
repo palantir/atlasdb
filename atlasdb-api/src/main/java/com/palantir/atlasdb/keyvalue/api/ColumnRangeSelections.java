@@ -25,13 +25,13 @@ public final class ColumnRangeSelections implements Serializable {
         // Utility class
     }
 
-    public static ColumnRangeSelection createPrefixRange(byte[] prefix, int batchSize) {
+    public static BatchColumnRangeSelection createPrefixRange(byte[] prefix, int batchSize) {
         byte[] startCol = Preconditions.checkNotNull(prefix, "prefix cannot be null").clone();
         byte[] endCol = RangeRequests.createEndNameForPrefixScan(prefix);
-        return new ColumnRangeSelection(startCol, endCol, batchSize);
+        return BatchColumnRangeSelection.create(startCol, endCol, batchSize);
     }
 
-    public static ColumnRangeSelection createPrefixRange(Persistable persistable, int batchSize) {
+    public static BatchColumnRangeSelection createPrefixRange(Persistable persistable, int batchSize) {
         return createPrefixRange(persistable.persistToBytes(), batchSize);
     }
 }

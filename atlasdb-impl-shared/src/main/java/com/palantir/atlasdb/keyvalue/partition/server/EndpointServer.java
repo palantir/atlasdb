@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import com.google.common.base.Function;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -171,10 +172,21 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
-            ColumnRangeSelection columnRangeSelection,
+            BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
         return runPartitionMapReadOperation(input ->
-                kvs().getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp));
+                kvs().getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp));
+    }
+
+    @Override
+    @Idempotent
+    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
+                                                     Iterable<byte[]> rows,
+                                                     ColumnRangeSelection columnRangeSelection,
+                                                     int cellBatchHint,
+                                                     long timestamp) {
+        return runPartitionMapReadOperation(input ->
+                kvs().getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp));
     }
 
     @Override

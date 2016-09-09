@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -455,16 +456,40 @@ public class ProfilingKeyValueService implements KeyValueService {
 
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
-                                                                  ColumnRangeSelection columnRangeSelection, long timestamp) {
+                                                                  BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
-            Map<byte[], RowColumnRangeIterator> result = delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+            Map<byte[], RowColumnRangeIterator> result = delegate.getRowsColumnRange(tableRef, rows,
+                    batchColumnRangeSelection, timestamp);
             log.trace("Call to KVS.getRowsColumnRange on table {} for {} rows with range {} took {} ms.",
-                    tableRef.getQualifiedName(), Iterables.size(rows), columnRangeSelection, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                    tableRef.getQualifiedName(), Iterables.size(rows), batchColumnRangeSelection, stopwatch.elapsed(TimeUnit.MILLISECONDS));
             logTimeAndTable("getRowsColumnRange", tableRef.getQualifiedName(), stopwatch);
             return result;
         } else {
-            return delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+            return delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
+        }
+    }
+
+    @Override
+    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
+                                                     Iterable<byte[]> rows,
+                                                     ColumnRangeSelection columnRangeSelection,
+                                                     int cellBatchHint,
+                                                     long timestamp) {
+        if (log.isTraceEnabled()) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            RowColumnRangeIterator result =
+                    delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
+            log.trace("Call to KVS.getRowsColumnRangeCellBatch on table {} for {} rows with range {} and batch hint {} took {} ms.",
+                      tableRef.getQualifiedName(),
+                      Iterables.size(rows),
+                      columnRangeSelection,
+                      cellBatchHint,
+                      stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            logTimeAndTable("getRowsColumnRangeCellBatch", tableRef.getQualifiedName(), stopwatch);
+            return result;
+        } else {
+            return delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
         }
     }
 }

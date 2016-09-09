@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -60,8 +61,15 @@ public interface NamespacedKeyValueService {
     Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
-            ColumnRangeSelection columnRangeSelection,
+            BatchColumnRangeSelection columnRangeSelection,
             long timestamp);
+
+    @Idempotent
+    RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
+                                              Iterable<byte[]> rows,
+                                              ColumnRangeSelection columnRangeSelection,
+                                              int batchHint,
+                                              long timestamp);
 
     @Idempotent
     Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell);
