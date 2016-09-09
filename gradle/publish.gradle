@@ -14,7 +14,7 @@ task testJar(type: Jar) {
 publishing {
     publications {
         bintray(MavenPublication) {
-            from components.java
+            from components.hasProperty('shadow') ? components.shadow : components.java
             artifact(sourceJar) {
                 classifier 'sources'
             }
@@ -54,4 +54,3 @@ bintrayUpload.dependsOn { generatePomFileForBintrayPublication }
 bintrayUpload.dependsOn { sourceJar }
 bintrayUpload.dependsOn { testJar }
 bintrayUpload.dependsOn { build }
-
