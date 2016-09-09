@@ -28,6 +28,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
@@ -116,7 +117,7 @@ public abstract class ConsecutiveNarrowTable {
     }
 
     public Set<Cell> getCellsRequest(int numberOfCellsToRequest) {
-        Benchmarks.validate(getNumRows() >= numberOfCellsToRequest,
+        Preconditions.checkState(getNumRows() >= numberOfCellsToRequest,
                 "Unable to request %s rows from a table that only has %s rows.",
                 numberOfCellsToRequest, getNumRows());
         return getRandom()

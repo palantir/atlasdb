@@ -28,6 +28,7 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
@@ -48,11 +49,11 @@ public class KvsGetRangeBenchmarks {
                 table.getKvs().getRange(table.getTableRef(), request, Long.MAX_VALUE);
         ArrayList<RowResult<Value>> list = Lists.newArrayList(result);
         result.close();
-        Benchmarks.validate(list.size() == sliceSize, "List size %s != %s", sliceSize, list.size());
+        Preconditions.checkState(list.size() == sliceSize, "List size %s != %s", sliceSize, list.size());
         list.forEach(rowResult -> {
             byte[] rowName = rowResult.getRowName();
             int rowNumber = Ints.fromByteArray(rowName);
-            Benchmarks.validate(rowNumber - startRow < sliceSize, "Start Row %s, row number %s, sliceSize %s",
+            Preconditions.checkState(rowNumber - startRow < sliceSize, "Start Row %s, row number %s, sliceSize %s",
                     startRow, rowNumber, sliceSize);
         });
         return result;
@@ -65,17 +66,17 @@ public class KvsGetRangeBenchmarks {
 
         int numRequests = Iterables.size(requests);
 
-        Benchmarks.validate(numRequests == results.size(),
+        Preconditions.checkState(numRequests == results.size(),
                 "Got %s requests and %s results, requests %s, results %s",
                 numRequests, results.size(), requests, results);
 
         results.forEach((request, result) -> {
-            Benchmarks.validate(1 == result.getResults().size(), "Key %s, List size is %s",
+            Preconditions.checkState(1 == result.getResults().size(), "Key %s, List size is %s",
                     Ints.fromByteArray(request.getStartInclusive()), result.getResults().size());
-            Benchmarks.validate(!result.moreResultsAvailable(), "Key %s, result.moreResultsAvailable() %s",
+            Preconditions.checkState(!result.moreResultsAvailable(), "Key %s, result.moreResultsAvailable() %s",
                     Ints.fromByteArray(request.getStartInclusive()), result.moreResultsAvailable());
             RowResult<Value> row = Iterables.getOnlyElement(result.getResults());
-            Benchmarks.validate(Arrays.equals(request.getStartInclusive(), row.getRowName()),
+            Preconditions.checkState(Arrays.equals(request.getStartInclusive(), row.getRowName()),
                     "Request row is %s, result is %s",
                     Ints.fromByteArray(request.getStartInclusive()),
                     Ints.fromByteArray(row.getRowName()));

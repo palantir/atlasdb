@@ -28,6 +28,7 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -51,7 +52,7 @@ public class TransactionGetDynamicBenchmarks {
     public Object getAllColumnsExplicitly(WideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> result = txn.get(table.getTableRef(), table.getAllCells());
-            Benchmarks.validate(result.values().size() == WideRowTable.NUM_COLS,
+            Preconditions.checkState(result.values().size() == WideRowTable.NUM_COLS,
                     "Should be %s columns, but were: %s", WideRowTable.NUM_COLS, result.values().size());
             return result;
         });
@@ -66,7 +67,7 @@ public class TransactionGetDynamicBenchmarks {
                     Collections.singleton(Tables.ROW_BYTES.array()),
                     ColumnSelection.all());
             int count = Iterables.getOnlyElement(result.values()).getColumns().size();
-            Benchmarks.validate(count == WideRowTable.NUM_COLS,
+            Preconditions.checkState(count == WideRowTable.NUM_COLS,
                     "Should be %s columns, but were: %s", WideRowTable.NUM_COLS, count);
             return result;
         });
@@ -78,10 +79,10 @@ public class TransactionGetDynamicBenchmarks {
     public Object getFirstColumnExplicitly(WideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> result = txn.get(table.getTableRef(), table.getFirstCellAsSet());
-            Benchmarks.validate(result.values().size() == 1,
+            Preconditions.checkState(result.values().size() == 1,
                     "Should be %s column, but were: %s", 1, result.values().size());
             int value = Ints.fromByteArray(Iterables.getOnlyElement(result.values()));
-            Benchmarks.validate(value == 0, "Value should be %s but is %s", 0,  value);
+            Preconditions.checkState(value == 0, "Value should be %s but is %s", 0,  value);
             return result;
         });
     }
@@ -97,12 +98,12 @@ public class TransactionGetDynamicBenchmarks {
                             table.getFirstCellAsSet().stream().map(Cell::getColumnName).collect(Collectors.toList())
                     ));
             int count = Iterables.getOnlyElement(result.values()).getColumns().size();
-            Benchmarks.validate(count == 1, "Should be %s column, but were: %s", 1, count);
+            Preconditions.checkState(count == 1, "Should be %s column, but were: %s", 1, count);
             int value = Ints.fromByteArray(
                     Iterables.getOnlyElement(
                             Iterables.getOnlyElement(result.values()).getColumns().entrySet()
                     ).getValue());
-            Benchmarks.validate(value == 0, "Value should be %s but is %s", 0,  value);
+            Preconditions.checkState(value == 0, "Value should be %s but is %s", 0,  value);
             return result;
         });
     }

@@ -27,6 +27,7 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -48,7 +49,7 @@ public class TransactionGetBenchmarks {
             byte[] rowName = Iterables.getOnlyElement(result.entrySet()).getKey().getRowName();
             int rowNumber = Ints.fromByteArray(rowName);
             int expectRowNumber = ConsecutiveNarrowTable.rowNumber(Iterables.getOnlyElement(request).getRowName());
-            Benchmarks.validate(rowNumber == expectRowNumber,
+            Preconditions.checkState(rowNumber == expectRowNumber,
                     "Start Row %s, row number %s", expectRowNumber, rowNumber);
             return result;
         });
@@ -59,7 +60,7 @@ public class TransactionGetBenchmarks {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Set<Cell> request = table.getCellsRequest(getCellsSize);
             Map<Cell, byte[]> result = txn.get(table.getTableRef(), request);
-            Benchmarks.validate(result.size() == getCellsSize,
+            Preconditions.checkState(result.size() == getCellsSize,
                     "expected %s cells, found %s cells", getCellsSize, result.size());
             return result;
         });
@@ -73,7 +74,7 @@ public class TransactionGetBenchmarks {
             byte[] rowName = Iterables.getOnlyElement(result).getRowName();
             int rowNumber = ConsecutiveNarrowTable.rowNumber(rowName);
             int expectedRowNumber = ConsecutiveNarrowTable.rowNumber(request.getStartInclusive());
-            Benchmarks.validate(rowNumber == expectedRowNumber,
+            Preconditions.checkState(rowNumber == expectedRowNumber,
                     "Start Row %s, row number %s", expectedRowNumber, rowNumber);
             return result;
         });
@@ -85,7 +86,7 @@ public class TransactionGetBenchmarks {
             RangeRequest request = Iterables.getOnlyElement(table.getRangeRequests(1, rangeRequestSize));
             List<RowResult<byte[]>> results = BatchingVisitables.copyToList(txn.getRange(
                     table.getTableRef(), request));
-            Benchmarks.validate(results.size() == rangeRequestSize,
+            Preconditions.checkState(results.size() == rangeRequestSize,
                     "Expected %s rows, found %s rows", rangeRequestSize, results.size());
             return results;
         });
@@ -99,7 +100,7 @@ public class TransactionGetBenchmarks {
                     txn.getRanges(table.getTableRef(), requests);
             results.forEach(bvs -> {
                 List<RowResult<byte[]>> result = BatchingVisitables.copyToList(bvs);
-                Benchmarks.validate(result.size() == RANGES_SINGLE_REQUEST_SIZE,
+                Preconditions.checkState(result.size() == RANGES_SINGLE_REQUEST_SIZE,
                         "Expected %s rows, found %s rows", RANGES_SINGLE_REQUEST_SIZE, result.size());
             });
             return results;

@@ -17,8 +17,6 @@
 
 package com.palantir.atlasdb.performance.benchmarks;
 
-import org.apache.commons.lang3.Validate;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -33,15 +31,6 @@ public final class Benchmarks {
 
     private Benchmarks() {
         // uninstantiable
-    }
-
-    /**
-     * Convient way to conditionally construct a format string for validate.
-     */
-    public static void validate(boolean assertion, String formatString, Object... args) {
-        if (!assertion) {
-            Validate.isTrue(assertion, String.format(formatString, args));
-        }
     }
 
     /**

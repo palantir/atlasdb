@@ -29,6 +29,7 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -51,7 +52,7 @@ public class KvsGetDynamicBenchmarks {
     @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsExplicitly(WideRowTable table) {
         Map<Cell, Value> result = table.getKvs().get(table.getTableRef(), table.getAllCellsAtMaxTimestamp());
-        Benchmarks.validate(result.size() == WideRowTable.NUM_COLS,
+        Preconditions.checkState(result.size() == WideRowTable.NUM_COLS,
                 "Should be %s columns, but were: %s", WideRowTable.NUM_COLS, result.size());
         return result;
     }
@@ -65,7 +66,7 @@ public class KvsGetDynamicBenchmarks {
                 Collections.singleton(Tables.ROW_BYTES.array()),
                 ColumnSelection.all(),
                 Long.MAX_VALUE);
-        Benchmarks.validate(result.size() == WideRowTable.NUM_COLS,
+        Preconditions.checkState(result.size() == WideRowTable.NUM_COLS,
                 "Should be %s columns, but were: %s", WideRowTable.NUM_COLS, result.size());
         return result;
     }
@@ -75,9 +76,9 @@ public class KvsGetDynamicBenchmarks {
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object getFirstColumnExplicitly(WideRowTable table) {
         Map<Cell, Value> result = table.getKvs().get(table.getTableRef(), table.getFirstCellAtMaxTimestampAsMap());
-        Benchmarks.validate(result.size() == 1, "Should be %s column, but were: %s", 1, result.size());
+        Preconditions.checkState(result.size() == 1, "Should be %s column, but were: %s", 1, result.size());
         int value = Ints.fromByteArray(Iterables.getOnlyElement(result.values()).getContents());
-        Benchmarks.validate(value == 0, "Value should be %s but is %s", 0,  value);
+        Preconditions.checkState(value == 0, "Value should be %s but is %s", 0,  value);
         return result;
     }
 
@@ -91,9 +92,9 @@ public class KvsGetDynamicBenchmarks {
                                 table.getFirstCellAsSet().stream().map(Cell::getColumnName).collect(Collectors.toList())
                         ),
                         Long.MAX_VALUE);
-        Benchmarks.validate(result.size() == 1, "Should be %s column, but were: %s", 1, result.size());
+        Preconditions.checkState(result.size() == 1, "Should be %s column, but were: %s", 1, result.size());
         int value = Ints.fromByteArray(Iterables.getOnlyElement(result.values()).getContents());
-        Benchmarks.validate(value == 0, "Value should be %s but is %s", 0,  value);
+        Preconditions.checkState(value == 0, "Value should be %s but is %s", 0,  value);
         return result;
     }
 
