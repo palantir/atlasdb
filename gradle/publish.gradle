@@ -52,25 +52,22 @@ bintrayUpload.onlyIf {
     System.getenv('BINTRAY_USERNAME') && System.getenv('BINTRAY_PASSWORD') && project.version ==~ /\d+\.\d+\.\d+(-alpha|-beta)?(\+\d{3})?/
 }
 
-bintrayUpload.dependsOn { generatePomFileForArtifactoryPublication }
-bintrayUpload.dependsOn { sourceJar }
-bintrayUpload.dependsOn { testJar }
-bintrayUpload.dependsOn { build }
+bintrayUpload.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
 
 artifactory {
-  publish {
-    contextUrl = 'https://oss.jfrog.org/artifactory/'
-    repository {
-      repoKey = 'oss-snapshot-local'
-      username = System.env.ARTIFACTORY_USERNAME
-      password = System.env.ARTIFACTORY_PASSWORD
-      maven = true
+    publish {
+        contextUrl = 'https://oss.jfrog.org/artifactory/'
+        repository {
+            repoKey = 'oss-snapshot-local'
+            username = System.env.ARTIFACTORY_USERNAME
+            password = System.env.ARTIFACTORY_PASSWORD
+            maven = true
+        }
+        defaults {
+            publications ('artifactory')
+            properties = ['git': project.version.toString()]
+        }
     }
-    defaults {
-      publications ('artifactory')
-      properties = ['git': project.version.toString()]
-    }
-  }
 }
 
 artifactoryPublish.onlyIf {
