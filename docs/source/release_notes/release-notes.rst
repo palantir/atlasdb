@@ -89,7 +89,7 @@ v0.14.0
     *    - |breaking|
          - Updated our Dagger dependency from 2.0.2 to 2.4, so that our generated code matches with that of internal products.
            This also bumps our Guava dependency from 18.0 to 19.0 to accommodate a Dagger compile dependency.
-           Products can force a Guava 18.0 runtime dependency to workaround the issue.
+           We plan on shading Guava in the next release of AtlasDB, but products can force a Guava 18.0 runtime dependency to workaround the issue in the meantime.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/878>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
