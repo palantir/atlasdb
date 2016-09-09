@@ -43,14 +43,15 @@ v0.14.0
 
     *    - |breaking|
          - ``TransactionManagers.create()`` no longer takes in an argument of ``Optional<SSLSocketFactory> sslSocketFactory``.
-           Instead, security settings between AtlasDB clients are now specified directly in configuration via the new optional parameter ``sslConfiguration`` located in the ``leader`` block.
+           Instead, security settings between AtlasDB clients are now specified directly in configuration via the new optional parameter ``sslConfiguration`` located in the ``leader``, ``timestamp``, and ``lock`` blocks.
            Details can be found in the :ref:`Leader Configuration <leader-config>` documentation.
-           This will only affect deployments who run with more than one server (i.e. in HA mode).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/873>`__)
 
-    *    - |breaking|
-         - Enforced validity constraints on configuration, as per `#790 <https://github.com/palantir/atlasdb/issue/790>`__.
-           AtlasDB will now fail to start if your configuration is invalid.
+           To assist with back compatibility, we have introduced a helper method ``AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig``, which will add the provided ``sslConfiguration`` to ``config`` if the SSL configuration is not specified directly in the ``leader``, ``timestamp``, or ``lock`` blocks.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/873>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/906>`__)
+
+    *    - |fixed|
+         - AtlasDB could startup with a leader configuration that is nonsensical, such as specifying both a ``leader`` block as well as a remote ``timestamp`` and ``lock`` blocks.
+           AtlasDB will now fail to start if your configuration is invalid with a sensible message, per `#790 <https://github.com/palantir/atlasdb/issues/790>`__, rather than potentially breaking in unexpected ways.
            Please refer to :ref:`Example Leader Configurations <leader-config-examples>` for guidance on valid configurations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/854>`__)
 
