@@ -112,7 +112,7 @@ public class EteSetup {
         }
     }
 
-    protected void startCassandraContainer(String containerName) {
+    protected void startCassandraContainer(String containerName) throws InterruptedException {
         Container container = docker.containers().container(containerName);
         try {
             container.start();
@@ -120,6 +120,8 @@ public class EteSetup {
             throw new RuntimeException(e);
         }
         waitForAllPorts(container);
+        //TODO: node should join the cassandra cluster
+        Thread.sleep(10000);
     }
 
     private void waitForAllPorts(Container container) {
