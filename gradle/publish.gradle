@@ -73,4 +73,7 @@ artifactory {
   }
 }
 
+artifactoryPublish.onlyIf {
+  System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD')
+}
 artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
