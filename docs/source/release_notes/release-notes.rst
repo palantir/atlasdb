@@ -76,10 +76,14 @@ v0.14.0
 
     *    - |breaking|
          - ``TransactionManagers.create()`` no longer takes in an argument of ``Optional<SSLSocketFactory> sslSocketFactory``.
-           Instead, security settings between AtlasDB clients are now specified directly in configuration via the new optional parameter ``sslConfiguration`` located in the ``leader`` block.
-           Details can be found in the :ref:`Leader Configuration <leader-config>` documentation.
-           This will only affect deployments who run with more than one server (i.e. in HA mode).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/873>`__)
+           Instead, security settings between AtlasDB clients are now specified directly in configuration via the new optional
+           parameter ``sslConfiguration`` located in the ``leader``, ``timestamp``, and ``lock`` blocks. Details can be found
+           in the :ref:`Leader Configuration <leader-config>` documentation. This will only affect deployments who run with
+           more than one server (i.e. in HA mode), or run CLIs against their servers without the trustStore system property
+           set. To ease transition over to this, we have introduced a helper method
+           ``AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(AtlasDbConfig config, Optional<SslConfiguration> sslConfiguration)``
+           which will add the provided ``sslConfiguration`` to ``config`` if no SSL configuration is present in the configuration already.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/873>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/906>`__)
 
     *    - |fixed|
          - Enforced validity constraints on configuration, as per `#790 <https://github.com/palantir/atlasdb/issue/790>`__.
