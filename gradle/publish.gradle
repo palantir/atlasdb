@@ -48,8 +48,12 @@ bintray {
     }
 }
 
+ext {
+  releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta)?(\+\d{3})?/
+}
+
 bintrayUpload.onlyIf {
-    System.getenv('BINTRAY_USERNAME') && System.getenv('BINTRAY_PASSWORD') && project.version ==~ /\d+\.\d+\.\d+(-alpha|-beta)?(\+\d{3})?/
+    System.getenv('BINTRAY_USERNAME') && System.getenv('BINTRAY_PASSWORD') && project.version ==~ releaseVersionRegex
 }
 
 bintrayUpload.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
@@ -71,6 +75,6 @@ artifactory {
 }
 
 artifactoryPublish.onlyIf {
-  System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD')
+  System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD') && !(project.version ==~ releaseVersionRegex)
 }
 artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
