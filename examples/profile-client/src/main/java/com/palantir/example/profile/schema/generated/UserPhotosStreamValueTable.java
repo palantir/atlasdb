@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -32,6 +31,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -43,6 +43,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
@@ -595,7 +596,7 @@ public final class UserPhotosStreamValueTable implements
     }
 
     @Override
-    public Map<UserPhotosStreamValueRow, BatchingVisitable<UserPhotosStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<UserPhotosStreamValueRow> rows, ColumnRangeSelection columnRangeSelection) {
+    public Map<UserPhotosStreamValueRow, BatchingVisitable<UserPhotosStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<UserPhotosStreamValueRow> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
         Map<UserPhotosStreamValueRow, BatchingVisitable<UserPhotosStreamValueNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
@@ -606,6 +607,16 @@ public final class UserPhotosStreamValueTable implements
             transformed.put(row, bv);
         }
         return transformed;
+    }
+
+    @Override
+    public Iterator<Map.Entry<UserPhotosStreamValueRow, UserPhotosStreamValueNamedColumnValue<?>>> getRowsColumnRange(Iterable<UserPhotosStreamValueRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+        return Iterators.transform(results, e -> {
+            UserPhotosStreamValueRow row = UserPhotosStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            UserPhotosStreamValueNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
+            return Maps.immutableEntry(row, colValue);
+        });
     }
 
     public BatchingVisitableView<UserPhotosStreamValueRowResult> getAllRowsUnordered() {
@@ -688,6 +699,7 @@ public final class UserPhotosStreamValueTable implements
      * {@link IterableView}
      * {@link Iterables}
      * {@link Iterator}
+     * {@link Iterators}
      * {@link Joiner}
      * {@link List}
      * {@link Lists}
@@ -709,6 +721,7 @@ public final class UserPhotosStreamValueTable implements
      * {@link Set}
      * {@link Sets}
      * {@link Sha256Hash}
+     * {@link BatchColumnRangeSelection}
      * {@link SortedMap}
      * {@link Supplier}
      * {@link TableReference}
@@ -719,5 +732,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "jHXwPpmc5Ay3gKn9eZC8Gg==";
+    static String __CLASS_HASH = "t58IjZtpdGvphNV/ppNVQg==";
 }

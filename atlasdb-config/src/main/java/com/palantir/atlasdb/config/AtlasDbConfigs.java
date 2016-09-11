@@ -27,7 +27,9 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
+import com.palantir.remoting.ssl.SslConfiguration;
 
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
@@ -95,5 +97,34 @@ public final class AtlasDbConfigs {
             return null;
         }
         return root;
+    }
+
+    public static AtlasDbConfig addFallbackSslConfigurationToAtlasDbConfig(
+            AtlasDbConfig config,
+            Optional<SslConfiguration> sslConfiguration) {
+        return ImmutableAtlasDbConfig.builder()
+                .from(config)
+                .leader(addFallbackSslConfigurationToLeader(config.leader(), sslConfiguration))
+                .lock(addFallbackSslConfigurationToServerList(config.lock(), sslConfiguration))
+                .timestamp(addFallbackSslConfigurationToServerList(config.timestamp(), sslConfiguration))
+                .build();
+    }
+
+    private static Optional<LeaderConfig> addFallbackSslConfigurationToLeader(
+            Optional<LeaderConfig> config,
+            Optional<SslConfiguration> sslConfiguration) {
+        return config.transform(leader -> ImmutableLeaderConfig.builder()
+                .from(leader)
+                .sslConfiguration(leader.sslConfiguration().or(sslConfiguration))
+                .build());
+    }
+
+    private static Optional<ServerListConfig> addFallbackSslConfigurationToServerList(
+            Optional<ServerListConfig> config,
+            Optional<SslConfiguration> sslConfiguration) {
+        return config.transform(serverList -> ImmutableServerListConfig.builder()
+                .from(serverList)
+                .sslConfiguration(serverList.sslConfiguration().or(sslConfiguration))
+                .build());
     }
 }

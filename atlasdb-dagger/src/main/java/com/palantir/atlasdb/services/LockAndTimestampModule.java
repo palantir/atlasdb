@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.services;
 
-
 import javax.inject.Singleton;
 
 import com.palantir.atlasdb.factory.TransactionManagers;

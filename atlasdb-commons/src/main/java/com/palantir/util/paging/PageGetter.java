@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
@@ -12,17 +12,17 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
-package com.palantir.atlasdb.ete.dropwizard;
 
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.rules.RuleChain;
+package com.palantir.util.paging;
 
-import com.palantir.atlasdb.ete.EteSetup;
+import java.util.List;
 
-@Ignore
-public class DbKvsDropwizardEteTest extends DropwizardEteTest {
-    @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("dbkvs", "docker-compose.dbkvs.yml");
+public interface PageGetter<T> {
+    List<T> getFirstPage();
+
+    List<T> getNextPage(List<T> currentPage);
+
+    int getPageSize();
 }

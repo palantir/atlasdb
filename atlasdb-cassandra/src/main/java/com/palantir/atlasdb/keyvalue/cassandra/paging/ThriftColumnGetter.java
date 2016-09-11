@@ -13,16 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete.dropwizard;
+package com.palantir.atlasdb.keyvalue.cassandra.paging;
 
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.rules.RuleChain;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
 
-import com.palantir.atlasdb.ete.EteSetup;
+import org.apache.cassandra.thrift.ColumnOrSuperColumn;
+import org.apache.cassandra.thrift.KeySlice;
 
-@Ignore
-public class CassandraDropwizardEteTest extends DropwizardEteTest {
-    @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("cassandra-ha", "docker-compose.cassandra.yml");
+public class ThriftColumnGetter implements ColumnGetter {
+
+    @Override
+    public Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(List<KeySlice> firstPage) {
+        return ColumnGetters.getColsByKey(firstPage);
+    }
 }

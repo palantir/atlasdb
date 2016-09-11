@@ -13,22 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete.todo;
+package com.palantir.atlasdb.ete;
+
+import java.util.List;
 
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.rules.RuleChain;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
-import com.palantir.atlasdb.ete.EteSetup;
-import com.palantir.timestamp.TimestampService;
+import com.google.common.collect.ImmutableList;
 
-@Ignore
-public class DbKvsTodoEteTest extends TodoEteTest {
+@RunWith(Suite.class)
+@Suite.SuiteClasses({
+        TodoEteTest.class,
+        DropwizardEteTest.class
+        })
+public class DbKvsTestSuite extends EteSetup {
+    private static final List<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");
+
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("dbkvs", "docker-compose.dbkvs.yml");
-
-    @Override
-    protected TimestampService createTimestampClient() {
-        return createClientToMultipleNodes(TimestampService.class, "ete1", "ete2", "ete3");
-    }
+    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("dbkvs", "docker-compose.dbkvs.yml", CLIENTS);
 }

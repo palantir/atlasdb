@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -31,9 +32,11 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -157,7 +160,7 @@ public class KeyValueServices {
     }
 
     // TODO: kill this when we can properly implement this on all KVSes
-    public static Map<byte[], RowColumnRangeIterator> filterGetRowsToColumnRange(KeyValueService kvs, TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
+    public static Map<byte[], RowColumnRangeIterator> filterGetRowsToColumnRange(KeyValueService kvs, TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection, long timestamp) {
         log.warn("Using inefficient postfiltering for getRowsColumnRange because the KVS doesn't support it natively. Production " +
                 "environments should use a KVS with a proper implementation.");
         Map<Cell, Value> allValues = kvs.getRows(tableRef, rows, ColumnSelection.all(), timestamp);
@@ -195,5 +198,24 @@ public class KeyValueServices {
                             Pair.<Cell, Value>of(Cell.create(rowName, e.getKey()), e.getValue()))));
         }
         return results;
+    }
+
+    public static RowColumnRangeIterator mergeGetRowsColumnRangeIntoSingleIterator(KeyValueService kvs,
+                                                                                   TableReference tableRef,
+                                                                                   Iterable<byte[]> rows,
+                                                                                   ColumnRangeSelection columnRangeSelection,
+                                                                                   int batchHint,
+                                                                                   long timestamp) {
+        if (Iterables.isEmpty(rows)) {
+            return new LocalRowColumnRangeIterator(Collections.emptyIterator());
+        }
+        int columnBatchSize = batchHint / Iterables.size(rows);
+        BatchColumnRangeSelection batchColumnRangeSelection =
+                BatchColumnRangeSelection.create(columnRangeSelection, columnBatchSize);
+        Map<byte[], RowColumnRangeIterator> rowsColumnRanges =
+                kvs.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
+        // Return results in the same order as the provided rows.
+        Iterable<RowColumnRangeIterator> orderedRanges = Iterables.transform(rows, rowsColumnRanges::get);
+        return new LocalRowColumnRangeIterator(Iterators.concat(orderedRanges.iterator()));
     }
 }

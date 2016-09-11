@@ -13,22 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete.todo;
+package com.palantir.atlasdb.ete;
+
+import java.util.List;
 
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.rules.RuleChain;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
-import com.palantir.atlasdb.ete.EteSetup;
-import com.palantir.timestamp.TimestampService;
+import com.google.common.collect.ImmutableList;
 
-@Ignore
-public class CassandraNoLeaderTodoEteTest extends TodoEteTest {
+@RunWith(Suite.class)
+@Suite.SuiteClasses({
+        TodoEteTest.class,
+        DropwizardEteTest.class
+})
+public class CassandraNoLeaderTestSuite extends EteSetup {
+    private static final List<String> CLIENTS = ImmutableList.of("ete1");
+
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("cassandra-no-leader", "docker-compose.no-leader.cassandra.yml");
-
-    @Override
-    protected TimestampService createTimestampClient() {
-        return createClientToSingleNode(TimestampService.class);
-    }
+    public static final RuleChain COMPOSITION_SETUP =
+            EteSetup.setupComposition("cassandra-no-leader", "docker-compose.no-leader.cassandra.yml", CLIENTS);
 }

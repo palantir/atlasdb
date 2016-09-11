@@ -13,22 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete.todo;
+package com.palantir.atlasdb.keyvalue.cassandra.paging;
 
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.rules.RuleChain;
+public enum ColumnFetchMode {
+    FETCH_ONE(1),
+    FETCH_ALL(Integer.MAX_VALUE);
 
-import com.palantir.atlasdb.ete.EteSetup;
-import com.palantir.timestamp.TimestampService;
+    private int columnsToFetch;
 
-@Ignore
-public class CassandraTodoEteTest extends TodoEteTest {
-    @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("cassandra-ha", "docker-compose.cassandra.yml");
+    ColumnFetchMode(int columnsToFetch) {
+        this.columnsToFetch = columnsToFetch;
+    }
 
-    @Override
-    protected TimestampService createTimestampClient() {
-        return createClientToMultipleNodes(TimestampService.class, "ete1", "ete2", "ete3");
+    public int getColumnsToFetch() {
+        return columnsToFetch;
     }
 }

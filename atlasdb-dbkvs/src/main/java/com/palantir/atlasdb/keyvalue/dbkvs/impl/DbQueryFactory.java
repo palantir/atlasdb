@@ -16,9 +16,9 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -46,5 +46,6 @@ public interface DbQueryFactory {
     boolean hasOverflowValues();
     Collection<FullQuery> getOverflowQueries(Collection<OverflowValue> overflowIds);
 
-    FullQuery getRowsColumnRangeQuery(List<byte[]> row, long ts, ColumnRangeSelection columnRangeSelection);
+    FullQuery getRowsColumnRangeCountsQuery(Iterable<byte[]> rows, long ts, ColumnRangeSelection columnRangeSelection);
+    FullQuery getRowsColumnRangeQuery(Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow, long ts);
 }

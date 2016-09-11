@@ -25,8 +25,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -38,7 +38,7 @@ public class RemoteRowColumnRangeIterator implements RowColumnRangeIterator {
     @JsonProperty("tableRef")
     final TableReference tableRef;
     @JsonProperty("columnRangeSelection")
-    final ColumnRangeSelection columnRangeSelection;
+    final BatchColumnRangeSelection columnRangeSelection;
     @JsonProperty("timestamp")
     final long timestamp;
     @JsonProperty("hasNext")
@@ -48,11 +48,12 @@ public class RemoteRowColumnRangeIterator implements RowColumnRangeIterator {
     int position = 0;
 
     @JsonCreator
-    public RemoteRowColumnRangeIterator(@JsonProperty("tableRef") TableReference tableRef,
-                                        @JsonProperty("columnRangeSelection") ColumnRangeSelection columnRangeSelection,
-                                        @JsonProperty("timestamp") long timestamp,
-                                        @JsonProperty("hasNext") boolean hasNext,
-                                        @JsonProperty("page") List<Map.Entry<Cell, Value>> page) {
+    public RemoteRowColumnRangeIterator(
+            @JsonProperty("tableRef") TableReference tableRef,
+            @JsonProperty("columnRangeSelection") BatchColumnRangeSelection columnRangeSelection,
+            @JsonProperty("timestamp") long timestamp,
+            @JsonProperty("hasNext") boolean hasNext,
+            @JsonProperty("page") List<Map.Entry<Cell, Value>> page) {
         this.tableRef = tableRef;
         this.columnRangeSelection = columnRangeSelection;
         this.timestamp = timestamp;
@@ -103,7 +104,7 @@ public class RemoteRowColumnRangeIterator implements RowColumnRangeIterator {
             TableReference table,
             byte[] row,
             byte[] nextCol) {
-        ColumnRangeSelection newColumnRange = new ColumnRangeSelection(
+        BatchColumnRangeSelection newColumnRange = BatchColumnRangeSelection.create(
                 nextCol,
                 columnRangeSelection.getEndCol(),
                 columnRangeSelection.getBatchHint());
@@ -113,7 +114,7 @@ public class RemoteRowColumnRangeIterator implements RowColumnRangeIterator {
                 newColumnRange,
                 timestamp);
         if (result.isEmpty()) {
-            new RemoteRowColumnRangeIterator(table, columnRangeSelection, timestamp, false, ImmutableList.of());
+            return new RemoteRowColumnRangeIterator(table, columnRangeSelection, timestamp, false, ImmutableList.of());
         }
         RowColumnRangeIterator it = Iterables.getOnlyElement(result.values());
         List<Map.Entry<Cell, Value>> pageToReturn =

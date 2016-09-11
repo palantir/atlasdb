@@ -47,6 +47,7 @@ import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -310,7 +311,24 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows, ColumnRangeSelection columnRangeSelection, long timestamp) {
-        return KeyValueServices.filterGetRowsToColumnRange(this, tableRef, rows, columnRangeSelection, timestamp);
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef,
+                                                                  Iterable<byte[]> rows,
+                                                                  BatchColumnRangeSelection batchColumnRangeSelection,
+                                                                  long timestamp) {
+        return KeyValueServices.filterGetRowsToColumnRange(this, tableRef, rows, batchColumnRangeSelection, timestamp);
+    }
+
+    @Override
+    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
+                                                     Iterable<byte[]> rows,
+                                                     ColumnRangeSelection columnRangeSelection,
+                                                     int cellBatchHint,
+                                                     long timestamp) {
+        return KeyValueServices.mergeGetRowsColumnRangeIntoSingleIterator(this,
+                                                                          tableRef,
+                                                                          rows,
+                                                                          columnRangeSelection,
+                                                                          cellBatchHint,
+                                                                          timestamp);
     }
 }

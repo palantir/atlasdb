@@ -153,6 +153,8 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return false;
     }
 
+    public abstract Optional<Integer> timestampsGetterBatchSize();
+
     public abstract Optional<CassandraJmxCompactionConfig> jmx();
 
     @Override

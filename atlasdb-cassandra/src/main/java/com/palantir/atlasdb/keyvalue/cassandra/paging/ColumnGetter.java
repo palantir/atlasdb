@@ -22,14 +22,6 @@ import java.util.Map;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.KeySlice;
 
-import com.google.common.collect.Maps;
-
-public class ColumnGetter {
-    public Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(List<KeySlice> firstPage) {
-        Map<ByteBuffer, List<ColumnOrSuperColumn>> ret = Maps.newHashMapWithExpectedSize(firstPage.size());
-        for (KeySlice e : firstPage) {
-            ret.put(ByteBuffer.wrap(e.getKey()), e.getColumns());
-        }
-        return ret;
-    }
+public interface ColumnGetter {
+    Map<ByteBuffer, List<ColumnOrSuperColumn>> getColumnsByRow(List<KeySlice> firstPage);
 }
