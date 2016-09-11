@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete.todo;
+package com.palantir.atlasdb.ete;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -34,11 +34,14 @@ import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 
-public class CassandraMultinodeTodoEteTest extends EteSetup {
+public class CassandraMultinodeTodoEteTest {
+    private static final List<String> CLIENTS = ImmutableList.of("ete1");
+
     @ClassRule
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
             "cassandra-multinode",
-            "docker-compose.multiple-cassandra.yml");
+            "docker-compose.multiple-cassandra.yml",
+            CLIENTS);
 
     private static final List<String> CASSANDRA_NODES = ImmutableList.of("cassandra1", "cassandra2", "cassandra3");
 
@@ -48,7 +51,7 @@ public class CassandraMultinodeTodoEteTest extends EteSetup {
     @Test
     public void shouldRunTransactionsWithAllCassandraNodesRunningWithoutUnacceptableDelay()
             throws InterruptedException {
-        TodoResource clientToSingleNode = createClientToSingleNode(TodoResource.class);
+        TodoResource clientToSingleNode = EteSetup.createClientToSingleNode(TodoResource.class);
 
         long transactionStartTime = System.currentTimeMillis();
         assertAddTodoTransactionWasSuccessful(clientToSingleNode);
@@ -64,12 +67,12 @@ public class CassandraMultinodeTodoEteTest extends EteSetup {
     @Test
     public void shouldRunTransactionsAfterCassandraNodeIsShutDownWithoutUnacceptableDelay()
             throws InterruptedException {
-        TodoResource clientToSingleNode = createClientToSingleNode(TodoResource.class);
+        TodoResource clientToSingleNode = EteSetup.createClientToSingleNode(TodoResource.class);
 
         assertAddTodoTransactionWasSuccessful(clientToSingleNode);
 
         String cassandraNodeToKill = getRandomCassandraNodeToShutdown();
-        killCassandraContainer(cassandraNodeToKill);
+        EteSetup.killCassandraContainer(cassandraNodeToKill);
 
         long transactionStartTime = System.currentTimeMillis();
         assertAddTodoTransactionWasSuccessful(clientToSingleNode);
@@ -77,7 +80,7 @@ public class CassandraMultinodeTodoEteTest extends EteSetup {
 
         long transactionTimeAfterNodeIsKilled = transactionEndTime - transactionStartTime;
 
-        startCassandraContainer(cassandraNodeToKill);
+        EteSetup.startCassandraContainer(cassandraNodeToKill);
 
         assertThat("transactionTimeAfterNodeIsKilled",
                 transactionTimeAfterNodeIsKilled,

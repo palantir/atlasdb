@@ -114,7 +114,7 @@ public class EteSetup {
         };
     }
 
-    protected void killCassandraContainer(String containerName) {
+    static void killCassandraContainer(String containerName) {
         Container container = docker.containers().container(containerName);
         try {
             container.kill();
@@ -123,7 +123,7 @@ public class EteSetup {
         }
     }
 
-    protected void startCassandraContainer(String containerName) throws InterruptedException {
+    static void startCassandraContainer(String containerName) throws InterruptedException {
         Container container = docker.containers().container(containerName);
         try {
             container.start();
@@ -135,7 +135,7 @@ public class EteSetup {
         Thread.sleep(10000);
     }
 
-    private void waitForAllPorts(Container container) {
+    private static void waitForAllPorts(Container container) {
         Awaitility.await()
                 .atMost(120, TimeUnit.SECONDS)
                 .until(() -> container.areAllPortsOpen().succeeded());
