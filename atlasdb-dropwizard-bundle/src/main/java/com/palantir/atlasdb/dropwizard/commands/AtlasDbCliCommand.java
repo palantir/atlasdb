@@ -22,6 +22,9 @@ import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -44,6 +47,8 @@ import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 
 public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationProvider> extends AtlasDbCommand<T> {
+    private static final Logger log = LoggerFactory.getLogger(AtlasDbCliCommand.class);
+
     private static final String COMMAND_NAME_ATTR = "airlineSubCommand";
     private static final Cli<Callable> CLI = AtlasCli.buildCli();
 
@@ -141,7 +146,12 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
                 .addAll(AtlasDbCommandUtils.gatherPassedInArguments(commandAttrs))
                 .build();
 
-        CLI.parse(allArgs).call();
+        try {
+            CLI.parse(allArgs).call();
+        } catch (Throwable e) {
+            log.error("FATAL: error parsing CLI args", e);
+            throw e;
+        }
     }
 
     private static Map<String, OptionType> getCliOptionTypes() {
