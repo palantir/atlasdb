@@ -31,7 +31,7 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-v0.14.0
+v0.15.0
 =======
 
 .. list-table::
@@ -40,19 +40,6 @@ v0.14.0
 
     *    - Type
          - Change
-
-    *    - |breaking|
-         - ``TransactionManagers.create()`` no longer takes in an argument of ``Optional<SSLSocketFactory> sslSocketFactory``.
-           Instead, security settings between AtlasDB clients are now specified directly in configuration via the new optional parameter ``sslConfiguration`` located in the ``leader`` block.
-           Details can be found in the :ref:`Leader Configuration <leader-config>` documentation.
-           This will only affect deployments who run with more than one server (i.e. in HA mode).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/873>`__)
-
-    *    - |breaking|
-         - Enforced validity constraints on configuration, as per `#790 <https://github.com/palantir/atlasdb/issue/790>`__.
-           AtlasDB will now fail to start if your configuration is invalid.
-           Please refer to :ref:`Example Leader Configurations <leader-config-examples>` for guidance on valid configurations.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/854>`__)
 
     *    - |new|
          - ``CassandraKeyValueServiceConfiguration`` now supports :ref:`column paging <cassandra-sweep-config>`
@@ -66,12 +53,54 @@ v0.14.0
            reach out to the AtlasDB dev team if you would like to enable it.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/834>`__)
 
-    *    - |fixed|
-         - Fixed and standardized serialization and deserialization of AtlasDBConfig.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/875>`__)
+    *    - |new|
+         - Added a second implementation of ``getRowsColumnRange`` method which allows you to page through dynamic columns
+           in a single iterator. This is expected to perform better than the previous ``getRowsColumnRange`` which allows
+           you to page through columns per row with certain KVS stores (e.g. SQL stores), so should be preferred
+           unless it is necessary to page through the results for different rows separately. Products or clients
+           using wide rows should consider using ``getRowsColumnRange`` instead of ``getRows`` in ``KeyValueService``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/724>`__)
+
+    *    - |changed|
+         - Reverted our Dagger dependency from 2.4 to 2.0.2 and shadowed it so that it won't conflict with internal products.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/926>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.14.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |breaking|
+         - ``TransactionManagers.create()`` no longer takes in an argument of ``Optional<SSLSocketFactory> sslSocketFactory``.
+           Instead, security settings between AtlasDB clients are now specified directly in configuration via the new optional parameter ``sslConfiguration`` located in the ``leader``, ``timestamp``, and ``lock`` blocks.
+           Details can be found in the :ref:`Leader Configuration <leader-config>` documentation.
+
+           To assist with back compatibility, we have introduced a helper method ``AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig``, which will add the provided ``sslConfiguration`` to ``config`` if the SSL configuration is not specified directly in the ``leader``, ``timestamp``, or ``lock`` blocks.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/873>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/906>`__)
 
     *    - |fixed|
+         - AtlasDB could startup with a leader configuration that is nonsensical, such as specifying both a ``leader`` block as well as a remote ``timestamp`` and ``lock`` blocks.
+           AtlasDB will now fail to start if your configuration is invalid with a sensible message, per `#790 <https://github.com/palantir/atlasdb/issues/790>`__, rather than potentially breaking in unexpected ways.
+           Please refer to :ref:`Example Leader Configurations <leader-config-examples>` for guidance on valid configurations.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/854>`__)
+
+    *    - |fixed|
+         - Fixed and standardized serialization and deserialization of AtlasDBConfig.
+           This prevented CLIs deployed via the :ref:`Dropwizard bundle <dropwizard-bundle>` from loading configuration properly.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/875>`__)
+
+    *    - |breaking|
          - Updated our Dagger dependency from 2.0.2 to 2.4, so that our generated code matches with that of internal products.
+           This also bumps our Guava dependency from 18.0 to 19.0 to accommodate a Dagger compile dependency.
+           We plan on shading Dagger in the next release of AtlasDB, but products can force a Guava 18.0 runtime dependency to workaround the issue in the meantime.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/878>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>

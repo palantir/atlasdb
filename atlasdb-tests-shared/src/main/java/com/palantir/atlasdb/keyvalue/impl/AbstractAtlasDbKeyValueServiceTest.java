@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import static java.util.Collections.emptyMap;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertArrayEquals;
@@ -52,6 +51,7 @@ import com.google.common.collect.Multimaps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -168,10 +168,8 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         Map<Cell, Value> results = Maps.newHashMap();
 
         Iterator<Entry<Cell, Value>> it = Collections.emptyIterator();
-        for (byte[] r : values.keySet()) {
-            if (Arrays.equals(r, row)) {
-                it = Iterators.limit(values.get(r), number);
-            }
+        if (values.containsKey(row)) {
+            it = Iterators.limit(values.get(row), number);
         }
         while (it.hasNext()) {
             Entry<Cell, Value> result = it.next();
@@ -185,7 +183,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         putTestDataForSingleTimestamp();
         Map<byte[], RowColumnRangeIterator> values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row1),
-                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1),
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1),
                 TEST_TIMESTAMP + 1);
         assertEquals(1, values.size());
         Map<Cell, Value> batchValues = getValuesForRow(values, row1, 1);
@@ -193,7 +191,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         assertArrayEquals(batchValues.get(Cell.create(row1, column0)).getContents(), value10);
         values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row1),
-                new ColumnRangeSelection(RangeRequests.nextLexicographicName(column0), PtBytes.EMPTY_BYTE_ARRAY, 1),
+                BatchColumnRangeSelection.create(RangeRequests.nextLexicographicName(column0), PtBytes.EMPTY_BYTE_ARRAY, 1),
                 TEST_TIMESTAMP + 1);
         assertEquals(1, values.size());
         batchValues = getValuesForRow(values, row1, 1);
@@ -201,19 +199,19 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         assertArrayEquals(batchValues.get(Cell.create(row1, column2)).getContents(), value12);
         values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row1),
-                new ColumnRangeSelection(RangeRequests.nextLexicographicName(column0), column2, 1),
+                BatchColumnRangeSelection.create(RangeRequests.nextLexicographicName(column0), column2, 1),
                 TEST_TIMESTAMP + 1);
         assertEquals(1, values.size());
         assertEquals(0, getValuesForRow(values, row1, 1).size());
         values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row1),
-                new ColumnRangeSelection(RangeRequests.nextLexicographicName(column2), PtBytes.EMPTY_BYTE_ARRAY, 1),
+                BatchColumnRangeSelection.create(RangeRequests.nextLexicographicName(column2), PtBytes.EMPTY_BYTE_ARRAY, 1),
                 TEST_TIMESTAMP + 1);
         assertEquals(1, values.size());
         assertEquals(0, getValuesForRow(values, row1, 1).size());
         values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row1),
-                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, Integer.MAX_VALUE),
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, Integer.MAX_VALUE),
                 TEST_TIMESTAMP + 1);
         assertEquals(1, values.size());
         batchValues = getValuesForRow(values, row1, 2);
@@ -227,7 +225,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         putTestDataForMultipleTimestamps();
         Map<byte[], RowColumnRangeIterator> values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row0),
-                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1),
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1),
                 TEST_TIMESTAMP + 2);
         assertEquals(1, values.size());
         Map<Cell, Value> batchValues = getValuesForRow(values, row0, 1);
@@ -235,7 +233,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         assertArrayEquals(value0_t1, batchValues.get(Cell.create(row0, column0)).getContents());
         values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row0),
-                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1),
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1),
                 TEST_TIMESTAMP + 1);
         assertEquals(1, values.size());
         batchValues = getValuesForRow(values, row0, 1);
@@ -258,13 +256,138 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         // the TEST_TIMESTAMP result so we have to get another page for column1.
         Map<byte[], RowColumnRangeIterator> values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row1),
-                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, RangeRequests.nextLexicographicName(column1), 2),
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, RangeRequests.nextLexicographicName(column1), 2),
                 TEST_TIMESTAMP + 1);
         assertEquals(1, values.size());
         Map<Cell, Value> batchValues = getValuesForRow(values, row1, 2);
         assertEquals(2, batchValues.size());
         assertArrayEquals(value0_t0, batchValues.get(Cell.create(row1, column0)).getContents());
         assertArrayEquals(value0_t0, batchValues.get(Cell.create(row1, column1)).getContents());
+    }
+
+    @Test
+    public void testGetRowColumnRangeMultipleRows() {
+        putTestDataForSingleTimestamp();
+        Map<byte[], RowColumnRangeIterator> values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row1, row0, row2),
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1),
+                TEST_TIMESTAMP + 1);
+        assertEquals(ImmutableSet.of(row0, row1, row2), values.keySet());
+        Map<Cell, Value> row0Values = getValuesForRow(values, row0, 2);
+        assertArrayEquals(value00, row0Values.get(Cell.create(row0, column0)).getContents());
+        assertArrayEquals(value01, row0Values.get(Cell.create(row0, column1)).getContents());
+        Map<Cell, Value> row1Values = getValuesForRow(values, row1, 2);
+        assertArrayEquals(value10, row1Values.get(Cell.create(row1, column0)).getContents());
+        assertArrayEquals(value12, row1Values.get(Cell.create(row1, column2)).getContents());
+        Map<Cell, Value> row2Values = getValuesForRow(values, row2, 2);
+        assertArrayEquals(value21, row2Values.get(Cell.create(row2, column1)).getContents());
+        assertArrayEquals(value22, row2Values.get(Cell.create(row2, column2)).getContents());
+    }
+
+    @Test
+    public void testGetRowColumnRangeCellBatchSingleRow() {
+        putTestDataForSingleTimestamp();
+        RowColumnRangeIterator values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row1),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                1,
+                TEST_TIMESTAMP + 1);
+        assertNextElementMatches(values, Cell.create(row1, column0), value10);
+        assertNextElementMatches(values, Cell.create(row1, column2), value12);
+        assertFalse(values.hasNext());
+        values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row1),
+                new ColumnRangeSelection(RangeRequests.nextLexicographicName(column0), PtBytes.EMPTY_BYTE_ARRAY),
+                1,
+                TEST_TIMESTAMP + 1);
+        assertNextElementMatches(values, Cell.create(row1, column2), value12);
+        assertFalse(values.hasNext());
+        values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row1),
+                new ColumnRangeSelection(RangeRequests.nextLexicographicName(column0), column2),
+                1,
+                TEST_TIMESTAMP + 1);
+        assertFalse(values.hasNext());
+        values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row1),
+                new ColumnRangeSelection(RangeRequests.nextLexicographicName(column2), PtBytes.EMPTY_BYTE_ARRAY),
+                1,
+                TEST_TIMESTAMP + 1);
+        assertFalse(values.hasNext());
+        values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row1),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                Integer.MAX_VALUE,
+                TEST_TIMESTAMP + 1);
+        assertNextElementMatches(values, Cell.create(row1, column0), value10);
+        assertNextElementMatches(values, Cell.create(row1, column2), value12);
+        assertFalse(values.hasNext());
+    }
+
+    @Test
+    public void testGetRowColumnRangeCellBatchMultipleRows() {
+        putTestDataForSingleTimestamp();
+        RowColumnRangeIterator values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row1, row0, row2),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                3,
+                TEST_TIMESTAMP + 1);
+        assertNextElementMatches(values, Cell.create(row1, column0), value10);
+        assertNextElementMatches(values, Cell.create(row1, column2), value12);
+        assertNextElementMatches(values, Cell.create(row0, column0), value00);
+        assertNextElementMatches(values, Cell.create(row0, column1), value01);
+        assertNextElementMatches(values, Cell.create(row2, column1), value21);
+        assertNextElementMatches(values, Cell.create(row2, column2), value22);
+        assertFalse(values.hasNext());
+    }
+
+    @Test
+    public void testGetRowColumnRangeCellBatchHistorical() {
+        putTestDataForMultipleTimestamps();
+        RowColumnRangeIterator values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row0),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                1,
+                TEST_TIMESTAMP + 2);
+        assertNextElementMatches(values, Cell.create(row0, column0), value0_t1);
+        assertFalse(values.hasNext());
+        values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row0),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                1,
+                TEST_TIMESTAMP + 1);
+        assertNextElementMatches(values, Cell.create(row0, column0), value0_t0);
+        assertFalse(values.hasNext());
+    }
+
+    @Test
+    public void testGetRowColumnRangeCellBatchMultipleHistorical() {
+        keyValueService.put(TEST_TABLE,
+                ImmutableMap.of(Cell.create(row1, column0), value0_t0), TEST_TIMESTAMP);
+        keyValueService.put(TEST_TABLE,
+                ImmutableMap.of(Cell.create(row1, column0), value0_t1), TEST_TIMESTAMP + 1);
+        keyValueService.put(TEST_TABLE,
+                ImmutableMap.of(Cell.create(row1, column1), value0_t0), TEST_TIMESTAMP);
+        keyValueService.put(TEST_TABLE,
+                ImmutableMap.of(Cell.create(row1, column1), value0_t1), TEST_TIMESTAMP + 1);
+
+        RowColumnRangeIterator values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row1),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, RangeRequests.nextLexicographicName(column1)),
+                2,
+                TEST_TIMESTAMP + 1);
+        assertNextElementMatches(values, Cell.create(row1, column0), value0_t0);
+        assertNextElementMatches(values, Cell.create(row1, column1), value0_t0);
+        assertFalse(values.hasNext());
+    }
+
+    private static void assertNextElementMatches(RowColumnRangeIterator iterator,
+                                                 Cell expectedCell,
+                                                 byte[] expectedContents) {
+        assertTrue(iterator.hasNext());
+        Map.Entry<Cell, Value> entry = iterator.next();
+        assertEquals(expectedCell, entry.getKey());
+        assertArrayEquals(expectedContents, entry.getValue().getContents());
     }
 
     @Test

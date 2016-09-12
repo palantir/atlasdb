@@ -34,15 +34,12 @@ public class ColumnRangeSelection implements Serializable {
     private final byte[] startCol;
     // Exclusive end column name.
     private final byte[] endCol;
-    private final int batchHint;
 
     @JsonCreator
-    public ColumnRangeSelection(@JsonProperty("startInclusive") byte[] startCol,
-                                @JsonProperty("endExclusive") byte[] endCol,
-                                @JsonProperty("batchHint") int batchHint) {
+    public ColumnRangeSelection(@JsonProperty("startCol") byte[] startCol,
+                                @JsonProperty("endCol") byte[] endCol) {
         this.startCol = MoreObjects.firstNonNull(startCol, PtBytes.EMPTY_BYTE_ARRAY);
         this.endCol = MoreObjects.firstNonNull(endCol, PtBytes.EMPTY_BYTE_ARRAY);
-        this.batchHint = batchHint;
     }
 
     public byte[] getStartCol() {
@@ -51,10 +48,6 @@ public class ColumnRangeSelection implements Serializable {
 
     public byte[] getEndCol() {
         return endCol;
-    }
-
-    public int getBatchHint() {
-        return batchHint;
     }
 
     @Override
@@ -66,31 +59,29 @@ public class ColumnRangeSelection implements Serializable {
             return false;
         }
         ColumnRangeSelection that = (ColumnRangeSelection) obj;
-        return batchHint == that.batchHint
-                && Arrays.equals(startCol, that.startCol)
+        return Arrays.equals(startCol, that.startCol)
                 && Arrays.equals(endCol, that.endCol);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(Arrays.hashCode(startCol), Arrays.hashCode(endCol), batchHint);
+        return Objects.hash(Arrays.hashCode(startCol), Arrays.hashCode(endCol));
     }
 
     private static final Pattern deserializeRegex = Pattern.compile("\\s*,\\s*");
 
     public static ColumnRangeSelection valueOf(String serialized) {
-        String[] split = deserializeRegex.split(serialized);
+        // Pass in -1 to split so that it doesn't discard empty strings
+        String[] split = deserializeRegex.split(serialized, -1);
         byte[] startCol = PtBytes.decodeBase64(split[0]);
         byte[] endCol = PtBytes.decodeBase64(split[1]);
-        int batchHint = Integer.parseInt(split[2]);
-        return new ColumnRangeSelection(startCol, endCol, batchHint);
+        return new ColumnRangeSelection(startCol, endCol);
     }
 
     @Override
     public String toString() {
         String start = PtBytes.encodeBase64String(startCol);
         String end = PtBytes.encodeBase64String(endCol);
-        String batch = String.valueOf(batchHint);
-        return Joiner.on(',').join(ImmutableList.of(start, end, batch));
+        return Joiner.on(',').join(ImmutableList.of(start, end));
     }
 }

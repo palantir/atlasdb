@@ -37,8 +37,8 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -104,7 +104,7 @@ public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceT
         assertEquals(rowResult, rowResultDeserialized);
 
         RemoteRowColumnRangeIterator rowColumnRangeIterator = new RemoteRowColumnRangeIterator(TableReference.create(Namespace.create("ns"), "test_table"),
-                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1), 100L, true,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1), 100L, true,
                 ImmutableList.copyOf(ImmutableMap.of(cell, value).entrySet()));
         String serializedRowColumnRangeIterator = mapper.writeValueAsString(rowColumnRangeIterator);
         RowColumnRangeIterator rowColumnRangeIteratorDeserialized = mapper.readValue(serializedRowColumnRangeIterator, RowColumnRangeIterator.class);
@@ -112,7 +112,7 @@ public class KeyValueServiceRemotingTest extends AbstractAtlasDbKeyValueServiceT
         assertEquals(rowColumnRangeIterator, rowColumnRangeIteratorDeserialized);
 
         rowColumnRangeIterator = new RemoteRowColumnRangeIterator(TableReference.create(Namespace.create("ns"), "test_table"),
-                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1), 100L, false,
+                BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1), 100L, false,
                 ImmutableList.of());
         serializedRowColumnRangeIterator = mapper.writeValueAsString(rowColumnRangeIterator);
         rowColumnRangeIteratorDeserialized = mapper.readValue(serializedRowColumnRangeIterator, RowColumnRangeIterator.class);

@@ -8,7 +8,7 @@ applicationName = 'atlasdb'
 
 dependencies {
   compile project(':atlasdb-cassandra')
-  compile project(':atlasdb-dagger')
+  compile project(path: ':atlasdb-dagger', configuration: 'shadow')
   compile 'io.airlift:airline:0.7'
 
   runtime project(':atlasdb-rocksdb')

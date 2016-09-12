@@ -13,14 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete.dropwizard;
+package com.palantir.atlasdb.ete;
+
+import java.util.List;
 
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
-import com.palantir.atlasdb.ete.EteSetup;
+import com.google.common.collect.ImmutableList;
 
-public class CassandraNoLeaderDropwizardEteTest extends DropwizardEteTest {
+@RunWith(Suite.class)
+@Suite.SuiteClasses({
+        TodoEteTest.class,
+        DropwizardEteTest.class
+})
+public class DbKvsTestSuite extends EteSetup {
+    private static final List<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");
+
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("cassandra-no-leader-dropwizard", "docker-compose.no-leader.cassandra.yml");
+    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("dbkvs", "docker-compose.dbkvs.yml", CLIENTS);
 }

@@ -30,7 +30,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -145,11 +147,25 @@ public class BatchedDbReadTable extends AbstractDbReadTable {
     }
 
     @Override
-    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(List<byte[]> rows, long ts,
-                                                                       ColumnRangeSelection columnRangeSelection) {
+    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRangeCounts(
+            List<byte[]> rows,
+            long ts,
+            ColumnRangeSelection columnRangeSelection) {
         Queue<Future<ClosableIterator<AgnosticLightResultRow>>> futures = Queues.newArrayDeque();
-        for (final List<byte[]> batch : Lists.partition(rows, getBatchSize())) {
-            futures.add(submit(exec, queryFactory.getRowsColumnRangeQuery(batch, ts, columnRangeSelection)));
+        for (List<byte[]> batch : Lists.partition(rows, getBatchSize())) {
+            futures.add(submit(exec, queryFactory.getRowsColumnRangeCountsQuery(batch, ts, columnRangeSelection)));
+        }
+        return new LazyClosableIterator<AgnosticLightResultRow>(futures);
+    }
+
+    @Override
+    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(
+            Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow,
+            long ts) {
+        Queue<Future<ClosableIterator<AgnosticLightResultRow>>> futures = Queues.newArrayDeque();
+        for (List<byte[]> batch : Iterables.partition(columnRangeSelectionsByRow.keySet(), getBatchSize())) {
+            futures.add(submit(exec,
+                    queryFactory.getRowsColumnRangeQuery(Maps.toMap(batch, columnRangeSelectionsByRow::get), ts)));
         }
         return new LazyClosableIterator<AgnosticLightResultRow>(futures);
     }
