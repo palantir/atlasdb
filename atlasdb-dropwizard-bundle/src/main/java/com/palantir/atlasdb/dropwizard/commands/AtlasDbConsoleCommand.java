@@ -92,7 +92,7 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
         try {
             AtlasConsoleMain.main(allArgs.toArray(new String[] {}));
         } catch (Throwable e) {
-            log.error("FATAL: error parsing console args", e);
+            log.error("Error running AtlasDB console", e);
             throw e;
         }
     }

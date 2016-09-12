@@ -149,7 +149,7 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
         try {
             CLI.parse(allArgs).call();
         } catch (Throwable e) {
-            log.error("FATAL: error parsing CLI args", e);
+            log.error("Error running AtlasDB CLI", e);
             throw e;
         }
     }
