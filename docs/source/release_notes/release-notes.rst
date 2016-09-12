@@ -61,6 +61,10 @@ v0.15.0
            using wide rows should consider using ``getRowsColumnRange`` instead of ``getRows`` in ``KeyValueService``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/724>`__)
 
+    *    - |changed|
+         - Reverted our Dagger dependency from 2.4 to 2.0.2 and shadowed it so that it won't conflict with internal products.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/926>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
