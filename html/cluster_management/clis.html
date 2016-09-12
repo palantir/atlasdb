@@ -181,12 +181,13 @@ offers default AtlasDB configuration and connection out of the box.</p>
 </div>
 </div>
 <div class="section" id="offline-clis">
-<h2>Offline CLIs<a class="headerlink" href="#offline-clis" title="Permalink to this headline">¶</a></h2>
-<p>Due to their destructive nature for in-progress transactions, there are two sub-commands of the timestamp CLI which can only be run when AtlasDB is offline. These are:</p>
+<span id="id1"></span><h2>Offline CLIs<a class="headerlink" href="#offline-clis" title="Permalink to this headline">¶</a></h2>
+<p>Due to their potentially destructive nature if run concurrently with active AtlasDB services, there a number of CLIs which can only be run when AtlasDB is offline. These are:</p>
 <blockquote>
 <div><ul class="simple">
-<li><code class="docutils literal"><span class="pre">clean-transactions</span></code></li>
-<li><code class="docutils literal"><span class="pre">fast-forward</span></code></li>
+<li><code class="docutils literal"><span class="pre">clean-cass-locks-state</span></code></li>
+<li><code class="docutils literal"><span class="pre">timestamp</span> <span class="pre">clean-transactions</span></code></li>
+<li><code class="docutils literal"><span class="pre">timestamp</span> <span class="pre">fast-forward</span></code></li>
 </ul>
 </div></blockquote>
 <p>To run these CLIs, first ensure that all of your AtlasDB clients are shut down, and then run the CLI with the <code class="docutils literal"><span class="pre">--offline</span></code> flag.</p>

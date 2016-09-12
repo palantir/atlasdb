@@ -183,6 +183,15 @@ unless it is necessary to page through the results for different rows separately
 using wide rows should consider using <code class="docutils literal"><span class="pre">getRowsColumnRange</span></code> instead of <code class="docutils literal"><span class="pre">getRows</span></code> in <code class="docutils literal"><span class="pre">KeyValueService</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/724">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Added a <a class="reference internal" href="../cluster_management/clis.html#offline-clis"><span class="std std-ref">CLI</span></a> to truncate the locks table.
+This is useful on Cassandra KVS, if a node goes down during a schema mutation and does not release the schema mutation lock.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/888">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>Reverted our Dagger dependency from 2.4 to 2.0.2 and shadowed it so that it won&#8217;t conflict with internal products.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/926">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
