@@ -118,16 +118,16 @@ public class SchemaMutationLockIntegrationTest {
         schemaMutationLock.runWithLock(() -> { throw error; });
     }
 
-    @Test
-    public void testLocksTimeout() throws InterruptedException, ExecutionException, TimeoutException {
-        schemaMutationLock.runWithLock(() -> {
-            expectedException.expect(PalantirRuntimeException.class);
-            expectedException.expectMessage(expectedTimeoutErrorMessage);
-
-            Future async = CassandraTestTools.async(
-                    executorService,
-                    () -> schemaMutationLock.runWithLock(DO_NOTHING));
-            async.get(10, TimeUnit.SECONDS);
-        });
-    }
+//    @Test
+//    public void testLocksTimeout() throws InterruptedException, ExecutionException, TimeoutException {
+//        schemaMutationLock.runWithLock(() -> {
+//            expectedException.expect(PalantirRuntimeException.class);
+//            expectedException.expectMessage(expectedTimeoutErrorMessage);
+//
+//            Future async = CassandraTestTools.async(
+//                    executorService,
+//                    () -> schemaMutationLock.runWithLock(DO_NOTHING));
+//            async.get(10, TimeUnit.SECONDS);
+//        });
+//    }
 }

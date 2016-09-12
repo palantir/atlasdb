@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
@@ -26,6 +28,7 @@ import org.apache.cassandra.thrift.TriggerDef;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public final class CassandraConstants {
@@ -87,7 +90,16 @@ public final class CassandraConstants {
     public static final String GLOBAL_DDL_LOCK = "Global DDL lock";
     public static final String GLOBAL_DDL_LOCK_COLUMN_NAME = "id_with_lock";
     public static final long TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS = 1000;
-    public static final long GLOBAL_DDL_LOCK_CLEARED_VALUE = Long.MAX_VALUE;
+    public static final long HEARTBEAT_TIME_PERIOD_MILLIS = 500;
+    public static final String GLOBAL_DDL_LOCK_FORMAT = "%1$d_%2$d";
+    public static final long GLOBAL_DDL_LOCK_CLEARED_ID = Long.MAX_VALUE;
+    public static final String GLOBAL_DDL_LOCK_CLEARED_VALUE = String.format(
+            GLOBAL_DDL_LOCK_FORMAT, GLOBAL_DDL_LOCK_CLEARED_ID, 0);
+
+    public static final Cell GLOBAL_DDL_LOCK_CELL = Cell.create(
+            CassandraConstants.GLOBAL_DDL_LOCK.getBytes(StandardCharsets.UTF_8),
+            CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8));
+    public static final ByteBuffer GLOBAL_DDL_LOCK_ROW_NAME = ByteBuffer.wrap(GLOBAL_DDL_LOCK_CELL.getRowName());
 
     private CassandraConstants() {
         // Utility class
