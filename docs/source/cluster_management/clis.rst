@@ -45,6 +45,8 @@ timestamp
 
 Read or recalculate the immutable timestamp. Run ``./bin/atlasdb help timestamp`` for more information.
 
+.. _offline-clis:
+
 Offline CLIs
 ============
 
