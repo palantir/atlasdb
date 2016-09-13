@@ -76,13 +76,6 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
         this.startTimestamp = startTimestamp;
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
-        this.isClosed = false;
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E,
-            TransactionFailedRetriableException {
-        throw new UnsupportedOperationException("this manager is read only");
     }
 
     @Override
@@ -97,6 +90,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
 
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
+        checkOpen();
         SnapshotTransaction txn = new ShouldNotDeleteAndRollbackTransaction(
                 keyValueService,
                 transactionService,
@@ -111,6 +105,12 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     public void close() {
         super.close();
         keyValueService.close();
+    }
+
+    @Override
+    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E,
+            TransactionFailedRetriableException {
+        throw new UnsupportedOperationException("this manager is read only");
     }
 
     @Override
