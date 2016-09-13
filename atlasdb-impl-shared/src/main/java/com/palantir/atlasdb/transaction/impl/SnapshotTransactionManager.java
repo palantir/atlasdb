@@ -98,6 +98,7 @@ import com.palantir.timestamp.TimestampService;
         this.constraintModeSupplier = constraintModeSupplier;
         this.cleaner = cleaner;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
+        this.isClosed = false;
     }
 
     @Override
@@ -211,6 +212,7 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public void close() {
+        super.close();
         cleaner.close();
         keyValueService.close();
     }

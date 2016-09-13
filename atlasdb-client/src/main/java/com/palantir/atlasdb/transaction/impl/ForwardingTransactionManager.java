@@ -53,7 +53,7 @@ public abstract class ForwardingTransactionManager extends ForwardingObject impl
     }
 
     @Override
-    public void close() {
+    public void close() throws Exception {
         delegate().close();
     }
 }

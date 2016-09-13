@@ -21,10 +21,11 @@ import java.io.InputStream;
 import java.util.Set;
 import java.util.UUID;
 
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Closeables;
@@ -44,14 +45,12 @@ public class ProfileStoreTest {
     UserProfile user = UserProfile.newBuilder().setBirthEpochDay(0).setName("first last").build();
     public static final byte[] IMAGE = new byte[] {0, 1, 2, 3};
 
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
+
     @Before
     public void setup() {
         txnMgr = InMemoryAtlasDbFactory.createInMemoryTransactionManager(ProfileSchema.INSTANCE);
-    }
-
-    @After
-    public void tearDown() {
-        txnMgr.close();
     }
 
     interface ProfileStoreTask<T> {
@@ -59,7 +58,7 @@ public class ProfileStoreTest {
     }
 
     @Test
-    public void testStore() {
+    public void testStore() throws Exception {
         final UUID userId = storeUser();
         runWithRetry(new ProfileStoreTask<UUID>() {
             @Override
@@ -72,7 +71,15 @@ public class ProfileStoreTest {
     }
 
     @Test
-    public void testStoreImage() {
+    public void testStoreGetDataThrowsAfterTransactionManagerIsClosedThrows() throws Exception {
+        txnMgr.close();
+        exception.expect(IllegalStateException.class);
+        exception.expectMessage("Operations cannot be performed on closed TransactionManager.");
+        testStore();
+    }
+
+    @Test
+    public void testStoreImage() throws Exception {
         final UUID userId = storeUser();
         storeImage(userId);
         runWithRetry(new ProfileStoreTask<Void>() {
@@ -92,7 +99,15 @@ public class ProfileStoreTest {
         });
     }
 
-    private void storeImage(final UUID userId) {
+    @Test
+    public void testStoreImageThrowsAfterTransactionManagerIsClosedThrows() throws Exception {
+        txnMgr.close();
+        exception.expect(IllegalStateException.class);
+        exception.expectMessage("Operations cannot be performed on closed TransactionManager.");
+        testStoreImage();
+    }
+
+    private void storeImage(final UUID userId) throws Exception {
         runWithRetry(new ProfileStoreTask<Void>() {
             @Override
             public Void execute(ProfileStore store) {
@@ -106,7 +121,7 @@ public class ProfileStoreTest {
     }
 
     @Test
-    public void testDeleteImage() {
+    public void testDeleteImage() throws Exception {
         final UUID userId = storeUser();
         storeImage(userId);
         runWithRetry(Transaction.TransactionType.AGGRESSIVE_HARD_DELETE, new ProfileStoreTask<UUID>() {
@@ -128,7 +143,15 @@ public class ProfileStoreTest {
     }
 
     @Test
-    public void testBirthdayIndex() {
+    public void testDeleteImageThrowsAfterTransactionManagerIsClosedThrows() throws Exception {
+        txnMgr.close();
+        exception.expect(IllegalStateException.class);
+        exception.expectMessage("Operations cannot be performed on closed TransactionManager.");
+        testDeleteImage();
+    }
+
+    @Test
+    public void testBirthdayIndex() throws Exception {
         final UUID userId = storeUser();
         runWithRetry(new ProfileStoreTask<UUID>() {
             @Override
@@ -140,7 +163,15 @@ public class ProfileStoreTest {
         });
     }
 
-    private UUID storeUser() {
+    @Test
+    public void testBirthdayIndexThrowsAfterTransactionManagerIsClosedThrows() throws Exception {
+        txnMgr.close();
+        exception.expect(IllegalStateException.class);
+        exception.expectMessage("Operations cannot be performed on closed TransactionManager.");
+        testDeleteImage();
+    }
+
+    private UUID storeUser() throws Exception {
         return runWithRetry(new ProfileStoreTask<UUID>() {
             @Override
             public UUID execute(ProfileStore store) {
@@ -152,11 +183,12 @@ public class ProfileStoreTest {
         });
     }
 
-    protected <T> T runWithRetry(final ProfileStoreTask<T> task) {
+    protected <T> T runWithRetry(final ProfileStoreTask<T> task) throws Exception {
         return runWithRetry(Transaction.TransactionType.DEFAULT, task);
     }
 
-    protected <T> T runWithRetry(final Transaction.TransactionType type, final ProfileStoreTask<T> task) {
+    protected <T> T runWithRetry(final Transaction.TransactionType type, final ProfileStoreTask<T> task)
+            throws Exception {
         return txnMgr.runTaskWithRetry(new TransactionTask<T, RuntimeException>() {
             @Override
             public T execute(Transaction t) {

@@ -63,7 +63,7 @@ import com.palantir.lock.LockRefreshToken;
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
 
     @Override
-    protected TransactionManager getManager() {
+    protected TransactionManager createManager() {
         return new SerializableTransactionManager(
                 keyValueService,
                 timestampService,

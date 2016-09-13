@@ -97,6 +97,11 @@ v0.14.0
            Please refer to :ref:`Example Leader Configurations <leader-config-examples>` for guidance on valid configurations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/854>`__)
 
+    *    - |breaking|
+         - All TransactionManagers are now AutoCloseable and implement a close method that will free up the underlying resources.
+           No operations can be performed using the TransactionManager once it is closed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/907>`__)
+
     *    - |fixed|
          - Fixed and standardized serialization and deserialization of AtlasDBConfig.
            This prevented CLIs deployed via the :ref:`Dropwizard bundle <dropwizard-bundle>` from loading configuration properly.
@@ -107,6 +112,7 @@ v0.14.0
            This also bumps our Guava dependency from 18.0 to 19.0 to accommodate a Dagger compile dependency.
            We plan on shading Dagger in the next release of AtlasDB, but products can force a Guava 18.0 runtime dependency to workaround the issue in the meantime.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/878>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
