@@ -1,0 +1,20 @@
+version: '2'
+
+services:
+  postgres:
+    image: kiasaki/alpine-postgres:latest
+    environment:
+      POSTGRES_PASSWORD: palantir
+      POSTGRES_USER: palantir
+      POSTGRES_DB: atlas
+
+  cassandra:
+    image: com.palantir.docker/atlas-cassandra:2.2-v0.1
+    environment:
+      - LOCAL_JMX=no
+
+  proxy:
+    image: vimagick/dante:latest
+    ports:
+      - "1080"
+    command: bash -c 'sed -i.bak "s/username //" /etc/sockd.conf && sockd -f /etc/sockd.conf -p /tmp/sockd.pid -N 10'

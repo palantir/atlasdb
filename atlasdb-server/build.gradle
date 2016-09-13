@@ -8,15 +8,35 @@ applicationName = 'atlasdb-server'
 
 dependencies {
     compile project(':atlasdb-config')
-    compile project(':atlasdb-impl-shared')
+
+    runtime project(':atlasdb-impl-shared') // In-memory  KVS
+    runtime project(':atlasdb-cassandra')   // Cassandra  KVS
+    runtime project(':atlasdb-dbkvs')       // Relational KVS
+    runtime project(':atlasdb-rocksdb')     // RocksDB    KVS
 
     compile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.dropwizard
 
     processor group: 'org.immutables', name: 'value', version: libVersions.immutables
+
+    testCompile group: 'com.jayway.awaitility', name: 'awaitility', version: '1.6.5'
+    testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: libVersions.dockerComposeRule
+    testCompile group: 'io.dropwizard', name: 'dropwizard-testing', version: libVersions.dropwizard
+    testCompile group: 'net.amygdalum', name: 'xrayinterface', version: '0.3.0'
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
     resolutionStrategy {
+        force group: 'ch.qos.logback', name: 'logback-classic', version: '1.1.3'
+        force group: 'ch.qos.logback', name: 'logback-core', version: '1.1.3'
+        force group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
+        force group: 'commons-codec', name: 'commons-codec', version: libVersions.commons_codec
+        force group: 'io.dropwizard.metrics', name: 'metrics-core', version: '3.1.1'
+        force group: 'joda-time', name: 'joda-time', version: libVersions.joda_time
         force group: 'org.apache.commons', name: 'commons-lang3', version: libVersions.commons_lang3
+        force group: 'org.apache.thrift', name: 'libthrift', version: libVersions.libthrift
+        force group: 'org.hibernate', name: 'hibernate-validator', version: '5.1.3.Final'
+        force group: 'org.slf4j', name: 'jcl-over-slf4j', version: libVersions.slf4j
+        force group: 'org.slf4j', name: 'log4j-over-slf4j', version: libVersions.slf4j
+        force group: 'org.yaml', name: 'snakeyaml', version: '1.12'
     }
 }
