@@ -42,28 +42,25 @@ v0.15.0
          - Change
 
     *    - |new|
-         - ``CassandraKeyValueServiceConfiguration`` now supports :ref:`column paging <cassandra-sweep-config>`
-           via the ``timestampsGetterBatchSize`` parameter.
+         - :ref:`AtlasDB Sweep <physical-cleanup-sweep>` now uses :ref:`column paging <cassandra-sweep-config>` via the ``timestampsGetterBatchSize`` parameter to better handle sweeping cells with many historical versions.
 
-           Enabling such paging could make :ref:`Sweep <physical-cleanup-sweep>` more reliable by helping
-           prevent sweep jobs from causing Cassandra nodes to run out of memory if the underlying Cassandra
-           KVS contains rows that store large values and change frequently.
-
-           This feature is experimental and disabled by default; please
-           reach out to the AtlasDB dev team if you would like to enable it.
+           By paging over historical versions of cells during sweeping, we can avoid out of memory exceptions in Cassandra when we have particularly large cells or many historical versions of cells.
+           This feature is only implemented for Cassandra KVS and is disabled by default; please reach out to the AtlasDB dev team if you would like to enable it.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/834>`__)
 
     *    - |new|
-         - Added a second implementation of ``getRowsColumnRange`` method which allows you to page through dynamic columns
-           in a single iterator. This is expected to perform better than the previous ``getRowsColumnRange`` which allows
-           you to page through columns per row with certain KVS stores (e.g. SQL stores), so should be preferred
-           unless it is necessary to page through the results for different rows separately. Products or clients
-           using wide rows should consider using ``getRowsColumnRange`` instead of ``getRows`` in ``KeyValueService``.
+         - Added a second implementation of ``getRowsColumnRange`` method which allows you to page through dynamic columns in a single iterator.
+           This is expected to perform better than the previous ``getRowsColumnRange``, which allows you to page through columns per row with certain KVS stores (e.g. DB KVS).
+           The new method should be preferred unless it is necessary to page through the results for different rows separately.
+
+           Products or clients using wide rows should consider using ``getRowsColumnRange`` instead of ``getRows`` in ``KeyValueService``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/724>`__)
 
     *    - |new|
-         - Added a :ref:`CLI <offline-clis>` to truncate the locks table.
-           This is useful on Cassandra KVS, if a node goes down during a schema mutation and does not release the schema mutation lock.
+         - Added an :ref:`offline CLI <offline-clis>` called ``clean-cass-locks-state`` to truncate the locks table when the schema mutation lock has been lost.
+
+           This is useful on Cassandra KVS if an AtlasDB client goes down during a schema mutation and does not release the schema mutation lock, preventing other clients from continuing.
+           Previously an error message would direct users to manually truncate this table with CQL, but now this error message references the CLI.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/888>`__)
 
     *    - |changed|
