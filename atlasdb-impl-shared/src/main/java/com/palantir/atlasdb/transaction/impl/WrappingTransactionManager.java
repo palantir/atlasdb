@@ -104,7 +104,7 @@ public abstract class WrappingTransactionManager extends ForwardingLockAwareTran
     }
 
     @Override
-    public void close() {
+    public void close() throws Exception {
         delegate().close();
     }
 }

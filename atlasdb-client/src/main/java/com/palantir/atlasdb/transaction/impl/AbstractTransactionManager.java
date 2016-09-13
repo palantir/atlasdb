@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.impl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -28,8 +29,11 @@ import com.palantir.common.base.Throwables;
 public abstract class AbstractTransactionManager implements TransactionManager {
     public static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
 
+    protected boolean isClosed;
+
     @Override
     public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E {
+        Preconditions.checkState(!isClosed, "Operations cannot be performed on closed TransactionManager.");
         int failureCount = 0;
         while (true) {
             try {
@@ -55,15 +59,18 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     }
 
     protected void sleepForBackoff(@SuppressWarnings("unused") int numTimesFailed) {
+        Preconditions.checkState(!isClosed, "Operations cannot be performed on closed TransactionManager.");
         // no-op
     }
 
     protected boolean shouldStopRetrying(@SuppressWarnings("unused") int numTimesFailed) {
+        Preconditions.checkState(!isClosed, "Operations cannot be performed on closed TransactionManager.");
         return false;
     }
 
     final protected <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task, Transaction t)
             throws E, TransactionFailedException {
+        Preconditions.checkState(!isClosed, "Operations cannot be performed on closed TransactionManager.");
         try {
             T ret = task.execute(t);
             if (t.isUncommitted()) {
@@ -78,4 +85,11 @@ public abstract class AbstractTransactionManager implements TransactionManager {
             }
         }
     }
+
+    @Override
+    public void close() {
+        Preconditions.checkState(!isClosed, "Operations cannot be performed on closed TransactionManager.");
+        isClosed = true;
+    }
+
 }
