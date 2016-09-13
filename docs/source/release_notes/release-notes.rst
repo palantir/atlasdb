@@ -31,6 +31,25 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.16.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |breaking|
+         - Removed ``TransactionManager`` implementations ``ShellAwareReadOnlyTransactionManager``,
+           `ThreadLocalWrappingTransactionManager`` and ``AtlasDbBackendDebugTransactionManager``. These are no longer
+           supported by AtlasDB and products are not expected to use them.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.15.0
 =======
 
