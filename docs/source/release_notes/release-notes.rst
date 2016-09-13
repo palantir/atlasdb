@@ -41,6 +41,14 @@ v0.15.0
     *    - Type
          - Change
 
+    *    - |improved|
+         - We have removed references to temp tables and no longer attempt to drop temp tables when aborting transactions.
+
+           Temp tables are not currently being used by any KVSs, yet we were still calling ``dropTempTables()`` when we abort transactions.
+           Since dropping tables is a schema mutation, this has the side effect of increasing the likelihood that we lose the schema mutation lock when there are many concurrent transactions.
+           Removing temp tables entirely should reduce the need to manually truncate the locks table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/916>`__)
+
     *    - |new|
          - :ref:`AtlasDB Sweep <physical-cleanup-sweep>` now uses :ref:`column paging <cassandra-sweep-config>` via the ``timestampsGetterBatchSize`` parameter to better handle sweeping cells with many historical versions.
 
