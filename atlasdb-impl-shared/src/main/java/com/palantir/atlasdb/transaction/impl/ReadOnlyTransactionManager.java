@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.Cell;

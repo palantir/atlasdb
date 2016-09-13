@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -87,10 +86,6 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         return true;
     }
 
-    protected Set<TableReference> getTestTables() {
-        return ImmutableSet.of(TEST_TABLE);
-    }
-
     protected Transaction startTransaction() {
         return new SnapshotTransaction(
                 keyValueService,
@@ -107,8 +102,6 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION);
     }
-
-
 
     @Test
     public void testBigValue() {
