@@ -15,9 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -25,7 +23,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -45,7 +42,6 @@ public abstract class AbstractTransaction implements Transaction {
             ImmutableSortedMap.<byte[], RowResult<byte[]>> orderedBy(
                     UnsignedBytes.lexicographicalComparator()).build();
 
-    private final Set<TableReference> tempTables = Sets.newSetFromMap(Maps.<TableReference, Boolean> newConcurrentMap());
     private final ConcurrentMap<TableReference, AtomicLong> inMemTempSizeByTable = Maps.newConcurrentMap();
     private final ConcurrentMap<TableReference, AtomicLong> batchNumber = Maps.newConcurrentMap();
 
@@ -61,18 +57,6 @@ public abstract class AbstractTransaction implements Transaction {
     @Idempotent
     final public void setTransactionType(TransactionType transactionType) {
         this.transactionType = transactionType;
-    }
-
-    public boolean isTempTable(TableReference tableRef) {
-        return tempTables.contains(tableRef);
-    }
-
-    protected Set<TableReference> getAllTempTables() {
-        return Collections.unmodifiableSet(tempTables);
-    }
-
-    protected void dropTempTables() {
-        getKeyValueService().dropTables(tempTables);
     }
 
     private AtomicLong getTempSize(TableReference tableRef) {

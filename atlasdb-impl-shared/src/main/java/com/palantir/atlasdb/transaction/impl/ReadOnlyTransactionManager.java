@@ -96,14 +96,14 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
 
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
-        SnapshotTransaction txn = new ReadOnlyTransaction(
+        SnapshotTransaction txn = new ShouldNotDeleteAndRollbackTransaction(
                 keyValueService,
                 transactionService,
                 startTimestamp.get(),
                 constraintCheckingMode,
                 readSentinelBehavior,
                 allowHiddenTableAccess);
-        return runTaskThrowOnConflict(task, txn);
+        return runTaskThrowOnConflict(task, new ReadTransaction(txn, txn.sweepStrategyManager));
     }
 
     @Override
