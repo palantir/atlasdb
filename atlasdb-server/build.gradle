@@ -40,3 +40,9 @@ configurations.matching({ it.name in ['compile', 'runtime'] }).all {
         force group: 'org.yaml', name: 'snakeyaml', version: '1.12'
     }
 }
+
+distribution {
+    serviceName 'atlasdb-server'
+    mainClass 'com.palantir.atlasdb.AtlasDbServer'
+    args 'server', 'var/conf/atlasdb-server.yml'
+}
