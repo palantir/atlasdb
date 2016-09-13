@@ -39,7 +39,7 @@ public abstract class AbstractLockAwareTransactionManager
             Iterable<HeldLocksToken> lockTokens,
             Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException {
-        Preconditions.checkState(!isClosed, "Operations cannot be performed on closed TransactionManager.");
+        Preconditions.checkState(checkOpen(), "Operations cannot be performed on closed TransactionManager.");
 
         int failureCount = 0;
         while (true) {
@@ -99,14 +99,14 @@ public abstract class AbstractLockAwareTransactionManager
             Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task)
             throws E, InterruptedException {
-        Preconditions.checkState(!isClosed, "Operations cannot be performed on closed TransactionManager.");
+        Preconditions.checkState(checkOpen(), "Operations cannot be performed on closed TransactionManager.");
 
         return runTaskWithLocksWithRetry(ImmutableList.of(), lockSupplier, task);
     }
 
     @Override
     public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E {
-        Preconditions.checkState(!isClosed, "Operations cannot be performed on closed TransactionManager.");
+        Preconditions.checkState(checkOpen(), "Operations cannot be performed on closed TransactionManager.");
 
         return runTaskWithLocksThrowOnConflict(ImmutableList.of(), LockAwareTransactionTasks.asLockAware(task));
     }

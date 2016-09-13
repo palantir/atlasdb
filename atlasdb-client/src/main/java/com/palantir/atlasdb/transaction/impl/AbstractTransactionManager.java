@@ -33,7 +33,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
 
     @Override
     public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E {
-        Preconditions.checkState(!isClosed, "Operations cannot be performed on closed TransactionManager.");
+        Preconditions.checkState(checkOpen(), "Operations cannot be performed on closed TransactionManager.");
         int failureCount = 0;
         while (true) {
             try {
@@ -59,18 +59,18 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     }
 
     protected void sleepForBackoff(@SuppressWarnings("unused") int numTimesFailed) {
-        Preconditions.checkState(!isClosed, "Operations cannot be performed on closed TransactionManager.");
+        Preconditions.checkState(checkOpen(), "Operations cannot be performed on closed TransactionManager.");
         // no-op
     }
 
     protected boolean shouldStopRetrying(@SuppressWarnings("unused") int numTimesFailed) {
-        Preconditions.checkState(!isClosed, "Operations cannot be performed on closed TransactionManager.");
+        Preconditions.checkState(checkOpen(), "Operations cannot be performed on closed TransactionManager.");
         return false;
     }
 
     final protected <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task, Transaction t)
             throws E, TransactionFailedException {
-        Preconditions.checkState(!isClosed, "Operations cannot be performed on closed TransactionManager.");
+        Preconditions.checkState(checkOpen(), "Operations cannot be performed on closed TransactionManager.");
         try {
             T ret = task.execute(t);
             if (t.isUncommitted()) {
@@ -88,8 +88,12 @@ public abstract class AbstractTransactionManager implements TransactionManager {
 
     @Override
     public void close() {
-        Preconditions.checkState(!isClosed, "Operations cannot be performed on closed TransactionManager.");
-        isClosed = true;
+        if (checkOpen()) {
+            isClosed = true;
+        }
     }
 
+    protected boolean checkOpen() {
+        return !isClosed;
+    }
 }
