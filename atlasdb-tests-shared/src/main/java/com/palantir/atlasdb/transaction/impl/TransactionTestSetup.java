@@ -92,7 +92,7 @@ public abstract class TransactionTestSetup {
         transactionService = TransactionServices.createTransactionService(keyValueService);
         conflictDetectionManager = ConflictDetectionManagers.createDefault(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        txMgr = createManager();
+        txMgr = getManager();
     }
 
     @After
@@ -109,7 +109,7 @@ public abstract class TransactionTestSetup {
         }
     }
 
-    protected TransactionManager createManager() {
+    protected TransactionManager getManager() {
         return new TestTransactionManagerImpl(keyValueService, timestampService, lockClient, lockService,
                 transactionService, conflictDetectionManager, sweepStrategyManager);
     }

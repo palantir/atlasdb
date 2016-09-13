@@ -926,7 +926,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                                 throw Throwables.throwUncheckedException(e);
                             }
                             MapEntries.putAll(vals, item.getCells());
-                            if (Arrays.equals(item.getRowName(),"row1".getBytes())) {
+                            if (Arrays.equals(item.getRowName(), "row1".getBytes())) {
                                 assertEquals("v5", new String(item.getColumns().get("col1".getBytes())));
                                 assertEquals(3, IterableView.of(item.getCells()).size());
                             }
@@ -951,7 +951,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         latch.await();
 
         // These puts will be seen by the range scan happening on the other thread
-        put(t, "row1", "colx1", "v5"); // this put is checked to exist
+        put(t, "row1", "col1", "v5"); // this put is checked to exist
         put(t, "row1", "col3", "v6"); // it is checked there are 3 cells for this
         put(t, "row3", "col1", "v7");
         delete(t, "row2", "col1"); // this delete is checked
@@ -962,7 +962,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     @Test
     public void testReadMyWritesManager() {
-        createManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
+        getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
             public Void execute(Transaction t) throws RuntimeException {
                 put(t, "row1", "col1", "v1");
@@ -975,7 +975,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             }
         });
 
-        createManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
+        getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
             public Void execute(Transaction t) throws RuntimeException {
                 assertEquals("v1", get(t, "row1", "col1"));
@@ -989,7 +989,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     @Test
     public void testWriteFailsOnReadOnly() {
         try {
-            createManager().runTaskReadOnly(new TransactionTask<Void, RuntimeException>() {
+            getManager().runTaskReadOnly(new TransactionTask<Void, RuntimeException>() {
                 @Override
                 public Void execute(Transaction t) throws RuntimeException {
                     put(t, "row1", "col1", "v1");
@@ -1004,7 +1004,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     @Test
     public void testDelete() {
-        createManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
+        getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
             public Void execute(Transaction t) throws RuntimeException {
                 put(t, "row1", "col1", "v1");
@@ -1015,7 +1015,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             }
         });
 
-        createManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
+        getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
             public Void execute(Transaction t) throws RuntimeException {
                 put(t, "row1", "col1", "v1");
@@ -1023,7 +1023,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             }
         });
 
-        createManager().runTaskWithRetry(new TxTask() {
+        getManager().runTaskWithRetry(new TxTask() {
             @Override
             public Void execute(Transaction t) throws RuntimeException {
                 delete(t, "row1", "col1");
@@ -1031,7 +1031,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             }
         });
 
-        createManager().runTaskWithRetry(new TxTask() {
+        getManager().runTaskWithRetry(new TxTask() {
             @Override
             public Void execute(Transaction t) throws RuntimeException {
                 assertEquals(null, get(t, "row1", "col1"));
@@ -1039,7 +1039,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             }
         });
 
-        createManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
+        getManager().runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
             public Void execute(Transaction t) throws RuntimeException {
                 put(t, "row1", "col1", "v1");
@@ -1047,7 +1047,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             }
         });
 
-        createManager().runTaskWithRetry(new TxTask() {
+        getManager().runTaskWithRetry(new TxTask() {
             @Override
             public Void execute(Transaction t) throws RuntimeException {
                 delete(t, "row1", "col1");
@@ -1055,7 +1055,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             }
         });
 
-        createManager().runTaskWithRetry(new TxTask() {
+        getManager().runTaskWithRetry(new TxTask() {
             @Override
             public Void execute(Transaction t) throws RuntimeException {
                 assertEquals(null, get(t, "row1", "col1"));
