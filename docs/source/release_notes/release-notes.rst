@@ -54,6 +54,11 @@ v0.14.0
            Please refer to :ref:`Example Leader Configurations <leader-config-examples>` for guidance on valid configurations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/854>`__)
 
+    *    - |breaking|
+         - All TransactionManagers are now AutoCloseable and implement a close method that will free up the underlying resources.
+           No operations can be performed using the TransactionManager once it is closed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/907>`__)
+
     *    - |fixed|
          - Fixed and standardized serialization and deserialization of AtlasDBConfig.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/875>`__)
@@ -61,6 +66,7 @@ v0.14.0
     *    - |fixed|
          - Updated our Dagger dependency from 2.0.2 to 2.4, so that our generated code matches with that of internal products.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/878>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
