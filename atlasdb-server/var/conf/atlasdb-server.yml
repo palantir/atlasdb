@@ -1,0 +1,10 @@
+cluster:
+  quorumSize: 1
+  localServer: http://localhost:8080
+  servers:
+    - http://localhost:8080
+
+clients:
+  - client: memory
+    keyValueService:
+      type: memory
