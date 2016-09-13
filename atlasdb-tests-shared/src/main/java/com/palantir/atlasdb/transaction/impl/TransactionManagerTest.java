@@ -32,11 +32,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
     public ExpectedException exception = ExpectedException.none();
 
     @Test
-    public void shouldNotCloseTransactionManagerMultipleTimes() throws Exception {
+    public void shouldSuccessfullyCloseTransactionManagerMultipleTimes() throws Exception {
         txMgr.close();
-        exception.expect(IllegalStateException.class);
-        exception.expectMessage("Operations cannot be performed on closed TransactionManager");
-
         txMgr.close();
     }
 
