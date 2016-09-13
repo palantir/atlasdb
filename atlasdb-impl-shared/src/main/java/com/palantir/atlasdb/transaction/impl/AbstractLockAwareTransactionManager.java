@@ -17,7 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 import org.apache.commons.lang3.Validate;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.transaction.api.LockAcquisitionException;
@@ -34,12 +33,14 @@ import com.palantir.lock.LockRequest;
 public abstract class AbstractLockAwareTransactionManager
         extends AbstractTransactionManager
         implements LockAwareTransactionManager {
+
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,
             Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException {
-        Preconditions.checkState(checkOpen(), "Operations cannot be performed on closed TransactionManager.");
+
+        checkOpen();
 
         int failureCount = 0;
         while (true) {
@@ -99,15 +100,14 @@ public abstract class AbstractLockAwareTransactionManager
             Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task)
             throws E, InterruptedException {
-        Preconditions.checkState(checkOpen(), "Operations cannot be performed on closed TransactionManager.");
 
+        checkOpen();
         return runTaskWithLocksWithRetry(ImmutableList.of(), lockSupplier, task);
     }
 
     @Override
     public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E {
-        Preconditions.checkState(checkOpen(), "Operations cannot be performed on closed TransactionManager.");
-
+        checkOpen();
         return runTaskWithLocksThrowOnConflict(ImmutableList.of(), LockAwareTransactionTasks.asLockAware(task));
     }
 }

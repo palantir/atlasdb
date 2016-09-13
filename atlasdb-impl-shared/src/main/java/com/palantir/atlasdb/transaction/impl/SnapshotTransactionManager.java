@@ -98,7 +98,6 @@ import com.palantir.timestamp.TimestampService;
         this.constraintModeSupplier = constraintModeSupplier;
         this.cleaner = cleaner;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
-        this.isClosed = false;
     }
 
     @Override
@@ -110,6 +109,7 @@ import com.palantir.timestamp.TimestampService;
     public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<HeldLocksToken> lockTokens,
                                                                       LockAwareTransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
+        checkOpen();
         Iterable<LockRefreshToken> lockRefreshTokens = Iterables.transform(lockTokens,
                 new Function<HeldLocksToken, LockRefreshToken>() {
                     @Nullable
@@ -191,6 +191,7 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
+        checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
         SnapshotTransaction transaction = new SnapshotTransaction(
                 keyValueService,
