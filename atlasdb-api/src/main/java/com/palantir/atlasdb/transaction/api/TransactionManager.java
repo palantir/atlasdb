@@ -45,7 +45,7 @@ public interface TransactionManager extends AutoCloseable {
      * getting back no data. This is needed to ensure that all transactions either produce correct values or fail.
      * It is not an option to return incorrect data.
      *
-     * @return the timestamp that is before any open start timestamps.
+     * @return the timestamp that is before any open start timestamps
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
