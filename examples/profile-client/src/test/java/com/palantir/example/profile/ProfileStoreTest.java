@@ -187,8 +187,7 @@ public class ProfileStoreTest {
         return runWithRetry(Transaction.TransactionType.DEFAULT, task);
     }
 
-    protected <T> T runWithRetry(final Transaction.TransactionType type, final ProfileStoreTask<T> task)
-            throws Exception {
+    protected <T> T runWithRetry(final Transaction.TransactionType type, final ProfileStoreTask<T> task) {
         return txnMgr.runTaskWithRetry(new TransactionTask<T, RuntimeException>() {
             @Override
             public T execute(Transaction t) {
