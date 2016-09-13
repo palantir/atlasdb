@@ -22,5 +22,5 @@ import com.palantir.atlasdb.ete.EteSetup;
 
 public class DbKvsDropwizardEteTest extends DropwizardEteTest {
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("dbkvs", "docker-compose.dbkvs.yml");
+    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("dbkvs-dropwizard", "docker-compose.dbkvs.yml");
 }

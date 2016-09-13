@@ -22,5 +22,5 @@ import com.palantir.atlasdb.ete.EteSetup;
 
 public class CassandraDropwizardEteTest extends DropwizardEteTest {
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("cassandra-ha", "docker-compose.cassandra.yml");
+    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("cassandra-ha-dropwizard", "docker-compose.cassandra.yml");
 }

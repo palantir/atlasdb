@@ -35,6 +35,7 @@ import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -81,9 +82,8 @@ public final class TransactionManagers {
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} with provided configuration,
-     * {@link SSLSocketFactory}, {@link Schema}, and an environment in which to
-     * register HTTP server endpoints.
+     * Create a {@link SerializableTransactionManager} with provided configuration, {@link Schema},
+     * and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
@@ -94,7 +94,7 @@ public final class TransactionManagers {
     }
 
     /**
-     * Create a {@link SerializableTransactionManager} with provided configuration, {@link SSLSocketFactory}, a set of
+     * Create a {@link SerializableTransactionManager} with provided configuration, a set of
      * {@link Schema}s, and an environment in which to register HTTP server endpoints.
      */
     public static SerializableTransactionManager create(
@@ -211,51 +211,56 @@ public final class TransactionManagers {
             Supplier<RemoteLockService> lock,
             Supplier<TimestampService> time) {
         if (config.leader().isPresent()) {
-            LeaderElectionService leader = Leaders.create(env, config.leader().get());
-            env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
-            env.register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader));
-
-            warnIf(config.lock().isPresent(),
-                    "Ignoring lock server configuration because leadership election is enabled");
-            warnIf(config.timestamp().isPresent(),
-                    "Ignoring timestamp server configuration because leadership election is enabled");
-
-            Optional<SSLSocketFactory> sslSocketFactory =
-                    createSslSocketFactory(config.leader().get().sslConfiguration());
-
-            return ImmutableLockAndTimestampServices.builder()
-                    .lock(createService(sslSocketFactory, config.leader().get().leaders(), RemoteLockService.class))
-                    .time(createService(sslSocketFactory, config.leader().get().leaders(), TimestampService.class))
-                    .build();
+            return createRawLeaderServices(config.leader().get(), env, lock, time);
+        } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
+            return createRawRemoteServices(config);
         } else {
-            warnIf(config.lock().isPresent() != config.timestamp().isPresent(),
-                    "Using embedded instances for one (but not both) of lock and timestamp services");
-
-            RemoteLockService lockService = config.lock()
-                    .transform(new ServiceCreator<>(RemoteLockService.class))
-                    .or(lock);
-            TimestampService timeService = config.timestamp()
-                    .transform(new ServiceCreator<>(TimestampService.class))
-                    .or(time);
-
-            if (!config.lock().isPresent()) {
-                env.register(lockService);
-            }
-            if (!config.timestamp().isPresent()) {
-                env.register(timeService);
-            }
-
-            return ImmutableLockAndTimestampServices.builder()
-                    .lock(lockService)
-                    .time(timeService)
-                    .build();
+            return createRawEmbeddedServices(env, lock, time);
         }
     }
 
-    private static void warnIf(boolean arg, String warning) {
-        if (arg) {
-            log.warn(warning);
-        }
+    private static LockAndTimestampServices createRawLeaderServices(
+            LeaderConfig leaderConfig,
+            Environment env,
+            Supplier<RemoteLockService> lock,
+            Supplier<TimestampService> time) {
+        LeaderElectionService leader = Leaders.create(env, leaderConfig);
+
+        env.register(AwaitingLeadershipProxy.newProxyInstance(RemoteLockService.class, lock, leader));
+        env.register(AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader));
+
+        Optional<SSLSocketFactory> sslSocketFactory = createSslSocketFactory(leaderConfig.sslConfiguration());
+
+        return ImmutableLockAndTimestampServices.builder()
+                .lock(createService(sslSocketFactory, leaderConfig.leaders(), RemoteLockService.class))
+                .time(createService(sslSocketFactory, leaderConfig.leaders(), TimestampService.class))
+                .build();
+    }
+
+    private static LockAndTimestampServices createRawRemoteServices(AtlasDbConfig config) {
+        RemoteLockService lockService = new ServiceCreator<>(RemoteLockService.class).apply(config.lock().get());
+        TimestampService timeService = new ServiceCreator<>(TimestampService.class).apply(config.timestamp().get());
+
+        return ImmutableLockAndTimestampServices.builder()
+                .lock(lockService)
+                .time(timeService)
+                .build();
+    }
+
+    private static LockAndTimestampServices createRawEmbeddedServices(
+            Environment env,
+            Supplier<RemoteLockService> lock,
+            Supplier<TimestampService> time) {
+        RemoteLockService lockService = lock.get();
+        TimestampService timeService = time.get();
+
+        env.register(lockService);
+        env.register(timeService);
+
+        return ImmutableLockAndTimestampServices.builder()
+                .lock(lockService)
+                .time(timeService)
+                .build();
     }
 
     /**
