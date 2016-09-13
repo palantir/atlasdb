@@ -7,6 +7,8 @@ services:
       - CASSANDRA_SEEDS=cassandra1,cassandra2
       - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
       - LOCAL_JMX=no
+     ports:
+      - 9160:9160
 
   cassandra2:
     image: com.palantir.docker/atlas-cassandra:2.2-v0.1
@@ -14,6 +16,8 @@ services:
       - CASSANDRA_SEEDS=cassandra1,cassandra2
       - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
       - LOCAL_JMX=no
+    ports:
+      - 9161:9160
 
   cassandra3:
     image: com.palantir.docker/atlas-cassandra:2.2-v0.1
@@ -21,6 +25,8 @@ services:
       - CASSANDRA_SEEDS=cassandra1,cassandra2
       - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
       - LOCAL_JMX=no
+    ports:
+      - 9162:9160
 
   ete1:
     build: .

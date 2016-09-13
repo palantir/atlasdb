@@ -17,18 +17,15 @@ package com.palantir.atlasdb.ete;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.concurrent.TimeUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
-import org.joda.time.Duration;
 import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.docker.compose.DockerComposeRule;
@@ -112,32 +109,5 @@ public class EteSetup {
                 return true;
             });
         };
-    }
-
-    static void killCassandraContainer(String containerName) {
-        Container container = docker.containers().container(containerName);
-        try {
-            container.kill();
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    static void startCassandraContainer(String containerName) throws InterruptedException {
-        Container container = docker.containers().container(containerName);
-        try {
-            container.start();
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        waitForAllPorts(container);
-        //TODO: node should join the cassandra cluster
-        Thread.sleep(10000);
-    }
-
-    private static void waitForAllPorts(Container container) {
-        Awaitility.await()
-                .atMost(120, TimeUnit.SECONDS)
-                .until(() -> container.areAllPortsOpen().succeeded());
     }
 }
