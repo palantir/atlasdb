@@ -16,11 +16,15 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -29,7 +33,6 @@ import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.thrift.TException;
-import org.hamcrest.MatcherAssert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -37,9 +40,11 @@ import org.junit.Test;
 import org.slf4j.Logger;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
@@ -53,6 +58,21 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
     private KeyValueService keyValueService;
     private ExecutorService executorService;
     private Logger logger = mock(Logger.class);
+
+    private TableReference testTable = TableReference.createFromFullyQualifiedName("ns.never_seen");
+    private byte[] tableMetadata = new TableDefinition() {{
+        rowName();
+        rowComponent("blob", ValueType.BLOB);
+        columns();
+        column("boblawblowlawblob", "col", ValueType.BLOB);
+        conflictHandler(ConflictHandler.IGNORE_ALL);
+        sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+        explicitCompressionBlockSizeKB(8);
+        rangeScanAllowed();
+        ignoreHotspottingChecks();
+        negativeLookups();
+        cachePriority(TableMetadataPersistence.CachePriority.COLD);
+    }}.toTableMetadata().persistToBytes();
 
     @Before
     public void setupKVS() {
@@ -104,27 +124,12 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
 
     @Test
     public void testCfEqualityChecker() throws TException {
-        TableReference testTable = TableReference.createFromFullyQualifiedName("ns.never_seen");
-        byte[] tableMetadata = new TableDefinition() {{
-            rowName();
-            rowComponent("blob", ValueType.BLOB);
-            columns();
-            column("boblawblowlawblob", "col", ValueType.BLOB);
-            conflictHandler(ConflictHandler.IGNORE_ALL);
-            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
-            explicitCompressionBlockSizeKB(8);
-            rangeScanAllowed();
-            ignoreHotspottingChecks();
-            negativeLookups();
-            cachePriority(TableMetadataPersistence.CachePriority.COLD);
-        }}.toTableMetadata().persistToBytes();
-
         CassandraKeyValueService kvs;
         if (keyValueService instanceof CassandraKeyValueService) {
             kvs = (CassandraKeyValueService) keyValueService;
         } else if (keyValueService instanceof TableSplittingKeyValueService) { // scylla tests
             KeyValueService delegate = ((TableSplittingKeyValueService) keyValueService).getDelegate(testTable);
-            MatcherAssert.assertThat("The nesting of Key Value Services has apparently changed", delegate instanceof CassandraKeyValueService);
+            assertThat("The nesting of Key Value Services has apparently changed", delegate instanceof CassandraKeyValueService);
             kvs = (CassandraKeyValueService) delegate;
         } else {
             throw new IllegalArgumentException("Can't run this cassandra-specific test against a non-cassandra KVS");
@@ -136,11 +141,34 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
                 client.describe_keyspace("atlasdb").getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream().filter(cf -> cf.getName().equals("ns__never_seen")).collect(Collectors.toList()));
 
-        MatcherAssert.assertThat("After serialization and deserialization to database, Cf metadata did not match.", (CassandraKeyValueServices.isMatchingCf(kvs.getCfForTable(testTable, tableMetadata), clusterSideCf)));
+        assertThat("After serialization and deserialization to database, Cf metadata did not match.", (CassandraKeyValueServices.isMatchingCf(kvs.getCfForTable(testTable, tableMetadata), clusterSideCf)));
     }
 
     @Test
     public void shouldNotErrorForTimestampTableWhenCreatingCassandraKVS() throws Exception {
         verify(logger, never()).error(startsWith("Found a table " + AtlasDbConstants.TIMESTAMP_TABLE));
+    }
+
+    @Test
+    public void repeatedDropTableDoesNotAccumulateGarbage() {
+        int preExistingGarbageBeforeTest = getAmountOfGarbageInMetadataTable(keyValueService, testTable);
+
+        for (int i=0; i < 3; i++) {
+            keyValueService.createTable(testTable, tableMetadata);
+            keyValueService.dropTable(testTable);
+        }
+
+        int garbageAfterTest = getAmountOfGarbageInMetadataTable(keyValueService, testTable);
+
+        assertThat(garbageAfterTest, lessThanOrEqualTo(preExistingGarbageBeforeTest));
+    }
+
+    private static int getAmountOfGarbageInMetadataTable(KeyValueService keyValueService, TableReference tableRef) {
+        return keyValueService.getAllTimestamps(
+                AtlasDbConstants.METADATA_TABLE,
+                ImmutableSet.of(Cell.create(
+                        tableRef.getQualifiedName().getBytes(Charset.defaultCharset()),
+                        "m".getBytes(StandardCharsets.UTF_8))),
+                Long.MAX_VALUE).size();
     }
 }
