@@ -21,7 +21,6 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 
 public interface LockAwareTransactionManager extends TransactionManager {
-
     /**
      * This method is basically the same as {@link #runTaskWithRetry(TransactionTask)} but it will
      * acquire locks right before the transaction is created and release them after the task is complete.
@@ -36,7 +35,8 @@ public interface LockAwareTransactionManager extends TransactionManager {
      * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
      * @throws IllegalStateException if the transaction manager has been closed.
      */
-    <T, E extends Exception> T runTaskWithLocksWithRetry(Supplier<LockRequest> lockSupplier,
+    <T, E extends Exception> T runTaskWithLocksWithRetry(
+            Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
 
     /**
@@ -51,7 +51,8 @@ public interface LockAwareTransactionManager extends TransactionManager {
      * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
      * @throws IllegalStateException if the transaction manager has been closed.
      */
-    <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<HeldLocksToken> lockTokens,
+    <T, E extends Exception> T runTaskWithLocksWithRetry(
+            Iterable<HeldLocksToken> lockTokens,
             Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
 
@@ -66,9 +67,9 @@ public interface LockAwareTransactionManager extends TransactionManager {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
-    <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<HeldLocksToken> lockTokens,
+    <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
+            Iterable<HeldLocksToken> lockTokens,
             LockAwareTransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
-
 
     /**
      * Returns the lock service used by this transaction manager.
@@ -76,5 +77,4 @@ public interface LockAwareTransactionManager extends TransactionManager {
      * @return the lock service for this transaction manager
      */
     RemoteLockService getLockService();
-
 }

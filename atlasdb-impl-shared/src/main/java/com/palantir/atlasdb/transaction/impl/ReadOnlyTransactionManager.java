@@ -79,16 +79,6 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     }
 
     @Override
-    public long getImmutableTimestamp() {
-        return Long.MAX_VALUE;
-    }
-
-    @Override
-    public long getUnreadableTimestamp() {
-        return Long.MAX_VALUE;
-    }
-
-    @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
         checkOpen();
         SnapshotTransaction txn = new ShouldNotDeleteAndRollbackTransaction(
@@ -114,25 +104,38 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     }
 
     @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(Supplier<LockRequest> lockSupplier,
-                                                                LockAwareTransactionTask<T, E> task)
+    public <T, E extends Exception> T runTaskWithLocksWithRetry(
+            Supplier<LockRequest> lockSupplier,
+            LockAwareTransactionTask<T, E> task)
             throws E, InterruptedException {
         throw new UnsupportedOperationException("this manager is read only");
     }
 
     @Override
-    public <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<HeldLocksToken> lockTokens,
-                                                                Supplier<LockRequest> lockSupplier,
-                                                                LockAwareTransactionTask<T, E> task)
+    public <T, E extends Exception> T runTaskWithLocksWithRetry(
+            Iterable<HeldLocksToken> lockTokens,
+            Supplier<LockRequest> lockSupplier,
+            LockAwareTransactionTask<T, E> task)
             throws E, InterruptedException {
         throw new UnsupportedOperationException("this manager is read only");
     }
 
     @Override
-    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<HeldLocksToken> lockTokens,
-                                                                      LockAwareTransactionTask<T, E> task)
+    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
+            Iterable<HeldLocksToken> lockTokens,
+            LockAwareTransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
         throw new UnsupportedOperationException("this manager is read only");
+    }
+
+    @Override
+    public long getImmutableTimestamp() {
+        return Long.MAX_VALUE;
+    }
+
+    @Override
+    public long getUnreadableTimestamp() {
+        return Long.MAX_VALUE;
     }
 
     @Override

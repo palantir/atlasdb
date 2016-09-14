@@ -64,29 +64,31 @@ import com.palantir.timestamp.TimestampService;
     final Cleaner cleaner;
     final boolean allowHiddenTableAccess;
 
-    protected SnapshotTransactionManager(KeyValueService keyValueService,
-                                      TimestampService timestampService,
-                                      LockClient lockClient,
-                                      RemoteLockService lockService,
-                                      TransactionService transactionService,
-                                      Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-                                      ConflictDetectionManager conflictDetectionManager,
-                                      SweepStrategyManager sweepStrategyManager,
-                                      Cleaner cleaner) {
+    protected SnapshotTransactionManager(
+            KeyValueService keyValueService,
+            TimestampService timestampService,
+            LockClient lockClient,
+            RemoteLockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner) {
         this(keyValueService, timestampService, lockClient, lockService, transactionService,
                 constraintModeSupplier, conflictDetectionManager, sweepStrategyManager, cleaner, false);
     }
 
-    protected SnapshotTransactionManager(KeyValueService keyValueService,
-                                      TimestampService timestampService,
-                                      LockClient lockClient,
-                                      RemoteLockService lockService,
-                                      TransactionService transactionService,
-                                      Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-                                      ConflictDetectionManager conflictDetectionManager,
-                                      SweepStrategyManager sweepStrategyManager,
-                                      Cleaner cleaner,
-                                      boolean allowHiddenTableAccess) {
+    protected SnapshotTransactionManager(
+            KeyValueService keyValueService,
+            TimestampService timestampService,
+            LockClient lockClient,
+            RemoteLockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            boolean allowHiddenTableAccess) {
         Preconditions.checkArgument(lockClient != LockClient.ANONYMOUS);
         this.keyValueService = keyValueService;
         this.timestampService = timestampService;
@@ -106,8 +108,9 @@ import com.palantir.timestamp.TimestampService;
     }
 
     @Override
-    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<HeldLocksToken> lockTokens,
-                                                                      LockAwareTransactionTask<T, E> task)
+    public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
+            Iterable<HeldLocksToken> lockTokens,
+            LockAwareTransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
         checkOpen();
         Iterable<LockRefreshToken> lockRefreshTokens = Iterables.transform(lockTokens,
@@ -126,9 +129,8 @@ import com.palantir.timestamp.TimestampService;
         long immutableLockTs = timestampService.getFreshTimestamp();
         Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
         LockDescriptor lockDesc = AtlasTimestampLockDescriptor.of(immutableLockTs);
-        LockRequest lockRequest =
-                LockRequest.builder(ImmutableSortedMap.of(lockDesc, LockMode.READ)).withLockedInVersionId(
-                        immutableLockTs).build();
+        LockRequest lockRequest = LockRequest.builder(ImmutableSortedMap.of(lockDesc, LockMode.READ))
+                .withLockedInVersionId(immutableLockTs).build();
         LockRefreshToken lock;
         try {
             lock = lockService.lock(lockClient.getClientId(), lockRequest);
@@ -169,9 +171,10 @@ import com.palantir.timestamp.TimestampService;
         return result;
     }
 
-    protected SnapshotTransaction createTransaction(long immutableLockTs,
-                                                  Supplier<Long> startTimestampSupplier,
-                                                  ImmutableList<LockRefreshToken> allTokens) {
+    protected SnapshotTransaction createTransaction(
+            long immutableLockTs,
+            Supplier<Long> startTimestampSupplier,
+            ImmutableList<LockRefreshToken> allTokens) {
         return new SnapshotTransaction(
                 keyValueService,
                 lockService,

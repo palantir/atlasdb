@@ -20,10 +20,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -42,37 +42,30 @@ import com.palantir.example.profile.schema.generated.UserPhotosStreamValueTable;
 import com.palantir.util.crypto.Sha256Hash;
 
 public class ProfileStoreTest {
-    TransactionManager txnMgr;
-    UserProfile user = UserProfile.newBuilder().setBirthEpochDay(0).setName("first last").build();
-    public static final byte[] IMAGE = new byte[] {0, 1, 2, 3};
+    private static final byte[] IMAGE = new byte[] {0, 1, 2, 3};
+    private static final UserProfile USER = UserProfile.newBuilder()
+            .setBirthEpochDay(0)
+            .setName("first last")
+            .build();
+
+    private final TransactionManager txnMgr = InMemoryAtlasDbFactory
+            .createInMemoryTransactionManager(ProfileSchema.INSTANCE);
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
-
-    @Before
-    public void setup() {
-        txnMgr = InMemoryAtlasDbFactory.createInMemoryTransactionManager(ProfileSchema.INSTANCE);
-    }
 
     @After
     public void after() throws Exception {
         txnMgr.close();
     }
 
-    interface ProfileStoreTask<T> {
-        public T execute(ProfileStore store);
-    }
-
     @Test
-    public void testStore() throws Exception {
+    public void testStore() {
         final UUID userId = storeUser();
-        runWithRetry(new ProfileStoreTask<UUID>() {
-            @Override
-            public UUID execute(ProfileStore store) {
-                UserProfile storedData = store.getUserData(userId);
-                Assert.assertEquals(user, storedData);
-                return userId;
-            }
+        runWithRetry(store -> {
+            UserProfile storedData = store.getUserData(userId);
+            Assert.assertEquals(USER, storedData);
+            return userId;
         });
     }
 
@@ -85,23 +78,20 @@ public class ProfileStoreTest {
     }
 
     @Test
-    public void testStoreImage() throws Exception {
+    public void testStoreImage() {
         final UUID userId = storeUser();
         storeImage(userId);
-        runWithRetry(new ProfileStoreTask<Void>() {
-            @Override
-            public Void execute(ProfileStore store) {
-                InputStream image = store.getImageForUser(userId);
-                try {
-                    Sha256Hash hash = Sha256Hash.createFrom(image);
-                    Assert.assertEquals(Sha256Hash.computeHash(IMAGE), hash);
-                } catch (IOException e) {
-                    throw Throwables.throwUncheckedException(e);
-                } finally {
-                    Closeables.closeQuietly(image);
-                }
-                return null;
+        runWithRetry(store -> {
+            InputStream image = store.getImageForUser(userId);
+            try {
+                Sha256Hash hash = Sha256Hash.createFrom(image);
+                Assert.assertEquals(Sha256Hash.computeHash(IMAGE), hash);
+            } catch (IOException e) {
+                throw Throwables.throwUncheckedException(e);
+            } finally {
+                Closeables.closeQuietly(image);
             }
+            return null;
         });
     }
 
@@ -113,35 +103,29 @@ public class ProfileStoreTest {
         testStoreImage();
     }
 
-    private void storeImage(final UUID userId) throws Exception {
-        runWithRetry(new ProfileStoreTask<Void>() {
-            @Override
-            public Void execute(ProfileStore store) {
-                Sha256Hash imageHash = Sha256Hash.computeHash(IMAGE);
-                store.updateImage(userId, imageHash, new ByteArrayInputStream(IMAGE));
-                UserProfile storedData = store.getUserData(userId);
-                Assert.assertEquals(user, storedData);
-                return null;
-            }
+    private void storeImage(final UUID userId) {
+        runWithRetry(store -> {
+            Sha256Hash imageHash = Sha256Hash.computeHash(IMAGE);
+            store.updateImage(userId, imageHash, new ByteArrayInputStream(IMAGE));
+            UserProfile storedData = store.getUserData(userId);
+            Assert.assertEquals(USER, storedData);
+            return null;
         });
     }
 
     @Test
-    public void testDeleteImage() throws Exception {
+    public void testDeleteImage() {
         final UUID userId = storeUser();
         storeImage(userId);
-        runWithRetry(Transaction.TransactionType.AGGRESSIVE_HARD_DELETE, new ProfileStoreTask<UUID>() {
-            @Override
-            public UUID execute(ProfileStore store) {
-                store.deleteImage(userId);
-                return userId;
-            }
+        runWithRetry(Transaction.TransactionType.AGGRESSIVE_HARD_DELETE, store -> {
+            store.deleteImage(userId);
+            return userId;
         });
         txnMgr.runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
-            public Void execute(Transaction t) {
+            public Void execute(Transaction txn) {
                 ProfileTableFactory tables = ProfileTableFactory.of();
-                UserPhotosStreamValueTable streams = tables.getUserPhotosStreamValueTable(t);
+                UserPhotosStreamValueTable streams = tables.getUserPhotosStreamValueTable(txn);
                 Assert.assertTrue(streams.getAllRowsUnordered().isEmpty());
                 return null;
             }
@@ -157,15 +141,12 @@ public class ProfileStoreTest {
     }
 
     @Test
-    public void testBirthdayIndex() throws Exception {
+    public void testBirthdayIndex() {
         final UUID userId = storeUser();
-        runWithRetry(new ProfileStoreTask<UUID>() {
-            @Override
-            public UUID execute(ProfileStore store) {
-                Set<UUID> usersWithBirthday = store.getUsersWithBirthday(user.getBirthEpochDay());
-                Assert.assertEquals(ImmutableSet.of(userId), usersWithBirthday);
-                return userId;
-            }
+        runWithRetry(store -> {
+            Set<UUID> usersWithBirthday = store.getUsersWithBirthday(USER.getBirthEpochDay());
+            Assert.assertEquals(ImmutableSet.of(userId), usersWithBirthday);
+            return userId;
         });
     }
 
@@ -177,30 +158,24 @@ public class ProfileStoreTest {
         testDeleteImage();
     }
 
-    private UUID storeUser() throws Exception {
-        return runWithRetry(new ProfileStoreTask<UUID>() {
-            @Override
-            public UUID execute(ProfileStore store) {
-                UUID userId = store.storeNewUser(user);
-                UserProfile storedData = store.getUserData(userId);
-                Assert.assertEquals(user, storedData);
-                return userId;
-            }
+    private UUID storeUser() {
+        return runWithRetry(store -> {
+            UUID userId = store.storeNewUser(USER);
+            UserProfile storedData = store.getUserData(userId);
+            Assert.assertEquals(USER, storedData);
+            return userId;
         });
     }
 
-    protected <T> T runWithRetry(final ProfileStoreTask<T> task) throws Exception {
+    private <T> T runWithRetry(Function<ProfileStore, T> task) {
         return runWithRetry(Transaction.TransactionType.DEFAULT, task);
     }
 
-    protected <T> T runWithRetry(final Transaction.TransactionType type, final ProfileStoreTask<T> task) {
-        return txnMgr.runTaskWithRetry(new TransactionTask<T, RuntimeException>() {
-            @Override
-            public T execute(Transaction t) {
-                t.setTransactionType(type);
-                ProfileStore store = new ProfileStore(txnMgr, t);
-                return task.execute(store);
-            }
+    private <T> T runWithRetry(Transaction.TransactionType type, Function<ProfileStore, T> task) {
+        return txnMgr.runTaskWithRetry(txn -> {
+            txn.setTransactionType(type);
+            ProfileStore store = new ProfileStore(txnMgr, txn);
+            return task.apply(store);
         });
 
     }

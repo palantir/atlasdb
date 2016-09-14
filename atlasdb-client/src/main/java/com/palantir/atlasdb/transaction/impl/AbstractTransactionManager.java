@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
-import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.Throwables;
@@ -30,15 +29,15 @@ import com.palantir.common.base.Throwables;
 public abstract class AbstractTransactionManager implements TransactionManager {
     public static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
 
-    private volatile boolean isClosed = false;
+    private volatile boolean closed = false;
 
     @Override
     public <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E {
-        checkOpen();
         int failureCount = 0;
         while (true) {
+            checkOpen();
             try {
-                return internalRunTaskThrowOnConflict(task);
+                return runTaskThrowOnConflict(task);
             } catch (TransactionFailedException e) {
                 if (!e.canTransactionBeRetried()) {
                     log.warn("Non-retriable exception while processing transaction.", e);
@@ -59,12 +58,6 @@ public abstract class AbstractTransactionManager implements TransactionManager {
         }
     }
 
-    private <T, E extends Exception> T internalRunTaskThrowOnConflict(TransactionTask<T, E> task)
-            throws E, TransactionFailedRetriableException {
-        checkOpen();
-        return runTaskThrowOnConflict(task);
-    }
-
     protected void sleepForBackoff(@SuppressWarnings("unused") int numTimesFailed) {
         // no-op
     }
@@ -75,7 +68,6 @@ public abstract class AbstractTransactionManager implements TransactionManager {
 
     protected final <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task, Transaction txn)
             throws E, TransactionFailedException {
-
         checkOpen();
         try {
             T ret = task.execute(txn);
@@ -94,7 +86,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
 
     @Override
     public void close() {
-        this.isClosed = true;
+        this.closed = true;
     }
 
     /**
@@ -102,7 +94,7 @@ public abstract class AbstractTransactionManager implements TransactionManager {
      *
      * @throws IllegalStateException if the transaction manager has been closed.
      */
-    protected final void checkOpen() {
-        Preconditions.checkState(!this.isClosed, "Operations cannot be performed on closed TransactionManager.");
+    protected void checkOpen() {
+        Preconditions.checkState(!this.closed, "Operations cannot be performed on closed TransactionManager.");
     }
 }
