@@ -31,7 +31,6 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -48,6 +47,7 @@ public class SchemaMutationLock {
     private final ConsistencyLevel writeConsistency;
     private final UniqueSchemaMutationLockTable lockTable;
     private final ReentrantLock schemaMutationLockForEarlierVersionsOfCassandra = new ReentrantLock(true);
+    private HeartbeatThread heartbeatThread;
 
     public SchemaMutationLock(
             boolean supportsCas,
@@ -66,73 +66,95 @@ public class SchemaMutationLock {
         void execute() throws Exception;
     }
 
-    public class ActionWithHeartbeat {
-        public volatile long heartbeatCounter;
-        private final Action action;
+    class HeartbeatThread {
         private final Thread heartbeatThread;
         private final long lockId;
+        private volatile Boolean keepBeating;
+        private volatile long heartbeatCount;
 
-        public ActionWithHeartbeat(Action action, long lockId) {
-            this.action = action;
+        HeartbeatThread(long lockId) {
             this.heartbeatThread = new Thread(this::heartbeat);
-            this.heartbeatThread.setName(Thread.currentThread().getName() + "-Heartbeat");
             this.lockId = lockId;
-            this.heartbeatCounter = 0;
+            this.heartbeatCount = 0;
         }
 
-        public void execute() throws Exception {
-            if (!supportsCas) {
-                // no heartbeat for non-Cas locks
-                this.action.execute();
-            } else {
-                this.heartbeatThread.start();
-                try {
-                    this.action.execute();
-                } finally {
-                    this.heartbeatThread.interrupt();
-                    this.heartbeatThread.join();
-                }
+        void startBeating() {
+            keepBeating = true;
+            heartbeatThread.start();
+        }
+
+        void stopBeating() {
+            keepBeating = false;
+            try {
+                // make sure beating's stopped
+                heartbeatThread.join();
+            } catch (InterruptedException e) {
+                LOGGER.debug("Interrupted while trying to stop the heartbeat heartbeatThread.");
             }
         }
 
-        private void heartbeat() {
-            try {
-                while (true) {
+        void heartbeat() {
+            while (keepBeating) {
+                try {
                     clientPool.runWithRetry((FunctionCheckedException<Cassandra.Client, Void, Exception>) client -> {
                         Column ourUpdate = lockColumnWithStrValue(String.format(
-                                CassandraConstants.GLOBAL_DDL_LOCK_FORMAT, lockId, heartbeatCounter + 1));
+                                CassandraConstants.GLOBAL_DDL_LOCK_FORMAT, lockId, heartbeatCount + 1));
 
                         List<Column> expected = ImmutableList.of(lockColumnWithStrValue(String.format(
-                                CassandraConstants.GLOBAL_DDL_LOCK_FORMAT, lockId, heartbeatCounter)));
+                                CassandraConstants.GLOBAL_DDL_LOCK_FORMAT, lockId, heartbeatCount)));
 
                         CASResult casResult = writeDdlLockWithCas(client, expected, ourUpdate);
-                        if (!casResult.isSuccess()) {
-                            handleForcedLockClear(casResult, this.lockId);
-                        } else {
-                            heartbeatCounter++;
-                        }
+
+                        if (casResult.isSuccess())
+                            heartbeatCount++;
+                        else
+                            handleForcedLockClear(casResult, lockId, heartbeatCount);
                         return null;
                     });
-                    Thread.sleep(CassandraConstants.HEARTBEAT_TIME_PERIOD_MILLIS);
+                    Thread.sleep(configManager.getConfig().heartbeatTimePeriodMillis());
+                } catch (Exception e) {
+                    throw Throwables.throwUncheckedException(e);
                 }
-            } catch (InterruptedException e) {
-                // action complete, kill heartbeat
-            } catch (Exception e) {
-                throw Throwables.throwUncheckedException(e);
             }
         }
     }
 
-    public void runWithLock(Action action) {
+    void runWithLock(Action action) {
+        if (!supportsCas) {
+            runWithLockWithoutCas(action);
+            return;
+        }
+
         long lockId = waitForSchemaMutationLock();
-        ActionWithHeartbeat actionWithHeartbeat = new ActionWithHeartbeat(action, lockId);
+        heartbeatThread = new HeartbeatThread(lockId);
+        heartbeatThread.startBeating();
         try {
-            actionWithHeartbeat.execute();
+            action.execute();
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         } finally {
-            schemaMutationUnlock(lockId, actionWithHeartbeat.heartbeatCounter);
+            heartbeatThread.stopBeating();
+            schemaMutationUnlock(lockId);
         }
+    }
+
+    private void runWithLockWithoutCas(Action action) {
+        LOGGER.info("Because your version of Cassandra does not support check and set,"
+                + " we will use a java level lock to synchronise schema mutations."
+                + " If this is a clustered service, this could lead to corruption.");
+        try {
+            waitForSchemaMutationLockWithoutCas();
+            action.execute();
+        } catch (Exception e) {
+            throw Throwables.throwUncheckedException(e);
+        } finally {
+            schemaMutationUnlockWithoutCas();
+        }
+
+    }
+
+    void killHeartbeat() {
+        heartbeatThread.stopBeating();
     }
 
     /**
@@ -152,41 +174,18 @@ public class SchemaMutationLock {
      * @return an ID to be passed into a subsequent unlock call
      */
     private long waitForSchemaMutationLock() {
-        final long perOperationNodeIdentifier = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
+        final long perOperationNodeId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
 
         try {
-            if (!supportsCas) {
-                LOGGER.info("Because your version of Cassandra does not support check and set,"
-                        + " we will use a java level lock to synchronise schema mutations."
-                        + " If this is a clustered service, this could lead to corruption.");
-                String message = "AtlasDB was unable to get a lock on Cassandra system schema mutations"
-                        + " for your cluster. Likely cause: Service(s) performing heavy schema mutations"
-                        + " in parallel, or extremely heavy Cassandra cluster load.";
-                try {
-                    if (!schemaMutationLockForEarlierVersionsOfCassandra.tryLock(
-                            configManager.getConfig().schemaMutationTimeoutMillis(),
-                            TimeUnit.MILLISECONDS)) {
-                        throw new TimeoutException(message);
-                    }
-                } catch (InterruptedException e) {
-                    throw new TimeoutException(message);
-                }
-                return 0;
-            }
-
             clientPool.runWithRetry((FunctionCheckedException<Cassandra.Client, Void, Exception>) client -> {
                 Column ourUpdate = lockColumnWithStrValue(
-                        String.format(CassandraConstants.GLOBAL_DDL_LOCK_FORMAT, perOperationNodeIdentifier, 0));
+                        String.format(CassandraConstants.GLOBAL_DDL_LOCK_FORMAT, perOperationNodeId, 0));
 
                 List<Column> expected = ImmutableList.of(lockColumnWithStrValue(
                         CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE));
 
                 CASResult casResult = writeDdlLockWithCas(client, expected, ourUpdate);
 
-                int timesAttempted = 0;
-
-                Stopwatch stopwatch = Stopwatch.createStarted();
-                int mutationTimeoutMillis = configManager.getConfig().schemaMutationTimeoutMillis();
                 Column lastSeenValue = null;
 
                 // could have a timeout controlling this level, confusing for users to set both timeouts though
@@ -202,20 +201,14 @@ public class SchemaMutationLock {
                                     + " Consult support for guidance on manually examining and clearing"
                                     + " locks from " + lockTable.getOnlyTable() + " table.");
                         }
-                        if (lastSeenValue == null || existingValue != lastSeenValue) {
+                        if (lastSeenValue == null || !existingValue.equals(lastSeenValue)) {
+                            LOGGER.debug("Heartbeat alive, will retry.");
                             lastSeenValue = existingValue;
                         } else {
                             LOGGER.info("Grabbing the lock since lock holder has failed to update its heartbeat");
                             expected = ImmutableList.of(existingValue);
                         }
                     }
-
-//                    // possibly dead remote locker
-//                    if (stopwatch.elapsed(TimeUnit.MILLISECONDS) > mutationTimeoutMillis * 4) {
-//                        TimeoutException schemaLockTimeoutError = generateSchemaLockTimeoutException(stopwatch);
-//                        LOGGER.error(schemaLockTimeoutError.getMessage(), schemaLockTimeoutError);
-//                        throw Throwables.rewrapAndThrowUncheckedException(schemaLockTimeoutError);
-//                    }
 
                     long timeToSleep = CassandraConstants.TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS;
                     Thread.sleep(timeToSleep);
@@ -229,36 +222,36 @@ public class SchemaMutationLock {
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
-
-        return perOperationNodeIdentifier;
+        return perOperationNodeId;
     }
 
-    private TimeoutException generateSchemaLockTimeoutException(Stopwatch stopwatch) {
-        return new TimeoutException(String.format("We have timed out waiting on the current"
-                        + " schema mutation lock holder. We have tried to grab the lock for %d milliseconds"
-                        + " unsuccessfully. This indicates that the current lock holder has died without"
-                        + " releasing the lock and will require manual intervention. Shut down all AtlasDB"
-                        + " clients and then run the clean-cass-locks-state cli command.",
-                stopwatch.elapsed(TimeUnit.MILLISECONDS)));
-    }
-
-    private void schemaMutationUnlock(long perOperationNodeId, long heartbeatCounter) {
-        if (!supportsCas) {
-            schemaMutationLockForEarlierVersionsOfCassandra.unlock();
-            return;
+    private void waitForSchemaMutationLockWithoutCas() throws TimeoutException {
+        String message = "AtlasDB was unable to get a lock on Cassandra system schema mutations"
+                + " for your cluster. Likely cause: Service(s) performing heavy schema mutations"
+                + " in parallel, or extremely heavy Cassandra cluster load.";
+        try {
+            if (!schemaMutationLockForEarlierVersionsOfCassandra.tryLock(
+                    configManager.getConfig().schemaMutationTimeoutMillis(),
+                    TimeUnit.MILLISECONDS)) {
+                throw new TimeoutException(message);
+            }
+        } catch (InterruptedException e) {
+            throw new TimeoutException(message);
         }
+    }
 
+    private void schemaMutationUnlock(long perOperationNodeId) {
         try {
             clientPool.runWithRetry((FunctionCheckedException<Cassandra.Client, Void, Exception>) client -> {
+                long heartbeatCount = heartbeatThread.heartbeatCount;
                 List<Column> ourExpectedLock = ImmutableList.of(lockColumnWithStrValue(String.format(
-                        CassandraConstants.GLOBAL_DDL_LOCK_FORMAT, perOperationNodeId, heartbeatCounter)));
+                        CassandraConstants.GLOBAL_DDL_LOCK_FORMAT, perOperationNodeId, heartbeatCount)));
                 Column clearedLock = lockColumnWithStrValue(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE);
                 CASResult casResult = writeDdlLockWithCas(client, ourExpectedLock, clearedLock);
 
                 if (!casResult.isSuccess()) {
-                    handleForcedLockClear(casResult, perOperationNodeId);
+                    handleForcedLockClear(casResult, perOperationNodeId, heartbeatCount);
                 }
-
                 LOGGER.info("Successfully released schema mutation lock.");
                 return null;
             });
@@ -267,27 +260,32 @@ public class SchemaMutationLock {
         }
     }
 
-    private void handleForcedLockClear(CASResult casResult, long perOperationNodeId) {
+    private void schemaMutationUnlockWithoutCas() {
+        schemaMutationLockForEarlierVersionsOfCassandra.unlock();
+    }
+
+    private void handleForcedLockClear(CASResult casResult, long perOperationNodeId, long heartbeatCount) {
         String remoteLock = "(unknown)";
         if (casResult.getCurrent_valuesSize() == 1) {
             Column column = Iterables.getOnlyElement(casResult.getCurrent_values(), null);
             if (column != null) {
-                String remoteId = new String(column.getValue(), StandardCharsets.UTF_8).split("_")[0];
-                remoteLock = (Long.parseLong(remoteId) == CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_ID)
+                String remoteValue = new String(column.getValue(), StandardCharsets.UTF_8);
+                long remoteId = Long.parseLong(remoteValue.split("_")[0]);
+                remoteLock = (remoteId== CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_ID)
                         ? "(Cleared Value)"
-                        : remoteId;
+                        : remoteValue;
             }
         }
-        throw new IllegalStateException(String.format("Another process cleared our schema mutation lock"
-                + " from underneath us. Our ID, which we expected, was %s, the value we saw in the"
-                + " database was instead %s.", Long.toString(perOperationNodeId), remoteLock));
+        String expectedLock = String.format(CassandraConstants.GLOBAL_DDL_LOCK_FORMAT, perOperationNodeId, heartbeatCount);
+        throw new IllegalStateException(String.format("Another process cleared our schema mutation lock from"
+                + " underneath us. Our ID, which we expected, was %s, the value we saw in the database was instead %s.",
+                expectedLock, remoteLock));
     }
 
     private CASResult writeDdlLockWithCas(
             Cassandra.Client client,
             List<Column> expectedLockValue,
             Column newLockValue) throws TException {
-
         return writeLockWithCas(client, CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME, expectedLockValue, newLockValue);
     }
 

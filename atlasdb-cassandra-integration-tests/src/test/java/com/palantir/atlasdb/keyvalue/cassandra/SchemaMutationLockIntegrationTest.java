@@ -17,15 +17,16 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 
 import java.util.Arrays;
 import java.util.Collection;
-//import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-//import java.util.concurrent.TimeUnit;
-//import java.util.concurrent.TimeoutException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -44,7 +45,9 @@ import com.palantir.common.exception.PalantirRuntimeException;
 @RunWith(Parameterized.class)
 public class SchemaMutationLockIntegrationTest {
     public static final SchemaMutationLock.Action DO_NOTHING = () -> {};
+
     protected SchemaMutationLock schemaMutationLock;
+    private ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig;
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
     @Parameterized.Parameter(value = 0)
@@ -69,7 +72,7 @@ public class SchemaMutationLockIntegrationTest {
     }
 
     protected void setUpWithCasSupportSetTo(boolean supportsCas) throws Exception {
-        ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
+        quickTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
                 .withSchemaMutationTimeoutMillis(500);
         CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig);
         ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
@@ -118,16 +121,37 @@ public class SchemaMutationLockIntegrationTest {
         schemaMutationLock.runWithLock(() -> { throw error; });
     }
 
-//    @Test
-//    public void testLocksTimeout() throws InterruptedException, ExecutionException, TimeoutException {
-//        schemaMutationLock.runWithLock(() -> {
-//            expectedException.expect(PalantirRuntimeException.class);
-//            expectedException.expectMessage(expectedTimeoutErrorMessage);
-//
-//            Future async = CassandraTestTools.async(
-//                    executorService,
-//                    () -> schemaMutationLock.runWithLock(DO_NOTHING));
-//            async.get(10, TimeUnit.SECONDS);
-//        });
-//    }
+    @Test
+    public void canGrabLockWhenNoHeartbeat() throws InterruptedException, ExecutionException {
+        // only run this test with cas
+        if (casEnabled) {
+            expectedException.expect(ExecutionException.class);
+            expectedException.expectCause(instanceOf(IllegalStateException.class));
+            expectedException.expectMessage("Another process cleared our schema mutation lock from underneath us.");
+            expectedException.expectMessage("the value we saw in the database was instead (Cleared Value).");
+
+            Future async_1 = CassandraTestTools.async(executorService, () -> {
+                schemaMutationLock.runWithLock(() -> {
+                    // Wait for few heartbeats
+                    Thread.sleep(quickTimeoutConfig.heartbeatTimePeriodMillis() * 2);
+
+                    schemaMutationLock.killHeartbeat();
+
+                    // Try grabbing lock with dead heartbeat
+                    Future async_2 = CassandraTestTools.async(executorService,
+                            () -> schemaMutationLock.runWithLock(DO_NOTHING));
+
+                    // check if async_2 completes
+                    try {
+                        async_2.get(5, TimeUnit.SECONDS);
+                    } catch (TimeoutException e) {
+                        if (!async_2.isDone()) {
+                            throw new AssertionError("Schema lock could not be grabbed despite no heartbeat.");
+                        }
+                    }
+                });
+            });
+            async_1.get();
+        }
+    }
 }
