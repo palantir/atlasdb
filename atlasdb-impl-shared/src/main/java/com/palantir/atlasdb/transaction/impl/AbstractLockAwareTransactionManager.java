@@ -33,11 +33,15 @@ import com.palantir.lock.LockRequest;
 public abstract class AbstractLockAwareTransactionManager
         extends AbstractTransactionManager
         implements LockAwareTransactionManager {
+
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,
             Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException {
+
+        checkOpen();
+
         int failureCount = 0;
         while (true) {
             LockRequest lockRequest = lockSupplier.get();
@@ -96,11 +100,14 @@ public abstract class AbstractLockAwareTransactionManager
             Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task)
             throws E, InterruptedException {
+
+        checkOpen();
         return runTaskWithLocksWithRetry(ImmutableList.of(), lockSupplier, task);
     }
 
     @Override
     public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E {
+        checkOpen();
         return runTaskWithLocksThrowOnConflict(ImmutableList.of(), LockAwareTransactionTasks.asLockAware(task));
     }
 }

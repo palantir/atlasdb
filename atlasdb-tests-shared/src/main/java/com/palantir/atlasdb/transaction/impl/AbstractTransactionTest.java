@@ -24,21 +24,15 @@ import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -61,13 +55,11 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -76,11 +68,8 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
@@ -88,84 +77,13 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.IterableView;
 import com.palantir.common.collect.MapEntries;
-import com.palantir.lock.LockClient;
-import com.palantir.lock.LockServerOptions;
-import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public abstract class AbstractTransactionTest {
-    protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.table1");
-
-    protected static LockClient lockClient = null;
-    protected static LockServiceImpl lockService = null;
-
-    protected KeyValueService keyValueService;
-    protected TimestampService timestampService;
-    protected TransactionService transactionService;
-    protected ConflictDetectionManager conflictDetectionManager;
-    protected SweepStrategyManager sweepStrategyManager;
-
-    @BeforeClass
-    public static void setupLockClient() {
-        if (lockClient == null) {
-            lockClient = LockClient.of("fake lock client");
-        }
-    }
-
-    @BeforeClass
-    public static void setupLockService() {
-        if (lockService == null) {
-            lockService = LockServiceImpl.create(new LockServerOptions() {
-                private static final long serialVersionUID = 1L;
-
-                @Override
-                public boolean isStandaloneServer() {
-                    return false;
-                }
-
-            });
-        }
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        keyValueService = getKeyValueService();
-        timestampService = new InMemoryTimestampService();
-        keyValueService.initializeFromFreshInstance();
-        keyValueService.createTables(ImmutableMap.of(
-                TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA,
-                TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
-        keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
-        transactionService = TransactionServices.createTransactionService(keyValueService);
-        conflictDetectionManager = ConflictDetectionManagers.createDefault(keyValueService);
-        sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-    }
-
-    @After
-    public void tearDown() {
-        keyValueService.dropTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
-        keyValueService.teardown();
-    }
-
-    @AfterClass
-    public static void tearDownClass() {
-        if (lockService != null) {
-            lockService.close();
-            lockService = null;
-        }
-    }
-
-    protected abstract KeyValueService getKeyValueService();
+public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     protected boolean supportsReverse() {
         return true;
-    }
-
-    protected Set<TableReference> getTestTables() {
-        return ImmutableSet.of(TEST_TABLE);
     }
 
     protected Transaction startTransaction() {
@@ -183,99 +101,6 @@ public abstract class AbstractTransactionTest {
                         ConflictHandler.IGNORE_ALL),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION);
-    }
-
-    protected TransactionManager getManager() {
-        return new TestTransactionManagerImpl(keyValueService, timestampService, lockClient, lockService,
-                transactionService, conflictDetectionManager, sweepStrategyManager);
-    }
-
-    protected void put(Transaction t,
-                     String rowName,
-                     String columnName,
-                     String value) {
-        put(t, TEST_TABLE, rowName, columnName, value);
-    }
-
-    private void put(Transaction t,
-                     TableReference tableRef,
-                     String rowName,
-                     String columnName,
-                     String value) {
-        Cell k = Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(columnName));
-        byte[] v = value == null ? null : PtBytes.toBytes(value);
-        HashMap<Cell, byte[]> map = Maps.newHashMap();
-        map.put(k, v);
-        t.put(tableRef, map);
-    }
-
-    protected void delete(Transaction t, String rowName, String columnName) {
-        t.delete(TEST_TABLE, ImmutableSet.of(Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(columnName))));
-    }
-
-    protected String get(Transaction t,
-                         String rowName,
-                         String columnName) {
-        return get(t, TEST_TABLE, rowName, columnName);
-    }
-
-    protected String getCell(Transaction t,
-                             String rowName,
-                             String columnName) {
-        return getCell(t, TEST_TABLE, rowName, columnName);
-    }
-
-    private String getCell(Transaction t,
-                           TableReference tableRef,
-                           String rowName,
-                           String columnName) {
-        byte[] row = PtBytes.toBytes(rowName);
-        byte[] column = PtBytes.toBytes(columnName);
-        Cell cell = Cell.create(row, column);
-        Map<Cell, byte[]> map = t.get(tableRef, ImmutableSet.of(cell));
-        byte[] v = map.get(cell);
-        return v != null ? PtBytes.toString(v) : null;
-    }
-
-    private String get(Transaction t,
-                       TableReference tableRef,
-                       String rowName,
-                       String columnName) {
-        byte[] row = PtBytes.toBytes(rowName);
-        byte[] column = PtBytes.toBytes(columnName);
-        Cell k = Cell.create(row, column);
-        byte[] v = Cells.convertRowResultsToCells(
-                t.getRows(tableRef,
-                          ImmutableSet.of(row),
-                          ColumnSelection.create(ImmutableSet.of(column))).values()).get(k);
-        return v != null ? PtBytes.toString(v) : null;
-    }
-
-    private void putDirect(String rowName,
-                     String columnName,
-                     String value, long timestamp) {
-        Cell k = Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(columnName));
-        byte[] v = PtBytes.toBytes(value);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(k, v), timestamp);
-    }
-
-    private Pair<String, Long> getDirect(String rowName, String columnName, long timestamp) {
-        return getDirect(TEST_TABLE, rowName, columnName, timestamp);
-    }
-
-    private Pair<String, Long> getDirect(TableReference tableRef,
-                                         String rowName,
-                                         String columnName,
-                                         long timestamp) {
-        byte[] row = PtBytes.toBytes(rowName);
-        Cell k = Cell.create(row, PtBytes.toBytes(columnName));
-        Value v = keyValueService.get(tableRef, ImmutableMap.of(k, timestamp)).get(k);
-        return v != null ? Pair.create(PtBytes.toString(v.getContents()), v.getTimestamp()) : null;
-    }
-
-    private Cell getCell(String rowName, String colName) {
-        byte[] row = PtBytes.toBytes(rowName);
-        return Cell.create(row, PtBytes.toBytes(colName));
     }
 
     @Test
@@ -1094,7 +919,7 @@ public abstract class AbstractTransactionTest {
                                 throw Throwables.throwUncheckedException(e);
                             }
                             MapEntries.putAll(vals, item.getCells());
-                            if (Arrays.equals(item.getRowName(),"row1".getBytes())) {
+                            if (Arrays.equals(item.getRowName(), "row1".getBytes())) {
                                 assertEquals("v5", new String(item.getColumns().get("col1".getBytes())));
                                 assertEquals(3, IterableView.of(item.getCells()).size());
                             }

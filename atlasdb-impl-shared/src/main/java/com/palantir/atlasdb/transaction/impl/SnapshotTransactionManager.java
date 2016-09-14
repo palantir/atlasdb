@@ -109,6 +109,7 @@ import com.palantir.timestamp.TimestampService;
     public <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<HeldLocksToken> lockTokens,
                                                                       LockAwareTransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException {
+        checkOpen();
         Iterable<LockRefreshToken> lockRefreshTokens = Iterables.transform(lockTokens,
                 new Function<HeldLocksToken, LockRefreshToken>() {
                     @Nullable
@@ -190,6 +191,7 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
+        checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
         SnapshotTransaction transaction = new SnapshotTransaction(
                 keyValueService,
@@ -207,6 +209,13 @@ import com.palantir.timestamp.TimestampService;
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess);
         return runTaskThrowOnConflict(task, new ReadTransaction(transaction, sweepStrategyManager));
+    }
+
+    @Override
+    public void close() {
+        super.close();
+        cleaner.close();
+        keyValueService.close();
     }
 
     private Supplier<Long> getStartTimestampSupplier() {

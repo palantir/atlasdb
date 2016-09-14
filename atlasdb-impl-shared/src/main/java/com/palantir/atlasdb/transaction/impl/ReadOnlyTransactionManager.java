@@ -79,12 +79,6 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
     }
 
     @Override
-    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E,
-            TransactionFailedRetriableException {
-        throw new UnsupportedOperationException("this manager is read only");
-    }
-
-    @Override
     public long getImmutableTimestamp() {
         return Long.MAX_VALUE;
     }
@@ -96,6 +90,7 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
 
     @Override
     public <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E {
+        checkOpen();
         SnapshotTransaction txn = new ShouldNotDeleteAndRollbackTransaction(
                 keyValueService,
                 transactionService,
@@ -104,6 +99,18 @@ public class ReadOnlyTransactionManager extends AbstractTransactionManager imple
                 readSentinelBehavior,
                 allowHiddenTableAccess);
         return runTaskThrowOnConflict(task, new ReadTransaction(txn, txn.sweepStrategyManager));
+    }
+
+    @Override
+    public void close() {
+        super.close();
+        keyValueService.close();
+    }
+
+    @Override
+    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E,
+            TransactionFailedRetriableException {
+        throw new UnsupportedOperationException("this manager is read only");
     }
 
     @Override
