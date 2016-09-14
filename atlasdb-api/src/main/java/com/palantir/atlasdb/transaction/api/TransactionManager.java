@@ -16,41 +16,6 @@
 package com.palantir.atlasdb.transaction.api;
 
 public interface TransactionManager extends AutoCloseable {
-
-    /**
-     * Most AtlasDB TransactionManagers will provide {@link Transaction} objects that have less than full
-     * serializability. The most common is snapshot isolation (SI).  SI has a start timestamp and a commit timestamp
-     * and an open transaction can only read values that were committed before it's start timestamp.
-     * <p>
-     * This method will return a timestamp that is before any uncommited/aborted open start timestamps.
-     * <p>
-     * Subsequent calls to this method will always be monotonically increasing for a single client.
-     * <p>
-     * You are only allowed to open historic/read-only transactions at a timestamp less than or equal to the
-     * immutableTimestamp
-     *
-     * @return the latest timestamp for which there are no open transactions
-     *
-     * @throws IllegalStateException if the transaction manager has been closed.
-     */
-    long getImmutableTimestamp();
-
-    /**
-     * Returns the timestamp that is before any open start timestamps. This is different from the immutable
-     * timestamp, because it takes into account open read-only transactions. There is likely to be NO
-     * running transactions open at a timestamp before the unreadable timestamp, however this cannot be guaranteed.
-     * <p>
-     * When using the unreadable timestamp for cleanup it is important to leave a sentinel value behind at a negative
-     * timestamp so any transaction that is open will fail out if reading a value that is cleaned up instead of just
-     * getting back no data. This is needed to ensure that all transactions either produce correct values or fail.
-     * It is not an option to return incorrect data.
-     *
-     * @return the timestamp that is before any open start timestamps
-     *
-     * @throws IllegalStateException if the transaction manager has been closed.
-     */
-    long getUnreadableTimestamp();
-
     /**
      * Runs the given {@link TransactionTask}. If the task completes successfully
      * and does not call {@link Transaction#commit()} or {@link Transaction#abort()},
@@ -122,4 +87,37 @@ public interface TransactionManager extends AutoCloseable {
      */
     <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E;
 
+    /**
+     * Most AtlasDB TransactionManagers will provide {@link Transaction} objects that have less than full
+     * serializability. The most common is snapshot isolation (SI).  SI has a start timestamp and a commit timestamp
+     * and an open transaction can only read values that were committed before it's start timestamp.
+     * <p>
+     * This method will return a timestamp that is before any uncommited/aborted open start timestamps.
+     * <p>
+     * Subsequent calls to this method will always be monotonically increasing for a single client.
+     * <p>
+     * You are only allowed to open historic/read-only transactions at a timestamp less than or equal to the
+     * immutableTimestamp
+     *
+     * @return the latest timestamp for which there are no open transactions
+     *
+     * @throws IllegalStateException if the transaction manager has been closed.
+     */
+    long getImmutableTimestamp();
+
+    /**
+     * Returns the timestamp that is before any open start timestamps. This is different from the immutable
+     * timestamp, because it takes into account open read-only transactions. There is likely to be NO
+     * running transactions open at a timestamp before the unreadable timestamp, however this cannot be guaranteed.
+     * <p>
+     * When using the unreadable timestamp for cleanup it is important to leave a sentinel value behind at a negative
+     * timestamp so any transaction that is open will fail out if reading a value that is cleaned up instead of just
+     * getting back no data. This is needed to ensure that all transactions either produce correct values or fail.
+     * It is not an option to return incorrect data.
+     *
+     * @return the timestamp that is before any open start timestamps
+     *
+     * @throws IllegalStateException if the transaction manager has been closed.
+     */
+    long getUnreadableTimestamp();
 }

@@ -27,7 +27,6 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class TransactionManagerTest extends TransactionTestSetup {
-
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
