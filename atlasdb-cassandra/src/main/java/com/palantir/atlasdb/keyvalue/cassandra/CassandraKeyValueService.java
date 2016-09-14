@@ -1642,9 +1642,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private void putMetadataWithoutChangingSettings(final TableReference tableRef, final byte[] meta) {
+        long ts = System.currentTimeMillis();
+
+        Multimap<Cell, Long> oldVersions = getAllTimestamps(
+                tableRef,
+                ImmutableSet.of(getMetadataCell(tableRef)),
+                ts - 1);
+
         put(AtlasDbConstants.METADATA_TABLE, ImmutableMap.of(
                 getMetadataCell(tableRef), meta),
-                System.currentTimeMillis());
+                ts);
+
+        delete(tableRef, oldVersions);
     }
 
     @Override
