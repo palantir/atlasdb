@@ -28,6 +28,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
+import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -48,8 +50,10 @@ import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
+import com.palantir.docker.compose.execution.DockerComposeExecArgument;
+import com.palantir.docker.compose.execution.DockerComposeExecOption;
 
-public class CassandraMultinodeTodoEteTest {
+public class CassandraMultinodeEteTest {
 
     private static final Gradle GRADLE_PREPARE_TASK =
             Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
@@ -161,7 +165,7 @@ public class CassandraMultinodeTodoEteTest {
         }
     }
 
-    static void startCassandraContainer(String containerName) throws InterruptedException {
+    void startCassandraContainer(String containerName) throws InterruptedException {
         Container container = CASSANDRA_DOCKER_SETUP.containers().container(containerName);
         try {
             container.start();
@@ -170,9 +174,7 @@ public class CassandraMultinodeTodoEteTest {
         }
         waitForAllPorts(container);
         //TODO: node should join the cassandra cluster
-//        Awaitility.await()
-//                .atMost(50, TimeUnit.SECONDS)
-//                .until(canCreateCassandraClient(container));
+        waitForNodetoolToConfirmStatus(container, "UN", 3);
     }
 
     private static void waitForAllPorts(Container container) {
@@ -212,5 +214,21 @@ public class CassandraMultinodeTodoEteTest {
         List<Todo> todoList = todoClient.getTodoList();
 
         assertThat(todoList, hasItem(todo));
+    }
+
+    private void waitForNodetoolToConfirmStatus(Container container, String status, int expectedNodeCount) {
+        Awaitility.await()
+                .atMost(360, TimeUnit.SECONDS)
+                .pollInterval(5, TimeUnit.SECONDS)
+                .until(() -> {
+                    try {
+                        String nodetoolStatus = CASSANDRA_DOCKER_SETUP.exec(DockerComposeExecOption.options("-T"),
+                                container.getContainerName(),
+                                DockerComposeExecArgument.arguments("bash", "-c", "nodetool status | grep " + status));
+                        return StringUtils.countMatches(nodetoolStatus, status) == expectedNodeCount;
+                    } catch (Exception e) {
+                        return false;
+                    }
+                });
     }
 }
