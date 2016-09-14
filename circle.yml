@@ -22,7 +22,6 @@ dependencies:
   pre:
     - sudo pip install docker-compose
     - sudo pkill -u postgres
-    - sudo lxc-attach -n "$(docker inspect --format "{{.Id}}" CONTAINER_2)" -- bash -c "nodetool status"
   override:
     - ./gradlew compileTestJava
     - sudo pip install sphinx sphinx_rtd_theme

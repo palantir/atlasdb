@@ -222,9 +222,10 @@ public class CassandraMultinodeEteTest {
                 .pollInterval(5, TimeUnit.SECONDS)
                 .until(() -> {
                     try {
-                        String nodetoolStatus = CASSANDRA_DOCKER_SETUP.exec(DockerComposeExecOption.options("-T"),
+                        String nodetoolStatus = CASSANDRA_DOCKER_SETUP.run(
+                                DockerComposeRunOption.options("-T"),
                                 container.getContainerName(),
-                                DockerComposeExecArgument.arguments("bash", "-c", "nodetool status | grep " + status));
+                                DockerComposeRunArgument.arguments("bash", "-c", "nodetool status | grep " + status));
                         return StringUtils.countMatches(nodetoolStatus, status) == expectedNodeCount;
                     } catch (Exception e) {
                         return false;
