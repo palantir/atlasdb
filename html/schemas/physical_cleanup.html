@@ -216,9 +216,9 @@ cleaned up stuff you should have read.</li>
 <p>If a transaction is marked as <code class="docutils literal"><span class="pre">TransactionType.HARD_DELETE</span></code> or
 <code class="docutils literal"><span class="pre">TransactionType.AGGRESSIVE_HARD_DELETE</span></code> all the rows that have been
 written are kept track of in the _scrub table. The scrubber will
-inspect these rows and perform the same type of deletes are sweep, but
-are targeted so they will be cleaned up much faster than a sweep which
-has to do a big getRange over everything.</p>
+inspect these rows and perform the same type of deletes as sweep, but
+the data will be cleaned up much faster than a sweep which has to do a
+big getRange over everything.</p>
 <div class="section" id="aggressive-hard-delete">
 <h3>AGGRESSIVE_HARD_DELETE<a class="headerlink" href="#aggressive-hard-delete" title="Permalink to this headline">¶</a></h3>
 <p><code class="docutils literal"><span class="pre">AGGRESSIVE_HARD_DELETE</span></code> will immediately call scrub after the

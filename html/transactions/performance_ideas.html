@@ -305,6 +305,9 @@ many clients writing to different cells in the same row, they will
 experience the same lock contention, but no write/write conflict.</p>
 <p>Avoid designs where you expect multiple clients to write into the same
 row but different cells.</p>
+<hr class="docutils" />
+<p>Note: It is a good practice to call <code class="docutils literal"><span class="pre">TransactionManager.close()</span></code> to
+free up the underlying resources when you intend to no longer run transactions.</p>
 </div>
 </div>
 
