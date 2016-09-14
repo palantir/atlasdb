@@ -52,6 +52,8 @@ import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.docker.compose.execution.DockerComposeExecArgument;
 import com.palantir.docker.compose.execution.DockerComposeExecOption;
+import com.palantir.docker.compose.execution.DockerComposeRunArgument;
+import com.palantir.docker.compose.execution.DockerComposeRunOption;
 
 public class CassandraMultinodeEteTest {
 
