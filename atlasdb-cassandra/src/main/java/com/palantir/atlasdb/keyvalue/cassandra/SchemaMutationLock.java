@@ -105,10 +105,11 @@ public class SchemaMutationLock {
 
                         CASResult casResult = writeDdlLockWithCas(client, expected, ourUpdate);
 
-                        if (casResult.isSuccess())
+                        if (casResult.isSuccess()) {
                             heartbeatCount++;
-                        else
+                        } else {
                             handleForcedLockClear(casResult, lockId, heartbeatCount);
+                        }
                         return null;
                     });
                     Thread.sleep(configManager.getConfig().heartbeatTimePeriodMillis());
@@ -271,12 +272,14 @@ public class SchemaMutationLock {
             if (column != null) {
                 String remoteValue = new String(column.getValue(), StandardCharsets.UTF_8);
                 long remoteId = Long.parseLong(remoteValue.split("_")[0]);
-                remoteLock = (remoteId== CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_ID)
+                remoteLock = (remoteId == CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_ID)
                         ? "(Cleared Value)"
                         : remoteValue;
             }
         }
-        String expectedLock = String.format(CassandraConstants.GLOBAL_DDL_LOCK_FORMAT, perOperationNodeId, heartbeatCount);
+
+        String expectedLock = String.format(CassandraConstants.GLOBAL_DDL_LOCK_FORMAT, perOperationNodeId,
+                heartbeatCount);
         throw new IllegalStateException(String.format("Another process cleared our schema mutation lock from"
                 + " underneath us. Our ID, which we expected, was %s, the value we saw in the database was instead %s.",
                 expectedLock, remoteLock));
