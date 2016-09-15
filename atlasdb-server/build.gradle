@@ -1,10 +1,7 @@
+apply plugin: 'com.palantir.java-distribution'
 apply plugin: 'org.inferred.processors'
 
 apply from: "${rootProject.projectDir}/gradle/shared.gradle"
-
-apply plugin: 'application'
-mainClassName = 'com.palantir.atlasdb.server.AtlasDbServer'
-applicationName = 'atlasdb-server'
 
 dependencies {
     compile project(':atlasdb-config')
@@ -43,6 +40,6 @@ configurations.matching({ it.name in ['compile', 'runtime'] }).all {
 
 distribution {
     serviceName 'atlasdb-server'
-    mainClass 'com.palantir.atlasdb.AtlasDbServer'
+    mainClass 'com.palantir.atlasdb.server.AtlasDbServer'
     args 'server', 'var/conf/atlasdb-server.yml'
 }
