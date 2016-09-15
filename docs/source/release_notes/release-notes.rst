@@ -51,6 +51,8 @@ v0.15.0
 
     *    - |breaking|
          - All TransactionManagers are now AutoCloseable and implement a close method that will free up the underlying resources.
+
+           If your service implements a `TransactionManager` and does not extend `AbstractTransactionManager`, you now have to add a close method to the implementation.
            No operations can be performed using the TransactionManager once it is closed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/907>`__)
 
