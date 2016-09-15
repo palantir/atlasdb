@@ -49,6 +49,11 @@ v0.15.0
            Removing temp tables entirely should reduce the need to manually truncate the locks table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/916>`__)
 
+    *    - |breaking|
+         - All TransactionManagers are now AutoCloseable and implement a close method that will free up the underlying resources.
+           No operations can be performed using the TransactionManager once it is closed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/907>`__)
+
     *    - |new|
          - :ref:`AtlasDB Sweep <physical-cleanup-sweep>` now uses :ref:`column paging <cassandra-sweep-config>` via the ``timestampsGetterBatchSize`` parameter to better handle sweeping cells with many historical versions.
 
@@ -101,11 +106,6 @@ v0.14.0
            AtlasDB will now fail to start if your configuration is invalid with a sensible message, per `#790 <https://github.com/palantir/atlasdb/issues/790>`__, rather than potentially breaking in unexpected ways.
            Please refer to :ref:`Example Leader Configurations <leader-config-examples>` for guidance on valid configurations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/854>`__)
-
-    *    - |breaking|
-         - All TransactionManagers are now AutoCloseable and implement a close method that will free up the underlying resources.
-           No operations can be performed using the TransactionManager once it is closed.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/907>`__)
 
     *    - |fixed|
          - Fixed and standardized serialization and deserialization of AtlasDBConfig.

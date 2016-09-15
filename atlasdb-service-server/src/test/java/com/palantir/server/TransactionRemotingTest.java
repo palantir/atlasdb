@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -93,6 +94,11 @@ public class TransactionRemotingTest {
                 .encoder(new JacksonEncoder(mapper))
                 .contract(new JAXRSContract())
                 .target(AtlasDbService.class, uri);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        txMgr.close();
     }
 
     @Test
