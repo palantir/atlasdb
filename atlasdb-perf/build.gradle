@@ -1,0 +1,51 @@
+apply plugin: 'org.inferred.processors'
+
+apply from: '../gradle/shared.gradle'
+
+apply plugin: 'application'
+mainClassName = 'com.palantir.atlasdb.performance.cli.AtlasDbPerfCli'
+applicationName = 'atlasdb-perf'
+
+dependencies {
+  compile project(':atlasdb-api')
+  compile project(':atlasdb-dagger')
+  compile project(':atlasdb-dbkvs')
+  compile project(':atlasdb-cassandra')
+
+  compile group: 'io.airlift', name: 'airline', version: '0.7'
+  compile group: 'org.reflections', name: 'reflections', version: '0.9.10'
+  compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: libVersions.dockerComposeRule
+  compile group: 'ch.qos.logback', name: 'logback-classic', version: libVersions.logback
+
+  compile group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.13'
+  processor group: 'org.immutables', name: 'value', version: libVersions.immutables
+  processor(group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.13') {
+      // We need to explicitly exclude these so that intellij does not label them as provided
+      if(gradle.startParameter.taskNames.contains('idea')) {
+          exclude group: 'org.openjdk.jmh', module: 'jmh-core'
+      }
+  }
+}
+
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+      resolutionStrategy {
+          force 'javax.validation:validation-api:1.1.0.Final'
+          force 'ch.qos.logback:logback-classic:1.1.3'
+          force 'com.google.code.findbugs:annotations:2.0.3'
+          force 'org.slf4j:slf4j-api:' + libVersions.slf4j
+          force 'org.apache.commons:commons-lang3:' + libVersions.commons_lang3
+          force 'commons-io:commons-io:' + libVersions.commons_io
+          force 'joda-time:joda-time:' + libVersions.joda_time
+          force 'com.googlecode.json-simple:json-simple:' + libVersions.json_simple
+          force 'org.yaml:snakeyaml:' + libVersions.snakeyaml
+          force 'org.apache.thrift:libthrift:' + libVersions.libthrift
+          force 'commons-codec:commons-codec:' + libVersions.commons_codec
+      }
+}
+
+distZip {
+    into(project.name + '-' + project.version) {
+        from '..'
+        include 'docker-containers/**/*'
+    }
+}
