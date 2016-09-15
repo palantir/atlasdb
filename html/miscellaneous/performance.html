@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Releases &mdash; AtlasDB develop documentation</title>
+  <title>Performance Benchmarking &mdash; AtlasDB develop documentation</title>
   
 
   
@@ -35,8 +35,9 @@
 
   
     <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
-        <link rel="next" title="Changelog" href="release-notes.html"/>
-        <link rel="prev" title="Performance Benchmarking" href="../miscellaneous/performance.html"/> 
+        <link rel="up" title="Miscellaneous" href="index.html"/>
+        <link rel="next" title="Releases" href="../release_notes/index.html"/>
+        <link rel="prev" title="Contributing to AtlasDB" href="contributing.html"/> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
@@ -92,12 +93,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../configuration/index.html">Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../services/index.html">Services</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../miscellaneous/index.html">Miscellaneous</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Releases</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="release-notes.html">Changelog</a></li>
-<li class="toctree-l2"><a class="reference internal" href="release-process.html">Release Process</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Miscellaneous</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="contributing.html">Contributing to AtlasDB</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Performance Benchmarking</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes/index.html">Releases</a></li>
 </ul>
 
             
@@ -128,11 +129,13 @@
   <ul class="wy-breadcrumbs">
     <li><a href="../index.html">Docs</a> &raquo;</li>
       
-    <li>Releases</li>
+          <li><a href="index.html">Miscellaneous</a> &raquo;</li>
+      
+    <li>Performance Benchmarking</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/release_notes/index.rst" class="fa fa-github"> Edit on GitHub</a>
+            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/miscellaneous/performance.rst" class="fa fa-github"> Edit on GitHub</a>
           
         
       </li>
@@ -142,13 +145,29 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="releases">
-<h1>Releases<a class="headerlink" href="#releases" title="Permalink to this headline">¶</a></h1>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="release-notes.html">Changelog</a></li>
-<li class="toctree-l1"><a class="reference internal" href="release-process.html">Release Process</a></li>
-</ul>
+  <div class="section" id="performance-benchmarking">
+<h1>Performance Benchmarking<a class="headerlink" href="#performance-benchmarking" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="running-benchmarks">
+<h2>Running Benchmarks<a class="headerlink" href="#running-benchmarks" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p class="first">Follow the steps provided in <a class="reference internal" href="../overview/getting_started.html#running-from-source"><span class="std std-ref">Running from Source</span></a>.</p>
+</li>
+<li><p class="first">Build the performance cli:</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">gradlew</span> <span class="n">atlasdb</span><span class="o">-</span><span class="n">perf</span><span class="p">:</span><span class="n">installDist</span>
+<span class="n">cd</span> <span class="n">atlasdb</span><span class="o">-</span><span class="n">perf</span><span class="o">/</span><span class="n">build</span><span class="o">/</span><span class="n">install</span><span class="o">/</span><span class="n">atlasdb</span><span class="o">-</span><span class="n">perf</span><span class="o">/</span><span class="nb">bin</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Run the performance cli:</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">atlasdb</span><span class="o">-</span><span class="n">perf</span> <span class="o">--</span><span class="n">help</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</div>
+<div class="section" id="contributing-benchmarks">
+<h2>Contributing Benchmarks<a class="headerlink" href="#contributing-benchmarks" title="Permalink to this headline">¶</a></h2>
+<p>The benchmarks are written using the <a class="reference external" href="http://openjdk.java.net/projects/code-tools/jmh/">Java Benchmarking Harness</a> (JMH) bundled with OpenJDK.  To get started understanding JMH take a look at the <a class="reference external" href="http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/">JMH Samples</a>.  Our benchmarks are found in the <code class="code docutils literal"><span class="pre">atlasdb-perf</span></code> project.</p>
 </div>
 </div>
 
@@ -159,10 +178,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="release-notes.html" class="btn btn-neutral float-right" title="Changelog" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="../release_notes/index.html" class="btn btn-neutral float-right" title="Releases" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="../miscellaneous/performance.html" class="btn btn-neutral" title="Performance Benchmarking" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="contributing.html" class="btn btn-neutral" title="Contributing to AtlasDB" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
