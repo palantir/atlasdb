@@ -125,17 +125,16 @@ abstract class AbstractDefinition {
         }
 
         if (CRITICAL_ROW_TYPES.contains(comp.getType())) {
-            log.error(
-                "First row component {} of type {} will likely cause hot-spotting with the partitioner in Cassandra. " +
-                "This is caused by the structure of variable-sized types which will state their length prior to the value " +
-                "resulting in them being partition predominantly by the LENGTH of the values which is likely to be similar. " +
-                "If you anticipate never running on Cassandra or feel you can safely ignore this case " +
-                "(for instance, if this table will never be very large) " +
-                "then this error can be safely ignored by adding ignoreHotspottingChecks() to the table schema. " +
-                "In a future release atlas will fail to start if there are hotspotting issues that have not been ignored. " +
-                "(This error is directed at the developer of this atlas application, " +
-                "who should be informed that they need to change their schema)",
-                comp.getComponentName(), comp.getType());
+            log.info(
+                    "First row component {} of type {} will likely cause hot-spotting with the partitioner in "
+                        + "Cassandra. This is caused by the structure of variable-sized types which will state their "
+                        + "length prior to value resulting in them being partition predominantly by the LENGTH of the "
+                        + "values which is likely to be similar. If you anticipate never running on Cassandra or feel "
+                        + "you can safely ignore this case (for instance, if this table will never be very large) "
+                        + "then you should add ignoreHotspottingChecks() to the table schema. (This is directed at the "
+                        + "developer of this atlas application, they may need to change their schema)",
+                    comp.getComponentName(),
+                    comp.getType());
         }
     }
 }
