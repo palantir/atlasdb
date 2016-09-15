@@ -12,27 +12,31 @@ jacocoTestReport {
     executionData test, integTest
 }
 
-check.dependsOn integTest
-
 dependencies {
-    compile project(":timestamp-api")
-    compile project(":lock-impl")
+    compile project(':lock-impl')
+    compile project(':leader-election-impl')
+    compile project(':atlasdb-config')
+    compile project(':atlasdb-hikari')
+    compile project(':atlasdb-rocksdb')
 
-    compile group: 'com.github.rholder', name: 'guava-retrying'
-    compile group: 'com.palantir.remoting1', name: 'jersey-servers'
-    compile group: 'com.palantir.remoting1', name: 'ssl-config'
-    compile group: 'io.atomix', name: 'atomix'
-    compile group: 'io.atomix.catalyst', name: 'catalyst-netty'
-    compile group: 'io.dropwizard', name: 'dropwizard-core'
+    compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
+    compile 'com.google.dagger:dagger'
 
-    processor group: 'org.immutables', name: 'value'
+    compile "org.rocksdb:rocksdbjni:4.1.0"
+    compile 'org.postgresql:postgresql:' + libVersions.postgresql
 
-    testCompile project(':atlasdb-config')
+    compile group: 'org.apache.thrift', name: 'libthrift'
 
-    testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile group: 'org.mockito', name: 'mockito-core'
+    processor 'org.immutables:value:' + libVersions.immutables
+    processor('com.google.dagger:dagger-compiler') {
+        // We need to explicitly exclude these so that intellij does not label them as provided
+        if(gradle.startParameter.taskNames.contains('idea')) {
+            exclude group: 'com.google.guava'
+            exclude group: 'com.google.dagger', module: 'dagger'
+        }
+    }
 
-    integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing'
+    testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
 }
 
 distribution {
