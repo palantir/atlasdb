@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.remoting;
 
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
@@ -38,7 +39,7 @@ public final class InsufficientConsistencyExceptionMapper implements
         return Response
                 .status(503)
                 .entity("Insufficient consistency!")
-                .header(feign.Util.RETRY_AFTER, "0")
+                .header(HttpHeaders.RETRY_AFTER, "0")
                 .build();
     }
 }

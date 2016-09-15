@@ -15,9 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
-
-
-public interface TransactionManager {
+public interface TransactionManager extends AutoCloseable {
     /**
      * Runs the given {@link TransactionTask}. If the task completes successfully
      * and does not call {@link Transaction#commit()} or {@link Transaction#abort()},
@@ -39,6 +37,12 @@ public interface TransactionManager {
      * second try might not do the right thing.  For example: if you are passed a list of objects
      * and at the end of the {@link TransactionTask}, you clear the list.  If your task gets retried
      * it will have no work to do, because the list was cleared.
+     *
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
+     * @throws IllegalStateException if the transaction manager has been closed.
      */
     <T, E extends Exception> T runTaskWithRetry(TransactionTask<T, E> task) throws E;
 
@@ -61,13 +65,30 @@ public interface TransactionManager {
      * NOTE: If an exception is thrown by {@link Transaction#commit()}, the transaction might have
      * been committed.
      *
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
      * @throws TransactionConflictException if a write-write conflict occurs
+     * @throws IllegalStateException if the transaction manager has been closed.
      */
     <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task)
             throws E, TransactionFailedRetriableException;
 
     /**
-     * Most atlasdb TransactionManagers will provide {@link Transaction} objects that have less than full
+     * This will open and run a read only transaction.  Read transactions are just like normal
+     * transactions, but will throw if any write operations are called.
+     *
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
+     * @throws IllegalStateException if the transaction manager has been closed.
+     */
+    <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E;
+
+    /**
+     * Most AtlasDB TransactionManagers will provide {@link Transaction} objects that have less than full
      * serializability. The most common is snapshot isolation (SI).  SI has a start timestamp and a commit timestamp
      * and an open transaction can only read values that were committed before it's start timestamp.
      * <p>
@@ -79,6 +100,8 @@ public interface TransactionManager {
      * immutableTimestamp
      *
      * @return the latest timestamp for which there are no open transactions
+     *
+     * @throws IllegalStateException if the transaction manager has been closed.
      */
     long getImmutableTimestamp();
 
@@ -91,15 +114,10 @@ public interface TransactionManager {
      * timestamp so any transaction that is open will fail out if reading a value that is cleaned up instead of just
      * getting back no data. This is needed to ensure that all transactions either produce correct values or fail.
      * It is not an option to return incorrect data.
+     *
+     * @return the timestamp that is before any open start timestamps
+     *
+     * @throws IllegalStateException if the transaction manager has been closed.
      */
     long getUnreadableTimestamp();
-
-    /**
-     * This will open and run a read only transaction.  Read transactions are just like normal
-     * transactions, but will throw if any write operations are called.
-     *
-     * @param task task to run
-     * @return value returned by task
-     */
-    <T, E extends Exception> T runTaskReadOnly(TransactionTask<T, E> task) throws E;
 }

@@ -26,30 +26,55 @@ public interface LockAwareTransactionManager extends TransactionManager {
      * acquire locks right before the transaction is created and release them after the task is complete.
      * <p>
      * The created transaction will not commit successfully if these locks are invalid by the time commit is run.
-     * <p>
+     *
+     * @param lockSupplier supplier for the lock request
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
      * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
+     * @throws IllegalStateException if the transaction manager has been closed.
      */
-    <T, E extends Exception> T runTaskWithLocksWithRetry(Supplier<LockRequest> lockSupplier,
-                                                         LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
+    <T, E extends Exception> T runTaskWithLocksWithRetry(
+            Supplier<LockRequest> lockSupplier,
+            LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
 
     /**
      * This method is the same as {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)}
      * but it will also ensure that the existing lock tokens passed are still valid before committing.
-     * <p>
+     *
+     * @param lockTokens lock tokens to acquire while transaction executes
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
      * @throws LockAcquisitionException If the supplied lock request is not successfully acquired.
+     * @throws IllegalStateException if the transaction manager has been closed.
      */
-    <T, E extends Exception> T runTaskWithLocksWithRetry(Iterable<HeldLocksToken> lockTokens,
-                                                         Supplier<LockRequest> lockSupplier,
-                                                         LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
+    <T, E extends Exception> T runTaskWithLocksWithRetry(
+            Iterable<HeldLocksToken> lockTokens,
+            Supplier<LockRequest> lockSupplier,
+            LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
 
     /**
      * This method is the same as {@link #runTaskThrowOnConflict(TransactionTask)} except the created transaction
      * will not commit successfully if these locks are invalid by the time commit is run.
+     *
+     * @param lockTokens lock tokens to acquire while transaction executes
+     * @param task task to run
+     *
+     * @return value returned by task
+     *
+     * @throws IllegalStateException if the transaction manager has been closed.
      */
-    <T, E extends Exception> T runTaskWithLocksThrowOnConflict(Iterable<HeldLocksToken> lockTokens,
-                                                               LockAwareTransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
+    <T, E extends Exception> T runTaskWithLocksThrowOnConflict(
+            Iterable<HeldLocksToken> lockTokens,
+            LockAwareTransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
 
-
+    /**
+     * Returns the lock service used by this transaction manager.
+     *
+     * @return the lock service for this transaction manager
+     */
     RemoteLockService getLockService();
-
 }

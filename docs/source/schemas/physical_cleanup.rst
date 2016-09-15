@@ -81,9 +81,9 @@ Scrubbing
 If a transaction is marked as ``TransactionType.HARD_DELETE`` or
 ``TransactionType.AGGRESSIVE_HARD_DELETE`` all the rows that have been
 written are kept track of in the \_scrub table. The scrubber will
-inspect these rows and perform the same type of deletes are sweep, but
-are targeted so they will be cleaned up much faster than a sweep which
-has to do a big getRange over everything.
+inspect these rows and perform the same type of deletes as sweep, but
+the data will be cleaned up much faster than a sweep which has to do a
+big getRange over everything.
 
 AGGRESSIVE\_HARD\_DELETE
 ------------------------
