@@ -1645,7 +1645,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         long ts = System.currentTimeMillis();
 
         Multimap<Cell, Long> oldVersions = getAllTimestamps(
-                tableRef,
+                AtlasDbConstants.METADATA_TABLE,
                 ImmutableSet.of(getMetadataCell(tableRef)),
                 ts - 1);
 
@@ -1653,7 +1653,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 getMetadataCell(tableRef), meta),
                 ts);
 
-        delete(tableRef, oldVersions);
+        delete(AtlasDbConstants.METADATA_TABLE, oldVersions);
     }
 
     @Override
