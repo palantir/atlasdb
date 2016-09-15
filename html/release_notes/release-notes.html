@@ -164,12 +164,7 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
-<td>All TransactionManagers are now AutoCloseable and implement a close method that will free up the underlying resources.
-No operations can be performed using the TransactionManager once it is closed.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/907">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td><p class="first"><code class="docutils literal"><span class="pre">CassandraKeyValueServiceConfiguration</span></code> now supports <a class="reference internal" href="../configuration/cassandra_KVS_configuration.html#cassandra-sweep-config"><span class="std std-ref">column paging</span></a>
 via the <code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> parameter.</p>
 <p>Enabling such paging could make <a class="reference internal" href="../schemas/physical_cleanup.html#physical-cleanup-sweep"><span class="std std-ref">Sweep</span></a> more reliable by helping
@@ -180,7 +175,7 @@ reach out to the AtlasDB dev team if you would like to enable it.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/834">Pull Request</a>)</p>
 </td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Added a second implementation of <code class="docutils literal"><span class="pre">getRowsColumnRange</span></code> method which allows you to page through dynamic columns
 in a single iterator. This is expected to perform better than the previous <code class="docutils literal"><span class="pre">getRowsColumnRange</span></code> which allows
 you to page through columns per row with certain KVS stores (e.g. SQL stores), so should be preferred
@@ -188,12 +183,12 @@ unless it is necessary to page through the results for different rows separately
 using wide rows should consider using <code class="docutils literal"><span class="pre">getRowsColumnRange</span></code> instead of <code class="docutils literal"><span class="pre">getRows</span></code> in <code class="docutils literal"><span class="pre">KeyValueService</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/724">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Added a <a class="reference internal" href="../cluster_management/clis.html#offline-clis"><span class="std std-ref">CLI</span></a> to truncate the locks table.
 This is useful on Cassandra KVS, if a node goes down during a schema mutation and does not release the schema mutation lock.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/888">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td>Reverted our Dagger dependency from 2.4 to 2.0.2 and shadowed it so that it won&#8217;t conflict with internal products.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/926">Pull Request</a>)</td>
 </tr>
@@ -227,12 +222,17 @@ AtlasDB will now fail to start if your configuration is invalid with a sensible 
 Please refer to <a class="reference internal" href="../configuration/leader_config.html#leader-config-examples"><span class="std std-ref">Example Leader Configurations</span></a> for guidance on valid configurations.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/854">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<td>All TransactionManagers are now AutoCloseable and implement a close method that will free up the underlying resources.
+No operations can be performed using the TransactionManager once it is closed.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/907">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed and standardized serialization and deserialization of AtlasDBConfig.
 This prevented CLIs deployed via the <a class="reference internal" href="../cluster_management/dropwizard-bundle.html#dropwizard-bundle"><span class="std std-ref">Dropwizard bundle</span></a> from loading configuration properly.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/875">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
 <td>Updated our Dagger dependency from 2.0.2 to 2.4, so that our generated code matches with that of internal products.
 This also bumps our Guava dependency from 18.0 to 19.0 to accommodate a Dagger compile dependency.
 We plan on shading Dagger in the next release of AtlasDB, but products can force a Guava 18.0 runtime dependency to workaround the issue in the meantime.
