@@ -174,7 +174,7 @@ Removing temp tables entirely should reduce the need to manually truncate the lo
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
 <td><p class="first">All TransactionManagers are now AutoCloseable and implement a close method that will free up the underlying resources.</p>
-<p class="last">If your service implements a <cite>TransactionManager</cite> and does not extend <cite>AbstractTransactionManager</cite>, you now have to add a close method to the implementation.
+<p class="last">If your service implements a <code class="docutils literal"><span class="pre">TransactionManager</span></code> and does not extend <code class="docutils literal"><span class="pre">AbstractTransactionManager</span></code>, you now have to add a close method to the implementation.
 No operations can be performed using the TransactionManager once it is closed.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/907">Pull Request</a>)</p>
 </td>
