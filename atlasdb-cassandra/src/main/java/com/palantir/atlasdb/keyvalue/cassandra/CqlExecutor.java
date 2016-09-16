@@ -52,7 +52,7 @@ public class CqlExecutor {
     List<CellWithTimestamp> getColumnsForRow(TableReference tableRef, byte[] row, int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s LIMIT %s;",
-                getTableName(tableRef),
+                getQuotedTableName(tableRef),
                 CassandraKeyValueServices.encodeAsHex(row),
                 limit);
         CqlResult cqlResult = executeQueryOnHost(query, getHostForRow(row));
@@ -77,7 +77,7 @@ public class CqlExecutor {
         long invertedTimestamp = ~maxTimestampExclusive;
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s AND column1 = %s AND column2 > %s LIMIT %s;",
-                getTableName(tableRef),
+                getQuotedTableName(tableRef),
                 CassandraKeyValueServices.encodeAsHex(row),
                 CassandraKeyValueServices.encodeAsHex(column),
                 invertedTimestamp,
@@ -101,7 +101,7 @@ public class CqlExecutor {
             int limit) {
         String query = String.format(
                 "SELECT column1, column2 FROM %s WHERE key = %s AND column1 > %s LIMIT %s;",
-                getTableName(tableRef),
+                getQuotedTableName(tableRef),
                 CassandraKeyValueServices.encodeAsHex(row),
                 CassandraKeyValueServices.encodeAsHex(previousColumn),
                 limit);
@@ -125,6 +125,10 @@ public class CqlExecutor {
         } catch (TException e) {
             throw Throwables.throwUncheckedException(e);
         }
+    }
+
+    private String getQuotedTableName(TableReference tableRef) {
+        return "\"" + getTableName(tableRef) + "\"";
     }
 
     private String getTableName(TableReference tableRef) {
