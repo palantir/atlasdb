@@ -66,10 +66,10 @@ public class SchemaMutationLock {
         void execute() throws Exception;
     }
 
-    class HeartbeatThread {
+    private class HeartbeatThread {
         private final Thread heartbeatThread;
         private final long lockId;
-        private volatile Boolean keepBeating;
+        private volatile boolean keepBeating;
         private volatile long heartbeatCount;
 
         HeartbeatThread(long lockId) {
@@ -140,9 +140,13 @@ public class SchemaMutationLock {
     }
 
     private void runWithLockWithoutCas(Action action) {
+        if (configManager.getConfig().servers().size() > 1) {
+            throw new UnsupportedOperationException("Running a clustered service with a version of Cassandra"
+                    + " that does not support check and set is not allowed. Either upgrade Cassandra or run"
+                    + " a single node service");
+        }
         LOGGER.info("Because your version of Cassandra does not support check and set,"
-                + " we will use a java level lock to synchronise schema mutations."
-                + " If this is a clustered service, this could lead to corruption.");
+                + " we will use a java level lock to synchronise schema mutations.");
         try {
             waitForSchemaMutationLockWithoutCas();
             action.execute();

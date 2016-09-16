@@ -30,6 +30,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -124,34 +125,34 @@ public class SchemaMutationLockIntegrationTest {
     @Test
     public void canGrabLockWhenNoHeartbeat() throws InterruptedException, ExecutionException {
         // only run this test with cas
-        if (casEnabled) {
-            expectedException.expect(ExecutionException.class);
-            expectedException.expectCause(instanceOf(IllegalStateException.class));
-            expectedException.expectMessage("Another process cleared our schema mutation lock from underneath us.");
-            expectedException.expectMessage("the value we saw in the database was instead (Cleared Value).");
+        Assume.assumeTrue(casEnabled);
 
-            Future async_1 = CassandraTestTools.async(executorService, () -> {
-                schemaMutationLock.runWithLock(() -> {
-                    // Wait for few heartbeats
-                    Thread.sleep(quickTimeoutConfig.heartbeatTimePeriodMillis() * 2);
+        expectedException.expect(ExecutionException.class);
+        expectedException.expectCause(instanceOf(IllegalStateException.class));
+        expectedException.expectMessage("Another process cleared our schema mutation lock from underneath us.");
+        expectedException.expectMessage("the value we saw in the database was instead (Cleared Value).");
 
-                    schemaMutationLock.killHeartbeat();
+        Future async_1 = CassandraTestTools.async(executorService, () -> {
+            schemaMutationLock.runWithLock(() -> {
+                // Wait for few heartbeats
+                Thread.sleep(quickTimeoutConfig.heartbeatTimePeriodMillis() * 2);
 
-                    // Try grabbing lock with dead heartbeat
-                    Future async_2 = CassandraTestTools.async(executorService,
-                            () -> schemaMutationLock.runWithLock(DO_NOTHING));
+                schemaMutationLock.killHeartbeat();
 
-                    // check if async_2 completes
-                    try {
-                        async_2.get(5, TimeUnit.SECONDS);
-                    } catch (TimeoutException e) {
-                        if (!async_2.isDone()) {
-                            throw new AssertionError("Schema lock could not be grabbed despite no heartbeat.");
-                        }
+                // Try grabbing lock with dead heartbeat
+                Future async_2 = CassandraTestTools.async(executorService,
+                        () -> schemaMutationLock.runWithLock(DO_NOTHING));
+
+                // check if async_2 completes
+                try {
+                    async_2.get(5, TimeUnit.SECONDS);
+                } catch (TimeoutException e) {
+                    if (!async_2.isDone()) {
+                        throw new AssertionError("Schema lock could not be grabbed despite no heartbeat.");
                     }
-                });
+                }
             });
-            async_1.get();
-        }
+        });
+        async_1.get();
     }
 }
