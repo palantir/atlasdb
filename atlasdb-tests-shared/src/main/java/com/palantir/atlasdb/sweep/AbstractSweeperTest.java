@@ -522,6 +522,17 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals(results, SweepResults.createEmptySweepResult(0L));
     }
 
+    @Test
+    public void testSweepingAlreadySweptTable() {
+        createTable(SweepStrategy.CONSERVATIVE);
+        put("row", "col", "val", 10);
+        put("row", "col", "val", 20);
+        completeSweep(30);
+
+        SweepResults secondSweepResults = completeSweep(40);
+        Assert.assertEquals(secondSweepResults.getCellsDeleted(), 0);
+    }
+
     private void testSweepManyRows(SweepStrategy strategy) {
         createTable(strategy);
         putIntoDefaultColumn("foo", "bar1", 5);
