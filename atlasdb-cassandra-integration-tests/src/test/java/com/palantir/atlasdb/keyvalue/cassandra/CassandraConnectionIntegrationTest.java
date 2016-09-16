@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.junit.Assert.fail;
 
 import org.apache.cassandra.thrift.InvalidRequestException;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.google.common.base.Optional;
@@ -30,9 +31,12 @@ import com.palantir.atlasdb.config.LeaderConfig;
 
 public class CassandraConnectionIntegrationTest {
 
+    @ClassRule
+    public static CassandraResources cassandraResources= CassandraResources.getCassandraResource();
+
     private static final CassandraKeyValueServiceConfig NO_CREDS_CKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig
             .builder()
-            .addServers(CassandraTestSuite.CASSANDRA_THRIFT_ADDRESS)
+            .addServers(cassandraResources.CASSANDRA_THRIFT_ADDRESS)
             .poolSize(20)
             .keyspace("atlasdb")
             .credentials(Optional.absent())
@@ -55,7 +59,7 @@ public class CassandraConnectionIntegrationTest {
     @Test
     public void testAuthProvided() {
         CassandraKeyValueService kv = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), LEADER_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(cassandraResources.CASSANDRA_KVS_CONFIG), LEADER_CONFIG);
         kv.teardown();
         assert true; // getting here implies authentication succeeded
     }

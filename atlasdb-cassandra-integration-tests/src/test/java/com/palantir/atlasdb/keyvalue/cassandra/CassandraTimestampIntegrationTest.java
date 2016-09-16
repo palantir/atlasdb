@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -28,10 +29,13 @@ import com.palantir.timestamp.TimestampBoundStore;
 public class CassandraTimestampIntegrationTest {
     private CassandraKeyValueService kv;
 
+    @ClassRule
+    public static CassandraResources cassandraResources= CassandraResources.getCassandraResource();
+
     @Before
     public void setUp() {
         kv = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), CassandraTestSuite.LEADER_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(cassandraResources.CASSANDRA_KVS_CONFIG), cassandraResources.LEADER_CONFIG);
         kv.initializeFromFreshInstance();
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }

@@ -36,6 +36,7 @@ import java.util.function.IntConsumer;
 
 import org.apache.thrift.TException;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -47,9 +48,12 @@ public class SchemaMutationLockTablesIntegrationTest {
     private CassandraKeyValueServiceConfig config;
     private CassandraClientPool clientPool;
 
+    @ClassRule
+    public static CassandraResources cassandraResources= CassandraResources.getCassandraResource();
+
     @Before
     public void setupKVS() throws TException, InterruptedException {
-        config = CassandraTestSuite.CASSANDRA_KVS_CONFIG
+        config = cassandraResources.CASSANDRA_KVS_CONFIG
                 .withKeyspace(UUID.randomUUID().toString().replace('-', '_')); // Hyphens not allowed in C* schema
         clientPool = new CassandraClientPool(config);
         clientPool.runOneTimeStartupChecks();

@@ -32,6 +32,7 @@ import org.apache.thrift.TException;
 import org.hamcrest.MatcherAssert;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -54,6 +55,9 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
     private ExecutorService executorService;
     private Logger logger = mock(Logger.class);
 
+    @ClassRule
+    public static CassandraResources cassandraResources= CassandraResources.getCassandraResource();
+
     @Before
     public void setupKVS() {
         keyValueService = getKeyValueService();
@@ -68,7 +72,9 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), CassandraTestSuite.LEADER_CONFIG, logger);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(cassandraResources.CASSANDRA_KVS_CONFIG),
+                cassandraResources.LEADER_CONFIG,
+                logger);
     }
 
     @Override

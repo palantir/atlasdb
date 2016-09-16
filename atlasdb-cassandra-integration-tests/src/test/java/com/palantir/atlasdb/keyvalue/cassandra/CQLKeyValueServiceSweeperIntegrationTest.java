@@ -15,11 +15,17 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import org.junit.ClassRule;
+
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.AbstractSweeperTest;
 
 public class CQLKeyValueServiceSweeperIntegrationTest extends AbstractSweeperTest {
+
+    @ClassRule
+    public static CassandraResources cassandraResources= CassandraResources.getCassandraResource();
+
     @Override
     protected KeyValueService getKeyValueService() {
         return CQLKeyValueService.create(
