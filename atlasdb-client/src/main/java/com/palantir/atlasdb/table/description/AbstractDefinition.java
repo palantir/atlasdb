@@ -69,12 +69,10 @@ abstract class AbstractDefinition {
         this.sweepStrategy = strategy;
     }
 
-    @Deprecated
     public void ignoreHotspottingChecks() {
         ignoreHotspottingChecks = true;
     }
 
-    @Deprecated
     public boolean shouldIgnoreHotspottingChecks() {
         return ignoreHotspottingChecks;
     }
@@ -122,14 +120,15 @@ abstract class AbstractDefinition {
     protected abstract ConflictHandler defaultConflictHandler();
 
     void validateFirstRowComp(NameComponentDescription comp) {
-        if (CRITICAL_ROW_TYPES.contains(comp.getType())) {
+        if (!ignoreHotspottingChecks && CRITICAL_ROW_TYPES.contains(comp.getType())) {
             log.info("First row component {} of type {} will likely cause hot-spotting with the partitioner in "
                     + "Cassandra. This is caused by the structure of variable-sized types which will state their "
                     + "length prior to their value resulting in them being partitioned predominantly by the LENGTH of "
-                    + "the values which is likely to be similar. This should not effect you if you anticipate never "
-                    + "running on Cassandra or feel you can safely ignore this case (for instance, if this table will "
-                    + "never be very large). This is directed at the developer of this atlas application, they may "
-                    + "need to change their schema.", comp.getComponentName(), comp.getType());
+                    + "the values which is likely to be similar. If you anticipate never running on Cassandra or feel "
+                    + "you can safely ignore this case (for instance, if this table will never be very large) then you "
+                    + "should add ignoreHotspottingChecks() to the table schema. This is directed at the developer of "
+                    + "this AtlasDB application, they may need to change their schema.",
+                    comp.getComponentName(), comp.getType());
         }
     }
 }
