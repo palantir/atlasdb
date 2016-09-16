@@ -108,7 +108,8 @@ public abstract class AbstractSweeperTest {
     }
 
     private static void tearDownTables(KeyValueService kvs) {
-        kvs.dropTable(TABLE_NAME);
+        kvs.getAllTableNames().stream()
+                .forEach(tableRef -> kvs.dropTable(tableRef));
         TransactionTables.deleteTables(kvs);
         Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
@@ -537,11 +538,12 @@ public abstract class AbstractSweeperTest {
 
     @Test
     public void testSweepOnMixedCaseTable() {
-        createTable(TableReference.create(Namespace.create("someNamespace"), "someTable"), SweepStrategy.CONSERVATIVE);
-        putIntoDefaultColumn("row", "val", 10);
-        putIntoDefaultColumn("row", "val", 20);
+        TableReference mixedCaseTable = TableReference.create(Namespace.create("someNamespace"), "someTable");
+        createTable(mixedCaseTable, SweepStrategy.CONSERVATIVE);
+        put(mixedCaseTable, "row", "col", "val", 10);
+        put(mixedCaseTable, "row", "col", "val", 20);
 
-        SweepResults sweepResults = completeSweep(30);
+        SweepResults sweepResults = completeSweep(mixedCaseTable, 30);
 
         Assert.assertEquals(sweepResults.getCellsDeleted(), 1);
     }
@@ -581,14 +583,22 @@ public abstract class AbstractSweeperTest {
     }
 
     protected SweepResults completeSweep(long ts) {
-        SweepResults results = sweep(ts, DEFAULT_BATCH_SIZE);
+        return completeSweep(TABLE_NAME, ts);
+    }
+
+    protected SweepResults completeSweep(TableReference tableReference, long ts) {
+        SweepResults results = sweep(tableReference, ts, DEFAULT_BATCH_SIZE);
         Assert.assertFalse(results.getNextStartRow().isPresent());
         return results;
     }
 
     private SweepResults sweep(long ts, int batchSize) {
+        return sweep(TABLE_NAME, ts, batchSize);
+    }
+
+    private SweepResults sweep(TableReference tableReference, long ts, int batchSize) {
         sweepTimestamp.set(ts);
-        return sweepRunner.run(TABLE_NAME, batchSize, new byte[0]);
+        return sweepRunner.run(tableReference, batchSize, new byte[0]);
     }
 
     private SweepResults partialSweep(long ts, int batchSize) {
@@ -613,8 +623,12 @@ public abstract class AbstractSweeperTest {
     }
 
     protected void put(final String row, final String column, final String val, final long ts) {
+        put(TABLE_NAME, row, column, val, ts);
+    }
+
+    protected void put(final TableReference tableRef, final String row, final String column, final String val, final long ts) {
         Cell cell = Cell.create(row.getBytes(), column.getBytes());
-        kvs.put(TABLE_NAME, ImmutableMap.of(cell, val.getBytes()), ts);
+        kvs.put(tableRef, ImmutableMap.of(cell, val.getBytes()), ts);
         txService.putUnlessExists(ts, ts);
     }
 
