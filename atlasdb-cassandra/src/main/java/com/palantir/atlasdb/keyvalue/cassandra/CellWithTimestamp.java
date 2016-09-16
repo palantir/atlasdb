@@ -39,6 +39,6 @@ public abstract class CellWithTimestamp {
     @Value.Check
     protected final void check() {
         Preconditions.checkState(timestamp() >= -1,
-                "Timestamp must be non-negative (or -1 for sweep sentinel); got %s", timestamp());
+                "Timestamp must be non-negative (or -1 for the sweep sentinel); got %s", timestamp());
     }
 }
