@@ -32,6 +32,7 @@ test:
   override:
     - ./scripts/circle-ci/run-circle-tests.sh:
         parallel: true
+        timeout: 900
   post:
     - ./gradlew jacocoFullReport:
         parallel: true
