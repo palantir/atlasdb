@@ -42,4 +42,6 @@ distribution {
     serviceName 'atlasdb-server'
     mainClass 'com.palantir.atlasdb.server.AtlasDbServer'
     args 'server', 'var/conf/atlasdb-server.yml'
+
+    excludeFromVar 'data'
 }
