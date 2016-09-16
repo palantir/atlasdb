@@ -36,6 +36,7 @@ import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -533,6 +534,17 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals(secondSweepResults.getCellsDeleted(), 0);
     }
 
+    @Test
+    public void testSweepOnMixedCaseTable() {
+        createTable(TableReference.create(Namespace.create("someNamespace"), "someTable"), SweepStrategy.CONSERVATIVE);
+        put("row", "col", "val", 10);
+        put("row", "col", "val", 20);
+
+        SweepResults sweepResults = completeSweep(30);
+
+        Assert.assertEquals(sweepResults.getCellsDeleted(), 1);
+    }
+
     private void testSweepManyRows(SweepStrategy strategy) {
         createTable(strategy);
         putIntoDefaultColumn("foo", "bar1", 5);
@@ -610,8 +622,13 @@ public abstract class AbstractSweeperTest {
         kvs.put(TABLE_NAME, ImmutableMap.of(cell, val.getBytes()), ts);
     }
 
-    protected void createTable(final SweepStrategy sweepStrategy) {
-        kvs.createTable(TABLE_NAME,
+
+    protected void createTable(SweepStrategy sweepStrategy) {
+        createTable(TABLE_NAME, sweepStrategy);
+    }
+
+    protected void createTable(TableReference tableReference, SweepStrategy sweepStrategy) {
+        kvs.createTable(tableReference,
                 new TableDefinition() {{
                     rowName();
                     rowComponent("row", ValueType.BLOB);
