@@ -526,19 +526,20 @@ public abstract class AbstractSweeperTest {
     @Test
     public void testSweepingAlreadySweptTable() {
         createTable(SweepStrategy.CONSERVATIVE);
-        put("row", "col", "val", 10);
-        put("row", "col", "val", 20);
+        putIntoDefaultColumn("row", "val", 10);
+        putIntoDefaultColumn("row", "val", 20);
         completeSweep(30);
 
         SweepResults secondSweepResults = completeSweep(40);
+
         Assert.assertEquals(secondSweepResults.getCellsDeleted(), 0);
     }
 
     @Test
     public void testSweepOnMixedCaseTable() {
         createTable(TableReference.create(Namespace.create("someNamespace"), "someTable"), SweepStrategy.CONSERVATIVE);
-        put("row", "col", "val", 10);
-        put("row", "col", "val", 20);
+        putIntoDefaultColumn("row", "val", 10);
+        putIntoDefaultColumn("row", "val", 20);
 
         SweepResults sweepResults = completeSweep(30);
 
