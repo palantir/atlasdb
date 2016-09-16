@@ -145,7 +145,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     @Value.Default
     public int heartbeatTimePeriodMillis() {
-        return 1000;
+        return 500;
     }
 
     @Value.Default

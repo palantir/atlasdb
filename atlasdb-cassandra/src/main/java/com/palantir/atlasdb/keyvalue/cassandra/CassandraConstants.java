@@ -92,8 +92,7 @@ public final class CassandraConstants {
     public static final long TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS = 1000;
     static final String GLOBAL_DDL_LOCK_FORMAT = "%1$d_%2$d";
     static final long GLOBAL_DDL_LOCK_CLEARED_ID = Long.MAX_VALUE;
-    static final String GLOBAL_DDL_LOCK_CLEARED_VALUE = String.format(
-            GLOBAL_DDL_LOCK_FORMAT, GLOBAL_DDL_LOCK_CLEARED_ID, 0);
+    static final String GLOBAL_DDL_LOCK_CLEARED_VALUE = lockValueFromIdAndHeartbeat(GLOBAL_DDL_LOCK_CLEARED_ID, 0);
 
     private static final Cell GLOBAL_DDL_LOCK_CELL = Cell.create(
             CassandraConstants.GLOBAL_DDL_LOCK.getBytes(StandardCharsets.UTF_8),
@@ -129,5 +128,9 @@ public final class CassandraConstants {
         cf.setDefault_validation_class("org.apache.cassandra.db.marshal.BytesType");
 
         return cf;
+    }
+
+    static String lockValueFromIdAndHeartbeat(long id, int heartbeatCount) {
+        return String.format(GLOBAL_DDL_LOCK_FORMAT, id, heartbeatCount);
     }
 }
