@@ -35,13 +35,14 @@ public final class DockerizedDatabase implements Closeable {
 
     private static final String DOCKER_LOGS_DIR = "container-logs";
 
-    public static DockerizedDatabase create(int dbPort, String dockerComposeResourceFileName) {
+    public static DockerizedDatabase start(KeyValueServiceType type) {
         DockerComposeRule docker = DockerComposeRule.builder()
-                .file(getDockerComposeFileAbsolutePath(dockerComposeResourceFileName))
-                .waitingForHostNetworkedPort(dbPort, toBeOpen())
+                .file(getDockerComposeFileAbsolutePath(type.getDockerComposeResourceFileName()))
+                .waitingForHostNetworkedPort(type.getKeyValueServicePort(), toBeOpen())
                 .saveLogsTo(DOCKER_LOGS_DIR)
                 .build();
-        return new DockerizedDatabase(docker, dbPort);
+        InetSocketAddress addr = connect(docker, type.getKeyValueServicePort());
+        return new DockerizedDatabase(docker, new DockerizedDatabaseUri(type, addr));
     }
 
     private static String getDockerComposeFileAbsolutePath(String dockerComposeResourceFileName) {
@@ -66,15 +67,7 @@ public final class DockerizedDatabase implements Closeable {
         return port -> SuccessOrFailure.fromBoolean(port.isListeningNow(), "" + "" + port + " was not open");
     }
 
-    private final DockerComposeRule docker;
-    private final int dbPort;
-
-    private DockerizedDatabase(DockerComposeRule docker, int dbPort) {
-        this.docker = docker;
-        this.dbPort = dbPort;
-    }
-
-    public InetSocketAddress start() {
+    private static InetSocketAddress connect(DockerComposeRule docker, int dbPort) {
         try {
             if (docker == null) {
                 throw new IllegalStateException("Docker compose rule cannot be run, is null.");
@@ -87,6 +80,18 @@ public final class DockerizedDatabase implements Closeable {
         } catch (IOException | InterruptedException | IllegalStateException e) {
             throw new RuntimeException("Could not run docker compose rule.", e);
         }
+    }
+
+    private final DockerComposeRule docker;
+    private final DockerizedDatabaseUri uri;
+
+    private DockerizedDatabase(DockerComposeRule docker, DockerizedDatabaseUri uri) {
+        this.docker = docker;
+        this.uri = uri;
+    }
+
+    public DockerizedDatabaseUri getUri() {
+        return uri;
     }
 
     public void close() {

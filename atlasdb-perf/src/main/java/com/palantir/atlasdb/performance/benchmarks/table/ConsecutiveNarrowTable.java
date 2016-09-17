@@ -67,9 +67,7 @@ public abstract class ConsecutiveNarrowTable {
         return services.getKeyValueService();
     }
 
-    public TableReference getTableRef() {
-        return Tables.TABLE_REF;
-    }
+    public abstract TableReference getTableRef();
 
     public int getNumRows() {
         return DEFAULT_NUM_ROWS;
@@ -79,7 +77,6 @@ public abstract class ConsecutiveNarrowTable {
 
     @TearDown(Level.Trial)
     public void cleanup() throws Exception {
-        getKvs().dropTables(Sets.newHashSet(getTableRef()));
         this.connector.close();
     }
 
@@ -87,12 +84,19 @@ public abstract class ConsecutiveNarrowTable {
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;
         services = conn.connect();
-        Benchmarks.createTable(getKvs(), getTableRef(), Tables.ROW_COMPONENT, Tables.COLUMN_NAME);
-        setupData();
+        if (!services.getKeyValueService().getAllTableNames().contains(getTableRef())) {
+            Benchmarks.createTable(getKvs(), getTableRef(), Tables.ROW_COMPONENT, Tables.COLUMN_NAME);
+            setupData();
+        }
     }
 
     @State(Scope.Benchmark)
     public static class CleanNarrowTable extends ConsecutiveNarrowTable {
+        @Override
+        public TableReference getTableRef() {
+            return TableReference.createFromFullyQualifiedName("performance.persistent_table_clean");
+        }
+
         @Override
         protected void setupData() {
             storeDataInTable(this, 1);
@@ -101,6 +105,11 @@ public abstract class ConsecutiveNarrowTable {
 
     @State(Scope.Benchmark)
     public static class DirtyNarrowTable extends ConsecutiveNarrowTable {
+        @Override
+        public TableReference getTableRef() {
+            return TableReference.createFromFullyQualifiedName("performance.persistent_table_dirty");
+        }
+
         @Override
         protected void setupData() {
             storeDataInTable(this, 100);
