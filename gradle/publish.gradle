@@ -15,12 +15,15 @@ task testJar(type: Jar) {
 publishing {
     publications {
         artifactory(MavenPublication) {
-            from components.hasProperty('shadow') ? components.shadow : components.java          
+            from components.hasProperty('shadow') ? components.shadow : components.java
             artifact(sourceJar) {
                 classifier 'sources'
             }
             artifact(testJar) {
                 classifier 'tests'
+            }
+            if (project.hasProperty('distTar')) {
+                artifact project.distTar
             }
             version project.version.replaceAll(/-\d+.*/, '-SNAPSHOT')
             pom.withXml {
