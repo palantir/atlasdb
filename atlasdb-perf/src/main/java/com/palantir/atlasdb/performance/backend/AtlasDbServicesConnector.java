@@ -32,10 +32,10 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 public class AtlasDbServicesConnector implements Closeable {
 
     /**
-     * Edit this instance variable name ("uriStr") with care as it must match {@code BenchmarkParam.URI}.getKey().
+     * Edit this instance variable name ("uri") with care as it must match {@code BenchmarkParam.URI}.getKey().
      */
     @Param("")
-    private String uriStr;
+    private String uri;
 
     private AtlasDbServices services;
 
@@ -43,9 +43,9 @@ public class AtlasDbServicesConnector implements Closeable {
         if (services != null) {
             throw new IllegalStateException("connect() has already been called");
         }
-        DockerizedDatabaseUri uri = DockerizedDatabaseUri.fromUriString(uriStr);
+        DockerizedDatabaseUri dburi = DockerizedDatabaseUri.fromUriString(uri);
         KeyValueServiceConfig config = KeyValueServiceType.getKeyValueServiceConfig(
-                uri.getKeyValueServiceType(), uri.getAddress());
+                dburi.getKeyValueServiceType(), dburi.getAddress());
         services = DaggerAtlasDbServices.builder()
                 .servicesConfigModule(
                         ServicesConfigModule.create(
