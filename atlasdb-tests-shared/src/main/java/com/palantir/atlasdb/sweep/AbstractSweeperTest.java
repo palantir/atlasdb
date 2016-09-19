@@ -107,13 +107,9 @@ public abstract class AbstractSweeperTest {
     }
 
     private static void tearDownTables(KeyValueService kvs) {
-        Set<TableReference> before = kvs.getAllTableNames();
-        System.out.println("All tables before cleanup: " + before);
         kvs.dropTable(TABLE_NAME);
         TransactionTables.deleteTables(kvs);
         Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
-        Set<TableReference> after = kvs.getAllTableNames();
-        System.out.println("All tables after cleanup: " + after);
     }
 
     protected void setupBackgroundSweeper(int batchSize) {
@@ -344,11 +340,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    /*
-     * These tests were ignored pending internal ticket 94009
-     * They are fragile when run with test suites that do not properly
-     * clean up tables from the kvs.
-     */
     public void testBackgroundSweepWritesPriorityTable() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -385,7 +376,7 @@ public abstract class AbstractSweeperTest {
                 case "sweep.progress":
                     Assert.assertEquals("progress has wrong sweep timestamp", new Long(110), result.getMinimumSweptTimestamp());
                     break;
-                case "table":
+                case "test_table":
                     Assert.assertEquals("table has wrong sweep timestamp", new Long(120), result.getMinimumSweptTimestamp());
                     Assert.assertEquals(new Long(1), result.getCellsDeleted());
                     Assert.assertEquals(new Long(1), result.getCellsExamined());
@@ -478,7 +469,7 @@ public abstract class AbstractSweeperTest {
                 case "sweep.progress":
                     Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
                     break;
-                case "table":
+                case "test_table":
                     Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
                     Assert.assertEquals(new Long(0), result.getCellsDeleted());
                     Assert.assertEquals(new Long(4), result.getCellsExamined());

@@ -239,7 +239,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                                    Set<TableReference> allTables,
                                    List<SweepPriorityRowResult> oldPriorities,
                                    Map<TableReference, SweepPriorityRowResult> newPrioritiesByTableName) {
-        // Arbitrariliy pick the first table alphabetically from the never-before-swept tables
+        // Arbitrarily pick the first table alphabetically from the never-before-swept tables
         List<TableReference> unsweptTables = Sets.difference(allTables, newPrioritiesByTableName.keySet())
                 .stream().sorted(Comparator.comparing(TableReference::getTablename)).collect(Collectors.toList());
         if (!unsweptTables.isEmpty()) {

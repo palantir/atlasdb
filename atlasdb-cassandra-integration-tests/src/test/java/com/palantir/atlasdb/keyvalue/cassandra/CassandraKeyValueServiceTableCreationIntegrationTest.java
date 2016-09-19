@@ -27,6 +27,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
@@ -88,7 +89,8 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         });
 
         threadPool.shutdown();
-        assertTrue(threadPool.awaitTermination(60, TimeUnit.SECONDS));
+        Preconditions.checkState(threadPool.awaitTermination(60, TimeUnit.SECONDS),
+                "Not all table creation threads completed within the time limit");
 
         slowTimeoutKvs.dropTable(GOOD_TABLE);
     }
