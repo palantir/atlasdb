@@ -42,8 +42,8 @@ v0.16.0
          - Change
 
     *    - |breaking|
-         - Removed ``TransactionManager`` implementations ``ShellAwareReadOnlyTransactionManager``,
-           ``ThreadLocalWrappingTransactionManager`` and ``AtlasDbBackendDebugTransactionManager``. These are no longer
+         - Removed ``TransactionManager`` implementations ``ShellAwareReadOnlyTransactionManager``
+           and ``AtlasDbBackendDebugTransactionManager``. These are no longer
            supported by AtlasDB and products are not expected to use them.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/939>`__)
 
