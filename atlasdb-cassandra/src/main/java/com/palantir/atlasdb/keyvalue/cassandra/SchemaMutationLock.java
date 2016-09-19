@@ -169,10 +169,11 @@ public class SchemaMutationLock {
     }
 
     private void runWithLockWithoutCas(Action action) {
-        Preconditions.checkState(isSingleNodeCluster(), "Running a clustered service with"
-                + " a version of Cassandra that does not support check and set is not allowed."
-                + " Either upgrade Cassandra or run a single node service");
-
+        if (configManager.getConfig().servers().size() > 1) {
+            throw new UnsupportedOperationException("Running a clustered service with a version of Cassandra"
+                    + " that does not support check and set is not allowed. Either upgrade Cassandra or run"
+                    + " a single node service");
+        }
         LOGGER.info("Because your version of Cassandra does not support check and set,"
                 + " we will use a java level lock to synchronise schema mutations.");
         try {
@@ -186,18 +187,7 @@ public class SchemaMutationLock {
         } finally {
             schemaMutationUnlockWithoutCas();
         }
-    }
 
-    private boolean isSingleNodeCluster() {
-        try {
-            Integer clusterSize = clientPool.runWithRetry(client -> {
-                CassandraVerifier.CassandraNetworkInfo info = CassandraVerifier.discoverNetworkInfo(client);
-                return info.hosts.size();
-            });
-            return clusterSize == 1;
-        } catch (TException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
     }
 
     void killHeartbeat() {
