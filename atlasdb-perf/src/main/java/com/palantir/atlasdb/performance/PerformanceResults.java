@@ -40,6 +40,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 
 public class PerformanceResults {
 
@@ -56,11 +57,13 @@ public class PerformanceResults {
                 String[] benchmarkParts = rs.getParams().getBenchmark().split("\\.");
                 String benchmarkSuite = benchmarkParts[benchmarkParts.length - 2];
                 String benchmarkName = benchmarkParts[benchmarkParts.length - 1];
+                DockerizedDatabaseUri uri =
+                        DockerizedDatabaseUri.fromUriString(rs.getParams().getParam(BenchmarkParam.URI.getKey()));
                 return ImmutablePerformanceResult.builder()
                         .date(date)
                         .suite(benchmarkSuite)
                         .benchmark(benchmarkName)
-                        .backend(rs.getParams().getParam(BenchmarkParam.BACKEND.getKey()))
+                        .backend(uri.getKeyValueServiceType().toString())
                         .samples(rs.getPrimaryResult().getStatistics().getN())
                         .std(rs.getPrimaryResult().getStatistics().getStandardDeviation())
                         .mean(rs.getPrimaryResult().getStatistics().getMean())

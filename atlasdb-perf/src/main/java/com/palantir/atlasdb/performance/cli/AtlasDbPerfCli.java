@@ -39,6 +39,8 @@ import org.reflections.scanners.MethodAnnotationsScanner;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.performance.BenchmarkParam;
 import com.palantir.atlasdb.performance.PerformanceResults;
+import com.palantir.atlasdb.performance.backend.DatabasesContainer;
+import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
 import com.palantir.atlasdb.performance.backend.KeyValueServiceType;
 
 import io.airlift.airline.Arguments;
@@ -104,36 +106,51 @@ public class AtlasDbPerfCli {
     }
 
     private static void run(AtlasDbPerfCli cli) throws Exception {
-        ChainedOptionsBuilder optBuilder = new OptionsBuilder()
-                .forks(1)
-                .threads(1)
-                .warmupIterations(1)
-                .measurementIterations(1)
-                .mode(Mode.SampleTime)
-                .timeUnit(TimeUnit.MICROSECONDS)
-                .param(BenchmarkParam.BACKEND.getKey(), getBackends(cli.backends));
-        if (cli.logFile != null) {
-            optBuilder.output(cli.logFile);
-        }
+        List<String> backends = getBackends(cli.backends);
 
-        if (cli.tests == null) {
-            getAllBenchmarks().forEach(b -> optBuilder.include(".*" + b));
-        } else {
-            cli.tests.forEach(b -> optBuilder.include(".*" + b));
-        }
+        try (DatabasesContainer container = startupDatabase(backends)) {
+            List<DockerizedDatabase> dbs = container.getDockerizedDatabases();
+            ChainedOptionsBuilder optBuilder = new OptionsBuilder()
+                    .forks(1)
+                    .threads(1)
+                    .warmupIterations(1)
+                    .measurementIterations(1)
+                    .mode(Mode.SampleTime)
+                    .timeUnit(TimeUnit.MICROSECONDS)
+                    .param(BenchmarkParam.URI.getKey(),
+                            dbs.stream()
+                                    .map(db -> db.getUri().toString())
+                                    .collect(Collectors.toList())
+                                    .toArray(new String[backends.size()]));
+            if (cli.logFile != null) {
+                optBuilder.output(cli.logFile);
+            }
 
-        Collection<RunResult> results = new Runner(optBuilder.build()).run();
-        if (cli.outputFile != null) {
-            new PerformanceResults(results).writeToFile(new File(cli.outputFile));
+            if (cli.tests == null) {
+                getAllBenchmarks().forEach(b -> optBuilder.include(".*" + b));
+            } else {
+                cli.tests.forEach(b -> optBuilder.include(".*" + b));
+            }
+
+            Collection<RunResult> results = new Runner(optBuilder.build()).run();
+            if (cli.outputFile != null) {
+                new PerformanceResults(results).writeToFile(new File(cli.outputFile));
+            }
         }
     }
 
-    private static String[] getBackends(String backendsStr) {
+    private static DatabasesContainer startupDatabase(List<String> backends) {
+        return DatabasesContainer.startup(
+                backends.stream()
+                        .map(KeyValueServiceType::valueOf)
+                        .collect(Collectors.toList()));
+    }
+
+    private static List<String> getBackends(String backendsStr) {
         Set<String> backends = Sets.newHashSet(backendsStr.split(LIST_DELIMITER));
         return backends.stream()
                 .map(String::trim)
-                .collect(Collectors.toList())
-                .toArray(new String[backends.size()]);
+                .collect(Collectors.toList());
     }
 
     private static boolean hasValidArgs(AtlasDbPerfCli cli) {
