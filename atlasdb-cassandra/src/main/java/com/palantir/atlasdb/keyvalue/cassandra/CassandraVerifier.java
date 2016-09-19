@@ -54,6 +54,16 @@ public final class CassandraVerifier {
         // Utility class
     }
 
+    static class CassandraNetworkInfo {
+        Set<String> hosts;
+        Multimap<String, String> dataCenterToRack;
+
+        CassandraNetworkInfo(Set<String> hosts, Multimap<String, String> dataCenterToRack) {
+            this.hosts = hosts;
+            this.dataCenterToRack = dataCenterToRack;
+        }
+    }
+
     static final FunctionCheckedException<Cassandra.Client, Void, Exception> healthCheck = client -> {
         client.describe_version();
         return null;
@@ -61,26 +71,9 @@ public final class CassandraVerifier {
 
     static Set<String> sanityCheckDatacenters(Cassandra.Client client, int desiredRf, boolean safetyDisabled)
             throws TException {
-        Set<String> hosts = Sets.newHashSet();
-        Multimap<String, String> dataCenterToRack = HashMultimap.create();
-
-        List<String> existingKeyspaces = Lists.transform(client.describe_keyspaces(), KsDef::getName);
-        if (!existingKeyspaces.contains(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE)) {
-            client.system_add_keyspace(
-                    new KsDef(
-                            CassandraConstants.SIMPLE_RF_TEST_KEYSPACE,
-                            CassandraConstants.SIMPLE_STRATEGY,
-                            ImmutableList.of())
-                            .setStrategy_options(ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1")));
-        }
-        List<TokenRange> ring =  client.describe_ring(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE);
-
-        for (TokenRange tokenRange : ring) {
-            for (EndpointDetails details : tokenRange.getEndpoint_details()) {
-                dataCenterToRack.put(details.datacenter, details.rack);
-                hosts.add(details.host);
-            }
-        }
+        CassandraNetworkInfo info = discoverNetworkInfo(client);
+        Set<String> hosts = info.hosts;
+        Multimap<String, String> dataCenterToRack = info.dataCenterToRack;
 
         if (dataCenterToRack.size() == 1) {
             String dc = dataCenterToRack.keySet().iterator().next();
@@ -102,6 +95,30 @@ public final class CassandraVerifier {
         }
 
         return dataCenterToRack.keySet();
+    }
+
+    static CassandraNetworkInfo discoverNetworkInfo(Cassandra.Client client) throws TException {
+        Set<String> hosts = Sets.newHashSet();
+        Multimap<String, String> dataCenterToRack = HashMultimap.create();
+
+        List<String> existingKeyspaces = Lists.transform(client.describe_keyspaces(), KsDef::getName);
+        if (!existingKeyspaces.contains(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE)) {
+            client.system_add_keyspace(
+                    new KsDef(
+                            CassandraConstants.SIMPLE_RF_TEST_KEYSPACE,
+                            CassandraConstants.SIMPLE_STRATEGY,
+                            ImmutableList.of())
+                            .setStrategy_options(ImmutableMap.of(CassandraConstants.REPLICATION_FACTOR_OPTION, "1")));
+        }
+        List<TokenRange> ring =  client.describe_ring(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE);
+
+        for (TokenRange tokenRange : ring) {
+            for (EndpointDetails details : tokenRange.getEndpoint_details()) {
+                dataCenterToRack.put(details.datacenter, details.rack);
+                hosts.add(details.host);
+            }
+        }
+        return new CassandraNetworkInfo(hosts, dataCenterToRack);
     }
 
     static void sanityCheckTableName(TableReference tableRef) {
