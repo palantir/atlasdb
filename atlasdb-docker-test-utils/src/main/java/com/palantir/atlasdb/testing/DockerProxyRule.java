@@ -68,7 +68,7 @@ public class DockerProxyRule extends ExternalResource {
                     Resources.getResource("docker-compose.proxy.yml"),
                     StandardCharsets.UTF_8);
             Files.write(
-                    proxyConfig.replace("{{PROJECT_NAME}}", projectName.constructComposeFileCommand().get(1)),
+                    proxyConfig.replace("{{PROJECT_NAME}}", projectName.asString()),
                     proxyFile,
                     StandardCharsets.UTF_8);
             return proxyFile;

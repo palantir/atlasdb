@@ -73,7 +73,7 @@ public class ProjectInfo implements Supplier<ProjectInfoMappings> {
         try {
             Process ps = docker.execute(
                     "ps",
-                    "--filter", "label=com.docker.compose.project=" + projectName.constructComposeFileCommand().get(1),
+                    "--filter", "label=com.docker.compose.project=" + projectName.asString(),
                     "--format", "{{ .ID }},{{ .Names }},{{.Label \"com.docker.compose.service\"}}");
             Preconditions.checkState(ps.waitFor(10, TimeUnit.SECONDS), "'docker ps' timed out after 10 seconds");
 
