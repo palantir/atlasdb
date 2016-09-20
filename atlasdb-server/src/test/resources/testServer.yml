@@ -34,10 +34,3 @@ clients:
         dbName: atlas
         dbLogin: palantir
         dbPassword: palantir
-  - client: memory
-    keyValueService:
-      type: memory
-  - client: rocksdb
-    keyValueService:
-      type: rocksdb
-      dataDir: var/data/rocksdb

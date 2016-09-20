@@ -61,9 +61,7 @@ public class AtlasDbServerTest {
     public static Collection<Object[]> serverClients() throws Exception {
         return java.util.Arrays.asList(new Object[][] {
                 { "cassandra" },
-                { "postgres" },
-                { "memory" },
-                { "rocksdb" }
+                { "postgres" }
         });
     }
 
