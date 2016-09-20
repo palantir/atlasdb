@@ -19,7 +19,7 @@ public enum ColumnFetchMode {
     FETCH_ONE(1),
     FETCH_ALL(Integer.MAX_VALUE);
 
-    private int columnsToFetch;
+    private final int columnsToFetch;
 
     ColumnFetchMode(int columnsToFetch) {
         this.columnsToFetch = columnsToFetch;

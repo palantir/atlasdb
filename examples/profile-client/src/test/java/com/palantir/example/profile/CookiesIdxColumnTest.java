@@ -16,12 +16,12 @@
 
 package com.palantir.example.profile;
 
-import static com.palantir.example.profile.schema.generated.UserProfileTable.CookiesIdxTable.CookiesIdxColumn;
-
 import java.util.UUID;
 
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.palantir.example.profile.schema.generated.UserProfileTable.CookiesIdxTable.CookiesIdxColumn;
 
 public class CookiesIdxColumnTest {
     @Test

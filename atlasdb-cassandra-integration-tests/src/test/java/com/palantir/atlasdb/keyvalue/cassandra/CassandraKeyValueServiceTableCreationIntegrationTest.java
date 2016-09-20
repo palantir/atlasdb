@@ -17,6 +17,11 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.junit.Assert.assertTrue;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ForkJoinPool;
@@ -28,10 +33,19 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.table.description.TableDefinition;
+import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class CassandraKeyValueServiceTableCreationIntegrationTest {
     public static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
@@ -98,5 +112,42 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
     @Test
     public void describeVersionBehavesCorrectly() throws Exception {
         kvs.clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
+    }
+
+
+    @Test
+    public void testCreateTableCanRestoreLostMetadata() {
+        // setup a basic table
+        TableReference missingMetadataTable = TableReference.createFromFullyQualifiedName("test.metadata_missing");
+        byte[] initialMetadata = new TableDefinition() {{
+            rowName();
+            rowComponent("blob", ValueType.BLOB);
+            columns();
+            column("bar", "b", ValueType.BLOB);
+            conflictHandler(ConflictHandler.IGNORE_ALL);
+            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+        }}.toTableMetadata().persistToBytes();
+
+        kvs.createTable(missingMetadataTable, initialMetadata);
+
+
+        // retrieve the metadata and see that it's the same as what we just put in
+        byte[] existingMetadata = kvs.getMetadataForTable(missingMetadataTable);
+        assertThat(initialMetadata, is(existingMetadata));
+
+        // Directly get and delete the metadata (`get` necessary to get the fake timestamp putMetadataForTables used)
+        Cell cell = Cell.create(
+                missingMetadataTable.getQualifiedName().getBytes(Charset.defaultCharset()),
+                "m".getBytes(StandardCharsets.UTF_8));
+        Value persistedMetadata = Iterables.getLast(
+                kvs.get(AtlasDbConstants.METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE)).values());
+        kvs.delete(AtlasDbConstants.METADATA_TABLE, ImmutableMultimap.of(cell, persistedMetadata.getTimestamp()));
+
+        // pretend we started up again and did a createTable() for our existing table, that no longer has metadata
+        kvs.createTable(missingMetadataTable, initialMetadata);
+
+        // retrieve the metadata again and see that it's the same as what we just put in
+        existingMetadata = kvs.getMetadataForTable(missingMetadataTable);
+        assertThat(initialMetadata, is(existingMetadata));
     }
 }

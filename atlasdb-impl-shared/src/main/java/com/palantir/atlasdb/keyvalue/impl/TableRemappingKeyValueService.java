@@ -29,6 +29,7 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.NamespacedKeyValueService;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -223,12 +224,25 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
-            ColumnRangeSelection columnRangeSelection,
+            BatchColumnRangeSelection columnRangeSelection,
             long timestamp) {
         return delegate().getRowsColumnRange(tableMapper.getMappedTableName(tableRef),
                 rows,
                 columnRangeSelection,
                 timestamp);
+    }
+
+    @Override
+    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
+                                                     Iterable<byte[]> rows,
+                                                     ColumnRangeSelection columnRangeSelection,
+                                                     int cellBatchHint,
+                                                     long timestamp) {
+        return delegate().getRowsColumnRange(tableMapper.getMappedTableName(tableRef),
+                                             rows,
+                                             columnRangeSelection,
+                                             cellBatchHint,
+                                             timestamp);
     }
 
     @Override

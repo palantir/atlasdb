@@ -51,6 +51,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -63,6 +64,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelections;
@@ -1174,7 +1176,7 @@ public class TableRenderer {
 
         private void renderGetRowsColumnRange(boolean isDynamic) {
             line("@Override");
-            line("public Map<", Row, ", BatchingVisitable<", ColumnValue, ">> getRowsColumnRange(Iterable<", Row, "> rows, ColumnRangeSelection columnRangeSelection) {"); {
+            line("public Map<", Row, ", BatchingVisitable<", ColumnValue, ">> getRowsColumnRange(Iterable<", Row, "> rows, BatchColumnRangeSelection columnRangeSelection) {"); {
                 line("Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);");
                 line("Map<", Row, ", BatchingVisitable<", ColumnValue, ">> transformed = Maps.newHashMapWithExpectedSize(results.size());");
                 line("for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {"); {
@@ -1191,6 +1193,22 @@ public class TableRenderer {
                     line("transformed.put(row, bv);");
                 } line("}");
                 line("return transformed;");
+            } line("}");
+            line();
+            line("@Override");
+            line("public Iterator<Map.Entry<", Row, ", ", ColumnValue, ">> getRowsColumnRange(Iterable<", Row, "> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {"); {
+                line("Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);");
+                line("return Iterators.transform(results, e -> {"); {
+                    line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());");
+                    if (isDynamic) {
+                        line(Column," col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());");
+                        line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(e.getValue());");
+                        line(ColumnValue, " colValue = ", ColumnValue, ".of(col, val);");
+                    } else {
+                        line(ColumnValue, " colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());");
+                    }
+                    line("return Maps.immutableEntry(row, colValue);");
+                } line("});");
             } line("}");
         }
 
@@ -1358,7 +1376,9 @@ public class TableRenderer {
         ValueType.class,
         Generated.class,
         TableReference.class,
-        ColumnRangeSelection.class,
+        BatchColumnRangeSelection.class,
         ColumnRangeSelections.class,
+        ColumnRangeSelection.class,
+        Iterators.class,
     };
 }

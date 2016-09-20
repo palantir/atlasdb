@@ -46,6 +46,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -300,38 +301,62 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
-                                                                  ColumnRangeSelection columnRangeSelection, long timestamp) {
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef,
+                                                                  Iterable<byte[]> rows,
+                                                                  BatchColumnRangeSelection batchColumnRangeSelection,
+                                                                  long timestamp) {
         Map<byte[], RowColumnRangeIterator> result = Maps.newHashMap();
         ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
 
+        ColumnRangeSelection columnRangeSelection =
+                new ColumnRangeSelection(batchColumnRangeSelection.getStartCol(), batchColumnRangeSelection.getEndCol());
         for (byte[] row : rows) {
-            Cell rowBegin;
-            if (columnRangeSelection.getStartCol().length > 0) {
-                rowBegin = Cell.create(row, columnRangeSelection.getStartCol());
-            } else {
-                rowBegin = Cells.createSmallestCellForRow(row);
-            }
-            // Inclusive last cell.
-            Cell rowEnd;
-            if (columnRangeSelection.getEndCol().length > 0) {
-                rowEnd = Cell.create(row, RangeRequests.previousLexicographicName(columnRangeSelection.getEndCol()));
-            } else {
-                rowEnd = Cells.createLargestCellForRow(row);
-            }
-            PeekingIterator<Entry<Key, byte[]>> entries = Iterators.peekingIterator(table.subMap(
-                    new Key(rowBegin, Long.MIN_VALUE), new Key(rowEnd, timestamp)).entrySet().iterator());
-            LinkedHashMap<Cell, Value> rowResults = new LinkedHashMap<Cell, Value>();
-            while (entries.hasNext()) {
-                Entry<Key, byte[]> entry = entries.peek();
-                Key key = entry.getKey();
-                Iterator<Entry<Key, byte[]>> cellIter = takeCell(entries, key);
-                getLatestVersionOfCell(row, key, cellIter, timestamp, rowResults);
-            }
-            result.put(row, new LocalRowColumnRangeIterator(rowResults.entrySet().iterator()));
+            result.put(row, getColumnRangeForSingleRow(table, row, columnRangeSelection, timestamp));
         }
 
         return result;
+    }
+
+    @Override
+    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
+                                                     Iterable<byte[]> rows,
+                                                     ColumnRangeSelection columnRangeSelection,
+                                                     int cellBatchHint,
+                                                     long timestamp) {
+        ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
+        Iterator<RowColumnRangeIterator> rowColumnRanges =
+                Iterators.transform(rows.iterator(),
+                                    row -> getColumnRangeForSingleRow(table, row, columnRangeSelection, timestamp));
+        return new LocalRowColumnRangeIterator(Iterators.concat(rowColumnRanges));
+    }
+
+    private RowColumnRangeIterator getColumnRangeForSingleRow(ConcurrentSkipListMap<Key, byte[]> table,
+                                                              byte[] row,
+                                                              ColumnRangeSelection columnRangeSelection,
+                                                              long timestamp) {
+        Cell rowBegin;
+        if (columnRangeSelection.getStartCol().length > 0) {
+            rowBegin = Cell.create(row, columnRangeSelection.getStartCol());
+        } else {
+            rowBegin = Cells.createSmallestCellForRow(row);
+        }
+        // Inclusive last cell.
+        Cell rowEnd;
+        if (columnRangeSelection.getEndCol().length > 0) {
+            rowEnd = Cell.create(row, RangeRequests.previousLexicographicName(columnRangeSelection.getEndCol()));
+        } else {
+            rowEnd = Cells.createLargestCellForRow(row);
+        }
+        PeekingIterator<Entry<Key, byte[]>> entries = Iterators.peekingIterator(table.subMap(
+                new Key(rowBegin, Long.MIN_VALUE), new Key(rowEnd, timestamp)).entrySet().iterator());
+        LinkedHashMap<Cell, Value> rowResults = new LinkedHashMap<Cell, Value>();
+        while (entries.hasNext()) {
+            Entry<Key, byte[]> entry = entries.peek();
+            Key key = entry.getKey();
+            Iterator<Entry<Key, byte[]>> cellIter = takeCell(entries, key);
+            getLatestVersionOfCell(row, key, cellIter, timestamp, rowResults);
+        }
+        return new LocalRowColumnRangeIterator(rowResults.entrySet().iterator());
     }
 
     private interface ResultProducer<T> {

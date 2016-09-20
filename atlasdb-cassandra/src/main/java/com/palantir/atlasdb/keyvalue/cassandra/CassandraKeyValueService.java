@@ -83,8 +83,8 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -148,6 +148,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final Optional<LeaderConfig> leaderConfig;
     private final HiddenTables hiddenTables;
 
+    private final SchemaMutationLockTables lockTables;
     private final UniqueSchemaMutationLockTable schemaMutationLockTable;
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
@@ -190,7 +191,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();
 
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, configManager.getConfig());
+        this.lockTables = new SchemaMutationLockTables(clientPool, configManager.getConfig());
         this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
 
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
@@ -560,7 +561,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef,
                                                                   Iterable<byte[]> rows,
-                                                                  ColumnRangeSelection columnRangeSelection,
+                                                                  BatchColumnRangeSelection batchColumnRangeSelection,
                                                                   long timestamp) {
         Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost =
                 partitionByHost(rows, Functions.<byte[]>identity()).entrySet();
@@ -568,7 +569,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(ThreadNamingCallable.wrapWithThreadName(() ->
                     getRowsColumnRangeIteratorForSingleHost(hostAndRows.getKey(), tableRef,
-                            hostAndRows.getValue(), columnRangeSelection, timestamp),
+                            hostAndRows.getValue(), batchColumnRangeSelection, timestamp),
                     "Atlas getRowsColumnRange " + hostAndRows.getValue().size()
                             + " rows from " + tableRef + " on " + hostAndRows.getKey(),
                     ThreadNamingCallable.Type.PREPEND));
@@ -585,11 +586,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             InetSocketAddress host,
             TableReference tableRef,
             List<byte[]> rows,
-            ColumnRangeSelection columnRangeSelection,
+            BatchColumnRangeSelection batchColumnRangeSelection,
             long startTs) {
         try {
             RowColumnRangeExtractor.RowColumnRangeResult firstPage =
-                    getRowsColumnRangeForSingleHost(host, tableRef, rows, columnRangeSelection, startTs);
+                    getRowsColumnRangeForSingleHost(host, tableRef, rows, batchColumnRangeSelection, startTs);
 
             Map<byte[], LinkedHashMap<Cell, Value>> results = firstPage.getResults();
             Map<byte[], Column> rowsToLastCompositeColumns = firstPage.getRowsToLastCompositeColumns();
@@ -606,7 +607,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         completedCell,
                         col,
                         firstPage.getRowsToRawColumnCount().get(row),
-                        columnRangeSelection);
+                        batchColumnRangeSelection);
                 if (!endOfRange) {
                     byte[] nextCol = getNextColumnRangeColumn(completedCell, col);
                     incompleteRowsToNextColumns.put(row, nextCol);
@@ -626,8 +627,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 if (nextCol == null) {
                     ret.put(row, new LocalRowColumnRangeIterator(resultIterator));
                 } else {
-                    ColumnRangeSelection newColumnRange = new ColumnRangeSelection(nextCol,
-                            columnRangeSelection.getEndCol(), columnRangeSelection.getBatchHint());
+                    BatchColumnRangeSelection newColumnRange = BatchColumnRangeSelection.create(nextCol,
+                            batchColumnRangeSelection.getEndCol(), batchColumnRangeSelection.getBatchHint());
                     ret.put(row, new LocalRowColumnRangeIterator(Iterators.concat(
                             resultIterator,
                             getRowColumnRange(host, tableRef, row, newColumnRange, startTs))));
@@ -646,24 +647,26 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private RowColumnRangeExtractor.RowColumnRangeResult getRowsColumnRangeForSingleHost(InetSocketAddress host,
                                                              TableReference tableRef,
                                                              List<byte[]> rows,
-                                                             ColumnRangeSelection columnRangeSelection,
+                                                             BatchColumnRangeSelection batchColumnRangeSelection,
                                                              long startTs) {
         try {
             return clientPool.runWithRetryOnHost(host,
                     new FunctionCheckedException<Client, RowColumnRangeExtractor.RowColumnRangeResult, Exception>() {
                         @Override
                         public RowColumnRangeExtractor.RowColumnRangeResult apply(Client client) throws Exception {
-                            ByteBuffer start = columnRangeSelection.getStartCol().length == 0
+                            ByteBuffer start = batchColumnRangeSelection.getStartCol().length == 0
                                     ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
                                     : CassandraKeyValueServices.makeCompositeBuffer(
-                                            columnRangeSelection.getStartCol(),
+                                            batchColumnRangeSelection.getStartCol(),
                                             startTs - 1);
-                            ByteBuffer end = columnRangeSelection.getEndCol().length == 0
+                            ByteBuffer end = batchColumnRangeSelection.getEndCol().length == 0
                                     ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
                                     : CassandraKeyValueServices.makeCompositeBuffer(
-                                            RangeRequests.previousLexicographicName(columnRangeSelection.getEndCol()),
+                                            RangeRequests
+                                                    .previousLexicographicName(batchColumnRangeSelection.getEndCol()),
                                             -1);
-                            SliceRange slice = new SliceRange(start, end, false, columnRangeSelection.getBatchHint());
+                            SliceRange slice =
+                                    new SliceRange(start, end, false, batchColumnRangeSelection.getBatchHint());
                             SlicePredicate pred = new SlicePredicate();
                             pred.setSlice_range(slice);
 
@@ -672,7 +675,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                     multigetInternal(client, tableRef, wrap(rows), colFam, pred, readConsistency);
 
                             RowColumnRangeExtractor extractor = new RowColumnRangeExtractor();
-                            extractor.extractResults(results, startTs);
+                            extractor.extractResults(rows, results, startTs);
 
                             return extractor.getRowColumnRangeResult();
                         }
@@ -680,7 +683,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         @Override
                         public String toString() {
                             return "multiget_slice(" + tableRef.getQualifiedName() + ", "
-                                    + rows.size() + " rows, " + columnRangeSelection.getBatchHint() + " max columns)";
+                                    + rows.size() + " rows, " + batchColumnRangeSelection.getBatchHint()
+                                    + " max columns)";
                         }
                     });
         } catch (Exception e) {
@@ -692,14 +696,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             InetSocketAddress host,
             TableReference tableRef,
             byte[] row,
-            ColumnRangeSelection columnRangeSelection,
+            BatchColumnRangeSelection batchColumnRangeSelection,
             long startTs) {
         return ClosableIterators.wrap(new AbstractPagingIterable<
                 Entry<Cell, Value>,
                 TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]>>() {
             @Override
             protected TokenBackedBasicResultsPage<Entry<Cell, Value>, byte[]> getFirstPage() throws Exception {
-                return page(columnRangeSelection.getStartCol());
+                return page(batchColumnRangeSelection.getStartCol());
             }
 
             @Override
@@ -720,12 +724,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         ByteBuffer start = startCol.length == 0
                                 ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
                                 : CassandraKeyValueServices.makeCompositeBuffer(startCol, startTs - 1);
-                        ByteBuffer end = columnRangeSelection.getEndCol().length == 0
+                        ByteBuffer end = batchColumnRangeSelection.getEndCol().length == 0
                                 ? ByteBuffer.wrap(PtBytes.EMPTY_BYTE_ARRAY)
                                 : CassandraKeyValueServices.makeCompositeBuffer(
-                                        RangeRequests.previousLexicographicName(columnRangeSelection.getEndCol()),
+                                        RangeRequests.previousLexicographicName(batchColumnRangeSelection.getEndCol()),
                                         -1);
-                        SliceRange slice = new SliceRange(start, end, false, columnRangeSelection.getBatchHint());
+                        SliceRange slice = new SliceRange(start, end, false, batchColumnRangeSelection.getBatchHint());
                         SlicePredicate pred = new SlicePredicate();
                         pred.setSlice_range(slice);
 
@@ -748,7 +752,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         byte[] lastCol = CassandraKeyValueServices.decomposeName(lastColumn.getColumn()).getLhSide();
                         // Same idea as the getRows case to handle seeing only newer entries of a column
                         boolean completedCell = ret.get(Cell.create(row, lastCol)) != null;
-                        if (isEndOfColumnRange(completedCell, lastCol, values.size(), columnRangeSelection)) {
+                        if (isEndOfColumnRange(completedCell, lastCol, values.size(), batchColumnRangeSelection)) {
                             return SimpleTokenBackedResultsPage.create(lastCol, ret.entrySet(), false);
                         }
                         byte[] nextCol = getNextColumnRangeColumn(completedCell, lastCol);
@@ -758,7 +762,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     @Override
                     public String toString() {
                         return "multiget_slice(" + tableRef.getQualifiedName()
-                                + ", single row, " + columnRangeSelection.getBatchHint() + " batch hint)";
+                                + ", single row, " + batchColumnRangeSelection.getBatchHint() + " batch hint)";
                     }
                 });
             }
@@ -767,7 +771,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private boolean isEndOfColumnRange(boolean completedCell, byte[] lastCol, int numRawResults,
-                                       ColumnRangeSelection columnRangeSelection) {
+                                       BatchColumnRangeSelection columnRangeSelection) {
         return (numRawResults < columnRangeSelection.getBatchHint())
                 || (completedCell
                         && (RangeRequests.isLastRowName(lastCol)
@@ -1062,7 +1066,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
                 });
             } catch (UnavailableException e) {
-                throw new PalantirRuntimeException("Creating tables requires all Cassandra nodes"
+                throw new PalantirRuntimeException("Truncating tables requires all Cassandra nodes"
                         + " to be up and available.");
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
@@ -1369,10 +1373,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      */
     @Override
     public void dropTables(final Set<TableReference> tablesToDrop) {
-        schemaMutationLock.runWithLock(() -> dropTablesWithLock(tablesToDrop));
+        schemaMutationLock.runWithLock(() -> dropTablesInternal(tablesToDrop));
     }
 
-    private void dropTablesWithLock(final Set<TableReference> tablesToDrop) throws Exception {
+    private void dropTablesInternal(final Set<TableReference> tablesToDrop) throws Exception {
         try {
             clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
@@ -1420,11 +1424,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      */
     @Override
     public void createTables(final Map<TableReference, byte[]> tableNamesToTableMetadata) {
-        schemaMutationLock.runWithLock(() -> createTablesWithLock(tableNamesToTableMetadata));
+        schemaMutationLock.runWithLock(() -> createTablesInternal(tableNamesToTableMetadata));
         internalPutMetadataForTables(tableNamesToTableMetadata, false);
     }
 
-    private void createTablesWithLock(final Map<TableReference, byte[]> tableNamesToTableMetadata) throws Exception {
+    private void createTablesInternal(final Map<TableReference, byte[]> tableNamesToTableMetadata) throws Exception {
         try {
             clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
                 KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
@@ -1606,17 +1610,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         if (possiblyNeedToPerformSettingsChanges) {
             schemaMutationLock.runWithLock(() ->
-                    putMetadataForTablesWithLock(possiblyNeedToPerformSettingsChanges, newMetadata, updatedCfs));
+                    putMetadataForTablesInternal(possiblyNeedToPerformSettingsChanges, newMetadata, updatedCfs));
         } else {
             try {
-                putMetadataForTablesWithLock(possiblyNeedToPerformSettingsChanges, newMetadata, updatedCfs);
+                putMetadataForTablesInternal(possiblyNeedToPerformSettingsChanges, newMetadata, updatedCfs);
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
             }
         }
     }
 
-    private void putMetadataForTablesWithLock(
+    private void putMetadataForTablesInternal(
             boolean possiblyNeedToPerformSettingsChanges,
             Map<Cell, byte[]> newMetadata,
             Collection<CfDef> updatedCfs) throws Exception {
@@ -1759,10 +1763,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 "tombstone_threshold_ratio:[%s] should be between [0.0, 1.0]", tombstoneThresholdRatio);
 
         schemaMutationLock.runWithLock(() ->
-                alterGcAndTombstoneWithLock(keyspace, tableRef, gcGraceSeconds, tombstoneThresholdRatio));
+                alterGcAndTombstoneInternal(keyspace, tableRef, gcGraceSeconds, tombstoneThresholdRatio));
     }
 
-    private void alterGcAndTombstoneWithLock(
+    private void alterGcAndTombstoneInternal(
             String keyspace,
             TableReference tableRef,
             int gcGraceSeconds,
@@ -1798,6 +1802,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     tableRef,
                     e);
         }
+    }
+
+    public void cleanUpSchemaMutationLockTablesState() throws Exception {
+        Set<TableReference> tables = lockTables.getAllLockTables();
+        dropTablesInternal(tables);
+        log.info("Dropped all schema mutation lock tables [{}]", tables.toString());
     }
 
     private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {

@@ -31,6 +31,60 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.15.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - We have removed references to temp tables and no longer attempt to drop temp tables when aborting transactions.
+
+           Temp tables are not currently being used by any KVSs, yet we were still calling ``dropTempTables()`` when we abort transactions.
+           Since dropping tables is a schema mutation, this has the side effect of increasing the likelihood that we lose the schema mutation lock when there are many concurrent transactions.
+           Removing temp tables entirely should reduce the need to manually truncate the locks table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/916>`__)
+
+    *    - |breaking|
+         - All TransactionManagers are now AutoCloseable and implement a close method that will free up the underlying resources.
+
+           If your service implements a ``TransactionManager`` and does not extend ``AbstractTransactionManager``, you now have to add a close method to the implementation.
+           No operations can be performed using the TransactionManager once it is closed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/907>`__)
+
+    *    - |new|
+         - :ref:`AtlasDB Sweep <physical-cleanup-sweep>` now uses :ref:`column paging <cassandra-sweep-config>` via the ``timestampsGetterBatchSize`` parameter to better handle sweeping cells with many historical versions.
+
+           By paging over historical versions of cells during sweeping, we can avoid out of memory exceptions in Cassandra when we have particularly large cells or many historical versions of cells.
+           This feature is only implemented for Cassandra KVS and is disabled by default; please reach out to the AtlasDB dev team if you would like to enable it.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/834>`__)
+
+    *    - |new|
+         - Added a second implementation of ``getRowsColumnRange`` method which allows you to page through dynamic columns in a single iterator.
+           This is expected to perform better than the previous ``getRowsColumnRange``, which allows you to page through columns per row with certain KVS stores (e.g. DB KVS).
+           The new method should be preferred unless it is necessary to page through the results for different rows separately.
+
+           Products or clients using wide rows should consider using ``getRowsColumnRange`` instead of ``getRows`` in ``KeyValueService``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/724>`__)
+
+    *    - |new|
+         - Added an :ref:`offline CLI <offline-clis>` called ``clean-cass-locks-state`` to truncate the locks table when the schema mutation lock has been lost.
+
+           This is useful on Cassandra KVS if an AtlasDB client goes down during a schema mutation and does not release the schema mutation lock, preventing other clients from continuing.
+           Previously an error message would direct users to manually truncate this table with CQL, but now this error message references the CLI.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/888>`__)
+
+    *    - |changed|
+         - Reverted our Dagger dependency from 2.4 to 2.0.2 and shadowed it so that it won't conflict with internal products.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/926>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.14.0
 =======
 
@@ -43,36 +97,29 @@ v0.14.0
 
     *    - |breaking|
          - ``TransactionManagers.create()`` no longer takes in an argument of ``Optional<SSLSocketFactory> sslSocketFactory``.
-           Instead, security settings between AtlasDB clients are now specified directly in configuration via the new optional parameter ``sslConfiguration`` located in the ``leader`` block.
+           Instead, security settings between AtlasDB clients are now specified directly in configuration via the new optional parameter ``sslConfiguration`` located in the ``leader``, ``timestamp``, and ``lock`` blocks.
            Details can be found in the :ref:`Leader Configuration <leader-config>` documentation.
-           This will only affect deployments who run with more than one server (i.e. in HA mode).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/873>`__)
 
-    *    - |breaking|
-         - Enforced validity constraints on configuration, as per `#790 <https://github.com/palantir/atlasdb/issue/790>`__.
-           AtlasDB will now fail to start if your configuration is invalid.
+           To assist with back compatibility, we have introduced a helper method ``AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig``, which will add the provided ``sslConfiguration`` to ``config`` if the SSL configuration is not specified directly in the ``leader``, ``timestamp``, or ``lock`` blocks.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/873>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/906>`__)
+
+    *    - |fixed|
+         - AtlasDB could startup with a leader configuration that is nonsensical, such as specifying both a ``leader`` block as well as a remote ``timestamp`` and ``lock`` blocks.
+           AtlasDB will now fail to start if your configuration is invalid with a sensible message, per `#790 <https://github.com/palantir/atlasdb/issues/790>`__, rather than potentially breaking in unexpected ways.
            Please refer to :ref:`Example Leader Configurations <leader-config-examples>` for guidance on valid configurations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/854>`__)
 
-    *    - |new|
-         - ``CassandraKeyValueServiceConfiguration`` now supports :ref:`column paging <cassandra-sweep-config>`
-           via the ``timestampsGetterBatchSize`` parameter.
-
-           Enabling such paging could make :ref:`Sweep <physical-cleanup-sweep>` more reliable by helping
-           prevent sweep jobs from causing Cassandra nodes to run out of memory if the underlying Cassandra
-           KVS contains rows that store large values and change frequently.
-
-           This feature is experimental and disabled by default; please
-           reach out to the AtlasDB dev team if you would like to enable it.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/834>`__)
-
     *    - |fixed|
          - Fixed and standardized serialization and deserialization of AtlasDBConfig.
+           This prevented CLIs deployed via the :ref:`Dropwizard bundle <dropwizard-bundle>` from loading configuration properly.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/875>`__)
 
-    *    - |fixed|
+    *    - |breaking|
          - Updated our Dagger dependency from 2.0.2 to 2.4, so that our generated code matches with that of internal products.
+           This also bumps our Guava dependency from 18.0 to 19.0 to accommodate a Dagger compile dependency.
+           We plan on shading Dagger in the next release of AtlasDB, but products can force a Guava 18.0 runtime dependency to workaround the issue in the meantime.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/878>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

@@ -40,6 +40,7 @@ public abstract class AbstractLockAwareTransactionManager
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException {
         int failureCount = 0;
         while (true) {
+            checkOpen();
             LockRequest lockRequest = lockSupplier.get();
             HeldLocksToken lockToken = null;
             if (lockRequest != null) {
@@ -96,11 +97,13 @@ public abstract class AbstractLockAwareTransactionManager
             Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task)
             throws E, InterruptedException {
+        checkOpen();
         return runTaskWithLocksWithRetry(ImmutableList.of(), lockSupplier, task);
     }
 
     @Override
     public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E {
+        checkOpen();
         return runTaskWithLocksThrowOnConflict(ImmutableList.of(), LockAwareTransactionTasks.asLockAware(task));
     }
 }

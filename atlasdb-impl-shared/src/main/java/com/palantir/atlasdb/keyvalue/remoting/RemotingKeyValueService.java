@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.remoting;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +31,7 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -39,6 +41,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.partition.map.DynamicPartitionMapImpl;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.HistoryRangeIterator;
 import com.palantir.atlasdb.keyvalue.remoting.iterators.RangeIterator;
@@ -59,6 +62,7 @@ import com.palantir.common.supplier.RemoteContextHolder;
 import com.palantir.common.supplier.RemoteContextHolder.RemoteContextType;
 import com.palantir.common.supplier.ServiceContext;
 import com.palantir.util.Pair;
+import com.palantir.util.crypto.Sha256Hash;
 
 import feign.Feign;
 import feign.jackson.JacksonDecoder;
@@ -113,30 +117,67 @@ public final class RemotingKeyValueService extends ForwardingKeyValueService {
             }
 
             @SuppressWarnings("unchecked")
-            private <T extends ClosableIterator<?>> T withKvs(T it) {
+            private <S, T extends S> T withKvs(T it, Class<S> clazz) {
                 return (T) PopulateServiceContextProxy.newProxyInstanceWithConstantValue(
-                        ClosableIterator.class, it, delegate(), serviceContext);
+                        clazz, it, delegate(), serviceContext);
             }
 
             @Override
             public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
                                                                RangeRequest rangeRequest,
                                                                long timestamp) {
-                return withKvs(super.getRange(tableRef, rangeRequest, timestamp));
+                return withKvs(super.getRange(tableRef, rangeRequest, timestamp), ClosableIterator.class);
             }
 
             @Override
             public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
                                                                                RangeRequest rangeRequest,
                                                                                long timestamp) {
-                return withKvs(super.getRangeWithHistory(tableRef, rangeRequest, timestamp));
+                return withKvs(super.getRangeWithHistory(tableRef, rangeRequest, timestamp), ClosableIterator.class);
             }
 
             @Override
             public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
                                                                                RangeRequest rangeRequest,
                                                                                long timestamp) {
-                return withKvs(super.getRangeOfTimestamps(tableRef, rangeRequest, timestamp));
+                return withKvs(super.getRangeOfTimestamps(tableRef, rangeRequest, timestamp), ClosableIterator.class);
+            }
+
+            @Override
+            public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+                    TableReference tableRef,
+                    Iterable<byte[]> rows,
+                    BatchColumnRangeSelection batchColumnRangeSelection,
+                    long timestamp) {
+                Map<byte[], RowColumnRangeIterator> rowsColumnRange =
+                        super.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
+                return Maps.transformValues(canonicalizeRows(rowsColumnRange, rows),
+                        iter -> withKvs(iter, RowColumnRangeIterator.class));
+            }
+
+            @Override
+            public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
+                                                             Iterable<byte[]> rows,
+                                                             ColumnRangeSelection columnRangeSelection,
+                                                             int cellBatchHint,
+                                                             long timestamp) {
+                return KeyValueServices.mergeGetRowsColumnRangeIntoSingleIterator(this,
+                                                                                  tableRef,
+                                                                                  rows,
+                                                                                  columnRangeSelection,
+                                                                                  cellBatchHint,
+                                                                                  timestamp);
+            }
+
+            private <T> Map<byte[], T> canonicalizeRows(Map<byte[], T> map, Iterable<byte[]> canonicalRows) {
+                Map<Sha256Hash, byte[]> canonicalRowsByHash = Maps.uniqueIndex(canonicalRows, Sha256Hash::computeHash);
+                Map<byte[], T> canonicalized = new HashMap<>(map.size());
+                for (Map.Entry<byte[], T> entry : map.entrySet()) {
+                    byte[] row = entry.getKey();
+                    byte[] canonicalRow = canonicalRowsByHash.get(Sha256Hash.computeHash(row));
+                    canonicalized.put(canonicalRow, entry.getValue());
+                }
+                return canonicalized;
             }
         };
     }
@@ -239,21 +280,30 @@ public final class RemotingKeyValueService extends ForwardingKeyValueService {
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,
-            ColumnRangeSelection columnRangeSelection,
+            BatchColumnRangeSelection batchColumnRangeSelection,
             long timestamp) {
         Map<byte[], RowColumnRangeIterator> rowsColumnRange =
-                super.getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
+                super.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
         Map<byte[], RowColumnRangeIterator> transformed = Maps.transformValues(rowsColumnRange, it -> {
             List<Map.Entry<Cell, Value>> page =
-                    ImmutableList.copyOf(Iterators.limit(it, columnRangeSelection.getBatchHint()));
+                    ImmutableList.copyOf(Iterators.limit(it, batchColumnRangeSelection.getBatchHint()));
             return new RemoteRowColumnRangeIterator(
                     tableRef,
-                    columnRangeSelection,
+                    batchColumnRangeSelection,
                     timestamp,
                     it.hasNext(),
                     page);
         });
         return transformed;
+    }
+
+    @Override
+    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
+                                                     Iterable<byte[]> rows,
+                                                     ColumnRangeSelection columnRangeSelection,
+                                                     int batchHint,
+                                                     long timestamp) {
+        throw new UnsupportedOperationException("This method shouldn't get called");
     }
 
     // This method transforms an iterator into paging iterator that can be

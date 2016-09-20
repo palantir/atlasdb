@@ -87,7 +87,7 @@ public class UniqueSchemaMutationLockTable {
             throw new IllegalStateException("Multiple schema mutation lock tables have been created.\n"
                     + "This happens when multiple nodes have themselves as lockLeader in the configuration.\n"
                     + "Please ensure the lockLeader is the same for each node, stop all Atlas clients using this "
-                    + "keyspace, restart your cassandra cluster and delete all created schema mutation lock tables.\n"
+                    + "keyspace, restart your cassandra cluster and run the clean-cass-locks-state cli command.\n"
                     + "The tables that clashed were: " + lockTables);
         }
 

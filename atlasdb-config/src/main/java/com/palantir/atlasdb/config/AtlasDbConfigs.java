@@ -17,6 +17,7 @@ package com.palantir.atlasdb.config;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 
 import javax.annotation.Nullable;
 
@@ -55,36 +56,34 @@ public final class AtlasDbConfigs {
         return load(configFile, ATLASDB_CONFIG_ROOT);
     }
 
+    public static AtlasDbConfig load(InputStream configStream) throws IOException {
+        return loadFromStream(configStream, ATLASDB_CONFIG_ROOT);
+    }
+
     public static AtlasDbConfig load(File configFile, @Nullable String configRoot) throws IOException {
-        JsonNode rootNode = getConfigNode(configFile, configRoot);
-        return OBJECT_MAPPER.treeToValue(rootNode, AtlasDbConfig.class);
+        JsonNode node = OBJECT_MAPPER.readTree(configFile);
+        return getConfig(node, configRoot);
     }
 
     public static AtlasDbConfig loadFromString(String fileContents, @Nullable String configRoot) throws IOException {
-        JsonNode rootNode = getConfigNode(fileContents, configRoot);
-        return OBJECT_MAPPER.treeToValue(rootNode, AtlasDbConfig.class);
-    }
-
-    private static JsonNode getConfigNode(File configFile, @Nullable String configRoot) throws IOException {
-        JsonNode node = OBJECT_MAPPER.readTree(configFile);
-        JsonNode configNode = findRoot(node, configRoot);
-
-        if (configNode == null) {
-            throw new IllegalArgumentException("Could not find " + configRoot + " in yaml file " + configFile);
-        }
-
-        return configNode;
-    }
-
-    private static JsonNode getConfigNode(String fileContents, @Nullable String configRoot) throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(fileContents);
+        return getConfig(node, configRoot);
+    }
+
+    public static AtlasDbConfig loadFromStream(InputStream configStream, @Nullable String configRoot)
+            throws IOException {
+        JsonNode node = OBJECT_MAPPER.readTree(configStream);
+        return getConfig(node, configRoot);
+    }
+
+    private static AtlasDbConfig getConfig(JsonNode node, @Nullable String configRoot) throws IOException {
         JsonNode configNode = findRoot(node, configRoot);
 
         if (configNode == null) {
-            throw new IllegalArgumentException("Could not find " + configRoot + " in given string");
+            throw new IllegalArgumentException("Could not find " + configRoot + " in input");
         }
 
-        return configNode;
+        return OBJECT_MAPPER.treeToValue(configNode, AtlasDbConfig.class);
     }
 
     private static JsonNode findRoot(JsonNode node, @Nullable String configRoot) {
