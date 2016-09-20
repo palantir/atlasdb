@@ -28,7 +28,6 @@ import org.apache.cassandra.thrift.TriggerDef;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public final class CassandraConstants {
@@ -93,13 +92,10 @@ public final class CassandraConstants {
 
     static final String GLOBAL_DDL_LOCK_FORMAT = "%1$d_%2$d";
     static final long GLOBAL_DDL_LOCK_CLEARED_ID = Long.MAX_VALUE;
-    static final String GLOBAL_DDL_LOCK_CLEARED_VALUE = lockValueFromIdAndHeartbeat(GLOBAL_DDL_LOCK_CLEARED_ID, 0);
-
-    private static final Cell GLOBAL_DDL_LOCK_CELL = Cell.create(
-            CassandraConstants.GLOBAL_DDL_LOCK.getBytes(StandardCharsets.UTF_8),
-            CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8));
-
-    static final ByteBuffer GLOBAL_DDL_LOCK_ROW_NAME = ByteBuffer.wrap(GLOBAL_DDL_LOCK_CELL.getRowName());
+    static final String GLOBAL_DDL_LOCK_CLEARED_VALUE = SchemaMutationLock.lockValueFromIdAndHeartbeat(
+            GLOBAL_DDL_LOCK_CLEARED_ID, 0);
+    static final ByteBuffer GLOBAL_DDL_LOCK_ROW_NAME = ByteBuffer.wrap(
+            CassandraConstants.GLOBAL_DDL_LOCK.getBytes(StandardCharsets.UTF_8));
 
     private CassandraConstants() {
         // Utility class
@@ -130,9 +126,5 @@ public final class CassandraConstants {
         cf.setDefault_validation_class("org.apache.cassandra.db.marshal.BytesType");
 
         return cf;
-    }
-
-    static String lockValueFromIdAndHeartbeat(long id, int heartbeatCount) {
-        return String.format(GLOBAL_DDL_LOCK_FORMAT, id, heartbeatCount);
     }
 }

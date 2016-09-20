@@ -48,6 +48,7 @@ public class SchemaMutationLockIntegrationTest {
     public static final SchemaMutationLock.Action DO_NOTHING = () -> {};
 
     protected SchemaMutationLock schemaMutationLock;
+    private HeartbeatService heartbeatService;
     private ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig;
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
@@ -80,7 +81,10 @@ public class SchemaMutationLockIntegrationTest {
         CassandraClientPool clientPool = new CassandraClientPool(simpleManager.getConfig());
 
         UniqueSchemaMutationLockTable lockTable = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, quickTimeoutConfig), LockLeader.I_AM_THE_LOCK_LEADER);
-        schemaMutationLock = new SchemaMutationLock(supportsCas, simpleManager, clientPool, writeConsistency, lockTable);
+        heartbeatService = new HeartbeatService(clientPool, quickTimeoutConfig.heartbeatTimePeriodMillis(),
+                lockTable.getOnlyTable().getQualifiedName(), writeConsistency);
+        schemaMutationLock = new SchemaMutationLock(supportsCas, simpleManager, clientPool, writeConsistency,
+                lockTable, heartbeatService);
     }
 
     @Test
@@ -129,14 +133,14 @@ public class SchemaMutationLockIntegrationTest {
 
         expectedException.expect(ExecutionException.class);
         expectedException.expectCause(instanceOf(IllegalStateException.class));
-        expectedException.expectMessage("Can\'t stop non existent heartbeat.");
+        expectedException.expectMessage("Can't stop non existent heartbeat.");
 
         Future initialLockHolder = CassandraTestTools.async(executorService, () -> {
             schemaMutationLock.runWithLock(() -> {
                 // Wait for few heartbeats
                 Thread.sleep(quickTimeoutConfig.heartbeatTimePeriodMillis() * 2);
 
-                schemaMutationLock.killHeartbeat();
+                heartbeatService.stopBeating();
 
                 // Try grabbing lock with dead heartbeat
                 Future lockGrabber = CassandraTestTools.async(executorService,
