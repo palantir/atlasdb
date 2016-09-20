@@ -20,6 +20,10 @@ dependencies {
     testCompile group: 'io.dropwizard', name: 'dropwizard-testing', version: libVersions.dropwizard
 }
 
+test {
+    maxHeapSize = "512m"
+}
+
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
     resolutionStrategy {
         force group: 'ch.qos.logback', name: 'logback-classic', version: '1.1.3'
