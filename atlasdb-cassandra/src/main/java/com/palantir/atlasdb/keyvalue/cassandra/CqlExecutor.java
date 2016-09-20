@@ -128,11 +128,7 @@ public class CqlExecutor {
     }
 
     private String getQuotedTableName(TableReference tableRef) {
-        return "\"" + getTableName(tableRef) + "\"";
-    }
-
-    private String getTableName(TableReference tableRef) {
-        return CassandraKeyValueService.internalTableName(tableRef);
+        return "\"" + CassandraKeyValueService.internalTableName(tableRef) + "\"";
     }
 
     private List<CellWithTimestamp> getCells(byte[] key, CqlResult cqlResult) {
