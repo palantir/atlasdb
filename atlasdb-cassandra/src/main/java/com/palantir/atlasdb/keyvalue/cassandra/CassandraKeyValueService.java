@@ -115,7 +115,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.ThreadNamingCallable;
+import com.palantir.common.concurrent.AnnotatedCallable;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
@@ -321,11 +321,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost = partitionByHost(rows, Functions.identity()).entrySet();
         List<Callable<Map<Cell, Value>>> tasks = Lists.newArrayListWithCapacity(rowsByHost.size());
         for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
-            tasks.add(ThreadNamingCallable.wrapWithThreadName(
+            tasks.add(AnnotatedCallable.wrapWithThreadName(
                     () -> getRowsForSingleHost(hostAndRows.getKey(), tableRef, hostAndRows.getValue(), startTs),
                     "Atlas getRows " + hostAndRows.getValue().size()
                             + " rows from " + tableRef + " on " + hostAndRows.getKey(),
-                    ThreadNamingCallable.Type.PREPEND));
+                    AnnotatedCallable.Type.PREPEND));
         }
         List<Map<Cell, Value>> perHostResults = runAllTasksCancelOnFailure(tasks);
         Map<Cell, Value> result = Maps.newHashMapWithExpectedSize(Iterables.size(rows));
@@ -549,10 +549,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             }
 
                         });
-                tasks.add(ThreadNamingCallable.wrapWithThreadName(
+                tasks.add(AnnotatedCallable.wrapWithThreadName(
                         multiGetCallable,
                         "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on " + host,
-                        ThreadNamingCallable.Type.PREPEND));
+                        AnnotatedCallable.Type.PREPEND));
             }
         }
         return tasks;
@@ -567,12 +567,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 partitionByHost(rows, Functions.<byte[]>identity()).entrySet();
         List<Callable<Map<byte[], RowColumnRangeIterator>>> tasks = Lists.newArrayListWithCapacity(rowsByHost.size());
         for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
-            tasks.add(ThreadNamingCallable.wrapWithThreadName(() ->
+            tasks.add(AnnotatedCallable.wrapWithThreadName(() ->
                     getRowsColumnRangeIteratorForSingleHost(hostAndRows.getKey(), tableRef,
                             hostAndRows.getValue(), batchColumnRangeSelection, timestamp),
                     "Atlas getRowsColumnRange " + hostAndRows.getValue().size()
                             + " rows from " + tableRef + " on " + hostAndRows.getKey(),
-                    ThreadNamingCallable.Type.PREPEND));
+                    AnnotatedCallable.Type.PREPEND));
         }
         List<Map<byte[], RowColumnRangeIterator>> perHostResults = runAllTasksCancelOnFailure(tasks);
         Map<byte[], RowColumnRangeIterator> result = Maps.newHashMapWithExpectedSize(Iterables.size(rows));
@@ -829,13 +829,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         List<Callable<Void>> tasks = Lists.newArrayListWithCapacity(cellsByHost.size());
         for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
             tasks.add(
-                    ThreadNamingCallable.wrapWithThreadName(() -> {
+                    AnnotatedCallable.wrapWithThreadName(() -> {
                         putForSingleHostInternal(entry.getKey(), tableRef, entry.getValue().entrySet(), ttl);
                         return null;
                     },
                     "Atlas putInternal " + entry.getValue().size() + " cell values to "
                             + tableRef + " on " + entry.getKey(),
-                    ThreadNamingCallable.Type.PREPEND));
+                    AnnotatedCallable.Type.PREPEND));
         }
         runAllTasksCancelOnFailure(tasks);
     }
@@ -924,12 +924,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         for (final List<TableCellAndValue> batch : partitioned) {
             final Set<TableReference> tableRefs = extractTableNames(batch);
             tasks.add(
-                    ThreadNamingCallable.wrapWithThreadName(() -> {
+                    AnnotatedCallable.wrapWithThreadName(() -> {
                         multiPutForSingleHostInternal(host, tableRefs, batch, timestamp);
                         return null;
                     },
                     "Atlas multiPut of " + batch.size() + " cells into " + tableRefs + " on " + host,
-                    ThreadNamingCallable.Type.PREPEND));
+                    AnnotatedCallable.Type.PREPEND));
         }
         return tasks;
     }
