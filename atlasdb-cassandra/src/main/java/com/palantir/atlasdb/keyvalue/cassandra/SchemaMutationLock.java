@@ -121,7 +121,7 @@ public class SchemaMutationLock {
         }
 
         void startBeatingForLock(long lockId) {
-            String err = "Can\'t start new heartbeat with an existing heartbeat. Only one heartbeat per lock allowed.";
+            String err = "Can't start new heartbeat with an existing heartbeat. Only one heartbeat per lock allowed.";
             Preconditions.checkState(heartbeatExecutorService == null, err);
 
             heartbeatExecutorService = Executors.newSingleThreadScheduledExecutor();

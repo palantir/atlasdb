@@ -131,7 +131,7 @@ public class SchemaMutationLockIntegrationTest {
         expectedException.expectCause(instanceOf(IllegalStateException.class));
         expectedException.expectMessage("Can\'t stop non existent heartbeat.");
 
-        Future async_1 = CassandraTestTools.async(executorService, () -> {
+        Future initialLockHolder = CassandraTestTools.async(executorService, () -> {
             schemaMutationLock.runWithLock(() -> {
                 // Wait for few heartbeats
                 Thread.sleep(quickTimeoutConfig.heartbeatTimePeriodMillis() * 2);
@@ -139,19 +139,19 @@ public class SchemaMutationLockIntegrationTest {
                 schemaMutationLock.killHeartbeat();
 
                 // Try grabbing lock with dead heartbeat
-                Future async_2 = CassandraTestTools.async(executorService,
+                Future lockGrabber = CassandraTestTools.async(executorService,
                         () -> schemaMutationLock.runWithLock(DO_NOTHING));
 
                 // check if async_2 completes
                 try {
-                    async_2.get(5, TimeUnit.SECONDS);
+                    lockGrabber.get(5, TimeUnit.SECONDS);
                 } catch (TimeoutException e) {
-                    if (!async_2.isDone()) {
+                    if (!lockGrabber.isDone()) {
                         throw new AssertionError("Schema lock could not be grabbed despite no heartbeat.");
                     }
                 }
             });
         });
-        async_1.get();
+        initialLockHolder.get();
     }
 }
