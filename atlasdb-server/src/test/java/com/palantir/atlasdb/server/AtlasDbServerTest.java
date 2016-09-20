@@ -30,6 +30,7 @@ import org.junit.runners.Parameterized;
 import com.google.common.base.Optional;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
+import com.palantir.atlasdb.ete.Gradle;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.server.config.AtlasDbServerConfiguration;
 import com.palantir.atlasdb.server.config.ClientConfig;
@@ -44,6 +45,8 @@ import io.dropwizard.testing.junit.DropwizardAppRule;
 
 @RunWith(Parameterized.class)
 public class AtlasDbServerTest {
+    private static final Gradle GRADLE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
+
     private static final DockerComposeRule DOCKER_COMPOSE_RULE = DockerComposeRule.builder()
             .file("docker/services.yml")
             .logCollector(FileLogCollector.fromPath("logs"))
@@ -66,7 +69,8 @@ public class AtlasDbServerTest {
     }
 
     @ClassRule
-    public static final RuleChain RULES = RuleChain.outerRule(DOCKER_COMPOSE_RULE)
+    public static final RuleChain RULES = RuleChain.outerRule(GRADLE_TASK)
+            .around(DOCKER_COMPOSE_RULE)
             .around(DOCKER_PROXY_RULE)
             .around(APP);
 

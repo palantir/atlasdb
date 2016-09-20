@@ -10,6 +10,7 @@ dependencies {
     runtime project(':atlasdb-dbkvs')
 
     testCompile project(':atlasdb-docker-test-utils')
+    testCompile project(':atlasdb-ete-test-utils')
 
     compile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.dropwizard
 
@@ -22,6 +23,7 @@ dependencies {
 
 test {
     maxHeapSize = "512m"
+    dependsOn ':atlasdb-ete-test-utils:buildCassandraImage'
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
