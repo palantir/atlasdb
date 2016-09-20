@@ -45,15 +45,6 @@ public abstract class ClusterConfig {
     @Size(min = 1)
     public abstract Set<String> servers();
 
-    @JsonProperty("lockCreator")
-    @Value.Default
-    public String lockCreator() {
-        return servers().stream()
-                .sorted()
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("No servers have been specified."));
-    }
-
     @Value.Check
     protected void check() {
         Preconditions.checkState(quorumSize() > servers().size() / 2,
@@ -72,7 +63,6 @@ public abstract class ClusterConfig {
                 .quorumSize(quorumSize())
                 .localServer(localServer())
                 .leaders(servers())
-                .lockCreator(lockCreator())
                 .learnerLogDir(leaderElection().paxos().learnerLogDir())
                 .acceptorLogDir(leaderElection().paxos().acceptorLogDir())
                 .pingRateMs(leaderElection().pingRateMs())
