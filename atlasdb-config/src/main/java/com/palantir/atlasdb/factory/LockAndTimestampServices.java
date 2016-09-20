@@ -13,28 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.server;
+package com.palantir.atlasdb.factory;
 
-import javax.ws.rs.Path;
+import org.immutables.value.Value;
 
-import com.palantir.atlasdb.factory.LockAndTimestampServices;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
-public class KeyspaceResource {
-    private final LockAndTimestampServices services;
-
-    public KeyspaceResource(LockAndTimestampServices services) {
-        this.services = services;
-    }
-
-    @Path("/lock")
-    public RemoteLockService getLockService() {
-        return services.lock();
-    }
-
-    @Path("/timestamp")
-    public TimestampService getTimestampService() {
-        return services.time();
-    }
+@Value.Immutable
+public interface LockAndTimestampServices {
+    RemoteLockService lock();
+    TimestampService time();
 }

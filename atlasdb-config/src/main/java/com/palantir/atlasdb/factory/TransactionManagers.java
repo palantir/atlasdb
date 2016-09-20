@@ -20,8 +20,6 @@ import java.util.Set;
 
 import javax.net.ssl.SSLSocketFactory;
 
-import org.immutables.value.Value;
-
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
@@ -304,12 +302,6 @@ public final class TransactionManagers {
             Optional<SSLSocketFactory> sslSocketFactory = createSslSocketFactory(input.sslConfiguration());
             return createService(sslSocketFactory, input.servers(), serviceClass);
         }
-    }
-
-    @Value.Immutable
-    public interface LockAndTimestampServices {
-        RemoteLockService lock();
-        TimestampService time();
     }
 
     public interface Environment {

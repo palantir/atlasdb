@@ -25,7 +25,7 @@ import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.factory.TransactionManagers;
+import com.palantir.atlasdb.factory.LockAndTimestampServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.services.ServicesConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -85,7 +85,7 @@ public class TestTransactionManagerModule {
     @Singleton
     public SerializableTransactionManager provideTransactionManager(ServicesConfig config,
                                                                     @Named("kvs") KeyValueService kvs,
-                                                                    TransactionManagers.LockAndTimestampServices lts,
+                                                                    LockAndTimestampServices lts,
                                                                     LockClient lockClient,
                                                                     TransactionService transactionService,
                                                                     ConflictDetectionManager conflictManager,
