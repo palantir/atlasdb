@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -93,6 +94,11 @@ public class SchemaMutationLock {
                 + " If this is a clustered service, this could lead to corruption.");
         try {
             waitForSchemaMutationLockWithoutCas();
+        } catch (TimeoutException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+
+        try {
             action.execute();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -136,6 +142,12 @@ public class SchemaMutationLock {
                 Column lastSeenValue = null;
                 int timesAttempted = 0;
 
+                // We use schemaMutationTimeoutMillis to wait for schema mutations to agree as well as
+                // to specify the timeout period before we give up trying to acquire the schema mutation lock
+                int mutationTimeoutMillis = configManager.getConfig().schemaMutationTimeoutMillis()
+                        * CassandraConstants.SCHEMA_MUTATION_LOCK_TIMEOUT_MULTIPLIER;
+                Stopwatch stopwatch = Stopwatch.createStarted();
+
                 // could have a timeout controlling this level, confusing for users to set both timeouts though
                 while (!casResult.isSuccess()) {
                     if (casResult.getCurrent_valuesSize() == 0) { // never has been an existing lock
@@ -158,6 +170,13 @@ public class SchemaMutationLock {
                         }
                     }
 
+                    // lock holder taking unreasonable amount of time, signal something's wrong
+                    if (stopwatch.elapsed(TimeUnit.MILLISECONDS) > mutationTimeoutMillis) {
+                        TimeoutException schemaLockTimeoutError = generateSchemaLockTimeoutException(stopwatch);
+                        LOGGER.error(schemaLockTimeoutError.getMessage(), schemaLockTimeoutError);
+                        throw Throwables.rewrapAndThrowUncheckedException(schemaLockTimeoutError);
+                    }
+
                     long timeToSleep = CassandraConstants.TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS
                             * (long) Math.pow(2, timesAttempted++);
                     Thread.sleep(timeToSleep);
@@ -174,6 +193,13 @@ public class SchemaMutationLock {
             throw Throwables.throwUncheckedException(e);
         }
         return perOperationNodeId;
+    }
+
+    private TimeoutException generateSchemaLockTimeoutException(Stopwatch stopwatch) {
+        return new TimeoutException(String.format("We have timed out waiting on the current"
+                        + " schema mutation lock holder. We have tried to grab the lock for %d seconds"
+                        + " unsuccessfully. This indicates some problem with the current lock holder since"
+                        + " schema mutations should not take this long.", stopwatch.elapsed(TimeUnit.SECONDS)));
     }
 
     private void waitForSchemaMutationLockWithoutCas() throws TimeoutException {
