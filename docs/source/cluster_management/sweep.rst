@@ -35,6 +35,11 @@ The sweep job is intended to regularly delete unused data from AtlasDB, reducing
 Older AtlasDB instances with high data scale and months/years of user activity will likely have a large number of accumulated cells that are eligible for sweeping (i.e. a lot of unused data in AtlasDB that has never been swept).
 In this case, manually sweeping specific tables may be required to reduce the number of unused cells that have accumulated over time.
 
+Background Sweep
+----------------
+
+For more information on how to set up a regular sweep job on your system, check out the :ref:`background_sweep` documentation.
+
 Targeted Sweep
 --------------
 
