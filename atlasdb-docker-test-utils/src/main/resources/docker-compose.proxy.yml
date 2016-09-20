@@ -1,0 +1,13 @@
+version: '2'
+
+services:
+  proxy:
+    image: vimagick/dante:latest
+    ports:
+      - "1080"
+    command: bash -c 'sed -i.bak "s/username //" /etc/sockd.conf && sockd -f /etc/sockd.conf -p /tmp/sockd.pid -N 10'
+
+networks:
+  default:
+    external:
+      name: {{PROJECT_NAME}}_default
