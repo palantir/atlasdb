@@ -12,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
 package com.palantir.atlasdb.keyvalue.cassandra;
@@ -23,12 +22,12 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -121,7 +120,7 @@ public class AllCellsPerRowPagerTest {
         verify(executor).getTimestampsForRowAndColumn(
                 DEFAULT_TABLE,
                 rowKey.array(),
-                PREVIOUS_COLUMN_NAME.getBytes(),
+                PREVIOUS_COLUMN_NAME.getBytes(StandardCharsets.UTF_8),
                 PREVIOUS_TIMESTAMP,
                 pageSize);
     }
@@ -157,15 +156,16 @@ public class AllCellsPerRowPagerTest {
 
     private CellWithTimestamp makeCell(String columnName, long timestamp) {
         return new CellWithTimestamp.Builder()
-                .cell(Cell.create(rowKey.array(), columnName.getBytes()))
+                .cell(Cell.create(rowKey.array(), columnName.getBytes(StandardCharsets.UTF_8)))
                 .timestamp(timestamp)
                 .build();
     }
 
     private static ColumnOrSuperColumn makeColumnOrSuperColumn(String columnName, long timestamp) {
         long timestampLong = ~PtBytes.toLong(PtBytes.toBytes(timestamp));
-        Column col = new Column().setName(CassandraKeyValueServices.makeCompositeBuffer(columnName.getBytes(),
-                timestampLong));
+        ByteBuffer name = CassandraKeyValueServices.makeCompositeBuffer(
+                columnName.getBytes(StandardCharsets.UTF_8), timestampLong);
+        Column col = new Column().setName(name);
         return new ColumnOrSuperColumn().setColumn(col);
     }
 
@@ -181,7 +181,8 @@ public class AllCellsPerRowPagerTest {
 
     private void allQueriesWithColumnAndTimestampReturn(List<CellWithTimestamp> cells) {
         when(executor.getTimestampsForRowAndColumn(
-                any(TableReference.class), any(byte[].class), any(byte[].class), anyLong(), anyInt())).thenReturn(cells);
+                any(TableReference.class), any(byte[].class), any(byte[].class), anyLong(), anyInt()))
+                .thenReturn(cells);
     }
 
     private void allQueriesWithColumnReturn(List<CellWithTimestamp> cells) {
@@ -202,6 +203,6 @@ public class AllCellsPerRowPagerTest {
     }
 
     private ByteBuffer toByteBuffer(String str) {
-        return ByteBuffer.wrap(str.getBytes());
+        return ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8));
     }
 }
