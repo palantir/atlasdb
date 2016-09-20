@@ -6,10 +6,8 @@ apply from: "${rootProject.projectDir}/gradle/shared.gradle"
 dependencies {
     compile project(':atlasdb-config')
 
-    runtime project(':atlasdb-impl-shared') // In-memory  KVS
-    runtime project(':atlasdb-cassandra')   // Cassandra  KVS
-    runtime project(':atlasdb-dbkvs')       // Relational KVS
-    runtime project(':atlasdb-rocksdb')     // RocksDB    KVS
+    runtime project(':atlasdb-cassandra')
+    runtime project(':atlasdb-dbkvs')
 
     testCompile project(':atlasdb-docker-test-utils')
 
