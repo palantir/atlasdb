@@ -33,6 +33,7 @@ import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.server.config.AtlasDbServerConfiguration;
 import com.palantir.atlasdb.server.config.ClientConfig;
+import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.logging.FileLogCollector;
 import com.palantir.timestamp.TimestampService;
@@ -52,6 +53,10 @@ public class AtlasDbServerTest {
             AtlasDbServer.class,
             ResourceHelpers.resourceFilePath("testServer.yml"));
 
+    private static final DockerProxyRule DOCKER_PROXY_RULE = new DockerProxyRule(
+            DOCKER_COMPOSE_RULE.projectName(),
+            AtlasDbServerTest.class);
+
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> serverClients() throws Exception {
         return java.util.Arrays.asList(new Object[][] {
@@ -64,7 +69,7 @@ public class AtlasDbServerTest {
 
     @ClassRule
     public static final RuleChain RULES = RuleChain.outerRule(DOCKER_COMPOSE_RULE)
-            .around(new DockerProxyRule(DOCKER_COMPOSE_RULE))
+            .around(DOCKER_PROXY_RULE)
             .around(APP);
 
     private final String client;
