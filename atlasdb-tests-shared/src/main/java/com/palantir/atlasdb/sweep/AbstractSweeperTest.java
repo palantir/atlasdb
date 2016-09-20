@@ -22,7 +22,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Supplier;
@@ -342,12 +341,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
-    /*
-     * These tests have been ignored pending internal ticket 94009
-     * They are fragile when run with test suites that do not properly
-     * clean up tables from the kvs.
-     */
     public void testBackgroundSweepWritesPriorityTable() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -365,26 +358,27 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
     public void testBackgroundSweepWritesPriorityTableWithDifferentTime() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
         putIntoDefaultColumn("foo", "baz", 100);
         putIntoDefaultColumn("foo", "buzz", 125);
         // the expectation is that the sweep tables will be chosen first
+        // TODO ^ why? Alphabetical?
         runBackgroundSweep(110, 2);
         runBackgroundSweep(120, 1);
         List<SweepPriorityRowResult> results = getPriorityTable();
         for (SweepPriorityRowResult result : results) {
             switch (result.getRowName().getFullTableName()) {
                 case "sweep.priority":
-                    Assert.assertEquals(new Long(110), result.getMinimumSweptTimestamp());
+                    Assert.assertEquals(
+                            "priority has wrong sweep timestamp", new Long(110), result.getMinimumSweptTimestamp());
                     break;
                 case "sweep.progress":
-                    Assert.assertEquals(new Long(110), result.getMinimumSweptTimestamp());
+                    Assert.assertEquals("progress has wrong sweep timestamp", new Long(110), result.getMinimumSweptTimestamp());
                     break;
-                case "table":
-                    Assert.assertEquals(new Long(120), result.getMinimumSweptTimestamp());
+                case "test_table":
+                    Assert.assertEquals("table has wrong sweep timestamp", new Long(120), result.getMinimumSweptTimestamp());
                     Assert.assertEquals(new Long(1), result.getCellsDeleted());
                     Assert.assertEquals(new Long(1), result.getCellsExamined());
                     break;
@@ -393,7 +387,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
     public void testBackgroundSweeperWritesToProgressTable() {
         setupBackgroundSweeper(2);
         createTable(SweepStrategy.CONSERVATIVE);
@@ -416,7 +409,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
     public void testBackgroundSweeperDoesNotOverwriteProgressMinimumTimestamp() {
         setupBackgroundSweeper(2);
         createTable(SweepStrategy.CONSERVATIVE);
@@ -459,7 +451,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
     public void testBackgroundSweeperWritesFromProgressToPriority() {
         setupBackgroundSweeper(3);
         createTable(SweepStrategy.CONSERVATIVE);
@@ -479,7 +470,7 @@ public abstract class AbstractSweeperTest {
                 case "sweep.progress":
                     Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
                     break;
-                case "table":
+                case "test_table":
                     Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
                     Assert.assertEquals(new Long(0), result.getCellsDeleted());
                     Assert.assertEquals(new Long(4), result.getCellsExamined());
@@ -491,7 +482,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
     public void testBackgroundSweepCanHandleNegativeImmutableTimestamp() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);

@@ -105,7 +105,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
     @After
     public void tearDown() throws Exception {
-        keyValueService.dropTable(TEST_TABLE);
+        keyValueService.dropTables(keyValueService.getAllTableNames());
         keyValueService.teardown();
     }
 
@@ -1014,7 +1014,6 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         Map<Cell, Long> valueToGet = ImmutableMap.of(cell, MAX_TIMESTAMP);
 
         assertThat(keyValueService.get(DynamicColumnTable.reference(), valueToGet), is(emptyMap()));
-
     }
 
     @Test

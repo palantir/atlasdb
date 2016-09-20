@@ -23,12 +23,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
@@ -58,7 +60,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
                 CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig), CassandraTestSuite.LEADER_CONFIG);
 
         ImmutableCassandraKeyValueServiceConfig slowTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
-                .withSchemaMutationTimeoutMillis(60 * 1000);
+                .withSchemaMutationTimeoutMillis(6 * 1000);
         slowTimeoutKvs = CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(slowTimeoutConfig), CassandraTestSuite.LEADER_CONFIG);
 
@@ -82,7 +84,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
     }
 
     @Test
-    public void testCreatingMultipleTablesAtOnce() {
+    public void testCreatingMultipleTablesAtOnce() throws InterruptedException {
         int threadCount =  16;
         CyclicBarrier barrier = new CyclicBarrier(threadCount);
         ForkJoinPool threadPool = new ForkJoinPool(threadCount);
@@ -97,6 +99,10 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
                 }
             });
         });
+
+        threadPool.shutdown();
+        Preconditions.checkState(threadPool.awaitTermination(60, TimeUnit.SECONDS),
+                "Not all table creation threads completed within the time limit");
 
         slowTimeoutKvs.dropTable(GOOD_TABLE);
     }
