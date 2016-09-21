@@ -32,7 +32,7 @@ By default, the background sweeper only logs errors. If you'd like to watch the 
     # Sweep Logging
     #--------------------------------------------------------------------------------
 
-    # enable background sweep logging by setting this to 'debug', to get more logging use 'info', disable with 'off'
+    # enable background sweep logging by setting this to 'debug'; for less verbose logging, use 'error'.
     log4j.logger.com.palantir.atlasdb.sweep.BackgroundSweeperImpl=debug, sweepAppend
 
     # set additivity to false to make these logs only show up in background-sweeper.log
