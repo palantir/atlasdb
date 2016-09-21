@@ -219,10 +219,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 supportsCas,
                 configManager,
                 clientPool,
+                queryRunner,
                 writeConsistency,
                 schemaMutationLockTable,
-                new HeartbeatService(clientPool, configManager.getConfig().heartbeatTimePeriodMillis(),
-                        schemaMutationLockTable.getOnlyTable().getQualifiedName(), writeConsistency));
+                HeartbeatService.create(clientPool,
+                        queryRunner,
+                        configManager.getConfig().heartbeatTimePeriodMillis(),
+                        schemaMutationLockTable.getOnlyTable(),
+                        writeConsistency));
 
         createTable(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();

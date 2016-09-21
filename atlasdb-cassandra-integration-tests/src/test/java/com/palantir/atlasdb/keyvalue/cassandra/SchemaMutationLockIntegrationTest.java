@@ -37,24 +37,30 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.LockLeader;
+import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.common.exception.PalantirRuntimeException;
 
 @RunWith(Parameterized.class)
 public class SchemaMutationLockIntegrationTest {
-    public static final SchemaMutationLock.Action DO_NOTHING = () -> {};
+    private static final Logger log = LoggerFactory.getLogger(SchemaMutationLockIntegrationTest.class);
+    private static final SchemaMutationLock.Action DO_NOTHING = () -> {};
 
-    protected SchemaMutationLock schemaMutationLock;
+    private SchemaMutationLock schemaMutationLock;
     private HeartbeatService heartbeatService;
     private ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig;
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
+    @SuppressWarnings({"WeakerAccess", "DefaultAnnotationParam"}) // test parameter
     @Parameterized.Parameter(value = 0)
     public boolean casEnabled;
 
+    @SuppressWarnings("WeakerAccess") // test parameter
     @Parameterized.Parameter(value = 1)
     public String expectedTimeoutErrorMessage;
 
@@ -73,18 +79,21 @@ public class SchemaMutationLockIntegrationTest {
         setUpWithCasSupportSetTo(casEnabled);
     }
 
-    protected void setUpWithCasSupportSetTo(boolean supportsCas) throws Exception {
+    private void setUpWithCasSupportSetTo(boolean supportsCas) throws Exception {
         quickTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
                 .withSchemaMutationTimeoutMillis(500);
-        CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig);
+        CassandraKeyValueServiceConfigManager simpleManager =
+                CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig);
         ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
         CassandraClientPool clientPool = new CassandraClientPool(simpleManager.getConfig());
 
-        UniqueSchemaMutationLockTable lockTable = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, quickTimeoutConfig), LockLeader.I_AM_THE_LOCK_LEADER);
-        heartbeatService = new HeartbeatService(clientPool, quickTimeoutConfig.heartbeatTimePeriodMillis(),
-                lockTable.getOnlyTable().getQualifiedName(), writeConsistency);
-        schemaMutationLock = new SchemaMutationLock(supportsCas, simpleManager, clientPool, writeConsistency,
-                lockTable, heartbeatService);
+        UniqueSchemaMutationLockTable lockTable = new UniqueSchemaMutationLockTable(
+                new SchemaMutationLockTables(clientPool, quickTimeoutConfig), LockLeader.I_AM_THE_LOCK_LEADER);
+        TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
+        heartbeatService = HeartbeatService.create(clientPool, queryRunner,
+                quickTimeoutConfig.heartbeatTimePeriodMillis(), lockTable.getOnlyTable(), writeConsistency);
+        schemaMutationLock = new SchemaMutationLock(supportsCas, simpleManager, clientPool, queryRunner,
+                writeConsistency, lockTable, heartbeatService);
     }
 
     @Test
@@ -108,7 +117,7 @@ public class SchemaMutationLockIntegrationTest {
     @Test(timeout = 10 * 1000)
     public void canRunAnotherActionOnceTheFirstHasBeenCompleted() {
         AtomicInteger counter = new AtomicInteger();
-        SchemaMutationLock.Action increment = () -> counter.incrementAndGet();
+        SchemaMutationLock.Action increment = counter::incrementAndGet;
 
         schemaMutationLock.runWithLock(increment);
         schemaMutationLock.runWithLock(increment);
@@ -135,27 +144,25 @@ public class SchemaMutationLockIntegrationTest {
         expectedException.expectCause(instanceOf(IllegalStateException.class));
         expectedException.expectMessage("Can't stop non existent heartbeat.");
 
-        Future initialLockHolder = CassandraTestTools.async(executorService, () -> {
-            schemaMutationLock.runWithLock(() -> {
-                // Wait for few heartbeats
-                Thread.sleep(quickTimeoutConfig.heartbeatTimePeriodMillis() * 2);
+        Future initialLockHolder = CassandraTestTools.async(executorService, () ->
+                schemaMutationLock.runWithLock(() -> {
+                    // Wait for few heartbeats
+                    Thread.sleep(quickTimeoutConfig.heartbeatTimePeriodMillis() * 2);
 
-                heartbeatService.stopBeating();
+                    heartbeatService.stopBeating();
 
-                // Try grabbing lock with dead heartbeat
-                Future lockGrabber = CassandraTestTools.async(executorService,
-                        () -> schemaMutationLock.runWithLock(DO_NOTHING));
+                    // Try grabbing lock with dead heartbeat
+                    Future lockGrabber = CassandraTestTools.async(executorService,
+                            () -> schemaMutationLock.runWithLock(DO_NOTHING));
 
-                // check if async_2 completes
-                try {
-                    lockGrabber.get(5, TimeUnit.SECONDS);
-                } catch (TimeoutException e) {
-                    if (!lockGrabber.isDone()) {
-                        throw new AssertionError("Schema lock could not be grabbed despite no heartbeat.");
+                    // check if able to successfully acquire lock
+                    try {
+                        lockGrabber.get(5, TimeUnit.SECONDS);
+                    } catch (TimeoutException e) {
+                        assertThat("Schema lock could not be grabbed despite no heartbeat.",
+                                lockGrabber.isDone(), is(true));
                     }
-                }
-            });
-        });
+                }));
         initialLockHolder.get();
     }
 

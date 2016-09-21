@@ -20,43 +20,67 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.concurrent.PTExecutors;
 
+final class HeartbeatService {
+    private static final Logger log = LoggerFactory.getLogger(HeartbeatService.class);
 
-class HeartbeatService {
     private final CassandraClientPool clientPool;
+    private final TracingQueryRunner queryRunner;
     private final int heartbeatTimePeriodMillis;
-    private final String lockTableName;
+    private final TableReference lockTable;
     private final ConsistencyLevel writeConsistency;
-    private ScheduledExecutorService heartbeatExecutorService;
+    private final ScheduledExecutorService heartbeatExecutorService;
+    private final AtomicInteger heartbeatCount;
 
-    AtomicInteger heartbeatCount;
-
-    HeartbeatService(CassandraClientPool clientPool, int heartbeatTimePeriodMillis, String lockTableName,
+    static HeartbeatService create(
+            CassandraClientPool clientPool,
+            TracingQueryRunner queryRunner,
+            int heartbeatTimePeriodMillis,
+            TableReference lockTable,
             ConsistencyLevel writeConsistency) {
+        ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor(
+                new ThreadFactoryBuilder().setNameFormat("Atlas Schema Lock Heartbeat-" + lockTable + "-%d").build());
+        return new HeartbeatService(clientPool, queryRunner, heartbeatTimePeriodMillis, lockTable,
+                writeConsistency, executorService);
+    }
+
+    HeartbeatService(CassandraClientPool clientPool,
+            TracingQueryRunner queryRunner,
+            int heartbeatTimePeriodMillis,
+            TableReference lockTable,
+            ConsistencyLevel writeConsistency,
+            ScheduledExecutorService executorService) {
         this.clientPool = clientPool;
+        this.queryRunner = queryRunner;
         this.heartbeatTimePeriodMillis = heartbeatTimePeriodMillis;
-        this.lockTableName = lockTableName;
+        this.lockTable = lockTable;
         this.writeConsistency = writeConsistency;
         this.heartbeatCount = new AtomicInteger(0);
+        this.heartbeatExecutorService = executorService;
     }
 
     void startBeatingForLock(long lockId) {
-        String err = "Can't start new heartbeat with an existing heartbeat. Only one heartbeat per lock allowed.";
-        Preconditions.checkState(heartbeatExecutorService == null, err);
+        Preconditions.checkState(heartbeatCount.get() == 0 && !heartbeatExecutorService.isShutdown(),
+                "Can't start new heartbeat with an existing heartbeat. Only one heartbeat per lock allowed.");
 
-        heartbeatExecutorService = PTExecutors.newSingleThreadScheduledExecutor();
-        this.heartbeatCount.set(0);
-
-        Heartbeat heartbeat = new Heartbeat(clientPool, heartbeatCount, lockTableName, writeConsistency, lockId);
-        heartbeatExecutorService.scheduleAtFixedRate(heartbeat, 0, heartbeatTimePeriodMillis, TimeUnit.MILLISECONDS);
+        heartbeatCount.set(0);
+        heartbeatExecutorService.scheduleAtFixedRate(
+                new Heartbeat(clientPool, queryRunner, heartbeatCount, lockTable, writeConsistency, lockId),
+                0, heartbeatTimePeriodMillis, TimeUnit.MILLISECONDS);
     }
 
     void stopBeating() {
-        String err = "Can't stop non existent heartbeat.";
-        Preconditions.checkState(heartbeatExecutorService != null, err);
+        if (heartbeatExecutorService.isShutdown()) {
+            log.warn("HeartbeatService is already stopped");
+            return;
+        }
 
         heartbeatExecutorService.shutdown();
         try {
@@ -71,7 +95,12 @@ class HeartbeatService {
             heartbeatExecutorService.shutdownNow();
             Thread.currentThread().interrupt();
         } finally {
-            heartbeatExecutorService = null;
+            heartbeatExecutorService.shutdownNow();
         }
     }
+
+    int getHeartbeatCount() {
+        return heartbeatCount.get();
+    }
+
 }
