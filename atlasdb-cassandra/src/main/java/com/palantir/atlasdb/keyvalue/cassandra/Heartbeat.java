@@ -19,30 +19,37 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
 
 class Heartbeat implements Runnable {
+    private static final Logger log = LoggerFactory.getLogger(Heartbeat.class);
+
     private final CassandraClientPool clientPool;
+    private final TracingQueryRunner queryRunner;
     private final AtomicInteger heartbeatCount;
-    private final String lockTableName;
+    private final TableReference lockTable;
     private final ConsistencyLevel writeConsistency;
     private final long lockId;
 
     Heartbeat(CassandraClientPool clientPool,
+              TracingQueryRunner queryRunner,
               AtomicInteger heartbeatCount,
-              String lockTableName,
+              TableReference lockTable,
               ConsistencyLevel writeConsistency,
               long lockId) {
         this.clientPool = clientPool;
+        this.queryRunner = queryRunner;
         this.heartbeatCount = heartbeatCount;
-        this.lockTableName = lockTableName;
+        this.lockTable = lockTable;
         this.writeConsistency = writeConsistency;
         this.lockId = lockId;
     }
@@ -50,28 +57,57 @@ class Heartbeat implements Runnable {
     @Override
     public void run() {
         try {
-            clientPool.runWithRetry((FunctionCheckedException<Cassandra.Client, Void, TException>) client -> {
-                Column ourUpdate = SchemaMutationLock.lockColumnFromIdAndHeartbeat(lockId, heartbeatCount.get() + 1);
-
-                List<Column> expected = ImmutableList.of(SchemaMutationLock.lockColumnFromIdAndHeartbeat(
-                        lockId, heartbeatCount.get()));
-
-                if (Thread.currentThread().isInterrupted()) {
-                    return null;
-                }
-
-                CASResult casResult = client.cas(CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME, lockTableName, expected,
-                        ImmutableList.of(ourUpdate), ConsistencyLevel.SERIAL, writeConsistency);
-
-                if (casResult.isSuccess()) {
-                    heartbeatCount.incrementAndGet();
-                } else {
-                    SchemaMutationLock.handleForcedLockClear(casResult, lockId, heartbeatCount.get());
-                }
-                return null;
-            });
-        } catch (TException e) {
-            throw Throwables.throwUncheckedException(e);
+            try {
+                clientPool.runWithRetry(this::beat);
+            } catch (TException e) {
+                throw Throwables.throwUncheckedException(e);
+            }
+        } catch (Throwable throwable) {
+            // Avoid letting heartbeat thread die
+            log.error("Heartbeat threw unexpected exception {}", throwable, throwable);
         }
+    }
+
+    private Void beat(Client client) throws TException {
+        Column ourUpdate = SchemaMutationLock.lockColumnFromIdAndHeartbeat(lockId, heartbeatCount.get() + 1);
+
+        List<Column> expected = ImmutableList.of(
+                SchemaMutationLock.lockColumnFromIdAndHeartbeat(lockId, heartbeatCount.get()));
+
+        if (Thread.currentThread().isInterrupted()) {
+            log.debug("Cancelled {}", this);
+            return null;
+        }
+
+        CASResult casResult = writeDdlLockWithCas(client, ourUpdate, expected);
+        if (casResult.isSuccess()) {
+            heartbeatCount.incrementAndGet();
+        } else {
+            log.warn("Unable to update lock for {}", this);
+            SchemaMutationLock.handleForcedLockClear(casResult, lockId, heartbeatCount.get());
+        }
+        log.debug("Completed {}", this);
+        return null;
+    }
+
+    private CASResult writeDdlLockWithCas(Client client, Column ourUpdate, List<Column> expected) throws TException {
+        return queryRunner.run(client, lockTable,
+                () -> client.cas(
+                        SchemaMutationLock.getGlobalDdlLockRowName(),
+                        lockTable.getQualifiedName(),
+                        expected,
+                        ImmutableList.of(ourUpdate),
+                        ConsistencyLevel.SERIAL,
+                        writeConsistency));
+    }
+
+    @Override
+    public String toString() {
+        return "Heartbeat{"
+                + "lockId=" + lockId
+                + ", lockTable='" + lockTable + '\''
+                + ", writeConsistency=" + writeConsistency
+                + ", heartbeatCount=" + heartbeatCount
+                + '}';
     }
 }

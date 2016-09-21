@@ -20,45 +20,58 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.concurrent.PTExecutors;
 
-class HeartbeatService {
+final class HeartbeatService {
+    private static final Logger log = LoggerFactory.getLogger(HeartbeatService.class);
+
     private final CassandraClientPool clientPool;
+    private final TracingQueryRunner queryRunner;
     private final int heartbeatTimePeriodMillis;
-    private final String lockTableName;
+    private final TableReference lockTable;
     private final ConsistencyLevel writeConsistency;
     private final AtomicInteger heartbeatCount;
     private ScheduledExecutorService heartbeatExecutorService;
 
-    static final String startBeatingError = "Can't start new heartbeat with an existing heartbeat."
+    static final String startBeatingErr = "Can't start new heartbeat with an existing heartbeat."
             + " Only one heartbeat per lock allowed.";
-    static final String stopBeatingError = "Can't stop non existent heartbeat.";
+    static final String stopBeatingWarn = "HeartbeatService is already stopped";
 
     HeartbeatService(CassandraClientPool clientPool,
+                     TracingQueryRunner queryRunner,
                      int heartbeatTimePeriodMillis,
-                     String lockTableName,
+                     TableReference lockTable,
                      ConsistencyLevel writeConsistency) {
         this.clientPool = clientPool;
+        this.queryRunner = queryRunner;
         this.heartbeatTimePeriodMillis = heartbeatTimePeriodMillis;
-        this.lockTableName = lockTableName;
+        this.lockTable = lockTable;
         this.writeConsistency = writeConsistency;
         this.heartbeatCount = new AtomicInteger(0);
+        this.heartbeatExecutorService = null;
     }
 
     void startBeatingForLock(long lockId) {
-        Preconditions.checkState(heartbeatExecutorService == null, startBeatingError);
-
-        heartbeatExecutorService = PTExecutors.newSingleThreadScheduledExecutor();
-        this.heartbeatCount.set(0);
-
-        Heartbeat heartbeat = new Heartbeat(clientPool, heartbeatCount, lockTableName, writeConsistency, lockId);
-        heartbeatExecutorService.scheduleAtFixedRate(heartbeat, 0, heartbeatTimePeriodMillis, TimeUnit.MILLISECONDS);
+        Preconditions.checkState(heartbeatExecutorService == null, startBeatingErr);
+        heartbeatCount.set(0);
+        heartbeatExecutorService = PTExecutors.newSingleThreadScheduledExecutor(
+                new ThreadFactoryBuilder().setNameFormat("Atlas Schema Lock Heartbeat-" + lockTable + "-%d").build());
+        heartbeatExecutorService.scheduleAtFixedRate(
+                new Heartbeat(clientPool, queryRunner, heartbeatCount, lockTable, writeConsistency, lockId),
+                0, heartbeatTimePeriodMillis, TimeUnit.MILLISECONDS);
     }
 
     void stopBeating() {
-        Preconditions.checkState(heartbeatExecutorService != null, stopBeatingError);
+        if (heartbeatExecutorService == null) {
+            log.warn(stopBeatingWarn);
+            return;
+        }
 
         heartbeatExecutorService.shutdown();
         try {
@@ -73,6 +86,7 @@ class HeartbeatService {
             heartbeatExecutorService.shutdownNow();
             Thread.currentThread().interrupt();
         } finally {
+            heartbeatExecutorService.shutdownNow();
             heartbeatExecutorService = null;
         }
     }

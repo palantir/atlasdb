@@ -30,18 +30,23 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.LockLeader;
+import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 
 public class HeartbeatServiceIntegrationTest {
+    private static final Logger log = LoggerFactory.getLogger(SchemaMutationLockIntegrationTest.class);
     private HeartbeatService heartbeatService;
     private ImmutableCassandraKeyValueServiceConfig quickHeartbeatConfig;
     private CassandraKeyValueServiceConfigManager simpleManager;
     private ConsistencyLevel writeConsistency;
     private CassandraClientPool clientPool;
     private UniqueSchemaMutationLockTable lockTable;
+    private TracingQueryRunner queryRunner;
     private final int heartbeatTimePeriodMillis = 100;
     private final long lockId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
 
@@ -50,15 +55,18 @@ public class HeartbeatServiceIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        quickHeartbeatConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG.withHeartbeatTimePeriodMillis(heartbeatTimePeriodMillis);
+        quickHeartbeatConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
+                .withHeartbeatTimePeriodMillis(heartbeatTimePeriodMillis);
         simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(quickHeartbeatConfig);
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
         clientPool = new CassandraClientPool(simpleManager.getConfig());
+        queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
         lockTable = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, quickHeartbeatConfig),
                                                       LockLeader.I_AM_THE_LOCK_LEADER);
         heartbeatService = new HeartbeatService(clientPool,
+                                                queryRunner,
                                                 quickHeartbeatConfig.heartbeatTimePeriodMillis(),
-                                                lockTable.getOnlyTable().getQualifiedName(),
+                                                lockTable.getOnlyTable(),
                                                 writeConsistency);
         clientPool.runWithRetry(this::createLockEntry);
     }
@@ -67,7 +75,7 @@ public class HeartbeatServiceIntegrationTest {
         String lockValue= CassandraKeyValueServices.encodeAsHex(
                 SchemaMutationLock.lockValueFromIdAndHeartbeat(lockId, 0).getBytes(StandardCharsets.UTF_8));
         String lockRowName = CassandraKeyValueServices.encodeAsHex(
-                CassandraConstants.GLOBAL_DDL_LOCK.getBytes(StandardCharsets.UTF_8));
+                CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME.getBytes(StandardCharsets.UTF_8));
         String lockColName = CassandraKeyValueServices.encodeAsHex(
                 CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8));
         String createCql = String.format(
@@ -100,16 +108,9 @@ public class HeartbeatServiceIntegrationTest {
     }
 
     @Test
-    public void testStopBeatingWithoutStarting() {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage(HeartbeatService.stopBeatingError);
-        heartbeatService.stopBeating();
-    }
-
-    @Test
     public void testStartBeatingWithoutStopping() {
         expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage(HeartbeatService.startBeatingError);
+        expectedException.expectMessage(HeartbeatService.startBeatingErr);
 
         heartbeatService.startBeatingForLock(lockId);
 

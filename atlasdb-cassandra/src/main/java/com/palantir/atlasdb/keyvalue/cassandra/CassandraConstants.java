@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
@@ -86,17 +84,11 @@ public final class CassandraConstants {
     static final String SIZE_TIERED_COMPACTION_STRATEGY =
             "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy";
 
-    public static final String GLOBAL_DDL_LOCK = "Global DDL lock";
+    public static final String GLOBAL_DDL_LOCK_ROW_NAME = "Global DDL lock";
     public static final String GLOBAL_DDL_LOCK_COLUMN_NAME = "id_with_lock";
     public static final long TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS = 1000;
 
     static final int SCHEMA_MUTATION_LOCK_TIMEOUT_MULTIPLIER = 10;
-    static final String GLOBAL_DDL_LOCK_FORMAT = "%1$d_%2$d";
-    static final long GLOBAL_DDL_LOCK_CLEARED_ID = Long.MAX_VALUE;
-    static final String GLOBAL_DDL_LOCK_CLEARED_VALUE = SchemaMutationLock.lockValueFromIdAndHeartbeat(
-            GLOBAL_DDL_LOCK_CLEARED_ID, 0);
-    static final ByteBuffer GLOBAL_DDL_LOCK_ROW_NAME = ByteBuffer.wrap(
-            CassandraConstants.GLOBAL_DDL_LOCK.getBytes(StandardCharsets.UTF_8));
 
     private CassandraConstants() {
         // Utility class
@@ -128,4 +120,5 @@ public final class CassandraConstants {
 
         return cf;
     }
+
 }
