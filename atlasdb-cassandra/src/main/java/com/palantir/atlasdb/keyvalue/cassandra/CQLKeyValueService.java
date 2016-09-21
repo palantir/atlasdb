@@ -26,7 +26,6 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
@@ -111,6 +110,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.jmx.CassandraJmxCompactionManager
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
+import com.palantir.atlasdb.util.AnnotatedCallable;
+import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
@@ -543,35 +544,35 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                     + CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
         }
         for (final List<Cell> partition : partitions) {
-            futures.add(executor.submit(new Callable<Map<Cell, Long>>() {
-                @Override
-                public Map<Cell, Long> call() throws Exception {
-                    PreparedStatement preparedStatement = getPreparedStatement(tableRef, loadOnlyTsQuery, session);
-                    preparedStatement.setConsistencyLevel(readConsistency);
-                    List<ResultSetFuture> resultSetFutures = Lists.newArrayListWithExpectedSize(partition.size());
-                    for (Cell c : partition) {
-                        BoundStatement boundStatement = preparedStatement.bind();
-                        boundStatement.setBytes(fieldNameProvider.row(), ByteBuffer.wrap(c.getRowName()));
-                        boundStatement.setBytes(
-                                fieldNameProvider.column(),
-                                ByteBuffer.wrap(c.getColumnName()));
-                        resultSetFutures.add(session.executeAsync(boundStatement));
-                    }
-                    Map<Cell, Long> res = Maps.newHashMapWithExpectedSize(partition.size());
-                    for (ResultSetFuture resultSetFuture : resultSetFutures) {
-                        ResultSet resultSet = resultSetFuture.getUninterruptibly();
-                        for (Row row : resultSet.all()) {
-                            res.put(Cell.create(getRowName(row), getColName(row)), getTs(row));
+            futures.add(executor.submit(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
+                    "Atlas CQL getLatestTimestamps partition of " + partition.size(), () -> {
+                        PreparedStatement preparedStatement = getPreparedStatement(tableRef, loadOnlyTsQuery,
+                                session);
+                        preparedStatement.setConsistencyLevel(readConsistency);
+                        List<ResultSetFuture> resultSetFutures = Lists.newArrayListWithExpectedSize(
+                                partition.size());
+                        for (Cell c : partition) {
+                            BoundStatement boundStatement = preparedStatement.bind();
+                            boundStatement.setBytes(fieldNameProvider.row(), ByteBuffer.wrap(c.getRowName()));
+                            boundStatement.setBytes(
+                                    fieldNameProvider.column(),
+                                    ByteBuffer.wrap(c.getColumnName()));
+                            resultSetFutures.add(session.executeAsync(boundStatement));
                         }
-                        cqlKeyValueServices.logTracedQuery(
-                                loadOnlyTsQuery,
-                                resultSet,
-                                session,
-                                cqlStatementCache.normalQuery);
-                    }
-                    return res;
-                }
-            }));
+                        Map<Cell, Long> res = Maps.newHashMapWithExpectedSize(partition.size());
+                        for (ResultSetFuture resultSetFuture : resultSetFutures) {
+                            ResultSet resultSet = resultSetFuture.getUninterruptibly();
+                            for (Row row : resultSet.all()) {
+                                res.put(Cell.create(getRowName(row), getColName(row)), getTs(row));
+                            }
+                            cqlKeyValueServices.logTracedQuery(
+                                    loadOnlyTsQuery,
+                                    resultSet,
+                                    session,
+                                    cqlStatementCache.normalQuery);
+                        }
+                        return res;
+                    })));
         }
         Map<Cell, Long> res = Maps.newHashMapWithExpectedSize(timestampByCell.size());
         for (Future<Map<Cell, Long>> f : futures) {
