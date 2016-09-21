@@ -134,7 +134,7 @@ public class SchemaMutationLock {
             clientPool.runWithRetry((FunctionCheckedException<Cassandra.Client, Void, Exception>) client -> {
                 Column ourUpdate = lockColumnFromIdAndHeartbeat(perOperationNodeId, 0);
 
-                List<Column> expected = ImmutableList.of(lockColumnWithStrValue(
+                List<Column> expected = ImmutableList.of(lockColumnWithValue(
                         CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE));
 
                 CASResult casResult = writeDdlLockWithCas(client, expected, ourUpdate);
@@ -189,6 +189,7 @@ public class SchemaMutationLock {
             });
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw Throwables.throwUncheckedException(e);
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -221,10 +222,10 @@ public class SchemaMutationLock {
     private void schemaMutationUnlock(long perOperationNodeId) {
         try {
             clientPool.runWithRetry((FunctionCheckedException<Cassandra.Client, Void, TException>) client -> {
-                int heartbeatCount = heartbeatService.heartbeatCount.get();
+                int heartbeatCount = heartbeatService.getCurrentHeartbeatCount();
                 Column lockColumn = lockColumnFromIdAndHeartbeat(perOperationNodeId, heartbeatCount);
                 List<Column> ourExpectedLock = ImmutableList.of(lockColumn);
-                Column clearedLock = lockColumnWithStrValue(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE);
+                Column clearedLock = lockColumnWithValue(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE);
                 CASResult casResult = writeDdlLockWithCas(client, ourExpectedLock, clearedLock);
 
                 if (!casResult.isSuccess()) {
@@ -284,7 +285,7 @@ public class SchemaMutationLock {
                 + " was instead %s.", expectedLock, remoteLock));
     }
 
-    static Column lockColumnWithStrValue(String strValue) {
+    static Column lockColumnWithValue(String strValue) {
         return lockColumnWithValue(strValue.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -302,6 +303,6 @@ public class SchemaMutationLock {
     }
 
     static Column lockColumnFromIdAndHeartbeat(long id, int heartbeatCount) {
-        return lockColumnWithStrValue(lockValueFromIdAndHeartbeat(id, heartbeatCount));
+        return lockColumnWithValue(lockValueFromIdAndHeartbeat(id, heartbeatCount));
     }
 }

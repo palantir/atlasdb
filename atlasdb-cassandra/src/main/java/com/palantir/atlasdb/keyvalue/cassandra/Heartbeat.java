@@ -28,16 +28,18 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 
-
 class Heartbeat implements Runnable {
-    private final long lockId;
+    private final CassandraClientPool clientPool;
     private final AtomicInteger heartbeatCount;
     private final String lockTableName;
     private final ConsistencyLevel writeConsistency;
-    private CassandraClientPool clientPool;
+    private final long lockId;
 
-    Heartbeat(CassandraClientPool clientPool, AtomicInteger heartbeatCount, String lockTableName,
-            ConsistencyLevel writeConsistency, long lockId) {
+    Heartbeat(CassandraClientPool clientPool,
+              AtomicInteger heartbeatCount,
+              String lockTableName,
+              ConsistencyLevel writeConsistency,
+              long lockId) {
         this.clientPool = clientPool;
         this.heartbeatCount = heartbeatCount;
         this.lockTableName = lockTableName;

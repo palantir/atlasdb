@@ -24,18 +24,22 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.PTExecutors;
 
-
 class HeartbeatService {
     private final CassandraClientPool clientPool;
     private final int heartbeatTimePeriodMillis;
     private final String lockTableName;
     private final ConsistencyLevel writeConsistency;
+    private final AtomicInteger heartbeatCount;
     private ScheduledExecutorService heartbeatExecutorService;
 
-    AtomicInteger heartbeatCount;
+    static final String startBeatingError = "Can't start new heartbeat with an existing heartbeat."
+            + " Only one heartbeat per lock allowed.";
+    static final String stopBeatingError = "Can't stop non existent heartbeat.";
 
-    HeartbeatService(CassandraClientPool clientPool, int heartbeatTimePeriodMillis, String lockTableName,
-            ConsistencyLevel writeConsistency) {
+    HeartbeatService(CassandraClientPool clientPool,
+                     int heartbeatTimePeriodMillis,
+                     String lockTableName,
+                     ConsistencyLevel writeConsistency) {
         this.clientPool = clientPool;
         this.heartbeatTimePeriodMillis = heartbeatTimePeriodMillis;
         this.lockTableName = lockTableName;
@@ -44,8 +48,7 @@ class HeartbeatService {
     }
 
     void startBeatingForLock(long lockId) {
-        String err = "Can't start new heartbeat with an existing heartbeat. Only one heartbeat per lock allowed.";
-        Preconditions.checkState(heartbeatExecutorService == null, err);
+        Preconditions.checkState(heartbeatExecutorService == null, startBeatingError);
 
         heartbeatExecutorService = PTExecutors.newSingleThreadScheduledExecutor();
         this.heartbeatCount.set(0);
@@ -55,8 +58,7 @@ class HeartbeatService {
     }
 
     void stopBeating() {
-        String err = "Can't stop non existent heartbeat.";
-        Preconditions.checkState(heartbeatExecutorService != null, err);
+        Preconditions.checkState(heartbeatExecutorService != null, stopBeatingError);
 
         heartbeatExecutorService.shutdown();
         try {
@@ -73,5 +75,9 @@ class HeartbeatService {
         } finally {
             heartbeatExecutorService = null;
         }
+    }
+
+    int getCurrentHeartbeatCount() {
+        return heartbeatCount.get();
     }
 }
