@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Palantir Technologies
+ * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.common.concurrent;
+package com.palantir.atlasdb.util;
 
 import java.util.concurrent.Callable;
 
@@ -26,24 +26,21 @@ import java.util.concurrent.Callable;
  * Additionally, throwables emitted from the call are rewrapped to provide this custom annotation in the stack trace,
  * which should hopefully provide more context to what this callable was attempting to do.
  */
-public class AnnotatedCallable<T> implements Callable<T> {
-    final Callable<T> delegate;
-    final String name;
-    final Type type;
+public final class AnnotatedCallable<T> implements Callable<T> {
 
-    public enum Type {
-        PREPEND, REPLACE, APPEND;
+    private final Callable<T> delegate;
+    private final String name;
+    private final AnnotationType type;
+
+    public static <T> Callable<T> replaceThreadNameWith(String threadName, Callable<T> delegate) {
+        return wrapWithThreadName(AnnotationType.REPLACE, threadName, delegate);
     }
 
-    public static <T> Callable<T> wrapWithThreadName(String threadName, Callable<T> delegate) {
-        return wrapWithThreadName(threadName, Type.REPLACE, delegate);
+    public static <T> Callable<T> wrapWithThreadName(AnnotationType type, String threadName, Callable<T> delegate) {
+        return new AnnotatedCallable<>(delegate, threadName, type);
     }
 
-    public static <T> Callable<T> wrapWithThreadName(String threadName, Type type, Callable<T> delegate) {
-        return new AnnotatedCallable<T>(delegate, threadName, type);
-    }
-
-    private AnnotatedCallable(Callable<T> delegate, String name, Type type) {
+    private AnnotatedCallable(Callable<T> delegate, String name, AnnotationType type) {
         this.delegate = delegate;
         this.name = name;
         this.type = type;
@@ -52,26 +49,14 @@ public class AnnotatedCallable<T> implements Callable<T> {
     @Override
     public T call() throws Exception {
         final String oldName = Thread.currentThread().getName();
-        Thread.currentThread().setName(getNewName(oldName));
+        Thread.currentThread().setName(type.join(name, oldName));
         try {
             return delegate.call();
-        } catch (Throwable t) {
-            throw new Annotation(String.format("While processing thread (%s), received %s with message (%s)", name, t.getCause(), t.getMessage()), t);
+        } catch (Throwable throwable) {
+            throwable.addSuppressed(SuppressedException.from(throwable));
+            throw throwable;
         } finally {
             Thread.currentThread().setName(oldName);
-        }
-    }
-
-    private String getNewName(String oldName) {
-        switch (type) {
-        case PREPEND:
-            return name + ' ' + oldName;
-        case REPLACE:
-            return name;
-        case APPEND:
-            return oldName + ' ' + name;
-        default:
-            throw new IllegalArgumentException("type not found: " + type);
         }
     }
 
