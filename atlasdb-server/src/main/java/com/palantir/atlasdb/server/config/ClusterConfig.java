@@ -24,9 +24,11 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.remoting.ssl.SslConfiguration;
 
 @JsonSerialize(as = ImmutableClusterConfig.class)
 @JsonDeserialize(as = ImmutableClusterConfig.class)
@@ -43,6 +45,8 @@ public abstract class ClusterConfig {
 
     @Size(min = 1)
     public abstract Set<String> servers();
+
+    public abstract Optional<SslConfiguration> security();
 
     @Value.Check
     protected void check() {
@@ -68,6 +72,7 @@ public abstract class ClusterConfig {
                 .quorumSize(quorumSize())
                 .localServer(localServer())
                 .leaders(servers())
+                .sslConfiguration(security())
                 .learnerLogDir(consensusAlgorithm.learnerLogDir())
                 .acceptorLogDir(consensusAlgorithm.acceptorLogDir())
                 .pingRateMs(leaderElection().pingRateMs())
