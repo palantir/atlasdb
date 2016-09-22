@@ -19,15 +19,20 @@ import java.io.File;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
 
-@JsonSerialize(as = ImmutablePaxosConfig.class)
-@JsonDeserialize(as = ImmutablePaxosConfig.class)
+@JsonSerialize(as = ImmutablePaxosConsensusAlgorithmConfig.class)
+@JsonDeserialize(as = ImmutablePaxosConsensusAlgorithmConfig.class)
+@JsonTypeName(PaxosConsensusAlgorithmConfig.TYPE)
 @Value.Immutable
-public abstract class PaxosConfig {
-    public static final PaxosConfig DEFAULT = ImmutablePaxosConfig.builder().build();
+public abstract class PaxosConsensusAlgorithmConfig implements ConsensusAlgorithmConfig {
+    public static final String TYPE = "paxos";
+    public static final PaxosConsensusAlgorithmConfig DEFAULT = ImmutablePaxosConsensusAlgorithmConfig.builder()
+            .build();
 
     @Value.Default
     public File learnerLogDir() {

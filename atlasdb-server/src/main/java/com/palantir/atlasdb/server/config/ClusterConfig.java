@@ -58,12 +58,18 @@ public abstract class ClusterConfig {
     @JsonIgnore
     @Value.Derived
     public LeaderConfig toLeaderConfig() {
+        Preconditions.checkState(
+                leaderElection().consensusAlgorithm() instanceof PaxosConsensusAlgorithmConfig,
+                "Only the paxos consensus algorthm is supported");
+        PaxosConsensusAlgorithmConfig consensusAlgorithm =
+                (PaxosConsensusAlgorithmConfig) leaderElection().consensusAlgorithm();
+
         return ImmutableLeaderConfig.builder()
                 .quorumSize(quorumSize())
                 .localServer(localServer())
                 .leaders(servers())
-                .learnerLogDir(leaderElection().paxos().learnerLogDir())
-                .acceptorLogDir(leaderElection().paxos().acceptorLogDir())
+                .learnerLogDir(consensusAlgorithm.learnerLogDir())
+                .acceptorLogDir(consensusAlgorithm.acceptorLogDir())
                 .pingRateMs(leaderElection().pingRateMs())
                 .randomWaitBeforeProposingLeadershipMs(leaderElection().randomWaitBeforeProposingLeadershipMs())
                 .leaderPingResponseWaitMs(leaderElection().leaderPingResponseWaitMs())
