@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Compression;
@@ -42,6 +43,7 @@ public class HeartbeatServiceIntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(SchemaMutationLockIntegrationTest.class);
 
     private HeartbeatService heartbeatService;
+    private TracingQueryRunner queryRunner;
     private CassandraClientPool clientPool;
     private ConsistencyLevel writeConsistency;
     private UniqueSchemaMutationLockTable lockTable;
@@ -58,7 +60,7 @@ public class HeartbeatServiceIntegrationTest {
                 .withHeartbeatTimePeriodMillis(heartbeatTimePeriodMillis);
         CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(
                 quickHeartbeatConfig);
-        TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
+        queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
 
         writeConsistency= ConsistencyLevel.EACH_QUORUM;
         clientPool = new CassandraClientPool(simpleManager.getConfig());
@@ -90,6 +92,7 @@ public class HeartbeatServiceIntegrationTest {
 
     @After
     public void cleanUp() throws Exception {
+        heartbeatService.stopBeating();
         clientPool.runWithRetry(this::truncateLocks);
     }
 
@@ -117,5 +120,25 @@ public class HeartbeatServiceIntegrationTest {
 
         // try starting another heartbeat without stopping an existing heartbeat
         heartbeatService.startBeatingForLock(lockId - 10);
+    }
+
+    @Test
+    public void testSingleHeartbeat() {
+        AtomicInteger heartbeatCount = new AtomicInteger(0);
+        Heartbeat heartbeat = new Heartbeat(clientPool, queryRunner, heartbeatCount,
+                lockTable.getOnlyTable(), writeConsistency, lockId);
+        heartbeat.run();
+        Assert.assertEquals(1, heartbeatCount.get());
+    }
+
+    @Test
+    public void testHeartbeatWithInvalidLock() {
+        long invalidLockId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
+        AtomicInteger heartbeatCount = new AtomicInteger(0);
+        Heartbeat heartbeat = new Heartbeat(clientPool, queryRunner, heartbeatCount,
+                lockTable.getOnlyTable(), writeConsistency, invalidLockId);
+        heartbeat.run();
+        // value should not be updated because an IllegalStateException will be thrown and caught
+        Assert.assertEquals(0, heartbeatCount.get());
     }
 }
