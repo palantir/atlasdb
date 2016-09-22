@@ -24,6 +24,6 @@ public class DbkvsKeyValueServiceSerializableTransactionTest extends
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return ConnectionManagerAwareDbKvs.create(DbkvsTestSuite.getKvsConfig());
+        return ConnectionManagerAwareDbKvs.create(DbKvsPostgresTestSuite.getKvsConfig());
     }
 }

@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 public class DbkvsKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
     @Override
     protected KeyValueService getKeyValueService() {
-        KeyValueService kvs = ConnectionManagerAwareDbKvs.create(DbkvsTestSuite.getKvsConfig());
+        KeyValueService kvs = ConnectionManagerAwareDbKvs.create(DbKvsPostgresTestSuite.getKvsConfig());
         for (TableReference table : kvs.getAllTableNames()) {
             if (!table.getQualifiedName().equals("_metadata")) {
                 kvs.dropTable(table);

@@ -40,16 +40,16 @@ import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
         DbkvsKeyValueServiceSerializableTransactionTest.class,
         DbkvsKeyValueServiceSweeperTest.class
         })
-public final class DbkvsTestSuite {
+public final class DbKvsPostgresTestSuite {
     private static final int POSTGRES_PORT_NUMBER = 5432;
 
-    private DbkvsTestSuite() {
+    private DbKvsPostgresTestSuite() {
         // Test suite
     }
 
     @ClassRule
     public static final DockerComposeRule docker = DockerComposeRule.builder()
-            .file("src/test/resources/docker-compose.yml")
+            .file("src/test/resources/docker-compose.postgres.yml")
             .waitingForService("postgres", Container::areAllPortsOpen)
             .saveLogsTo("container-logs")
             .skipShutdown(true)
