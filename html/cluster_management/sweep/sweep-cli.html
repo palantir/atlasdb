@@ -1,0 +1,275 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>AtlasDB Sweep Cli &mdash; AtlasDB develop documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
+  
+    <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+  
+
+  
+    <link rel="top" title="AtlasDB develop documentation" href="../../index.html"/>
+        <link rel="up" title="AtlasDB Sweep Job" href="../sweep.html"/>
+        <link rel="next" title="Services" href="../../services/index.html"/>
+        <link rel="prev" title="Background Sweep" href="background-sweep.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> AtlasDB
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                develop
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../overview/index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../schemas/index.html">Schemas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../transactions/index.html">Transactions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../configuration/index.html">Configuration</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Cluster Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../backup-restore.html">Backup and Restore</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../clis.html">Command Line Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../console.html">Console</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dropwizard-bundle.html">Dropwizard bundle</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../sweep.html">AtlasDB Sweep Job</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="background-sweep.html">Background Sweep</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">AtlasDB Sweep Cli</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../services/index.html">Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../miscellaneous/index.html">Miscellaneous</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release_notes/index.html">Releases</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">AtlasDB</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+ 
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../index.html">Cluster Management</a> &raquo;</li>
+      
+          <li><a href="../sweep.html">AtlasDB Sweep Job</a> &raquo;</li>
+      
+    <li>AtlasDB Sweep Cli</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/cluster_management/sweep/sweep-cli.rst" class="fa fa-github"> Edit on GitHub</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="atlasdb-sweep-cli">
+<span id="atlas-sweep-cli"></span><h1>AtlasDB Sweep Cli<a class="headerlink" href="#atlasdb-sweep-cli" title="Permalink to this headline">¶</a></h1>
+<p>If you ever need to force a particular table or namespace to be swept immediately, you can run the CLI <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">sweep</span></code>, which has the following arguments:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="8%" />
+<col width="15%" />
+<col width="77%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Short option</th>
+<th class="head">Long option</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">-a</span></code></td>
+<td><code class="docutils literal"><span class="pre">--all</span></code></td>
+<td>Sweep all tables, in all AtlasDB namespaces.</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">-n</span></code></td>
+<td><code class="docutils literal"><span class="pre">--namespace</span> <span class="pre">&lt;namespace</span> <span class="pre">name&gt;</span></code></td>
+<td>A namespace name to sweep, for instance <code class="docutils literal"><span class="pre">-n</span> <span class="pre">product</span></code></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">-t</span></code></td>
+<td><code class="docutils literal"><span class="pre">--table</span> <span class="pre">&lt;table</span> <span class="pre">name&gt;</span></code></td>
+<td>A fully qualified table name to sweep. For example, to sweep the accounts table in the bank namespace, you would use <code class="docutils literal"><span class="pre">-t</span> <span class="pre">bank.accounts</span></code>.</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">-r</span></code></td>
+<td><code class="docutils literal"><span class="pre">--row</span> <span class="pre">&lt;row</span> <span class="pre">name&gt;</span></code></td>
+<td>A row name encoded in hexadecimal to start sweeping from. The CLI prints out row names as it runs, so you can use this to easily resume a manual sweep job without unnecessarily processing rows that have already been recently swept. If this option is omitted, sweeping will process all rows of the table.</td>
+</tr>
+</tbody>
+</table>
+<p>You must specify exactly one of <code class="docutils literal"><span class="pre">-a</span></code>, <code class="docutils literal"><span class="pre">-n</span></code>, and <code class="docutils literal"><span class="pre">-t</span></code>. If you are sweeping a specific table with <cite>-t</cite>, you may additionally specify the start row with <code class="docutils literal"><span class="pre">-r</span></code>. This is useful for resuming failed jobs.</p>
+<div class="section" id="configuration-options">
+<h2>Configuration options<a class="headerlink" href="#configuration-options" title="Permalink to this headline">¶</a></h2>
+<p>The following options are set as part of your <a class="reference internal" href="../../configuration/index.html#atlas-config"><span class="std std-ref">AtlasDB configuration</span></a>.</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">sweepBatchSize</span></code>
+If you have extremely large rows, you may want to set a lower batch size. If you have extremely small rows, you may want to up the batch size. (Default: 1000)</li>
+<li><code class="docutils literal"><span class="pre">sweepPauseMillis</span></code>
+If you want to use less shared DB resources during user-facing hours, you can specify a wait time in between batches. (Default: 0 ms)</li>
+<li><code class="docutils literal"><span class="pre">keyValueService/timestampsGetterBatchSize</span></code>
+(EXPERIMENTAL - Cassandra KVS only): For really, really large rows, you can set a batch size for the number of columns to fetch in a single database query. See <a class="reference internal" href="../../configuration/cassandra_KVS_configuration.html#cassandra-configuration"><span class="std std-ref">Cassandra KVS config</span></a>. (absent by default, meaning fetch all columns per row)</li>
+</ul>
+<p>Be aware that manual sweeping will ignore all conditions that factor into determining whether background sweepers should run, and that the background sweeper will also be affected by system property changes.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../../services/index.html" class="btn btn-neutral float-right" title="Services" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="background-sweep.html" class="btn btn-neutral" title="Background Sweep" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Palantir Technologies.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'develop',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

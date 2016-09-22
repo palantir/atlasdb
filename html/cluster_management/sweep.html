@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Dropwizard bundle &mdash; AtlasDB develop documentation</title>
+  <title>AtlasDB Sweep Job &mdash; AtlasDB develop documentation</title>
   
 
   
@@ -36,8 +36,8 @@
   
     <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
         <link rel="up" title="Cluster Management" href="index.html"/>
-        <link rel="next" title="AtlasDB Sweep Job" href="sweep.html"/>
-        <link rel="prev" title="Console" href="console.html"/> 
+        <link rel="next" title="Background Sweep" href="sweep/background-sweep.html"/>
+        <link rel="prev" title="Dropwizard bundle" href="dropwizard-bundle.html"/> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
@@ -95,8 +95,12 @@
 <li class="toctree-l2"><a class="reference internal" href="backup-restore.html">Backup and Restore</a></li>
 <li class="toctree-l2"><a class="reference internal" href="clis.html">Command Line Utilities</a></li>
 <li class="toctree-l2"><a class="reference internal" href="console.html">Console</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Dropwizard bundle</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sweep.html">AtlasDB Sweep Job</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dropwizard-bundle.html">Dropwizard bundle</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">AtlasDB Sweep Job</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sweep/background-sweep.html">Background Sweep</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sweep/sweep-cli.html">AtlasDB Sweep Cli</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../services/index.html">Services</a></li>
@@ -134,11 +138,11 @@
       
           <li><a href="index.html">Cluster Management</a> &raquo;</li>
       
-    <li>Dropwizard bundle</li>
+    <li>AtlasDB Sweep Job</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/cluster_management/dropwizard-bundle.rst" class="fa fa-github"> Edit on GitHub</a>
+            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/cluster_management/sweep.rst" class="fa fa-github"> Edit on GitHub</a>
           
         
       </li>
@@ -148,30 +152,59 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="dropwizard-bundle">
-<span id="id1"></span><h1>Dropwizard bundle<a class="headerlink" href="#dropwizard-bundle" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
-<p>The AtlasDB Dropwizard bundle can be added to Dropwizard applications. This will add startup commands to launch
-the AtlasDB <a class="reference internal" href="console.html#console"><span class="std std-ref">Console</span></a> and <a class="reference internal" href="clis.html#clis"><span class="std std-ref">CLIs</span></a> such as <code class="docutils literal"><span class="pre">sweep</span></code> and <code class="docutils literal"><span class="pre">timestamp</span></code>.</p>
+  <div class="section" id="atlasdb-sweep-job">
+<span id="sweep"></span><h1>AtlasDB Sweep Job<a class="headerlink" href="#atlasdb-sweep-job" title="Permalink to this headline">¶</a></h1>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
-<p class="last">These commands will only work if the server is started with a leader block in the configuration.</p>
+<p class="last">AtlasDB sweep is currently an experimental feature, and is disabled by default. If you are interested in testing it, please contact the AtlasDB team.</p>
 </div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Running the Sweep Job while taking a Backup can cause <strong>SEVERE DATA CORRUPTION</strong> to your Backup.</p>
 </div>
-<div class="section" id="getting-started">
-<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
-<p>To configure a Dropwizard application to use the AtlasDB Dropwizard bundle:</p>
-<ul class="simple">
-<li>Add <code class="docutils literal"><span class="pre">bootstrap.addBundle(new</span> <span class="pre">AtlasDbBundle&lt;&gt;());</span></code> to the <a class="reference external" href="http://www.dropwizard.io/1.0.0/docs/getting-started.html#creating-an-application-class">io.dropwizard.Application#initialize</a> method.</li>
-<li>Implement interface <code class="docutils literal"><span class="pre">AtlasDbConfigurationProvider</span></code> in the <a class="reference external" href="http://www.dropwizard.io/1.0.0/docs/getting-started.html#creating-a-configuration-class">Configuration class</a>
-of the Dropwizard application.</li>
+<p>Under normal usage, the data written to the key value service backing AtlasDB is never updated or deleted.
+When a row in AtlasDB is &#8220;updated&#8221;, a new version of the row with a higher timestamp is written.
+The old row is left untouched. When that row is later read, only the version with the higher timestamp is returned.
+Deletions in AtlasDB are similar; in practice they are the same as updates with an empty value.</p>
+<p>To prevent an AtlasDB database from growing in size indefinitely, old versions of rows can be deleted through a process called sweeping.
+At a high level, this works by periodically scanning the database for rows with multiple versions and deleting the older versions from the database.</p>
+<div class="section" id="reasons-to-sweep">
+<h2>Reasons to Sweep<a class="headerlink" href="#reasons-to-sweep" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><dl class="first docutils">
+<dt>Freeing up Disk Space</dt>
+<dd><ul class="first last simple">
+<li>Putting large amounts of data into cells that are updated creates tables that hold onto data that isn&#8217;t used. These tables are good candidates to sweep if you want to reclaim disk space.</li>
 </ul>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>Improving Performance</dt>
+<dd><ul class="first last simple">
+<li>Making many edits to the same row will leave behind many tombstoned entries, so it&#8217;s advantageous to sweep these tables to increase performance.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ol>
 </div>
-<div class="section" id="running-commands">
-<h2>Running commands<a class="headerlink" href="#running-commands" title="Permalink to this headline">¶</a></h2>
-<p>You can run AtlasDB tasks present in AtlasDB <a class="reference internal" href="console.html#console"><span class="std std-ref">Console</span></a> and <a class="reference internal" href="clis.html#clis"><span class="std std-ref">CLIs</span></a> using:</p>
-<p><code class="docutils literal"><span class="pre">java</span> <span class="pre">-jar</span> <span class="pre">application.jar</span> <span class="pre">atlasdb</span> <span class="pre">[-h]</span> <span class="pre">{console,sweep,migrate,timestamp}</span> <span class="pre">...</span></code></p>
+<div class="section" id="ways-to-sweep">
+<h2>Ways to Sweep<a class="headerlink" href="#ways-to-sweep" title="Permalink to this headline">¶</a></h2>
+<p>Under normal use, the sweep job is intended to run at a constant interval as a background process that does not consume significant system resources.
+Older AtlasDB instances with high data scale and months/years of user activity will likely have a large number of accumulated cells that are eligible for sweeping (i.e. a lot of unused data in AtlasDB that has never been swept).
+In this case, consider manually sweeping specific tables to reduce the number of unused cells that have accumulated over time.</p>
+<div class="section" id="background-sweep">
+<h3>Background Sweep<a class="headerlink" href="#background-sweep" title="Permalink to this headline">¶</a></h3>
+<p>For more information on how to set up a regular sweep job on your system, check out the <a class="reference internal" href="sweep/background-sweep.html#background-sweep"><span class="std std-ref">Background Sweep</span></a> documentation.</p>
+</div>
+<div class="section" id="targeted-sweep">
+<h3>Targeted Sweep<a class="headerlink" href="#targeted-sweep" title="Permalink to this headline">¶</a></h3>
+<p>If there are specific tables that have built up over time to a large size, you might consider running the targeted sweep job.
+For more information about how to do this, check out our documentation on the <a class="reference internal" href="sweep/sweep-cli.html#atlas-sweep-cli"><span class="std std-ref">AtlasDB Sweep Cli</span></a>.</p>
+<div class="toctree-wrapper compound">
+</div>
+</div>
 </div>
 </div>
 
@@ -182,10 +215,10 @@ of the Dropwizard application.</li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="sweep.html" class="btn btn-neutral float-right" title="AtlasDB Sweep Job" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="sweep/background-sweep.html" class="btn btn-neutral float-right" title="Background Sweep" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="console.html" class="btn btn-neutral" title="Console" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="dropwizard-bundle.html" class="btn btn-neutral" title="Dropwizard bundle" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
