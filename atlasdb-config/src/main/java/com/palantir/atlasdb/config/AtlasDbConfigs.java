@@ -57,7 +57,7 @@ public final class AtlasDbConfigs {
     }
 
     public static AtlasDbConfig load(InputStream configStream) throws IOException {
-        return loadFromStream(configStream, ATLASDB_CONFIG_ROOT);
+        return loadFromStream(configStream, ATLASDB_CONFIG_OBJECT_PATH);
     }
 
     public static AtlasDbConfig load(File configFile, @Nullable String configRoot) throws IOException {
