@@ -23,7 +23,6 @@ import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Properties;
 
 import org.junit.Test;
 
@@ -33,22 +32,13 @@ import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 
-public class TestConfigLoading {
+public class TestLoadingOracleConfig {
+
+    private static final String ORACLE_PASSWORD = "palpal";
+
     @Test
     public void testLoadingConfig() throws IOException {
-        getPostgresTestConfig();
-    }
-
-    @Test
-    public void testHikariSocketTimeout() throws IOException {
-        ConnectionConfig connectionConfig = getConnectionConfig();
-        verifyHikariProperty(connectionConfig, "socketTimeout", connectionConfig.getSocketTimeoutSeconds());
-    }
-
-    @Test
-    public void testHikariConnectTimeout() throws IOException {
-        ConnectionConfig connectionConfig = getConnectionConfig();
-        verifyHikariProperty(connectionConfig, "connectTimeout", connectionConfig.getConnectionTimeoutSeconds());
+        getOracleTestConfig();
     }
 
     @Test
@@ -63,41 +53,27 @@ public class TestConfigLoading {
     }
 
     @Test
-    public void testHikariLoginTimeout() throws IOException {
-        ConnectionConfig connectionConfig = getConnectionConfig();
-        verifyHikariProperty(connectionConfig, "loginTimeout", connectionConfig.getConnectionTimeoutSeconds());
-    }
-
-    @Test
     public void testPasswordIsMasked() throws IOException {
         ConnectionConfig connectionConfig = getConnectionConfig();
-        assertThat(connectionConfig.getDbPassword().unmasked(), equalTo("testpassword"));
-        assertThat(connectionConfig.getHikariProperties().getProperty("password"), equalTo("testpassword"));
-        assertThat(connectionConfig.toString(), not(containsString("testpassword")));
+        assertThat(connectionConfig.getDbPassword().unmasked(), equalTo(ORACLE_PASSWORD));
+        assertThat(connectionConfig.getHikariProperties().getProperty("password"), equalTo(ORACLE_PASSWORD));
+        assertThat(connectionConfig.toString(), not(containsString(ORACLE_PASSWORD)));
         assertThat(connectionConfig.toString(), containsString("REDACTED"));
     }
 
     private ConnectionConfig getConnectionConfig() throws IOException {
-        AtlasDbConfig config = getPostgresTestConfig();
+        AtlasDbConfig config = getOracleTestConfig();
         KeyValueServiceConfig keyValueServiceConfig = config.keyValueService();
         DbKeyValueServiceConfig dbkvsConfig = (DbKeyValueServiceConfig) keyValueServiceConfig;
         return dbkvsConfig.connection();
     }
 
-    private AtlasDbConfig getPostgresTestConfig() throws IOException {
+    private AtlasDbConfig getOracleTestConfig() throws IOException {
         // Palantir internal runs this test from the jar rather than from source. This means that the resource
         // cannot be loaded as a file. Instead it must be loaded as a stream.
-        try (InputStream stream = getClass().getClassLoader().getResourceAsStream("postgresTestConfig.yml")) {
+        try (InputStream stream = getClass().getClassLoader().getResourceAsStream("oracleTestConfig.yml")) {
             return AtlasDbConfigs.load(stream);
         }
     }
 
-    private void verifyHikariProperty(ConnectionConfig connectionConfig, String property, int expectedValueSeconds) {
-        Properties hikariProps = connectionConfig.getHikariConfig().getDataSourceProperties();
-
-        assertThat(
-                String.format("Hikari property %s should be populated from connectionConfig", property),
-                Integer.valueOf(hikariProps.getProperty(property)),
-                is(expectedValueSeconds));
-    }
 }

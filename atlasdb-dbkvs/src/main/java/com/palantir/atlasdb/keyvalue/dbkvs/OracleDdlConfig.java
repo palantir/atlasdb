@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import javax.validation.Valid;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
@@ -45,7 +47,16 @@ public abstract class OracleDdlConfig extends DdlConfig {
         return "ao_";
     }
 
-    public abstract Supplier<Long> overflowIds();
+    //TODO: Load correctly
+    @Value.Default
+    public Supplier<Long> overflowIds() {
+        return new Supplier<Long>() {
+            @Override
+            public Long get() {
+                return 10L;
+            }
+        };
+    };
 
     public abstract OverflowMigrationState overflowMigrationState();
 
