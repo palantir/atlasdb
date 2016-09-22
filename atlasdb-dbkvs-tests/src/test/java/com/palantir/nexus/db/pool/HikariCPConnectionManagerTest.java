@@ -1,0 +1,150 @@
+/**
+ * Copyright 2016 Palantir Technologies
+ * <p>
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://opensource.org/licenses/BSD-3-Clause
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+package com.palantir.nexus.db.pool;
+
+import java.net.InetSocketAddress;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLTransientConnectionException;
+
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+
+import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.connection.Container;
+import com.palantir.docker.compose.connection.DockerPort;
+import com.palantir.nexus.db.pool.config.ConnectionConfig;
+import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
+import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
+
+public class HikariCPConnectionManagerTest {
+
+    private static final int POSTGRES_PORT_NUMBER = 5432;
+
+    @ClassRule
+    public static final DockerComposeRule docker = DockerComposeRule.builder()
+            .file("src/test/resources/docker-compose.yml")
+            .waitingForService("postgres", Container::areAllPortsOpen)
+            .saveLogsTo("container-logs")
+            .skipShutdown(true)
+            .build();
+
+    private ConnectionManager manager;
+
+    @Before
+    public void initConnectionManager() {
+        manager = new HikariCPConnectionManager(createConnectionConfig(3));
+    }
+
+    @After
+    public void closeConnectionManager() throws SQLException {
+        manager.close();
+    }
+
+    @Rule
+    public final ExpectedException thrown = ExpectedException.none();
+
+    @Test
+    public void testCanGetConnection() throws SQLException {
+        try (Connection conn = manager.getConnection()) {
+            checkConnection(conn);
+        }
+    }
+
+    @Test
+    public void testCantGetConnectionIfClosed() throws SQLException {
+        manager.close();
+        thrown.expect(SQLException.class);
+        thrown.expectMessage("Hikari connection pool already closed!");
+        try (Connection conn = manager.getConnection()) {
+            Assert.fail();
+        }
+    }
+
+    @Test
+    public void testCantGetConnectionIfPoolExhausted() throws SQLException {
+        try (Connection conn1 = manager.getConnection();
+             Connection conn2 = manager.getConnection();
+             Connection conn3 = manager.getConnection()) {
+            thrown.expect(SQLTransientConnectionException.class);
+            thrown.expectMessage("Connection is not available, request timed out after");
+            try (Connection conn4 = manager.getConnection()) {
+                Assert.fail();
+            }
+        }
+    }
+
+    @Test
+    public void testConnectionsAreReturnedToPoolWhenClosed() throws SQLException {
+        try (Connection conn1 = manager.getConnection();
+             Connection conn2 = manager.getConnection()) {
+            try (Connection conn3 = manager.getConnection()) {
+                checkConnection(conn3);
+                // Make sure we exhausted the pool
+                boolean caught = false;
+                try (Connection conn4 = manager.getConnection()) {
+                    Assert.fail();
+                } catch (SQLTransientConnectionException e) {
+                    caught = true;
+                }
+                Assert.assertTrue(caught);
+            }
+            // Try getting a connection again after we returned the last one: should succeed
+            try (Connection conn3 = manager.getConnection()) {
+                checkConnection(conn3);
+            }
+        }
+    }
+
+    @Test
+    public void testCloseIdempotent() throws SQLException {
+        manager.init();
+        manager.close();
+        manager.close(); // shouldn't throw
+    }
+
+    private static void checkConnection(Connection conn) throws SQLException {
+        ResultSet result = conn.createStatement().executeQuery("SELECT 123");
+        Assert.assertTrue(result.next());
+        Assert.assertEquals(123, result.getInt(1));
+        Assert.assertFalse(result.next());
+    }
+
+    private static ConnectionConfig createConnectionConfig(int maxConnections) {
+        DockerPort port = docker.containers()
+                .container("postgres")
+                .port(POSTGRES_PORT_NUMBER);
+        InetSocketAddress postgresAddress = new InetSocketAddress(port.getIp(), port.getExternalPort());
+        return ImmutablePostgresConnectionConfig.builder()
+                .dbName("atlas")
+                .dbLogin("palantir")
+                .dbPassword(ImmutableMaskedValue.of("palantir"))
+                .host(postgresAddress.getHostName())
+                .port(postgresAddress.getPort())
+                .maxConnections(maxConnections)
+                .checkoutTimeout(2000)
+                .build();
+    }
+
+}
