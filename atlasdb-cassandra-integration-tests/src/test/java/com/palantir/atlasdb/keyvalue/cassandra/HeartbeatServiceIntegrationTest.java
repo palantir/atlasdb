@@ -40,13 +40,12 @@ import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 
 public class HeartbeatServiceIntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(SchemaMutationLockIntegrationTest.class);
+
     private HeartbeatService heartbeatService;
-    private ImmutableCassandraKeyValueServiceConfig quickHeartbeatConfig;
-    private CassandraKeyValueServiceConfigManager simpleManager;
-    private ConsistencyLevel writeConsistency;
     private CassandraClientPool clientPool;
+    private ConsistencyLevel writeConsistency;
     private UniqueSchemaMutationLockTable lockTable;
-    private TracingQueryRunner queryRunner;
+
     private final int heartbeatTimePeriodMillis = 100;
     private final long lockId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
 
@@ -55,12 +54,14 @@ public class HeartbeatServiceIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        quickHeartbeatConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
+        ImmutableCassandraKeyValueServiceConfig quickHeartbeatConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
                 .withHeartbeatTimePeriodMillis(heartbeatTimePeriodMillis);
-        simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(quickHeartbeatConfig);
-        writeConsistency = ConsistencyLevel.EACH_QUORUM;
+        CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(
+                quickHeartbeatConfig);
+        TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
+
+        writeConsistency= ConsistencyLevel.EACH_QUORUM;
         clientPool = new CassandraClientPool(simpleManager.getConfig());
-        queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
         lockTable = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, quickHeartbeatConfig),
                                                       LockLeader.I_AM_THE_LOCK_LEADER);
         heartbeatService = new HeartbeatService(clientPool,
@@ -102,7 +103,7 @@ public class HeartbeatServiceIntegrationTest {
     public void testNormalStartStopBeatingSequence() throws InterruptedException {
         Assert.assertEquals(0, heartbeatService.getCurrentHeartbeatCount());
         heartbeatService.startBeatingForLock(lockId);
-        Thread.sleep(2 * heartbeatTimePeriodMillis);
+        Thread.sleep(10 * heartbeatTimePeriodMillis);
         heartbeatService.stopBeating();
         Assert.assertNotEquals(0, heartbeatService.getCurrentHeartbeatCount());
     }
@@ -116,7 +117,5 @@ public class HeartbeatServiceIntegrationTest {
 
         // try starting another heartbeat without stopping an existing heartbeat
         heartbeatService.startBeatingForLock(lockId - 10);
-
-        heartbeatService.stopBeating();
     }
 }
