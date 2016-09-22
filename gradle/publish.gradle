@@ -49,7 +49,7 @@ bintray {
 }
 
 ext {
-  releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta)?(\+\d{3})?/
+    releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta)?(\+\d{3})?/
 }
 
 bintrayUpload.onlyIf {
@@ -72,6 +72,8 @@ artifactory {
             properties = ['git': project.version.toString()]
         }
     }
+    clientConfig.info.setBuildTimestamp(new Date().getTime().toString())
+    clientConfig.info.setBuildNumber(System.getenv('CIRCLE_BUILD_NUM'))
 }
 
 artifactoryPublish.onlyIf {
