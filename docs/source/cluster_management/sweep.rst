@@ -30,18 +30,20 @@ Reasons to Sweep
 2. Improving Performance
     - Making many edits to the same row will leave behind many tombstoned entries, so it's advantageous to sweep these tables to increase performance.
 
+Ways to Sweep
+-------------
+
 Under normal use, the sweep job is intended to run at a constant interval as a background process that does not consume significant system resources.
-The sweep job is intended to regularly delete unused data from AtlasDB, reducing disk usage, and improving performance for certain queries.
 Older AtlasDB instances with high data scale and months/years of user activity will likely have a large number of accumulated cells that are eligible for sweeping (i.e. a lot of unused data in AtlasDB that has never been swept).
-In this case, manually sweeping specific tables may be required to reduce the number of unused cells that have accumulated over time.
+In this case, consider manually sweeping specific tables to reduce the number of unused cells that have accumulated over time.
 
 Background Sweep
-----------------
+~~~~~~~~~~~~~~~~
 
 For more information on how to set up a regular sweep job on your system, check out the :ref:`background_sweep` documentation.
 
 Targeted Sweep
---------------
+~~~~~~~~~~~~~~
 
 If there are specific tables that have built up over time to a large size, you might consider running the targeted sweep job.
 For more information about how to do this, check out our documentation on the :ref:`atlas_sweep_cli`.
