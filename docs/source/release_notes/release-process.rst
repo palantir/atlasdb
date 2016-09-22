@@ -17,7 +17,7 @@ Cutting for Release
 ===================
 
 1. Checkout the commit to tag for release (probably ``git checkout origin/develop``). 
-   Patch releases should not be cut from develop, and should instead be cut from an appropriate release branch. 
+   Patch releases should not be cut from develop, and should instead be cut from an appropriate release branch (e.g. 0.10.x for patches to AtlasDB 0.10.0). 
 2. Tag the commit: ``git tag -a <version>``.
 3. Push the tag to Github:
    ``git push origin <version>:refs/tags/<version>``.
