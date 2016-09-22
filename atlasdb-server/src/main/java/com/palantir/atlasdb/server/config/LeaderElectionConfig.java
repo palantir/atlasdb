@@ -27,8 +27,8 @@ public abstract class LeaderElectionConfig {
     public static final LeaderElectionConfig DEFAULT = ImmutableLeaderElectionConfig.builder().build();
 
     @Value.Default
-    public PaxosConfig paxos() {
-        return PaxosConfig.DEFAULT;
+    public ConsensusAlgorithmConfig consensusAlgorithm() {
+        return PaxosConsensusAlgorithmConfig.DEFAULT;
     }
 
     @Value.Default
