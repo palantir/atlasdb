@@ -142,7 +142,7 @@ public class SchemaMutationLockIntegrationTest {
 
         expectedException.expect(ExecutionException.class);
         expectedException.expectCause(instanceOf(IllegalStateException.class));
-        expectedException.expectMessage("Can't stop non existent heartbeat.");
+        expectedException.expectMessage("Another process cleared our schema mutation lock from underneath us.");
 
         Future initialLockHolder = CassandraTestTools.async(executorService, () ->
                 schemaMutationLock.runWithLock(() -> {
