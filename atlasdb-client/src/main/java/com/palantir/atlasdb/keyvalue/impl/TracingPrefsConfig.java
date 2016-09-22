@@ -49,7 +49,7 @@ public class TracingPrefsConfig implements Runnable {
     @Override
     public void run() {
         try {
-            final File tracingPrefFile = new File(
+            final File tracingPrefsFile = new File(
                     System.getProperty("user.dir") + java.io.File.separatorChar + TRACING_PREF_FILENAME);
 
             if (tracingPrefFile.exists()) {
