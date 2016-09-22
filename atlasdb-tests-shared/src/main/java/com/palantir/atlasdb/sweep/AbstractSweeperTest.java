@@ -22,7 +22,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Supplier;
@@ -36,6 +35,7 @@ import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -107,7 +107,8 @@ public abstract class AbstractSweeperTest {
     }
 
     private static void tearDownTables(KeyValueService kvs) {
-        kvs.dropTable(TABLE_NAME);
+        kvs.getAllTableNames().stream()
+                .forEach(tableRef -> kvs.dropTable(tableRef));
         TransactionTables.deleteTables(kvs);
         Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
@@ -340,12 +341,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
-    /*
-     * These tests have been ignored pending internal ticket 94009
-     * They are fragile when run with test suites that do not properly
-     * clean up tables from the kvs.
-     */
     public void testBackgroundSweepWritesPriorityTable() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -363,26 +358,27 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
     public void testBackgroundSweepWritesPriorityTableWithDifferentTime() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
         putIntoDefaultColumn("foo", "baz", 100);
         putIntoDefaultColumn("foo", "buzz", 125);
         // the expectation is that the sweep tables will be chosen first
+        // TODO ^ why? Alphabetical?
         runBackgroundSweep(110, 2);
         runBackgroundSweep(120, 1);
         List<SweepPriorityRowResult> results = getPriorityTable();
         for (SweepPriorityRowResult result : results) {
             switch (result.getRowName().getFullTableName()) {
                 case "sweep.priority":
-                    Assert.assertEquals(new Long(110), result.getMinimumSweptTimestamp());
+                    Assert.assertEquals(
+                            "priority has wrong sweep timestamp", new Long(110), result.getMinimumSweptTimestamp());
                     break;
                 case "sweep.progress":
-                    Assert.assertEquals(new Long(110), result.getMinimumSweptTimestamp());
+                    Assert.assertEquals("progress has wrong sweep timestamp", new Long(110), result.getMinimumSweptTimestamp());
                     break;
-                case "table":
-                    Assert.assertEquals(new Long(120), result.getMinimumSweptTimestamp());
+                case "test_table":
+                    Assert.assertEquals("table has wrong sweep timestamp", new Long(120), result.getMinimumSweptTimestamp());
                     Assert.assertEquals(new Long(1), result.getCellsDeleted());
                     Assert.assertEquals(new Long(1), result.getCellsExamined());
                     break;
@@ -391,7 +387,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
     public void testBackgroundSweeperWritesToProgressTable() {
         setupBackgroundSweeper(2);
         createTable(SweepStrategy.CONSERVATIVE);
@@ -414,7 +409,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
     public void testBackgroundSweeperDoesNotOverwriteProgressMinimumTimestamp() {
         setupBackgroundSweeper(2);
         createTable(SweepStrategy.CONSERVATIVE);
@@ -457,7 +451,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
     public void testBackgroundSweeperWritesFromProgressToPriority() {
         setupBackgroundSweeper(3);
         createTable(SweepStrategy.CONSERVATIVE);
@@ -477,7 +470,7 @@ public abstract class AbstractSweeperTest {
                 case "sweep.progress":
                     Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
                     break;
-                case "table":
+                case "test_table":
                     Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
                     Assert.assertEquals(new Long(0), result.getCellsDeleted());
                     Assert.assertEquals(new Long(4), result.getCellsExamined());
@@ -489,7 +482,6 @@ public abstract class AbstractSweeperTest {
     }
 
     @Test
-    @Ignore
     public void testBackgroundSweepCanHandleNegativeImmutableTimestamp() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -520,6 +512,30 @@ public abstract class AbstractSweeperTest {
         SweepResults results = completeSweep(175);
 
         Assert.assertEquals(results, SweepResults.createEmptySweepResult(0L));
+    }
+
+    @Test
+    public void testSweepingAlreadySweptTable() {
+        createTable(SweepStrategy.CONSERVATIVE);
+        putIntoDefaultColumn("row", "val", 10);
+        putIntoDefaultColumn("row", "val", 20);
+        completeSweep(30);
+
+        SweepResults secondSweepResults = completeSweep(40);
+
+        Assert.assertEquals(secondSweepResults.getCellsDeleted(), 0);
+    }
+
+    @Test
+    public void testSweepOnMixedCaseTable() {
+        TableReference mixedCaseTable = TableReference.create(Namespace.create("someNamespace"), "someTable");
+        createTable(mixedCaseTable, SweepStrategy.CONSERVATIVE);
+        put(mixedCaseTable, "row", "col", "val", 10);
+        put(mixedCaseTable, "row", "col", "val", 20);
+
+        SweepResults sweepResults = completeSweep(mixedCaseTable, 30);
+
+        Assert.assertEquals(sweepResults.getCellsDeleted(), 1);
     }
 
     private void testSweepManyRows(SweepStrategy strategy) {
@@ -557,14 +573,22 @@ public abstract class AbstractSweeperTest {
     }
 
     protected SweepResults completeSweep(long ts) {
-        SweepResults results = sweep(ts, DEFAULT_BATCH_SIZE);
+        return completeSweep(TABLE_NAME, ts);
+    }
+
+    protected SweepResults completeSweep(TableReference tableReference, long ts) {
+        SweepResults results = sweep(tableReference, ts, DEFAULT_BATCH_SIZE);
         Assert.assertFalse(results.getNextStartRow().isPresent());
         return results;
     }
 
     private SweepResults sweep(long ts, int batchSize) {
+        return sweep(TABLE_NAME, ts, batchSize);
+    }
+
+    private SweepResults sweep(TableReference tableReference, long ts, int batchSize) {
         sweepTimestamp.set(ts);
-        return sweepRunner.run(TABLE_NAME, batchSize, new byte[0]);
+        return sweepRunner.run(tableReference, batchSize, new byte[0]);
     }
 
     private SweepResults partialSweep(long ts, int batchSize) {
@@ -589,8 +613,12 @@ public abstract class AbstractSweeperTest {
     }
 
     protected void put(final String row, final String column, final String val, final long ts) {
+        put(TABLE_NAME, row, column, val, ts);
+    }
+
+    protected void put(final TableReference tableRef, final String row, final String column, final String val, final long ts) {
         Cell cell = Cell.create(row.getBytes(), column.getBytes());
-        kvs.put(TABLE_NAME, ImmutableMap.of(cell, val.getBytes()), ts);
+        kvs.put(tableRef, ImmutableMap.of(cell, val.getBytes()), ts);
         txService.putUnlessExists(ts, ts);
     }
 
@@ -599,8 +627,13 @@ public abstract class AbstractSweeperTest {
         kvs.put(TABLE_NAME, ImmutableMap.of(cell, val.getBytes()), ts);
     }
 
-    protected void createTable(final SweepStrategy sweepStrategy) {
-        kvs.createTable(TABLE_NAME,
+
+    protected void createTable(SweepStrategy sweepStrategy) {
+        createTable(TABLE_NAME, sweepStrategy);
+    }
+
+    protected void createTable(TableReference tableReference, SweepStrategy sweepStrategy) {
+        kvs.createTable(tableReference,
                 new TableDefinition() {{
                     rowName();
                     rowComponent("row", ValueType.BLOB);

@@ -865,7 +865,7 @@ public class DbKvs extends AbstractKeyValueService {
                     dbReadTable.getRowsColumnRangeCounts(rowList, timestamp, columnRangeSelection)) {
                 while (iter.hasNext()) {
                     AgnosticLightResultRow row = iter.next();
-                    Sha256Hash rowHash = Sha256Hash.computeHash(row.getBlob("row_name"));
+                    Sha256Hash rowHash = Sha256Hash.computeHash(row.getBytes("row_name"));
                     counts.put(rowHash, row.getInteger("column_count"));
                 }
             }

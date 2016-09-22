@@ -17,14 +17,11 @@
 package com.palantir.atlasdb.performance.backend;
 
 import java.io.Closeable;
-import java.net.InetSocketAddress;
 
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 
-import com.jayway.awaitility.Awaitility;
-import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
@@ -35,26 +32,20 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 public class AtlasDbServicesConnector implements Closeable {
 
     /**
-     * Edit this instance variable name ("backend") with care as it must match {@code BenchmarkParam.BACKEND}.getKey().
+     * Edit this instance variable name ("uri") with care as it must match {@code BenchmarkParam.URI}.getKey().
      */
-    @Param
-    private KeyValueServiceType backend;
+    @Param("")
+    private String uri;
 
     private AtlasDbServices services;
-    private DockerizedDatabase store;
 
     public AtlasDbServices connect() {
-        if (services != null || store != null) {
+        if (services != null) {
             throw new IllegalStateException("connect() has already been called");
         }
-        String dockerComposeResourceFileName = backend.getDockerComposeResourceFileName();
-        store = DockerizedDatabase.create(backend.getKeyValueServicePort(), dockerComposeResourceFileName);
-        InetSocketAddress addr = store.start();
-        KeyValueServiceConfig config = KeyValueServiceType.getKeyValueServiceConfig(backend, addr);
-        Awaitility.await()
-                .atMost(Duration.ONE_MINUTE)
-                .pollInterval(Duration.ONE_SECOND)
-                .until(() -> KeyValueServiceType.canConnect(backend, addr));
+        DockerizedDatabaseUri dburi = DockerizedDatabaseUri.fromUriString(uri);
+        KeyValueServiceConfig config = KeyValueServiceType.getKeyValueServiceConfig(
+                dburi.getKeyValueServiceType(), dburi.getAddress());
         services = DaggerAtlasDbServices.builder()
                 .servicesConfigModule(
                         ServicesConfigModule.create(
@@ -68,9 +59,6 @@ public class AtlasDbServicesConnector implements Closeable {
     public void close() {
         if (services != null) {
             services.close();
-        }
-        if (store != null) {
-            store.close();
         }
     }
 

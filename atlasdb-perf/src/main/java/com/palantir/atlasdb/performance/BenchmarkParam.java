@@ -22,7 +22,7 @@ package com.palantir.atlasdb.performance;
  * The keys must match the name of their associated instance variable.
  */
 public enum BenchmarkParam {
-    BACKEND("backend");
+    URI("uri");
 
     private final String key;
 
