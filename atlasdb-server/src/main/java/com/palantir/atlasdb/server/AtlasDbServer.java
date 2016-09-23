@@ -20,11 +20,12 @@ import java.util.Map;
 import org.glassfish.jersey.server.model.Resource;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ImmutableLockAndTimestampServices;
 import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.factory.LockAndTimestampServices;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.server.config.AtlasDbServerConfiguration;
 import com.palantir.atlasdb.server.config.ClientConfig;
 import com.palantir.leader.LeaderElectionService;
@@ -35,6 +36,7 @@ import com.palantir.timestamp.TimestampService;
 
 import io.dropwizard.Application;
 import io.dropwizard.setup.Environment;
+import one.util.streamex.StreamEx;
 
 public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
     public static void main(String[] args) throws Exception {
@@ -43,41 +45,43 @@ public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
 
     @Override
     public void run(AtlasDbServerConfiguration config, Environment environment) {
-        Map<String, LockAndTimestampServices> keyspaceToServices = getKeyspaceToServices(config, environment);
+        Map<String, ServiceDiscoveringAtlasSupplier> clientToAtlasInstance = getClientToAtlasInstanceMapping(config);
+        clientToAtlasInstance.forEach((client, atlasFactory) -> {
+            LockAndTimestampServices services = constructServicesFromAtlasInstance(atlasFactory, config, environment);
 
-        keyspaceToServices.forEach((keyspace, service) -> {
-            Resource builtResource = Resources.getInstancedResourceAtPath(keyspace, new KeyspaceResource(service));
+            Resource builtResource = Resources.getInstancedResourceAtPath(client, new ClientResource(services));
             environment.jersey().getResourceConfig().registerResources(builtResource);
+
+            environment.healthChecks().register(client, new KeyValueServiceHealthCheck(atlasFactory));
         });
     }
 
-    private static Map<String, LockAndTimestampServices> getKeyspaceToServices(
+    private static Map<String, ServiceDiscoveringAtlasSupplier> getClientToAtlasInstanceMapping(
+            AtlasDbServerConfiguration config) {
+        Optional<LeaderConfig> leaderConfig = Optional.of(config.cluster().toLeaderConfig());
+        return StreamEx.of(config.clients())
+                .mapToEntry(ClientConfig::client, ClientConfig::keyValueService)
+                .mapValues(kvsConfig -> new ServiceDiscoveringAtlasSupplier(kvsConfig, leaderConfig))
+                .toMap();
+    }
+
+    private static LockAndTimestampServices constructServicesFromAtlasInstance(
+            ServiceDiscoveringAtlasSupplier atlasFactory,
             AtlasDbServerConfiguration config,
             Environment environment) {
         LeaderElectionService leader = Leaders.create(
                 environment.jersey()::register,
                 config.cluster().toLeaderConfig());
 
-        ImmutableMap.Builder<String, LockAndTimestampServices> keyspaceToServices = ImmutableMap.builder();
-        for (ClientConfig client : config.clients()) {
-            ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(
-                    client.keyValueService(),
-                    Optional.of(config.cluster().toLeaderConfig()));
-
-            LockAndTimestampServices services = ImmutableLockAndTimestampServices.builder()
-                    .lock(AwaitingLeadershipProxy.newProxyInstance(
-                            RemoteLockService.class,
-                            LockServiceImpl::create,
-                            leader))
-                    .time(AwaitingLeadershipProxy.newProxyInstance(
-                            TimestampService.class,
-                            atlasFactory::getTimestampService,
-                            leader))
-                    .build();
-
-            keyspaceToServices.put(client.client(), services);
-        }
-
-        return keyspaceToServices.build();
+        return ImmutableLockAndTimestampServices.builder()
+                .lock(AwaitingLeadershipProxy.newProxyInstance(
+                        RemoteLockService.class,
+                        LockServiceImpl::create,
+                        leader))
+                .time(AwaitingLeadershipProxy.newProxyInstance(
+                        TimestampService.class,
+                        atlasFactory::getTimestampService,
+                        leader))
+                .build();
     }
 }
