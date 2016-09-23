@@ -25,7 +25,6 @@ import com.palantir.atlasdb.factory.ImmutableLockAndTimestampServices;
 import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.factory.LockAndTimestampServices;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.server.config.AtlasDbServerConfiguration;
 import com.palantir.atlasdb.server.config.ClientConfig;
 import com.palantir.leader.LeaderElectionService;
