@@ -13,6 +13,7 @@ dependencies {
     testCompile project(':atlasdb-ete-test-utils')
 
     compile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.dropwizard
+    compile group: 'one.util', name: 'streamex', version: '0.6.2'
 
     processor group: 'org.immutables', name: 'value', version: libVersions.immutables
 

@@ -21,10 +21,10 @@ import com.palantir.atlasdb.factory.LockAndTimestampServices;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 
-public class KeyspaceResource {
+public class ClientResource {
     private final LockAndTimestampServices services;
 
-    public KeyspaceResource(LockAndTimestampServices services) {
+    public ClientResource(LockAndTimestampServices services) {
         this.services = services;
     }
 
