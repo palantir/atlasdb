@@ -22,7 +22,7 @@ publishing {
             artifact(testJar) {
                 classifier 'tests'
             }
-            version project.version.replaceAll(/-\d+.*/, '-SNAPSHOT')
+            version project.version.replaceAll(/-\d+.*/, (circleBuildNum ? '.b' + circleBuildNum : '') + '-SNAPSHOT')
             pom.withXml {
                 def scm = asNode().appendNode('scm')
                 scm.appendNode('url', 'https://github.com/palantir/atlasdb')
@@ -50,6 +50,7 @@ bintray {
 
 ext {
     releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta)?(\+\d{3})?/
+    circleBuildNum = System.getenv('CIRCLE_BUILD_NUM')
 }
 
 bintrayUpload.onlyIf {
@@ -72,8 +73,6 @@ artifactory {
             properties = ['git': project.version.toString()]
         }
     }
-    clientConfig.info.setBuildTimestamp(new Date().getTime().toString())
-    clientConfig.info.setBuildNumber(System.getenv('CIRCLE_BUILD_NUM'))
 }
 
 artifactoryPublish.onlyIf {
