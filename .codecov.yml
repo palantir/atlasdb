@@ -1,0 +1,5 @@
+ignore: 
+  - "examples/" # just example usage, not part of library to be tested
+  - "atlasdb-ete-tests/" # executed elsewhere
+  - "atlasdb-exec/src/main/java/com/palantir/atlasdb/clis/RegenerateCodeForSchemas.java" # only run by devs in IDE
+  - "cassandra-partitioner/src/main/java/com/palantir/atlasdb/keyvalue/cassandra/dht/AtlasDbOrderedPartitioner.java" # only here for documentation
