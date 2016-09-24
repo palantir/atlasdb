@@ -141,7 +141,7 @@ public class StreamStoreRenderer {
                 importRenderer.renderImports();
                 line();
                 line("@Generated(\"",  StreamStoreRenderer.class.getName(), "\")");
-                line("public final class ", StreamStore, " extends ", (isExpiring() ? "AbstractExpiringStreamStore<" + StreamId + ">" : "AbstractPersistentStreamStore"), " {"); {
+                line("public class ", StreamStore, " extends ", (isExpiring() ? "AbstractExpiringStreamStore<" + StreamId + ">" : "AbstractPersistentStreamStore"), " {"); {
                     fields();
                     line();
                     constructors();

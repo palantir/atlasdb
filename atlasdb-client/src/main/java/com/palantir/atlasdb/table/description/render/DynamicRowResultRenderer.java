@@ -36,7 +36,7 @@ class DynamicRowResultRenderer extends Renderer {
 
     @Override
     protected void run() {
-        line("public static final class ", RowResult, " implements TypedRowResult {"); {
+        line("public static class ", RowResult, " implements TypedRowResult {"); {
             fields();
             line();
             staticFactories();

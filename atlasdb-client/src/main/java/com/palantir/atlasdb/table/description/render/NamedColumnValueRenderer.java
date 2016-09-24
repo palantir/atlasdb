@@ -36,7 +36,7 @@ public class NamedColumnValueRenderer extends Renderer {
     @Override
     protected void run() {
         javaDoc();
-        line("public static final class ", Name, " implements ", tableName, "NamedColumnValue<", TypeName(col), "> {"); {
+        line("public static class ", Name, " implements ", tableName, "NamedColumnValue<", TypeName(col), "> {"); {
             fields();
             line();
             staticFactories();

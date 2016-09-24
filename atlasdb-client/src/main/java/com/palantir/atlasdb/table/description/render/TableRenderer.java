@@ -200,7 +200,7 @@ public class TableRenderer {
                 line();
             }
             line("@Generated(\"",  TableRenderer.class.getName(), "\")");
-            line("public ", isNestedIndex ? "static " : "", "final class ", Table, " implements");
+            line("public ", isNestedIndex ? "static " : "", "class ", Table, " implements");
             if (isNamedSet(table)) {
                 if (isExpiring(table)) {
                     line("        AtlasDbNamedExpiringSet<", Table, ".", Row, ">,");
