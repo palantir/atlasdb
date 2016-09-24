@@ -49,7 +49,7 @@ class RowOrDynamicColumnRenderer extends Renderer {
     @Override
     protected void run() {
         javaDoc();
-        line("public static final class ", Name, " implements Persistable, Comparable<", Name, "> {"); {
+        line("public static class ", Name, " implements Persistable, Comparable<", Name, "> {"); {
             fields();
             line();
             staticFactory();

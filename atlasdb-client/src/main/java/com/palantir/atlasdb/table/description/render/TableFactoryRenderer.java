@@ -59,7 +59,7 @@ public class TableFactoryRenderer {
                 packageAndImports();
                 line();
                 line("@Generated(\"",  TableFactoryRenderer.class.getName(), "\")");
-                line("public final class ", TableFactory, " {"); {
+                line("public class ", TableFactory, " {"); {
                     if (defaultNamespace.isEmpty()) {
                         line("private final static Namespace defaultNamespace = Namespace.EMPTY_NAMESPACE;");
                     } else {

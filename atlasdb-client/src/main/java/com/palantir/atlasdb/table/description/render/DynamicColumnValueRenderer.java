@@ -43,7 +43,7 @@ public class DynamicColumnValueRenderer extends Renderer {
     @Override
     protected void run() {
         javaDoc();
-        line("public static final class ", ColumnValue, " implements ColumnValue<", Value, "> {"); {
+        line("public static class ", ColumnValue, " implements ColumnValue<", Value, "> {"); {
             fields();
             line();
             staticFactories();
