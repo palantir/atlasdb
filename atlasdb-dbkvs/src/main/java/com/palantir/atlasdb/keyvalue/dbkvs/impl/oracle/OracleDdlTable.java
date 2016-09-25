@@ -24,7 +24,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSize;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.exception.PalantirSqlException;
@@ -71,7 +70,7 @@ public class OracleDdlTable implements DbDdlTable {
                 + "  CONSTRAINT pk_" + prefixedTableName() + " PRIMARY KEY (row_name, col_name, ts) "
                 + ") organization index compress overflow",
                 "ORA-00955");
-        if (needsOverflow && config.overflowMigrationState() != OverflowMigrationState.UNSTARTED) {
+        if (needsOverflow) {
             executeIgnoringError(
                     "CREATE TABLE " + prefixedOverflowTableName() + " ("
                     + "  id  NUMBER(38) NOT NULL, "
