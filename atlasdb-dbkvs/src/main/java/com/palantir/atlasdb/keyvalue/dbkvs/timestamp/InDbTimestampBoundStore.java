@@ -93,18 +93,18 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
                             // mismatch
                             throw new MultipleRunningTimestampServiceError(
                                     "Timestamp limit changed underneath us (limit in memory: " + currentLimit
-                                    + ", limit in DB: " + oldLimit + "). This may indicate that "
-                                    + "another timestamp service is running against this database!  "
-                                    + "If you get this error check that your client.prefs in dispatch "
-                                    + "is configured correctly.");
+                                            + ", limit in DB: " + oldLimit + "). This may indicate that "
+                                            + "another timestamp service is running against this database!  "
+                                            + "This may indicate that your services are not properly configured "
+                                            + "to run in an HA configuration.");
                         }
                     } else {
                         // disappearance
                         throw new IllegalStateException(
                                 "Unable to retrieve a timestamp when expected. "
-                                + "You probably reseeded the database while the timestamp server was running. "
-                                + "This deloyment is in a dangerous state and you should take down "
-                                + "everything (all servers) and reseed the database again.");
+                                        + "This service is is in a dangerous state and should be taken down "
+                                        + "until a new safe timestamp value can be established in the KVS. "
+                                        + "Please contact support.");
                     }
                 } else {
                     // first read, no check to be done
