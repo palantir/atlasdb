@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleRawQueryFactory;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleTableInitializer;
 import com.palantir.common.base.Throwables;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
@@ -51,18 +52,7 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbTableInitializer createInitializer(ConnectionSupplier conns) {
-        /* No initialization required for Oracle */
-        return new DbTableInitializer() {
-            @Override
-            public void createUtilityTables() {
-                //no op
-            }
-
-            @Override
-            public void createMetadataTable(String metadataTableName) {
-                //no op - will be required for Oracle to work
-            }
-        };
+        return new OracleTableInitializer(conns);
     }
 
     @Override
