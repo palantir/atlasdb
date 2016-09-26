@@ -15,19 +15,15 @@
  */
 package com.palantir.atlasdb.ete;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -40,11 +36,7 @@ import org.junit.rules.RuleChain;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.jayway.awaitility.Awaitility;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
@@ -60,9 +52,6 @@ import com.palantir.giraffe.command.CommandResult;
 import com.palantir.giraffe.command.Commands;
 import com.palantir.giraffe.host.HostAccessors;
 import com.palantir.giraffe.host.HostControlSystem;
-import com.palantir.giraffe.host.SystemRequest;
-import com.palantir.giraffe.internal.LocalHostAcessorProvider;
-import com.palantir.giraffe.internal.LocalHostAcessorProvider.LocalHostAccessor;
 
 public class CassandraMultinodeEteTest {
 
@@ -119,14 +108,14 @@ public class CassandraMultinodeEteTest {
     // Experimental - trying to utilise LXC-Attach on circle.
     private void checkNodetoolStatusWithGiraffe(String container) {
         HostControlSystem hcs = HostAccessors.getDefault().open();
-        Command command = hcs.getCommand(
-                String.format("sudo lxc-attach -n \"$(docker inspect --format \"{{.Id}}\" %s)\" -- bash -c nodetool status", container));
+        Command command = hcs.getCommand(String.format(
+                        "sudo lxc-attach -n \"$(docker inspect --format \"{{.Id}}\" %s)\" -- bash -c nodetool status",
+                        container));
         try {
             CommandResult cr = Commands.execute(command);
             String stdOut = cr.getStdOut();
             assertThat(StringUtils.countMatches(stdOut, "UN"), is(3));
         } catch (IOException e) {
-            e.printStackTrace();
             fail();
         }
     }
@@ -180,12 +169,6 @@ public class CassandraMultinodeEteTest {
         return CASSANDRA_NODES.get(index);
     }
 
-    private static InetSocketAddress getCassandraThriftAddressFromPort(int port) {
-        DockerPort dockerPort = CASSANDRA_DOCKER_SETUP.hostNetworkedPort(port);
-        String hostname = dockerPort.getIp();
-        return new InetSocketAddress(hostname, dockerPort.getExternalPort());
-    }
-
     static void killCassandraContainer(String containerName) {
         Container container = CASSANDRA_DOCKER_SETUP.containers().container(containerName);
         try {
@@ -211,30 +194,6 @@ public class CassandraMultinodeEteTest {
         Awaitility.await()
                 .atMost(50, TimeUnit.SECONDS)
                 .until(() -> container.areAllPortsOpen().succeeded());
-    }
-
-    private static Callable<Boolean> canCreateCassandraClient(Container container) {
-        final CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig.builder()
-                .addServers(getCassandraThriftAddressFromPort(THRIFT_PORT_NUMBER_1))
-                .addServers(getCassandraThriftAddressFromPort(THRIFT_PORT_NUMBER_2))
-                .addServers(getCassandraThriftAddressFromPort(THRIFT_PORT_NUMBER_3))
-                .keyspace("atlasdb")
-                .replicationFactor(3)
-                .credentials(ImmutableCassandraCredentialsConfig.builder()
-                        .username("cassandra")
-                        .password("cassandra")
-                        .build())
-                .build();
-        return () -> {
-                try {
-                    int externalPort = container.port(9160).getExternalPort();
-
-                    new CassandraClientFactory(getCassandraThriftAddressFromPort(externalPort), config).create();
-                    return true;
-                } catch (Exception e) {
-                    return false;
-                }
-            };
     }
 
     private void assertAddTodoTransactionWasSuccessful(TodoResource todoClient) {
