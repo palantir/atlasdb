@@ -47,6 +47,12 @@ v0.16.0
            supported by AtlasDB and products are not expected to use them.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/939>`__)
 
+    *    - |improved|
+         - ``TransactionMangers.create()`` now accepts ``LockServerOptions`` which can be used to
+           apply configurations to the embedded LockServer instance running in the product.  The other
+           ``create()`` methods will continue to use ``LockServerOptions.DEFAULT``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/984>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
