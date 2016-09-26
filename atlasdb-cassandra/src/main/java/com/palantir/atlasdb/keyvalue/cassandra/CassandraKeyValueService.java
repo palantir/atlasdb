@@ -1424,23 +1424,76 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      */
     @Override
     public void createTables(final Map<TableReference, byte[]> tableNamesToTableMetadata) {
-        schemaMutationLock.runWithLock(() -> createTablesInternal(tableNamesToTableMetadata));
-        internalPutMetadataForTables(tableNamesToTableMetadata, false);
+        Map<TableReference, byte[]> tablesToActuallyCreate = filterOutExistingTables(tableNamesToTableMetadata);
+        Map<TableReference, byte[]> tablesToUpdateMetadataFor = filterOutNoOpMetadataChanges(tableNamesToTableMetadata);
+
+        boolean onlyMetadataChangesAreForNewTables =
+                tablesToUpdateMetadataFor.keySet().equals(tablesToActuallyCreate.keySet());
+        boolean putMetadataWillNeedASchemaChange = !onlyMetadataChangesAreForNewTables;
+
+        if (!tablesToActuallyCreate.isEmpty()) {
+            schemaMutationLock.runWithLock(() -> {
+                createTablesInternal(tablesToActuallyCreate);
+            });
+        }
+
+        // createTables(existingTable, newMetadata) can perform a metadata-only update.
+        // additionally it is possible that this metadata-only update performs a schema mutation
+        // by altering the CFDef (ex. user changes metadata of existing table to have new compression block size)
+        // This does not require the schema mutation lock, however, as it does not alter the CfId
+        internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
     }
 
-    private void createTablesInternal(final Map<TableReference, byte[]> tableNamesToTableMetadata) throws Exception {
-        try {
-            clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
-                KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
-                Set<TableReference> existingTablesLowerCased = Sets.newHashSet();
+    private Set<TableReference> getExistingTablesLowerCased(Client client) throws TException {
+        KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
+        Set<TableReference> existingTablesLowerCased = Sets.newHashSet();
 
-                for (CfDef cf : ks.getCf_defs()) {
-                    existingTablesLowerCased.add(fromInternalTableName(cf.getName().toLowerCase()));
+        for (CfDef cf : ks.getCf_defs()) {
+            existingTablesLowerCased.add(fromInternalTableName(cf.getName().toLowerCase()));
+        }
+        return existingTablesLowerCased;
+    }
+
+    private Map<TableReference, byte[]> filterOutNoOpMetadataChanges(
+            final Map<TableReference, byte[]> tableNamesToTableMetadata) {
+        Map<TableReference, byte[]> existingTableMetadata = getMetadataForTables();
+        Map<TableReference, byte[]> tableMetadataUpdates = Maps.newHashMap();
+
+        for (Entry<TableReference, byte[]> entry : tableNamesToTableMetadata.entrySet()) {
+            TableReference tableReference = entry.getKey();
+            byte[] newMetadata = entry.getValue();
+
+            // if no existing table or if existing table's metadata is different
+            if (!Arrays.equals(existingTableMetadata.get(tableReference), newMetadata)) {
+                Set<TableReference> matchingTables = Sets.filter(existingTableMetadata.keySet(), existingTableRef ->
+                        existingTableRef.getTablename().equalsIgnoreCase(tableReference.getTablename()));
+
+                // completely new table, not an update
+                if (matchingTables.isEmpty()) {
+                    tableMetadataUpdates.put(tableReference, newMetadata);
                 }
 
+                // table already exists but has different metadata, so we should perform an update
+                if (!matchingTables.isEmpty() && !Arrays.equals(
+                        existingTableMetadata.get(Iterables.getOnlyElement(matchingTables)), newMetadata)) {
+                    tableMetadataUpdates.put(tableReference, newMetadata);
+                }
+            } else {
+                log.debug("Table already existed in metadata, skipping update to " + tableReference);
+            }
+        }
 
-                Set<Entry<TableReference, byte[]>> tablesToCreate = tableNamesToTableMetadata.entrySet();
-                for (Entry<TableReference, byte[]> tableAndMetadataPair : tablesToCreate) {
+        return tableMetadataUpdates;
+    }
+
+    private Map<TableReference, byte[]> filterOutExistingTables(
+            final Map<TableReference, byte[]> tableNamesToTableMetadata) {
+        Map<TableReference, byte[]> filteredTables = Maps.newHashMap();
+        try {
+            clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
+                Set<TableReference> existingTablesLowerCased = getExistingTablesLowerCased(client);
+
+                for (Entry<TableReference, byte[]> tableAndMetadataPair : tableNamesToTableMetadata.entrySet()) {
                     TableReference table = tableAndMetadataPair.getKey();
                     byte[] metadata = tableAndMetadataPair.getValue();
 
@@ -1449,30 +1502,50 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     TableReference tableRefLowerCased = TableReference
                             .createUnsafe(table.getQualifiedName().toLowerCase());
                     if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
-                        client.system_add_column_family(getCfForTable(table, metadata));
+                        filteredTables.put(table, metadata);
                     } else {
-                        log.debug("Ignored call to create table ({}) that already existed (case insensitive).", table);
+                        log.debug("Filtering out existing table ({}) that already existed (case insensitive).", table);
                     }
-                }
-                if (!tablesToCreate.isEmpty()) {
-                    CassandraKeyValueServices.waitForSchemaVersions(
-                            client,
-                            "(all tables in a call to createTables)",
-                            configManager.getConfig().schemaMutationTimeoutMillis());
                 }
                 return null;
             });
-        } catch (UnavailableException e) {
-            throw new PalantirRuntimeException("Creating tables requires all Cassandra nodes to be up and available.");
+        } catch (Exception e) {
+            Throwables.throwUncheckedException(e);
         }
+        return filteredTables;
+    }
+
+    private void createTablesInternal(final Map<TableReference, byte[]> tableNamesToTableMetadata) throws Exception {
+        clientPool.runWithRetry(client -> {
+            for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
+                try {
+                    client.system_add_column_family(getCfForTable(tableEntry.getKey(), tableEntry.getValue()));
+                } catch (UnavailableException e) {
+                    throw new PalantirRuntimeException(
+                            "Creating tables requires all Cassandra nodes to be up and available.");
+                } catch (TException thriftException) {
+                    if (thriftException.getMessage() != null
+                            && !thriftException.getMessage().contains("already existing table")) {
+                        Throwables.throwUncheckedException(thriftException);
+                    }
+                }
+            }
+
+            CassandraKeyValueServices.waitForSchemaVersions(
+                    client,
+                    "(all tables in a call to createTables)",
+                    configManager.getConfig().schemaMutationTimeoutMillis());
+
+            return null;
+        });
     }
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return Sets.filter(getAllTablenamesInternal(), tr -> !hiddenTables.isHidden(tr));
+        return Sets.filter(getAllTablenamesWithoutFiltering(), tr -> !hiddenTables.isHidden(tr));
     }
 
-    private Set<TableReference> getAllTablenamesInternal() {
+    private Set<TableReference> getAllTablenamesWithoutFiltering() {
         final CassandraKeyValueServiceConfig config = configManager.getConfig();
         try {
             return clientPool.runWithRetry(new FunctionCheckedException<Client, Set<TableReference>, Exception>() {
@@ -1500,23 +1573,44 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
-        Cell cell = getMetadataCell(tableRef);
-        Value value = get(AtlasDbConstants.METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE)).get(cell);
-        if (value == null) {
+        // This can be turned into not-a-full-table-scan if someone makes an upgrade task
+        // that makes sure we only write the metadata keys based on lowercased table names
+
+        java.util.Optional<Entry<TableReference, byte[]>> match =
+                getMetadataForTables().entrySet().stream().filter(
+                        entry -> matchingIgnoreCase(entry.getKey(), tableRef))
+                .findFirst();
+
+        if (!match.isPresent()) {
+            log.debug("Couldn't find table metadata for " + tableRef);
             return AtlasDbConstants.EMPTY_TABLE_METADATA;
         } else {
-            if (!getAllTablenamesInternal().contains(tableRef)) {
-                log.error("While getting metadata, found a table, {}, with stored table metadata "
-                        + "but no corresponding existing table in the underlying KVS. "
-                        + "This is not necessarily a bug, but warrants further inquiry.", tableRef.getQualifiedName());
+            log.debug("Found table metadata for " + tableRef + " at matching name " + match.get().getKey());
+            return match.get().getValue();
+        }
+    }
+
+    private boolean matchingIgnoreCase(TableReference t1, TableReference t2) {
+        if (t1 != null) {
+            return t1.getQualifiedName().toLowerCase().equals(t2.getQualifiedName().toLowerCase());
+        } else {
+            if (t2 == null) {
+                return true;
             }
-            return value.getContents();
+            return false;
         }
     }
 
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
         Map<TableReference, byte[]> tableToMetadataContents = Maps.newHashMap();
+
+        // we don't even have a metadata table yet. Return empty map.
+        if (!getAllTablenamesWithoutFiltering().contains(AtlasDbConstants.METADATA_TABLE)) {
+            log.trace("getMetadata called with no _metadata table present");
+            return tableToMetadataContents;
+        }
+
         try (ClosableIterator<RowResult<Value>> range =
                 getRange(AtlasDbConstants.METADATA_TABLE, RangeRequest.all(), Long.MAX_VALUE)) {
             while (range.hasNext()) {
@@ -1608,19 +1702,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             return;
         }
 
-        if (possiblyNeedToPerformSettingsChanges) {
-            schemaMutationLock.runWithLock(() ->
-                    putMetadataForTablesInternal(possiblyNeedToPerformSettingsChanges, newMetadata, updatedCfs));
-        } else {
-            try {
-                putMetadataForTablesInternal(possiblyNeedToPerformSettingsChanges, newMetadata, updatedCfs);
-            } catch (Exception e) {
-                throw Throwables.throwUncheckedException(e);
-            }
+        try {
+            putMetadataAndMaybeAlterTables(possiblyNeedToPerformSettingsChanges, newMetadata, updatedCfs);
+        } catch (Exception e) {
+            throw Throwables.throwUncheckedException(e);
         }
     }
 
-    private void putMetadataForTablesInternal(
+    private void putMetadataAndMaybeAlterTables(
             boolean possiblyNeedToPerformSettingsChanges,
             Map<Cell, byte[]> newMetadata,
             Collection<CfDef> updatedCfs) throws Exception {

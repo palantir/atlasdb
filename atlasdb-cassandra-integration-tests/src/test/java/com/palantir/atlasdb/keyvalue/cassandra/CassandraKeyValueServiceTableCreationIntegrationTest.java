@@ -148,4 +148,30 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         existingMetadata = kvs.getMetadataForTable(missingMetadataTable);
         assertThat(initialMetadata, is(existingMetadata));
     }
+
+    @Test
+    public void testGetMetadataCaseInsensitive() {
+        // setup a basic table
+        TableReference caseSensitiveTable = TableReference.createFromFullyQualifiedName("test.cased_table");
+        TableReference wackyCasedTable = TableReference.createFromFullyQualifiedName("test.CaSeD_TaBlE");
+
+        byte[] initialMetadata = new TableDefinition() {{
+            rowName();
+            rowComponent("blob", ValueType.BLOB);
+            columns();
+            column("bar", "b", ValueType.BLOB);
+            conflictHandler(ConflictHandler.IGNORE_ALL);
+            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+        }}.toTableMetadata().persistToBytes();
+
+        kvs.createTable(caseSensitiveTable, initialMetadata);
+
+        // retrieve the metadata and see that it's the same as what we just put in
+        byte[] existingMetadata = kvs.getMetadataForTable(caseSensitiveTable);
+        assertThat(initialMetadata, is(existingMetadata));
+
+        // retrieve same metadata with a wacky cased version of the "same" name
+        existingMetadata = kvs.getMetadataForTable(wackyCasedTable);
+        assertThat(initialMetadata, is(existingMetadata));
+    }
 }
