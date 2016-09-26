@@ -1,5 +1,6 @@
-apply from: "../gradle/shared.gradle"
 apply plugin: "org.inferred.processors"
+
+apply from: "../gradle/shared.gradle"
 
 sourceCompatibility = 1.6
 targetCompatibility = 1.6

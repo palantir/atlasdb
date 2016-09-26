@@ -18,8 +18,8 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableInitializer;
 import com.palantir.exception.PalantirSqlException;
 
@@ -35,7 +35,7 @@ public class OracleTableInitializer implements DbTableInitializer {
     @Override
     public void createUtilityTables() {
         executeIgnoringError(
-                "CREATE TYPE A_CELL_TS AS OBJECT ("
+                "CREATE TYPE CELL_TS AS OBJECT ("
                         + "row_name   RAW(2000),"
                         + "col_name   RAW(2000),"
                         + "max_ts     NUMBER(20)"
@@ -43,13 +43,14 @@ public class OracleTableInitializer implements DbTableInitializer {
                 "name is already used by an existing object");
 
         executeIgnoringError(
-                "CREATE TYPE A_CELL_TS_TABLE AS TABLE OF A_CELL_TS",
+                "CREATE TYPE CELL_TS_TABLE AS TABLE OF CELL_TS",
                 "name is already used by an existing object"
         );
     }
 
     @Override
-    public void createMetadataTable(String metadataTableName) {
+    public void createMetadataTable(TableReference metadataTable, String tablePrefix) {
+        final String metadataTableName = tablePrefix + metadataTable.getQualifiedName();
         executeIgnoringError(
                 String.format(
                         "CREATE TABLE %s ("

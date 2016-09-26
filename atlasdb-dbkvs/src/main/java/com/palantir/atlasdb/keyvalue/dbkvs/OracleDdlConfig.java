@@ -64,6 +64,11 @@ public abstract class OracleDdlConfig extends DdlConfig {
     }
 
     @Override
+    public String tablePrefix() {
+        return "a_";
+    }
+
+    @Override
     public final String type() {
         return TYPE;
     }

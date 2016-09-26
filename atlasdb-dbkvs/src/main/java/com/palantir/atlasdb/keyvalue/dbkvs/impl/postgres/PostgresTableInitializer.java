@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableInitializer;
 import com.palantir.exception.PalantirSqlException;
@@ -44,7 +45,8 @@ public class PostgresTableInitializer implements DbTableInitializer {
     }
 
     @Override
-    public void createMetadataTable(String metadataTableName) {
+    public void createMetadataTable(TableReference metadataTable, String tablePrefix) {
+        String metadataTableName = metadataTable.getQualifiedName();
         executeIgnoringError(
                 String.format(
                         "CREATE TABLE %s ("
