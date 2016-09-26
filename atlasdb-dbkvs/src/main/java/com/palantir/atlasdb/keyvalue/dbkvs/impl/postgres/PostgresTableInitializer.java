@@ -33,7 +33,7 @@ public class PostgresTableInitializer implements DbTableInitializer {
     }
 
     @Override
-    public void createUtilityTables() {
+    public void createUtilityTables(String tablePrefix) {
         executeIgnoringError(
                 "CREATE TABLE dual (id BIGINT)",
                 "already exists"

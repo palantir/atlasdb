@@ -33,9 +33,9 @@ public class OracleTableInitializer implements DbTableInitializer {
     }
 
     @Override
-    public void createUtilityTables() {
+    public void createUtilityTables(String tablePrefix) {
         executeIgnoringError(
-                "CREATE TYPE CELL_TS AS OBJECT ("
+                "CREATE TYPE " + tablePrefix + "CELL_TS AS OBJECT ("
                         + "row_name   RAW(2000),"
                         + "col_name   RAW(2000),"
                         + "max_ts     NUMBER(20)"
@@ -43,7 +43,7 @@ public class OracleTableInitializer implements DbTableInitializer {
                 "name is already used by an existing object");
 
         executeIgnoringError(
-                "CREATE TYPE CELL_TS_TABLE AS TABLE OF CELL_TS",
+                "CREATE TYPE " + tablePrefix + "CELL_TS_TABLE AS TABLE OF " + tablePrefix + "CELL_TS",
                 "name is already used by an existing object"
         );
     }

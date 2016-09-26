@@ -135,7 +135,7 @@ public class DbKvs extends AbstractKeyValueService {
             @Nullable
             @Override
             public Void apply(@Nonnull DbTableInitializer initializer) {
-                initializer.createUtilityTables();
+                initializer.createUtilityTables(config.tablePrefix());
                 return null;
             }
         });
