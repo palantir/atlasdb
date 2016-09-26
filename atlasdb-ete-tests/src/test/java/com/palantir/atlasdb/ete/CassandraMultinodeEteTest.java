@@ -19,9 +19,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -30,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
@@ -51,6 +55,14 @@ import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.docker.compose.execution.DockerComposeRunArgument;
 import com.palantir.docker.compose.execution.DockerComposeRunOption;
+import com.palantir.giraffe.command.Command;
+import com.palantir.giraffe.command.CommandResult;
+import com.palantir.giraffe.command.Commands;
+import com.palantir.giraffe.host.HostAccessors;
+import com.palantir.giraffe.host.HostControlSystem;
+import com.palantir.giraffe.host.SystemRequest;
+import com.palantir.giraffe.internal.LocalHostAcessorProvider;
+import com.palantir.giraffe.internal.LocalHostAcessorProvider.LocalHostAccessor;
 
 public class CassandraMultinodeEteTest {
 
@@ -99,8 +111,27 @@ public class CassandraMultinodeEteTest {
         assertThat("transactionTimeWithAllNodesRunning",
                 transactionTimeWithAllNodesRunning,
                 is(lessThan(MAX_CASSANDRA_NODES_RUNNING_MILLIS)));
+
+        String container = CASSANDRA_NODES.get(0);
+        checkNodetoolStatusWithGiraffe(container);
     }
 
+    // Experimental - trying to utilise LXC-Attach on circle.
+    private void checkNodetoolStatusWithGiraffe(String container) {
+        HostControlSystem hcs = HostAccessors.getDefault().open();
+        Command command = hcs.getCommand(
+                String.format("sudo lxc-attach -n \"$(docker inspect --format \"{{.Id}}\" %s)\" -- bash -c nodetool status", container));
+        try {
+            CommandResult cr = Commands.execute(command);
+            String stdOut = cr.getStdOut();
+            assertThat(StringUtils.countMatches(stdOut, "UN"), is(3));
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Ignore
     @Test
     public void shouldRunTransactionsAfterCassandraNodeIsShutDownWithoutUnacceptableDelay()
             throws InterruptedException {
