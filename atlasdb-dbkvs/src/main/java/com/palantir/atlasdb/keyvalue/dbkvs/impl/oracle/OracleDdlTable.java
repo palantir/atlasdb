@@ -80,9 +80,14 @@ public class OracleDdlTable implements DbDdlTable {
                     + ")",
                     "ORA-00955");
         }
+
+        System.out.println("INSERT INTO " + getPrefixedMetadataTableName() + " (table_name, table_size) VALUES (?, ?)"
+                + tableRef.getQualifiedName()
+                + (needsOverflow ? TableSize.OVERFLOW.getId() : TableSize.RAW.getId()));
+
         conns.get().insertOneUnregisteredQuery(
                 "INSERT INTO " + getPrefixedMetadataTableName() + " (table_name, table_size) VALUES (?, ?)",
-                DbKvs.internalTableName(tableRef),
+                tableRef.getQualifiedName(),
                 needsOverflow ? TableSize.OVERFLOW.getId() : TableSize.RAW.getId());
     }
 

@@ -19,18 +19,19 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class SimpleDbMetadataTable implements DbMetadataTable {
-    protected final String tableName;
+    protected final TableReference tableRef;
     protected final ConnectionSupplier conns;
     private final DdlConfig config;
 
-    public SimpleDbMetadataTable(String tableName,
+    public SimpleDbMetadataTable(TableReference tableRef,
                                  ConnectionSupplier conns,
                                  DdlConfig config) {
-        this.tableName = tableName;
+        this.tableRef = tableRef;
         this.conns = conns;
         this.config = config;
     }
@@ -39,7 +40,7 @@ public class SimpleDbMetadataTable implements DbMetadataTable {
     public boolean exists() {
         return conns.get().selectExistsUnregisteredQuery(
                 "SELECT 1 FROM " + getMetadataTableName() + " WHERE table_name = ?",
-                tableName);
+                tableRef.getQualifiedName());
     }
 
     @Override
@@ -47,7 +48,7 @@ public class SimpleDbMetadataTable implements DbMetadataTable {
     public byte[] getMetadata() {
         AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
                 "SELECT value FROM " + getMetadataTableName() + " WHERE table_name = ?",
-                tableName);
+                tableRef.getQualifiedName());
         if (results.size() < 1) {
             return PtBytes.EMPTY_BYTE_ARRAY;
         } else {
@@ -59,11 +60,11 @@ public class SimpleDbMetadataTable implements DbMetadataTable {
 
     @Override
     public void putMetadata(byte[] metadata) {
-        Preconditions.checkArgument(exists(), "Table %s does not exist.", tableName);
+        Preconditions.checkArgument(exists(), "Table %s does not exist.", tableRef);
         conns.get().updateUnregisteredQuery(
                 "UPDATE " + getMetadataTableName() + " SET value = ? WHERE table_name = ?",
                 metadata,
-                tableName);
+                tableRef.getQualifiedName());
     }
 
     private String getMetadataTableName() {

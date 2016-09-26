@@ -24,8 +24,8 @@ public interface DbTableFactory extends Closeable {
     DbMetadataTable createMetadata(TableReference tableRef, ConnectionSupplier conns);
     DbDdlTable createDdl(TableReference tableName, ConnectionSupplier conns);
     DbTableInitializer createInitializer(ConnectionSupplier conns);
-    DbReadTable createRead(String tableName, ConnectionSupplier conns);
-    DbWriteTable createWrite(String tableName, ConnectionSupplier conns);
+    DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns);
+    DbWriteTable createWrite(TableReference tableRef, ConnectionSupplier conns);
     DBType getDbType();
     @Override
     void close();

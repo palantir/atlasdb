@@ -42,7 +42,7 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbMetadataTable createMetadata(TableReference tableRef, ConnectionSupplier conns) {
-        return new SimpleDbMetadataTable(DbKvs.internalTableName(tableRef), conns, config);
+        return new SimpleDbMetadataTable(tableRef, conns, config);
     }
 
     @Override
@@ -56,15 +56,15 @@ public class OracleDbTableFactory implements DbTableFactory {
     }
 
     @Override
-    public DbReadTable createRead(String tableName, ConnectionSupplier conns) {
-        TableSize tableSize = getTableSize(conns, tableName);
+    public DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns) {
+        TableSize tableSize = getTableSize(conns, tableRef);
         DbQueryFactory queryFactory;
         switch (tableSize) {
             case OVERFLOW:
-                queryFactory = new OracleOverflowQueryFactory(tableName, config);
+                queryFactory = new OracleOverflowQueryFactory(DbKvs.internalTableName(tableRef), config);
                 break;
             case RAW:
-                queryFactory = new OracleRawQueryFactory(tableName, config);
+                queryFactory = new OracleRawQueryFactory(DbKvs.internalTableName(tableRef), config);
                 break;
             default:
                 throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
@@ -73,31 +73,31 @@ public class OracleDbTableFactory implements DbTableFactory {
     }
 
     @Override
-    public DbWriteTable createWrite(String tableName, ConnectionSupplier conns) {
-        TableSize tableSize = getTableSize(conns, tableName);
+    public DbWriteTable createWrite(TableReference tableRef, ConnectionSupplier conns) {
+        TableSize tableSize = getTableSize(conns, tableRef);
         switch (tableSize) {
             case OVERFLOW:
-                return new OracleOverflowWriteTable(tableName, conns, config);
+                return new OracleOverflowWriteTable(DbKvs.internalTableName(tableRef), conns, config);
             case RAW:
-                return new SimpleDbWriteTable(tableName, conns, config);
+                return new SimpleDbWriteTable(DbKvs.internalTableName(tableRef), conns, config);
             default:
                 throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
         }
     }
 
-    private TableSize getTableSize(final ConnectionSupplier conns, final String tableName) {
+    private TableSize getTableSize(final ConnectionSupplier conns, final TableReference tableRef) {
         try {
-            return tableSizeByTableName.get(tableName, new Callable<TableSize>() {
+            return tableSizeByTableName.get(tableRef.getQualifiedName(), new Callable<TableSize>() {
                 @Override
                 public TableSize call() {
                     String metadataTableName = config.tablePrefix() + config.metadataTable().getQualifiedName();
                     AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
                             String.format("SELECT table_size FROM %s WHERE table_name = ?", metadataTableName),
-                            tableName);
+                            tableRef.getQualifiedName());
                     Preconditions.checkArgument(
                             !results.rows().isEmpty(),
                             "table %s not found",
-                            tableName);
+                            tableRef.getQualifiedName());
                     return TableSize.byId(results.get(0).getInteger("table_size"));
                 }
             });

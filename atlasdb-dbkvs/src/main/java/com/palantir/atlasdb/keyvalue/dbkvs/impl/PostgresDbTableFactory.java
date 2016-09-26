@@ -52,7 +52,7 @@ public class PostgresDbTableFactory implements DbTableFactory {
 
     @Override
     public DbMetadataTable createMetadata(TableReference tableRef, ConnectionSupplier conns) {
-        return new SimpleDbMetadataTable(tableRef.getQualifiedName(), conns, config);
+        return new SimpleDbMetadataTable(tableRef, conns, config);
     }
 
     @Override
@@ -66,13 +66,13 @@ public class PostgresDbTableFactory implements DbTableFactory {
     }
 
     @Override
-    public DbReadTable createRead(String tableName, ConnectionSupplier conns) {
-        return new BatchedDbReadTable(conns, new PostgresQueryFactory(tableName, config), exec, config);
+    public DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns) {
+        return new BatchedDbReadTable(conns, new PostgresQueryFactory(DbKvs.internalTableName(tableRef), config), exec, config);
     }
 
     @Override
-    public DbWriteTable createWrite(String tableName, ConnectionSupplier conns) {
-        return new SimpleDbWriteTable(tableName, conns, config);
+    public DbWriteTable createWrite(TableReference tableName, ConnectionSupplier conns) {
+        return new SimpleDbWriteTable(DbKvs.internalTableName(tableName), conns, config);
     }
 
     @Override
