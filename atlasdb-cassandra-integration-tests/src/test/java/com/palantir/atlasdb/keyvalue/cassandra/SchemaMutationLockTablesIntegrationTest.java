@@ -49,11 +49,11 @@ public class SchemaMutationLockTablesIntegrationTest {
     private CassandraClientPool clientPool;
 
     @ClassRule
-    public static CassandraResources cassandraResources= CassandraResources.getCassandraResource();
+    public static CassandraResources cassandraResources = CassandraResources.getCassandraResource();
 
     @Before
     public void setupKVS() throws TException, InterruptedException {
-        config = cassandraResources.CASSANDRA_KVS_CONFIG
+        config = CassandraResources.CASSANDRA_KVS_CONFIG
                 .withKeyspace(UUID.randomUUID().toString().replace('-', '_')); // Hyphens not allowed in C* schema
         clientPool = new CassandraClientPool(config);
         clientPool.runOneTimeStartupChecks();

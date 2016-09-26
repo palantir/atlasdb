@@ -49,7 +49,7 @@ public class SchemaMutationLockIntegrationTest {
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
     @ClassRule
-    public static CassandraResources cassandraResources= CassandraResources.getCassandraResource();
+    public static CassandraResources cassandraResources = CassandraResources.getCassandraResource();
 
     @Parameterized.Parameter(value = 0)
     public boolean casEnabled;
@@ -73,7 +73,7 @@ public class SchemaMutationLockIntegrationTest {
     }
 
     protected void setUpWithCasSupportSetTo(boolean supportsCas) throws Exception {
-        ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = cassandraResources.CASSANDRA_KVS_CONFIG
+        ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = CassandraResources.CASSANDRA_KVS_CONFIG
                 .withSchemaMutationTimeoutMillis(500);
         CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig);
         ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;

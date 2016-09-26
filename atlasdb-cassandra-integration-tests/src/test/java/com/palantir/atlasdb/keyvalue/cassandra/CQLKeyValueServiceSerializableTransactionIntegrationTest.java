@@ -26,7 +26,7 @@ public class CQLKeyValueServiceSerializableTransactionIntegrationTest extends
         AbstractSerializableTransactionTest {
 
     @ClassRule
-    public static CassandraResources cassandraResources= CassandraResources.getCassandraResource();
+    public static CassandraResources cassandraResources = CassandraResources.getCassandraResource();
 
     @Override
     protected KeyValueService getKeyValueService() {

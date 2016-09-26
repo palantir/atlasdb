@@ -25,12 +25,12 @@ public class CassandraKeyValueServiceSerializableTransactionIntegrationTest exte
         AbstractSerializableTransactionTest {
 
     @ClassRule
-    public static CassandraResources cassandraResources= CassandraResources.getCassandraResource();
+    public static CassandraResources cassandraResources = CassandraResources.getCassandraResource();
 
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(cassandraResources.CASSANDRA_KVS_CONFIG), cassandraResources.LEADER_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraResources.CASSANDRA_KVS_CONFIG), CassandraResources.LEADER_CONFIG);
     }
 
     @Override

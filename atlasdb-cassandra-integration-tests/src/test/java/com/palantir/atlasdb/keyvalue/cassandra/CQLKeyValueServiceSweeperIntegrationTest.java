@@ -24,7 +24,7 @@ import com.palantir.atlasdb.sweep.AbstractSweeperTest;
 public class CQLKeyValueServiceSweeperIntegrationTest extends AbstractSweeperTest {
 
     @ClassRule
-    public static CassandraResources cassandraResources= CassandraResources.getCassandraResource();
+    public static CassandraResources cassandraResources = CassandraResources.getCassandraResource();
 
     @Override
     protected KeyValueService getKeyValueService() {

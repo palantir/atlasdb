@@ -24,7 +24,7 @@ import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 public class CQLKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
 
     @ClassRule
-    public static CassandraResources cassandraResources= CassandraResources.getCassandraResource();
+    public static CassandraResources cassandraResources = CassandraResources.getCassandraResource();
 
     @Override
     protected KeyValueService getKeyValueService() {

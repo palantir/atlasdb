@@ -51,13 +51,13 @@ public class CassandraClientPoolIntegrationTest {
     private CassandraKeyValueService kv;
 
     @ClassRule
-    public static CassandraResources cassandraResources= CassandraResources.getCassandraResource();
+    public static CassandraResources cassandraResources = CassandraResources.getCassandraResource();
 
     @Before
     public void setUp() {
         kv = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(cassandraResources.CASSANDRA_KVS_CONFIG),
-                cassandraResources.LEADER_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraResources.CASSANDRA_KVS_CONFIG),
+                CassandraResources.LEADER_CONFIG);
         kv.initializeFromFreshInstance();
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }

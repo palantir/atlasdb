@@ -36,6 +36,6 @@ import org.junit.runners.Suite.SuiteClasses;
 public class CassandraTestSuite {
 
     @ClassRule
-    public static CassandraResources cassandraResources= CassandraResources.getCassandraResource();
+    public static CassandraResources cassandraResources = CassandraResources.getCassandraResource();
 
 }

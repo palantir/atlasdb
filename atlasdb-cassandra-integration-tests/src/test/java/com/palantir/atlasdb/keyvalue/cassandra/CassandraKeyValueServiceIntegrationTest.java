@@ -56,7 +56,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
     private Logger logger = mock(Logger.class);
 
     @ClassRule
-    public static CassandraResources cassandraResources= CassandraResources.getCassandraResource();
+    public static CassandraResources cassandraResources = CassandraResources.getCassandraResource();
 
     @Before
     public void setupKVS() {
@@ -72,8 +72,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(cassandraResources.CASSANDRA_KVS_CONFIG),
-                cassandraResources.LEADER_CONFIG,
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraResources.CASSANDRA_KVS_CONFIG),
+                CassandraResources.LEADER_CONFIG,
                 logger);
     }
 
