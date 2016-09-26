@@ -21,13 +21,20 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.google.auto.service.AutoService;
+
+import io.dropwizard.jackson.Discoverable;
+
 /**
  * JdbcHandler allows Oracle dependent logic to be injected into the SQL
  * dependent classes that support both Legacy DB and AtlasDB's Dbkvs
  */
 
+@AutoService(Discoverable.class)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
 public interface JdbcHandler {
-    public interface BlobHandler {
+    interface BlobHandler {
         void freeTemporary() throws SQLException;
 
         OutputStream setBinaryStream(int i) throws SQLException;
@@ -35,13 +42,13 @@ public interface JdbcHandler {
         Blob getBlob();
     }
 
-    public interface ArrayHandler {
+    interface ArrayHandler {
         Object toOracleArray(Connection c) throws SQLException;
     }
 
     ArrayHandler createStructArray(String structType,
-                                   String arrayType,
-                                   List<Object[]> elements);
+            String arrayType,
+            List<Object[]> elements);
 
     BlobHandler createBlob(Connection c) throws SQLException;
 }
