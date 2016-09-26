@@ -15,15 +15,28 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import org.junit.Ignore;
+
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
+import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 
-public class DbkvsKeyValueServiceSerializableTransactionTest extends
-        AbstractSerializableTransactionTest {
-
+public class DbkvsPostgresKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
     @Override
     protected KeyValueService getKeyValueService() {
-        return ConnectionManagerAwareDbKvs.create(DbkvsTestSuite.getKvsConfig());
+        KeyValueService kvs = ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
+        for (TableReference table : kvs.getAllTableNames()) {
+            if (!table.getQualifiedName().equals("_metadata")) {
+                kvs.dropTable(table);
+            }
+        }
+        return kvs;
+    }
+
+    @Override
+    @Ignore
+    public void testGetRangeWithHistory() {
+        /* Have to ignore this test as it is an unsupported operation for this KVS */
     }
 }
