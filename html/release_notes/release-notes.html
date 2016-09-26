@@ -170,6 +170,12 @@ and <code class="docutils literal"><span class="pre">AtlasDbBackendDebugTransact
 supported by AtlasDB and products are not expected to use them.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/939">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td><code class="docutils literal"><span class="pre">TransactionMangers.create()</span></code> now accepts <code class="docutils literal"><span class="pre">LockServerOptions</span></code> which can be used to
+apply configurations to the embedded LockServer instance running in the product.  The other
+<code class="docutils literal"><span class="pre">create()</span></code> methods will continue to use <code class="docutils literal"><span class="pre">LockServerOptions.DEFAULT</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/984">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>

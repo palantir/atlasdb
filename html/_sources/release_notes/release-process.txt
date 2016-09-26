@@ -10,14 +10,14 @@ When you make a PR to Atlas, a release notes change must be made to record your 
 Release Schedule
 ================
 
-We aim to release once a week, but may release faster to patch bugs or
-slower if there is low code churn.
+We aim to release once a week, but may release faster to patch bugs or slower if there is low code churn.
+We also publish snapshot builds to `JFrog <https://oss.jfrog.org/webapp/#/artifacts/browse/simple/General/oss-snapshot-local/com/palantir/atlasdb>`__ after every PR merges, so if you want to begin testing your changes immediately, you can do so with the snapshot builds rather than waiting until the next release.
 
 Cutting for Release
 ===================
 
-1. Checkout the commit to tag for release (probably
-   ``git checkout origin/develop``).
+1. Checkout the commit to tag for release (probably ``git checkout origin/develop``). 
+   Patch releases should not be cut from develop, and should instead be cut from an appropriate release branch (e.g. ``0.10.x`` for patches to AtlasDB 0.10.0). 
 2. Tag the commit: ``git tag -a <version>``.
 3. Push the tag to Github:
    ``git push origin <version>:refs/tags/<version>``.

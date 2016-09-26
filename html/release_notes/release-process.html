@@ -152,14 +152,14 @@
 </div>
 <div class="section" id="release-schedule">
 <h2>Release Schedule<a class="headerlink" href="#release-schedule" title="Permalink to this headline">¶</a></h2>
-<p>We aim to release once a week, but may release faster to patch bugs or
-slower if there is low code churn.</p>
+<p>We aim to release once a week, but may release faster to patch bugs or slower if there is low code churn.
+We also publish snapshot builds to <a class="reference external" href="https://oss.jfrog.org/webapp/#/artifacts/browse/simple/General/oss-snapshot-local/com/palantir/atlasdb">JFrog</a> after every PR merges, so if you want to begin testing your changes immediately, you can do so with the snapshot builds rather than waiting until the next release.</p>
 </div>
 <div class="section" id="cutting-for-release">
 <h2>Cutting for Release<a class="headerlink" href="#cutting-for-release" title="Permalink to this headline">¶</a></h2>
 <ol class="arabic simple">
-<li>Checkout the commit to tag for release (probably
-<code class="docutils literal"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">origin/develop</span></code>).</li>
+<li>Checkout the commit to tag for release (probably <code class="docutils literal"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">origin/develop</span></code>).
+Patch releases should not be cut from develop, and should instead be cut from an appropriate release branch (e.g. <code class="docutils literal"><span class="pre">0.10.x</span></code> for patches to AtlasDB 0.10.0).</li>
 <li>Tag the commit: <code class="docutils literal"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">-a</span> <span class="pre">&lt;version&gt;</span></code>.</li>
 <li>Push the tag to Github:
 <code class="docutils literal"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">&lt;version&gt;:refs/tags/&lt;version&gt;</span></code>.</li>
