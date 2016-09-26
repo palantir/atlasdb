@@ -1,4 +1,5 @@
 apply from: "../gradle/shared.gradle"
+apply plugin: "org.inferred.processors"
 
 sourceCompatibility = 1.6
 targetCompatibility = 1.6
@@ -27,5 +28,8 @@ dependencies {
   compile(group: 'com.zaxxer', name: 'HikariCP', version: libVersions.hikariCP)
   { exclude( group: 'org.slf4j', ) }
   compile(group: 'joda-time', name: 'joda-time', version: libVersions.joda_time)
+  compile "io.dropwizard:dropwizard-jackson:" + libVersions.dropwizard
+  processor 'com.google.auto.service:auto-service:1.0-rc2'
+
   testCompile(group: 'junit', name: 'junit', version: libVersions.junit)
 }

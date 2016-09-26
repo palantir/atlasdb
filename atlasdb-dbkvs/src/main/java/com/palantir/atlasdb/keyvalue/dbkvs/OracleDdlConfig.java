@@ -45,7 +45,11 @@ public abstract class OracleDdlConfig extends DdlConfig {
         return "ao_";
     }
 
-    public abstract Supplier<Long> overflowIds();
+    //TODO: set up correctly
+    @Value.Default
+    public Supplier<Long> overflowIds() {
+        return () -> 0L;
+    };
 
     public abstract OverflowMigrationState overflowMigrationState();
 

@@ -1,12 +1,12 @@
 /**
- * Copyright 2015 Palantir Technologies
- * <p>
+ * Copyright 2016 Palantir Technologies
+ *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
+ *
  * http://opensource.org/licenses/BSD-3-Clause
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,13 +15,28 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.sweep.AbstractSweeperTest;
+import org.junit.Ignore;
 
-public class DbkvsKeyValueServiceSweeperTest extends AbstractSweeperTest {
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
+import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
+
+public class DbkvsOracleKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
     @Override
     protected KeyValueService getKeyValueService() {
-        return ConnectionManagerAwareDbKvs.create(DbkvsTestSuite.getKvsConfig());
+        KeyValueService kvs = ConnectionManagerAwareDbKvs.create(DbkvsOracleTestSuite.getKvsConfig());
+        for (TableReference table : kvs.getAllTableNames()) {
+            if (!table.getQualifiedName().equals("_metadata")) {
+                kvs.dropTable(table);
+            }
+        }
+        return kvs;
+    }
+
+    @Override
+    @Ignore
+    public void testGetRangeWithHistory() {
+        /* Have to ignore this test as it is an unsupported operation for this KVS */
     }
 }

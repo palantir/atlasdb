@@ -17,13 +17,11 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
+import com.palantir.atlasdb.sweep.AbstractSweeperTest;
 
-public class DbkvsKeyValueServiceSerializableTransactionTest extends
-        AbstractSerializableTransactionTest {
-
+public class DbkvsPostgresSweeperTest extends AbstractSweeperTest {
     @Override
     protected KeyValueService getKeyValueService() {
-        return ConnectionManagerAwareDbKvs.create(DbkvsTestSuite.getKvsConfig());
+        return ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
     }
 }
