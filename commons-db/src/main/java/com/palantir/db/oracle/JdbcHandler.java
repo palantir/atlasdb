@@ -30,7 +30,6 @@ import io.dropwizard.jackson.Discoverable;
  * JdbcHandler allows Oracle dependent logic to be injected into the SQL
  * dependent classes that support both Legacy DB and AtlasDB's Dbkvs
  */
-
 @AutoService(Discoverable.class)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
 public interface JdbcHandler {
