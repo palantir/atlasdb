@@ -173,8 +173,8 @@ final class SchemaMutationLock {
                             LOGGER.debug("Heartbeat alive, will retry.");
                             lastSeenValue = existingValue;
                         } else {
-                            LOGGER.info("Grabbing the lock since lock holder has failed to update its heartbeat");
-                            expected = ImmutableList.of(existingValue);
+                            // dead heartbeat
+                            throw Throwables.rewrapAndThrowUncheckedException(generateDeadHeartbeatException());
                         }
                     }
 
@@ -202,6 +202,13 @@ final class SchemaMutationLock {
             throw Throwables.throwUncheckedException(e);
         }
         return perOperationNodeId;
+    }
+
+    private RuntimeException generateDeadHeartbeatException() {
+        return new RuntimeException("The current lock holder has failed to update its heartbeat."
+                + " We suspect that this might be due to a node crashing while holding the"
+                + " schema mutation lock. If this is indeed the case, run the clean-cass-locks-state"
+                + " cli command.");
     }
 
     private TimeoutException generateSchemaLockTimeoutException(Stopwatch stopwatch) {

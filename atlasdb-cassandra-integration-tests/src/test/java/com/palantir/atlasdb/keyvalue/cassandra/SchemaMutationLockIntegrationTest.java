@@ -136,13 +136,13 @@ public class SchemaMutationLockIntegrationTest {
     }
 
     @Test
-    public void canGrabLockWhenNoHeartbeat() throws InterruptedException, ExecutionException {
+    public void testExceptionWithDeadHeartbeat() throws InterruptedException, ExecutionException {
         // only run this test with cas
         Assume.assumeTrue(casEnabled);
 
         expectedException.expect(ExecutionException.class);
-        expectedException.expectCause(instanceOf(IllegalStateException.class));
-        expectedException.expectMessage("Another process cleared our schema mutation lock from underneath us.");
+        expectedException.expectCause(instanceOf(RuntimeException.class));
+        expectedException.expectMessage("The current lock holder has failed to update its heartbeat.");
 
         Future initialLockHolder = CassandraTestTools.async(executorService, () ->
                 schemaMutationLock.runWithLock(() -> {
@@ -151,17 +151,14 @@ public class SchemaMutationLockIntegrationTest {
 
                     heartbeatService.stopBeating();
 
-                    // Try grabbing lock with dead heartbeat
+                    // Try acquiring lock with dead heartbeat
                     Future lockGrabber = CassandraTestTools.async(executorService,
                             () -> schemaMutationLock.runWithLock(DO_NOTHING));
 
-                    // check if able to successfully acquire lock
-                    try {
-                        lockGrabber.get(5, TimeUnit.SECONDS);
-                    } catch (TimeoutException e) {
-                        assertThat("Schema lock could not be grabbed despite no heartbeat.",
-                                lockGrabber.isDone(), is(true));
-                    }
+                    // verify that lock is not acquired
+                    lockGrabber.get();
+                    assertThat("Schema lock was grabbed with dead heartbeat.",
+                            lockGrabber.isDone(), is(false));
                 }));
         initialLockHolder.get();
     }
