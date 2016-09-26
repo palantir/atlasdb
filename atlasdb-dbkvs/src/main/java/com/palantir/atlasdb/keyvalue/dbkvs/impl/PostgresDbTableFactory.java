@@ -51,8 +51,8 @@ public class PostgresDbTableFactory implements DbTableFactory {
     }
 
     @Override
-    public DbMetadataTable createMetadata(String tableName, ConnectionSupplier conns) {
-        return new SimpleDbMetadataTable(tableName, conns, config);
+    public DbMetadataTable createMetadata(TableReference tableRef, ConnectionSupplier conns) {
+        return new SimpleDbMetadataTable(tableRef.getQualifiedName(), conns, config);
     }
 
     @Override

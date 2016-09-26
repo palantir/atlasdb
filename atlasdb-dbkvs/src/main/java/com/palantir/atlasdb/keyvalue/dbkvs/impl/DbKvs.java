@@ -1047,7 +1047,7 @@ public class DbKvs extends AbstractKeyValueService {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
             /* The metadata table operates only on the fully qualified table reference */
-            return runner.apply(dbTables.createMetadata(tableRef.getQualifiedName(), conns));
+            return runner.apply(dbTables.createMetadata(tableRef, conns));
         } finally {
             conns.close();
         }

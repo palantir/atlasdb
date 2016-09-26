@@ -41,8 +41,8 @@ public class OracleDbTableFactory implements DbTableFactory {
     }
 
     @Override
-    public DbMetadataTable createMetadata(String tableName, ConnectionSupplier conns) {
-        return new SimpleDbMetadataTable(tableName, conns, config);
+    public DbMetadataTable createMetadata(TableReference tableRef, ConnectionSupplier conns) {
+        return new SimpleDbMetadataTable(DbKvs.internalTableName(tableRef), conns, config);
     }
 
     @Override

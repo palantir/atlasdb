@@ -35,14 +35,14 @@ public class OracleDdlTable implements DbDdlTable {
     private static final Logger log = LoggerFactory.getLogger(OracleDdlTable.class);
     private static final String MIN_ORACLE_VERSION = "11.2.0.2.3";
 
-    private final TableReference tableName;
+    private final TableReference tableRef;
     private final ConnectionSupplier conns;
     private final OracleDdlConfig config;
 
-    public OracleDdlTable(TableReference tableName,
+    public OracleDdlTable(TableReference tableRef,
                           ConnectionSupplier conns,
                           OracleDdlConfig config) {
-        this.tableName = tableName;
+        this.tableRef = tableRef;
         this.conns = conns;
         this.config = config;
     }
@@ -51,7 +51,7 @@ public class OracleDdlTable implements DbDdlTable {
     public void create(byte[] tableMetadata) {
         if (conns.get().selectExistsUnregisteredQuery(
                 "SELECT 1 FROM " + getPrefixedMetadataTableName() + " WHERE table_name = ?",
-                tableName.getQualifiedName())) {
+                tableRef.getQualifiedName())) {
             return;
         }
 
@@ -82,7 +82,7 @@ public class OracleDdlTable implements DbDdlTable {
         }
         conns.get().insertOneUnregisteredQuery(
                 "INSERT INTO " + getPrefixedMetadataTableName() + " (table_name, table_size) VALUES (?, ?)",
-                tableName.getQualifiedName(),
+                DbKvs.internalTableName(tableRef),
                 needsOverflow ? TableSize.OVERFLOW.getId() : TableSize.RAW.getId());
     }
 
@@ -92,7 +92,7 @@ public class OracleDdlTable implements DbDdlTable {
         executeIgnoringError("DROP TABLE " + prefixedOverflowTableName() + " PURGE", "ORA-00942");
         conns.get().executeUnregisteredQuery(
                 "DELETE FROM " + getPrefixedMetadataTableName()
-                + " WHERE table_name = ?", tableName.getQualifiedName());
+                + " WHERE table_name = ?", tableRef.getQualifiedName());
     }
 
     @Override
@@ -137,7 +137,7 @@ public class OracleDdlTable implements DbDdlTable {
             try {
                 conns.get().executeUnregisteredQuery("ALTER TABLE " + prefixedTableName() + " MOVE ONLINE");
             } catch (PalantirSqlException e) {
-                log.error("Tried to clean up " + tableName + " bloat after a sweep operation,"
+                log.error("Tried to clean up " + tableRef + " bloat after a sweep operation,"
                         + " but underlying Oracle database or configuration does not support this"
                         + " (Enterprise Edition that requires this user to be able to perform DDL operations)"
                         + " feature online. Since this can't be automated in your configuration,"
@@ -149,10 +149,10 @@ public class OracleDdlTable implements DbDdlTable {
     }
 
     private String prefixedTableName() {
-        return config.tablePrefix() + DbKvs.internalTableName(tableName);
+        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
     }
 
     private String prefixedOverflowTableName() {
-        return config.overflowTablePrefix() + DbKvs.internalTableName(tableName);
+        return config.overflowTablePrefix() + DbKvs.internalTableName(tableRef);
     }
 }
