@@ -36,6 +36,7 @@ public class AtlasDbConstants {
 
     public static final TableReference DEFAULT_METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final TableReference DEFAULT_ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace("atlasdb_metadata");
+    public static final TableReference PERSISTED_LOCKS_TABLE = TableReference.createWithEmptyNamespace("_persisted_locks");
 
     public static final String ORACLE_NAME_MAPPING_TABLE = "atlasdb_table_names";
     public static final String ORACLE_NAME_MAPPING_PK_CONSTRAINT = "pk_" + ORACLE_NAME_MAPPING_TABLE;
@@ -65,7 +66,8 @@ public class AtlasDbConstants {
             PUNCH_TABLE,
             SCRUB_TABLE,
             NAMESPACE_TABLE,
-            PARTITION_MAP_TABLE);
+            PARTITION_MAP_TABLE,
+            PERSISTED_LOCKS_TABLE);
     public static final Set<TableReference> SKIP_POSTFILTER_TABLES = ImmutableSet.of(TransactionConstants.TRANSACTION_TABLE,
             NAMESPACE_TABLE);
 
