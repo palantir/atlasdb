@@ -18,6 +18,7 @@
 package com.palantir.atlasdb.performance.cli;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
@@ -31,6 +32,7 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.reflections.Reflections;
@@ -41,6 +43,7 @@ import com.palantir.atlasdb.performance.BenchmarkParam;
 import com.palantir.atlasdb.performance.PerformanceResults;
 import com.palantir.atlasdb.performance.backend.DatabasesContainer;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
+import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 import com.palantir.atlasdb.performance.backend.KeyValueServiceType;
 
 import io.airlift.airline.Arguments;
@@ -68,11 +71,12 @@ public class AtlasDbPerfCli {
 
     @Option(name = {"-b", "--backends"}, description = "Space delimited list of backing KVS stores to use in "
             + "quotes. (e.g. \"POSTGRES CASSANDRA\")" + " Defaults to all backends if not specified.")
-    private String backends =
-            EnumSet.allOf(KeyValueServiceType.class)
-                    .stream()
-                    .map(Enum::toString)
-                    .collect(Collectors.joining(LIST_DELIMITER));
+    private String backends;
+
+    @Option(name = {"--db-uris"}, description = "Space delimited list of docker uris in quotes. "
+            + "(e.g. \"POSTGRES@[phost:pport] CASSANDRA@[chost:cport]\")."
+            + "This is an alterative to specifying the --backends options that starts the docker containers locally.")
+    private String dbUris;
 
     @Option(name = {"-l", "--list-tests"}, description = "Lists all available benchmarks.")
     private boolean listTests;
@@ -102,32 +106,42 @@ public class AtlasDbPerfCli {
     }
 
     private static void run(AtlasDbPerfCli cli) throws Exception {
-        List<String> backends = getBackends(cli.backends);
-
-        try (DatabasesContainer container = startupDatabase(backends)) {
-            List<DockerizedDatabase> dbs = container.getDockerizedDatabases();
-            ChainedOptionsBuilder optBuilder = new OptionsBuilder()
-                    .forks(1)
-                    .threads(1)
-                    .warmupIterations(1)
-                    .measurementIterations(1)
-                    .mode(Mode.SampleTime)
-                    .timeUnit(TimeUnit.MICROSECONDS)
-                    .param(BenchmarkParam.URI.getKey(),
-                            dbs.stream()
-                                    .map(db -> db.getUri().toString())
-                                    .collect(Collectors.toList())
-                                    .toArray(new String[backends.size()]));
-            if (cli.tests == null) {
-                getAllBenchmarks().forEach(b -> optBuilder.include(".*" + b));
-            } else {
-                cli.tests.forEach(b -> optBuilder.include(".*" + b));
+        if (cli.backends != null) {
+            List<String> backends = getBackends(cli);
+            try (DatabasesContainer container = startupDatabase(backends)) {
+                runJmh(cli,
+                        container.getDockerizedDatabases()
+                                .stream()
+                                .map(DockerizedDatabase::getUri)
+                                .collect(Collectors.toList()));
             }
+        } else {
+            runJmh(cli, getDockerUris(cli));
+        }
+    }
 
-            Collection<RunResult> results = new Runner(optBuilder.build()).run();
-            if (cli.outputFile != null) {
-                new PerformanceResults(results).writeToFile(new File(cli.outputFile));
-            }
+    private static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris) throws IOException, RunnerException {
+        ChainedOptionsBuilder optBuilder = new OptionsBuilder()
+                .forks(1)
+                .threads(1)
+                .warmupIterations(1)
+                .measurementIterations(1)
+                .mode(Mode.SampleTime)
+                .timeUnit(TimeUnit.MICROSECONDS)
+                .param(BenchmarkParam.URI.getKey(),
+                        uris.stream()
+                                .map(DockerizedDatabaseUri::toString)
+                                .collect(Collectors.toList())
+                                .toArray(new String[uris.size()]));
+        if (cli.tests == null) {
+            getAllBenchmarks().forEach(b -> optBuilder.include(".*" + b));
+        } else {
+            cli.tests.forEach(b -> optBuilder.include(".*" + b));
+        }
+
+        Collection<RunResult> results = new Runner(optBuilder.build()).run();
+        if (cli.outputFile != null) {
+            new PerformanceResults(results).writeToFile(new File(cli.outputFile));
         }
     }
 
@@ -138,20 +152,45 @@ public class AtlasDbPerfCli {
                         .collect(Collectors.toList()));
     }
 
-    private static List<String> getBackends(String backendsStr) {
-        Set<String> backends = Sets.newHashSet(backendsStr.split(LIST_DELIMITER));
+    private static List<DockerizedDatabaseUri> getDockerUris(AtlasDbPerfCli cli) {
+        Set<String> uris = Sets.newHashSet(cli.dbUris.split(LIST_DELIMITER));
+        return uris.stream()
+                .map(DockerizedDatabaseUri::fromUriString)
+                .collect(Collectors.toList());
+    }
+
+    private static List<String> getBackends(AtlasDbPerfCli cli) {
+        String backendStr = cli.backends != null
+                ? cli.backends
+                : EnumSet.allOf(KeyValueServiceType.class)
+                        .stream()
+                        .map(Enum::toString)
+                        .collect(Collectors.joining(LIST_DELIMITER));
+        Set<String> backends = Sets.newHashSet(backendStr);
         return backends.stream()
                 .map(String::trim)
                 .collect(Collectors.toList());
     }
 
     private static boolean hasValidArgs(AtlasDbPerfCli cli) {
-        for (String backend : getBackends(cli.backends)) {
+        if (cli.backends != null && cli.dbUris != null) {
+            throw new RuntimeException("Cannot specify both --backends and --db-uris");
+        }
+        if (cli.backends != null) {
+            getBackends(cli).forEach(backend -> {
+                try {
+                    KeyValueServiceType.valueOf(backend.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    throw new RuntimeException("Invalid backend specified. Valid options: "
+                            + EnumSet.allOf(KeyValueServiceType.class) + " You provided: " + backend, e);
+                }
+            });
+        }
+        if (cli.dbUris != null) {
             try {
-                KeyValueServiceType.valueOf(backend.toUpperCase());
-            } catch (IllegalArgumentException e) {
-                throw new RuntimeException("Invalid backend specified. Valid options: "
-                        + EnumSet.allOf(KeyValueServiceType.class) + " You provided: " + backend, e);
+                getDockerUris(cli);
+            } catch (Exception e) {
+                throw new RuntimeException("Invalid dockerized database uri. Must be of the form [dbtype]@[host:port]");
             }
         }
         return true;
