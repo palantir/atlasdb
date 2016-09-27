@@ -18,7 +18,6 @@
 package com.palantir.atlasdb.performance.cli;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
@@ -32,7 +31,6 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.RunResult;
 import org.openjdk.jmh.runner.Runner;
-import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.reflections.Reflections;
@@ -121,7 +119,7 @@ public class AtlasDbPerfCli {
         }
     }
 
-    private static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris) throws IOException, RunnerException {
+    private static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris) throws Exception {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
                 .forks(1)
                 .threads(1)
