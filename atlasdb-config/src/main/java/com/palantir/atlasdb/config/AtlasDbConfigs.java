@@ -36,7 +36,7 @@ import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
 public final class AtlasDbConfigs {
 
-    public static final String ATLASDB_CONFIG_ROOT = "/atlasdb";
+    public static final String ATLASDB_CONFIG_OBJECT_PATH = "/atlasdb";
 
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
             .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
@@ -53,11 +53,11 @@ public final class AtlasDbConfigs {
     }
 
     public static AtlasDbConfig load(File configFile) throws IOException {
-        return load(configFile, ATLASDB_CONFIG_ROOT);
+        return load(configFile, ATLASDB_CONFIG_OBJECT_PATH);
     }
 
     public static AtlasDbConfig load(InputStream configStream) throws IOException {
-        return loadFromStream(configStream, ATLASDB_CONFIG_ROOT);
+        return loadFromStream(configStream, ATLASDB_CONFIG_OBJECT_PATH);
     }
 
     public static AtlasDbConfig load(File configFile, @Nullable String configRoot) throws IOException {

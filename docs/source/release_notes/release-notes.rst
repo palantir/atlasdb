@@ -47,6 +47,17 @@ v0.16.0
            supported by AtlasDB and products are not expected to use them.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/939>`__)
 
+    *    - |improved|
+         - ``TransactionMangers.create()`` now accepts ``LockServerOptions`` which can be used to
+           apply configurations to the embedded LockServer instance running in the product.  The other
+           ``create()`` methods will continue to use ``LockServerOptions.DEFAULT``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/984>`__)
+
+    *    - |fixed|
+         - :ref:`Column paging Sweep <cassandra-sweep-config>` (in beta) correctly handles cases where table names have both upper and lowercase characters and cases where sweep is run multiple times on the same table.
+           If you are using the regular implementation of Sweep (i.e. you do not specify ``timestampsGetterBatchSize`` in your AtlasDB config), then you are not affected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/951>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

@@ -212,10 +212,15 @@ final class SchemaMutationLock {
     }
 
     private TimeoutException generateSchemaLockTimeoutException(Stopwatch stopwatch) {
-        return new TimeoutException(String.format("We have timed out waiting on the current"
-                        + " schema mutation lock holder. We have tried to grab the lock for %d seconds"
-                        + " unsuccessfully. This indicates some problem with the current lock holder since"
-                        + " schema mutations should not take this long.", stopwatch.elapsed(TimeUnit.SECONDS)));
+        return new TimeoutException(
+                String.format("We have timed out waiting on the current"
+                                + " schema mutation lock holder. We have tried to grab the lock for %d milliseconds"
+                                + " unsuccessfully. This indicates that the current lock holder has died without"
+                                + " releasing the lock and will require manual intervention. Shut down all AtlasDB"
+                                + " clients operating on the %s keyspace and then run the clean-cass-locks-state"
+                                + " cli command.",
+                        stopwatch.elapsed(TimeUnit.MILLISECONDS),
+                        configManager.getConfig().keyspace()));
     }
 
     private void waitForSchemaMutationLockWithoutCas() throws TimeoutException {
