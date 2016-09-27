@@ -176,6 +176,11 @@ apply configurations to the embedded LockServer instance running in the product.
 <code class="docutils literal"><span class="pre">create()</span></code> methods will continue to use <code class="docutils literal"><span class="pre">LockServerOptions.DEFAULT</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/984">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><a class="reference internal" href="../configuration/cassandra_KVS_configuration.html#cassandra-sweep-config"><span class="std std-ref">Column paging Sweep</span></a> (in beta) correctly handles cases where table names have both upper and lowercase characters and cases where sweep is run multiple times on the same table.
+If you are using the regular implementation of Sweep (i.e. you do not specify <code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> in your AtlasDB config), then you are not affected.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/951">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
