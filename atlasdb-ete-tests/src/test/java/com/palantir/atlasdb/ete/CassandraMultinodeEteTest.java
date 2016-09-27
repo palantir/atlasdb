@@ -65,7 +65,7 @@ public class CassandraMultinodeEteTest {
     private static final long MAX_CASSANDRA_NODE_DOWN_MILLIS = 30000;
     private static final long MAX_CASSANDRA_NODES_RUNNING_MILLIS = 3000;
 
-    private static final DockerComposeRule CASSANDRA_DOCKER_SETUP = DockerComposeRule.builder()
+    private static final DockerComposeRule MULTINODE_CASSANDRA_SETUP = DockerComposeRule.builder()
             .file("docker-compose.multiple-cassandra.yml")
             .waitingForService("cassandra1", Container::areAllPortsOpen)
             .waitingForService("cassandra2", Container::areAllPortsOpen)
@@ -76,9 +76,9 @@ public class CassandraMultinodeEteTest {
 
 
     @ClassRule
-    public static final RuleChain CASSANDRA_DOCKER_SET_UP = RuleChain
+    public static final RuleChain PREPARED_DOCKER_SETUP = RuleChain
             .outerRule(GRADLE_PREPARE_TASK)
-            .around(CASSANDRA_DOCKER_SETUP);
+            .around(MULTINODE_CASSANDRA_SETUP);
 
     @Test
     public void shouldRunTransactionsWithAllCassandraNodesRunningWithoutUnacceptableDelay()
@@ -96,7 +96,7 @@ public class CassandraMultinodeEteTest {
                 is(lessThan(MAX_CASSANDRA_NODES_RUNNING_MILLIS)));
 
         String container = CASSANDRA_NODES.get(0);
-        checkNodetoolStatus(CASSANDRA_DOCKER_SETUP.containers().container(container), "UN", 3);
+        checkNodetoolStatus(MULTINODE_CASSANDRA_SETUP.containers().container(container), "UN", 3);
     }
 
     @Test
@@ -123,7 +123,7 @@ public class CassandraMultinodeEteTest {
     }
 
     private static DockerPort asPort(String node) {
-        return CASSANDRA_DOCKER_SETUP.containers().container(node).port(TIMELOCK_SERVER_PORT);
+        return MULTINODE_CASSANDRA_SETUP.containers().container(node).port(TIMELOCK_SERVER_PORT);
     }
 
     private static <T> T createClientFor(Class<T> clazz, DockerPort port) {
@@ -148,7 +148,7 @@ public class CassandraMultinodeEteTest {
     }
 
     private static void killCassandraContainer(String containerName) {
-        Container container = CASSANDRA_DOCKER_SETUP.containers().container(containerName);
+        Container container = MULTINODE_CASSANDRA_SETUP.containers().container(containerName);
         try {
             container.kill();
         } catch (IOException | InterruptedException e) {
@@ -157,7 +157,7 @@ public class CassandraMultinodeEteTest {
     }
 
     private void startCassandraContainer(String containerName) throws InterruptedException {
-        Container container = CASSANDRA_DOCKER_SETUP.containers().container(containerName);
+        Container container = MULTINODE_CASSANDRA_SETUP.containers().container(containerName);
         try {
             container.start();
         } catch (IOException | InterruptedException e) {
@@ -219,7 +219,7 @@ public class CassandraMultinodeEteTest {
     // Works locally
     private Boolean checkNodetoolStatusWithDockerExec(Container container, String status, int expectedNodeCount)
             throws IOException, InterruptedException {
-        String nodetoolStatus = CASSANDRA_DOCKER_SETUP.exec(
+        String nodetoolStatus = MULTINODE_CASSANDRA_SETUP.exec(
                 DockerComposeExecOption.options("-T"),
                 container.getContainerName(),
                 DockerComposeExecArgument.arguments("bash", "-c", "nodetool status | grep " + status));
