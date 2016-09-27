@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OracleDbTableFactory;
@@ -63,6 +64,7 @@ public abstract class OracleDdlConfig extends DdlConfig {
         return () -> new OracleDbTableFactory(this);
     }
 
+    @Value.Default
     @Override
     public String tablePrefix() {
         return "a_";
@@ -72,4 +74,11 @@ public abstract class OracleDdlConfig extends DdlConfig {
     public final String type() {
         return TYPE;
     }
+
+    @Value.Check
+    protected final void check() {
+        Preconditions.checkState(tablePrefix() != null && !tablePrefix().isEmpty(),
+                "'tablePrefix' must not be an empty string");
+    }
+
 }
