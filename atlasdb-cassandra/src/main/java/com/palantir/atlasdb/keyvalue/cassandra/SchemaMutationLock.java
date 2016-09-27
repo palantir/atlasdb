@@ -176,6 +176,7 @@ final class SchemaMutationLock {
                             // dead heartbeat
                             throw Throwables.rewrapAndThrowUncheckedException(generateDeadHeartbeatException());
                         }
+                        expected = ImmutableList.of(lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE));
                     }
 
                     // lock holder taking unreasonable amount of time, signal something's wrong
