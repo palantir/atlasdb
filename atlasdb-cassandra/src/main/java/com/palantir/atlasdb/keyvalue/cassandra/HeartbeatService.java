@@ -29,6 +29,8 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.concurrent.PTExecutors;
 
+// Since HeartbeatService performs actions that are lock holder specific,
+// it should only ever be used from a single thread (i.e. the current lock holder's thread).
 @NotThreadSafe
 final class HeartbeatService {
     private static final Logger log = LoggerFactory.getLogger(HeartbeatService.class);
