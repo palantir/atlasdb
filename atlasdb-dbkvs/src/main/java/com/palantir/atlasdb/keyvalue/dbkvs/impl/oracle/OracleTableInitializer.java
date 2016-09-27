@@ -46,6 +46,10 @@ public class OracleTableInitializer implements DbTableInitializer {
                 "CREATE TYPE " + tablePrefix + "CELL_TS_TABLE AS TABLE OF " + tablePrefix + "CELL_TS",
                 "name is already used by an existing object"
         );
+
+        executeIgnoringError(
+                "CREATE SEQUENCE " + tablePrefix + "OVERFLOW_SEQ ",
+                "name is already used by an existing object");
     }
 
     @Override

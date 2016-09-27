@@ -15,8 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -46,11 +49,8 @@ public abstract class OracleDdlConfig extends DdlConfig {
         return "ao_";
     }
 
-    //TODO: set up correctly
-    @Value.Default
-    public Supplier<Long> overflowIds() {
-        return () -> 0L;
-    };
+    @JsonIgnore
+    public abstract Optional<Supplier<Long>> overflowIds();
 
     public abstract OverflowMigrationState overflowMigrationState();
 
@@ -80,5 +80,4 @@ public abstract class OracleDdlConfig extends DdlConfig {
         Preconditions.checkState(tablePrefix() != null && !tablePrefix().isEmpty(),
                 "'tablePrefix' must not be an empty string");
     }
-
 }
