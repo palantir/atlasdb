@@ -102,8 +102,15 @@ public class AtlasDbPerfCli {
     }
 
     private static void run(AtlasDbPerfCli cli) throws Exception {
-        if (cli.backends != null) {
-            Set<String> backends = getBackends(cli);
+        if (cli.dbUris != null) {
+            runJmh(cli, getDockerUris(cli));
+        } else {
+            Set<String> backends = cli.backends != null
+                    ? cli.backends
+                    : EnumSet.allOf(KeyValueServiceType.class)
+                            .stream()
+                            .map(Enum::toString)
+                            .collect(Collectors.toSet());
             try (DatabasesContainer container = startupDatabase(backends)) {
                 runJmh(cli,
                         container.getDockerizedDatabases()
@@ -111,8 +118,6 @@ public class AtlasDbPerfCli {
                                 .map(DockerizedDatabase::getUri)
                                 .collect(Collectors.toList()));
             }
-        } else {
-            runJmh(cli, getDockerUris(cli));
         }
     }
 
@@ -154,23 +159,12 @@ public class AtlasDbPerfCli {
                 .collect(Collectors.toList());
     }
 
-    private static Set<String> getBackends(AtlasDbPerfCli cli) {
-        if (cli.backends != null) {
-            return cli.backends;
-        } else {
-            return  EnumSet.allOf(KeyValueServiceType.class)
-                    .stream()
-                    .map(Enum::toString)
-                    .collect(Collectors.toSet());
-        }
-    }
-
     private static boolean hasValidArgs(AtlasDbPerfCli cli) {
         if (cli.backends != null && cli.dbUris != null) {
             throw new RuntimeException("Cannot specify both --backends and --db-uris");
         }
         if (cli.backends != null) {
-            getBackends(cli).forEach(backend -> {
+            cli.backends.forEach(backend -> {
                 try {
                     KeyValueServiceType.valueOf(backend.toUpperCase());
                 } catch (IllegalArgumentException e) {
