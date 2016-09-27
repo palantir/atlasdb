@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -23,7 +26,6 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.performance.benchmarks.table.RegeneratingTable;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
@@ -37,7 +39,7 @@ public class SweepBenchmarks {
     public Object singleSweepRun(RegeneratingTable.SweepRegeneratingTable table) {
         SweepTaskRunner sweepTaskRunner = table.getSweepTaskRunner();
         SweepResults sweepResults = sweepTaskRunner.run(table.getTableRef(), 1, null);
-        Preconditions.checkState(sweepResults.getCellsDeleted() == 99);
+        assertThat(sweepResults.getCellsDeleted(), is(99L));
         return sweepResults;
     }
 }

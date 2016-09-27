@@ -171,9 +171,7 @@ public abstract class RegeneratingTable<T> {
         }
     }
 
-    public static class SweepRegeneratingTable extends RegeneratingTable {
-        private Set<Cell> cells;
-
+    public static class SweepRegeneratingTable extends RegeneratingTable<Set<Cell>> {
         @Override
         public void setupTableData() {
             getKvs().truncateTable(getTableRef());
@@ -184,12 +182,11 @@ public abstract class RegeneratingTable<T> {
                     return null;
                 });
             }
-            //cells = batch.keySet();
         }
 
         @Override
-        public Object getTableCells() {
-            return null;
+        public Set<Cell> getTableCells() {
+            throw new UnsupportedOperationException("Not implemented");
         }
 
         @Override
@@ -198,7 +195,7 @@ public abstract class RegeneratingTable<T> {
                     getTableRef(),
                     Tables.ROW_COMPONENT,
                     Tables.COLUMN_NAME,
-                    TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+                    TableMetadataPersistence.SweepStrategy.THOROUGH);
         }
     }
 
