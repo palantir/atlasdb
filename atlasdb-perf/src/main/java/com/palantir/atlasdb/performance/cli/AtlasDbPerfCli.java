@@ -38,7 +38,6 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
 
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.performance.BenchmarkParam;
 import com.palantir.atlasdb.performance.PerformanceResults;
 import com.palantir.atlasdb.performance.backend.DatabasesContainer;
@@ -61,22 +60,19 @@ import io.airlift.airline.SingleCommand;
  */
 @Command(name = "atlasdb-perf", description = "The AtlasDB performance benchmark CLI.")
 public class AtlasDbPerfCli {
-    private static final String LIST_DELIMITER = ",";
-
     @Inject
     private HelpOption helpOption;
 
     @Arguments(description = "The performance benchmarks to run. Leave blank to run all performance benchmarks.")
-    private List<String> tests;
+    private Set<String> tests;
 
-    @Option(name = {"-b", "--backends"}, description = "Space delimited list of backing KVS stores to use in "
-            + "quotes. (e.g. \"POSTGRES CASSANDRA\")" + " Defaults to all backends if not specified.")
-    private String backends;
+    @Option(name = {"-b", "--backend"}, description = "Backing KVS stores to use. (e.g. POSTGRES or CASSANDRA)"
+            + " Defaults to all backends if not specified.")
+    private Set<String> backends;
 
-    @Option(name = {"--db-uris"}, description = "Space delimited list of docker uris in quotes. "
-            + "(e.g. \"POSTGRES@[phost:pport] CASSANDRA@[chost:cport]\")."
-            + "This is an alterative to specifying the --backends options that starts the docker containers locally.")
-    private String dbUris;
+    @Option(name = {"--db-uri"}, description = "Docker uri (e.g. POSTGRES@[phost:pport] or CASSANDRA@[chost:cport])."
+            + "This is an alterative to specifying the --backend options that starts the docker containers locally.")
+    private List<String> dbUris;
 
     @Option(name = {"-l", "--list-tests"}, description = "Lists all available benchmarks.")
     private boolean listTests;
@@ -107,7 +103,7 @@ public class AtlasDbPerfCli {
 
     private static void run(AtlasDbPerfCli cli) throws Exception {
         if (cli.backends != null) {
-            List<String> backends = getBackends(cli);
+            Set<String> backends = getBackends(cli);
             try (DatabasesContainer container = startupDatabase(backends)) {
                 runJmh(cli,
                         container.getDockerizedDatabases()
@@ -145,7 +141,7 @@ public class AtlasDbPerfCli {
         }
     }
 
-    private static DatabasesContainer startupDatabase(List<String> backends) {
+    private static DatabasesContainer startupDatabase(Set<String> backends) {
         return DatabasesContainer.startup(
                 backends.stream()
                         .map(KeyValueServiceType::valueOf)
@@ -153,23 +149,20 @@ public class AtlasDbPerfCli {
     }
 
     private static List<DockerizedDatabaseUri> getDockerUris(AtlasDbPerfCli cli) {
-        Set<String> uris = Sets.newHashSet(cli.dbUris.split(LIST_DELIMITER));
-        return uris.stream()
+        return cli.dbUris.stream()
                 .map(DockerizedDatabaseUri::fromUriString)
                 .collect(Collectors.toList());
     }
 
-    private static List<String> getBackends(AtlasDbPerfCli cli) {
-        String backendStr = cli.backends != null
-                ? cli.backends
-                : EnumSet.allOf(KeyValueServiceType.class)
-                        .stream()
-                        .map(Enum::toString)
-                        .collect(Collectors.joining(LIST_DELIMITER));
-        Set<String> backends = Sets.newHashSet(backendStr);
-        return backends.stream()
-                .map(String::trim)
-                .collect(Collectors.toList());
+    private static Set<String> getBackends(AtlasDbPerfCli cli) {
+        if (cli.backends != null) {
+            return cli.backends;
+        } else {
+            return  EnumSet.allOf(KeyValueServiceType.class)
+                    .stream()
+                    .map(Enum::toString)
+                    .collect(Collectors.toSet());
+        }
     }
 
     private static boolean hasValidArgs(AtlasDbPerfCli cli) {
