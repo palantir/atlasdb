@@ -54,7 +54,7 @@ v0.16.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/984>`__)
 
     *    - |fixed|
-         - :ref:`Column paging Sweep <cassandra-sweep-config>` correctly handles cases where table names have both upper and lowercase characters.
+         - :ref:`Column paging Sweep <cassandra-sweep-config>` (in beta) correctly handles cases where table names have both upper and lowercase characters and cases where sweep is run multiple times on the same table.
            If you are using the regular implementation of Sweep (i.e. you do not specify ``timestampsGetterBatchSize`` in your AtlasDB config), then you are not affected.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/951>`__)
 
