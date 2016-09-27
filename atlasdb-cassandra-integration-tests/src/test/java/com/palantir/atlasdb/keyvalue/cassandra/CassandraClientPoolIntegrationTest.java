@@ -33,6 +33,7 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -49,11 +50,14 @@ import com.palantir.common.base.FunctionCheckedException;
 public class CassandraClientPoolIntegrationTest {
     private CassandraKeyValueService kv;
 
+    @ClassRule
+    public static CassandraResources cassandraResources = CassandraResources.getCassandraResource();
+
     @Before
     public void setUp() {
         kv = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG),
-                CassandraTestSuite.LEADER_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraResources.CASSANDRA_KVS_CONFIG),
+                CassandraResources.LEADER_CONFIG);
         kv.initializeFromFreshInstance();
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }

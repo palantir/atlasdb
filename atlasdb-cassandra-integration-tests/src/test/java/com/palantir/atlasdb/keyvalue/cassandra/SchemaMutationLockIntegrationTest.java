@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -46,6 +47,9 @@ public class SchemaMutationLockIntegrationTest {
     public static final SchemaMutationLock.Action DO_NOTHING = () -> {};
     protected SchemaMutationLock schemaMutationLock;
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
+
+    @ClassRule
+    public static CassandraResources cassandraResources = CassandraResources.getCassandraResource();
 
     @Parameterized.Parameter(value = 0)
     public boolean casEnabled;
@@ -69,7 +73,7 @@ public class SchemaMutationLockIntegrationTest {
     }
 
     protected void setUpWithCasSupportSetTo(boolean supportsCas) throws Exception {
-        ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
+        ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = CassandraResources.CASSANDRA_KVS_CONFIG
                 .withSchemaMutationTimeoutMillis(500);
         CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig);
         ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;

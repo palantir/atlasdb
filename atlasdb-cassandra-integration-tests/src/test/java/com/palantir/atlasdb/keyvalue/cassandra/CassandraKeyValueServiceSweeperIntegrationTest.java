@@ -22,6 +22,7 @@ import java.util.Arrays;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assume;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,6 +37,10 @@ import com.palantir.atlasdb.sweep.AbstractSweeperTest;
 
 @RunWith(Parameterized.class)
 public class CassandraKeyValueServiceSweeperIntegrationTest extends AbstractSweeperTest {
+
+    @ClassRule
+    public static CassandraResources cassandraResources = CassandraResources.getCassandraResource();
+
     @Parameterized.Parameter
     public boolean useColumnBatchSize;
 
@@ -48,11 +53,11 @@ public class CassandraKeyValueServiceSweeperIntegrationTest extends AbstractSwee
     @Override
     protected KeyValueService getKeyValueService() {
         ImmutableCassandraKeyValueServiceConfig config = useColumnBatchSize
-                ? CassandraTestSuite.CASSANDRA_KVS_CONFIG.withTimestampsGetterBatchSize(Optional.of(10))
-                : CassandraTestSuite.CASSANDRA_KVS_CONFIG;
+                ? CassandraResources.CASSANDRA_KVS_CONFIG.withTimestampsGetterBatchSize(Optional.of(10))
+                : CassandraResources.CASSANDRA_KVS_CONFIG;
 
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config), CassandraTestSuite.LEADER_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(config), CassandraResources.LEADER_CONFIG);
     }
 
     @Test

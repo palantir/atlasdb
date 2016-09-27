@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import org.junit.ClassRule;
 import org.junit.Ignore;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -23,6 +24,9 @@ import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest
 
 public class CQLKeyValueServiceSerializableTransactionIntegrationTest extends
         AbstractSerializableTransactionTest {
+
+    @ClassRule
+    public static CassandraResources cassandraResources = CassandraResources.getCassandraResource();
 
     @Override
     protected KeyValueService getKeyValueService() {
