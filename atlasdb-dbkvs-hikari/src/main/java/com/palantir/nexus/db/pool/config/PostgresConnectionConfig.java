@@ -23,7 +23,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.nexus.db.DBType;
 
 @JsonDeserialize(as = ImmutablePostgresConnectionConfig.class)
@@ -41,7 +41,10 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
      * Set arbitrary additional connection parameters.
      * See https://jdbc.postgresql.org/documentation/head/connect.html
      */
-    public abstract Optional<Map<String, String>> getConnectionParameters();
+    @Value.Default
+    public Map<String, String> getConnectionParameters() {
+        return ImmutableMap.of();
+    }
 
     @Override
     @Value.Default
@@ -68,9 +71,7 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
     @Value.Auxiliary
     public Properties getHikariProperties() {
         Properties props = new Properties();
-        if (getConnectionParameters().isPresent()) {
-            props.putAll(getConnectionParameters().get());
-        }
+        props.putAll(getConnectionParameters());
 
         props.setProperty("user", getDbLogin());
         props.setProperty("password", getDbPassword().unmasked());

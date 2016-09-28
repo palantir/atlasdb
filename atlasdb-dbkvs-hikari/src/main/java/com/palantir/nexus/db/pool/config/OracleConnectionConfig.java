@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.nexus.db.DBType;
 
 @JsonDeserialize(as = ImmutableOracleConnectionConfig.class)
@@ -90,7 +91,10 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
      * Set arbitrary additional connection parameters.
      * See https://docs.oracle.com/cd/E11882_01/appdev.112/e13995/oracle/jdbc/OracleDriver.html
      */
-    public abstract Optional<Map<String, String>> getConnectionParameters();
+    @Value.Default
+    public Map<String, String> getConnectionParameters() {
+        return ImmutableMap.of();
+    }
 
     @Value.Default
     public ConnectionProtocol getProtocol() {
@@ -108,9 +112,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     @Value.Auxiliary
     public Properties getHikariProperties() {
         Properties props = new Properties();
-        if (getConnectionParameters().isPresent()) {
-            props.putAll(getConnectionParameters().get());
-        }
+        props.putAll(getConnectionParameters());
 
         props.setProperty("user", getDbLogin());
         props.setProperty("password", getDbPassword().unmasked());
