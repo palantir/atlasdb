@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cleaner.Cleaner;
+import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -39,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
+import com.palantir.atlasdb.persistentlock.DeletionLock;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
@@ -97,7 +99,8 @@ public abstract class AbstractSweeperTest {
         setupTables(kvs);
         Supplier<Long> tsSupplier = sweepTimestamp::get;
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
-        sweepRunner = new SweepTaskRunnerImpl(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
+        DeletionLock deletionLock = new DeletionLock(kvs);
+        sweepRunner = new SweepTaskRunnerImpl(kvs, deletionLock, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
         setupBackgroundSweeper(DEFAULT_BATCH_SIZE);
     }
 

@@ -80,16 +80,19 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
     private final Supplier<Long> immutableTimestampSupplier;
     private final TransactionService transactionService;
     private final SweepStrategyManager sweepStrategyManager;
+    private final DeletionLock deletionLock;
     private final CellsSweeper cellsSweeper;
 
     public SweepTaskRunnerImpl(
             KeyValueService keyValueService,
+            DeletionLock deletionLock,
             Supplier<Long> unreadableTimestampSupplier,
             Supplier<Long> immutableTimestampSupplier,
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
             CellsSweeper cellsSweeper) {
         this.keyValueService = keyValueService;
+        this.deletionLock = deletionLock;
         this.unreadableTimestampSupplier = unreadableTimestampSupplier;
         this.immutableTimestampSupplier = immutableTimestampSupplier;
         this.transactionService = transactionService;
@@ -116,16 +119,15 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             return SweepResults.createEmptySweepResult(0L);
         }
 
-        DeletionLock deletionLock = new DeletionLock(keyValueService);
         try {
             String reason = "Sweep for " + tableRef;
-            return deletionLock.runWithLock(() -> runSweepInternal(tableRef, batchSize, nullableStartRow), reason);
+            return deletionLock.runWithLock(() -> runSweepInternal(tableRef, rowBatchSize, cellBatchSize, nullableStartRow), reason);
         } catch (PersistentLockIsTakenException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private SweepResults runSweepInternal(TableReference tableRef, int batchSize, @Nullable byte[] nullableStartRow) {
+    private SweepResults runSweepInternal(TableReference tableRef, int rowBatchSize, int cellBatchSize, @Nullable byte[] nullableStartRow) {
         // Earliest start timestamp of any currently open transaction, with two caveats:
         // (1) unreadableTimestamps are calculated via wall-clock time, and so may not be correct
         //     under pathological clock conditions

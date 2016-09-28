@@ -17,10 +17,12 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyCollection;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anySet;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -31,11 +33,14 @@ import static org.mockito.Mockito.when;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 
 import com.google.common.base.Supplier;
@@ -53,6 +58,8 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.persistentlock.DeletionLock;
+import com.palantir.atlasdb.persistentlock.PersistentLockIsTakenException;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.sweepers.ConservativeSweeper;
 import com.palantir.atlasdb.sweep.sweepers.Sweeper;
@@ -80,6 +87,7 @@ public class SweepTaskRunnerImplTest {
     public static final int ROW_BATCH_SIZE = 1000;
 
     private final KeyValueService mockKvs = mock(KeyValueService.class);
+    private final DeletionLock mockDeletionLock = mock(DeletionLock.class);
     private final Supplier<Long> mockImmutableTimestampSupplier = mock(Supplier.class);
     private final Supplier<Long> mockUnreadableTimestampSupplier = mock(Supplier.class);
     private final TransactionService mockTransactionService = mock(TransactionService.class);
@@ -87,6 +95,7 @@ public class SweepTaskRunnerImplTest {
     private final SweepStrategyManager mockSweepStrategyManager = mock(SweepStrategyManager.class);
     private final SweepTaskRunnerImpl sweepTaskRunner = new SweepTaskRunnerImpl(
             mockKvs,
+            mockDeletionLock,
             mockUnreadableTimestampSupplier,
             mockImmutableTimestampSupplier,
             mockTransactionService,
@@ -97,6 +106,9 @@ public class SweepTaskRunnerImplTest {
             mockKvs,
             mockImmutableTimestampSupplier,
             mockUnreadableTimestampSupplier);
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void thoroughWillReturnTheImmutableTimestamp() {
@@ -289,6 +301,20 @@ public class SweepTaskRunnerImplTest {
             rowsBuilder.add(RowResult.create(rowName, columns));
         }
         return rowsBuilder.build();
+    }
+
+    @Test
+    public void throwIfDeletionLockIsTaken() throws PersistentLockIsTakenException {
+        TableReference tableReference = TableReference.createWithEmptyNamespace("someTable");
+        int rowBatchSize = 10;
+        int cellBatchSize = 1000;
+        when(mockDeletionLock.runWithLock(any(Supplier.class), anyString())).thenThrow(
+                new PersistentLockIsTakenException(Optional.empty()));
+        when(mockKvs.getMetadataForTable(tableReference)).thenReturn(new byte[1]);
+
+        expectedException.expect(RuntimeException.class);
+        expectedException.expectCause(instanceOf(PersistentLockIsTakenException.class));
+        sweepTaskRunner.run(tableReference, rowBatchSize, cellBatchSize, null);
     }
 
     private Multimap<Cell, Long> twoCommittedTimestampsForSingleCell() {
