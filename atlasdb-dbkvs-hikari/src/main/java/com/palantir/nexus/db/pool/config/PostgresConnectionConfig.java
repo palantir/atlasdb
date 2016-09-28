@@ -15,6 +15,7 @@
  */
 package com.palantir.nexus.db.pool.config;
 
+import java.util.Map;
 import java.util.Properties;
 
 import org.immutables.value.Value;
@@ -36,7 +37,11 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
     public abstract String getHost();
     public abstract int getPort();
 
-    public abstract Optional<Integer> getDefaultRowFetchSize();
+    /**
+     * Set arbitrary additional connection parameters.
+     * See https://jdbc.postgresql.org/documentation/head/connect.html
+     */
+    public abstract Optional<Map<String, String>> getConnectionParameters();
 
     @Override
     @Value.Default
@@ -63,6 +68,9 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
     @Value.Auxiliary
     public Properties getHikariProperties() {
         Properties props = new Properties();
+        if (getConnectionParameters().isPresent()) {
+            props.putAll(getConnectionParameters().get());
+        }
 
         props.setProperty("user", getDbLogin());
         props.setProperty("password", getDbPassword().unmasked());
@@ -72,10 +80,6 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
 
         props.setProperty("connectTimeout", Integer.toString(getConnectionTimeoutSeconds()));
         props.setProperty("loginTimeout", Integer.toString(getConnectionTimeoutSeconds()));
-
-        if (getDefaultRowFetchSize().isPresent()) {
-            props.setProperty("defaultRowFetchSize", getDefaultRowFetchSize().get().toString());
-        }
 
         return props;
     }

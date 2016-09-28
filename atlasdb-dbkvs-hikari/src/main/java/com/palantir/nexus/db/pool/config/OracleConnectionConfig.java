@@ -19,6 +19,7 @@ import static com.palantir.nexus.db.pool.config.ConnectionProtocol.TCP;
 import static com.palantir.nexus.db.pool.config.ConnectionProtocol.TCPS;
 
 import java.io.File;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -85,7 +86,11 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
         return false;
     }
 
-    public abstract Optional<Integer> getDefaultRowPrefetch();
+    /**
+     * Set arbitrary additional connection parameters.
+     * See https://docs.oracle.com/cd/E11882_01/appdev.112/e13995/oracle/jdbc/OracleDriver.html
+     */
+    public abstract Optional<Map<String, String>> getConnectionParameters();
 
     @Value.Default
     public ConnectionProtocol getProtocol() {
@@ -103,6 +108,9 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     @Value.Auxiliary
     public Properties getHikariProperties() {
         Properties props = new Properties();
+        if (getConnectionParameters().isPresent()) {
+            props.putAll(getConnectionParameters().get());
+        }
 
         props.setProperty("user", getDbLogin());
         props.setProperty("password", getDbPassword().unmasked());
@@ -113,10 +121,6 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
         props.setProperty("oracle.net.CONNECT_TIMEOUT", Long.toString(TimeUnit.SECONDS.toMillis(getConnectionTimeoutSeconds())));
 
         props.setProperty("oracle.jdbc.maxCachedBufferSize", "100000");
-
-        if (getDefaultRowPrefetch().isPresent()) {
-            props.setProperty("defaultRowPrefetch", getDefaultRowPrefetch().get().toString());
-        }
 
         if (getProtocol() == TCPS) {
             // Create the truststore
