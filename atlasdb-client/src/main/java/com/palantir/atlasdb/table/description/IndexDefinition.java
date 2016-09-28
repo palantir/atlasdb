@@ -92,6 +92,7 @@ public class IndexDefinition extends AbstractDefinition {
     public void componentFromDynamicColumn(String componentName, ValueType valueType, ValueByteOrder valueByteOrder, String sourceComponentName) {
         addComponent(IndexComponent.createFromDynamicColumn(new NameComponentDescription(componentName, valueType, valueByteOrder), sourceComponentName));
     }
+
     /**
      * Prefix the row with a hash of the first row component
      * <p>

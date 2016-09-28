@@ -43,6 +43,7 @@ v0.17.0
 
     *    - |new|
          - ``hashFirstRowComponent`` can now be used on index definitions as well.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/986>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
