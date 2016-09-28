@@ -83,16 +83,20 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
     private final TransactionService transactionService;
     private final SweepStrategyManager sweepStrategyManager;
     private final Collection<Follower> followers;
+    private final DeletionLock deletionLock;
 
-    public SweepTaskRunnerImpl(TransactionManager txManager,
-                           KeyValueService keyValueService,
-                           Supplier<Long> unreadableTimestampSupplier,
-                           Supplier<Long> immutableTimestampSupplier,
-                           TransactionService transactionService,
-                           SweepStrategyManager sweepStrategyManager,
-                           Collection<Follower> followers) {
+    public SweepTaskRunnerImpl(
+            TransactionManager txManager,
+            KeyValueService keyValueService,
+            DeletionLock deletionLock,
+            Supplier<Long> unreadableTimestampSupplier,
+            Supplier<Long> immutableTimestampSupplier,
+            TransactionService transactionService,
+            SweepStrategyManager sweepStrategyManager,
+            Collection<Follower> followers) {
         this.txManager = txManager;
         this.keyValueService = keyValueService;
+        this.deletionLock = deletionLock;
         this.unreadableTimestampSupplier = unreadableTimestampSupplier;
         this.immutableTimestampSupplier = immutableTimestampSupplier;
         this.transactionService = transactionService;
@@ -118,7 +122,6 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             return SweepResults.createEmptySweepResult(0L);
         }
 
-        DeletionLock deletionLock = new DeletionLock(keyValueService);
         try {
             String reason = "Sweep for " + tableRef;
             return deletionLock.runWithLock(() -> runSweepInternal(tableRef, batchSize, nullableStartRow), reason);

@@ -40,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
+import com.palantir.atlasdb.persistentlock.DeletionLock;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
@@ -96,7 +97,8 @@ public abstract class AbstractSweeperTest {
         txManager = new SerializableTransactionManager(kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false);
         setupTables(kvs);
         Supplier<Long> tsSupplier = sweepTimestamp::get;
-        sweepRunner = new SweepTaskRunnerImpl(txManager, kvs, tsSupplier, tsSupplier, txService, ssm, ImmutableList.<Follower>of());
+        DeletionLock deletionLock = new DeletionLock(kvs);
+        sweepRunner = new SweepTaskRunnerImpl(txManager, kvs, deletionLock, tsSupplier, tsSupplier, txService, ssm, ImmutableList.<Follower>of());
         setupBackgroundSweeper(DEFAULT_BATCH_SIZE);
     }
 
