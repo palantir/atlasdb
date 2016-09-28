@@ -58,6 +58,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.persistentlock.DeletionLock;
+import com.palantir.atlasdb.persistentlock.PersistentLockIsTakenException;
 import com.palantir.atlasdb.table.description.UniformRowNamePartitioner;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -93,6 +95,7 @@ public final class Scrubber {
     @GuardedBy("this") private boolean scrubTaskLaunched = false;
 
     private final KeyValueService keyValueService;
+    private final DeletionLock deletionLock;
     private final ScrubberStore scrubberStore;
     private final Supplier<Long> backgroundScrubFrequencyMillisSupplier;
     private final Supplier<Boolean> isScrubEnabled;
@@ -120,6 +123,7 @@ public final class Scrubber {
     };
 
     public static Scrubber create(KeyValueService keyValueService,
+                                  DeletionLock deletionLock,
                                   ScrubberStore scrubberStore,
                                   Supplier<Long> backgroundScrubFrequencyMillisSupplier,
                                   Supplier<Boolean> isScrubEnabled,
@@ -133,6 +137,7 @@ public final class Scrubber {
                                   Collection<Follower> followers) {
         Scrubber scrubber = new Scrubber(
                 keyValueService,
+                deletionLock,
                 scrubberStore,
                 backgroundScrubFrequencyMillisSupplier,
                 isScrubEnabled,
@@ -148,6 +153,7 @@ public final class Scrubber {
     }
 
     private Scrubber(KeyValueService keyValueService,
+                     DeletionLock deletionLock,
                      ScrubberStore scrubberStore,
                      Supplier<Long> backgroundScrubFrequencyMillisSupplier,
                      Supplier<Boolean> isScrubEnabled,
@@ -160,6 +166,7 @@ public final class Scrubber {
                      int readThreadCount,
                      Collection<Follower> followers) {
         this.keyValueService = keyValueService;
+        this.deletionLock = deletionLock;
         this.scrubberStore = scrubberStore;
         this.backgroundScrubFrequencyMillisSupplier = backgroundScrubFrequencyMillisSupplier;
         this.isScrubEnabled = isScrubEnabled;
@@ -510,10 +517,25 @@ public final class Scrubber {
         return numCellsReadFromScrubTable;
     }
 
-    private void scrubCells(TransactionManager txManager,
-                            Multimap<TableReference, Cell> tableNameToCells,
-                            long scrubTimestamp,
-                            Transaction.TransactionType transactionType) {
+    private void scrubCells(
+            TransactionManager txManager,
+            Multimap<TableReference, Cell> tableNameToCells,
+            long scrubTimestamp,
+            Transaction.TransactionType transactionType) {
+        try {
+            deletionLock.runWithLock(
+                    () -> scrubCellsInternal(txManager, tableNameToCells, scrubTimestamp, transactionType),
+                    "Scrub");
+        } catch (PersistentLockIsTakenException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void scrubCellsInternal(
+            TransactionManager txManager,
+            Multimap<TableReference, Cell> tableNameToCells,
+            long scrubTimestamp,
+            Transaction.TransactionType transactionType) {
         for (Entry<TableReference, Collection<Cell>> entry : tableNameToCells.asMap().entrySet()) {
             TableReference tableRef = entry.getKey();
             if (log.isInfoEnabled()) {
