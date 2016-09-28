@@ -52,7 +52,6 @@ import com.palantir.giraffe.host.HostAccessors;
 import com.palantir.giraffe.host.HostControlSystem;
 
 public class CassandraMultinodeEteTest {
-
     private static final Gradle GRADLE_PREPARE_TASK =
             Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
 
@@ -62,7 +61,7 @@ public class CassandraMultinodeEteTest {
 
     private static final List<String> CASSANDRA_NODES = ImmutableList.of("cassandra1", "cassandra2", "cassandra3");
 
-    private static final long MAX_CASSANDRA_NODE_DOWN_MILLIS = 30000;
+    private static final long MAX_CASSANDRA_NODE_DOWN_MILLIS = 30_000;
     private static final long MAX_CASSANDRA_NODES_RUNNING_MILLIS = 3000;
 
     private static final DockerComposeRule MULTINODE_CASSANDRA_SETUP = DockerComposeRule.builder()
@@ -74,33 +73,24 @@ public class CassandraMultinodeEteTest {
             .saveLogsTo(CONTAINER_LOGS_DIRECTORY)
             .build();
 
-
     @ClassRule
     public static final RuleChain PREPARED_DOCKER_SETUP = RuleChain
             .outerRule(GRADLE_PREPARE_TASK)
             .around(MULTINODE_CASSANDRA_SETUP);
 
     @Test
-    public void shouldRunTransactionsWithAllCassandraNodesRunningWithoutUnacceptableDelay()
+    public void shouldRunTransactionsFastEnoughWithAllCassandraNodesUp()
             throws InterruptedException, IOException {
         TodoResource clientToSingleNode = createClientFor(TodoResource.class, asPort("ete1"));
 
-        long transactionStartTime = System.currentTimeMillis();
-        assertAddTodoTransactionWasSuccessful(clientToSingleNode);
-        long transactionEndTime = System.currentTimeMillis();
-
-        long transactionTimeWithAllNodesRunning = transactionEndTime - transactionStartTime;
-
-        assertThat("transactionTimeWithAllNodesRunning",
-                transactionTimeWithAllNodesRunning,
-                is(lessThan(MAX_CASSANDRA_NODES_RUNNING_MILLIS)));
-
-        String container = CASSANDRA_NODES.get(0);
-        checkNodetoolStatus(MULTINODE_CASSANDRA_SETUP.containers().container(container), "UN", 3);
+        assertAddTodoTransactionIsFastEnough(
+                clientToSingleNode,
+                "transactionTimeWithAllNodesRunning",
+                MAX_CASSANDRA_NODES_RUNNING_MILLIS);
     }
 
     @Test
-    public void shouldRunTransactionsAfterCassandraNodeIsShutDownWithoutUnacceptableDelay()
+    public void shouldRunTransactionsFastEnoughWithOneCassandraNodeDown()
             throws InterruptedException {
         TodoResource clientToSingleNode = createClientFor(TodoResource.class, asPort("ete1"));
 
@@ -109,17 +99,12 @@ public class CassandraMultinodeEteTest {
         String cassandraNodeToKill = getRandomCassandraNodeToShutdown();
         killCassandraContainer(cassandraNodeToKill);
 
-        long transactionStartTime = System.currentTimeMillis();
-        assertAddTodoTransactionWasSuccessful(clientToSingleNode);
-        long transactionEndTime = System.currentTimeMillis();
-
-        long transactionTimeAfterNodeIsKilled = transactionEndTime - transactionStartTime;
+        assertAddTodoTransactionIsFastEnough(
+                clientToSingleNode,
+                "transactionTimeAfterNodeIsKilled",
+                MAX_CASSANDRA_NODE_DOWN_MILLIS);
 
         startCassandraContainer(cassandraNodeToKill);
-
-        assertThat("transactionTimeAfterNodeIsKilled",
-                transactionTimeAfterNodeIsKilled,
-                is(lessThan(MAX_CASSANDRA_NODE_DOWN_MILLIS)));
     }
 
     private static DockerPort asPort(String node) {
@@ -129,6 +114,19 @@ public class CassandraMultinodeEteTest {
     private static <T> T createClientFor(Class<T> clazz, DockerPort port) {
         String uri = port.inFormat("http://$HOST:$EXTERNAL_PORT");
         return AtlasDbHttpClients.createProxy(Optional.absent(), uri, clazz);
+    }
+
+    private void assertAddTodoTransactionIsFastEnough(TodoResource clientToSingleNode, String description,
+            long timeLimit) {
+        long transactionStartTime = System.currentTimeMillis();
+        assertAddTodoTransactionWasSuccessful(clientToSingleNode);
+        long transactionEndTime = System.currentTimeMillis();
+
+        long transactionTimeAfterNodeIsKilled = transactionEndTime - transactionStartTime;
+
+        assertThat(description,
+                transactionTimeAfterNodeIsKilled,
+                is(lessThan(timeLimit)));
     }
 
     private static HealthCheck<Container> toBeReady() {
