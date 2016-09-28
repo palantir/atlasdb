@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowValue;
 import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
 
@@ -51,32 +50,10 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
         ArrayHandler arg = config.jdbcHandler().createStructArray(
                 structArrayPrefix() + "CELL_TS",
                 structArrayPrefix() + "CELL_TS_TABLE", oraRows);
-        switch (config.overflowMigrationState()) {
-            case UNSTARTED:
-                return ImmutableList.of(getOldOverflowQuery(arg));
-            case IN_PROGRESS:
-                return ImmutableList.of(getOldOverflowQuery(arg), getNewOverflowQuery(arg));
-            case FINISHING:
-            case FINISHED:
-                return ImmutableList.of(getNewOverflowQuery(arg));
-            default:
-                throw new EnumConstantNotPresentException(
-                        OverflowMigrationState.class, config.overflowMigrationState().name());
-        }
+        return ImmutableList.of(getOverflowQuery(arg));
     }
 
-    private FullQuery getOldOverflowQuery(ArrayHandler arg) {
-        String query = " /* SELECT_OVERFLOW */ "
-                + " SELECT"
-                + "   /*+ USE_NL(t o) LEADING(t o) INDEX(o pk_" + config.singleOverflowTable() + ") */ "
-                + "   o.id, o.val "
-                + " FROM " + config.singleOverflowTable() + " o, "
-                + "   TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
-                + " WHERE t.max_ts = o.id ";
-        return new FullQuery(query).withArg(arg);
-    }
-
-    private FullQuery getNewOverflowQuery(ArrayHandler arg) {
+    private FullQuery getOverflowQuery(ArrayHandler arg) {
         String query = " /* SELECT_OVERFLOW (" + tableName + ") */ "
                 + " SELECT"
                 + "   /*+ USE_NL(t o) LEADING(t o) INDEX(o pk_" + prefixedOverflowTableName() + ") */ "

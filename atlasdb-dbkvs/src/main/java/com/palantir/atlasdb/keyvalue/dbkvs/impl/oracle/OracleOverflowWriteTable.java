@@ -33,7 +33,6 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbWriteTable;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.palantir.nexus.db.sql.SqlConnection;
@@ -95,15 +94,9 @@ public class OracleOverflowWriteTable implements DbWriteTable {
 
     private void put(List<Object[]> args, List<Object[]> overflowArgs) {
         if (!overflowArgs.isEmpty()) {
-            if (config.overflowMigrationState() == OverflowMigrationState.UNSTARTED) {
-                conns.get().insertManyUnregisteredQuery("/* INSERT_OVERFLOW */"
-                        + " INSERT INTO " + config.singleOverflowTable() + " (id, val) VALUES (?, ?) ",
-                        overflowArgs);
-            } else {
-                conns.get().insertManyUnregisteredQuery("/* INSERT_OVERFLOW (" + tableName + ") */"
-                        + " INSERT INTO " + prefixedOverflowTableName() + " (id, val) VALUES (?, ?) ",
-                        overflowArgs);
-            }
+            conns.get().insertManyUnregisteredQuery("/* INSERT_OVERFLOW (" + tableName + ") */"
+                    + " INSERT INTO " + prefixedOverflowTableName() + " (id, val) VALUES (?, ?) ",
+                    overflowArgs);
         }
         try {
             conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + tableName + ") */"
@@ -158,22 +151,8 @@ public class OracleOverflowWriteTable implements DbWriteTable {
             Cell cell = entry.getKey();
             args.add(new Object[] {cell.getRowName(), cell.getColumnName(), entry.getValue()});
         }
-        switch (config.overflowMigrationState()) {
-            case UNSTARTED:
-                deleteOverflow(config.singleOverflowTable(), args);
-                break;
-            case IN_PROGRESS:
-                deleteOverflow(config.singleOverflowTable(), args);
-                deleteOverflow(prefixedOverflowTableName(), args);
-                break;
-            case FINISHING: // fall through
-            case FINISHED:
-                deleteOverflow(prefixedOverflowTableName(), args);
-                break;
-            default:
-                throw new EnumConstantNotPresentException(
-                        OverflowMigrationState.class, config.overflowMigrationState().name());
-        }
+        deleteOverflow(prefixedOverflowTableName(), args);
+
         SqlConnection conn = conns.get();
         try {
             log.info("Got connection for delete on table {}: {}, autocommit={}",
