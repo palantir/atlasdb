@@ -43,6 +43,7 @@ import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
+import com.palantir.atlasdb.persistentlock.DeletionLock;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -160,9 +161,11 @@ public final class TransactionManagers {
                 cleaner,
                 allowHiddenTableAccess);
 
+        DeletionLock deletionLock = new DeletionLock(kvs);
         SweepTaskRunner sweepRunner = new SweepTaskRunnerImpl(
                 transactionManager,
                 kvs,
+                deletionLock,
                 getUnreadableTsSupplier(transactionManager),
                 getImmutableTsSupplier(transactionManager),
                 transactionService,

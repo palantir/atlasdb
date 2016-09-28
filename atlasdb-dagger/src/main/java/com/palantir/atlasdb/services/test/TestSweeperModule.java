@@ -23,6 +23,7 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.persistentlock.DeletionLock;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -65,9 +66,11 @@ public class TestSweeperModule {
                                                   Follower follower) {
         Supplier<Long> unreadable = unreadableTs.isPresent() ? unreadableTs.get() : txm::getUnreadableTimestamp;
         Supplier<Long> immutable = immutableTs.isPresent() ? immutableTs.get() : txm::getImmutableTimestamp;
+        DeletionLock deletionLock = new DeletionLock(kvs);
         return new SweepTaskRunnerImpl(
                 txm,
                 kvs,
+                deletionLock,
                 unreadable,
                 immutable,
                 transactionService,

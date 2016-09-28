@@ -17,8 +17,10 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -28,9 +30,12 @@ import static org.mockito.Mockito.when;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
@@ -46,6 +51,8 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.persistentlock.DeletionLock;
+import com.palantir.atlasdb.persistentlock.PersistentLockIsTakenException;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.sweepers.ConservativeSweeper;
 import com.palantir.atlasdb.sweep.sweepers.Sweeper;
@@ -76,6 +83,7 @@ public class SweepTaskRunnerImplTest {
             .build();
 
     private final KeyValueService mockKvs = mock(KeyValueService.class);
+    private final DeletionLock mockDeletionLock = mock(DeletionLock.class);
     private final Follower mockFollower = mock(Follower.class);
     private final Supplier<Long> mockImmutableTimestampSupplier = mock(Supplier.class);
     private final Supplier<Long> mockUnreadableTimestampSupplier = mock(Supplier.class);
@@ -83,6 +91,7 @@ public class SweepTaskRunnerImplTest {
     private final SweepTaskRunnerImpl sweepTaskRunner = new SweepTaskRunnerImpl(
             null,
             mockKvs,
+            mockDeletionLock,
             mockUnreadableTimestampSupplier,
             mockImmutableTimestampSupplier,
             mockTransactionService,
@@ -93,6 +102,9 @@ public class SweepTaskRunnerImplTest {
             mockKvs,
             mockImmutableTimestampSupplier,
             mockUnreadableTimestampSupplier);
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void ensureCellSweepDeletesCells() {
@@ -313,6 +325,19 @@ public class SweepTaskRunnerImplTest {
         Multimap<Cell, Long> timestampsToSweep = cellsAndSentinels.startTimestampsToSweepPerCell();
 
         assertThat(timestampsToSweep.get(SINGLE_CELL)).contains(LOW_START_TS);
+    }
+
+    @Test
+    public void throwIfDeletionLockIsTaken() throws PersistentLockIsTakenException {
+        TableReference tableReference = TableReference.createWithEmptyNamespace("someTable");
+        int batchSize = 10;
+        when(mockDeletionLock.runWithLock(any(Supplier.class), anyString())).thenThrow(
+                new PersistentLockIsTakenException(Optional.empty()));
+        when(mockKvs.getMetadataForTable(tableReference)).thenReturn(new byte[1]);
+
+        expectedException.expect(RuntimeException.class);
+        expectedException.expectCause(instanceOf(PersistentLockIsTakenException.class));
+        sweepTaskRunner.run(tableReference, batchSize, null);
     }
 
     private Multimap<Cell, Long> twoCommittedTimestampsForSingleCell() {

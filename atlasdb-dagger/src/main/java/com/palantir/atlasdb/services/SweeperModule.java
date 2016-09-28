@@ -21,6 +21,7 @@ import javax.inject.Singleton;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.persistentlock.DeletionLock;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -43,6 +44,7 @@ public class SweeperModule {
         return new SweepTaskRunnerImpl(
                 txm,
                 kvs,
+                new DeletionLock(kvs),
                 txm::getUnreadableTimestamp,
                 txm::getImmutableTimestamp,
                 transactionService,
