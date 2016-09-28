@@ -22,6 +22,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Optional;
 import com.palantir.nexus.db.DBType;
 
 @JsonDeserialize(as = ImmutablePostgresConnectionConfig.class)
@@ -34,6 +35,8 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
 
     public abstract String getHost();
     public abstract int getPort();
+
+    public abstract Optional<Integer> getDefaultRowFetchSize();
 
     @Override
     @Value.Default
@@ -69,6 +72,10 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
 
         props.setProperty("connectTimeout", Integer.toString(getConnectionTimeoutSeconds()));
         props.setProperty("loginTimeout", Integer.toString(getConnectionTimeoutSeconds()));
+
+        if (getDefaultRowFetchSize().isPresent()) {
+            props.setProperty("defaultRowFetchSize", getDefaultRowFetchSize().get().toString());
+        }
 
         return props;
     }

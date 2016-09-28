@@ -85,6 +85,8 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
         return false;
     }
 
+    public abstract Optional<Integer> getDefaultRowPrefetch();
+
     @Value.Default
     public ConnectionProtocol getProtocol() {
         return TCP;
@@ -111,6 +113,10 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
         props.setProperty("oracle.net.CONNECT_TIMEOUT", Long.toString(TimeUnit.SECONDS.toMillis(getConnectionTimeoutSeconds())));
 
         props.setProperty("oracle.jdbc.maxCachedBufferSize", "100000");
+
+        if (getDefaultRowPrefetch().isPresent()) {
+            props.setProperty("defaultRowPrefetch", getDefaultRowPrefetch().get().toString());
+        }
 
         if (getProtocol() == TCPS) {
             // Create the truststore
