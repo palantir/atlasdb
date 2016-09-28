@@ -22,6 +22,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.persistentlock.DeletionLock;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.time.Clock;
 import com.palantir.lock.LockClient;
@@ -109,8 +110,10 @@ public class DefaultCleanerBuilder {
     private Scrubber buildScrubber(Supplier<Long> unreadableTimestampSupplier,
                                    Supplier<Long> immutableTimestampSupplier) {
         ScrubberStore scrubberStore = KeyValueServiceScrubberStore.create(keyValueService);
+        DeletionLock deletionLock = new DeletionLock(keyValueService);
         return Scrubber.create(
                 keyValueService,
+                deletionLock,
                 scrubberStore,
                 Suppliers.ofInstance(backgroundScrubFrequencyMillis),
                 Suppliers.ofInstance(true),
