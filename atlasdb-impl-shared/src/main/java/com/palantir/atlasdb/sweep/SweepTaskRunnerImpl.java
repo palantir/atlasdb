@@ -54,6 +54,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.persistentlock.DeletionLock;
+import com.palantir.atlasdb.persistentlock.PersistentLockIsTakenException;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.sweepers.ConservativeSweeper;
 import com.palantir.atlasdb.sweep.sweepers.NothingSweeper;
@@ -116,6 +118,16 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             return SweepResults.createEmptySweepResult(0L);
         }
 
+        DeletionLock deletionLock = new DeletionLock(keyValueService);
+        try {
+            String reason = "Sweep for " + tableRef;
+            return deletionLock.runWithLock(() -> runSweepInternal(tableRef, batchSize, nullableStartRow), reason);
+        } catch (PersistentLockIsTakenException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private SweepResults runSweepInternal(TableReference tableRef, int batchSize, @Nullable byte[] nullableStartRow) {
         // Earliest start timestamp of any currently open transaction, with two caveats:
         // (1) unreadableTimestamps are calculated via wall-clock time, and so may not be correct
         //     under pathological clock conditions
