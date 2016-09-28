@@ -93,6 +93,21 @@ public class IndexDefinition extends AbstractDefinition {
         addComponent(IndexComponent.createFromDynamicColumn(new NameComponentDescription(componentName, valueType, valueByteOrder), sourceComponentName));
     }
 
+    /**
+     * Prefix the row with a hash of the first row component
+     * <p>
+     * This helps to ensure that rows are evenly distributed. In particular, using strings as the first row component
+     * will only cover the entire range of byte arrays because they're encode with UTF_8. In addition, using any
+     * variable-length {@link ValueType} as the first row component type will not work because they are prefixed by the
+     * length of the component. Finally, we can't use BLOB if there are multiple components because it must go at the
+     * end of the row
+     */
+    public void hashFirstRowComponent() {
+        Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
+        Preconditions.checkState(rowComponents.isEmpty(), "hashRowComponent must be the first row component");
+        hashFirstRowComponent = true;
+    }
+
     public void partition(RowNamePartitioner... partitioners) {
         Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
         IndexComponent last = rowComponents.get(rowComponents.size()-1);
@@ -179,6 +194,7 @@ public class IndexDefinition extends AbstractDefinition {
     }
 
     private State state = State.NONE;
+    private boolean hashFirstRowComponent = false;
     private String sourceTableName = null;
     private String javaIndexTableName = null;
     private List<IndexComponent> rowComponents = Lists.newArrayList();
@@ -228,7 +244,8 @@ public class IndexDefinition extends AbstractDefinition {
                     indexType,
                     sweepStrategy,
                     expirationStrategy,
-                    appendHeavyAndReadLight);
+                    appendHeavyAndReadLight,
+                    hashFirstRowComponent);
         } else {
             return IndexMetadata.createDynamicIndex(
                     indexTableName,
@@ -245,7 +262,8 @@ public class IndexDefinition extends AbstractDefinition {
                     indexType,
                     sweepStrategy,
                     expirationStrategy,
-                    appendHeavyAndReadLight);
+                    appendHeavyAndReadLight,
+                    hashFirstRowComponent);
         }
     }
 }
