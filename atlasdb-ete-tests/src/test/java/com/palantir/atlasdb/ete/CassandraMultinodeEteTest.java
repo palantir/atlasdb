@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.List;
@@ -27,6 +28,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -77,6 +79,13 @@ public class CassandraMultinodeEteTest {
     public static final RuleChain PREPARED_DOCKER_SETUP = RuleChain
             .outerRule(GRADLE_PREPARE_TASK)
             .around(MULTINODE_CASSANDRA_SETUP);
+
+    @Before
+    public void setUp() throws IOException, InterruptedException {
+        // Ensure that all nodes are up.
+        String container = CASSANDRA_NODES.get(0);
+        assertTrue(checkNodetoolStatus(MULTINODE_CASSANDRA_SETUP.containers().container(container), "UN", 3));
+    }
 
     @Test
     public void shouldRunTransactionsFastEnoughWithAllCassandraNodesUp()
