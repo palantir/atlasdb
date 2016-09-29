@@ -48,7 +48,6 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.docker.compose.execution.DockerComposeExecArgument;
 import com.palantir.docker.compose.execution.DockerComposeExecOption;
 import com.palantir.giraffe.command.Command;
-import com.palantir.giraffe.command.CommandResult;
 import com.palantir.giraffe.command.Commands;
 import com.palantir.giraffe.host.HostAccessors;
 import com.palantir.giraffe.host.HostControlSystem;
@@ -210,13 +209,9 @@ public class CassandraMultinodeEteTest {
 
     // Works on circle
     private Boolean checkNodetoolStatusWithGiraffe(String containerName, String status, int expectedNodeCount) {
-        HostControlSystem hcs = HostAccessors.getDefault().open();
-        Command command = hcs.getCommand(String.format(
-                "sudo lxc-attach -n \"$(docker inspect --format \"{{.Id}}\" %s)\" -- bash -c nodetool status",
-                containerName));
         try {
-            CommandResult cr = Commands.execute(command);
-            return StringUtils.countMatches(cr.getStdOut(), status) == expectedNodeCount;
+            String output = getNodetoolStatusWithGiraffe(containerName);
+            return StringUtils.countMatches(output, status) == expectedNodeCount;
         } catch (IOException e) {
             System.out.println("Failed to execute Giraffe command. Exception: " + e);
             return false;
@@ -226,10 +221,22 @@ public class CassandraMultinodeEteTest {
     // Works locally
     private Boolean checkNodetoolStatusWithDockerExec(Container container, String status, int expectedNodeCount)
             throws IOException, InterruptedException {
-        String nodetoolStatus = MULTINODE_CASSANDRA_SETUP.exec(
-                DockerComposeExecOption.options("-T"),
-                container.getContainerName(),
-                DockerComposeExecArgument.arguments("bash", "-c", "nodetool status | grep " + status));
+        String nodetoolStatus = getNodetoolStatusWithDockerExec(container.getContainerName());
         return StringUtils.countMatches(nodetoolStatus, status) == expectedNodeCount;
+    }
+
+    private String getNodetoolStatusWithGiraffe(String containerName) throws IOException {
+        HostControlSystem hcs = HostAccessors.getDefault().open();
+        Command command = hcs.getCommand(String.format(
+                "sudo lxc-attach -n \"$(docker inspect --format \"{{.Id}}\" %s)\" -- bash -c nodetool status",
+                containerName));
+        return Commands.execute(command).getStdOut();
+    }
+
+    private String getNodetoolStatusWithDockerExec(String containerName) throws IOException, InterruptedException {
+        return MULTINODE_CASSANDRA_SETUP.exec(
+                    DockerComposeExecOption.options("-T"),
+                    containerName,
+                    DockerComposeExecArgument.arguments("bash", "-c", "nodetool status"));
     }
 }
