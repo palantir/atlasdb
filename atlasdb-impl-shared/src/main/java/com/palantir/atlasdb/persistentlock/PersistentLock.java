@@ -76,7 +76,7 @@ public class PersistentLock {
         }, lock, reason);
     }
 
-    private LockEntry acquireLock(PersistentLockName lockName, String reason) throws PersistentLockIsTakenException {
+    public LockEntry acquireLock(PersistentLockName lockName, String reason) throws PersistentLockIsTakenException {
         long thisId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE);
         LockEntry lockEntry = LockEntry.of(lockName, thisId, reason);
 
@@ -85,13 +85,18 @@ public class PersistentLock {
         return verifyLockWasSuccessfullyAcquired(lockEntry);
     }
 
+    public void unlock(LockEntry lock) {
+        log.debug("Releasing persistent lock " + lock);
+        keyValueService.delete(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lock.deletionMapWithTimestamp(LOCKS_TIMESTAMP));
+    }
+
     private LockEntry verifyLockWasSuccessfullyAcquired(LockEntry lockEntry) throws PersistentLockIsTakenException {
-        List<LockEntry> relevantLocks = allRelevantLockRows(lockEntry.lockName());
+        List<LockEntry> relevantLocks = allRelevantLockEntries(lockEntry.lockName());
         if (onlyLockIsOurs(lockEntry, relevantLocks)) {
             log.debug("Acquired persistent lock " + lockEntry);
             return lockEntry;
         } else {
-            log.debug("Failed to acquire persistent lock " + lockEntry);
+            log.info("Failed to acquire persistent lock " + lockEntry);
             unlock(lockEntry);
 
             Optional<LockEntry> otherLock = relevantLocks.stream()
@@ -100,11 +105,6 @@ public class PersistentLock {
 
             throw new PersistentLockIsTakenException(otherLock);
         }
-    }
-
-    private void unlock(LockEntry lock) {
-        log.info("Releasing persistent lock " + lock);
-        keyValueService.delete(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lock.deletionMapWithTimestamp(LOCKS_TIMESTAMP));
     }
 
     private void insertLockEntry(LockEntry lockEntry) {
@@ -116,13 +116,18 @@ public class PersistentLock {
         return relevantLocks.size() == 1 && relevantLocks.get(0).equals(ourLock);
     }
 
-    private List<LockEntry> allRelevantLockRows(PersistentLockName lock) {
-        ImmutableList<RowResult<Value>> allLocks = ImmutableList.copyOf(keyValueService.getRange(
+    private List<LockEntry> allRelevantLockEntries(PersistentLockName lock) {
+        return allLockEntries().stream()
+                .filter(lockEntry -> lockEntry.lockName().equals(lock))
+                .collect(Collectors.toList());
+    }
+
+    public List<LockEntry> allLockEntries() {
+        List<RowResult<Value>> allLockRows = ImmutableList.copyOf(keyValueService.getRange(
                 AtlasDbConstants.PERSISTED_LOCKS_TABLE, RangeRequest.all(), LOCKS_TIMESTAMP + 1));
 
-        return allLocks.stream()
+        return allLockRows.stream()
                 .map(LockEntry::fromRowResult)
-                .filter(lockEntry -> lockEntry.lockName().equals(lock))
                 .collect(Collectors.toList());
     }
 

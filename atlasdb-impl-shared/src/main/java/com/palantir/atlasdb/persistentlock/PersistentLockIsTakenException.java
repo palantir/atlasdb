@@ -27,7 +27,10 @@ public class PersistentLockIsTakenException extends Exception {
     @Override
     public String getMessage() {
         if (otherLock.isPresent()) {
-            return "Lock " + otherLock.get().lockName() + "was already taken: " + otherLock.get().reason();
+            LockEntry otherLockEntry = otherLock.get();
+            return "Lock " + otherLockEntry.lockName().name()
+                    + " with id=" + otherLockEntry.lockId()
+                    + " was already taken: " + otherLockEntry.reason();
         } else {
             return "Could not register lock";
         }
