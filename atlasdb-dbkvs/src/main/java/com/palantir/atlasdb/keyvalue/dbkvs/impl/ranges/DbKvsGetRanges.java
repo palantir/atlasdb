@@ -77,7 +77,7 @@ public class DbKvsGetRanges {
     private final DBType dbType;
     private final Supplier<SqlConnection> connectionSupplier;
 
-    private static final ExecutorService service = PTExecutors.newFixedThreadPool(1);
+    private static final ExecutorService service = PTExecutors.newFixedThreadPool(20);
 
     public DbKvsGetRanges(
             DbKvs kvs,
