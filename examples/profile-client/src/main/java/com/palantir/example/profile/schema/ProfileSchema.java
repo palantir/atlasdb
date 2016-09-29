@@ -81,7 +81,7 @@ public class ProfileSchema implements AtlasSchema {
             rangeScanAllowed();
         }});
 
-        schema.addStreamStoreDefinition(new StreamStoreDefinitionBuilder("user_photos", "user_photos", ValueType.VAR_LONG).build());
+        schema.addStreamStoreDefinition(new StreamStoreDefinitionBuilder("user_photos", "user_photos", ValueType.FIXED_LONG).build());
 
         return schema;
     }

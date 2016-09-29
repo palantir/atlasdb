@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -184,7 +185,7 @@ public final class UserPhotosStreamValueTable implements
 
         @Override
         public byte[] persistToBytes() {
-            byte[] idBytes = EncodingUtils.encodeUnsignedVarLong(id);
+            byte[] idBytes = PtBytes.toBytes(Long.MIN_VALUE ^ id);
             byte[] blockIdBytes = EncodingUtils.encodeUnsignedVarLong(blockId);
             return EncodingUtils.add(idBytes, blockIdBytes);
         }
@@ -193,8 +194,8 @@ public final class UserPhotosStreamValueTable implements
             @Override
             public UserPhotosStreamValueRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(id);
+                Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                __index += 8;
                 Long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(blockId);
                 return new UserPhotosStreamValueRow(id, blockId);
@@ -662,6 +663,7 @@ public final class UserPhotosStreamValueTable implements
      * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
+     * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
@@ -721,7 +723,6 @@ public final class UserPhotosStreamValueTable implements
      * {@link Set}
      * {@link Sets}
      * {@link Sha256Hash}
-     * {@link BatchColumnRangeSelection}
      * {@link SortedMap}
      * {@link Supplier}
      * {@link TableReference}
@@ -732,5 +733,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "t58IjZtpdGvphNV/ppNVQg==";
+    static String __CLASS_HASH = "ZdSiNAMfgv0bvwYNkXUsJA==";
 }
