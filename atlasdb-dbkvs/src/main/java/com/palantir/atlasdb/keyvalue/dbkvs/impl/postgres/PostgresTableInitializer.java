@@ -33,7 +33,7 @@ public class PostgresTableInitializer implements DbTableInitializer {
     }
 
     @Override
-    public void createUtilityTables(String tablePrefix) {
+    public void createUtilityTables() {
         executeIgnoringError(
                 "CREATE TABLE dual (id BIGINT)",
                 "already exists"
@@ -45,7 +45,7 @@ public class PostgresTableInitializer implements DbTableInitializer {
     }
 
     @Override
-    public void createMetadataTable(TableReference metadataTable, String tablePrefix) {
+    public void createMetadataTable(TableReference metadataTable) {
         String metadataTableName = metadataTable.getQualifiedName();
         executeIgnoringError(
                 String.format(

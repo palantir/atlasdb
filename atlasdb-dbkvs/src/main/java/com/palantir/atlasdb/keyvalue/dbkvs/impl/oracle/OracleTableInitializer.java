@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableInitializer;
 import com.palantir.exception.PalantirSqlException;
@@ -27,15 +28,17 @@ public class OracleTableInitializer implements DbTableInitializer {
     private static final Logger log = LoggerFactory.getLogger(OracleTableInitializer.class);
 
     private final ConnectionSupplier connectionSupplier;
+    private final OracleDdlConfig config;
 
-    public OracleTableInitializer(ConnectionSupplier conns) {
+    public OracleTableInitializer(ConnectionSupplier conns, OracleDdlConfig config) {
         this.connectionSupplier = conns;
+        this.config = config;
     }
 
     @Override
-    public void createUtilityTables(String tablePrefix) {
+    public void createUtilityTables() {
         executeIgnoringError(
-                "CREATE TYPE " + tablePrefix + "CELL_TS AS OBJECT ("
+                "CREATE TYPE " + config.tablePrefix() + "CELL_TS AS OBJECT ("
                         + "row_name   RAW(2000),"
                         + "col_name   RAW(2000),"
                         + "max_ts     NUMBER(20)"
@@ -43,18 +46,19 @@ public class OracleTableInitializer implements DbTableInitializer {
                 "name is already used by an existing object");
 
         executeIgnoringError(
-                "CREATE TYPE " + tablePrefix + "CELL_TS_TABLE AS TABLE OF " + tablePrefix + "CELL_TS",
+                "CREATE TYPE " + config.tablePrefix() + "CELL_TS_TABLE AS TABLE OF " + config.tablePrefix() + "CELL_TS",
                 "name is already used by an existing object"
         );
 
         executeIgnoringError(
-                "CREATE SEQUENCE " + tablePrefix + "OVERFLOW_SEQ ",
+                "CREATE SEQUENCE " + config.tablePrefix() + "OVERFLOW_SEQ INCREMENT BY "
+                        + OverflowSequenceSupplier.OVERFLOW_ID_CACHE_SIZE,
                 "name is already used by an existing object");
     }
 
     @Override
-    public void createMetadataTable(TableReference metadataTable, String tablePrefix) {
-        final String metadataTableName = tablePrefix + metadataTable.getQualifiedName();
+    public void createMetadataTable(TableReference metadataTable) {
+        final String metadataTableName = config.tablePrefix() + metadataTable.getQualifiedName();
         executeIgnoringError(
                 String.format(
                         "CREATE TABLE %s ("

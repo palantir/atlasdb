@@ -52,7 +52,7 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbTableInitializer createInitializer(ConnectionSupplier conns) {
-        return new OracleTableInitializer(conns);
+        return new OracleTableInitializer(conns, config);
     }
 
     @Override

@@ -24,7 +24,6 @@ import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
@@ -64,7 +63,8 @@ public class OracleOverflowWriteTable implements DbWriteTable {
             if (val.length <= 2000) {
                 args.add(new Object[] { cell.getRowName(), cell.getColumnName(), ts, val, null });
             } else {
-                long overflowId = config.overflowIds().orElse(getOverflowSeqSupplier()).get();
+                long overflowId = config.overflowIds()
+                        .orElse(OverflowSequenceSupplier.getOverflowSeqSupplier(conns, config.tablePrefix())).get();
                 overflowArgs.add(new Object[] { overflowId, val });
                 args.add(new Object[] { cell.getRowName(), cell.getColumnName(), ts, null, overflowId });
             }
@@ -84,7 +84,8 @@ public class OracleOverflowWriteTable implements DbWriteTable {
                         cell.getRowName(), cell.getColumnName(), val.getTimestamp(), val.getContents(), null
                 });
             } else {
-                long overflowId = config.overflowIds().orElse(getOverflowSeqSupplier()).get();
+                long overflowId = config.overflowIds()
+                        .orElse(OverflowSequenceSupplier.getOverflowSeqSupplier(conns, config.tablePrefix())).get();
                 overflowArgs.add(new Object[] { overflowId, val.getContents() });
                 args.add(new Object[] {
                         cell.getRowName(), cell.getColumnName(), val.getTimestamp(), null, overflowId
@@ -205,13 +206,6 @@ public class OracleOverflowWriteTable implements DbWriteTable {
                 + "                    AND i.ts = ? "
                 + "                    AND i.overflow IS NOT NULL)",
                 args);
-    }
-
-    private Supplier<Long> getOverflowSeqSupplier() {
-        final int overflowSeq = conns.get().selectIntegerUnregisteredQuery(
-                "SELECT " + config.tablePrefix() + "OVERFLOW_SEQ.NEXTVAL FROM DUAL",
-                null);
-        return () -> (long) overflowSeq;
     }
 
     private String prefixedTableName() {

@@ -67,7 +67,11 @@ public class PostgresDbTableFactory implements DbTableFactory {
 
     @Override
     public DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns) {
-        return new BatchedDbReadTable(conns, new PostgresQueryFactory(DbKvs.internalTableName(tableRef), config), exec, config);
+        return new BatchedDbReadTable(
+                conns,
+                new PostgresQueryFactory(DbKvs.internalTableName(tableRef), config),
+                exec,
+                config);
     }
 
     @Override
