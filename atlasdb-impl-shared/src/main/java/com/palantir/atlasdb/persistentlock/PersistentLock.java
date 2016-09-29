@@ -16,13 +16,13 @@
 package com.palantir.atlasdb.persistentlock;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -51,7 +51,8 @@ public class PersistentLock {
 
     public <T> T runWithLock(
             Supplier<T> supplier,
-            PersistentLockName lock, String reason) throws PersistentLockIsTakenException {
+            PersistentLockName lock,
+            String reason) throws PersistentLockIsTakenException {
         LockEntry acquiredLock = acquireLock(lock, reason);
 
         try {
@@ -59,12 +60,13 @@ public class PersistentLock {
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         } finally {
-            unlock(acquiredLock);
+            releaseLock(acquiredLock);
         }
     }
 
     public void runWithLock(
-            Action action, PersistentLockName lock,
+            Action action,
+            PersistentLockName lock,
             String reason) throws PersistentLockIsTakenException {
         runWithLock(() -> {
             try {
@@ -77,43 +79,64 @@ public class PersistentLock {
     }
 
     public LockEntry acquireLock(PersistentLockName lockName, String reason) throws PersistentLockIsTakenException {
+        return acquireLock(lockName, reason, true);
+    }
+
+    public LockEntry acquireLock(PersistentLockName lockName, String reason, boolean exclusive) throws PersistentLockIsTakenException {
         long thisId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE);
-        LockEntry lockEntry = LockEntry.of(lockName, thisId, reason);
+        LockEntry lockEntry = LockEntry.of(lockName, thisId, reason, exclusive);
 
         insertLockEntry(lockEntry);
 
-        return verifyLockWasSuccessfullyAcquired(lockEntry);
+        return verifyLockWasAcquired(lockEntry);
     }
 
-    public void unlock(LockEntry lock) {
+    public void releaseLock(LockEntry lock) {
         log.debug("Releasing persistent lock " + lock);
         keyValueService.delete(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lock.deletionMapWithTimestamp(LOCKS_TIMESTAMP));
     }
 
-    private LockEntry verifyLockWasSuccessfullyAcquired(LockEntry lockEntry) throws PersistentLockIsTakenException {
-        List<LockEntry> relevantLocks = allRelevantLockEntries(lockEntry.lockName());
-        if (onlyLockIsOurs(lockEntry, relevantLocks)) {
-            log.debug("Acquired persistent lock " + lockEntry);
-            return lockEntry;
+    private LockEntry verifyLockWasAcquired(LockEntry desiredLock) throws PersistentLockIsTakenException {
+        List<LockEntry> relevantLocks = allRelevantLockEntries(desiredLock.lockName());
+        Preconditions.checkState(relevantLocks.contains(desiredLock), "Lock was not properly inserted");
+
+        List<LockEntry> conflictingLocks = removeSingleLock(desiredLock, relevantLocks);
+
+        if (!desiredLock.exclusive()) {
+            conflictingLocks = retainExclusiveLocks(conflictingLocks);
+        }
+        return verifyLockDoesNotConflict(desiredLock, conflictingLocks);
+    }
+
+    private List<LockEntry> retainExclusiveLocks(List<LockEntry> conflictingLocks) {
+        return conflictingLocks.stream()
+                .filter(LockEntry::exclusive)
+                .collect(Collectors.toList());
+    }
+
+    private List<LockEntry> removeSingleLock(LockEntry desiredLock, List<LockEntry> relevantLocks) {
+        return relevantLocks.stream()
+                .filter(otherLock -> !otherLock.equals(desiredLock))
+                .collect(Collectors.toList());
+    }
+
+    private LockEntry verifyLockDoesNotConflict(
+            LockEntry desiredLock,
+            List<LockEntry> conflictingLocks) throws PersistentLockIsTakenException {
+
+        if (conflictingLocks.isEmpty()) {
+            log.debug("Acquired persistent lock " + desiredLock);
+            return desiredLock;
         } else {
-            log.info("Failed to acquire persistent lock " + lockEntry);
-            unlock(lockEntry);
-
-            Optional<LockEntry> otherLock = relevantLocks.stream()
-                    .filter(otherLockEntry -> otherLockEntry.lockId() != lockEntry.lockId())
-                    .findFirst();
-
-            throw new PersistentLockIsTakenException(otherLock);
+            log.info("Failed to acquire persistent lock " + desiredLock);
+            releaseLock(desiredLock);
+            throw new PersistentLockIsTakenException(conflictingLocks);
         }
     }
 
     private void insertLockEntry(LockEntry lockEntry) {
         log.debug("Attempting to acquire persistent lock " + lockEntry);
         keyValueService.put(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.insertionMap(), LOCKS_TIMESTAMP);
-    }
-
-    private boolean onlyLockIsOurs(LockEntry ourLock, List<LockEntry> relevantLocks) {
-        return relevantLocks.size() == 1 && relevantLocks.get(0).equals(ourLock);
     }
 
     private List<LockEntry> allRelevantLockEntries(PersistentLockName lock) {
