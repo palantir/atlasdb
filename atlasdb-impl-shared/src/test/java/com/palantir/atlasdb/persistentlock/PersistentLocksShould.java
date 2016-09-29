@@ -130,7 +130,7 @@ public class PersistentLocksShould {
         persistentLock.runWithLock(NO_ACTION, deletionLock, REASON);
     }
 
-    @Test
+    @Test(timeout = 1000)
     public void forbidTwoProcessesFromRunningConcurrently()
             throws InterruptedException, ExecutionException, BrokenBarrierException {
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
