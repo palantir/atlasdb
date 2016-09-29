@@ -96,13 +96,13 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
                                             + ", limit in DB: " + oldLimit + "). This may indicate that "
                                             + "another timestamp service is running against this database!  "
                                             + "This may indicate that your services are not properly configured "
-                                            + "to run in an HA configuration.");
+                                            + "to run in an HA configuration, or to have a CLI run against them.");
                         }
                     } else {
                         // disappearance
                         throw new IllegalStateException(
                                 "Unable to retrieve a timestamp when expected. "
-                                        + "This service is is in a dangerous state and should be taken down "
+                                        + "This service is in a dangerous state and should be taken down "
                                         + "until a new safe timestamp value can be established in the KVS. "
                                         + "Please contact support.");
                     }
