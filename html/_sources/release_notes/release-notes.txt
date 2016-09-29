@@ -41,7 +41,7 @@ v0.17.0
     *    - Type
          - Change
 
-    *    - |new|
+    *    - |improved|
          - The schema mutation lock holder now writes a "heartbeat" to the database to indicate that it is still responsive.
            Other processes that are waiting for the schema mutation lock will now be able to see this heartbeat, infer that the lock holder is still working, and wait for longer.
            This should reduce the need to manually truncate the locks table.
