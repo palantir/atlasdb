@@ -124,7 +124,9 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
 
         try {
             String reason = "Sweep for " + tableRef;
-            return deletionLock.runWithLock(() -> runSweepInternal(tableRef, batchSize, nullableStartRow), reason);
+            return deletionLock.runWithLockNonExclusively(
+                    () -> runSweepInternal(tableRef, batchSize, nullableStartRow),
+                    reason);
         } catch (PersistentLockIsTakenException e) {
             throw new RuntimeException(e);
         }
