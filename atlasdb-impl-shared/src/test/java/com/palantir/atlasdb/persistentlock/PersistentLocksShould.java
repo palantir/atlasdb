@@ -93,7 +93,7 @@ public class PersistentLocksShould {
 
     @Test
     public void successfullyGrabLockAfterItWasReleased() throws PersistentLockIsTakenException {
-        KeyValueService keyValueService = spy(new InMemoryKeyValueService(false));
+        KeyValueService keyValueService = new InMemoryKeyValueService(false);
         PersistentLock persistentLock = new PersistentLock(keyValueService);
 
         persistentLock.runWithLock(NO_ACTION, PersistentLockName.of("deletionLock"), REASON);
@@ -118,7 +118,7 @@ public class PersistentLocksShould {
 
     @Test
     public void throwIfLockAlreadyExists() throws PersistentLockIsTakenException {
-        KeyValueService keyValueService = spy(new InMemoryKeyValueService(false));
+        KeyValueService keyValueService = new InMemoryKeyValueService(false);
         PersistentLock persistentLock = new PersistentLock(keyValueService);
         PersistentLockName deletionLock = PersistentLockName.of("deletionLock");
         LockEntry existingLock = LockEntry.of(PersistentLockName.of("deletionLock"), 4321, REASON);
@@ -133,7 +133,7 @@ public class PersistentLocksShould {
     @Test
     public void forbidTwoProcessesFromRunningConcurrently()
             throws InterruptedException, ExecutionException, BrokenBarrierException {
-        KeyValueService keyValueService = spy(new InMemoryKeyValueService(false));
+        KeyValueService keyValueService = new InMemoryKeyValueService(false);
         PersistentLock persistentLock = new PersistentLock(keyValueService);
         PersistentLockName deletionLock = PersistentLockName.of("deletionLock");
 
@@ -161,5 +161,36 @@ public class PersistentLocksShould {
 
         semaphore.release();
         keepLockForever.get();
+    }
+
+    @Test
+    public void allowNonExclusiveLocksToBeTakenOutConcurrently() throws PersistentLockIsTakenException {
+        KeyValueService keyValueService = new InMemoryKeyValueService(false);
+        PersistentLock persistentLock = new PersistentLock(keyValueService);
+
+        persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, false);
+        persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, false);
+    }
+
+    @Test
+    public void forbidExclusiveLockIfNonExlusiveLockIsTaken() throws PersistentLockIsTakenException {
+        KeyValueService keyValueService = new InMemoryKeyValueService(false);
+        PersistentLock persistentLock = new PersistentLock(keyValueService);
+
+        persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, false);
+
+        expectedException.expect(PersistentLockIsTakenException.class);
+        persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, true);
+    }
+
+    @Test
+    public void forbidNonExclusiveLockIfExclusiveLockIsTaken() throws PersistentLockIsTakenException {
+        KeyValueService keyValueService = new InMemoryKeyValueService(false);
+        PersistentLock persistentLock = new PersistentLock(keyValueService);
+
+        persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, true);
+
+        expectedException.expect(PersistentLockIsTakenException.class);
+        persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, false);
     }
 }

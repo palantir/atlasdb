@@ -93,7 +93,7 @@ public class PersistentLockCommand extends SingleBackendCommand {
 
     private int releaseLock(PersistentLock persistentLock, String lockName, long lockId) {
         LockEntry lockToRelease = LockEntry.of(PersistentLockName.of(lockName), lockId);
-        persistentLock.unlock(lockToRelease);
+        persistentLock.releaseLock(lockToRelease);
         log.info("This persistent lock is now released: " + lockToRelease);
         return 0;
     }
