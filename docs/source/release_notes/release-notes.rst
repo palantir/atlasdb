@@ -42,14 +42,14 @@ v0.17.0
          - Change
 
     *    - |new|
-         - The thread that currently holds the schema mutation lock now writes a "heartbeat" to the database, to
-           indicate that it is still responsive. Other processes that are waiting for the schema mutation lock will
-           now be able to see this heartbeat, infer that the lock holder is still working, and wait for longer.
+         - The schema mutation lock holder now writes a "heartbeat" to the database to indicate that it is still responsive.
+           Other processes that are waiting for the schema mutation lock will now be able to see this heartbeat, infer that the lock holder is still working, and wait for longer.
            This should reduce the need to manually truncate the locks table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/934>`__)
 
     *    - |new|
-         - ``hashFirstRowComponent`` can now be used on index definitions as well.
+         - ``hashFirstRowComponent`` can now be used on index definitions to prevent hotspotting when creating schemas.
+           For more information on using ``hashFirstRowComponent``, see the :ref:`Partitioners <tables-and-indices-partitioners>` documentation.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/986>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
