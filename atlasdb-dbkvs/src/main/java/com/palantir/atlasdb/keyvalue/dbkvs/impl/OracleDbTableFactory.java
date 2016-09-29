@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
@@ -34,6 +35,8 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 public class OracleDbTableFactory implements DbTableFactory {
     private final Cache<String, TableSize> tableSizeByTableName = CacheBuilder.newBuilder().build();
     private final OracleDdlConfig config;
+    private final Cache<String, Boolean> queryOptimizerCache =
+            CacheBuilder.newBuilder().expireAfterWrite(3, TimeUnit.HOURS).build();
 
     public OracleDbTableFactory(OracleDdlConfig config) {
         this.config = config;
@@ -79,7 +82,8 @@ public class OracleDbTableFactory implements DbTableFactory {
             default:
                 throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
         }
-        return new UnbatchedDbReadTable(conns, queryFactory);
+        return new QueryOptimizingReadTable(new UnbatchedDbReadTable(conns, queryFactory),
+                tableName, queryOptimizerCache);
     }
 
     @Override
