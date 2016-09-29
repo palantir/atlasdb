@@ -375,7 +375,7 @@ range results are iterated in ascending order. If you need to access
 rows in reverse order, then adding the <code class="docutils literal"><span class="pre">ValueByteOrder.DESCENDING</span></code>
 argument will store them in descending order instead.</p>
 <div class="section" id="partitioners">
-<h4>Partitioners<a class="headerlink" href="#partitioners" title="Permalink to this headline">¶</a></h4>
+<span id="tables-and-indices-partitioners"></span><h4>Partitioners<a class="headerlink" href="#partitioners" title="Permalink to this headline">¶</a></h4>
 <p>Each row component, after being defined, may then have a partitioner
 specified on them. The partitioner is responsible for split the space of
 possible values for each row component into a number of ranges. Rows are
