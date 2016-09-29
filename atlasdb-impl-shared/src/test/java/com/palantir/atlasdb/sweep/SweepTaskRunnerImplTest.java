@@ -30,7 +30,6 @@ import static org.mockito.Mockito.when;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.junit.Rule;
@@ -331,7 +330,7 @@ public class SweepTaskRunnerImplTest {
     public void throwIfDeletionLockIsTaken() throws PersistentLockIsTakenException {
         TableReference tableReference = TableReference.createWithEmptyNamespace("someTable");
         int batchSize = 10;
-        when(mockDeletionLock.runWithLock(any(Supplier.class), anyString())).thenThrow(
+        when(mockDeletionLock.runWithLockNonExclusively(any(Supplier.class), anyString())).thenThrow(
                 new PersistentLockIsTakenException(ImmutableList.of()));
         when(mockKvs.getMetadataForTable(tableReference)).thenReturn(new byte[1]);
 

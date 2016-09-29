@@ -33,7 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.Throwables;
 
 public class PersistentLock {
-    public static final long LOCKS_TIMESTAMP = 0L;
+    private static final long LOCKS_TIMESTAMP = 0L;
 
     private static final Logger log = LoggerFactory.getLogger(PersistentLock.class);
 
@@ -53,7 +53,36 @@ public class PersistentLock {
             Supplier<T> supplier,
             PersistentLockName lock,
             String reason) throws PersistentLockIsTakenException {
-        LockEntry acquiredLock = acquireLock(lock, reason);
+        return runWithLockInternal(supplier, lock, reason, true);
+    }
+
+    public void runWithLock(
+            Action action,
+            PersistentLockName lock,
+            String reason) throws PersistentLockIsTakenException {
+        runWithLockInternal(action, lock, reason, true);
+    }
+
+    public <T> T runWithLockNonExclusively(
+            Supplier<T> supplier,
+            PersistentLockName lock,
+            String reason) throws PersistentLockIsTakenException {
+        return runWithLockInternal(supplier, lock, reason, false);
+    }
+
+    public void runWithLockNonExclusively(
+            Action action,
+            PersistentLockName lock,
+            String reason) throws PersistentLockIsTakenException {
+        runWithLockInternal(action, lock, reason, false);
+    }
+
+    private <T> T runWithLockInternal(
+            Supplier<T> supplier,
+            PersistentLockName lock,
+            String reason,
+            boolean exclusive) throws PersistentLockIsTakenException {
+        LockEntry acquiredLock = acquireLock(lock, reason, exclusive);
 
         try {
             return supplier.get();
@@ -64,25 +93,27 @@ public class PersistentLock {
         }
     }
 
-    public void runWithLock(
+    private void runWithLockInternal(
             Action action,
             PersistentLockName lock,
-            String reason) throws PersistentLockIsTakenException {
-        runWithLock(() -> {
+            String reason,
+            boolean exclusive) throws PersistentLockIsTakenException {
+        runWithLockInternal(() -> {
             try {
                 action.execute();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
             return null;
-        }, lock, reason);
+        }, lock, reason, exclusive);
     }
 
     public LockEntry acquireLock(PersistentLockName lockName, String reason) throws PersistentLockIsTakenException {
         return acquireLock(lockName, reason, true);
     }
 
-    public LockEntry acquireLock(PersistentLockName lockName, String reason, boolean exclusive) throws PersistentLockIsTakenException {
+    public LockEntry acquireLock(
+            PersistentLockName lockName, String reason, boolean exclusive) throws PersistentLockIsTakenException {
         long thisId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE);
         LockEntry lockEntry = LockEntry.of(lockName, thisId, reason, exclusive);
 

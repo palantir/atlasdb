@@ -18,7 +18,6 @@ package com.palantir.atlasdb.persistentlock;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Optional;
 
 import org.immutables.value.Value;
 
@@ -66,7 +65,9 @@ public abstract class LockEntry {
         return ImmutableLockEntry.of(extractLockName(rowName), extractLockId(rowName), reason, exclusive);
     }
 
-    public static String valueOfColumnInRow(String columnName, RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
+    public static String valueOfColumnInRow(
+            String columnName,
+            RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
         Cell columnCell = rowResult.getCellSet().stream()
                 .filter(cell -> Arrays.equals(cell.getColumnName(), asUtf8Bytes(columnName)))
                 .findFirst()
