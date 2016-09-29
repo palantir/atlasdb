@@ -156,11 +156,6 @@
 scripts. These scripts can be used to help automate common maintance
 tasks as well as help resolve problems encountered during operation.</p>
 </div>
-<div class="section" id="writing-your-own">
-<h2>Writing Your Own<a class="headerlink" href="#writing-your-own" title="Permalink to this headline">¶</a></h2>
-<p>You can write a new CLI by extending <code class="docutils literal"><span class="pre">SingleBackendCommand.java</span></code> which
-offers default AtlasDB configuration and connection out of the box.</p>
-</div>
 <div class="section" id="compiling-the-cli">
 <h2>Compiling The CLI<a class="headerlink" href="#compiling-the-cli" title="Permalink to this headline">¶</a></h2>
 <p>Right now, the best way to get the CLI is by cloning the atlasdb source code and running:</p>
@@ -183,6 +178,18 @@ For more information, check out <a class="reference internal" href="sweep/sweep-
 <h3>timestamp<a class="headerlink" href="#timestamp" title="Permalink to this headline">¶</a></h3>
 <p>Read or recalculate the immutable timestamp. Run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">timestamp</span></code> for more information.</p>
 </div>
+<div class="section" id="migrate">
+<h3>migrate<a class="headerlink" href="#migrate" title="Permalink to this headline">¶</a></h3>
+<p>This cli can help you migrate your AtlasDB client product from one KVS to another.
+You will need to supply two different KVS configurations to the script.
+In the general case you first call <code class="docutils literal"><span class="pre">–-setup</span></code>, then <code class="docutils literal"><span class="pre">-–migrate</span></code>, then <code class="docutils literal"><span class="pre">-–validate</span></code> each time supplying the old and new configurations.
+For more information run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">migrate</span></code> for more information.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
+./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml --migrate
+./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml --validate
+</pre></div>
+</div>
+</div>
 </div>
 <div class="section" id="offline-clis">
 <span id="id1"></span><h2>Offline CLIs<a class="headerlink" href="#offline-clis" title="Permalink to this headline">¶</a></h2>
@@ -202,6 +209,11 @@ Once the CLI has completed, you can resume your AtlasDB clients.</p>
 <h3>Running commands without any servers being up<a class="headerlink" href="#running-commands-without-any-servers-being-up" title="Permalink to this headline">¶</a></h3>
 <p>If you want a command to run without any servers being up, you can either use the <code class="docutils literal"><span class="pre">--offline</span></code> flag, or pass in a configuration file without leader, lock, or timestamp blocks. Either option will start an embedded timestamp and lock server.</p>
 </div>
+</div>
+<div class="section" id="writing-your-own">
+<h2>Writing Your Own<a class="headerlink" href="#writing-your-own" title="Permalink to this headline">¶</a></h2>
+<p>You can write a new CLI by extending <code class="docutils literal"><span class="pre">SingleBackendCommand.java</span></code> which
+offers default AtlasDB configuration and connection out of the box.</p>
 </div>
 </div>
 
