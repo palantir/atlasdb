@@ -53,18 +53,18 @@ public class QueryOptimizingReadTable implements DbReadTable {
             ColumnSelection columns,
             long ts,
             boolean includeValue) {
-        return hasManyOverwrites() ?
-                delegate.getLatestRows(rows, columns, ts, includeValue) :
-                trace(delegate.getAllRows(rows, columns, ts, includeValue));
+        return hasManyOverwrites()
+                ? delegate.getLatestRows(rows, columns, ts, includeValue)
+                : trace(delegate.getAllRows(rows, columns, ts, includeValue));
     }
 
     @Override
     public ClosableIterator<AgnosticLightResultRow> getLatestRows(Map<byte[], Long> rows,
             ColumnSelection columns,
             boolean includeValue) {
-        return hasManyOverwrites() ?
-                delegate.getLatestRows(rows, columns, includeValue) :
-                trace(delegate.getAllRows(rows, columns, includeValue));
+        return hasManyOverwrites()
+                ? delegate.getLatestRows(rows, columns, includeValue)
+                : trace(delegate.getAllRows(rows, columns, includeValue));
     }
 
     @Override
@@ -86,17 +86,17 @@ public class QueryOptimizingReadTable implements DbReadTable {
     public ClosableIterator<AgnosticLightResultRow> getLatestCells(Iterable<Cell> cells,
             long ts,
             boolean includeValue) {
-        return hasManyOverwrites() ?
-                delegate.getLatestCells(cells, ts, includeValue) :
-                trace(delegate.getAllCells(cells, ts, includeValue));
+        return hasManyOverwrites()
+                ? delegate.getLatestCells(cells, ts, includeValue)
+                : trace(delegate.getAllCells(cells, ts, includeValue));
     }
 
     @Override
     public ClosableIterator<AgnosticLightResultRow> getLatestCells(Map<Cell, Long> cells,
             boolean includeValue) {
-        return hasManyOverwrites() ?
-                delegate.getLatestCells(cells, includeValue) :
-                trace(delegate.getAllCells(cells, includeValue));
+        return hasManyOverwrites()
+                ? delegate.getLatestCells(cells, includeValue)
+                : trace(delegate.getAllCells(cells, includeValue));
     }
 
     @Override
