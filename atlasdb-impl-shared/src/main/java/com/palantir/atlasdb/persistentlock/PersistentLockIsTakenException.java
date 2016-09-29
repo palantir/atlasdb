@@ -15,24 +15,18 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
-import java.util.Optional;
+import java.util.List;
 
 public class PersistentLockIsTakenException extends Exception {
-    private final Optional<LockEntry> otherLock;
+    private final List<LockEntry> conflictingLocks;
 
-    public PersistentLockIsTakenException(Optional<LockEntry> otherLock) {
-        this.otherLock = otherLock;
+    public PersistentLockIsTakenException(List<LockEntry> conflictingLocks) {
+        this.conflictingLocks = conflictingLocks;
     }
 
     @Override
     public String getMessage() {
-        if (otherLock.isPresent()) {
-            LockEntry otherLockEntry = otherLock.get();
-            return "Lock " + otherLockEntry.lockName().name()
-                    + " with id=" + otherLockEntry.lockId()
-                    + " was already taken: " + otherLockEntry.reason();
-        } else {
-            return "Could not register lock";
-        }
+        return "Could not acquire the requested lock because it conflicts with the following other lock(s): "
+                + conflictingLocks;
     }
 }

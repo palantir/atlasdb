@@ -16,7 +16,9 @@
 package com.palantir.atlasdb.persistentlock;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 
 import org.immutables.value.Value;
 
@@ -29,6 +31,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 @Value.Immutable
 public abstract class LockEntry {
     public static final String DELIMITER = "_";
+    public static final String REASON_FOR_LOCK_COLUMN = "reasonForLock";
+    public static final String EXCLUSIVE_COLUMN = "exclusive";
 
     @Value.Parameter
     public abstract PersistentLockName lockName();
@@ -39,8 +43,15 @@ public abstract class LockEntry {
     @Value.Parameter
     public abstract String reason();
 
+    @Value.Parameter
+    public abstract boolean exclusive();
+
+    public static LockEntry of(PersistentLockName lockName, long lockId, String reason, boolean exclusive) {
+        return ImmutableLockEntry.of(lockName, lockId, reason, exclusive);
+    }
+
     public static LockEntry of(PersistentLockName lockName, long lockId, String reason) {
-        return ImmutableLockEntry.of(lockName, lockId, reason);
+        return ImmutableLockEntry.of(lockName, lockId, reason, true);
     }
 
     public static LockEntry of(PersistentLockName lockName, long lockId) {
@@ -49,31 +60,58 @@ public abstract class LockEntry {
 
     public static LockEntry fromRowResult(RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
         String rowName = new String(rowResult.getRowName(), StandardCharsets.UTF_8);
-        String reason = new String(rowResult.getOnlyColumnValue().getContents(), StandardCharsets.UTF_8);
+        String reason = valueOfColumnInRow(REASON_FOR_LOCK_COLUMN, rowResult);
+        boolean exclusive = Boolean.parseBoolean(valueOfColumnInRow(EXCLUSIVE_COLUMN, rowResult));
 
-        return ImmutableLockEntry.of(extractLockName(rowName), extractLockId(rowName), reason);
+        return ImmutableLockEntry.of(extractLockName(rowName), extractLockId(rowName), reason, exclusive);
+    }
+
+    public static String valueOfColumnInRow(String columnName, RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
+        Cell columnCell = rowResult.getCellSet().stream()
+                .filter(cell -> Arrays.equals(cell.getColumnName(), asUtf8Bytes(columnName)))
+                .findFirst()
+                .get();
+
+        byte[] contents = rowResult.getColumns().get(columnCell.getColumnName()).getContents();
+        return asString(contents);
     }
 
     public Map<Cell, byte[]> insertionMap() {
-        return ImmutableMap.of(lockTableCell(), asUtf8(reason()));
+        return ImmutableMap.of(
+                reasonCell(), asUtf8Bytes(reason()),
+                exclusiveCell(), asUtf8Bytes(Boolean.toString(exclusive())));
     }
 
     public Multimap<Cell, Long> deletionMapWithTimestamp(long timestamp) {
-        return ImmutableMultimap.of(lockTableCell(), timestamp);
+        return ImmutableMultimap.of(
+                reasonCell(), timestamp,
+                exclusiveCell(), timestamp);
     }
 
-    private Cell lockTableCell() {
-        byte[] rowName = makeLockRowName(lockName(), lockId());
-        byte[] columnName = asUtf8("reasonForLock");
-        return Cell.create(rowName, columnName);
+    private Cell reasonCell() {
+        return makeColumnCell(REASON_FOR_LOCK_COLUMN);
+    }
+
+    private Cell exclusiveCell() {
+        return makeColumnCell(EXCLUSIVE_COLUMN);
+    }
+
+    private Cell makeColumnCell(String columnName) {
+        byte[] rowBytes = makeLockRowName(lockName(), lockId());
+        byte[] columnBytes = asUtf8Bytes(columnName);
+        return Cell.create(rowBytes, columnBytes);
     }
 
     private byte[] makeLockRowName(PersistentLockName lock, long thisId) {
-        return asUtf8(lock.name() + DELIMITER + thisId);
+        return asUtf8Bytes(lock.name() + DELIMITER + thisId);
     }
 
-    private byte[] asUtf8(String value) {
+    private static byte[] asUtf8Bytes(String value) {
         return value.getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static String asString(byte[] value) {
+        return new String(value, StandardCharsets.UTF_8);
     }
 
     private static PersistentLockName extractLockName(String rowName) {

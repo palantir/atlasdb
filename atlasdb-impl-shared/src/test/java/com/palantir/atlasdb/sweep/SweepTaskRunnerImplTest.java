@@ -309,7 +309,7 @@ public class SweepTaskRunnerImplTest {
         int rowBatchSize = 10;
         int cellBatchSize = 1000;
         when(mockDeletionLock.runWithLock(any(Supplier.class), anyString())).thenThrow(
-                new PersistentLockIsTakenException(Optional.empty()));
+                new PersistentLockIsTakenException(ImmutableList.of()));
         when(mockKvs.getMetadataForTable(tableReference)).thenReturn(new byte[1]);
 
         expectedException.expect(RuntimeException.class);
