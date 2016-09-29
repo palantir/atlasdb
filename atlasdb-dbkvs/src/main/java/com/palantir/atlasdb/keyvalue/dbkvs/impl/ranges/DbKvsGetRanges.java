@@ -100,7 +100,7 @@ public class DbKvsGetRanges {
 
         List<Future<Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>>>
                 futures = Lists.newArrayList();
-        for (List<RangeRequest> batch : Iterables.partition(rangeRequests, 1)) {
+        for (List<RangeRequest> batch : Iterables.partition(rangeRequests, 25)) {
             futures.add(service.submit(() ->
                     getFirstPages(tableRef, batch, timestamp)));
         }
