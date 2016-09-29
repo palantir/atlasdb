@@ -33,7 +33,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 
-public class TestPostgresConfigLoading {
+public class PostgresConfigLoadingTest {
     @Test
     public void testLoadingConfig() throws IOException {
         getPostgresTestConfig();
