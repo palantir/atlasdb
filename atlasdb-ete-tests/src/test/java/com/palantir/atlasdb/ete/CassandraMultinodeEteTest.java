@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +34,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -83,7 +83,9 @@ public class CassandraMultinodeEteTest {
     public void setUp() throws IOException, InterruptedException {
         // Ensure that all nodes are up.
         String container = CASSANDRA_NODES.get(0);
-        assertTrue(checkNodetoolStatus(MULTINODE_CASSANDRA_SETUP.containers().container(container), "UN", 3));
+        assertTrue(
+                verifyCorrectNumberOfNodesHaveStatus(MULTINODE_CASSANDRA_SETUP.containers().container(container), 3,
+                        "UN"));
     }
 
     @Test
@@ -121,7 +123,7 @@ public class CassandraMultinodeEteTest {
 
     private static <T> T createClientFor(Class<T> clazz, DockerPort port) {
         String uri = port.inFormat("http://$HOST:$EXTERNAL_PORT");
-        return AtlasDbHttpClients.createProxy(Optional.absent(), uri, clazz);
+        return AtlasDbHttpClients.createProxy(com.google.common.base.Optional.absent(), uri, clazz);
     }
 
     private void assertAddTodoTransactionIsFastEnough(TodoResource clientToSingleNode, String description,
@@ -194,49 +196,52 @@ public class CassandraMultinodeEteTest {
                 .pollInterval(5, TimeUnit.SECONDS)
                 .until(() -> {
                     try {
-                        return checkNodetoolStatus(container, status, expectedNodeCount);
+                        return verifyCorrectNumberOfNodesHaveStatus(container, expectedNodeCount, status);
                     } catch (Exception e) {
                         return false;
                     }
                 });
     }
 
-    private Boolean checkNodetoolStatus(Container container, String status, int expectedNodeCount)
+    private Boolean verifyCorrectNumberOfNodesHaveStatus(Container container, int expectedNodeCount, String status)
             throws IOException, InterruptedException {
-        return checkNodetoolStatusWithGiraffe(container.getContainerName(), status, expectedNodeCount)
-            || checkNodetoolStatusWithDockerExec(container, status, expectedNodeCount);
+        Optional<String> nodetoolStatus = getNodetoolStatus(container.getContainerName());
+        return nodetoolStatus.isPresent()
+                && StringUtils.countMatches(nodetoolStatus.get(), status) == expectedNodeCount;
     }
 
-    // Works on circle
-    private Boolean checkNodetoolStatusWithGiraffe(String containerName, String status, int expectedNodeCount) {
-        try {
-            String output = getNodetoolStatusWithGiraffe(containerName);
-            return StringUtils.countMatches(output, status) == expectedNodeCount;
-        } catch (IOException e) {
-            System.out.println("Failed to execute Giraffe command. Exception: " + e);
-            return false;
+    private Optional<String> getNodetoolStatus(String containerName) {
+        Optional<String> giraffeStatus = getNodetoolStatusWithGiraffe(containerName);
+        if (giraffeStatus.isPresent()) {
+            return giraffeStatus;
+        } else {
+            return getNodetoolStatusWithDockerExec(containerName);
         }
     }
 
-    // Works locally
-    private Boolean checkNodetoolStatusWithDockerExec(Container container, String status, int expectedNodeCount)
-            throws IOException, InterruptedException {
-        String nodetoolStatus = getNodetoolStatusWithDockerExec(container.getContainerName());
-        return StringUtils.countMatches(nodetoolStatus, status) == expectedNodeCount;
-    }
-
-    private String getNodetoolStatusWithGiraffe(String containerName) throws IOException {
+    private Optional<String> getNodetoolStatusWithGiraffe(String containerName) {
         HostControlSystem hcs = HostAccessors.getDefault().open();
         Command command = hcs.getCommand(String.format(
                 "sudo lxc-attach -n \"$(docker inspect --format \"{{.Id}}\" %s)\" -- bash -c nodetool status",
                 containerName));
-        return Commands.execute(command).getStdOut();
+
+        try {
+            return Optional.of(Commands.execute(command).getStdOut());
+        } catch (IOException e) {
+            System.out.println("Error when getting nodetool status via giraffe: " + e);
+            return Optional.empty();
+        }
     }
 
-    private String getNodetoolStatusWithDockerExec(String containerName) throws IOException, InterruptedException {
-        return MULTINODE_CASSANDRA_SETUP.exec(
-                    DockerComposeExecOption.options("-T"),
-                    containerName,
-                    DockerComposeExecArgument.arguments("bash", "-c", "nodetool status"));
+    private Optional<String> getNodetoolStatusWithDockerExec(String containerName) {
+        try {
+            return Optional.of(MULTINODE_CASSANDRA_SETUP.exec(
+                        DockerComposeExecOption.options("-T"),
+                        containerName,
+                        DockerComposeExecArgument.arguments("bash", "-c", "nodetool status | grep UN")));
+        } catch (IOException | InterruptedException e) {
+            System.out.println("Error when getting nodetool status via docker-exec: " + e);
+            return Optional.empty();
+        }
     }
 }
