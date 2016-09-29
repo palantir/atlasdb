@@ -41,15 +41,19 @@ timestamp
 
 Read or recalculate the immutable timestamp. Run ``./bin/atlasdb help timestamp`` for more information.
 
-kvs migration
--------------
-This cli can help you migrate your AtlasDB client product from one KVS to another.  You will need to supply two different KVS configurations to the script.  In the general case you first call –setup, then –migrate, then –validate each time supplying the old and new configurations.  For more information run ``./bin/atlasdb help migrate`` for more information.
+migrate
+-------
+
+This cli can help you migrate your AtlasDB client product from one KVS to another.
+You will need to supply two different KVS configurations to the script.
+In the general case you first call ``–-setup``, then ``-–migrate``, then ``-–validate`` each time supplying the old and new configurations.
+For more information run ``./bin/atlasdb help migrate`` for more information.
  
 .. code-block:: bash
 
-     ./bin/atlasdb migrate –fc from-yaml –mc to-yaml –s
-     ./bin/atlasdb migrate –fc from-yaml –mc to-yaml -m
-     ./bin/atlasdb migrate –fc from-yaml –mc to-yaml -v
+     ./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
+     ./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml --migrate
+     ./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml --validate
 
 .. _offline-clis:
 
