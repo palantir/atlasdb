@@ -52,7 +52,7 @@ import com.palantir.giraffe.command.Commands;
 import com.palantir.giraffe.host.HostAccessors;
 import com.palantir.giraffe.host.HostControlSystem;
 
-public class CassandraMultinodeEteTest {
+public class CassandraMultinodeHaTest {
     private static final Gradle GRADLE_PREPARE_TASK =
             Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
 
