@@ -523,9 +523,10 @@ public final class Scrubber {
             long scrubTimestamp,
             Transaction.TransactionType transactionType) {
         try {
-            deletionLock.runWithLockNonExclusively(
-                    () -> scrubCellsInternal(txManager, tableNameToCells, scrubTimestamp, transactionType),
-                    "Scrub");
+            deletionLock.runWithLockNonExclusively(() -> {
+                scrubCellsInternal(txManager, tableNameToCells, scrubTimestamp, transactionType);
+                return null;
+            }, "Scrub");
         } catch (PersistentLockIsTakenException e) {
             throw new RuntimeException(e);
         }
