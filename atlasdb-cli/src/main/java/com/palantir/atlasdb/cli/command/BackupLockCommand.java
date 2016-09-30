@@ -47,7 +47,10 @@ public class BackupLockCommand extends SingleBackendCommand {
         DeletionLock deletionLock = new DeletionLock(keyValueService);
 
         try {
-            deletionLock.runWithLock(() -> blockOnConsoleInput(console), "Backup lock CLI");
+            deletionLock.runWithLock(() -> {
+                blockOnConsoleInput(console);
+                return null;
+            }, "Backup lock CLI");
             return 0;
         } catch (PersistentLockIsTakenException e) {
             log.error("Another process is performing deletes. "
