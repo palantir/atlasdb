@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableInitializer;
@@ -57,8 +56,7 @@ public class OracleTableInitializer implements DbTableInitializer {
     }
 
     @Override
-    public void createMetadataTable(TableReference metadataTable) {
-        final String metadataTableName = config.tablePrefix() + metadataTable.getQualifiedName();
+    public void createMetadataTable() {
         executeIgnoringError(
                 String.format(
                         "CREATE TABLE %s ("
@@ -67,13 +65,13 @@ public class OracleTableInitializer implements DbTableInitializer {
                                 + "value      LONG RAW NULL,"
                                 + "CONSTRAINT pk_%s PRIMARY KEY (table_name)"
                                 + ")",
-                        metadataTableName, metadataTableName),
+                        config.metadataTableName(), config.metadataTableName()),
                 "name is already used by an existing object");
 
         executeIgnoringError(
                 String.format(
                         "CREATE UNIQUE INDEX unique_%s_index ON %s (lower(table_name))",
-                        metadataTableName, metadataTableName),
+                        config.metadataTableName(), config.metadataTableName()),
                 "name is already used by an existing object");
     }
 

@@ -90,9 +90,8 @@ public class OracleDbTableFactory implements DbTableFactory {
             return tableSizeByTableName.get(tableRef.getQualifiedName(), new Callable<TableSize>() {
                 @Override
                 public TableSize call() {
-                    String metadataTableName = config.tablePrefix() + config.metadataTable().getQualifiedName();
                     AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
-                            String.format("SELECT table_size FROM %s WHERE table_name = ?", metadataTableName),
+                            String.format("SELECT table_size FROM %s WHERE table_name = ?", config.metadataTableName()),
                             tableRef.getQualifiedName());
                     Preconditions.checkArgument(
                             !results.rows().isEmpty(),

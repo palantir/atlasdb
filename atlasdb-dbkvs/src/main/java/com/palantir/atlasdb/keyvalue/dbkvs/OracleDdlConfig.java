@@ -75,18 +75,23 @@ public abstract class OracleDdlConfig extends DdlConfig {
         return TYPE;
     }
 
-    @
-    String metadataTableName() {
-
+    @Value.Derived
+    @Override
+    public String metadataTableName() {
+        String metadataTableName = metadataTable().getQualifiedName();
+        if (metadataTableName.startsWith("_")) {
+            metadataTableName = tablePrefix() + metadataTableName;
+        }
+        return metadataTableName;
     }
 
     @Value.Check
-    protected final void check() {
+    protected final void checkOracleConfig() {
         Preconditions.checkState(tablePrefix() != null, "Oracle 'tablePrefix' cannot be null.");
         Preconditions.checkState(!tablePrefix().isEmpty(), "Oracle 'tablePrefix' must not be an empty string.");
         Preconditions.checkState(!tablePrefix().startsWith("_"), "Oracle 'tablePrefix' cannot begin with underscore.");
         Preconditions.checkState(
-                tablePrefix().length() <= 7 ,
+                tablePrefix().length() <= 7,
                 "Oracle 'tablePrefix' cannot be more than 7 characters long.");
 
         Preconditions.checkState(

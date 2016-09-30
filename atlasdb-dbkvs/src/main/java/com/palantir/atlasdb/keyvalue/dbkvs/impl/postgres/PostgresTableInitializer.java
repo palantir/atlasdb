@@ -18,7 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableInitializer;
 import com.palantir.exception.PalantirSqlException;
@@ -27,9 +27,11 @@ public class PostgresTableInitializer implements DbTableInitializer {
     private static final Logger log = LoggerFactory.getLogger(PostgresTableInitializer.class);
 
     private final ConnectionSupplier connectionSupplier;
+    private final PostgresDdlConfig config;
 
-    public PostgresTableInitializer(ConnectionSupplier conns) {
+    public PostgresTableInitializer(ConnectionSupplier conns, PostgresDdlConfig config) {
         this.connectionSupplier = conns;
+        this.config = config;
     }
 
     @Override
@@ -45,8 +47,7 @@ public class PostgresTableInitializer implements DbTableInitializer {
     }
 
     @Override
-    public void createMetadataTable(TableReference metadataTable) {
-        String metadataTableName = metadataTable.getQualifiedName();
+    public void createMetadataTable() {
         executeIgnoringError(
                 String.format(
                         "CREATE TABLE %s ("
@@ -55,13 +56,13 @@ public class PostgresTableInitializer implements DbTableInitializer {
                         + "  value      BYTEA NULL,"
                         + "  CONSTRAINT pk_%s PRIMARY KEY (table_name) "
                         + ")",
-                        metadataTableName, metadataTableName),
+                        config.metadataTableName()),
                 "already exists");
 
         executeIgnoringError(
                 String.format(
                         "CREATE UNIQUE INDEX unique_lower_case_%s_index ON %s (lower(table_name))",
-                        metadataTableName, metadataTableName),
+                        config.metadataTableName(), config.metadataTableName()),
                 "already exists");
     }
 

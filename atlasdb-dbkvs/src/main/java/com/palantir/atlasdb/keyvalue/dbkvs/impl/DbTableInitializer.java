@@ -15,9 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-
 public interface DbTableInitializer {
     void createUtilityTables();
-    void createMetadataTable(TableReference metadataTable);
+    void createMetadataTable();
 }

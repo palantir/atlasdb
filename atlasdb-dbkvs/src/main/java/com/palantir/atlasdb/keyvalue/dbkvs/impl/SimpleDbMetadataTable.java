@@ -39,7 +39,7 @@ public class SimpleDbMetadataTable implements DbMetadataTable {
     @Override
     public boolean exists() {
         return conns.get().selectExistsUnregisteredQuery(
-                "SELECT 1 FROM " + getMetadataTableName() + " WHERE table_name = ?",
+                "SELECT 1 FROM " + config.metadataTableName() + " WHERE table_name = ?",
                 tableRef.getQualifiedName());
     }
 
@@ -47,7 +47,7 @@ public class SimpleDbMetadataTable implements DbMetadataTable {
     @SuppressWarnings("deprecation")
     public byte[] getMetadata() {
         AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
-                "SELECT value FROM " + getMetadataTableName() + " WHERE table_name = ?",
+                "SELECT value FROM " + config.metadataTableName() + " WHERE table_name = ?",
                 tableRef.getQualifiedName());
         if (results.size() < 1) {
             return PtBytes.EMPTY_BYTE_ARRAY;
@@ -62,13 +62,8 @@ public class SimpleDbMetadataTable implements DbMetadataTable {
     public void putMetadata(byte[] metadata) {
         Preconditions.checkArgument(exists(), "Table %s does not exist.", tableRef);
         conns.get().updateUnregisteredQuery(
-                "UPDATE " + getMetadataTableName() + " SET value = ? WHERE table_name = ?",
+                "UPDATE " + config.metadataTableName() + " SET value = ? WHERE table_name = ?",
                 metadata,
                 tableRef.getQualifiedName());
-    }
-
-    private String getMetadataTableName() {
-        return (config.type().equals("oracle") ? config.tablePrefix() : "")
-                + config.metadataTable().getQualifiedName();
     }
 }

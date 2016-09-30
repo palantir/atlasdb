@@ -50,7 +50,7 @@ public class PostgresDdlTable implements DbDdlTable {
     @Override
     public void create(byte[] tableMetadata) {
         if (conns.get().selectExistsUnregisteredQuery(
-                "SELECT 1 FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
+                "SELECT 1 FROM " + config.metadataTableName() + " WHERE table_name = ?",
                 tableName.getQualifiedName())) {
             return;
         }
@@ -70,7 +70,7 @@ public class PostgresDdlTable implements DbDdlTable {
             conns.get().insertOneUnregisteredQuery(
                     String.format(
                             "INSERT INTO %s (table_name, table_size) VALUES (?, ?)",
-                            config.metadataTable().getQualifiedName()),
+                            config.metadataTableName()),
                     tableName.getQualifiedName(),
                     TableSize.RAW.getId());
         }, ExceptionCheck::isUniqueConstraintViolation);
@@ -80,7 +80,7 @@ public class PostgresDdlTable implements DbDdlTable {
     public void drop() {
         executeIgnoringError("DROP TABLE " + prefixedTableName(), "does not exist");
         conns.get().executeUnregisteredQuery(
-                String.format("DELETE FROM %s WHERE table_name = ?", config.metadataTable().getQualifiedName()),
+                String.format("DELETE FROM %s WHERE table_name = ?", config.metadataTableName()),
                 tableName.getQualifiedName());
     }
 

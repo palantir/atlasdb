@@ -19,6 +19,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -62,5 +63,17 @@ public abstract class DdlConfig {
     @Value.Default
     public int mutationBatchSizeBytes() {
         return 2 * 1024 * 1024;
+    }
+
+    @Value.Derived
+    public String metadataTableName() {
+        return metadataTable().getQualifiedName();
+    }
+
+    @Value.Check
+    protected final void check() {
+        Preconditions.checkState(
+                metadataTable().getNamespace().isEmptyNamespace(),
+                "'metadataTable' should have empty namespace'");
     }
 }
