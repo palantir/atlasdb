@@ -19,35 +19,31 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 
-public final class OverflowSequenceSupplier {
+public final class OverflowSequenceSupplier implements Supplier<Long> {
     static final int OVERFLOW_ID_CACHE_SIZE = 1000;
 
-    private static Supplier<Long> overflowSupplier = null;
+    private static long currentBatchStartId;
+    private static int currentIdIndex = OVERFLOW_ID_CACHE_SIZE;
+    private final ConnectionSupplier conns;
+    private final String tablePrefix;
 
-    private OverflowSequenceSupplier() {
-        //Utility class
+    private OverflowSequenceSupplier(ConnectionSupplier conns, String tablePrefix) {
+        this.conns = conns;
+        this.tablePrefix = tablePrefix;
     }
 
-    public static synchronized Supplier<Long> getOverflowSeqSupplier(
-            ConnectionSupplier conns,
-            String tablePrefix) {
-        if (overflowSupplier == null) {
-            overflowSupplier = new Supplier<Long>() {
-                private long currentBatchStartId;
-                private int currentIdIndex = OVERFLOW_ID_CACHE_SIZE;
+    public static OverflowSequenceSupplier create(ConnectionSupplier conns, String tablePrefix) {
+        return new OverflowSequenceSupplier(conns, tablePrefix);
+    }
 
-                @Override
-                public synchronized Long get() {
-                    if (currentIdIndex < OVERFLOW_ID_CACHE_SIZE) {
-                        return currentBatchStartId + currentIdIndex++;
-                    }
-                    currentBatchStartId = conns.get().selectIntegerUnregisteredQuery(
-                            "SELECT " + tablePrefix + "OVERFLOW_SEQ.NEXTVAL FROM DUAL");
-                    currentIdIndex = 0;
-                    return currentBatchStartId + currentIdIndex++;
-                }
-            };
+    @Override
+    public Long get() {
+        if (currentIdIndex < OVERFLOW_ID_CACHE_SIZE) {
+            return currentBatchStartId + currentIdIndex++;
         }
-        return overflowSupplier;
+        currentBatchStartId = conns.get()
+                .selectIntegerUnregisteredQuery("SELECT " + tablePrefix + "OVERFLOW_SEQ.NEXTVAL FROM DUAL");
+        currentIdIndex = 0;
+        return currentBatchStartId + currentIdIndex++;
     }
 }

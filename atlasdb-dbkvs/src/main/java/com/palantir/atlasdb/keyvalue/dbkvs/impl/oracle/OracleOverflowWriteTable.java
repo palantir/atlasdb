@@ -64,7 +64,7 @@ public class OracleOverflowWriteTable implements DbWriteTable {
                 args.add(new Object[] { cell.getRowName(), cell.getColumnName(), ts, val, null });
             } else {
                 long overflowId = config.overflowIds()
-                        .orElse(OverflowSequenceSupplier.getOverflowSeqSupplier(conns, config.tablePrefix())).get();
+                        .orElse(OverflowSequenceSupplier.create(conns, config.tablePrefix())).get();
                 overflowArgs.add(new Object[] { overflowId, val });
                 args.add(new Object[] { cell.getRowName(), cell.getColumnName(), ts, null, overflowId });
             }
@@ -85,7 +85,7 @@ public class OracleOverflowWriteTable implements DbWriteTable {
                 });
             } else {
                 long overflowId = config.overflowIds()
-                        .orElse(OverflowSequenceSupplier.getOverflowSeqSupplier(conns, config.tablePrefix())).get();
+                        .orElse(OverflowSequenceSupplier.create(conns, config.tablePrefix())).get();
                 overflowArgs.add(new Object[] { overflowId, val.getContents() });
                 args.add(new Object[] {
                         cell.getRowName(), cell.getColumnName(), val.getTimestamp(), null, overflowId
