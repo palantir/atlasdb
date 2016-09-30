@@ -15,11 +15,11 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
+
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public class DeletionLock {
-
     private final PersistentLock persistentLock;
     private PersistentLockName lockName = PersistentLockName.of("DeletionLock");
 
@@ -28,20 +28,10 @@ public class DeletionLock {
     }
 
     public <T> T runWithLock(Supplier<T> supplier, String reason) throws PersistentLockIsTakenException {
-        return persistentLock.runWithLock(supplier, lockName, reason);
-    }
-
-    public void runWithLock(PersistentLock.Action action, String reason) throws PersistentLockIsTakenException {
-        persistentLock.runWithLock(action, lockName, reason);
+        return persistentLock.runWithExclusiveLock(supplier, lockName, reason);
     }
 
     public <T> T  runWithLockNonExclusively(Supplier<T> supplier, String reason) throws PersistentLockIsTakenException {
-        return persistentLock.runWithLockNonExclusively(supplier, lockName, reason);
+        return persistentLock.runWithNonExclusiveLock(supplier, lockName, reason);
     }
-
-    public void runWithLockNonExclusively(
-            PersistentLock.Action action, String reason) throws PersistentLockIsTakenException {
-        persistentLock.runWithLockNonExclusively(action, lockName, reason);
-    }
-
 }

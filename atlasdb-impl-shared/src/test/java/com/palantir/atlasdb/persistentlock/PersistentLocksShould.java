@@ -36,6 +36,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
+import java.util.function.Supplier;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -55,7 +56,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 public class PersistentLocksShould {
     private static final String REASON = "for testing";
 
-    private static final PersistentLock.Action NO_ACTION = () -> { };
+    private static final Supplier<Void> NO_ACTION = () -> null;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -85,7 +86,7 @@ public class PersistentLocksShould {
         KeyValueService keyValueService = spy(new InMemoryKeyValueService(false));
         PersistentLock persistentLock = new PersistentLock(keyValueService);
 
-        persistentLock.runWithLock(NO_ACTION, PersistentLockName.of("deletionLock"), REASON);
+        persistentLock.runWithExclusiveLock(NO_ACTION, PersistentLockName.of("deletionLock"), REASON);
 
         verify(keyValueService).put(eq(AtlasDbConstants.PERSISTED_LOCKS_TABLE), anyMap(), anyLong());
         verify(keyValueService).delete(eq(AtlasDbConstants.PERSISTED_LOCKS_TABLE), any(Multimap.class));
@@ -96,8 +97,8 @@ public class PersistentLocksShould {
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
         PersistentLock persistentLock = new PersistentLock(keyValueService);
 
-        persistentLock.runWithLock(NO_ACTION, PersistentLockName.of("deletionLock"), REASON);
-        persistentLock.runWithLock(NO_ACTION, PersistentLockName.of("deletionLock"), REASON);
+        persistentLock.runWithExclusiveLock(NO_ACTION, PersistentLockName.of("deletionLock"), REASON);
+        persistentLock.runWithExclusiveLock(NO_ACTION, PersistentLockName.of("deletionLock"), REASON);
     }
 
     @Test
@@ -105,11 +106,12 @@ public class PersistentLocksShould {
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
         PersistentLock persistentLock = new PersistentLock(keyValueService);
 
-        persistentLock.runWithLock(
+        persistentLock.runWithExclusiveLock(
                 () -> {
                     ImmutableList<RowResult<Value>> rowResults = ImmutableList.copyOf(
                             keyValueService.getRange(AtlasDbConstants.PERSISTED_LOCKS_TABLE, RangeRequest.all(), 1));
                     assertThat(rowResults.size(), equalTo(1));
+                    return null;
                 },
                 PersistentLockName.of("deletionLock"),
                 REASON
@@ -127,7 +129,7 @@ public class PersistentLocksShould {
         expectedException.expect(PersistentLockIsTakenException.class);
         expectedException.expectMessage(containsString("deletionLock"));
         expectedException.expectMessage(containsString(REASON));
-        persistentLock.runWithLock(NO_ACTION, deletionLock, REASON);
+        persistentLock.runWithExclusiveLock(NO_ACTION, deletionLock, REASON);
     }
 
     @Test(timeout = 1000)
@@ -142,16 +144,21 @@ public class PersistentLocksShould {
         Semaphore semaphore = new Semaphore(0);
 
         Future<Void> keepLockForever = executorService.submit(() -> {
-            persistentLock.runWithLock(() -> {
-                barrier.await();
-                semaphore.acquire();
+            persistentLock.runWithExclusiveLock(() -> {
+                try {
+                    barrier.await();
+                    semaphore.acquire();
+                } catch (InterruptedException | BrokenBarrierException e) {
+                    throw new RuntimeException(e);
+                }
+                return null;
             }, deletionLock, REASON);
             return null;
         });
 
         barrier.await();
         Future<Void> task = executorService.submit(() -> {
-            persistentLock.runWithLock(NO_ACTION, deletionLock, REASON);
+            persistentLock.runWithExclusiveLock(NO_ACTION, deletionLock, REASON);
             return null;
         });
 
