@@ -11,7 +11,7 @@ function checkDocsBuild {
 #CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
 
 # Container 0
-CONTAINER_0=(':atlasdb-ete-tests:test')
+#CONTAINER_0=(':atlasdb-ete-tests:test -i')
 
 #Container 3
 #CONTAINER_3=(':atlasdb-timelock-ete:check' ':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-tests-shared:check' ':atlasdb-ete-test-utils:check')
@@ -29,7 +29,7 @@ CONTAINER_0=(':atlasdb-ete-tests:test')
 #done
 
 case $CIRCLE_NODE_INDEX in
-    0) ./gradlew --profile --continue ${CONTAINER_0[@]} ;;
+    0) ./gradlew :atlasdb-ete-tests:test -i -Dtest.single=CassandraMultinodeHaTest;;
 #    0) ./gradlew --profile --continue check $CONTAINER_0_EXCLUDE_ARGS ;;
 #    1) ./gradlew --profile --continue --parallel ${CONTAINER_1[@]} ;;
 #    2) ./gradlew --profile --continue --parallel ${CONTAINER_2[@]} ;;
