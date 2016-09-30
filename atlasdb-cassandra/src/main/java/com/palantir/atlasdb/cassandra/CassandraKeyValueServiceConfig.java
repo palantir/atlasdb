@@ -84,12 +84,12 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     @Value.Default
     public int mutationBatchCount() {
-        return 5000;
+        return 10;
     }
 
     @Value.Default
     public int mutationBatchSizeBytes() {
-        return 4 * 1024 * 1024;
+        return 100;
     }
 
     @Value.Default

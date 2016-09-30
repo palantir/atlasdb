@@ -22,7 +22,7 @@ public class AtlasDbPerformanceConstants {
      * If a user passes in a huge page size for a batch for a range scan, we won't actually make the page size any
      * bigger than {@value #MAX_BATCH_SIZE}.
      */
-    public static final int MAX_BATCH_SIZE = 10000;
+    public static final int MAX_BATCH_SIZE = 10;
 
-    public static final int MAX_BATCH_SIZE_BYTES = 10 * 1024 * 1024;
+    public static final int MAX_BATCH_SIZE_BYTES = 100;
 }
