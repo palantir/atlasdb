@@ -330,7 +330,7 @@ public class SweepTaskRunnerImplTest {
     public void throwIfDeletionLockIsTaken() throws PersistentLockIsTakenException {
         TableReference tableReference = TableReference.createWithEmptyNamespace("someTable");
         int batchSize = 10;
-        when(mockDeletionLock.runWithLockNonExclusively(any(Supplier.class), anyString())).thenThrow(
+        when(mockDeletionLock.runWithLockNonExclusively(any(), anyString())).thenThrow(
                 new PersistentLockIsTakenException(ImmutableList.of()));
         when(mockKvs.getMetadataForTable(tableReference)).thenReturn(new byte[1]);
 
