@@ -57,7 +57,10 @@ public enum KeyValueServiceType {
         switch (type) {
             case POSTGRES:
                 return ImmutableDbKeyValueServiceConfig.builder()
-                        .ddl(ImmutablePostgresDdlConfig.builder().build())
+                        .ddl(
+                                ImmutablePostgresDdlConfig.builder()
+                                        .poolSize(1)
+                                        .build())
                         .connection(
                                 ImmutablePostgresConnectionConfig.builder()
                                         .host(addr.getHostString())
@@ -65,12 +68,12 @@ public enum KeyValueServiceType {
                                         .dbName("atlas")
                                         .dbLogin("palantir")
                                         .dbPassword(ImmutableMaskedValue.of("palantir"))
-                                        .build()
-                        ).build();
+                                        .build())
+                        .build();
             case CASSANDRA:
                 return ImmutableCassandraKeyValueServiceConfig.builder()
                         .addServers(addr)
-                        .poolSize(20)
+                        .poolSize(1)
                         .keyspace("atlasdb")
                         .credentials(ImmutableCassandraCredentialsConfig.builder()
                                 .username("cassandra")
