@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -266,7 +267,7 @@ public final class UserPhotosStreamHashAidxTable implements
 
         @Override
         public byte[] persistToBytes() {
-            byte[] streamIdBytes = EncodingUtils.encodeUnsignedVarLong(streamId);
+            byte[] streamIdBytes = PtBytes.toBytes(Long.MIN_VALUE ^ streamId);
             return EncodingUtils.add(streamIdBytes);
         }
 
@@ -274,8 +275,8 @@ public final class UserPhotosStreamHashAidxTable implements
             @Override
             public UserPhotosStreamHashAidxColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long streamId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(streamId);
+                Long streamId = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                __index += 8;
                 return new UserPhotosStreamHashAidxColumn(streamId);
             }
         };
@@ -697,6 +698,7 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
+     * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
@@ -756,7 +758,6 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link Set}
      * {@link Sets}
      * {@link Sha256Hash}
-     * {@link BatchColumnRangeSelection}
      * {@link SortedMap}
      * {@link Supplier}
      * {@link TableReference}
@@ -767,5 +768,5 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "O4eCL3RGxcpBQ5YfbkwD4w==";
+    static String __CLASS_HASH = "tYFwlUjqLNsp3OpFKWR9Ew==";
 }

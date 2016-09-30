@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -175,7 +176,7 @@ public final class UserPhotosStreamIdxTable implements
 
         @Override
         public byte[] persistToBytes() {
-            byte[] idBytes = EncodingUtils.encodeUnsignedVarLong(id);
+            byte[] idBytes = PtBytes.toBytes(Long.MIN_VALUE ^ id);
             return EncodingUtils.add(idBytes);
         }
 
@@ -183,8 +184,8 @@ public final class UserPhotosStreamIdxTable implements
             @Override
             public UserPhotosStreamIdxRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(id);
+                Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                __index += 8;
                 return new UserPhotosStreamIdxRow(id);
             }
         };
@@ -697,6 +698,7 @@ public final class UserPhotosStreamIdxTable implements
      * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
+     * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
@@ -756,7 +758,6 @@ public final class UserPhotosStreamIdxTable implements
      * {@link Set}
      * {@link Sets}
      * {@link Sha256Hash}
-     * {@link BatchColumnRangeSelection}
      * {@link SortedMap}
      * {@link Supplier}
      * {@link TableReference}
@@ -767,5 +768,5 @@ public final class UserPhotosStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "XmdcAN5v22Mf16umAb6afA==";
+    static String __CLASS_HASH = "+HueV6+aos5VFX1uWSHo8A==";
 }
