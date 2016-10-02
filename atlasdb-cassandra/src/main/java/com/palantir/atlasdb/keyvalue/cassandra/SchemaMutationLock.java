@@ -35,6 +35,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -176,7 +177,14 @@ final class SchemaMutationLock {
                             // dead heartbeat
                             throw Throwables.rewrapAndThrowUncheckedException(generateDeadHeartbeatException());
                         }
-                        expected = ImmutableList.of(lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE));
+
+                        // handle old (pre-heartbeat) cleared lock values encountered during migrations
+                        if (Longs.fromByteArray(existingValue.getValue()) == GLOBAL_DDL_LOCK_CLEARED_ID) {
+                            expected = ImmutableList.of(lockColumnWithValue(
+                                    Longs.toByteArray(GLOBAL_DDL_LOCK_CLEARED_ID)));
+                        } else {
+                            expected = ImmutableList.of(lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE));
+                        }
                     }
 
                     // lock holder taking unreasonable amount of time, signal something's wrong
