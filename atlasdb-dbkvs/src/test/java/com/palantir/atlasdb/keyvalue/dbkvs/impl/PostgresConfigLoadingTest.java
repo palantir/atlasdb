@@ -69,6 +69,15 @@ public class PostgresConfigLoadingTest {
     }
 
     @Test
+    public void testAdditionalConnectionParameters() throws IOException {
+        ConnectionConfig connectionConfig = getConnectionConfig();
+        Properties props = connectionConfig.getHikariProperties();
+
+        assertThat(props.getProperty("foo"), equalTo("bar"));
+        assertThat(props.getProperty("bar"), equalTo("baz"));
+    }
+
+    @Test
     public void testPasswordIsMasked() throws IOException {
         ConnectionConfig connectionConfig = getConnectionConfig();
         assertThat(connectionConfig.getDbPassword().unmasked(), equalTo("testpassword"));

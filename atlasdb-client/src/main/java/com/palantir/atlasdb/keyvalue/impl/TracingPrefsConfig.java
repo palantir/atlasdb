@@ -40,26 +40,35 @@ public class TracingPrefsConfig implements Runnable {
     private volatile Set<String> tracedTables;
     private final Properties tracingPrefConfig = new Properties();
 
+    public static TracingPrefsConfig create() {
+        TracingPrefsConfig tracingConfig = new TracingPrefsConfig();
+        tracingConfig.run();
+        return tracingConfig;
+    }
+
     @Override
     public void run() {
         try {
-            final File TRACING_PREF_FILE = new File(System.getProperty("user.dir") + java.io.File.separatorChar + TRACING_PREF_FILENAME);
+            final File tracingPrefsFile = new File(
+                    System.getProperty("user.dir") + java.io.File.separatorChar + TRACING_PREF_FILENAME);
 
-            if (TRACING_PREF_FILE.exists()) {
-                try (FileInputStream fileStream = new FileInputStream(TRACING_PREF_FILE)) {
+            if (tracingPrefsFile.exists()) {
+                try (FileInputStream fileStream = new FileInputStream(tracingPrefsFile)) {
                     tracingPrefConfig.load(fileStream);
                     tracingEnabled = Boolean.parseBoolean(tracingPrefConfig.getProperty("tracing_enabled", "false"));
                     tracingProbability = Double.parseDouble(tracingPrefConfig.getProperty("trace_probability", "1.0"));
-                    tracingMinDurationToTraceMillis = Integer.parseInt(tracingPrefConfig.getProperty("min_duration_to_log_ms", "0"));
+                    tracingMinDurationToTraceMillis = Integer.parseInt(
+                            tracingPrefConfig.getProperty("min_duration_to_log_ms", "0"));
                     String tableString = tracingPrefConfig.getProperty("tables_to_trace", "");
                     tracedTables = ImmutableSet.copyOf(Splitter.on(",").trimResults().split(tableString));
                     if (tracingEnabled && !loadedConfig) { // only log leading edge event
-                        log.error("Successfully loaded an " + TRACING_PREF_FILENAME
-                                + " file. This is usually a large performance hit and should only be used for periods of debugging. "
-                                + "[tracing_enabled = " + tracingEnabled
+                        log.error("Successfully loaded an " + TRACING_PREF_FILENAME + " file."
+                                + " This incurs a large performance hit and"
+                                + " should only be used for short periods of debugging."
+                                + " [tracing_enabled = " + tracingEnabled
                                 + ", trace_probability = " + tracingProbability
                                 + ", min_duration_to_log_ms = " + tracingMinDurationToTraceMillis
-                                + ", tables_to_trace = " + tracedTables +"]");
+                                + ", tables_to_trace = " + tracedTables + "]");
                     }
                 } catch (IOException e) {
                     log.error("Could not load a malformed " + TRACING_PREF_FILENAME + ".");
@@ -67,7 +76,7 @@ public class TracingPrefsConfig implements Runnable {
                 }
                 loadedConfig = true;
             }
-        } catch(Throwable t) {
+        } catch (Throwable t) {
             log.error("Error occurred while refreshing {}: {}", TRACING_PREF_FILENAME, t, t);
         }
     }

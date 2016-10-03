@@ -219,8 +219,15 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 supportsCas,
                 configManager,
                 clientPool,
+                queryRunner,
                 writeConsistency,
-                schemaMutationLockTable);
+                schemaMutationLockTable,
+                new HeartbeatService(
+                        clientPool,
+                        queryRunner,
+                        configManager.getConfig().heartbeatTimePeriodMillis(),
+                        schemaMutationLockTable.getOnlyTable(),
+                        writeConsistency));
 
         createTable(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
@@ -1642,9 +1649,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private void putMetadataWithoutChangingSettings(final TableReference tableRef, final byte[] meta) {
-        put(AtlasDbConstants.METADATA_TABLE, ImmutableMap.of(
-                getMetadataCell(tableRef), meta),
-                System.currentTimeMillis());
+        long ts = System.currentTimeMillis();
+
+        Multimap<Cell, Long> oldVersions = getAllTimestamps(
+                AtlasDbConstants.METADATA_TABLE,
+                ImmutableSet.of(getMetadataCell(tableRef)),
+                ts);
+
+        put(AtlasDbConstants.METADATA_TABLE,
+                ImmutableMap.of(getMetadataCell(tableRef), meta),
+                ts);
+
+        delete(AtlasDbConstants.METADATA_TABLE, oldVersions);
     }
 
     @Override

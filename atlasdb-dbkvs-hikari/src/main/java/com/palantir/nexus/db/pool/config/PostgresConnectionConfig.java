@@ -15,6 +15,7 @@
  */
 package com.palantir.nexus.db.pool.config;
 
+import java.util.Map;
 import java.util.Properties;
 
 import org.immutables.value.Value;
@@ -22,6 +23,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.nexus.db.DBType;
 
 @JsonDeserialize(as = ImmutablePostgresConnectionConfig.class)
@@ -34,6 +36,15 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
 
     public abstract String getHost();
     public abstract int getPort();
+
+    /**
+     * Set arbitrary additional connection parameters.
+     * See https://jdbc.postgresql.org/documentation/head/connect.html
+     */
+    @Value.Default
+    public Map<String, String> getConnectionParameters() {
+        return ImmutableMap.of();
+    }
 
     @Override
     @Value.Default
@@ -60,6 +71,7 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
     @Value.Auxiliary
     public Properties getHikariProperties() {
         Properties props = new Properties();
+        props.putAll(getConnectionParameters());
 
         props.setProperty("user", getDbLogin());
         props.setProperty("password", getDbPassword().unmasked());

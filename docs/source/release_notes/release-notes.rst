@@ -31,6 +31,30 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.17.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - The schema mutation lock holder now writes a "heartbeat" to the database to indicate that it is still responsive.
+           Other processes that are waiting for the schema mutation lock will now be able to see this heartbeat, infer that the lock holder is still working, and wait for longer.
+           This should reduce the need to manually truncate the locks table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/934>`__)
+
+    *    - |new|
+         - ``hashFirstRowComponent`` can now be used on index definitions to prevent hotspotting when creating schemas.
+           For more information on using ``hashFirstRowComponent``, see the :ref:`Partitioners <tables-and-indices-partitioners>` documentation.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/986>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.16.0
 =======
 
@@ -46,6 +70,17 @@ v0.16.0
            and ``AtlasDbBackendDebugTransactionManager``. These are no longer
            supported by AtlasDB and products are not expected to use them.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/939>`__)
+
+    *    - |improved|
+         - ``TransactionMangers.create()`` now accepts ``LockServerOptions`` which can be used to
+           apply configurations to the embedded LockServer instance running in the product.  The other
+           ``create()`` methods will continue to use ``LockServerOptions.DEFAULT``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/984>`__)
+
+    *    - |fixed|
+         - :ref:`Column paging Sweep <cassandra-sweep-config>` (in beta) correctly handles cases where table names have both upper and lowercase characters and cases where sweep is run multiple times on the same table.
+           If you are using the regular implementation of Sweep (i.e. you do not specify ``timestampsGetterBatchSize`` in your AtlasDB config), then you are not affected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/951>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

@@ -86,6 +86,7 @@ public class IndexTestSchema implements AtlasSchema {
         schema.addIndexDefinition("foo_to_id", new IndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("two_columns");
             rowName();
+                hashFirstRowComponent();
                 componentFromColumn("foo", ValueType.FIXED_LONG, "foo", "_value");
             dynamicColumns();
                 componentFromRow("id", ValueType.FIXED_LONG);
