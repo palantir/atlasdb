@@ -31,6 +31,44 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.18.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new|
+         - We now support Oracle as a KVS if you have runtime dependency on an Oracle driver that resolves the
+           JsonType "jdbcHandler". All table names in the schema must be less than 30 characters long if you wish to
+           run against Oracle as a backing store.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
+
+    *    - |breaking|
+         - The DbKvs config now enforces that the namespace must always be empty for ``metadataTable`` in the Ddl block.
+           (All AtlasDB system tables must have empty namespace).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
+
+    *    - |breaking|
+         - The default ``tablePrefix`` for ``OracleDdlConfig`` is now "a\_" instead of empty "". This is needed to prefix
+           system tables as they cannot begin with ``_``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
+
+    *    - |breaking|
+         - The ``metadataTableName`` for Oracle is now ``a__metadata`` instead of ``_metadata``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
+
+    *    - |breaking|
+         - The ``overflowIds`` config parameter in ``OracleDdlConfig`` is now Optional and is overriden by a default
+           sequence supplier if absent.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.17.0
 =======
 
