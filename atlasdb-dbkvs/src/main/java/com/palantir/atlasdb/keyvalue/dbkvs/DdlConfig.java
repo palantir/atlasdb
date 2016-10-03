@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.common.base.Preconditions;
@@ -65,6 +66,7 @@ public abstract class DdlConfig {
         return 2 * 1024 * 1024;
     }
 
+    @JsonIgnore
     @Value.Derived
     public String metadataTableName() {
         return metadataTable().getQualifiedName();
