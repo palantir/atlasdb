@@ -76,6 +76,7 @@ public class CassandraTestSuite {
     static Optional<LeaderConfig> LEADER_CONFIG;
 
     static ImmutableCassandraKeyValueServiceConfig getKvsConfig() {
+        System.out.println("Print something at the beginning of every test to keep Circle happy");
         return CASSANDRA_KVS_CONFIG;
     }
 
