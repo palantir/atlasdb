@@ -39,8 +39,6 @@ public abstract class ClusterConfig {
         return LeaderElectionConfig.DEFAULT;
     }
 
-    public abstract int quorumSize();
-
     public abstract String localServer();
 
     @Size(min = 1)
@@ -50,11 +48,6 @@ public abstract class ClusterConfig {
 
     @Value.Check
     protected void check() {
-        Preconditions.checkState(quorumSize() > servers().size() / 2,
-                "The quorumSize '%s' must be over half the amount of server entries %s.", quorumSize(), servers());
-        Preconditions.checkState(servers().size() >= quorumSize(),
-                "The quorumSize '%s' must be less than or equal to the amount of server entries %s.",
-                quorumSize(), servers());
         Preconditions.checkArgument(servers().contains(localServer()),
                 "The localServer '%s' must included in the server entries %s.", localServer(), servers());
     }
@@ -69,7 +62,7 @@ public abstract class ClusterConfig {
                 (PaxosConsensusAlgorithmConfig) leaderElection().consensusAlgorithm();
 
         return ImmutableLeaderConfig.builder()
-                .quorumSize(quorumSize())
+                .quorumSize(servers().size() / 2 + 1)
                 .localServer(localServer())
                 .leaders(servers())
                 .sslConfiguration(security())
