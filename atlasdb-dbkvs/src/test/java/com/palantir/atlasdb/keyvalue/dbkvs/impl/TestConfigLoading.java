@@ -73,7 +73,7 @@ public class TestConfigLoading {
         ConnectionConfig connectionConfig = getConnectionConfig();
         Properties props = connectionConfig.getHikariProperties();
 
-        assertThat(props.getProperty("foo"), equalTo("bar"));
+        assertThat(props.getProperty("foo"), equalTo("100"));
         assertThat(props.getProperty("bar"), equalTo("baz"));
     }
 
