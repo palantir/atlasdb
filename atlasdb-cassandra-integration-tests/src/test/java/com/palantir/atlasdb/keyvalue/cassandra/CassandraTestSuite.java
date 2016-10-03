@@ -71,9 +71,13 @@ public class CassandraTestSuite {
 
     static InetSocketAddress CASSANDRA_THRIFT_ADDRESS;
 
-    static ImmutableCassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG;
+    private static ImmutableCassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG;
 
     static Optional<LeaderConfig> LEADER_CONFIG;
+
+    static ImmutableCassandraKeyValueServiceConfig getKvsConfig() {
+        return CASSANDRA_KVS_CONFIG;
+    }
 
     @BeforeClass
     public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {

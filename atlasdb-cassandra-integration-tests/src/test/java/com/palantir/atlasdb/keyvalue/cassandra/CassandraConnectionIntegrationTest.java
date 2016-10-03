@@ -55,7 +55,7 @@ public class CassandraConnectionIntegrationTest {
     @Test
     public void testAuthProvided() {
         CassandraKeyValueService kv = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), LEADER_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.getKvsConfig()), LEADER_CONFIG);
         kv.teardown();
         assert true; // getting here implies authentication succeeded
     }

@@ -56,7 +56,7 @@ public class HeartbeatServiceIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        ImmutableCassandraKeyValueServiceConfig quickHeartbeatConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
+        ImmutableCassandraKeyValueServiceConfig quickHeartbeatConfig = CassandraTestSuite.getKvsConfig()
                 .withHeartbeatTimePeriodMillis(heartbeatTimePeriodMillis);
         CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(
                 quickHeartbeatConfig);

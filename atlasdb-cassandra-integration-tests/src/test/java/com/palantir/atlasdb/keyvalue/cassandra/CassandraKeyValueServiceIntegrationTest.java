@@ -88,7 +88,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), CassandraTestSuite.LEADER_CONFIG, logger);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.getKvsConfig()), CassandraTestSuite.LEADER_CONFIG, logger);
     }
 
     @Override

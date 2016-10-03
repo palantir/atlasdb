@@ -49,7 +49,7 @@ public class SchemaMutationLockTablesIntegrationTest {
 
     @Before
     public void setupKVS() throws TException, InterruptedException {
-        config = CassandraTestSuite.CASSANDRA_KVS_CONFIG
+        config = CassandraTestSuite.getKvsConfig()
                 .withKeyspace(UUID.randomUUID().toString().replace('-', '_')); // Hyphens not allowed in C* schema
         clientPool = new CassandraClientPool(config);
         clientPool.runOneTimeStartupChecks();
