@@ -1,12 +1,12 @@
 /**
- * Copyright 2015 Palantir Technologies
- * <p>
+ * Copyright 2016 Palantir Technologies
+ *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
+ *
  * http://opensource.org/licenses/BSD-3-Clause
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -43,13 +43,14 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-        CassandraTimestampIntegrationTest.class,
-        CassandraKeyValueServiceIntegrationTest.class,
-        HeartbeatServiceIntegrationTest.class,
-        SchemaMutationLockIntegrationTest.class,
-        SchemaMutationLockTablesIntegrationTest.class,
+        CassandraKeyValueServiceTransactionIntegrationTest.class,
+        CassandraClientPoolIntegrationTest.class,
+        CassandraConnectionIntegrationTest.class,
+        CassandraKeyValueServiceTableCreationIntegrationTest.class,
+        CassandraKeyValueServiceSerializableTransactionIntegrationTest.class,
+        CassandraKeyValueServiceSweeperIntegrationTest.class,
 })
-public class CassandraTestSuite {
+public class CassandraTestSuite2 {
 
     public static final int THRIFT_PORT_NUMBER = 9160;
     public static final DockerComposeRule docker = DockerComposeRule.builder()
