@@ -14,7 +14,7 @@ CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
 CONTAINER_2=(':atlasdb-ete-tests:check')
 
 #Container 3
-CONTAINER_3=(':atlasdb-timelock-ete:check' ':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-tests-shared:check' ':atlasdb-ete-test-utils:check' ':atlasdb-cassandra:check' ':atlasdb-api:check' ':atlasdb-dropwizard-bundle:check' ':atlasdb-config:check')
+CONTAINER_3=(':atlasdb-timelock-ete:check' ':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-tests-shared:check' ':atlasdb-ete-test-utils:check' ':atlasdb-cassandra:check' ':atlasdb-api:check')
 
 CONTAINER_4=(':atlasdb-dropwizard-tests:check')
 
