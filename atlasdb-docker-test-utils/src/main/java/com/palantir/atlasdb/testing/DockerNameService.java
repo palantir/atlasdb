@@ -22,7 +22,6 @@ import java.util.function.Supplier;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.google.common.net.InetAddresses;
 
 public class DockerNameService implements sun.net.spi.nameservice.NameService {
     private final Supplier<ProjectInfoMappings> projectInfo;
@@ -44,7 +43,7 @@ public class DockerNameService implements sun.net.spi.nameservice.NameService {
     @Override
     public String getHostByAddr(byte[] bytes) throws UnknownHostException {
         Multimap<String, String> ipToHosts = projectInfo.get().getIpToHosts();
-        String ipAddress = InetAddresses.fromLittleEndianByteArray(bytes).getHostAddress();
+        String ipAddress = InetAddress.getByAddress(bytes).getHostAddress();
 
         if (ipToHosts.containsKey(ipAddress)) {
             return Iterables.getFirst(ipToHosts.get(ipAddress), null);
