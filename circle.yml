@@ -33,7 +33,7 @@ test:
     - ./scripts/circle-ci/run-circle-tests.sh:
         parallel: true
   post:
-    - ./gradlew jacocoFullReport:
+    - ./gradlew jacocoFullReport -x classes:
         parallel: true
     - bash <(curl -s https://codecov.io/bash):
         parallel: true
