@@ -35,6 +35,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -147,7 +148,7 @@ final class SchemaMutationLock {
 
                 CASResult casResult = writeDdlLockWithCas(client, expected, ourUpdate);
 
-                Column lastSeenValue = null;
+                Column lastSeenColumn = null;
                 int timesAttempted = 0;
 
                 // We use schemaMutationTimeoutMillis to wait for schema mutations to agree as well as
@@ -163,20 +164,21 @@ final class SchemaMutationLock {
                         // this becomes analogous to putUnlessExists now
                         expected = ImmutableList.of();
                     } else {
-                        Column existingValue = Iterables.getOnlyElement(casResult.getCurrent_values(), null);
-                        if (existingValue == null) {
+                        Column existingColumn = Iterables.getOnlyElement(casResult.getCurrent_values(), null);
+                        if (existingColumn == null) {
                             throw new IllegalStateException("Something is wrong with underlying locks."
                                     + " Contact support for guidance on manually examining and clearing"
                                     + " locks from " + lockTable.getOnlyTable() + " table.");
                         }
-                        if (lastSeenValue == null || !existingValue.equals(lastSeenValue)) {
+                        if (lastSeenColumn == null || !existingColumn.equals(lastSeenColumn)) {
                             LOGGER.debug("Heartbeat alive, will retry.");
-                            lastSeenValue = existingValue;
+                            lastSeenColumn = existingColumn;
                         } else {
                             // dead heartbeat
                             throw Throwables.rewrapAndThrowUncheckedException(generateDeadHeartbeatException());
                         }
-                        expected = ImmutableList.of(lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE));
+
+                        expected = getExpectedCasResult(existingColumn);
                     }
 
                     // lock holder taking unreasonable amount of time, signal something's wrong
@@ -203,6 +205,16 @@ final class SchemaMutationLock {
             throw Throwables.throwUncheckedException(e);
         }
         return perOperationNodeId;
+    }
+
+    private List<Column> getExpectedCasResult(Column existingColumn) {
+        // handle old (pre-heartbeat) cleared lock values encountered during migrations
+        if (Longs.fromByteArray(existingColumn.getValue()) == GLOBAL_DDL_LOCK_CLEARED_ID) {
+            return ImmutableList.of(lockColumnWithValue(
+                    Longs.toByteArray(GLOBAL_DDL_LOCK_CLEARED_ID)));
+        } else {
+            return ImmutableList.of(lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE));
+        }
     }
 
     private RuntimeException generateDeadHeartbeatException() {
