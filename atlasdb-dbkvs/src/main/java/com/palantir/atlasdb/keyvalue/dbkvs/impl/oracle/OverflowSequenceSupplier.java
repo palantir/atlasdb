@@ -22,8 +22,8 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 public final class OverflowSequenceSupplier implements Supplier<Long> {
     static final int OVERFLOW_ID_CACHE_SIZE = 1000;
 
-    private static long currentBatchStartId;
-    private static int currentIdIndex = OVERFLOW_ID_CACHE_SIZE;
+    private long currentBatchStartId;
+    private int currentIdIndex = OVERFLOW_ID_CACHE_SIZE;
     private final ConnectionSupplier conns;
     private final String tablePrefix;
 

@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -44,7 +45,7 @@ public class OverflowSequenceSupplierTest {
     }
 
     @Test
-    public void shouldGetConsecutiveOverflowIdsFromDifferentSuppliers() throws Exception {
+    public void shouldNotGeteOverflowIdsWithOverlappingCachesFromDifferentSuppliers() throws Exception {
         final ConnectionSupplier conns = mock(ConnectionSupplier.class);
         final SqlConnection sqlConnection = mock(SqlConnection.class);
 
@@ -52,8 +53,8 @@ public class OverflowSequenceSupplierTest {
         when(sqlConnection.selectIntegerUnregisteredQuery(anyString())).thenReturn(1, 1001);
 
         long firstSequenceId = OverflowSequenceSupplier.create(conns, "a_").get();
-        long nextSequenceId = OverflowSequenceSupplier.create(conns, "a_").get();
+        long secondSequenceId = OverflowSequenceSupplier.create(conns, "a_").get();
 
-        assertThat(nextSequenceId - firstSequenceId, is(1L));
+        assertThat(secondSequenceId - firstSequenceId, greaterThanOrEqualTo(1000L));
     }
 }

@@ -77,7 +77,7 @@ public class OracleDbTableFactory implements DbTableFactory {
         TableSize tableSize = getTableSize(conns, tableRef);
         switch (tableSize) {
             case OVERFLOW:
-                return new OracleOverflowWriteTable(DbKvs.internalTableName(tableRef), conns, config);
+                return OracleOverflowWriteTable.create(DbKvs.internalTableName(tableRef), conns, config);
             case RAW:
                 return new SimpleDbWriteTable(DbKvs.internalTableName(tableRef), conns, config);
             default:
