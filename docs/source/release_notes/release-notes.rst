@@ -51,6 +51,12 @@ v0.18.0
            Historical versions of the metadata entry before the most recent one are **not** deleted, so if you routinely drop and recreate the same table, you might consider :ref:`sweeping <sweep>` the ``_metadata`` table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/946>`__)
 
+    *    - |improved|
+         - Users of DBKVS can now set arbitrary connection parameters.
+           This is useful if, for example, you wish to boost performance by adjusting the default batch size for fetching rows from the underlying database.
+           See the :ref:`documentation <postgres-configuration>` for how to set these parameters, and `the JDBC docs <https://jdbc.postgresql.org/documentation/head/connect.html>`__ for a full list.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1001>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
