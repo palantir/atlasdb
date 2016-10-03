@@ -103,7 +103,7 @@ public class LazyClosableIteratorTest {
             } catch (InterruptedException e) {
                 closed.add(-1);
             }
-            throw new RuntimeException();
+            throw new IllegalStateException("Interrupt was not triggered fast enough");
         });
     }
 
