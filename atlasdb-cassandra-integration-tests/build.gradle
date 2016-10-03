@@ -19,4 +19,8 @@ test {
     exclude '**/*IntegrationTest*'
     maxParallelForks 2
     dependsOn ':atlasdb-ete-test-utils:buildCassandraImage'
+
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
 }
