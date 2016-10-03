@@ -15,9 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -56,7 +56,7 @@ import com.palantir.common.exception.PalantirRuntimeException;
 @RunWith(Parameterized.class)
 public class SchemaMutationLockIntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(SchemaMutationLockIntegrationTest.class);
-    private static final SchemaMutationLock.Action DO_NOTHING = () -> {};
+    private static final SchemaMutationLock.Action DO_NOTHING = () -> { };
 
     private SchemaMutationLock schemaMutationLock;
     private HeartbeatService heartbeatService;
@@ -107,7 +107,7 @@ public class SchemaMutationLockIntegrationTest {
 
     @Test
     public void testLockAndUnlockWithoutContention() {
-        schemaMutationLock.runWithLock(() -> {});
+        schemaMutationLock.runWithLock(() -> { });
     }
 
     @Test
@@ -117,7 +117,7 @@ public class SchemaMutationLockIntegrationTest {
                     executorService,
                     () -> schemaMutationLock.runWithLock(DO_NOTHING));
 
-            Thread.sleep(3*1000);
+            Thread.sleep(3 * 1000);
 
             CassandraTestTools.assertThatFutureDidNotSucceedYet(getLockAgain);
         });
@@ -141,7 +141,9 @@ public class SchemaMutationLockIntegrationTest {
         expectedException.expect(PalantirRuntimeException.class);
         expectedException.expectCause(is(error));
 
-        schemaMutationLock.runWithLock(() -> { throw error; });
+        schemaMutationLock.runWithLock(() -> {
+            throw error;
+        });
     }
 
     @Test
@@ -199,14 +201,17 @@ public class SchemaMutationLockIntegrationTest {
     }
 
     private CqlResult createNonHeartbeatClearedLockEntry(Cassandra.Client client) throws TException {
-        String lockValue= CassandraKeyValueServices.encodeAsHex(Longs.toByteArray(Long.MAX_VALUE));
+        String lockValue = CassandraKeyValueServices.encodeAsHex(Longs.toByteArray(Long.MAX_VALUE));
         String lockRowName = CassandraKeyValueServices.encodeAsHex(
                 CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME.getBytes(StandardCharsets.UTF_8));
         String lockColName = CassandraKeyValueServices.encodeAsHex(
                 CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8));
         String createCql = String.format(
                 "UPDATE \"%s\" SET value = %s WHERE key = %s AND column1 = %s AND column2 = -1;",
-                lockTable.getOnlyTable().getQualifiedName(), lockValue, lockRowName, lockColName);
+                lockTable.getOnlyTable().getQualifiedName(),
+                lockValue,
+                lockRowName,
+                lockColName);
         ByteBuffer queryBuffer = ByteBuffer.wrap(createCql.getBytes(StandardCharsets.UTF_8));
         return client.execute_cql3_query(queryBuffer, Compression.NONE, writeConsistency);
     }
