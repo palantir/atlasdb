@@ -41,20 +41,19 @@ import com.palantir.exception.PalantirInterruptedException;
 
 public class LazyClosableIteratorTest {
 
-    @Test
+    @Test // QA-89231
     public void testInterruptsDontCauseLeaksMultiple() throws Exception {
         for (int i = 1; i <= 100; i++) {
             try {
                 // Because race conditions are hard...
-                testInterruptsDontCauseLeaks();
+                assertInterruptsDontCauseLeaks();
             } catch (Throwable e) {
                 throw new RuntimeException("Failure during run " + i, e);
             }
         }
     }
 
-    @Test // QA-89231
-    public void testInterruptsDontCauseLeaks() throws Exception {
+    private void assertInterruptsDontCauseLeaks() throws Exception {
         Set<Integer> opened = Sets.newConcurrentHashSet();
         Set<Integer> closed = Sets.newConcurrentHashSet();
         List<FutureTask<ClosableIterator<String>>> tasks = Lists.newArrayList();
