@@ -17,5 +17,5 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 public interface DbTableInitializer {
     void createUtilityTables();
-    void createMetadataTable();
+    void createMetadataTable(String metadataTableName);
 }

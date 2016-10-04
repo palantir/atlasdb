@@ -10,9 +10,9 @@ Configuration
 
    cassandra_config
    enabling_cassandra_tracing
-   postgres_key_value_service_config
    cassandra_KVS_configuration
    oracle_key_value_service_config
+   postgres_key_value_service_config
    leader_config
    logging
 

@@ -26,6 +26,7 @@ import com.palantir.exception.PalantirSqlException;
 public class OracleTableInitializer implements DbTableInitializer {
     private static final Logger log = LoggerFactory.getLogger(OracleTableInitializer.class);
 
+    private static final String ORACLE_ALREADY_EXISTS_ERROR = "name is already used by an existing object";
     private final ConnectionSupplier connectionSupplier;
     private final OracleDdlConfig config;
 
@@ -42,21 +43,21 @@ public class OracleTableInitializer implements DbTableInitializer {
                         + "col_name   RAW(2000),"
                         + "max_ts     NUMBER(20)"
                         + ")",
-                "name is already used by an existing object");
+                ORACLE_ALREADY_EXISTS_ERROR);
 
         executeIgnoringError(
                 "CREATE TYPE " + config.tablePrefix() + "CELL_TS_TABLE AS TABLE OF " + config.tablePrefix() + "CELL_TS",
-                "name is already used by an existing object"
+                ORACLE_ALREADY_EXISTS_ERROR
         );
 
         executeIgnoringError(
                 "CREATE SEQUENCE " + config.tablePrefix() + "OVERFLOW_SEQ INCREMENT BY "
                         + OverflowSequenceSupplier.OVERFLOW_ID_CACHE_SIZE,
-                "name is already used by an existing object");
+                ORACLE_ALREADY_EXISTS_ERROR);
     }
 
     @Override
-    public void createMetadataTable() {
+    public void createMetadataTable(String metadataTableName) {
         executeIgnoringError(
                 String.format(
                         "CREATE TABLE %s ("
@@ -65,14 +66,14 @@ public class OracleTableInitializer implements DbTableInitializer {
                                 + "value      LONG RAW NULL,"
                                 + "CONSTRAINT pk_%s PRIMARY KEY (table_name)"
                                 + ")",
-                        config.metadataTableName(), config.metadataTableName()),
-                "name is already used by an existing object");
+                        metadataTableName, metadataTableName),
+                ORACLE_ALREADY_EXISTS_ERROR);
 
         executeIgnoringError(
                 String.format(
                         "CREATE UNIQUE INDEX unique_%s_index ON %s (lower(table_name))",
-                        config.metadataTableName(), config.metadataTableName()),
-                "name is already used by an existing object");
+                        metadataTableName, metadataTableName),
+                ORACLE_ALREADY_EXISTS_ERROR);
     }
 
     private void executeIgnoringError(String sql, String errorToIgnore) {

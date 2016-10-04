@@ -1,11 +1,11 @@
 .. _oracle-configuration:
 
-=========================================
+======================================
 Oracle Key Value Service Configuration
-=========================================
+======================================
 
 Enabling Oracle for your Application
-=======================================
+====================================
 
 To enable your application to be backed by Oracle, you just need to add AtlasDB DbKvs and the OracleJDBC driver as a
 runtime dependency. In gradle this looks like:
@@ -25,7 +25,7 @@ e.g.
 .. oracle-kvs-config:
 
 Configuring a Running Application to Use Oracle
-==================================================
+===============================================
 
 A minimal AtlasDB configuration for running against Oracle will look like the below.
 
@@ -72,64 +72,81 @@ The Oracle Configuration has 2 major blocks:
 The DDL Config Block:
 
 .. list-table::
-    :widths: 5 40
+    :widths: 5 40 15
     :header-rows: 1
 
     *    - Property
          - Description
+         - Required
 
-    *    - overflowMigrationState [1]_
+    *    - overflowMigrationState
          - The value should be 3(FINISHED) for all new clients.
+         - Yes
 
     *    - tableFactorySupplier
          - This should supply the ``DbTableFactory`` required for setting up database operations.
+         - No
 
     *    - metadataTable
          - The metadataTable should be a tableReference to the metadata table. The default value is
            {namespace:"", tablename:"_metadata"}.
+         - No
 
     *    - tablePrefix
          - The value should be a string with only alpha numeric characters or underscores. This should not begin
            with an underscore. Default value is "a\_".
+         - No
 
     *    - poolSize
          - The number of threads in the connection pool to Oracle, defaults to 64.
+         - No
 
     *    - fetchBatchSize
          - The number of cells fetched in batch queries like ``getAllRows``, ``getAllTimestamps`` etc., defaults to 256.
+         - No
 
     *    - mutationBatchCount
          - The maximum number of cells in a batch for write operations like ``put``, ``putWithTimestamps``,
            defaults to 1000.
+         - No
 
     *    - mutationBatchSizeBytes
          - The maximum bytes in a batch for write operations like ``put``, ``putWithTimestamps``, defaults to 2MB.
+         - No
 
 The Connection Config block:
 
 .. list-table::
-    :widths: 5 40
+    :widths: 5 40 15
     :header-rows: 1
 
     *    - Property
          - Description
+         - Required
 
-    *    - host [1]_
+    *    - host
          - The host running Oracle.
+         - Yes
 
-    *    - port [1]_
+    *    - port
          - The port exposed by the Oracle server for Oracle client connections.
+         - Yes
 
-    *    - sid [1]_
+    *    - sid
          - The site identifier for the Oracle server.
+         - Yes
 
-    *    - dbLogin [1]_
+    *    - dbLogin
          - The Oracle DB username.
+         - Yes
 
-    *    - dbPassword [1]_
+    *    - dbPassword
          - The Oracle DB password.
+         - Yes
 
     *    - testQuery
          - Query used to check if driver supports JDBC4. Defaults to "SELECT 1 FROM dual".
+         - No
 
-.. [1] These parameters are required in the config blocks.
+There are more parameters in the Connection config which have default values. Feel free to have a look at the if you
+feel it would help improve the connection.

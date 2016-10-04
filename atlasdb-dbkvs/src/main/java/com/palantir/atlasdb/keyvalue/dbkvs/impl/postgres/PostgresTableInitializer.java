@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableInitializer;
 import com.palantir.exception.PalantirSqlException;
@@ -27,11 +26,9 @@ public class PostgresTableInitializer implements DbTableInitializer {
     private static final Logger log = LoggerFactory.getLogger(PostgresTableInitializer.class);
 
     private final ConnectionSupplier connectionSupplier;
-    private final PostgresDdlConfig config;
 
-    public PostgresTableInitializer(ConnectionSupplier conns, PostgresDdlConfig config) {
+    public PostgresTableInitializer(ConnectionSupplier conns) {
         this.connectionSupplier = conns;
-        this.config = config;
     }
 
     @Override
@@ -47,7 +44,7 @@ public class PostgresTableInitializer implements DbTableInitializer {
     }
 
     @Override
-    public void createMetadataTable() {
+    public void createMetadataTable(String metadataTableName) {
         executeIgnoringError(
                 String.format(
                         "CREATE TABLE %s ("
@@ -56,13 +53,13 @@ public class PostgresTableInitializer implements DbTableInitializer {
                         + "  value      BYTEA NULL,"
                         + "  CONSTRAINT pk_%s PRIMARY KEY (table_name) "
                         + ")",
-                        config.metadataTableName(), config.metadataTableName()),
+                        metadataTableName, metadataTableName),
                 "already exists");
 
         executeIgnoringError(
                 String.format(
                         "CREATE UNIQUE INDEX unique_lower_case_%s_index ON %s (lower(table_name))",
-                        config.metadataTableName(), config.metadataTableName()),
+                        metadataTableName, metadataTableName),
                 "already exists");
     }
 

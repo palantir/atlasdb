@@ -45,7 +45,7 @@ public class OverflowSequenceSupplierTest {
     }
 
     @Test
-    public void shouldNotGeteOverflowIdsWithOverlappingCachesFromDifferentSuppliers() throws Exception {
+    public void shouldNotGetOverflowIdsWithOverlappingCachesFromDifferentSuppliers() throws Exception {
         final ConnectionSupplier conns = mock(ConnectionSupplier.class);
         final SqlConnection sqlConnection = mock(SqlConnection.class);
 

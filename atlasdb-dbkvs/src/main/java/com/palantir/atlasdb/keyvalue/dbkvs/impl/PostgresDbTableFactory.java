@@ -62,7 +62,7 @@ public class PostgresDbTableFactory implements DbTableFactory {
 
     @Override
     public DbTableInitializer createInitializer(ConnectionSupplier conns) {
-        return new PostgresTableInitializer(conns, config);
+        return new PostgresTableInitializer(conns);
     }
 
     @Override
