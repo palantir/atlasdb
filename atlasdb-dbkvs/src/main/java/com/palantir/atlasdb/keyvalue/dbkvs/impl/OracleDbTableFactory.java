@@ -24,13 +24,16 @@ import com.google.common.cache.CacheBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowQueryFactory;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowWriteTable;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleRawQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleTableInitializer;
 import com.palantir.common.base.Throwables;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class OracleDbTableFactory implements DbTableFactory {
-    private final Cache<String, TableType> tableSizeByTableName = CacheBuilder.newBuilder().build();
+    private final Cache<String, TableSize> tableSizeByTableName = CacheBuilder.newBuilder().build();
     private final OracleDdlConfig config;
 
     public OracleDbTableFactory(OracleDdlConfig config) {
@@ -54,21 +57,39 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns) {
-        TableType tableType = getTableType(conns, tableRef);
-        return tableType.getReadTable(tableRef, conns, config);
+        TableSize tableSize = getTableSize(conns, tableRef);
+        DbQueryFactory queryFactory;
+        switch (tableSize) {
+            case OVERFLOW:
+                queryFactory = new OracleOverflowQueryFactory(DbKvs.internalTableName(tableRef), config);
+                break;
+            case RAW:
+                queryFactory = new OracleRawQueryFactory(DbKvs.internalTableName(tableRef), config);
+                break;
+            default:
+                throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
+        }
+        return new UnbatchedDbReadTable(conns, queryFactory);
     }
 
     @Override
     public DbWriteTable createWrite(TableReference tableRef, ConnectionSupplier conns) {
-        TableType tableType = getTableType(conns, tableRef);
-        return tableType.getWriteTable(tableRef, conns, config);
+        TableSize tableSize = getTableSize(conns, tableRef);
+        switch (tableSize) {
+            case OVERFLOW:
+                return OracleOverflowWriteTable.create(DbKvs.internalTableName(tableRef), conns, config);
+            case RAW:
+                return new SimpleDbWriteTable(DbKvs.internalTableName(tableRef), conns, config);
+            default:
+                throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
+        }
     }
 
-    private TableType getTableType(final ConnectionSupplier conns, final TableReference tableRef) {
+    private TableSize getTableSize(final ConnectionSupplier conns, final TableReference tableRef) {
         try {
-            return tableSizeByTableName.get(tableRef.getQualifiedName(), new Callable<TableType>() {
+            return tableSizeByTableName.get(tableRef.getQualifiedName(), new Callable<TableSize>() {
                 @Override
-                public TableType call() {
+                public TableSize call() {
                     AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
                             String.format("SELECT table_size FROM %s WHERE table_name = ?", config.metadataTableName()),
                             tableRef.getQualifiedName());
@@ -76,7 +97,7 @@ public class OracleDbTableFactory implements DbTableFactory {
                             !results.rows().isEmpty(),
                             "table %s not found",
                             tableRef.getQualifiedName());
-                    return TableType.byId(results.get(0).getInteger("table_size"));
+                    return TableSize.byId(results.get(0).getInteger("table_size"));
                 }
             });
         } catch (ExecutionException e) {

@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableType;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSize;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
@@ -84,7 +84,7 @@ public class OracleDdlTable implements DbDdlTable {
         conns.get().insertOneUnregisteredQuery(
                 "INSERT INTO " + config.metadataTableName() + " (table_name, table_size) VALUES (?, ?)",
                 tableRef.getQualifiedName(),
-                needsOverflow ? TableType.OVERFLOW.getId() : TableType.RAW.getId());
+                needsOverflow ? TableSize.OVERFLOW.getId() : TableSize.RAW.getId());
     }
 
     @Override
