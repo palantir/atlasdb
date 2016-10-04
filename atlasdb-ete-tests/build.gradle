@@ -22,9 +22,6 @@ dependencies {
     compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
     compile 'com.google.dagger:dagger:' + libVersions.dagger
 
-    compile('com.palantir.giraffe:giraffe-core:0.8.0')
-    compile('com.palantir.giraffe:giraffe-ssh:0.8.0')
-
     runtime project(':atlasdb-dbkvs')
 
     runtime(project(':atlasdb-cassandra')) {
@@ -57,6 +54,9 @@ dependencies {
 
     testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
     testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
+
+    testCompile('com.palantir.giraffe:giraffe-core:0.8.0')
+    testCompile('com.palantir.giraffe:giraffe-ssh:0.8.0')
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
