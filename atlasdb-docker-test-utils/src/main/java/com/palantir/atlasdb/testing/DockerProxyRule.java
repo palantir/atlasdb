@@ -29,6 +29,8 @@ import com.google.common.io.Files;
 import com.google.common.io.Resources;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ProjectName;
+import com.palantir.docker.compose.connection.Container;
+import com.palantir.docker.compose.execution.DockerExecutionException;
 
 import net.amygdalum.xrayinterface.XRayInterface;
 
@@ -41,17 +43,27 @@ public class DockerProxyRule extends ExternalResource {
     public DockerProxyRule(ProjectName projectName) {
         this.dockerComposeRule = DockerComposeRule.builder()
                 .file(getDockerComposeFile(projectName).getPath())
+                .waitingForService("proxy", Container::areAllPortsOpen)
                 .build();
         this.projectName = projectName;
     }
 
     @Override
     protected void before() throws Throwable {
-        originalProxySelector = ProxySelector.getDefault();
-        dockerComposeRule.before();
-        ProjectInfo projectInfo = new ProjectInfo(dockerComposeRule.dockerExecutable(), projectName);
-        getNameServices().add(0, new DockerNameService(projectInfo));
-        ProxySelector.setDefault(new DockerProxySelector(dockerComposeRule.containers(), projectInfo));
+        try {
+            originalProxySelector = ProxySelector.getDefault();
+            dockerComposeRule.before();
+            ProjectInfo projectInfo = new ProjectInfo(dockerComposeRule.dockerExecutable(), projectName);
+            getNameServices().add(0, new DockerNameService(projectInfo));
+            ProxySelector.setDefault(new DockerProxySelector(dockerComposeRule.containers(), projectInfo));
+        } catch (DockerExecutionException e) {
+            if (e.getMessage().contains("declared as external")) {
+                throw new IllegalStateException(
+                        "DockerProxyRule run before DockerComposeRule. Please use a RuleChain.", e);
+            } else {
+                throw e;
+            }
+        }
     }
 
     @Override
