@@ -44,11 +44,9 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 @RunWith(Suite.class)
 @SuiteClasses({
         CassandraKeyValueServiceTransactionIntegrationTest.class,
-        CassandraClientPoolIntegrationTest.class,
         CassandraConnectionIntegrationTest.class,
         CassandraKeyValueServiceTableCreationIntegrationTest.class,
         CassandraKeyValueServiceSerializableTransactionIntegrationTest.class,
-        CassandraKeyValueServiceSweeperIntegrationTest.class,
 })
 public class CassandraTestSuite2 {
 
@@ -79,7 +77,7 @@ public class CassandraTestSuite2 {
         CASSANDRA_KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
                 .addServers(CASSANDRA_THRIFT_ADDRESS)
                 .poolSize(20)
-                .keyspace("atlasdb")
+                .keyspace("atlasdb2")
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
                         .username("cassandra")
                         .password("cassandra")
