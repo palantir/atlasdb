@@ -41,21 +41,7 @@ import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
-@RunWith(Suite.class)
-@SuiteClasses({
-        CassandraKeyValueServiceTransactionIntegrationTest.class,
-        CassandraClientPoolIntegrationTest.class,
-        CassandraConnectionIntegrationTest.class,
-        CassandraKeyValueServiceTableCreationIntegrationTest.class,
-        CassandraKeyValueServiceSerializableTransactionIntegrationTest.class,
-        CassandraKeyValueServiceSweeperIntegrationTest.class,
-        CassandraTimestampIntegrationTest.class,
-        CassandraKeyValueServiceIntegrationTest.class,
-        HeartbeatServiceIntegrationTest.class,
-        SchemaMutationLockIntegrationTest.class,
-        SchemaMutationLockTablesIntegrationTest.class,
-})
-public class CassandraTestSuite {
+public class CassandraTestSuiteUtils {
 
     public static final int THRIFT_PORT_NUMBER = 9160;
     public static final DockerComposeRule docker = DockerComposeRule.builder()

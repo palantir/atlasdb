@@ -54,15 +54,15 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
 
     @Before
     public void setUp() {
-        ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
+        ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = CassandraTestSuiteUtils.CASSANDRA_KVS_CONFIG
                 .withSchemaMutationTimeoutMillis(500);
         kvs = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig), CassandraTestSuite.LEADER_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig), CassandraTestSuiteUtils.LEADER_CONFIG);
 
-        ImmutableCassandraKeyValueServiceConfig slowTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
+        ImmutableCassandraKeyValueServiceConfig slowTimeoutConfig = CassandraTestSuiteUtils.CASSANDRA_KVS_CONFIG
                 .withSchemaMutationTimeoutMillis(6 * 1000);
         slowTimeoutKvs = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(slowTimeoutConfig), CassandraTestSuite.LEADER_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(slowTimeoutConfig), CassandraTestSuiteUtils.LEADER_CONFIG);
 
         kvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }

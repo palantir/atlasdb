@@ -48,11 +48,11 @@ public class CassandraKeyValueServiceSweeperIntegrationTest extends AbstractSwee
     @Override
     protected KeyValueService getKeyValueService() {
         ImmutableCassandraKeyValueServiceConfig config = useColumnBatchSize
-                ? CassandraTestSuite.CASSANDRA_KVS_CONFIG.withTimestampsGetterBatchSize(Optional.of(10))
-                : CassandraTestSuite.CASSANDRA_KVS_CONFIG;
+                ? CassandraTestSuiteUtils.CASSANDRA_KVS_CONFIG.withTimestampsGetterBatchSize(Optional.of(10))
+                : CassandraTestSuiteUtils.CASSANDRA_KVS_CONFIG;
 
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config), CassandraTestSuite.LEADER_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(config), CassandraTestSuiteUtils.LEADER_CONFIG);
     }
 
     @Test
