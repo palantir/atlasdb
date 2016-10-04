@@ -154,6 +154,38 @@
 <span id="change-log"></span><h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 </div>
+<div class="section" id="v0-18-0">
+<h2>v0.18.0<a class="headerlink" href="#v0-18-0" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a bug introduced in 0.17.0, where products upgraded to 0.17.0 would see a &#8220;dead heartbeat&#8221; error on first start-up, requiring users to manually truncate the <code class="docutils literal"><span class="pre">_locks</span></code> table.
+Upgrading to AtlasDB 0.18.0 from any previous version will work correctly without requiring manual intervention.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1016">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Dropping a table and then creating it again no longer adds an additional row to the <code class="docutils literal"><span class="pre">_metadata</span></code> table.
+Historical versions of the metadata entry before the most recent one are <strong>not</strong> deleted, so if you routinely drop and recreate the same table, you might consider <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span class="std std-ref">sweeping</span></a> the <code class="docutils literal"><span class="pre">_metadata</span></code> table.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/946">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Users of DBKVS can now set arbitrary connection parameters.
+This is useful if, for example, you wish to boost performance by adjusting the default batch size for fetching rows from the underlying database.
+See the <a class="reference internal" href="../configuration/postgres_key_value_service_config.html#postgres-configuration"><span class="std std-ref">documentation</span></a> for how to set these parameters, and <a class="reference external" href="https://jdbc.postgresql.org/documentation/head/connect.html">the JDBC docs</a> for a full list.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1001">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
 <div class="section" id="v0-17-0">
 <h2>v0.17.0<a class="headerlink" href="#v0-17-0" title="Permalink to this headline">¶</a></h2>
 <table border="1" class="docutils">

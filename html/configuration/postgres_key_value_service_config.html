@@ -198,6 +198,20 @@
 </pre></div>
 </div>
 <p>For more details on the leader block, see <a class="reference internal" href="leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a>.</p>
+<div class="section" id="connection-parameters">
+<h3>Connection parameters<a class="headerlink" href="#connection-parameters" title="Permalink to this headline">¶</a></h3>
+<p>If you would like to customise the JDBC connection parameters, for example if you are experiencing performance issues, then you may supply them under the <code class="docutils literal"><span class="pre">connection</span></code> section of the <code class="docutils literal"><span class="pre">keyValueService</span></code> config.
+An example is shown below; for full documentation on which parameters are available, check out <a class="reference external" href="https://jdbc.postgresql.org/documentation/head/connect.html">the JDBC docs</a>.</p>
+<div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">keyValueService</span><span class="p p-Indicator">:</span>
+    <span class="c1"># as above - skipped for brevity</span>
+    <span class="l l-Scalar l-Scalar-Plain">connection</span><span class="p p-Indicator">:</span>
+      <span class="c1"># as above - skipped for brevity</span>
+      <span class="l l-Scalar l-Scalar-Plain">connectionParameters</span><span class="p p-Indicator">:</span> <span class="c1"># JDBC connection parameters</span>
+        <span class="l l-Scalar l-Scalar-Plain">defaultRowFetchSize</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">100</span> <span class="c1"># Default: unlimited. Adjusts the number of rows fetched in each database request.</span>
+</pre></div>
+</div>
+</div>
 </div>
 </div>
 
