@@ -121,14 +121,14 @@ abstract class AbstractDefinition {
 
     void validateFirstRowComp(NameComponentDescription comp) {
         if (!ignoreHotspottingChecks && CRITICAL_ROW_TYPES.contains(comp.getType())) {
-            log.info("First row component {} of type {} will likely cause hot-spotting with the partitioner in "
-                    + "Cassandra. This is caused by the structure of variable-sized types which will state their "
-                    + "length prior to their value resulting in them being partitioned predominantly by the LENGTH of "
-                    + "the values which is likely to be similar. If you anticipate never running on Cassandra or feel "
-                    + "you can safely ignore this case (for instance, if this table will never be very large) then you "
-                    + "should add ignoreHotspottingChecks() to the table schema. This is directed at the developer of "
-                    + "this AtlasDB application, they may need to change their schema.",
-                    comp.getComponentName(), comp.getType());
+            throw new IllegalStateException(String.format("First row component %s of type %s will likely cause hot-spotting with the partitioner in "
+                            + "Cassandra. This is caused by the structure of variable-sized types which will state their "
+                            + "length prior to their value resulting in them being partitioned predominantly by the LENGTH of "
+                            + "the values which is likely to be similar. If you anticipate never running on Cassandra or feel "
+                            + "you can safely ignore this case (for instance, if this table will never be very large) then you "
+                            + "should add ignoreHotspottingChecks() to the table schema. This is directed at the developer of "
+                            + "this AtlasDB application, they may need to change their schema.",
+                    comp.getComponentName(), comp.getType()));
         }
     }
 }
