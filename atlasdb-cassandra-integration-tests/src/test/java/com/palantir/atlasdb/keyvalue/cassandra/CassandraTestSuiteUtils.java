@@ -22,9 +22,6 @@ import java.util.concurrent.Callable;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
