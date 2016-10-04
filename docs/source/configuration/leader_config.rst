@@ -127,11 +127,11 @@ Failure to specify a leader configuration could lead to data corruption.
 
 .. _leader-config-single-client-with-leader:
 
-Single AtlasDB Client or Offline CLI with Leader Block 
+Single AtlasDB Client or Offline CLI with Leader Block
 ------------------------------------------------------
 
 Similar to the above configuration, but with only a single leader specified in ``leaders``.
-To run an :ref:`offline CLI <offline-clis`, you also need to specify a leader block.
+To run an :ref:`offline CLI <offline-clis>`, you also need to specify a leader block.
 
 .. code-block:: yaml
 
