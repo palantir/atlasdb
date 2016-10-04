@@ -31,7 +31,7 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-v0.18.0
+v0.19.0
 =======
 
 .. list-table::
@@ -65,6 +65,29 @@ v0.18.0
          - The ``overflowIds`` config parameter in ``OracleDdlConfig`` is now Optional and is overriden by a default
            sequence supplier if absent.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.18.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed a bug introduced in 0.17.0, where products upgraded to 0.17.0 would see a "dead heartbeat" error on first start-up, requiring users to manually truncate the ``_locks`` table.
+           Upgrading to AtlasDB 0.18.0 from any previous version will work correctly without requiring manual intervention.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1016>`__)
+
+    *    - |fixed|
+         - Dropping a table and then creating it again no longer adds an additional row to the ``_metadata`` table.
+           Historical versions of the metadata entry before the most recent one are **not** deleted, so if you routinely drop and recreate the same table, you might consider :ref:`sweeping <sweep>` the ``_metadata`` table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/946>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
