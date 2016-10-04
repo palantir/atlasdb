@@ -26,12 +26,10 @@ import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        CassandraKeyValueServiceTransactionIntegrationTest.class,
+        CassandraKeyValueServiceTransactionIntegrationTest.class,    // *
+        CassandraKeyValueServiceSerializableTransactionIntegrationTest.class,  // *
         CassandraClientPoolIntegrationTest.class,
         CassandraConnectionIntegrationTest.class,
-        CassandraKeyValueServiceTableCreationIntegrationTest.class,
-        CassandraKeyValueServiceSerializableTransactionIntegrationTest.class,
-        CassandraKeyValueServiceSweeperIntegrationTest.class,
 })
 public class Suite2 {
     @ClassRule

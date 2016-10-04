@@ -31,6 +31,8 @@ import org.junit.runners.Suite;
         HeartbeatServiceIntegrationTest.class,
         SchemaMutationLockIntegrationTest.class,
         SchemaMutationLockTablesIntegrationTest.class,
+        CassandraKeyValueServiceSweeperIntegrationTest.class,  // *
+        CassandraKeyValueServiceTableCreationIntegrationTest.class,  // *
 })
 public class Suite1 {
     @ClassRule
