@@ -13,5 +13,5 @@ atlasdb:
       connectionTimeoutSeconds: 5
       socketTimeoutSeconds: 30
       connectionParameters:
-        foo: bar
+        foo: 100
         bar: baz
