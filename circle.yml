@@ -23,10 +23,11 @@ dependencies:
     - sudo pip install docker-compose
     - sudo pkill -u postgres
   override:
-    - ./gradlew compileTestJava
+    - ./gradlew --profile --parallel resolveConfigurations
     - sudo pip install sphinx sphinx_rtd_theme
   cache_directories:
     - ~/.gradle
+    - ~/.m2
 
 test:
   override:
