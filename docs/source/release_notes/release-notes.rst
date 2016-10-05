@@ -31,6 +31,24 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.19.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |breaking|
+         - Removed the following classes that appeared to be unused - ``ManyHostPoolingContainer``, ``CloseShieldedKeyValueService``, ``RowWrapper``, ``BatchRowVisitor``,
+           ``MapCollector``, ``DBMgrConfigurationException``, and ``SqlStackLogWrapper``.  Please reach out to us if you are adversly affected by these removals.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1027>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.18.0
 =======
 
