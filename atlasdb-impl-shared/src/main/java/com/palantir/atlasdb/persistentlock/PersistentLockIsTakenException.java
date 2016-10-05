@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
-import java.util.List;
+import java.util.Set;
 
 public class PersistentLockIsTakenException extends Exception {
-    private final List<LockEntry> conflictingLocks;
+    private final Set<LockEntry> conflictingLocks;
 
-    public PersistentLockIsTakenException(List<LockEntry> conflictingLocks) {
+    public PersistentLockIsTakenException(Set<LockEntry> conflictingLocks) {
         this.conflictingLocks = conflictingLocks;
     }
 

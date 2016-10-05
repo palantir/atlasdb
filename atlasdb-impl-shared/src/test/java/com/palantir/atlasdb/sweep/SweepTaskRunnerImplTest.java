@@ -331,7 +331,7 @@ public class SweepTaskRunnerImplTest {
         TableReference tableReference = TableReference.createWithEmptyNamespace("someTable");
         int batchSize = 10;
         when(mockDeletionLock.runWithLockNonExclusively(any(), anyString())).thenThrow(
-                new PersistentLockIsTakenException(ImmutableList.of()));
+                new PersistentLockIsTakenException(ImmutableSet.of()));
         when(mockKvs.getMetadataForTable(tableReference)).thenReturn(new byte[1]);
 
         expectedException.expect(RuntimeException.class);
