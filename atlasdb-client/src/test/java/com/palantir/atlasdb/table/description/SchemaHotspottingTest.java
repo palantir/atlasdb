@@ -15,10 +15,14 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
@@ -72,11 +76,10 @@ public class SchemaHotspottingTest {
         File srcDir = temporaryFolder.getRoot();
         getIgnoredHotspottingSchema().renderTables(srcDir);
 
-        Assert.assertArrayEquals(srcDir.list(), new String[] {"valid"});
+        assertThat(Arrays.asList(srcDir.list()), contains(equalTo("valid")));
 
         File validDirectory = srcDir.listFiles()[0];
-        Assert.assertArrayEquals(validDirectory.list(), new String[] {"package"});
-        Assert.assertArrayEquals(validDirectory.listFiles()[0].list(),
-                new String[] {"IgnoredHotspottingTableFactory.java", "IgnoredHotspottingTableTable.java"});
+        assertThat(Arrays.asList(validDirectory.list()), contains(equalTo("package")));
+        assertThat(Arrays.asList(validDirectory.listFiles()[0].list()), contains(equalTo("IgnoredHotspottingTableFactory.java"), equalTo("IgnoredHotspottingTableTable.java")));
     }
 }
