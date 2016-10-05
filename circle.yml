@@ -23,17 +23,18 @@ dependencies:
     - sudo pip install docker-compose
     - sudo pkill -u postgres
   override:
-    - ./gradlew compileTestJava
+    - ./gradlew --profile --parallel resolveConfigurations
     - sudo pip install sphinx sphinx_rtd_theme
   cache_directories:
     - ~/.gradle
+    - ~/.m2
 
 test:
   override:
     - ./scripts/circle-ci/run-circle-tests.sh:
         parallel: true
   post:
-    - ./gradlew jacocoFullReport:
+    - ./gradlew --profile jacocoFullReport -x classes:
         parallel: true
     - bash <(curl -s https://codecov.io/bash):
         parallel: true

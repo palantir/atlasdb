@@ -101,7 +101,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         });
 
         threadPool.shutdown();
-        Preconditions.checkState(threadPool.awaitTermination(60, TimeUnit.SECONDS),
+        Preconditions.checkState(threadPool.awaitTermination(90, TimeUnit.SECONDS),
                 "Not all table creation threads completed within the time limit");
 
         slowTimeoutKvs.dropTable(GOOD_TABLE);

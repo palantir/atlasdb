@@ -26,8 +26,10 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.performance.benchmarks.table.EmptyTables;
 
@@ -76,8 +78,13 @@ public class KvsPutBenchmarks {
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Map<Cell, byte[]> putUnlessExistsAndExists(EmptyTables tables) {
         Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
-        tables.getKvs().put(tables.getFirstTableRef(), batch, DUMMY_TIMESTAMP);
         tables.getKvs().putUnlessExists(tables.getFirstTableRef(), batch);
+        try {
+            tables.getKvs().putUnlessExists(tables.getFirstTableRef(), batch);
+            Preconditions.checkArgument(false, "putUnlessExist should have failed");
+        } catch (KeyAlreadyExistsException e) {
+            // success
+        }
         return batch;
     }
 

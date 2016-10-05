@@ -263,6 +263,8 @@ range results are iterated in ascending order. If you need to access
 rows in reverse order, then adding the ``ValueByteOrder.DESCENDING``
 argument will store them in descending order instead.
 
+.. _tables-and-indices-partitioners:
+
 Partitioners
 ~~~~~~~~~~~~
 
