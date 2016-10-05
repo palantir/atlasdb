@@ -19,17 +19,27 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class AvailableTimestamps {
-    static final long ALLOCATION_BUFFER_SIZE = 1000 * 1000;
-    private static final long MINIMUM_BUFFER = ALLOCATION_BUFFER_SIZE / 2;
+    protected static final long DEFAULT_ALLOCATION_BUFFER_SIZE = 1000 * 1000;
     private static final long MAX_TIMESTAMPS_TO_HAND_OUT = 10 * 1000;
 
     private final LastReturnedTimestamp lastReturnedTimestamp;
     private final PersistentUpperLimit upperLimit;
+    private final long allocationBufferSize;
+    private final long minimumBuffer;
 
     public AvailableTimestamps(LastReturnedTimestamp lastReturnedTimestamp, PersistentUpperLimit upperLimit) {
+        this(lastReturnedTimestamp, upperLimit, DEFAULT_ALLOCATION_BUFFER_SIZE);
+    }
+
+    @VisibleForTesting
+    AvailableTimestamps(LastReturnedTimestamp lastReturnedTimestamp, PersistentUpperLimit upperLimit, long allocationBufferSize) {
         this.lastReturnedTimestamp = lastReturnedTimestamp;
         this.upperLimit = upperLimit;
+        this.allocationBufferSize = allocationBufferSize;
+        minimumBuffer = allocationBufferSize / 2;
     }
 
     public synchronized TimestampRange handOut(long numberToHandOut) {
@@ -44,14 +54,17 @@ public class AvailableTimestamps {
     public synchronized void refreshBuffer() {
         long buffer = upperLimit.get() - lastHandedOut();
 
-        if (buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, MINUTES)) {
-            allocateEnoughTimestampsToHandOut(lastHandedOut() + ALLOCATION_BUFFER_SIZE);
+        if (buffer < minimumBuffer || !upperLimit.hasIncreasedWithin(1, MINUTES)) {
+            System.out.println("*** Refreshing and allocating");
+            allocateEnoughTimestampsToHandOut(lastHandedOut() + allocationBufferSize);
+        } else {
+            System.out.println("*** Refreshing, but not allocating");
         }
     }
 
     public synchronized void fastForwardTo(long newMinimum) {
         lastReturnedTimestamp.increaseToAtLeast(newMinimum);
-        upperLimit.increaseToAtLeast(newMinimum + ALLOCATION_BUFFER_SIZE);
+        upperLimit.increaseToAtLeast(newMinimum + allocationBufferSize);
     }
 
     private long lastHandedOut() {
@@ -73,7 +86,9 @@ public class AvailableTimestamps {
     }
 
     private void allocateEnoughTimestampsToHandOut(long timestamp) {
+        System.out.println("[TRACE:1] Increasing to " + timestamp);
         upperLimit.increaseToAtLeast(timestamp);
+        System.out.println("[TRACE:4] Increasing done: " + timestamp);
     }
 
     public long getUpperLimit() {

@@ -16,6 +16,7 @@
 package com.palantir.timestamp;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.stream.IntStream.range;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -27,9 +28,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntConsumer;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -111,6 +119,53 @@ public class PersistentTimestampServiceIntegrationTest {
         });
 
         assertThat(uniqueTimestamps.size(), is((int) TWO_MILLION));
+    }
+
+    @Test public void
+    attemptToReproduceMultipleTimestampsError() throws TimeoutException, InterruptedException, ExecutionException {
+        // Create PersistentTimestampService to give us access to AvailableTimestamps.ALLOCATION_BUFFER_SIZE
+        PersistentUpperLimit upperLimit = new PersistentUpperLimit(timestampBoundStore);
+        LastReturnedTimestamp lastReturned = new LastReturnedTimestamp(upperLimit.get());
+        AvailableTimestamps availableTimestamps = new AvailableTimestamps(lastReturned, upperLimit, 10); // really tiny allocation buffer size
+
+        ExecutorService manyThreads = Executors.newFixedThreadPool(10);
+        PersistentTimestampService testTimestampService = new PersistentTimestampService(availableTimestamps, manyThreads);
+
+        CyclicBarrier barrier = new CyclicBarrier(48);
+
+
+        AtomicInteger numThreads = new AtomicInteger();
+        IntConsumer intConsumer = value -> {
+            try {
+                System.out.println("Hi! " + numThreads.incrementAndGet());
+                barrier.await();
+                System.out.println("My turn! " + value);
+                long freshTimestamp = testTimestampService.getFreshTimestamp();
+                System.out.println("I, " + value + ", got: (" +
+                        freshTimestamp);
+                System.out.println(availableTimestamps.getUpperLimit());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
+
+        ForkJoinPool pool = new ForkJoinPool(48);
+        ForkJoinTask<?> task = pool.submit(() -> range(100, 148).parallel().
+                forEach(intConsumer)
+        );
+
+        task.get(10, TimeUnit.SECONDS);
+    }
+
+    @Test public void
+    refreshAndHandOutAtTheSameTime() {
+        // Create PersistentTimestampService to give us access to AvailableTimestamps.ALLOCATION_BUFFER_SIZE
+        PersistentUpperLimit upperLimit = new PersistentUpperLimit(timestampBoundStore);
+        LastReturnedTimestamp lastReturned = new LastReturnedTimestamp(upperLimit.get());
+        AvailableTimestamps availableTimestamps = new AvailableTimestamps(lastReturned, upperLimit, 10); // really tiny allocation buffer size
+
+        availableTimestamps.handOut(5);
+        availableTimestamps.refreshBuffer();
     }
 
     @Test(expected = ServiceNotAvailableException.class) public void

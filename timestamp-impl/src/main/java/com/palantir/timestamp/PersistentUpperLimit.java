@@ -53,8 +53,10 @@ public class PersistentUpperLimit {
     }
 
     public synchronized void increaseToAtLeast(long minimum) {
-        if(cachedValue < minimum) {
+        if (cachedValue < minimum) {
             store(minimum);
+        } else {
+            System.out.println("Not storing! Cached:" + cachedValue);
         }
     }
 
@@ -66,11 +68,13 @@ public class PersistentUpperLimit {
     }
 
     private synchronized void store(long upperLimit) {
+        System.out.println("[TRACE:2] Storing upper limit " + upperLimit);
         checkWeHaveNotBeenInterrupted();
         allocationFailures.verifyWeShouldTryToAllocateMoreTimestamps();
         persistNewUpperLimit(upperLimit);
         cachedValue = upperLimit;
         lastIncreasedTime = clock.getTimeMillis();
+        System.out.println("[TRACE:3] Store done: " + upperLimit);
     }
 
     private void checkWeHaveNotBeenInterrupted() {

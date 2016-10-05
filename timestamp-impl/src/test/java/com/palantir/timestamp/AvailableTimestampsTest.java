@@ -68,7 +68,7 @@ public class AvailableTimestampsTest {
         availableTimestamps.refreshBuffer();
 
         verify(persistentUpperLimit).increaseToAtLeast(
-                UPPER_LIMIT - 10 + AvailableTimestamps.ALLOCATION_BUFFER_SIZE
+                UPPER_LIMIT - 10 + AvailableTimestamps.DEFAULT_ALLOCATION_BUFFER_SIZE
         );
     }
 
