@@ -132,7 +132,16 @@ public class CassandraClientPool {
         }
     }
 
+    @VisibleForTesting
+    static CassandraClientPool createForTesting(CassandraKeyValueServiceConfig config) {
+        return new CassandraClientPool(config, false);
+    }
+
     public CassandraClientPool(CassandraKeyValueServiceConfig config) {
+        this(config, true);
+    }
+
+    private CassandraClientPool(CassandraKeyValueServiceConfig config, boolean shouldActuallyInteractWithCluster) {
         this.config = config;
         config.servers().forEach(server ->
                 currentPools.put(server, new CassandraClientPoolingContainer(server, config)));
@@ -150,6 +159,10 @@ public class CassandraClientPool {
             }
         }, config.poolRefreshIntervalSeconds(), config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
 
+        // for testability, mock/spy are bad at mockability of things called in constructors
+        if (shouldActuallyInteractWithCluster) {
+            runOneTimeStartupChecks();
+        }
         refreshPool(); // ensure we've initialized before returning
     }
 

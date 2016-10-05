@@ -95,7 +95,8 @@ public class CassandraClientPoolTest {
         when(config.poolRefreshIntervalSeconds()).thenReturn(POOL_REFRESH_INTERVAL_SECONDS);
         when(config.servers()).thenReturn(servers);
 
-        CassandraClientPool cassandraClientPool = new CassandraClientPool(config);
+        CassandraClientPool cassandraClientPool = CassandraClientPool.createForTesting(config);
+
         cassandraClientPool.currentPools = serversInPool.stream()
                 .collect(Collectors.toMap(Function.identity(), address -> mock(CassandraClientPoolingContainer.class)));
         return cassandraClientPool;
