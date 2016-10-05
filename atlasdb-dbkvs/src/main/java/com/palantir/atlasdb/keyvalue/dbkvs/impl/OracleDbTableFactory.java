@@ -33,7 +33,7 @@ import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class OracleDbTableFactory implements DbTableFactory {
-    private final Cache<String, TableSize> tableSizeByTableName = CacheBuilder.newBuilder().build();
+    private final Cache<TableReference, TableSize> tableSizeByTableRef = CacheBuilder.newBuilder().build();
     private final OracleDdlConfig config;
 
     public OracleDbTableFactory(OracleDdlConfig config) {
@@ -87,7 +87,7 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     private TableSize getTableSize(final ConnectionSupplier conns, final TableReference tableRef) {
         try {
-            return tableSizeByTableName.get(tableRef.getQualifiedName(), new Callable<TableSize>() {
+            return tableSizeByTableRef.get(tableRef, new Callable<TableSize>() {
                 @Override
                 public TableSize call() {
                     AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
