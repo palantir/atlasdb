@@ -126,7 +126,7 @@ characteristics, among other things. The supported types are:
 
 +-------------------------------+--------------+---------------+----------------+----------+
 | Name                          | Java Type    | Format        | Anywhere in    | Range    |
-|                               |              |               | table?         | Scans?   |
+|                               |              |               | row component? | Scans?   |
 +===============================+==============+===============+================+==========+
 | FIXED_LONG                    | long         | byte[8]       | YES            | YES      |
 +-------------------------------+--------------+---------------+----------------+----------+
@@ -161,8 +161,9 @@ characteristics, among other things. The supported types are:
   numbers.
 
 .. [2]
-  A ``STRING`` or ``BLOB`` can only be a row or column component
-  if it is the last component of the component list.
+  A ``STRING`` or ``BLOB`` can only be a row component
+  if it is the last component of the component list.  There is schema validation
+  to ensure this is true.
 
 .. [3]
   This type can be useful on some key value stores because keys next
