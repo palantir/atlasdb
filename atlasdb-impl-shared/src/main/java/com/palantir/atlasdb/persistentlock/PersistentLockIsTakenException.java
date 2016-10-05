@@ -18,15 +18,8 @@ package com.palantir.atlasdb.persistentlock;
 import java.util.Set;
 
 public class PersistentLockIsTakenException extends Exception {
-    private final Set<LockEntry> conflictingLocks;
-
     public PersistentLockIsTakenException(Set<LockEntry> conflictingLocks) {
-        this.conflictingLocks = conflictingLocks;
-    }
-
-    @Override
-    public String getMessage() {
-        return "Could not acquire the requested lock because it conflicts with the following other lock(s): "
-                + conflictingLocks;
+        super("Could not acquire the requested lock because it conflicts with the following other lock(s): "
+                + conflictingLocks);
     }
 }
