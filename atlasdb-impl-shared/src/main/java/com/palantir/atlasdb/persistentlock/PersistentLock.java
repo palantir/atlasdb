@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
-import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -95,10 +95,10 @@ public class PersistentLock {
     }
 
     private LockEntry verifyLockWasAcquired(LockEntry desiredLock) throws PersistentLockIsTakenException {
-        List<LockEntry> relevantLocks = allRelevantLockEntries(desiredLock.lockName());
+        Set<LockEntry> relevantLocks = allRelevantLockEntries(desiredLock.lockName());
         Preconditions.checkState(relevantLocks.contains(desiredLock), "Lock was not properly inserted");
 
-        List<LockEntry> conflictingLocks = removeSingleLock(desiredLock, relevantLocks);
+        Set<LockEntry> conflictingLocks = removeSingleLock(desiredLock, relevantLocks);
 
         if (!desiredLock.exclusive()) {
             conflictingLocks = retainExclusiveLocks(conflictingLocks);
@@ -106,21 +106,21 @@ public class PersistentLock {
         return verifyLockDoesNotConflict(desiredLock, conflictingLocks);
     }
 
-    private List<LockEntry> retainExclusiveLocks(List<LockEntry> conflictingLocks) {
+    private Set<LockEntry> retainExclusiveLocks(Set<LockEntry> conflictingLocks) {
         return conflictingLocks.stream()
                 .filter(LockEntry::exclusive)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
-    private List<LockEntry> removeSingleLock(LockEntry desiredLock, List<LockEntry> relevantLocks) {
+    private Set<LockEntry> removeSingleLock(LockEntry desiredLock, Set<LockEntry> relevantLocks) {
         return relevantLocks.stream()
                 .filter(otherLock -> !otherLock.equals(desiredLock))
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
     private LockEntry verifyLockDoesNotConflict(
             LockEntry desiredLock,
-            List<LockEntry> conflictingLocks) throws PersistentLockIsTakenException {
+            Set<LockEntry> conflictingLocks) throws PersistentLockIsTakenException {
 
         if (conflictingLocks.isEmpty()) {
             log.debug("Acquired persistent lock {}", desiredLock);
@@ -137,19 +137,19 @@ public class PersistentLock {
         keyValueService.put(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.insertionMap(), LOCKS_TIMESTAMP);
     }
 
-    private List<LockEntry> allRelevantLockEntries(PersistentLockName lock) {
+    private Set<LockEntry> allRelevantLockEntries(PersistentLockName lock) {
         return allLockEntries().stream()
                 .filter(lockEntry -> lockEntry.lockName().equals(lock))
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
-    public List<LockEntry> allLockEntries() {
-        List<RowResult<Value>> allLockRows = ImmutableList.copyOf(keyValueService.getRange(
+    public Set<LockEntry> allLockEntries() {
+        Set<RowResult<Value>> allLockRows = ImmutableSet.copyOf(keyValueService.getRange(
                 AtlasDbConstants.PERSISTED_LOCKS_TABLE, RangeRequest.all(), LOCKS_TIMESTAMP + 1));
 
         return allLockRows.stream()
                 .map(LockEntry::fromRowResult)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
     private void createPersistedLocksTableIfNotExists() {

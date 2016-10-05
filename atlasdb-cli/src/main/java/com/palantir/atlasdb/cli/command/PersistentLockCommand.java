@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,7 +97,7 @@ public class PersistentLockCommand extends SingleBackendCommand {
     }
 
     private int printLockList(PersistentLock persistentLock) {
-        List<LockEntry> allLockEntries = persistentLock.allLockEntries();
+        Set<LockEntry> allLockEntries = persistentLock.allLockEntries();
         log.info("The following persistent locks are currently taken out (total {})", allLockEntries.size());
         for (LockEntry lockEntry : allLockEntries) {
             log.info("  {}", lockEntry.toString());
