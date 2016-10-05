@@ -125,13 +125,10 @@ Failure to specify a leader configuration could lead to data corruption.
         sslConfiguration:
           trustStorePath: var/security/truststore.jks
 
-.. _leader-config-single-client-with-leader:
-
-Single AtlasDB Client or Offline CLI with Leader Block
-------------------------------------------------------
+Single AtlasDB Client with Leader Block
+---------------------------------------
 
 Similar to the above configuration, but with only a single leader specified in ``leaders``.
-To run an :ref:`offline CLI <offline-clis>`, you also need to specify a leader block.
 
 .. code-block:: yaml
 
@@ -182,12 +179,11 @@ An example configuration is below.
 
       # no leader block
 
-No leader (Online CLI Only)
----------------------------
+No leader (CLI Only)
+--------------------
 
-When you are running a client that can't be a leader, for instance an online CLI, it is necessary to specify a remote lock and timestamp service running on your AtlasDB clients.
+When you are running a client that can't be a leader, for instance a CLI, it is necessary to specify a remote lock and timestamp service running on your AtlasDB clients.
 If you are running multiple AtlasDB clients, ensure your CLI is pointing at the correct hosts and ports for the service you wish to interact with.
-If you are running an :ref:`offline CLI <offline-clis>` then you must specify a leader block as noted above in the :ref:`Single AtlasDB Client with Leader Block <leader-config-single-client-with-leader>` section.
 
 .. code-block:: yaml
 
