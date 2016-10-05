@@ -8,17 +8,17 @@ function checkDocsBuild {
 }
 
 # Container 1
-CONTAINER_1=(':atlasdb-cassandra-integration-tests:check -D:atlasdb-cassandra-integration-tests:test.single=CassandraSuite' ':atlasdb-tests-shared:check' ':atlasdb-timelock-ete:check')
+CONTAINER_1=(':atlasdb-cassandra-integration-tests:check -D:atlasdb-cassandra-integration-tests:test.single=CassandraSuite' ':atlasdb-tests-shared:check')
 
 # Container 2
 CONTAINER_2=(':atlasdb-ete-tests:check' ':atlasdb-config:check')
 
 #Container 3
-CONTAINER_3=(':atlasdb-cassandra-integration-tests:check -D:atlasdb-cassandra-integration-tests:test.single=CassandraTransactionsSuite' ':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-api:check')
+CONTAINER_3=(':atlasdb-cassandra-integration-tests:check -D:atlasdb-cassandra-integration-tests:test.single=CassandraTransactionsSuite' ':lock-impl:check' ':atlasdb-dbkvs-tests:check')
 
 CONTAINER_4=(':atlasdb-dropwizard-tests:check' ':atlasdb-cassandra:check' ':atlasdb-ete-test-utils:check')
 
-CONTAINER_5=(':atlasdb-dbkvs:check' ':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-dropwizard-bundle:check')
+CONTAINER_5=(':atlasdb-dbkvs:check' ':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-dropwizard-bundle:check' ':atlasdb-api:check')
 
 # Container 0 - runs tasks not found in the below containers
 CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}"  "${CONTAINER_5[@]}")
