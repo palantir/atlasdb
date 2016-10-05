@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -43,6 +44,11 @@ import com.palantir.common.base.Throwables;
 
 public class SchemaMutationLock {
     private static final Logger LOGGER = LoggerFactory.getLogger(SchemaMutationLock.class);
+
+    private static final Column OLD_STYLE_CLEARED_LOCK_COLUMN = lockColumnWithValue(
+            Longs.toByteArray(CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE));
+    private static final Column NEW_STYLE_CLEARED_LOCK_COLUMN = lockColumnWithValue(
+            (CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE + "_0").getBytes(StandardCharsets.UTF_8));
 
     private final boolean supportsCas;
     private final CassandraKeyValueServiceConfigManager configManager;
@@ -126,8 +132,7 @@ public class SchemaMutationLock {
                 ByteBuffer rowName = ByteBuffer.wrap(globalDdlLockCell.getRowName());
                 Column ourUpdate = lockColumnWithValue(Longs.toByteArray(perOperationNodeIdentifier));
 
-                List<Column> expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(
-                        CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
+                List<Column> expected = ImmutableList.of(OLD_STYLE_CLEARED_LOCK_COLUMN);
 
                 CASResult casResult = writeLockWithCas(client, rowName, expected, ourUpdate);
 
@@ -139,7 +144,7 @@ public class SchemaMutationLock {
                     if (casResult.getCurrent_valuesSize() == 0) { // never has been an existing lock
                         // special case, no one has ever made a lock ever before
                         // this becomes analogous to putUnlessExists now
-                        expected = ImmutableList.<Column>of();
+                        expected = ImmutableList.of();
                     } else {
                         Column existingValue = Iterables.getOnlyElement(casResult.getCurrent_values(), null);
                         if (existingValue == null) {
@@ -147,8 +152,11 @@ public class SchemaMutationLock {
                                     + " Consult support for guidance on manually examining and clearing"
                                     + " locks from " + lockTable.getOnlyTable() + " table.");
                         }
-                        expected = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(
-                                CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE)));
+                        if (isNewStyleClearedLock(existingValue)) {
+                            expected = ImmutableList.of(NEW_STYLE_CLEARED_LOCK_COLUMN);
+                        } else {
+                            expected = ImmutableList.of(OLD_STYLE_CLEARED_LOCK_COLUMN);
+                        }
                     }
 
                     int mutationTimeoutMillis = configManager.getConfig().schemaMutationTimeoutMillis();
@@ -205,8 +213,7 @@ public class SchemaMutationLock {
 
                 List<Column> ourExpectedLock = ImmutableList.of(lockColumnWithValue(Longs.toByteArray(
                         perOperationNodeIdentifier)));
-                Column clearedLock = lockColumnWithValue(Longs.toByteArray(
-                        CassandraConstants.GLOBAL_DDL_LOCK_CLEARED_VALUE));
+                Column clearedLock = OLD_STYLE_CLEARED_LOCK_COLUMN;
                 CASResult casResult = writeLockWithCas(client, rowName, ourExpectedLock, clearedLock);
 
                 if (!casResult.isSuccess()) {
@@ -248,7 +255,11 @@ public class SchemaMutationLock {
         );
     }
 
-    private Column lockColumnWithValue(byte[] value) {
+    private static boolean isNewStyleClearedLock(Column existingValue) {
+        return Arrays.equals(existingValue.getValue(), NEW_STYLE_CLEARED_LOCK_COLUMN.getValue());
+    }
+
+    private static Column lockColumnWithValue(byte[] value) {
         return new Column()
                 .setName(CassandraKeyValueServices.makeCompositeBuffer(
                         CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8),
