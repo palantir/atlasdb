@@ -84,11 +84,10 @@ public final class CassandraConstants {
     static final String SIZE_TIERED_COMPACTION_STRATEGY =
             "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy";
 
-    public static final String GLOBAL_DDL_LOCK_ROW_NAME = "Global DDL lock";
+    public static final String GLOBAL_DDL_LOCK = "Global DDL lock";
     public static final String GLOBAL_DDL_LOCK_COLUMN_NAME = "id_with_lock";
     public static final long TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS = 1000;
-
-    static final int SCHEMA_MUTATION_LOCK_TIMEOUT_MULTIPLIER = 10;
+    public static final long GLOBAL_DDL_LOCK_CLEARED_VALUE = Long.MAX_VALUE;
 
     private CassandraConstants() {
         // Utility class
@@ -120,5 +119,4 @@ public final class CassandraConstants {
 
         return cf;
     }
-
 }

@@ -51,7 +51,6 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
         CassandraKeyValueServiceSweeperIntegrationTest.class,
         CassandraTimestampIntegrationTest.class,
         CassandraKeyValueServiceIntegrationTest.class,
-        HeartbeatServiceIntegrationTest.class,
         SchemaMutationLockIntegrationTest.class,
         SchemaMutationLockTablesIntegrationTest.class,
 })
