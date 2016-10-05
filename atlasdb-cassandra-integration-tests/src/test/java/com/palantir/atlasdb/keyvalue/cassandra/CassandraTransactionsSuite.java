@@ -26,15 +26,10 @@ import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        CassandraTimestampIntegrationTest.class,
-        CassandraKeyValueServiceIntegrationTest.class,
-        HeartbeatServiceIntegrationTest.class,
-        SchemaMutationLockIntegrationTest.class,
-        SchemaMutationLockTablesIntegrationTest.class,
-        CassandraKeyValueServiceSweeperIntegrationTest.class,  // *
-        CassandraKeyValueServiceTableCreationIntegrationTest.class,  // *
+        CassandraKeyValueServiceTransactionIntegrationTest.class,
+        CassandraKeyValueServiceSerializableTransactionIntegrationTest.class,
 })
-public class Suite1 {
+public class CassandraTransactionsSuite {
     @ClassRule
     public static final RuleChain CASSANDRA_DOCKER_SET_UP = CassandraTestSuiteUtils.CASSANDRA_DOCKER_SET_UP;
 
