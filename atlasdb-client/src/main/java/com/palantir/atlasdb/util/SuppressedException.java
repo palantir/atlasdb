@@ -17,18 +17,15 @@ package com.palantir.atlasdb.util;
 
 final class SuppressedException extends RuntimeException {
     static final long serialVersionUID = 1L;
+    private static final Class[] namedThrowables = {Error.class, RuntimeException.class, Exception.class};
 
     SuppressedException(String message, Throwable cause) {
         super(message, cause);
     }
 
     public static Throwable from(Throwable throwable) {
-        String type = (throwable instanceof Error) ? "Error"
-                : (throwable instanceof RuntimeException) ? "RuntimeException"
-                        : (throwable instanceof Exception) ? "Exception"
-                                : "Throwable";
         String message = String.format("%s [%s] occurred while processing thread (%s)",
-                type, throwable, Thread.currentThread().getName());
+                highLevelType(throwable), throwable, Thread.currentThread().getName());
         return new SuppressedException(message, throwable);
     }
 
@@ -41,5 +38,14 @@ final class SuppressedException extends RuntimeException {
     public String toString() {
         String message = getLocalizedMessage();
         return (message == null) ? getClass().getSimpleName() : message;
+    }
+
+    private static String highLevelType(Throwable throwable) {
+        for (Class namedClass: namedThrowables) {
+            if (namedClass.isInstance(throwable)) {
+                return namedClass.getSimpleName();
+            }
+        }
+        return Throwable.class.getSimpleName();
     }
 }
