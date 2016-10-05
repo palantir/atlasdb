@@ -60,8 +60,7 @@ public class BackupLockCommand extends SingleBackendCommand {
     }
 
     private void blockOnConsoleInput(Console console) {
-        log.info("Successfully acquired the lock. "
-                + "When your backup is complete, press ENTER to release it");
+        log.info("When your backup is complete, press ENTER to release the lock");
         console.readLine();
         log.info("Will now release the lock");
     }
