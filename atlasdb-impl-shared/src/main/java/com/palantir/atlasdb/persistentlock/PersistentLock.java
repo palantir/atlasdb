@@ -90,7 +90,7 @@ public class PersistentLock {
     }
 
     public void releaseLock(LockEntry lock) {
-        log.debug("Releasing persistent lock " + lock);
+        log.debug("Releasing persistent lock {}", lock);
         keyValueService.delete(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lock.deletionMapWithTimestamp(LOCKS_TIMESTAMP));
     }
 
@@ -123,17 +123,17 @@ public class PersistentLock {
             List<LockEntry> conflictingLocks) throws PersistentLockIsTakenException {
 
         if (conflictingLocks.isEmpty()) {
-            log.debug("Acquired persistent lock " + desiredLock);
+            log.debug("Acquired persistent lock {}", desiredLock);
             return desiredLock;
         } else {
-            log.info("Failed to acquire persistent lock " + desiredLock);
+            log.info("Failed to acquire persistent lock {}", desiredLock);
             releaseLock(desiredLock);
             throw new PersistentLockIsTakenException(conflictingLocks);
         }
     }
 
     private void insertLockEntry(LockEntry lockEntry) {
-        log.debug("Attempting to acquire persistent lock " + lockEntry);
+        log.debug("Attempting to acquire persistent lock {}", lockEntry);
         keyValueService.put(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.insertionMap(), LOCKS_TIMESTAMP);
     }
 

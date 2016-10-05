@@ -60,8 +60,6 @@ public class PersistentLockCommand extends SingleBackendCommand {
         KeyValueService keyValueService = services.getKeyValueService();
         PersistentLock persistentLock = new PersistentLock(keyValueService);
 
-        System.out.println("keyValueService = " + keyValueService);
-
         if (acquireLockName != null) {
             return acquireLock(persistentLock, acquireLockName);
         } else if (releaseLockName != null) {
@@ -83,7 +81,7 @@ public class PersistentLockCommand extends SingleBackendCommand {
         try {
             LockEntry acquiredLock = persistentLock.acquireLock(
                     PersistentLockName.of(lockName), "PersistentLock CLI command");
-            log.info("Successfully acquired persistent lock " + acquiredLock);
+            log.info("Successfully acquired persistent lock {}", acquiredLock);
             return 0;
         } catch (PersistentLockIsTakenException e) {
             log.error("Could not acquire the lock because it was already taken", e);
@@ -94,15 +92,15 @@ public class PersistentLockCommand extends SingleBackendCommand {
     private int releaseLock(PersistentLock persistentLock, String lockName, long lockId) {
         LockEntry lockToRelease = LockEntry.of(PersistentLockName.of(lockName), lockId);
         persistentLock.releaseLock(lockToRelease);
-        log.info("This persistent lock is now released: " + lockToRelease);
+        log.info("This persistent lock is now released: {}", lockToRelease);
         return 0;
     }
 
     private int printLockList(PersistentLock persistentLock) {
         List<LockEntry> allLockEntries = persistentLock.allLockEntries();
-        log.info("The following persistent locks are currently taken out (total " + allLockEntries.size() + ")");
+        log.info("The following persistent locks are currently taken out (total {})", allLockEntries.size());
         for (LockEntry lockEntry : allLockEntries) {
-            log.info(lockEntry.toString());
+            log.info("  {}", lockEntry.toString());
         }
         return 0;
     }
