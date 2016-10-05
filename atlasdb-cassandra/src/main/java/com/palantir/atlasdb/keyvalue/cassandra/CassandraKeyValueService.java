@@ -1471,15 +1471,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 // completely new table, not an update
                 if (matchingTables.isEmpty()) {
                     tableMetadataUpdates.put(tableReference, newMetadata);
-                }
-
-                // table already exists but has different metadata, so we should perform an update
-                if (!matchingTables.isEmpty() && !Arrays.equals(
-                        existingTableMetadata.get(Iterables.getOnlyElement(matchingTables)), newMetadata)) {
-                    tableMetadataUpdates.put(tableReference, newMetadata);
+                } else { // existing case-insensitive table, maybe an update
+                    if (Arrays.equals(
+                            existingTableMetadata.get(Iterables.getOnlyElement(matchingTables)), newMetadata)) {
+                        log.debug("Case-insensitive matched table already existed with same metadata,"
+                                + " skipping update to " + tableReference);
+                    } else { // existing table has different metadata, so we should perform an update
+                        tableMetadataUpdates.put(tableReference, newMetadata);
+                    }
                 }
             } else {
-                log.debug("Table already existed in metadata, skipping update to " + tableReference);
+                log.debug("Table already existed with same metadata, skipping update to " + tableReference);
             }
         }
 
@@ -1490,28 +1492,27 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             final Map<TableReference, byte[]> tableNamesToTableMetadata) {
         Map<TableReference, byte[]> filteredTables = Maps.newHashMap();
         try {
-            clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
-                Set<TableReference> existingTablesLowerCased = getExistingTablesLowerCased(client);
+            Set<TableReference> existingTablesLowerCased =
+                    clientPool.runWithRetry((client) -> getExistingTablesLowerCased(client));
 
-                for (Entry<TableReference, byte[]> tableAndMetadataPair : tableNamesToTableMetadata.entrySet()) {
-                    TableReference table = tableAndMetadataPair.getKey();
-                    byte[] metadata = tableAndMetadataPair.getValue();
+            for (Entry<TableReference, byte[]> tableAndMetadataPair : tableNamesToTableMetadata.entrySet()) {
+                TableReference table = tableAndMetadataPair.getKey();
+                byte[] metadata = tableAndMetadataPair.getValue();
 
-                    CassandraVerifier.sanityCheckTableName(table);
+                CassandraVerifier.sanityCheckTableName(table);
 
-                    TableReference tableRefLowerCased = TableReference
-                            .createUnsafe(table.getQualifiedName().toLowerCase());
-                    if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
-                        filteredTables.put(table, metadata);
-                    } else {
-                        log.debug("Filtering out existing table ({}) that already existed (case insensitive).", table);
-                    }
+                TableReference tableRefLowerCased = TableReference
+                        .createUnsafe(table.getQualifiedName().toLowerCase());
+                if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
+                    filteredTables.put(table, metadata);
+                } else {
+                    log.debug("Filtering out existing table ({}) that already existed (case insensitive).", table);
                 }
-                return null;
-            });
+            }
         } catch (Exception e) {
             Throwables.throwUncheckedException(e);
         }
+
         return filteredTables;
     }
 

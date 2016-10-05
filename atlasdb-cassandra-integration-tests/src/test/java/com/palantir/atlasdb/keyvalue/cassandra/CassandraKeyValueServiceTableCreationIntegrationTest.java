@@ -151,7 +151,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
 
     @Test
     public void testGetMetadataCaseInsensitive() {
-        // setup a basic table
+        // Make two casewise-different references to the "same" table
         TableReference caseSensitiveTable = TableReference.createFromFullyQualifiedName("test.cased_table");
         TableReference wackyCasedTable = TableReference.createFromFullyQualifiedName("test.CaSeD_TaBlE");
 
@@ -173,5 +173,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         // retrieve same metadata with a wacky cased version of the "same" name
         existingMetadata = kvs.getMetadataForTable(wackyCasedTable);
         assertThat(initialMetadata, is(existingMetadata));
+
+        kvs.dropTable(caseSensitiveTable);
     }
 }
