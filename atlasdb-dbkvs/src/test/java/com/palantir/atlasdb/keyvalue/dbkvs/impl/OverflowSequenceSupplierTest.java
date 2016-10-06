@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -56,5 +57,28 @@ public class OverflowSequenceSupplierTest {
         long secondSequenceId = OverflowSequenceSupplier.create(conns, "a_").get();
 
         assertThat(secondSequenceId - firstSequenceId, greaterThanOrEqualTo(1000L));
+    }
+
+    @Test
+    public void shouldSkipValuesReservedByOtherSupplier() throws Exception {
+        final ConnectionSupplier conns = mock(ConnectionSupplier.class);
+        final SqlConnection sqlConnection = mock(SqlConnection.class);
+
+        when(conns.get()).thenReturn(sqlConnection);
+        when(sqlConnection.selectIntegerUnregisteredQuery(anyString())).thenReturn(1, 1001, 2001);
+
+        OverflowSequenceSupplier firstSupplier = OverflowSequenceSupplier.create(conns, "a_");
+        firstSupplier.get(); // gets 1
+        OverflowSequenceSupplier.create(conns, "a_").get(); // gets 1001
+
+        // After 1000 gets from the first supplier, we should get to 1000
+        long id = 0;
+        for (int i = 0; i < 999; i++) {
+            id = firstSupplier.get();
+        }
+        assertThat(id, equalTo(1000L));
+
+        // Should then skip to 2001
+        assertThat(firstSupplier.get(), equalTo(2001L));
     }
 }
