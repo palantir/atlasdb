@@ -39,9 +39,10 @@ public class OracleDdlTable implements DbDdlTable {
     private final ConnectionSupplier conns;
     private final OracleDdlConfig config;
 
-    public OracleDdlTable(TableReference tableRef,
-                          ConnectionSupplier conns,
-                          OracleDdlConfig config) {
+    public OracleDdlTable(
+            TableReference tableRef,
+            ConnectionSupplier conns,
+            OracleDdlConfig config) {
         this.tableRef = tableRef;
         this.conns = conns;
         this.config = config;
@@ -144,12 +145,15 @@ public class OracleDdlTable implements DbDdlTable {
             }
         }
     }
-
     private String prefixedTableName() {
-        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
+        return config.tableNameMapper().hashTableNameToFitOracleTableNameLimits(
+                config.tablePrefix(),
+                DbKvs.internalTableName(tableRef));
     }
 
     private String prefixedOverflowTableName() {
-        return config.overflowTablePrefix() + DbKvs.internalTableName(tableRef);
+        return config.tableNameMapper().hashTableNameToFitOracleTableNameLimits(
+                config.overflowTablePrefix(),
+                DbKvs.internalTableName(tableRef));
     }
 }
