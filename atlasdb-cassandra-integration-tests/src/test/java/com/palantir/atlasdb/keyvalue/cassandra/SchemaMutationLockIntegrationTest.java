@@ -90,7 +90,7 @@ public class SchemaMutationLockIntegrationTest {
     }
 
     private void setUpWithCasSupportSetTo(boolean supportsCas) throws Exception {
-        quickTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
+        quickTimeoutConfig = CassandraTestSuiteUtils.CASSANDRA_KVS_CONFIG
                 .withSchemaMutationTimeoutMillis(500);
         CassandraKeyValueServiceConfigManager simpleManager =
                 CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig);
