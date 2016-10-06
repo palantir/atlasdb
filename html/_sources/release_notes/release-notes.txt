@@ -46,6 +46,11 @@ v0.19.0
            ``MapCollector``, ``DBMgrConfigurationException``, and ``SqlStackLogWrapper``.  Please reach out to us if you are adversly affected by these removals.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1027>`__)
 
+    *   - |changed|
+        - The SQL connection manager will no longer temporarily increase the pool size by eleven
+          connections when the pool is exhausted.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/971>`__)
+           
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
