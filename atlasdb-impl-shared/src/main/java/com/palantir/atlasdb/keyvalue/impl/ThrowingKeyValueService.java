@@ -58,11 +58,6 @@ public class ThrowingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void initializeFromFreshInstance() {
-        // do nothing
-    }
-
-    @Override
     public void close() {
         // do nothing
     }

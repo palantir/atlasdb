@@ -316,17 +316,6 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void initializeFromFreshInstance() {
-        if (log.isTraceEnabled()) {
-            Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.initializeFromFreshInstance();
-            logTime("initializeFromFreshInstance", stopwatch);
-        } else {
-            delegate.initializeFromFreshInstance();
-        }
-    }
-
-    @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();

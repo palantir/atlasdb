@@ -136,7 +136,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  * and these inactive nodes will be removed afterwards.
  */
 public class CassandraKeyValueService extends AbstractKeyValueService {
-
     private final Logger log;
 
     private static final Function<Entry<Cell, Value>, Long> ENTRY_SIZING_FUNCTION = input ->
@@ -236,11 +235,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(
                 clientPool,
                 configManager.getConfig());
-    }
-
-    @Override
-    public void initializeFromFreshInstance() {
-        // we already did our init in our factory method
     }
 
     private void upgradeFromOlderInternalSchema() {

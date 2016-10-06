@@ -258,11 +258,6 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void initializeFromFreshInstance() {
-        // we already did our init in our factory method
-    }
-
-    @Override
     public void close() {
         log.info("Closing CQLKeyValueService");
         session.close();

@@ -51,12 +51,6 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void initializeFromFreshInstance() {
-        delegate1.initializeFromFreshInstance();
-        delegate2.initializeFromFreshInstance();
-    }
-
-    @Override
     public void close() {
         delegate1.close();
         delegate2.close();

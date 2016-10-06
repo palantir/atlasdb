@@ -84,7 +84,6 @@ public abstract class TransactionTestSetup {
     public void setUp() throws Exception {
         keyValueService = getKeyValueService();
         timestampService = new InMemoryTimestampService();
-        keyValueService.initializeFromFreshInstance();
         keyValueService.createTables(ImmutableMap.of(
                 TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA,
                 TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
