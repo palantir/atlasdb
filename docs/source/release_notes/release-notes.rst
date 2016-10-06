@@ -60,7 +60,7 @@ v0.19.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
     *    - |fixed|
-         - The ``metadataTableName`` for Oracle is now ``a__metadata`` instead of ``_metadata``.
+         - The ``metadataTableName`` for Oracle is now ``atlasdb_metadata`` instead of ``_metadata``.
            This is due to Oracle's restriction of not allowing table names with a leading underscore.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 

@@ -17,12 +17,10 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 
@@ -36,10 +34,7 @@ public abstract class DdlConfig {
 
     public abstract Supplier<DbTableFactory> tableFactorySupplier();
 
-    @Value.Default
-    public TableReference metadataTable() {
-        return AtlasDbConstants.METADATA_TABLE;
-    }
+    public abstract TableReference metadataTable();
 
     @Value.Default
     public String tablePrefix() {
@@ -64,12 +59,6 @@ public abstract class DdlConfig {
     @Value.Default
     public int mutationBatchSizeBytes() {
         return 2 * 1024 * 1024;
-    }
-
-    @JsonIgnore
-    @Value.Derived
-    public String metadataTableName() {
-        return metadataTable().getQualifiedName();
     }
 
     @Value.Check

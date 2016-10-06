@@ -91,7 +91,9 @@ public class OracleDbTableFactory implements DbTableFactory {
                 @Override
                 public TableSize call() {
                     AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
-                            String.format("SELECT table_size FROM %s WHERE table_name = ?", config.metadataTableName()),
+                            String.format(
+                                    "SELECT table_size FROM %s WHERE table_name = ?",
+                                    config.metadataTable().getQualifiedName()),
                             tableRef.getQualifiedName());
                     Preconditions.checkArgument(
                             !results.rows().isEmpty(),

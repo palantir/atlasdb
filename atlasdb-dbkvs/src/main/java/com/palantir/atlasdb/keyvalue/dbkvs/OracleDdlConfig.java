@@ -25,6 +25,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OracleDbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
@@ -70,19 +72,15 @@ public abstract class OracleDdlConfig extends DdlConfig {
         return "a_";
     }
 
+    @Value.Default
+    @Override
+    public TableReference metadataTable() {
+        return AtlasDbConstants.ORACLE_METADATA_TABLE;
+    }
+
     @Override
     public final String type() {
         return TYPE;
-    }
-
-    @Value.Derived
-    @Override
-    public String metadataTableName() {
-        String metadataTableName = metadataTable().getQualifiedName();
-        if (metadataTableName.startsWith("_")) {
-            metadataTableName = tablePrefix() + metadataTableName;
-        }
-        return metadataTableName;
     }
 
     @Value.Check

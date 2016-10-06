@@ -145,7 +145,7 @@ public class DbKvs extends AbstractKeyValueService {
         runInitialization(new Function<DbTableInitializer, Void>() {
             @Override
             public Void apply(@Nonnull DbTableInitializer initializer) {
-                initializer.createMetadataTable(config.metadataTableName());
+                initializer.createMetadataTable(config.metadataTable().getQualifiedName());
                 return null;
             }
         });
@@ -922,7 +922,7 @@ public class DbKvs extends AbstractKeyValueService {
             @Override
             public Set<TableReference> apply(SqlConnection conn) {
                 AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                        "SELECT table_name FROM " + config.metadataTableName());
+                        "SELECT table_name FROM " + config.metadataTable().getQualifiedName());
                 Set<TableReference> ret = Sets.newHashSetWithExpectedSize(results.size());
                 for (AgnosticResultRow row : results.rows()) {
                     ret.add(TableReference.createUnsafe(row.getString("table_name")));
@@ -960,7 +960,7 @@ public class DbKvs extends AbstractKeyValueService {
             @SuppressWarnings("deprecation")
             public Map<TableReference, byte[]> apply(SqlConnection conn) {
                 AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                        "SELECT table_name, value FROM " + config.metadataTableName());
+                        "SELECT table_name, value FROM " + config.metadataTable().getQualifiedName());
                 Map<TableReference, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
                 for (AgnosticResultRow row : results.rows()) {
                     ret.put(TableReference.createUnsafe(row.getString("table_name")), row.getBytes("value"));
