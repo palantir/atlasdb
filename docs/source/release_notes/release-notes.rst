@@ -42,28 +42,30 @@ v0.19.0
          - Change
 
     *    - |new|
-         - We now support Oracle as a KVS if you have runtime dependency on an Oracle driver that resolves the
-           JsonType "jdbcHandler". All table names in the schema must be less than 30 characters long if you wish to
-           run against Oracle as a backing store.
+         - Oracle is a suported via DBKVS if you have runtime dependency on an Oracle driver that resolves the JsonType "jdbcHandler". 
+           All table names in the schema must be less than 30 characters long if you wish to run against Oracle as a backing store.
+           See :ref:`Oracle KVS Configuration <oracle-configuration>` for details on how to configure your service to use Oracle.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
     *    - |breaking|
-         - The DbKvs config now enforces that the namespace must always be empty for ``metadataTable`` in the Ddl block.
-           (All AtlasDB system tables must have empty namespace).
+         - The DBKVS config now enforces that the namespace must always be empty for ``metadataTable`` in the ``ddl`` block.
+           The ``metdataTable`` parameter defaults to an empty name space, so no action is needed if this value is not configured. 
+           See the :ref:`Oracle connection config <oracle-config-params>` documentation for more details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
-    *    - |breaking|
-         - The default ``tablePrefix`` for ``OracleDdlConfig`` is now "a\_" instead of empty "". This is needed to prefix
-           system tables as they cannot begin with ``_``.
+    *    - |fixed|
+         - We have changed the default ``tablePrefix`` for ``OracleDdlConfig`` to be ``a_``.
+           Previously this would default to be empty and so user-defined tables could have a leading underscore, which is an invalid table name for Oracle.
+           This change is specific to Oracle and does not affect DBKVS on Postgres.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
-    *    - |breaking|
+    *    - |fixed|
          - The ``metadataTableName`` for Oracle is now ``a__metadata`` instead of ``_metadata``.
+           This is due to Oracle's restriction of not allowing table names with a leading underscore.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
     *    - |breaking|
-         - The ``overflowIds`` config parameter in ``OracleDdlConfig`` is now Optional and is overriden by a default
-           sequence supplier if absent.
+         - The ``overflowIds`` config parameter in ``OracleDdlConfig`` is now Optional and is overriden by a default sequence supplier if absent.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
     *    - |breaking|
