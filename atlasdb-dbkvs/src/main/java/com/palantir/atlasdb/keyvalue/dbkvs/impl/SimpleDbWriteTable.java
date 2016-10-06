@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
@@ -128,6 +129,11 @@ public class SimpleDbWriteTable implements DbWriteTable {
     }
 
     private String prefixedTableName() {
+        if (config.type().equals(OracleDdlConfig.TYPE)) {
+            return ((OracleDdlConfig) config)
+                    .tableNameMapper()
+                    .hashTableNameToFitOracleTableNameLimits(config.tablePrefix(), tableName);
+        }
         return config.tablePrefix() + tableName;
     }
 }
