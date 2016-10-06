@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import static java.util.Collections.emptyMap;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertArrayEquals;
@@ -36,6 +37,7 @@ import org.apache.commons.lang.ArrayUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -66,8 +68,8 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class AbstractAtlasDbKeyValueServiceTest {
-    protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.pt_kvs_test");
-    protected static final TableReference TEST_NONEXISTING_TABLE = TableReference.createFromFullyQualifiedName("ns2.some_nonexisting_table");
+    protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.This_Is_ALongTableNameThatGoesOverOracleTableNameLengthLimit");
+    protected static final TableReference TEST_NONEXISTING_TABLE = TableReference.createFromFullyQualifiedName("ns2.some_nonexisting_ThisIsALongTableNameThatGoesOverOracleTableNameLengthLimit");
 
     protected static final byte[] row0 = "row0".getBytes();
     protected static final byte[] row1 = "row1".getBytes();
@@ -107,6 +109,13 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     public void tearDown() throws Exception {
         keyValueService.dropTables(keyValueService.getAllTableNames());
         keyValueService.teardown();
+    }
+
+    @Test
+    public void canCreateTablesWithLongNames() {
+        keyValueService.createTable(
+                TableReference.createWithEmptyNamespace("ThisIsALongTableNameThatGoesOverOracleTableNameLengthLimit"),
+                AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
     @Test
