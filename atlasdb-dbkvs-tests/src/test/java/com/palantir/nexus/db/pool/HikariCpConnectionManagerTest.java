@@ -22,6 +22,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLTransientConnectionException;
+import java.sql.Statement;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -38,7 +39,7 @@ import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 
-public class HikariCPConnectionManagerTest {
+public class HikariCpConnectionManagerTest {
 
     private static final int POSTGRES_PORT_NUMBER = 5432;
 
@@ -95,8 +96,9 @@ public class HikariCPConnectionManagerTest {
         }
     }
 
+    @SuppressWarnings("checkstyle:NestedTryDepth")
     @Test
-    public void testConnectionsAreReturnedToPoolWhenClosed() throws SQLException {
+    public void testConnectionsAreReturnedToPoolWhenClosedAndOverAllocationsAreStillRejected() throws SQLException {
         try (Connection conn1 = manager.getConnection();
              Connection conn2 = manager.getConnection()) {
             try (Connection conn3 = manager.getConnection()) {
@@ -118,6 +120,20 @@ public class HikariCPConnectionManagerTest {
     }
 
     @Test
+    public void testConnectionsAreReturnedToPoolWhenClosed() throws SQLException {
+        try (Connection conn1 = manager.getConnection();
+                Connection conn2 = manager.getConnection()) {
+            try (Connection conn3 = manager.getConnection()) {
+                checkConnection(conn3);
+            }
+            // Try getting a connection again after we returned the last one: should succeed
+            try (Connection conn3 = manager.getConnection()) {
+                checkConnection(conn3);
+            }
+        }
+    }
+
+    @Test
     public void testCloseIdempotent() throws SQLException {
         manager.init();
         manager.close();
@@ -125,10 +141,13 @@ public class HikariCPConnectionManagerTest {
     }
 
     private static void checkConnection(Connection conn) throws SQLException {
-        ResultSet result = conn.createStatement().executeQuery("SELECT 123");
-        Assert.assertTrue(result.next());
-        Assert.assertEquals(123, result.getInt(1));
-        Assert.assertFalse(result.next());
+        try (Statement statement = conn.createStatement()) {
+            try (ResultSet result = statement.executeQuery("SELECT 123")) {
+                Assert.assertTrue(result.next());
+                Assert.assertEquals(123, result.getInt(1));
+                Assert.assertFalse(result.next());
+            }
+        }
     }
 
     private static ConnectionConfig createConnectionConfig(int maxConnections) {
