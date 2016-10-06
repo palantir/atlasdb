@@ -218,10 +218,12 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     private String prefixedTableName() {
-        return config.tablePrefix() + tableName;
+        return config.tableNameMapper().hashTableNameToFitOracleTableNameLimits(config.tablePrefix(), tableName);
     }
 
     private String prefixedOverflowTableName() {
-        return config.overflowTablePrefix() + tableName;
+        return config.tableNameMapper().hashTableNameToFitOracleTableNameLimits(
+                config.overflowTablePrefix(),
+                tableName);
     }
 }
