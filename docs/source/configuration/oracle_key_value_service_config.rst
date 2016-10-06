@@ -148,5 +148,4 @@ The Connection Config block:
          - Query used to check if driver supports JDBC4. Defaults to "SELECT 1 FROM dual".
          - No
 
-There are more parameters in the Connection config which have default values. Feel free to have a look at the if you
-feel it would help improve the connection.
+There are more parameters in the Connection config, which have sensible default values.
