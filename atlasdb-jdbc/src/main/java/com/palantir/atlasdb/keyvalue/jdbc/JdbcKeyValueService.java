@@ -1013,11 +1013,6 @@ public class JdbcKeyValueService implements KeyValueService {
         }
     }
 
-    @Override
-    public void teardown() {
-        close();
-    }
-
     <T> T run(final Function<DSLContext, T> fun) {
         try (Connection connection = dataSource.getConnection()) {
             DSLContext ctx = DSL.using(connection, sqlDialect, settings);

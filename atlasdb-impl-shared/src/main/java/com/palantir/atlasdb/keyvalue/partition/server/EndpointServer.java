@@ -134,17 +134,6 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
     }
 
     @Override
-    public void teardown() {
-        runPartitionMapReadOperation(new Function<Void, Void>() {
-            @Override
-            public Void apply(Void input) {
-                kvs().teardown();
-                return null;
-            }
-        });
-    }
-
-    @Override
     public Collection<? extends KeyValueService> getDelegates() {
         return runPartitionMapReadOperation(input -> kvs().getDelegates());
     }
