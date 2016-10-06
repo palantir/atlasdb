@@ -64,6 +64,8 @@ A minimal AtlasDB configuration for running against Oracle will look like the be
 
 For more details on the leader block, see :ref:`Leader Configuration <leader-config>`.
 
+.. _oracle-config-params:
+
 Configuration Parameters
 ========================
 
