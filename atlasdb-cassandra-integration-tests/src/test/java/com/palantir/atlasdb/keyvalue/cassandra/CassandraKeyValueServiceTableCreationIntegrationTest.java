@@ -68,8 +68,8 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
     }
 
     @After
-    public void tearDown() {
-        kvs.teardown();
+    public void close() {
+        kvs.close();
     }
 
     @Test (timeout = 10 * 1000)

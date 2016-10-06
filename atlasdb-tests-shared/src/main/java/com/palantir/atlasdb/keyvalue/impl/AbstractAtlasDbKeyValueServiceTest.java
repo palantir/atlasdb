@@ -106,7 +106,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     @After
     public void tearDown() throws Exception {
         keyValueService.dropTables(keyValueService.getAllTableNames());
-        keyValueService.teardown();
+        keyValueService.close();
     }
 
     @Test

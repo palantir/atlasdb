@@ -133,13 +133,6 @@ public final class TieredKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void teardown() {
-        primary.teardown();
-        secondary.teardown();
-        executor.shutdown();
-    }
-
-    @Override
     public Collection<? extends KeyValueService> getDelegates() {
         return ImmutableList.of(primary, secondary);
     }

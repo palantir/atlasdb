@@ -290,11 +290,6 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
-    public void teardown() {
-        delegate().teardown();
-    }
-
-    @Override
     public void truncateTable(TableReference tableRef) {
         delegate().truncateTable(tableMapper.getMappedTableName(tableRef));
     }

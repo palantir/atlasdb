@@ -63,11 +63,6 @@ public class ThrowingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void teardown() {
-        // do nothing
-    }
-
-    @Override
     public Collection<? extends KeyValueService> getDelegates() {
         throw throwEx();
     }

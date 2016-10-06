@@ -215,11 +215,6 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
-    public void teardown() {
-        delegate().teardown();
-    }
-
-    @Override
     public Collection<? extends KeyValueService> getDelegates() {
         return delegate().getDelegates();
     }

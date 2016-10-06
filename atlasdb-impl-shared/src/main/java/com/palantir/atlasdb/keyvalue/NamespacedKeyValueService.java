@@ -44,8 +44,6 @@ public interface NamespacedKeyValueService {
 
     void close();
 
-    void teardown();
-
     TableMappingService getTableMapper();
 
     @Idempotent

@@ -36,8 +36,8 @@ public class CassandraTimestampIntegrationTest {
     }
 
     @After
-    public void tearDown() {
-        kv.teardown();
+    public void close() {
+        kv.close();
     }
 
     @Test

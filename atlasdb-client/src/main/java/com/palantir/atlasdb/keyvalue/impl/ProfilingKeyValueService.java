@@ -400,17 +400,6 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void teardown() {
-        if (log.isTraceEnabled()) {
-            Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.teardown();
-            logTime("teardown", stopwatch);
-        } else {
-            delegate.teardown();
-        }
-    }
-
-    @Override
     public void truncateTable(TableReference tableRef) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();

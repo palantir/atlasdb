@@ -27,10 +27,9 @@ import com.palantir.atlasdb.sweep.AbstractSweeperTest;
 public class RocksDbSweeperTest extends AbstractSweeperTest {
     private File tempDir;
 
-    @Override
     @After
     public void tearDown() {
-        super.tearDown();
+        super.close();
         for (File file : Files.fileTreeTraverser().postOrderTraversal(tempDir)) {
             file.delete();
         }
