@@ -210,11 +210,6 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
-    public void initializeFromFreshInstance() {
-        delegate().initializeFromFreshInstance();
-    }
-
-    @Override
     public void close() {
         delegate().close();
     }

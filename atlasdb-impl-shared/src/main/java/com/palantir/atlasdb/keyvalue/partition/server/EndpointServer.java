@@ -122,17 +122,6 @@ public class EndpointServer implements PartitionMapService, KeyValueService {
     }
 
     @Override
-    public void initializeFromFreshInstance() {
-        runPartitionMapReadOperation(new Function<Void, Void>() {
-            @Override
-            public Void apply(Void input) {
-                kvs().initializeFromFreshInstance();
-                return null;
-            }
-        });
-    }
-
-    @Override
     public void close() {
         runPartitionMapReadOperation(new Function<Void, Void>() {
             @Override

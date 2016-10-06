@@ -768,19 +768,6 @@ public class PartitionedKeyValueService extends PartitionMapProvider implements 
         });
     }
 
-    @Override
-    public void initializeFromFreshInstance() {
-        runWithPartitionMapRetryable(new Function<DynamicPartitionMap, Void>() {
-            @Override
-            public Void apply(@Nullable DynamicPartitionMap input) {
-                for (KeyValueService kvs : input.getDelegates()) {
-                    kvs.initializeFromFreshInstance();
-                }
-                return null;
-            }
-        });
-    }
-
     // *** Creation *******************************************************************************
     protected PartitionedKeyValueService(ExecutorService executor, QuorumParameters quorumParameters,
             ImmutableList<PartitionMapService> partitionMapProviders, int partitionMapProvidersReadFactor) {

@@ -40,17 +40,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 @Path("/keyvalue")
 public interface KeyValueService extends AutoCloseable {
     /**
-     * Performs any initialization that must be done on a fresh instance of the key-value store,
-     * such as creating the metadata table.
-     *
-     * This method should be called when the key-value store is first created. Further calls in the
-     * lifetime of the key-value store should be silently ignored.
-     */
-    @POST
-    @Path("initialize")
-    void initializeFromFreshInstance();
-
-    /**
      * Performs non-destructive cleanup when the KVS is no longer needed.
      */
     @POST

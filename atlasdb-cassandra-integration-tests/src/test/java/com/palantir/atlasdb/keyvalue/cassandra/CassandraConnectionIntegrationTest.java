@@ -60,6 +60,7 @@ public class CassandraConnectionIntegrationTest {
         assert true; // getting here implies authentication succeeded
     }
 
+    // Don't worry about failing this test if you're running against a local Cassandra that isn't setup with auth magic
     @Test
     public void testAuthMissing() {
         try {
