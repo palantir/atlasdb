@@ -29,10 +29,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.concurrent.PTExecutors;
 
-// Since HeartbeatService performs actions that are lock holder specific,
-// it should only ever be used from a single thread (i.e. the current lock holder's thread).
-@NotThreadSafe
-final class HeartbeatService {
+public class HeartbeatService {
     private static final Logger log = LoggerFactory.getLogger(HeartbeatService.class);
 
     private final CassandraClientPool clientPool;
@@ -47,11 +44,12 @@ final class HeartbeatService {
             + " Only one heartbeat per lock allowed.";
     static final String stopBeatingWarn = "HeartbeatService is already stopped";
 
-    HeartbeatService(CassandraClientPool clientPool,
-                     TracingQueryRunner queryRunner,
-                     int heartbeatTimePeriodMillis,
-                     TableReference lockTable,
-                     ConsistencyLevel writeConsistency) {
+    public HeartbeatService(
+            CassandraClientPool clientPool,
+            TracingQueryRunner queryRunner,
+            int heartbeatTimePeriodMillis,
+            TableReference lockTable,
+            ConsistencyLevel writeConsistency) {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
         this.heartbeatTimePeriodMillis = heartbeatTimePeriodMillis;
@@ -61,7 +59,7 @@ final class HeartbeatService {
         this.heartbeatExecutorService = null;
     }
 
-    void startBeatingForLock(long lockId) {
+    public synchronized void startBeatingForLock(long lockId) {
         Preconditions.checkState(heartbeatExecutorService == null, startBeatingErr);
         heartbeatCount.set(0);
         heartbeatExecutorService = PTExecutors.newSingleThreadScheduledExecutor(
@@ -71,7 +69,7 @@ final class HeartbeatService {
                 0, heartbeatTimePeriodMillis, TimeUnit.MILLISECONDS);
     }
 
-    void stopBeating() {
+    public synchronized void stopBeating() {
         if (heartbeatExecutorService == null) {
             log.warn(stopBeatingWarn);
             return;
@@ -90,12 +88,11 @@ final class HeartbeatService {
             heartbeatExecutorService.shutdownNow();
             Thread.currentThread().interrupt();
         } finally {
-            heartbeatExecutorService.shutdownNow();
             heartbeatExecutorService = null;
         }
     }
 
-    int getCurrentHeartbeatCount() {
+    public int getCurrentHeartbeatCount() {
         return heartbeatCount.get();
     }
 }

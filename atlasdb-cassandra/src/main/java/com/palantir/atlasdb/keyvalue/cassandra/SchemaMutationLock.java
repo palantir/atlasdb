@@ -87,13 +87,16 @@ final class SchemaMutationLock {
         }
 
         long lockId = waitForSchemaMutationLock();
-        heartbeatService.startBeatingForLock(lockId);
         try {
-            action.execute();
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
+            try {
+                heartbeatService.startBeatingForLock(lockId);
+                action.execute();
+            } catch (Exception e) {
+                throw Throwables.throwUncheckedException(e);
+            } finally {
+                heartbeatService.stopBeating();
+            }
         } finally {
-            heartbeatService.stopBeating();
             schemaMutationUnlock(lockId);
         }
     }

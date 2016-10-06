@@ -107,7 +107,7 @@ public class SchemaMutationLockIntegrationTest {
 
     @Test
     public void testLockAndUnlockWithoutContention() {
-        schemaMutationLock.runWithLock(() -> { });
+        schemaMutationLock.runWithLock(DO_NOTHING);
     }
 
     @Test
