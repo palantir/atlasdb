@@ -39,7 +39,8 @@ public final class AtlasDbCommandUtils {
 
     public static AtlasDbConfig convertServerConfigToClientConfig(AtlasDbConfig serverConfig) {
         Preconditions.checkArgument(serverConfig.leader().isPresent(),
-                "Only server configurations with a leader block can be converted to client configurations");
+                "Your server configuration file must have a leader block. For instructions on how to do this, see the "
+                        + "documentation: http://palantir.github.io/atlasdb/html/configuration/leader_config.html");
 
         ServerListConfig leaders = ImmutableServerListConfig.builder()
                 .servers(serverConfig.leader().get().leaders())

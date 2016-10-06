@@ -66,6 +66,11 @@ v0.19.0
            sequence supplier if absent.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
+    *    - |breaking|
+         - Removed the following classes that appeared to be unused - ``ManyHostPoolingContainer``, ``CloseShieldedKeyValueService``, ``RowWrapper``, ``BatchRowVisitor``,
+           ``MapCollector``, ``DBMgrConfigurationException``, and ``SqlStackLogWrapper``.  Please reach out to us if you are adversly affected by these removals.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1027>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
