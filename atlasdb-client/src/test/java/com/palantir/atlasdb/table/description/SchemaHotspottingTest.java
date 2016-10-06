@@ -23,12 +23,15 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 
 public class SchemaHotspottingTest {
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     Schema hotspottingSchema = getHotspottingSchema();
 
@@ -70,9 +73,6 @@ public class SchemaHotspottingTest {
 
     @Test
     public void testSuccessfulGenerationWhenHotspottingIgnored() throws IOException {
-        TemporaryFolder temporaryFolder = new TemporaryFolder();
-        temporaryFolder.create();
-
         File srcDir = temporaryFolder.getRoot();
         getIgnoredHotspottingSchema().renderTables(srcDir);
 
