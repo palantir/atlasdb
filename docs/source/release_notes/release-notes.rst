@@ -42,14 +42,14 @@ v0.19.0
          - Change
 
     *    - |new|
-         - Oracle is a suported via DBKVS if you have runtime dependency on an Oracle driver that resolves the JsonType "jdbcHandler". 
+         - Oracle is supported via DBKVS if you have runtime dependency on an Oracle driver that resolves the JsonType "jdbcHandler".
            All table names in the schema must be less than 30 characters long if you wish to run against Oracle as a backing store.
            See :ref:`Oracle KVS Configuration <oracle-configuration>` for details on how to configure your service to use Oracle.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
     *    - |breaking|
          - The DBKVS config now enforces that the namespace must always be empty for ``metadataTable`` in the ``ddl`` block.
-           The ``metdataTable`` parameter defaults to an empty name space, so no action is needed if this value is not configured. 
+           The ``metadataTable`` parameter defaults to an empty name space, so no action is needed if this value is not configured.
            See the :ref:`Oracle connection config <oracle-config-params>` documentation for more details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
