@@ -70,7 +70,7 @@ import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractSweeperTest {
-    protected static final TableReference TABLE_NAME = TableReference.createWithEmptyNamespace("test_table");
+    protected static final TableReference TABLE_NAME = TableReference.createWithEmptyNamespace("This_Is_ALongTableNameThatGoesOverOracleTableNameLengthLimit");
     private static final String COL = "c";
     protected static final int DEFAULT_BATCH_SIZE = 1000;
 

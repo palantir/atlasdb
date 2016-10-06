@@ -26,7 +26,6 @@ public final class OracleTableNameMapper implements TableNameMapper {
 
     @Override
     public String hashTableNameToFitOracleTableNameLimits(String tablePrefix, String tableName) {
-        System.out.println("Params are : tableName: " + tableName + ", prefix: " + tablePrefix);
         int unPrefixedHashSize = ORACLE_TABLE_NAME_LIMIT - tablePrefix.length();
         if (tableName.length() < unPrefixedHashSize) {
             return tablePrefix + tableName;
