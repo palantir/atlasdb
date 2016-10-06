@@ -51,11 +51,6 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
-    public void teardown() {
-        delegate().teardown();
-    }
-
-    @Override
     public void createTable(TableReference tableRef, final byte[] tableMetadata) {
         delegate().createTable(tableRef, tableMetadata);
     }

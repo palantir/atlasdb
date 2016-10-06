@@ -48,13 +48,6 @@ public interface KeyValueService extends AutoCloseable {
     void close();
 
     /**
-     * Performs any cleanup when clearing the database. This method may delete data irrecoverably.
-     */
-    @POST
-    @Path("teardown")
-    void teardown();
-
-    /**
      * Gets all key value services this key value service delegates to directly.
      * <p>
      * This can be used to decompose a complex key value service using table splits, tiers,

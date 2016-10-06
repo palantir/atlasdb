@@ -157,12 +157,6 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public void teardown() {
-        super.teardown();
-        close();
-    }
-
-    @Override
     public Map<Cell, Value> getRows(
             TableReference tableRef,
             Iterable<byte[]> rows,

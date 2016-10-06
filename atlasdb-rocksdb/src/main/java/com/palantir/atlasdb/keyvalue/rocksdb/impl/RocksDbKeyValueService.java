@@ -280,11 +280,6 @@ public class RocksDbKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void teardown() {
-        close();
-    }
-
-    @Override
     public Collection<? extends KeyValueService> getDelegates() {
         return ImmutableList.of();
     }

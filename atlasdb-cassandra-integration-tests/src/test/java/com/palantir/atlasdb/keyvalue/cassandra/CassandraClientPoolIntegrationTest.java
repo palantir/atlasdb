@@ -63,8 +63,8 @@ public class CassandraClientPoolIntegrationTest {
     }
 
     @After
-    public void tearDown() {
-        kv.teardown();
+    public void close() {
+        kv.close();
     }
 
     // This is a dumb test in the current test suite that has just one local Cassandra node.

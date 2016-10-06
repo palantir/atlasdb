@@ -55,10 +55,9 @@ public class CassandraConnectionIntegrationTest {
 
     @Test
     public void testAuthProvided() {
-        CassandraKeyValueService kv = CassandraKeyValueService.create(
+        CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.cassandraKvsConfig),
-                LEADER_CONFIG);
-        kv.teardown();
+                LEADER_CONFIG).close();
     }
 
     // Don't worry about failing this test if you're running against a local Cassandra that isn't setup with auth magic
