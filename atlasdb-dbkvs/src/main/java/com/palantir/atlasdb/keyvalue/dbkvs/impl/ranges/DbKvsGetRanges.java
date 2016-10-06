@@ -331,9 +331,9 @@ public class DbKvsGetRanges {
     }
 
     private String prefixTableName(String tableName) {
-        if (config.type() == OracleDdlConfig.TYPE) {
-            OracleDdlConfig oracleDdlConfig = (OracleDdlConfig) config;
-            return ((OracleDdlConfig) config).tableNameMapper()
+        if (config.type().equals(OracleDdlConfig.TYPE)) {
+            return ((OracleDdlConfig) config)
+                    .tableNameMapper()
                     .hashTableNameToFitOracleTableNameLimits(config.tablePrefix(), tableName);
         }
         return config.tablePrefix() + tableName;
