@@ -111,7 +111,7 @@ public final class CassandraKeyValueServices {
                 waitForSchemaVersions(
                         client,
                         "(none, just an initialization check)",
-                        config.schemaMutationTimeoutMillis());
+                        config.schemaMutationTimeoutMillis() / 4);
                 return null;
             });
         } catch (TException e) {
