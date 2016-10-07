@@ -41,6 +41,7 @@ import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
+@SuppressWarnings("checkstyle:HideUtilityClassConstructor")
 @RunWith(Suite.class)
 @SuiteClasses({
         CassandraKeyValueServiceTransactionIntegrationTest.class,
@@ -53,36 +54,37 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
         CassandraKeyValueServiceIntegrationTest.class,
         HeartbeatServiceIntegrationTest.class,
         SchemaMutationLockIntegrationTest.class,
-        SchemaMutationLockTablesIntegrationTest.class,
-})
-public class CassandraTestSuite {
-
+        SchemaMutationLockTablesIntegrationTest.class
+        })
+public final class CassandraTestSuite {
     public static final int THRIFT_PORT_NUMBER = 9160;
-    public static final DockerComposeRule docker = DockerComposeRule.builder()
+
+    private static final DockerComposeRule docker = DockerComposeRule.builder()
             .file("src/test/resources/docker-compose.yml")
             .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen())
             .saveLogsTo("container-logs")
             .build();
-
-    public static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
+    private static final Gradle GRADLE_PREPARE_TASK =
+            Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
 
     @ClassRule
-    public static final RuleChain CASSANDRA_DOCKER_SET_UP = RuleChain.outerRule(GRADLE_PREPARE_TASK).around(docker);
+    public static final RuleChain CASSANDRA_DOCKER_SET_UP = RuleChain.outerRule(GRADLE_PREPARE_TASK)
+            .around(docker);
 
-    static InetSocketAddress CASSANDRA_THRIFT_ADDRESS;
+    static InetSocketAddress cassandraThriftAddress;
 
-    static ImmutableCassandraKeyValueServiceConfig CASSANDRA_KVS_CONFIG;
+    static ImmutableCassandraKeyValueServiceConfig cassandraKvsConfig;
 
-    static Optional<LeaderConfig> LEADER_CONFIG;
+    static Optional<LeaderConfig> leaderConfig;
 
     @BeforeClass
     public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {
         DockerPort port = docker.hostNetworkedPort(THRIFT_PORT_NUMBER);
         String hostname = port.getIp();
-        CASSANDRA_THRIFT_ADDRESS = new InetSocketAddress(hostname, port.getExternalPort());
+        cassandraThriftAddress = new InetSocketAddress(hostname, port.getExternalPort());
 
-        CASSANDRA_KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-                .addServers(CASSANDRA_THRIFT_ADDRESS)
+        cassandraKvsConfig = ImmutableCassandraKeyValueServiceConfig.builder()
+                .addServers(cassandraThriftAddress)
                 .poolSize(20)
                 .keyspace("atlasdb")
                 .credentials(ImmutableCassandraCredentialsConfig.builder()
@@ -98,7 +100,7 @@ public class CassandraTestSuite {
                 .autoRefreshNodes(false)
                 .build();
 
-        LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
+        leaderConfig = Optional.of(ImmutableLeaderConfig
                 .builder()
                 .quorumSize(1)
                 .localServer(hostname)
@@ -112,20 +114,19 @@ public class CassandraTestSuite {
     }
 
     private static Callable<Boolean> canCreateKeyValueService() {
-        return new Callable<Boolean>() {
-            @Override
-            public Boolean call() throws Exception {
-                try {
-                    CassandraKeyValueService.create(CassandraKeyValueServiceConfigManager.createSimpleManager(CASSANDRA_KVS_CONFIG), LEADER_CONFIG);
-                    return true;
-                } catch (Exception e) {
-                    return false;
-                }
+        return () -> {
+            try {
+                CassandraKeyValueService.create(
+                        CassandraKeyValueServiceConfigManager.createSimpleManager(cassandraKvsConfig),
+                        leaderConfig);
+                return true;
+            } catch (Exception e) {
+                return false;
             }
         };
     }
 
     private static HealthCheck<DockerPort> toBeOpen() {
-        return port -> SuccessOrFailure.fromBoolean(port.isListeningNow(), "" + "" + port + " was not open");
+        return port -> SuccessOrFailure.fromBoolean(port.isListeningNow(), port + " was not open");
     }
 }
