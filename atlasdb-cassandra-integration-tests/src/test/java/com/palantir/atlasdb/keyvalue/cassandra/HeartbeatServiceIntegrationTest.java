@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -28,7 +31,6 @@ import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
 import org.apache.thrift.TException;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -56,12 +58,12 @@ public class HeartbeatServiceIntegrationTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() throws TException {
         CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(
                 CassandraTestSuite.CASSANDRA_KVS_CONFIG);
         queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
 
-        writeConsistency= ConsistencyLevel.EACH_QUORUM;
+        writeConsistency = ConsistencyLevel.EACH_QUORUM;
         clientPool = new CassandraClientPool(simpleManager.getConfig());
         lockTable = new UniqueSchemaMutationLockTable(
                 new SchemaMutationLockTables(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG),
@@ -74,34 +76,8 @@ public class HeartbeatServiceIntegrationTest {
         clientPool.runWithRetry(this::createLockEntry);
     }
 
-    private CqlResult createLockEntry(Cassandra.Client client) throws TException {
-        String lockValue= CassandraKeyValueServices.encodeAsHex(
-                SchemaMutationLock.lockValueFromIdAndHeartbeat(lockId, 0).getBytes(StandardCharsets.UTF_8));
-        String lockRowName = CassandraKeyValueServices.encodeAsHex(
-                CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME.getBytes(StandardCharsets.UTF_8));
-        String lockColName = CassandraKeyValueServices.encodeAsHex(
-                CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8));
-        String createCql = String.format(
-                "UPDATE \"%s\" SET value = %s WHERE key = %s AND column1 = %s AND column2 = -1;",
-                lockTable.getOnlyTable().getQualifiedName(), lockValue, lockRowName, lockColName);
-        ByteBuffer queryBuffer = ByteBuffer.wrap(createCql.getBytes(StandardCharsets.UTF_8));
-        return client.execute_cql3_query(queryBuffer, Compression.NONE, writeConsistency);
-    }
-
-    private CqlResult readLockEntry(Cassandra.Client client) throws TException {
-        String lockRowName = CassandraKeyValueServices.encodeAsHex(
-                CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME.getBytes(StandardCharsets.UTF_8));
-        String lockColName = CassandraKeyValueServices.encodeAsHex(
-                CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8));
-        String createCql = String.format(
-                "SELECT \"value\" FROM \"%s\" WHERE key = %s AND column1 = %s AND column2 = -1;",
-                lockTable.getOnlyTable().getQualifiedName(), lockRowName, lockColName);
-        ByteBuffer queryBuffer = ByteBuffer.wrap(createCql.getBytes(StandardCharsets.UTF_8));
-        return client.execute_cql3_query(queryBuffer, Compression.NONE, ConsistencyLevel.LOCAL_QUORUM);
-    }
-
     @After
-    public void cleanUp() throws Exception {
+    public void cleanUp() throws TException {
         heartbeatService.stopBeating();
         clientPool.runWithRetry(this::truncateLocks);
     }
@@ -113,12 +89,12 @@ public class HeartbeatServiceIntegrationTest {
     }
 
     @Test
-    public void testNormalStartStopBeatingSequence() throws Exception {
-        Assert.assertEquals(0, getCurrentHeartbeat());
+    public void testNormalStartStopBeatingSequence() throws TException, InterruptedException {
+        assertEquals(0, getCurrentHeartbeat());
         heartbeatService.startBeatingForLock(lockId);
         Thread.sleep(10 * heartbeatTimePeriodMillis);
         heartbeatService.stopBeating();
-        Assert.assertNotEquals(0, getCurrentHeartbeat());
+        assertNotEquals(0, getCurrentHeartbeat());
     }
 
     @Test
@@ -133,28 +109,54 @@ public class HeartbeatServiceIntegrationTest {
     }
 
     @Test
-    public void testSingleHeartbeat() throws Exception {
+    public void testSingleHeartbeat() throws TException {
         Heartbeat heartbeat = new Heartbeat(clientPool, queryRunner,
                 lockTable.getOnlyTable(), writeConsistency, lockId);
         heartbeat.run();
-        Assert.assertEquals(1, getCurrentHeartbeat());
+        assertEquals(1, getCurrentHeartbeat());
     }
 
     @Test
-    public void testHeartbeatWithInvalidLock() throws Exception {
+    public void testHeartbeatWithInvalidLock() throws TException {
         long invalidLockId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
         Heartbeat heartbeat = new Heartbeat(clientPool, queryRunner, lockTable.getOnlyTable(),
                 writeConsistency, invalidLockId);
         heartbeat.run();
         // value should not be updated because an IllegalStateException will be thrown and caught
-        Assert.assertEquals(0, getCurrentHeartbeat());
-     }
+        assertEquals(0, getCurrentHeartbeat());
+    }
 
-     private long getCurrentHeartbeat() throws TException {
-         List<CqlRow> resultBeforeHeartbeat = clientPool.runWithRetry(this::readLockEntry).getRows();
-         Assert.assertEquals(1, resultBeforeHeartbeat.size());
-         List<Column> resultColumnsBeforeHeartbeat = resultBeforeHeartbeat.get(0).getColumns();
-         Assert.assertEquals(1, resultColumnsBeforeHeartbeat.size());
-         return SchemaMutationLock.getHeartbeatCountFromColumn(resultColumnsBeforeHeartbeat.get(0));
-     }
+    private CqlResult createLockEntry(Cassandra.Client client) throws TException {
+        String lockValue = CassandraKeyValueServices.encodeAsHex(
+                SchemaMutationLock.lockValueFromIdAndHeartbeat(lockId, 0).getBytes(StandardCharsets.UTF_8));
+        String lockRowName = CassandraKeyValueServices.encodeAsHex(
+                CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME.getBytes(StandardCharsets.UTF_8));
+        String lockColName = CassandraKeyValueServices.encodeAsHex(
+                CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8));
+        String createCql = String.format(
+                "UPDATE \"%s\" SET value = %s WHERE key = %s AND column1 = %s AND column2 = -1;",
+                lockTable.getOnlyTable().getQualifiedName(), lockValue, lockRowName, lockColName);
+        ByteBuffer queryBuffer = ByteBuffer.wrap(createCql.getBytes(StandardCharsets.UTF_8));
+        return client.execute_cql3_query(queryBuffer, Compression.NONE, writeConsistency);
+    }
+
+    private long getCurrentHeartbeat() throws TException {
+        List<CqlRow> resultBeforeHeartbeat = clientPool.runWithRetry(this::readLockEntry).getRows();
+        assertEquals(1, resultBeforeHeartbeat.size());
+        List<Column> resultColumnsBeforeHeartbeat = resultBeforeHeartbeat.get(0).getColumns();
+        assertEquals(1, resultColumnsBeforeHeartbeat.size());
+        return SchemaMutationLock.getHeartbeatCountFromColumn(resultColumnsBeforeHeartbeat.get(0));
+    }
+
+    private CqlResult readLockEntry(Cassandra.Client client) throws TException {
+        String lockRowName = CassandraKeyValueServices.encodeAsHex(
+                CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME.getBytes(StandardCharsets.UTF_8));
+        String lockColName = CassandraKeyValueServices.encodeAsHex(
+                CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8));
+        String createCql = String.format(
+                "SELECT \"value\" FROM \"%s\" WHERE key = %s AND column1 = %s AND column2 = -1;",
+                lockTable.getOnlyTable().getQualifiedName(), lockRowName, lockColName);
+        ByteBuffer queryBuffer = ByteBuffer.wrap(createCql.getBytes(StandardCharsets.UTF_8));
+        return client.execute_cql3_query(queryBuffer, Compression.NONE, ConsistencyLevel.LOCAL_QUORUM);
+    }
 }

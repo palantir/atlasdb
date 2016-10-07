@@ -97,21 +97,24 @@ public class SchemaMutationLockIntegrationTest {
         TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
         clientPool = new CassandraClientPool(simpleManager.getConfig());
-        lockTable = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, quickTimeoutConfig),
+        lockTable = new UniqueSchemaMutationLockTable(
+                new SchemaMutationLockTables(clientPool, quickTimeoutConfig),
                 LockLeader.I_AM_THE_LOCK_LEADER);
-        heartbeatService = new HeartbeatService(clientPool,
-                                                queryRunner,
-                                                HeartbeatService.DEFAULT_HEARTBEAT_TIME_PERIOD_MILLIS,
-                                                lockTable.getOnlyTable(),
-                                                writeConsistency);
-        schemaMutationLock = new SchemaMutationLock(supportsCas,
-                                                    simpleManager,
-                                                    clientPool,
-                                                    queryRunner,
-                                                    writeConsistency,
-                                                    lockTable,
-                                                    heartbeatService,
-                                                    SchemaMutationLock.DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS);
+        heartbeatService = new HeartbeatService(
+                clientPool,
+                queryRunner,
+                HeartbeatService.DEFAULT_HEARTBEAT_TIME_PERIOD_MILLIS,
+                lockTable.getOnlyTable(),
+                writeConsistency);
+        schemaMutationLock = new SchemaMutationLock(
+                supportsCas,
+                simpleManager,
+                clientPool,
+                queryRunner,
+                writeConsistency,
+                lockTable,
+                heartbeatService,
+                SchemaMutationLock.DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS);
     }
 
     @Test

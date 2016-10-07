@@ -31,17 +31,17 @@ import com.palantir.common.concurrent.PTExecutors;
 public class HeartbeatService {
     private static final Logger log = LoggerFactory.getLogger(HeartbeatService.class);
 
+    public static final String START_BEATING_ERR_MSG = "Can't start new heartbeat because there is an"
+            + " existing heartbeat. Only one heartbeat per lock allowed.";
+    public static final String STOP_BEATING_WARN_MSG = "HeartbeatService is already stopped";
+    public static final int DEFAULT_HEARTBEAT_TIME_PERIOD_MILLIS = 1000;
+
     private final CassandraClientPool clientPool;
     private final TracingQueryRunner queryRunner;
     private final int heartbeatTimePeriodMillis;
     private final TableReference lockTable;
     private final ConsistencyLevel writeConsistency;
     private ScheduledExecutorService heartbeatExecutorService;
-
-    public static final String START_BEATING_ERR_MSG = "Can't start new heartbeat with an existing heartbeat."
-            + " Only one heartbeat per lock allowed.";
-    public static final String STOP_BEATING_WARN_MSG = "HeartbeatService is already stopped";
-    public static final int DEFAULT_HEARTBEAT_TIME_PERIOD_MILLIS = 1000;
 
     public HeartbeatService(
             CassandraClientPool clientPool,
