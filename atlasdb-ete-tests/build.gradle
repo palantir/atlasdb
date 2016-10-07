@@ -43,6 +43,7 @@ dependencies {
     processor 'org.immutables:value:' + libVersions.immutables
 
     testCompile project(':atlasdb-ete-test-utils')
+    testCompile project(':atlasdb-docker-test-utils')
 
     testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
     testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
