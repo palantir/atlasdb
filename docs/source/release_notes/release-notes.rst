@@ -43,6 +43,7 @@ v0.19.0
     *    - |breaking|
          - Removed KeyValueService.[initializeFromFresh|tearDown|getRangeWithHistory]
            It is likely all callers of tearDown just want to call close.
+           Also removed Partitioning and Remoting KVSs, which were unused and had many unimplemented methods.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1041>`__)
             
     *    - |fixed|

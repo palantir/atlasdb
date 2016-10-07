@@ -16,7 +16,7 @@ CONTAINER_3=(':atlasdb-timelock-ete:check' ':lock-impl:check' ':atlasdb-dbkvs-te
 CONTAINER_4=(':atlasdb-dbkvs:check' ':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-dropwizard-bundle:check')
 
 # Container 0 - runs tasks not found in the below containers
-CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}"  "${CONTAINER_5[@]}")
+CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}")
 
 for task in "${CONTAINER_0_EXCLUDE[@]}"
 do
@@ -29,5 +29,4 @@ case $CIRCLE_NODE_INDEX in
     2) ./gradlew --profile --continue --parallel ${CONTAINER_2[@]} ;;
     3) ./gradlew --profile --continue ${CONTAINER_3[@]} && checkDocsBuild ;;
     4) ./gradlew --profile --continue --parallel ${CONTAINER_4[@]} ;;
-    5) ./gradlew --profile --continue --parallel ${CONTAINER_5[@]} ;;
 esac
