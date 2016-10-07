@@ -20,7 +20,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URI;
@@ -64,7 +63,7 @@ public class DockerProxySelectorTest {
     @Test
     public void dockerAddressesShouldGoThroughAProxy() throws URISyntaxException {
         when(mappings.get()).thenReturn(ImmutableProjectInfoMappings.builder()
-                .putHostToIp(TEST_HOSTNAME, mock(InetAddress.class))
+                .putHostToIp(TEST_HOSTNAME, TEST_IP)
                 .build());
 
         List<Proxy> selectedProxy = dockerProxySelector.select(TEST_HOSTNAME_URI);

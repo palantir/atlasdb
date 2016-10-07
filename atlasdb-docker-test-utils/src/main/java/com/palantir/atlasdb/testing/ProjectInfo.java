@@ -18,7 +18,6 @@ package com.palantir.atlasdb.testing;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,9 +53,9 @@ public class ProjectInfo implements Supplier<ProjectInfoMappings> {
 
     @Override
     public ProjectInfoMappings get() {
-        Map<String, InetAddress> hostToIp = getContainerMappings();
+        Map<String, String> hostToIp = getContainerMappings();
         Multimap<String, String> ipToHosts = HashMultimap.create();
-        hostToIp.forEach((host, ip) -> ipToHosts.put(ip.getHostAddress(), host));
+        hostToIp.forEach((host, ip) -> ipToHosts.put(ip, host));
 
         return ImmutableProjectInfoMappings.builder()
                 .hostToIp(hostToIp)
@@ -64,7 +63,7 @@ public class ProjectInfo implements Supplier<ProjectInfoMappings> {
                 .build();
     }
 
-    private Map<String, InetAddress> getContainerMappings() {
+    private Map<String, String> getContainerMappings() {
         ListMultimap<String, String> containerIdToAllIds = getContainerIdToAllIds();
         throwIfDuplicatesInAllIds(containerIdToAllIds);
         return getContainerIdToContainerIp(containerIdToAllIds);
@@ -90,18 +89,18 @@ public class ProjectInfo implements Supplier<ProjectInfoMappings> {
         }
     }
 
-    private Map<String, InetAddress> getContainerIdToContainerIp(Multimap<String, String> containerIdToAllIds) {
-        ImmutableMap.Builder<String, InetAddress> containerNameToIp = ImmutableMap.builder();
+    private Map<String, String> getContainerIdToContainerIp(Multimap<String, String> containerIdToAllIds) {
+        ImmutableMap.Builder<String, String> containerNameToIp = ImmutableMap.builder();
 
         containerIdToAllIds.asMap().forEach((containerId, ids) -> {
-            InetAddress ip = getContainerIpFromId(containerId);
+            String ip = getContainerIpFromId(containerId);
             ids.forEach(id -> containerNameToIp.put(id, ip));
         });
 
         return containerNameToIp.build();
     }
 
-    private InetAddress getContainerIpFromId(String containerId) {
+    private String getContainerIpFromId(String containerId) {
         try {
             Process process = docker.execute(
                     "inspect",
@@ -111,7 +110,9 @@ public class ProjectInfo implements Supplier<ProjectInfoMappings> {
             if (!process.waitFor(5, TimeUnit.SECONDS) || process.exitValue() != 0) {
                 throw new IllegalStateException("Couldn't get IP for container ID " + containerId);
             }
-            return InetAddresses.forString(getOnlyLineFromInputStream(process.getInputStream()));
+            String ip = getOnlyLineFromInputStream(process.getInputStream());
+            Preconditions.checkState(InetAddresses.isInetAddress(ip), "IP address is not valid: " + ip);
+            return ip;
         } catch (InterruptedException | IOException e) {
             throw new IllegalStateException("Couldn't get IP for container ID " + containerId, e);
         }

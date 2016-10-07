@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.net.InetAddresses;
 
 public class DockerNameService implements sun.net.spi.nameservice.NameService {
     private final Supplier<ProjectInfoMappings> projectInfo;
@@ -32,10 +33,10 @@ public class DockerNameService implements sun.net.spi.nameservice.NameService {
 
     @Override
     public InetAddress[] lookupAllHostAddr(String hostname) throws UnknownHostException {
-        Map<String, InetAddress> hostToIp = projectInfo.get().getHostToIp();
+        Map<String, String> hostToIp = projectInfo.get().getHostToIp();
 
         if (hostToIp.containsKey(hostname)) {
-            return new InetAddress[] { hostToIp.get(hostname) };
+            return new InetAddress[] { InetAddresses.forString(hostToIp.get(hostname)) };
         }
         throw new UnknownHostException(hostname);
     }

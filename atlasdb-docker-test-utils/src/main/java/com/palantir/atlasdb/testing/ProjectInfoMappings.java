@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.testing;
 
-import java.net.InetAddress;
 import java.util.Map;
 
 import org.immutables.value.Value;
@@ -24,6 +23,6 @@ import com.google.common.collect.Multimap;
 
 @Value.Immutable
 public interface ProjectInfoMappings {
-    Map<String, InetAddress> getHostToIp();
+    Map<String, String> getHostToIp();
     Multimap<String, String> getIpToHosts();
 }
