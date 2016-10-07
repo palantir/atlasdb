@@ -233,7 +233,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         createTable(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
-        CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(
+        CassandraKeyValueServices.warnUserInInitializationIfClusterAlreadyInInconsistentState(
                 clientPool,
                 configManager.getConfig());
     }
