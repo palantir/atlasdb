@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Palantir Technologies
+ * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,18 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import javax.annotation.Nullable;
+import java.util.Set;
 
-import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import org.immutables.value.Value;
 
-public interface SweepTaskRunner {
-    SweepResults run(TableReference tableRef, int rowBatchSize, int cellBatchSize, @Nullable byte[] startRow);
-    long getSweepTimestamp(SweepStrategy sweepStrategy);
+import com.palantir.atlasdb.keyvalue.api.Cell;
+
+@Value.Immutable
+public abstract class CellAndTimestamps {
+    public abstract Cell cell();
+    public abstract Set<Long> timestamps();
+
+    public static CellAndTimestamps of(Cell cell, Set<Long> timestamps) {
+        return ImmutableCellAndTimestamps.builder().cell(cell).timestamps(timestamps).build();
+    }
 }

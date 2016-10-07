@@ -74,6 +74,7 @@ public abstract class AbstractSweeperTest {
     protected static final TableReference TABLE_NAME = TableReference.createWithEmptyNamespace("table");
     private static final String COL = "c";
     protected static final int DEFAULT_BATCH_SIZE = 1000;
+    protected static final int DEFAULT_CELL_BATCH_SIZE = 1_000_000;
 
     protected KeyValueService kvs;
     protected final AtomicLong sweepTimestamp = new AtomicLong();
@@ -97,7 +98,8 @@ public abstract class AbstractSweeperTest {
         txManager = new SerializableTransactionManager(kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner, false);
         setupTables(kvs);
         Supplier<Long> tsSupplier = sweepTimestamp::get;
-        sweepRunner = new SweepTaskRunnerImpl(txManager, kvs, tsSupplier, tsSupplier, txService, ssm, ImmutableList.<Follower>of());
+        CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
+        sweepRunner = new SweepTaskRunnerImpl(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
         setupBackgroundSweeper(DEFAULT_BATCH_SIZE);
     }
 
@@ -117,7 +119,8 @@ public abstract class AbstractSweeperTest {
         Supplier<Boolean> sweepEnabledSupplier = () -> true;
         Supplier<Long> sweepNoPause = () -> 0L;
         Supplier<Integer> batchSizeSupplier = () -> batchSize;
-        backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause, batchSizeSupplier, SweepTableFactory.of());
+        Supplier<Integer> cellBatchSizeSupplier = () -> DEFAULT_CELL_BATCH_SIZE;
+        backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause, batchSizeSupplier, cellBatchSizeSupplier, SweepTableFactory.of());
     }
 
     @After
@@ -542,7 +545,7 @@ public abstract class AbstractSweeperTest {
 
     private SweepResults sweep(long ts, int batchSize) {
         sweepTimestamp.set(ts);
-        return sweepRunner.run(TABLE_NAME, batchSize, new byte[0]);
+        return sweepRunner.run(tableReference, batchSize, DEFAULT_CELL_BATCH_SIZE, new byte[0]);
     }
 
     private SweepResults partialSweep(long ts, int batchSize) {

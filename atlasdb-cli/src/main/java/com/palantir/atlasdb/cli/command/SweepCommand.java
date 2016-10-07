@@ -64,6 +64,10 @@ public class SweepCommand extends SingleBackendCommand {
             description = "Sweeper row batch size (default: " + AtlasDbConstants.DEFAULT_SWEEP_BATCH_SIZE + ")")
     int batchSize = AtlasDbConstants.DEFAULT_SWEEP_BATCH_SIZE;
 
+    @Option(name = {"--cell-batch-size"},
+            description = "Sweeper cell batch size (default: " + AtlasDbConstants.DEFAULT_SWEEP_CELL_BATCH_SIZE+ ")")
+    int cellBatchSize = AtlasDbConstants.DEFAULT_SWEEP_CELL_BATCH_SIZE;
+
     @Option(name = {"--sleep"},
             description = "Time to wait in milliseconds after each sweep batch (throttles long-running sweep jobs, default: 0)")
     long sleepTimeInMs = 0;
@@ -113,7 +117,7 @@ public class SweepCommand extends SingleBackendCommand {
 
             while (startRow.isPresent()) {
                 Stopwatch watch = Stopwatch.createStarted();
-                SweepResults results = sweepRunner.run(table, batchSize, startRow.get());
+                SweepResults results = sweepRunner.run(table, batchSize, cellBatchSize, startRow.get());
                 System.out.println(String.format("Swept from %s to %s in table %s in %d ms, examined %d unique cells, deleted %d cells.",
                         encodeStartRow(startRow), encodeEndRow(results.getNextStartRow()),
                         table, watch.elapsed(TimeUnit.MILLISECONDS),
