@@ -42,13 +42,14 @@ import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 public class HeartbeatServiceIntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(SchemaMutationLockIntegrationTest.class);
 
+    private static final int heartbeatTimePeriodMillis = 100;
+
     private HeartbeatService heartbeatService;
     private TracingQueryRunner queryRunner;
     private CassandraClientPool clientPool;
     private ConsistencyLevel writeConsistency;
     private UniqueSchemaMutationLockTable lockTable;
 
-    private final int heartbeatTimePeriodMillis = 100;
     private final long lockId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
 
     @Rule
@@ -56,13 +57,13 @@ public class HeartbeatServiceIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        ImmutableCassandraKeyValueServiceConfig quickHeartbeatConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
+        ImmutableCassandraKeyValueServiceConfig quickHeartbeatConfig = CassandraTestSuite.cassandraKvsConfig
                 .withHeartbeatTimePeriodMillis(heartbeatTimePeriodMillis);
         CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(
                 quickHeartbeatConfig);
         queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
 
-        writeConsistency= ConsistencyLevel.EACH_QUORUM;
+        writeConsistency = ConsistencyLevel.EACH_QUORUM;
         clientPool = new CassandraClientPool(simpleManager.getConfig());
         lockTable = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, quickHeartbeatConfig),
                                                       LockLeader.I_AM_THE_LOCK_LEADER);
@@ -75,7 +76,7 @@ public class HeartbeatServiceIntegrationTest {
     }
 
     private CqlResult createLockEntry(Cassandra.Client client) throws TException {
-        String lockValue= CassandraKeyValueServices.encodeAsHex(
+        String lockValue = CassandraKeyValueServices.encodeAsHex(
                 SchemaMutationLock.lockValueFromIdAndHeartbeat(lockId, 0).getBytes(StandardCharsets.UTF_8));
         String lockRowName = CassandraKeyValueServices.encodeAsHex(
                 CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME.getBytes(StandardCharsets.UTF_8));
