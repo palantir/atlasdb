@@ -42,7 +42,9 @@ public class DockerNameServiceTest {
                 .putHostToIp(HOST_NAME, HOST_NAME_ADDRESS)
                 .build());
 
-        assertThat(dockerNameService.lookupAllHostAddr(HOST_NAME)).containsExactly(HOST_NAME_ADDRESS);
+        InetAddress[] hostAddresses = dockerNameService.lookupAllHostAddr(HOST_NAME);
+
+        assertThat(hostAddresses).containsExactly(HOST_NAME_ADDRESS);
     }
 
     @Test
@@ -82,7 +84,9 @@ public class DockerNameServiceTest {
                 .putIpToHosts(HOST_NAME_ADDRESS.getHostAddress(), HOST_NAME)
                 .build());
 
-        assertThat(dockerNameService.getHostByAddr(HOST_NAME_ADDRESS.getAddress())).isEqualTo(HOST_NAME);
+        String host = dockerNameService.getHostByAddr(HOST_NAME_ADDRESS.getAddress());
+
+        assertThat(host).isEqualTo(HOST_NAME);
     }
 
     @Test

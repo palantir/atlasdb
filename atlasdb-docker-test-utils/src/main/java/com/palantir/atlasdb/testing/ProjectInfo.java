@@ -52,6 +52,7 @@ public class ProjectInfo implements Supplier<ProjectInfoMappings> {
         this.projectName = projectName;
     }
 
+    @Override
     public ProjectInfoMappings get() {
         Map<String, InetAddress> hostToIp = getContainerMappings();
         Multimap<String, String> ipToHosts = HashMultimap.create();

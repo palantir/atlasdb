@@ -25,10 +25,12 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.function.Supplier;
 
 import org.junit.Test;
 
+import com.google.common.base.Throwables;
 import com.palantir.docker.compose.connection.Cluster;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.ContainerCache;
@@ -41,6 +43,11 @@ public class DockerProxySelectorTest {
     private static final InetSocketAddress PROXY_ADDRESS = InetSocketAddress
             .createUnresolved(CLUSTER_IP, PROXY_EXTERNAL_PORT);
 
+    private static final String TEST_IP = "172.17.0.5";
+    private static final String TEST_IP_URI = "http://172.17.0.5";
+    private static final String TEST_HOSTNAME = "some-address";
+    private static final URI TEST_HOSTNAME_URI = createUriUnsafe("http://some-address");
+
     private final Supplier<ProjectInfoMappings> mappings = mock(Supplier.class);
     private final DockerProxySelector dockerProxySelector = new DockerProxySelector(setupProxyContainer(), mappings);
 
@@ -49,50 +56,61 @@ public class DockerProxySelectorTest {
         when(mappings.get()).thenReturn(ImmutableProjectInfoMappings.builder()
                 .build());
 
-        assertThat(dockerProxySelector.select(new URI("http://some-address")))
-                .containsExactly(Proxy.NO_PROXY);
+        List<Proxy> selectedProxy = dockerProxySelector.select(TEST_HOSTNAME_URI);
+
+        assertThat(selectedProxy).containsExactly(Proxy.NO_PROXY);
     }
 
     @Test
     public void dockerAddressesShouldGoThroughAProxy() throws URISyntaxException {
         when(mappings.get()).thenReturn(ImmutableProjectInfoMappings.builder()
-                .putHostToIp("some-address", mock(InetAddress.class))
+                .putHostToIp(TEST_HOSTNAME, mock(InetAddress.class))
                 .build());
 
-        assertThat(dockerProxySelector.select(new URI("http://some-address")))
-                .containsExactly(new Proxy(Proxy.Type.SOCKS, PROXY_ADDRESS));
+        List<Proxy> selectedProxy = dockerProxySelector.select(TEST_HOSTNAME_URI);
+
+        assertThat(selectedProxy).containsExactly(new Proxy(Proxy.Type.SOCKS, PROXY_ADDRESS));
     }
 
     @Test
     public void dockerIpsShouldGoThroughAProxy() throws URISyntaxException {
         when(mappings.get()).thenReturn(ImmutableProjectInfoMappings.builder()
-                .putIpToHosts("172.17.0.5", "some-address")
+                .putIpToHosts(TEST_IP, TEST_HOSTNAME)
                 .build());
 
-        assertThat(dockerProxySelector.select(new URI("http://172.17.0.5")))
-                .containsExactly(new Proxy(Proxy.Type.SOCKS, PROXY_ADDRESS));
+        List<Proxy> selectedProxy = dockerProxySelector.select(new URI(TEST_IP_URI));
+
+        assertThat(selectedProxy).containsExactly(new Proxy(Proxy.Type.SOCKS, PROXY_ADDRESS));
     }
 
     @Test(expected = RuntimeException.class)
     public void connectionFailedShouldPropagateExceptions() throws URISyntaxException {
         dockerProxySelector.connectFailed(
-                new URI("http://some-address"),
-                InetSocketAddress.createUnresolved(CLUSTER_IP, PROXY_EXTERNAL_PORT),
+                TEST_HOSTNAME_URI,
+                PROXY_ADDRESS,
                 new IOException());
     }
 
     private static Cluster setupProxyContainer() {
         Container proxyContainer = mock(Container.class);
-        when(proxyContainer.port(1080))
-                .thenReturn(new DockerPort(CLUSTER_IP, PROXY_EXTERNAL_PORT, 1080));
+        when(proxyContainer.port(DockerProxySelector.PROXY_CONTAINER_PORT))
+                .thenReturn(new DockerPort(CLUSTER_IP, PROXY_EXTERNAL_PORT, DockerProxySelector.PROXY_CONTAINER_PORT));
 
         ContainerCache containerCache = mock(ContainerCache.class);
-        when(containerCache.container("proxy"))
+        when(containerCache.container(DockerProxySelector.PROXY_CONTAINER_NAME))
                 .thenReturn(proxyContainer);
 
         return ImmutableCluster.builder()
                 .ip(CLUSTER_IP)
                 .containerCache(containerCache)
                 .build();
+    }
+
+    private static URI createUriUnsafe(String uriString) {
+        try {
+            return new URI(uriString);
+        } catch (URISyntaxException e) {
+            throw Throwables.propagate(e);
+        }
     }
 }

@@ -59,7 +59,7 @@ public class DockerProxyRule extends ExternalResource {
         } catch (DockerExecutionException e) {
             if (e.getMessage().contains("declared as external")) {
                 throw new IllegalStateException(
-                        "DockerProxyRule run before DockerComposeRule. Please use a RuleChain.", e);
+                        "DockerComposeRule must run before DockerProxyRule. Please use a RuleChain.", e);
             } else {
                 throw e;
             }

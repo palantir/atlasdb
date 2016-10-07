@@ -30,13 +30,16 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.docker.compose.connection.Cluster;
 
 public class DockerProxySelector extends ProxySelector {
+    public static final String PROXY_CONTAINER_NAME = "proxy";
+    public static final short PROXY_CONTAINER_PORT = 1080;
+
     private final InetSocketAddress proxyAddress;
     private final Supplier<ProjectInfoMappings> projectInfo;
 
     public DockerProxySelector(Cluster containers, Supplier<ProjectInfoMappings> projectInfo) {
         this.proxyAddress = InetSocketAddress.createUnresolved(
                 containers.ip(),
-                containers.container("proxy").port(1080).getExternalPort());
+                containers.container(PROXY_CONTAINER_NAME).port(PROXY_CONTAINER_PORT).getExternalPort());
         this.projectInfo = projectInfo;
     }
 
