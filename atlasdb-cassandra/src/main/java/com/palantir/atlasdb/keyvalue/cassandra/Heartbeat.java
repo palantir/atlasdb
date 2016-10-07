@@ -30,7 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
 
 class Heartbeat implements Runnable {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Heartbeat.class);
+    private static final Logger log = LoggerFactory.getLogger(Heartbeat.class);
 
     private final CassandraClientPool clientPool;
     private final TracingQueryRunner queryRunner;
@@ -62,7 +62,7 @@ class Heartbeat implements Runnable {
             }
         } catch (Throwable throwable) {
             // Avoid letting heartbeat thread die
-            LOGGER.error("Heartbeat threw unexpected exception {}", throwable, throwable);
+            log.error("Heartbeat threw unexpected exception {}", throwable, throwable);
         }
     }
 
@@ -73,7 +73,7 @@ class Heartbeat implements Runnable {
                 SchemaMutationLock.lockColumnFromIdAndHeartbeat(lockId, heartbeatCount));
 
         if (Thread.currentThread().isInterrupted()) {
-            LOGGER.debug("Cancelled {}", this);
+            log.debug("Cancelled {}", this);
             return null;
         }
 
@@ -81,10 +81,10 @@ class Heartbeat implements Runnable {
         if (casResult.isSuccess()) {
             heartbeatCount++;
         } else {
-            LOGGER.warn("Unable to update lock for {}", this);
+            log.warn("Unable to update lock for {}", this);
             SchemaMutationLock.handleForcedLockClear(casResult, lockId, heartbeatCount);
         }
-        LOGGER.debug("Completed {}", this);
+        log.debug("Completed {}", this);
         return null;
     }
 

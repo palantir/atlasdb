@@ -29,7 +29,7 @@ import com.palantir.common.concurrent.PTExecutors;
 
 
 public class HeartbeatService {
-    private static final Logger LOGGER = LoggerFactory.getLogger(HeartbeatService.class);
+    private static final Logger log = LoggerFactory.getLogger(HeartbeatService.class);
 
     private final CassandraClientPool clientPool;
     private final TracingQueryRunner queryRunner;
@@ -38,9 +38,10 @@ public class HeartbeatService {
     private final ConsistencyLevel writeConsistency;
     private ScheduledExecutorService heartbeatExecutorService;
 
-    static final String startBeatingErr = "Can't start new heartbeat with an existing heartbeat."
+    public static final String START_BEATING_ERR_MSG = "Can't start new heartbeat with an existing heartbeat."
             + " Only one heartbeat per lock allowed.";
-    static final String stopBeatingWarn = "HeartbeatService is already stopped";
+    public static final String STOP_BEATING_WARN_MSG = "HeartbeatService is already stopped";
+    public static final int DEFAULT_HEARTBEAT_TIME_PERIOD_MILLIS = 1000;
 
     public HeartbeatService(
             CassandraClientPool clientPool,
@@ -57,7 +58,7 @@ public class HeartbeatService {
     }
 
     public synchronized void startBeatingForLock(long lockId) {
-        Preconditions.checkState(heartbeatExecutorService == null, startBeatingErr);
+        Preconditions.checkState(heartbeatExecutorService == null, START_BEATING_ERR_MSG);
         heartbeatExecutorService = PTExecutors.newSingleThreadScheduledExecutor(
                 new ThreadFactoryBuilder().setNameFormat("Atlas Schema Lock Heartbeat-" + lockTable + "-%d").build());
         heartbeatExecutorService.scheduleAtFixedRate(
@@ -67,7 +68,7 @@ public class HeartbeatService {
 
     public synchronized void stopBeating() {
         if (heartbeatExecutorService == null) {
-            LOGGER.warn(stopBeatingWarn);
+            log.warn(STOP_BEATING_WARN_MSG);
             return;
         }
 

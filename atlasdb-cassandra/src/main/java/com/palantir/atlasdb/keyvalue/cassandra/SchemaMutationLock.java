@@ -56,7 +56,6 @@ final class SchemaMutationLock {
             lockValueFromIdAndHeartbeat(GLOBAL_DDL_LOCK_CLEARED_ID, 0);
     private static final int TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS = 1000;
     private static final int TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS_CAP = 5000;
-    private static final int DEAD_HEARTBEAT_THRESHOLD_MILLIS = 60000;
     private static final int MAX_UNLOCK_RETRY_COUNT = 5;
 
     private final boolean supportsCas;
@@ -67,6 +66,9 @@ final class SchemaMutationLock {
     private final UniqueSchemaMutationLockTable lockTable;
     private final ReentrantLock schemaMutationLockForEarlierVersionsOfCassandra = new ReentrantLock(true);
     private final HeartbeatService heartbeatService;
+    private final int deadHeartbeatTimeoutThreshold;
+
+    public static final int DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS = 60000;
 
     SchemaMutationLock(
             boolean supportsCas,
@@ -75,7 +77,8 @@ final class SchemaMutationLock {
             TracingQueryRunner queryRunner,
             ConsistencyLevel writeConsistency,
             UniqueSchemaMutationLockTable lockTable,
-            HeartbeatService heartbeatService) {
+            HeartbeatService heartbeatService,
+            int deadHeartbeatTimeoutThreshold) {
         this.supportsCas = supportsCas;
         this.configManager = configManager;
         this.clientPool = clientPool;
@@ -83,6 +86,7 @@ final class SchemaMutationLock {
         this.writeConsistency = writeConsistency;
         this.lockTable = lockTable;
         this.heartbeatService = heartbeatService;
+        this.deadHeartbeatTimeoutThreshold = deadHeartbeatTimeoutThreshold;
     }
 
     public interface Action {
@@ -223,7 +227,7 @@ final class SchemaMutationLock {
     }
 
     private boolean deadHeartbeatThresholdReached(long lastSeenColumnUpdateTs) {
-        return (System.currentTimeMillis() - lastSeenColumnUpdateTs) > DEAD_HEARTBEAT_THRESHOLD_MILLIS;
+        return (System.currentTimeMillis() - lastSeenColumnUpdateTs) > deadHeartbeatTimeoutThreshold;
     }
 
     private List<Column> getExpectedCasResult(Column existingColumn) {

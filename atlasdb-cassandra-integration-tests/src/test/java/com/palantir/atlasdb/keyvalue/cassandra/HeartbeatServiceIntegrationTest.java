@@ -37,7 +37,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 
@@ -58,19 +57,18 @@ public class HeartbeatServiceIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        ImmutableCassandraKeyValueServiceConfig quickHeartbeatConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
-                .withHeartbeatTimePeriodMillis(heartbeatTimePeriodMillis);
         CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(
-                quickHeartbeatConfig);
+                CassandraTestSuite.CASSANDRA_KVS_CONFIG);
         queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
 
         writeConsistency= ConsistencyLevel.EACH_QUORUM;
         clientPool = new CassandraClientPool(simpleManager.getConfig());
-        lockTable = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, quickHeartbeatConfig),
-                                                      LockLeader.I_AM_THE_LOCK_LEADER);
+        lockTable = new UniqueSchemaMutationLockTable(
+                new SchemaMutationLockTables(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG),
+                LockLeader.I_AM_THE_LOCK_LEADER);
         heartbeatService = new HeartbeatService(clientPool,
                                                 queryRunner,
-                                                quickHeartbeatConfig.heartbeatTimePeriodMillis(),
+                                                heartbeatTimePeriodMillis,
                                                 lockTable.getOnlyTable(),
                                                 writeConsistency);
         clientPool.runWithRetry(this::createLockEntry);
@@ -126,7 +124,7 @@ public class HeartbeatServiceIntegrationTest {
     @Test
     public void testStartBeatingWithoutStopping() {
         expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage(HeartbeatService.startBeatingErr);
+        expectedException.expectMessage(HeartbeatService.START_BEATING_ERR_MSG);
 
         heartbeatService.startBeatingForLock(lockId);
 
