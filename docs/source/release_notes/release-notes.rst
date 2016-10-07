@@ -40,6 +40,10 @@ v0.19.0
 
     *    - Type
          - Change
+   
+    *    - |improved|
+         - No longer require the user to disable safety checks just to start up Atlas against a degraded Cassandra cluster.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1045>`__)
 
     *    - |fixed|
          - In Cassandra KVS, We now no longer take out the schema mutation lock in calls to `createTables` if tables already exist.
