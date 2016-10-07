@@ -41,7 +41,7 @@ v0.19.0
     *    - Type
          - Change
     *    - |breaking|
-         - Removed KeyValueService.initializeFromFresh and KeyValueService.tearDown
+         - Removed KeyValueService.[initializeFromFresh|tearDown|getRangeWithHistory]
            It is likely all callers of tearDown just want to call close.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1041>`__)
             
