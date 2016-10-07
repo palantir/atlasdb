@@ -17,6 +17,7 @@ package com.palantir.atlasdb.table.description;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 
 import java.io.File;
@@ -80,6 +81,6 @@ public class SchemaHotspottingTest {
 
         File validDirectory = srcDir.listFiles()[0];
         assertThat(Arrays.asList(validDirectory.list()), contains(equalTo("package")));
-        assertThat(Arrays.asList(validDirectory.listFiles()[0].list()), contains(equalTo("IgnoredHotspottingTableFactory.java"), equalTo("IgnoredHotspottingTableTable.java")));
+        assertThat(Arrays.asList(validDirectory.listFiles()[0].list()), containsInAnyOrder(equalTo("IgnoredHotspottingTableFactory.java"), equalTo("IgnoredHotspottingTableTable.java")));
     }
 }
