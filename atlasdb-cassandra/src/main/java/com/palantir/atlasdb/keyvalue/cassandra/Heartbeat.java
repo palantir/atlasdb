@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra.Client;
@@ -31,27 +30,26 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
 
 class Heartbeat implements Runnable {
-    private static final Logger log = LoggerFactory.getLogger(Heartbeat.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Heartbeat.class);
 
     private final CassandraClientPool clientPool;
     private final TracingQueryRunner queryRunner;
-    private final AtomicInteger heartbeatCount;
     private final TableReference lockTable;
     private final ConsistencyLevel writeConsistency;
     private final long lockId;
+    private int heartbeatCount;
 
     Heartbeat(CassandraClientPool clientPool,
               TracingQueryRunner queryRunner,
-              AtomicInteger heartbeatCount,
               TableReference lockTable,
               ConsistencyLevel writeConsistency,
               long lockId) {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
-        this.heartbeatCount = heartbeatCount;
         this.lockTable = lockTable;
         this.writeConsistency = writeConsistency;
         this.lockId = lockId;
+        this.heartbeatCount = 0;
     }
 
     @Override
@@ -64,29 +62,29 @@ class Heartbeat implements Runnable {
             }
         } catch (Throwable throwable) {
             // Avoid letting heartbeat thread die
-            log.error("Heartbeat threw unexpected exception {}", throwable, throwable);
+            LOGGER.error("Heartbeat threw unexpected exception {}", throwable, throwable);
         }
     }
 
     private Void beat(Client client) throws TException {
-        Column ourUpdate = SchemaMutationLock.lockColumnFromIdAndHeartbeat(lockId, heartbeatCount.get() + 1);
+        Column ourUpdate = SchemaMutationLock.lockColumnFromIdAndHeartbeat(lockId, heartbeatCount + 1);
 
         List<Column> expected = ImmutableList.of(
-                SchemaMutationLock.lockColumnFromIdAndHeartbeat(lockId, heartbeatCount.get()));
+                SchemaMutationLock.lockColumnFromIdAndHeartbeat(lockId, heartbeatCount));
 
         if (Thread.currentThread().isInterrupted()) {
-            log.debug("Cancelled {}", this);
+            LOGGER.debug("Cancelled {}", this);
             return null;
         }
 
         CASResult casResult = writeDdlLockWithCas(client, ourUpdate, expected);
         if (casResult.isSuccess()) {
-            heartbeatCount.incrementAndGet();
+            heartbeatCount++;
         } else {
-            log.warn("Unable to update lock for {}", this);
-            SchemaMutationLock.handleForcedLockClear(casResult, lockId, heartbeatCount.get());
+            LOGGER.warn("Unable to update lock for {}", this);
+            SchemaMutationLock.handleForcedLockClear(casResult, lockId, heartbeatCount);
         }
-        log.debug("Completed {}", this);
+        LOGGER.debug("Completed {}", this);
         return null;
     }
 
@@ -107,7 +105,7 @@ class Heartbeat implements Runnable {
                 + "lockId=" + lockId
                 + ", lockTable='" + lockTable + '\''
                 + ", writeConsistency=" + writeConsistency
-                + ", heartbeatCount=" + heartbeatCount
+                + ", heartbeatId=" + heartbeatCount
                 + '}';
     }
 }

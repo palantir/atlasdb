@@ -17,13 +17,15 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.CqlRow;
 import org.apache.thrift.TException;
 import org.junit.After;
 import org.junit.Assert;
@@ -88,7 +90,17 @@ public class HeartbeatServiceIntegrationTest {
         return client.execute_cql3_query(queryBuffer, Compression.NONE, writeConsistency);
     }
 
-
+    private CqlResult readLockEntry(Cassandra.Client client) throws TException {
+        String lockRowName = CassandraKeyValueServices.encodeAsHex(
+                CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME.getBytes(StandardCharsets.UTF_8));
+        String lockColName = CassandraKeyValueServices.encodeAsHex(
+                CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8));
+        String createCql = String.format(
+                "SELECT \"value\" FROM \"%s\" WHERE key = %s AND column1 = %s AND column2 = -1;",
+                lockTable.getOnlyTable().getQualifiedName(), lockRowName, lockColName);
+        ByteBuffer queryBuffer = ByteBuffer.wrap(createCql.getBytes(StandardCharsets.UTF_8));
+        return client.execute_cql3_query(queryBuffer, Compression.NONE, ConsistencyLevel.LOCAL_QUORUM);
+    }
 
     @After
     public void cleanUp() throws Exception {
@@ -103,12 +115,12 @@ public class HeartbeatServiceIntegrationTest {
     }
 
     @Test
-    public void testNormalStartStopBeatingSequence() throws InterruptedException {
-        Assert.assertEquals(0, heartbeatService.getCurrentHeartbeatCount());
+    public void testNormalStartStopBeatingSequence() throws Exception {
+        Assert.assertEquals(0, getCurrentHeartbeat());
         heartbeatService.startBeatingForLock(lockId);
         Thread.sleep(10 * heartbeatTimePeriodMillis);
         heartbeatService.stopBeating();
-        Assert.assertNotEquals(0, heartbeatService.getCurrentHeartbeatCount());
+        Assert.assertNotEquals(0, getCurrentHeartbeat());
     }
 
     @Test
@@ -123,22 +135,28 @@ public class HeartbeatServiceIntegrationTest {
     }
 
     @Test
-    public void testSingleHeartbeat() {
-        AtomicInteger heartbeatCount = new AtomicInteger(0);
-        Heartbeat heartbeat = new Heartbeat(clientPool, queryRunner, heartbeatCount,
+    public void testSingleHeartbeat() throws Exception {
+        Heartbeat heartbeat = new Heartbeat(clientPool, queryRunner,
                 lockTable.getOnlyTable(), writeConsistency, lockId);
         heartbeat.run();
-        Assert.assertEquals(1, heartbeatCount.get());
+        Assert.assertEquals(1, getCurrentHeartbeat());
     }
 
     @Test
-    public void testHeartbeatWithInvalidLock() {
+    public void testHeartbeatWithInvalidLock() throws Exception {
         long invalidLockId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
-        AtomicInteger heartbeatCount = new AtomicInteger(0);
-        Heartbeat heartbeat = new Heartbeat(clientPool, queryRunner, heartbeatCount,
-                lockTable.getOnlyTable(), writeConsistency, invalidLockId);
+        Heartbeat heartbeat = new Heartbeat(clientPool, queryRunner, lockTable.getOnlyTable(),
+                writeConsistency, invalidLockId);
         heartbeat.run();
         // value should not be updated because an IllegalStateException will be thrown and caught
-        Assert.assertEquals(0, heartbeatCount.get());
-    }
+        Assert.assertEquals(0, getCurrentHeartbeat());
+     }
+
+     private long getCurrentHeartbeat() throws TException {
+         List<CqlRow> resultBeforeHeartbeat = clientPool.runWithRetry(this::readLockEntry).getRows();
+         Assert.assertEquals(1, resultBeforeHeartbeat.size());
+         List<Column> resultColumnsBeforeHeartbeat = resultBeforeHeartbeat.get(0).getColumns();
+         Assert.assertEquals(1, resultColumnsBeforeHeartbeat.size());
+         return SchemaMutationLock.getHeartbeatCountFromColumn(resultColumnsBeforeHeartbeat.get(0));
+     }
 }

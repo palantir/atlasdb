@@ -22,10 +22,14 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.Column;
+import org.apache.cassandra.thrift.ColumnOrSuperColumn;
+import org.apache.cassandra.thrift.ColumnPath;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -44,11 +48,16 @@ import com.palantir.common.base.Throwables;
 
 final class SchemaMutationLock {
     private static final Logger LOGGER = LoggerFactory.getLogger(SchemaMutationLock.class);
-
+    private static final Pattern GLOBAL_DDL_LOCK_FORMAT_PATTERN = Pattern.compile(
+            "^(?<lockId>\\d+)_(?<heartbeatCount>\\d+)$");
     private static final String GLOBAL_DDL_LOCK_FORMAT = "%1$d_%2$d";
     private static final long GLOBAL_DDL_LOCK_CLEARED_ID = Long.MAX_VALUE;
     private static final String GLOBAL_DDL_LOCK_CLEARED_VALUE =
             lockValueFromIdAndHeartbeat(GLOBAL_DDL_LOCK_CLEARED_ID, 0);
+    private static final int TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS = 1000;
+    private static final int TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS_CAP = 5000;
+    private static final int DEAD_HEARTBEAT_THRESHOLD_MILLIS = 60000;
+    private static final int MAX_UNLOCK_RETRY_COUNT = 5;
 
     private final boolean supportsCas;
     private final CassandraKeyValueServiceConfigManager configManager;
@@ -144,7 +153,7 @@ final class SchemaMutationLock {
         final long perOperationNodeId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
 
         try {
-            clientPool.runWithRetry((FunctionCheckedException<Cassandra.Client, Void, Exception>) client -> {
+            clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
                 Column ourUpdate = lockColumnFromIdAndHeartbeat(perOperationNodeId, 0);
 
                 List<Column> expected = ImmutableList.of(lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE));
@@ -152,7 +161,8 @@ final class SchemaMutationLock {
                 CASResult casResult = writeDdlLockWithCas(client, expected, ourUpdate);
 
                 Column lastSeenColumn = null;
-                int timesAttempted = 0;
+                long lastSeenColumnUpdateTs = 0;
+                int currentTimeBetweenLockAttemptsMillis = TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS;
 
                 // We use schemaMutationTimeoutMillis to wait for schema mutations to agree as well as
                 // to specify the timeout period before we give up trying to acquire the schema mutation lock
@@ -176,7 +186,8 @@ final class SchemaMutationLock {
                         if (lastSeenColumn == null || !existingColumn.equals(lastSeenColumn)) {
                             LOGGER.debug("Heartbeat alive, will retry.");
                             lastSeenColumn = existingColumn;
-                        } else {
+                            lastSeenColumnUpdateTs = System.currentTimeMillis();
+                        } else if (deadHeartbeatThresholdReached(lastSeenColumnUpdateTs)) {
                             // dead heartbeat
                             throw Throwables.rewrapAndThrowUncheckedException(generateDeadHeartbeatException());
                         }
@@ -191,9 +202,10 @@ final class SchemaMutationLock {
                         throw Throwables.rewrapAndThrowUncheckedException(schemaLockTimeoutError);
                     }
 
-                    long timeToSleep = CassandraConstants.TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS
-                            * (long) Math.pow(2, timesAttempted++);
-                    Thread.sleep(timeToSleep);
+
+                    currentTimeBetweenLockAttemptsMillis = Math.min(2 * currentTimeBetweenLockAttemptsMillis,
+                                                                    TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS_CAP);
+                    Thread.sleep(currentTimeBetweenLockAttemptsMillis);
                     casResult = writeDdlLockWithCas(client, expected, ourUpdate);
                 }
 
@@ -208,6 +220,10 @@ final class SchemaMutationLock {
             throw Throwables.throwUncheckedException(e);
         }
         return perOperationNodeId;
+    }
+
+    private boolean deadHeartbeatThresholdReached(long lastSeenColumnUpdateTs) {
+        return (System.currentTimeMillis() - lastSeenColumnUpdateTs) > DEAD_HEARTBEAT_THRESHOLD_MILLIS;
     }
 
     private List<Column> getExpectedCasResult(Column existingColumn) {
@@ -256,23 +272,54 @@ final class SchemaMutationLock {
     }
 
     private void schemaMutationUnlock(long perOperationNodeId) {
-        try {
-            clientPool.runWithRetry((FunctionCheckedException<Cassandra.Client, Void, TException>) client -> {
-                int heartbeatCount = heartbeatService.getCurrentHeartbeatCount();
-                Column lockColumn = lockColumnFromIdAndHeartbeat(perOperationNodeId, heartbeatCount);
-                List<Column> ourExpectedLock = ImmutableList.of(lockColumn);
-                Column clearedLock = lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE);
-                CASResult casResult = writeDdlLockWithCas(client, ourExpectedLock, clearedLock);
+        boolean unlockDone = false;
+        boolean isInterrupted = false;
+        long currentSleepMillis = TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS;
+        for (int unlockRetryCount = 0; unlockRetryCount < MAX_UNLOCK_RETRY_COUNT; unlockRetryCount++) {
+            unlockDone = trySchemaMutationUnlockOnce(perOperationNodeId);
+            if (unlockDone) {
+                break;
+            }
 
-                if (!casResult.isSuccess()) {
-                    handleForcedLockClear(casResult, perOperationNodeId, heartbeatCount);
-                }
-                LOGGER.info("Successfully released schema mutation lock.");
-                return null;
+            currentSleepMillis = Math.min(2 * currentSleepMillis, TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS_CAP);
+            try {
+                Thread.sleep(currentSleepMillis);
+            } catch (InterruptedException e) {
+                isInterrupted = true;
+            }
+        }
+        if (isInterrupted) {
+            Thread.currentThread().interrupt();
+        }
+        Preconditions.checkState(unlockDone, "Unable to unlock despite retrying.");
+    }
+
+    private boolean trySchemaMutationUnlockOnce(long perOperationNodeId) {
+        CASResult result;
+        try {
+            result = clientPool.runWithRetry((FunctionCheckedException<Client, CASResult, TException>) client -> {
+                Column existingColumn = queryExistingLockColumn(client);
+
+                Preconditions.checkState(isValidColumnForLockId(existingColumn, perOperationNodeId),
+                        "Trying to unlock unowned lock");
+
+                List<Column> ourExpectedLock = ImmutableList.of(existingColumn);
+                Column clearedLock = lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE);
+                return writeDdlLockWithCas(client, ourExpectedLock, clearedLock);
             });
         } catch (TException e) {
             throw Throwables.throwUncheckedException(e);
         }
+        return result.isSuccess();
+    }
+
+    private Column queryExistingLockColumn(Client client) throws TException {
+        TableReference lockTableRef = lockTable.getOnlyTable();
+        ColumnPath columnPath = new ColumnPath(lockTableRef.getQualifiedName());
+        columnPath.setColumn(getGlobalDdlLockColumnName());
+        ColumnOrSuperColumn result = queryRunner.run(client, lockTableRef,
+                () -> client.get(getGlobalDdlLockRowName(), columnPath, ConsistencyLevel.LOCAL_QUORUM));
+        return result.getColumn();
     }
 
     private void schemaMutationUnlockWithoutCas() {
@@ -280,7 +327,7 @@ final class SchemaMutationLock {
     }
 
     private CASResult writeDdlLockWithCas(
-            Cassandra.Client client,
+            Client client,
             List<Column> expectedLockValue,
             Column newLockValue) throws TException {
         TableReference lockTableRef = lockTable.getOnlyTable();
@@ -314,17 +361,39 @@ final class SchemaMutationLock {
                 + " was instead %s.", expectedLock, remoteLock));
     }
 
+    private static boolean isValidColumnForLockId(Column column, long lockId) {
+        return getLockIdFromColumn(column) == lockId;
+    }
+
     private static Column lockColumnWithValue(byte[] value) {
         return new Column()
-                .setName(CassandraKeyValueServices.makeCompositeBuffer(
-                        CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8),
-                        AtlasDbConstants.TRANSACTION_TS).array())
+                .setName(getGlobalDdlLockColumnName())
                 .setValue(value) // expected previous
                 .setTimestamp(AtlasDbConstants.TRANSACTION_TS);
     }
 
     static Column lockColumnWithValue(String strValue) {
         return lockColumnWithValue(strValue.getBytes(StandardCharsets.UTF_8));
+    }
+
+    static long getLockIdFromColumn(Column column) {
+        String columnStringValue = new String(column.getValue(), StandardCharsets.UTF_8);
+        Matcher columnStringMatcher = GLOBAL_DDL_LOCK_FORMAT_PATTERN.matcher(columnStringValue);
+        Preconditions.checkState(columnStringMatcher.matches(), "Invalid format for a lock column");
+        return Long.parseLong(columnStringMatcher.group("lockId"));
+    }
+
+    static long getHeartbeatCountFromColumn(Column column) {
+        String columnStringValue = new String(column.getValue(), StandardCharsets.UTF_8);
+        Matcher columnStringMatcher = GLOBAL_DDL_LOCK_FORMAT_PATTERN.matcher(columnStringValue);
+        Preconditions.checkState(columnStringMatcher.matches(), "Invalid format for a lock column");
+        return Long.parseLong(columnStringMatcher.group("heartbeatCount"));
+    }
+
+    static byte[] getGlobalDdlLockColumnName() {
+        return CassandraKeyValueServices.makeCompositeBuffer(
+                CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8),
+                AtlasDbConstants.TRANSACTION_TS).array();
     }
 
     static String lockValueFromIdAndHeartbeat(long id, int heartbeatCount) {

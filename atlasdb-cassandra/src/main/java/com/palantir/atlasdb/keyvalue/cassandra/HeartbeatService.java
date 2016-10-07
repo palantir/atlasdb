@@ -17,10 +17,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.http.annotation.NotThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,15 +27,15 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.concurrent.PTExecutors;
 
+
 public class HeartbeatService {
-    private static final Logger log = LoggerFactory.getLogger(HeartbeatService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(HeartbeatService.class);
 
     private final CassandraClientPool clientPool;
     private final TracingQueryRunner queryRunner;
     private final int heartbeatTimePeriodMillis;
     private final TableReference lockTable;
     private final ConsistencyLevel writeConsistency;
-    private final AtomicInteger heartbeatCount;
     private ScheduledExecutorService heartbeatExecutorService;
 
     static final String startBeatingErr = "Can't start new heartbeat with an existing heartbeat."
@@ -55,23 +53,21 @@ public class HeartbeatService {
         this.heartbeatTimePeriodMillis = heartbeatTimePeriodMillis;
         this.lockTable = lockTable;
         this.writeConsistency = writeConsistency;
-        this.heartbeatCount = new AtomicInteger(0);
         this.heartbeatExecutorService = null;
     }
 
     public synchronized void startBeatingForLock(long lockId) {
         Preconditions.checkState(heartbeatExecutorService == null, startBeatingErr);
-        heartbeatCount.set(0);
         heartbeatExecutorService = PTExecutors.newSingleThreadScheduledExecutor(
                 new ThreadFactoryBuilder().setNameFormat("Atlas Schema Lock Heartbeat-" + lockTable + "-%d").build());
         heartbeatExecutorService.scheduleAtFixedRate(
-                new Heartbeat(clientPool, queryRunner, heartbeatCount, lockTable, writeConsistency, lockId),
+                new Heartbeat(clientPool, queryRunner, lockTable, writeConsistency, lockId),
                 0, heartbeatTimePeriodMillis, TimeUnit.MILLISECONDS);
     }
 
     public synchronized void stopBeating() {
         if (heartbeatExecutorService == null) {
-            log.warn(stopBeatingWarn);
+            LOGGER.warn(stopBeatingWarn);
             return;
         }
 
@@ -90,9 +86,5 @@ public class HeartbeatService {
         } finally {
             heartbeatExecutorService = null;
         }
-    }
-
-    public int getCurrentHeartbeatCount() {
-        return heartbeatCount.get();
     }
 }
