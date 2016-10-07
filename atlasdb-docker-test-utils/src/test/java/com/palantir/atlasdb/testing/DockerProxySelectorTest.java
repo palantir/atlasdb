@@ -43,15 +43,15 @@ public class DockerProxySelectorTest {
             .createUnresolved(CLUSTER_IP, PROXY_EXTERNAL_PORT);
 
     private static final String TEST_IP = "172.17.0.5";
-    private static final String TEST_IP_URI = "http://172.17.0.5";
     private static final String TEST_HOSTNAME = "some-address";
+    private static final URI TEST_IP_URI = createUriUnsafe("http://172.17.0.5");
     private static final URI TEST_HOSTNAME_URI = createUriUnsafe("http://some-address");
 
     private final Supplier<ProjectInfoMappings> mappings = mock(Supplier.class);
     private final DockerProxySelector dockerProxySelector = new DockerProxySelector(setupProxyContainer(), mappings);
 
     @Test
-    public void nonDockerAddressesShouldNotGoThroughAProxy() throws URISyntaxException {
+    public void nonDockerAddressesShouldNotGoThroughAProxy() {
         when(mappings.get()).thenReturn(ImmutableProjectInfoMappings.builder()
                 .build());
 
@@ -72,18 +72,42 @@ public class DockerProxySelectorTest {
     }
 
     @Test
-    public void dockerIpsShouldGoThroughAProxy() throws URISyntaxException {
+    public void dockerIpsShouldGoThroughAProxy() {
         when(mappings.get()).thenReturn(ImmutableProjectInfoMappings.builder()
                 .putIpToHosts(TEST_IP, TEST_HOSTNAME)
                 .build());
 
-        List<Proxy> selectedProxy = dockerProxySelector.select(new URI(TEST_IP_URI));
+        List<Proxy> selectedProxy = dockerProxySelector.select(TEST_IP_URI);
 
         assertThat(selectedProxy).containsExactly(new Proxy(Proxy.Type.SOCKS, PROXY_ADDRESS));
     }
 
-    @Test(expected = RuntimeException.class)
-    public void connectionFailedShouldPropagateExceptions() throws URISyntaxException {
+    @Test(expected = IllegalArgumentException.class)
+    public void connectionFailedShouldThrowOnNullUri() {
+        dockerProxySelector.connectFailed(
+                null,
+                PROXY_ADDRESS,
+                new IOException());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void connectionFailedShouldThrowOnNullAddress() {
+        dockerProxySelector.connectFailed(
+                TEST_HOSTNAME_URI,
+                null,
+                new IOException());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void connectionFailedShouldThrowOnNullException() {
+        dockerProxySelector.connectFailed(
+                TEST_HOSTNAME_URI,
+                PROXY_ADDRESS,
+                null);
+    }
+
+    @Test
+    public void connectionFailedShouldNotThrowOnValidArguments() {
         dockerProxySelector.connectFailed(
                 TEST_HOSTNAME_URI,
                 PROXY_ADDRESS,
