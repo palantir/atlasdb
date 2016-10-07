@@ -899,19 +899,6 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 TimestampExtractor.SUPPLIER);
     }
 
-    @Override
-    @Idempotent
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
-                                                                       RangeRequest rangeRequest,
-                                                                       long timestamp) {
-        return getRangeWithPageCreator(
-                tableRef,
-                rangeRequest,
-                timestamp,
-                deleteConsistency,
-                HistoryExtractor.SUPPLIER);
-    }
-
     public <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(
             TableReference tableRef,
             RangeRequest rangeRequest,

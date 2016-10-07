@@ -191,11 +191,6 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
-        return delegate1.getRangeWithHistory(tableRef, rangeRequest, timestamp);
-    }
-
-    @Override
     public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
         delegate1.createTables(tableRefToTableMetadata);
         delegate2.createTables(tableRefToTableMetadata);

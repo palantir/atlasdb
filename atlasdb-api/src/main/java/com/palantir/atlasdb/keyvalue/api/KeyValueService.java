@@ -366,25 +366,6 @@ public interface KeyValueService extends AutoCloseable {
                                                 @QueryParam("timestamp") long timestamp);
 
     /**
-     * For each row in the specified range, returns all versions strictly before
-     * timestamp.
-     * <p>
-     * This has the same consistency guarantees that {@link #getRangeOfTimestamps(TableReference, RangeRequest, long)}.
-     * <p>
-     * Remember to close any {@link ClosableIterator}s you get in a finally block.
-     * @param rangeRequest the range to load.
-     * @param timestamp specifies the maximum timestamp (exclusive) at which to
-     */
-    @POST
-    @Path("get-range-with-history")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Idempotent
-    ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(@QueryParam("tableRef") TableReference tableRef,
-                                                                RangeRequest rangeRequest,
-                                                                @QueryParam("timestamp") long timestamp);
-
-    /**
      * Gets timestamp values from the key-value store. For each row, this returns all associated
      * timestamps &lt; given_ts.
      * <p>

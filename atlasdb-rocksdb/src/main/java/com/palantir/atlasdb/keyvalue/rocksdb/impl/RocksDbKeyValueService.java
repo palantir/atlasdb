@@ -466,15 +466,6 @@ public class RocksDbKeyValueService implements KeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
-                                                                       RangeRequest rangeRequest,
-                                                                       long timestamp) {
-        ColumnFamily table = columnFamilies.get(tableRef.getQualifiedName());
-        RocksIterator iter = getDb().newIterator(table.getHandle());
-        return new HistoryRangeIterator(table, iter, rangeRequest, timestamp);
-    }
-
-    @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp) {

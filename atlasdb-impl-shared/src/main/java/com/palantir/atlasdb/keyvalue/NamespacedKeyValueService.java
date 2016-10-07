@@ -103,12 +103,6 @@ public interface NamespacedKeyValueService {
                                                                 RangeRequest rangeRequest,
                                                                 long timestamp);
 
-
-    @Idempotent
-    ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableReference,
-                                                                RangeRequest rangeRequest,
-                                                                long timestamp);
-
     @Idempotent
     Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef,
