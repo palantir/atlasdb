@@ -364,19 +364,6 @@ public final class TieredKeyValueService implements KeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(final TableReference tableRef,
-                                                                       final RangeRequest rangeRequest,
-                                                                       final long timestamp) {
-        if (isNotTiered(tableRef)) {
-            return primary.getRangeWithHistory(tableRef, rangeRequest, timestamp);
-        }
-        ClosableIterator<RowResult<Set<Value>>> primaryIter =
-                primary.getRangeWithHistory(tableRef, rangeRequest, timestamp);
-        return new ClosableMergedIterator<>(rangeRequest, primaryIter,
-                request -> secondary.getRangeWithHistory(tableRef, request, timestamp));
-    }
-
-    @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>>
             getFirstBatchForRanges(final TableReference tableRef,
                                    final Iterable<RangeRequest> rangeRequests,

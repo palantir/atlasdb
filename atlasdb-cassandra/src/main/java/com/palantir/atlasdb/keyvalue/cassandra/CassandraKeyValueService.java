@@ -1293,20 +1293,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    @Override
-    @Idempotent
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(
-            TableReference tableRef,
-            RangeRequest rangeRequest,
-            long timestamp) {
-        return getRangeWithPageCreator(
-                tableRef,
-                rangeRequest,
-                timestamp,
-                deleteConsistency,
-                HistoryExtractor.SUPPLIER);
-    }
-
     private ClosableIterator<RowResult<Set<Long>>> getTimestampsInBatchesWithPageCreator(
             TableReference tableRef,
             RangeRequest rangeRequest,

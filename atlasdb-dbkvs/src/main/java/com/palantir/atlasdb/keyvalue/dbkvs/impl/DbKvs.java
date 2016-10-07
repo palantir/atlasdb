@@ -407,14 +407,6 @@ public class DbKvs extends AbstractKeyValueService {
         return ClosableIterators.wrap(rows.iterator());
     }
 
-    @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(
-            TableReference tableRef,
-            RangeRequest rangeRequest,
-            long timestamp) {
-        throw new UnsupportedOperationException();
-    }
-
     private TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getPage(
             TableReference tableRef,
             RangeRequest range,

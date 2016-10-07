@@ -98,12 +98,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
 
     @Override
     @Ignore
-    public void testGetRangeWithHistory() {
-        //
-    }
-
-    @Override
-    @Ignore
     public void testGetAllTableNames() {
         //
     }

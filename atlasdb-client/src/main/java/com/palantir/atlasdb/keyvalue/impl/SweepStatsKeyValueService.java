@@ -47,6 +47,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.SweepSchema;
@@ -57,6 +59,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.persist.Persistables;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
  * This kvs wrapper tracks the approximate number of writes to every table
@@ -95,6 +98,13 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     @Override
     protected KeyValueService delegate() {
         return delegate;
+    }
+
+    @Override
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(TableReference tableRef,
+            Iterable<RangeRequest> rangeRequests,
+            long timestamp) {
+        return delegate().getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
     }
 
     @Override

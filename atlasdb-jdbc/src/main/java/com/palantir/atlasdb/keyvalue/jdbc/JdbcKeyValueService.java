@@ -676,13 +676,6 @@ public class JdbcKeyValueService implements KeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
-                                                                       RangeRequest rangeRequest,
-                                                                       long timestamp) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(final TableReference tableRef,
                                                                        final RangeRequest rangeRequest,
                                                                        final long timestamp) {
