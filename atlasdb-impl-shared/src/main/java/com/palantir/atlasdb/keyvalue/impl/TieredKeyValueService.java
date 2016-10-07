@@ -126,12 +126,6 @@ public final class TieredKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void initializeFromFreshInstance() {
-        primary.initializeFromFreshInstance();
-        secondary.initializeFromFreshInstance();
-    }
-
-    @Override
     public void close() {
         primary.close();
         secondary.close();

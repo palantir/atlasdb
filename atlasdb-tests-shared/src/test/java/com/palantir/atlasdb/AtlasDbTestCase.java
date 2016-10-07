@@ -93,7 +93,6 @@ public class AtlasDbTestCase {
         KeyValueService kvs = getBaseKeyValueService();
         keyValueServiceWithStats = new StatsTrackingKeyValueService(kvs);
         keyValueService = new TrackingKeyValueService(keyValueServiceWithStats);
-        keyValueService.initializeFromFreshInstance();
         TransactionTables.createTables(kvs);
         transactionService = TransactionServices.createTransactionService(kvs);
 

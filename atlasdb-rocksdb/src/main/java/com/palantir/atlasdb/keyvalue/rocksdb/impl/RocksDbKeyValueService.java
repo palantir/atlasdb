@@ -265,11 +265,6 @@ public class RocksDbKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void initializeFromFreshInstance() {
-        // nothing
-    }
-
-    @Override
     public void close() {
         if (!closed) {
             try {

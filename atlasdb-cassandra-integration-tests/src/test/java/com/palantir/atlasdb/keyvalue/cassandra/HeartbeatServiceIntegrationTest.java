@@ -45,13 +45,14 @@ import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 public class HeartbeatServiceIntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(SchemaMutationLockIntegrationTest.class);
 
+    private static final int heartbeatTimePeriodMillis = 100;
+
     private HeartbeatService heartbeatService;
     private TracingQueryRunner queryRunner;
     private CassandraClientPool clientPool;
     private ConsistencyLevel writeConsistency;
     private UniqueSchemaMutationLockTable lockTable;
 
-    private final int heartbeatTimePeriodMillis = 100;
     private final long lockId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
 
     @Rule
@@ -60,13 +61,13 @@ public class HeartbeatServiceIntegrationTest {
     @Before
     public void setUp() throws TException {
         CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(
-                CassandraTestSuite.CASSANDRA_KVS_CONFIG);
+                CassandraTestSuite.cassandraKvsConfig);
         queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
 
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
         clientPool = new CassandraClientPool(simpleManager.getConfig());
         lockTable = new UniqueSchemaMutationLockTable(
-                new SchemaMutationLockTables(clientPool, CassandraTestSuite.CASSANDRA_KVS_CONFIG),
+                new SchemaMutationLockTables(clientPool, CassandraTestSuite.cassandraKvsConfig),
                 LockLeader.I_AM_THE_LOCK_LEADER);
         heartbeatService = new HeartbeatService(clientPool,
                                                 queryRunner,

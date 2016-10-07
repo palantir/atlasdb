@@ -42,8 +42,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public interface NamespacedKeyValueService {
     Collection<? extends KeyValueService> getDelegates();
 
-    void initializeFromFreshInstance();
-
     void close();
 
     void teardown();

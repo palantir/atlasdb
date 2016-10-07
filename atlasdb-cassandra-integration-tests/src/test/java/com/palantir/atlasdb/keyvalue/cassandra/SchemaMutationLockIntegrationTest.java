@@ -90,7 +90,7 @@ public class SchemaMutationLockIntegrationTest {
     }
 
     private void setUpWithCasSupportSetTo(boolean supportsCas) throws Exception {
-        quickTimeoutConfig = CassandraTestSuite.CASSANDRA_KVS_CONFIG
+        quickTimeoutConfig = CassandraTestSuite.cassandraKvsConfig
                 .withSchemaMutationTimeoutMillis(500);
         CassandraKeyValueServiceConfigManager simpleManager =
                 CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig);
@@ -212,7 +212,7 @@ public class SchemaMutationLockIntegrationTest {
 
     private SchemaMutationLock createQuickHeartbeatTimeoutLock() {
         CassandraKeyValueServiceConfigManager configManager =
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.cassandraKvsConfig);
         TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
         return new SchemaMutationLock(true, configManager, clientPool, queryRunner, writeConsistency, lockTable,
                 heartbeatService, 2000);

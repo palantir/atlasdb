@@ -86,11 +86,6 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void initializeFromFreshInstance() {
-        // All initialization is done in the constructor and initializers above
-    }
-
-    @Override
     public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows,
                                     ColumnSelection columnSelection, long timestamp) {
         Map<Cell, Value> result = Maps.newHashMap();

@@ -150,13 +150,6 @@ public class DbKvs extends AbstractKeyValueService {
             }
         });
     }
-
-    @Override
-    public void initializeFromFreshInstance() {
-        // do nothing
-    }
-
-    @Override
     public void close() {
         super.close();
         dbTables.close();

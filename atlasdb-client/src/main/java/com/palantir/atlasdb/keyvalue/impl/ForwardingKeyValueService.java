@@ -46,11 +46,6 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
-    public void initializeFromFreshInstance() {
-        delegate().initializeFromFreshInstance();
-    }
-
-    @Override
     public void close() {
         delegate().close();
     }

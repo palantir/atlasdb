@@ -246,11 +246,6 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
-    public void initializeFromFreshInstance() {
-        delegate.initializeFromFreshInstance();
-    }
-
-    @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
                          long timestamp) {
         delegate().multiPut(tableMapper.mapToShortTableNames(valuesByTable), timestamp);
