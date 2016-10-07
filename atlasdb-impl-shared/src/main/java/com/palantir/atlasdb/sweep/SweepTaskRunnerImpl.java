@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -35,7 +37,6 @@ import com.google.common.base.Supplier;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -145,12 +146,15 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                     ImmutableList.copyOf(Iterators.limit(rowResults, batchSize));
             PeekingIterator<RowResult<Value>> peekingValues = Iterators.peekingIterator(valueResults);
 
-            Multimap<Cell, Long> rowTimestamps = getTimestampsFromRowResults(rowResultTimestamps, sweeper);
-            CellsAndSentinels cellsAndSentinels = getStartTimestampsPerRowToSweep(
-                    rowTimestamps, peekingValues, sweepTs, sweeper);
+            CellsAndTimestamps cellsAndTimestamps = rowsToCellsAndTimestamps(rowResultTimestamps);
+            CellsAndTimestamps currentBatchWithoutIgnoredTimestamps =
+                    removeIgnoredTimestamps(cellsAndTimestamps, sweeper.getTimestampsToIgnore());
 
-            Multimap<Cell, Long> startTimestampsToSweepPerCell = cellsAndSentinels.startTimestampsToSweepPerCell();
-            sweepCells(tableRef, startTimestampsToSweepPerCell, cellsAndSentinels.sentinelsToAdd());
+            CellsToSweep cellsToSweep = getStartTimestampsPerRowToSweep(
+                    currentBatchWithoutIgnoredTimestamps, peekingValues, sweepTs, sweeper);
+
+            Multimap<Cell, Long> startTimestampsToSweepPerCell = cellsToSweep.timestampsAsMultimap();
+            sweepCells(tableRef, startTimestampsToSweepPerCell, cellsToSweep.allSentinels());
 
             byte[] nextRow = rowResultTimestamps.size() < batchSize ? null :
                 RangeRequests.getNextStartRow(false, Iterables.getLast(rowResultTimestamps).getRowName());
@@ -176,55 +180,72 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         }
     }
 
+    private static CellsAndTimestamps rowsToCellsAndTimestamps(List<RowResult<Set<Long>>> cellsToSweep) {
+        List<CellAndTimestamps> cellsAndTimestmaps = cellsToSweep.stream()
+                .flatMap(SweepTaskRunnerImpl::rowToCellsAndTimestamps)
+                .collect(Collectors.toList());
+        return ImmutableCellsAndTimestamps.builder()
+                .addAllCellAndTimestampsList(cellsAndTimestmaps)
+                .build();
+    }
+
+    private static Stream<CellAndTimestamps> rowToCellsAndTimestamps(RowResult<Set<Long>> rowResult) {
+        Set<Map.Entry<Cell, Set<Long>>> cellsInRow = ImmutableSet.copyOf(rowResult.getCells());
+        return cellsInRow.stream()
+                .map(SweepTaskRunnerImpl::convertToCellAndTimestamps);
+    }
+
+    private static CellAndTimestamps convertToCellAndTimestamps(
+            Map.Entry<Cell, Set<Long>> entry) {
+        return CellAndTimestamps.of(entry.getKey(), entry.getValue());
+    }
+
+    @VisibleForTesting
+    static CellsAndTimestamps removeIgnoredTimestamps(CellsAndTimestamps original, Set<Long> timestampsToIgnore) {
+        List<CellAndTimestamps> cellsAndTimestamps = original.cellAndTimestampsList().stream()
+                .map(item -> CellAndTimestamps.of(item.cell(), Sets.difference(item.timestamps(), timestampsToIgnore)))
+                .collect(Collectors.toList());
+        return ImmutableCellsAndTimestamps.builder()
+                .cellAndTimestampsList(cellsAndTimestamps)
+                .build();
+    }
+
     @Override
     public long getSweepTimestamp(SweepStrategy sweepStrategy) {
         return getSweeperFor(sweepStrategy).getSweepTimestamp();
     }
 
     @VisibleForTesting
-    static Multimap<Cell, Long> getTimestampsFromRowResults(List<RowResult<Set<Long>>> cellsToSweep, Sweeper sweeper) {
-        Set<Long> timestampsToIgnore = sweeper.getTimestampsToIgnore();
-        ImmutableMultimap.Builder<Cell, Long> cellTsMappings = ImmutableMultimap.builder();
-        for (RowResult<Set<Long>> rowResult : cellsToSweep) {
-            for (Map.Entry<Cell, Set<Long>> entry : rowResult.getCells()) {
-                cellTsMappings.putAll(entry.getKey(), Sets.difference(entry.getValue(), timestampsToIgnore));
-            }
-        }
-        return cellTsMappings.build();
-    }
-
-    @VisibleForTesting
-    CellsAndSentinels getStartTimestampsPerRowToSweep(
-            Multimap<Cell, Long> startTimestampsPerCell,
+    CellsToSweep getStartTimestampsPerRowToSweep(
+            CellsAndTimestamps startTimestampsPerCell,
             PeekingIterator<RowResult<Value>> values,
             long sweepTimestamp,
             Sweeper sweeper) {
-        ImmutableMultimap.Builder<Cell, Long> startTimestampsToSweepPerCell = ImmutableMultimap.builder();
-        ImmutableSet.Builder<Cell> sentinelsToAdd = ImmutableSet.builder();
 
         LoadingCache<Long, Long> startTsToCommitTs = CacheBuilder.newBuilder()
                 .build(new StartTsToCommitTsCacheLoader(transactionService));
 
         // Needed because calling transactionService.get(<EMPTY>) is weird (it logs that it is empty too).
-        if (!startTimestampsPerCell.isEmpty()) {
-            startTsToCommitTs.putAll(transactionService.get(startTimestampsPerCell.values()));
+        Set<Long> allStartTimestamps = startTimestampsPerCell.getAllTimestampValues();
+        if (!allStartTimestamps.isEmpty()) {
+            startTsToCommitTs.putAll(transactionService.get(allStartTimestamps));
         }
 
-        for (Map.Entry<Cell, Collection<Long>> entry : startTimestampsPerCell.asMap().entrySet()) {
-            Cell cell = entry.getKey();
-            Collection<Long> timestamps = entry.getValue();
+        ImmutableCellsToSweep.Builder builder = ImmutableCellsToSweep.builder();
+        for (CellAndTimestamps cellAndTimestamps : startTimestampsPerCell.cellAndTimestampsList()) {
+            Cell cell = cellAndTimestamps.cell();
+            Collection<Long> timestamps = cellAndTimestamps.timestamps();
             boolean sweepLastCommitted = isLatestValueEmpty(cell, values);
-            TimestampsAndSentinels timestampsAndSentinels = getTimestampsToSweep(
+            CellToSweep cellToSweep = getTimestampsToSweep(
                     cell,
                     timestamps,
                     startTsToCommitTs,
                     sweepTimestamp,
                     sweepLastCommitted,
                     sweeper);
-            startTimestampsToSweepPerCell.putAll(cell, timestampsAndSentinels.timestamps());
-            sentinelsToAdd.addAll(timestampsAndSentinels.sentinelsToAdd());
+            builder.addCellToSweepList(cellToSweep);
         }
-        return CellsAndSentinels.of(startTimestampsToSweepPerCell.build(), sentinelsToAdd.build());
+        return builder.build();
     }
 
     private boolean isLatestValueEmpty(Cell cell, PeekingIterator<RowResult<Value>> values) {
@@ -243,7 +264,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         return false;
     }
 
-    private TimestampsAndSentinels getTimestampsToSweep(
+    private CellToSweep getTimestampsToSweep(
             Cell cell,
             Collection<Long> startTimestamps,
             LoadingCache<Long, Long> startTsToCommitTs,
@@ -277,11 +298,9 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                 ? Sets.union(uncommittedTimestamps, commitedTssToSweep)
                 : Sets.union(uncommittedTimestamps, commitedTssToSweep.subSet(0L, commitedTssToSweep.last()));
 
-        Set<Cell> sentinelsToAdd = (sweeper.shouldAddSentinels() && commitedTssToSweep.size() > 1)
-                ? ImmutableSet.of(cell) // We need to add a sentinel if we are removing a committed value
-                : ImmutableSet.of();
+        boolean needsSentinel = sweeper.shouldAddSentinels() && commitedTssToSweep.size() > 1;
 
-        return TimestampsAndSentinels.of(sweepTimestamps, sentinelsToAdd);
+        return CellToSweep.of(cell, sweepTimestamps, needsSentinel);
     }
 
     @VisibleForTesting
