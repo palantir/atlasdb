@@ -167,12 +167,17 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>In Cassandra KVS, We now no longer take out the schema mutation lock in calls to <cite>createTables</cite> if tables already exist.
+This fixes the issue that prevented the <cite>clean-cass-locks-state</cite> CLI from running correctly.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/991">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
 <td>Removed the following classes that appeared to be unused - <code class="docutils literal"><span class="pre">ManyHostPoolingContainer</span></code>, <code class="docutils literal"><span class="pre">CloseShieldedKeyValueService</span></code>, <code class="docutils literal"><span class="pre">RowWrapper</span></code>, <code class="docutils literal"><span class="pre">BatchRowVisitor</span></code>,
 <code class="docutils literal"><span class="pre">MapCollector</span></code>, <code class="docutils literal"><span class="pre">DBMgrConfigurationException</span></code>, and <code class="docutils literal"><span class="pre">SqlStackLogWrapper</span></code>.  Please reach out to us if you are adversly affected by these removals.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1027">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td>The SQL connection manager will no longer temporarily increase the pool size by eleven
 connections when the pool is exhausted.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/971">Pull Request</a>)</td>
