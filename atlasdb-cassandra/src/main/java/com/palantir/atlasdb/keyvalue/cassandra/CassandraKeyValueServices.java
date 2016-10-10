@@ -59,7 +59,19 @@ public final class CassandraKeyValueServices {
         // Utility class
     }
 
-    static void waitForSchemaVersions(Cassandra.Client client, String tableName, int schemaTimeoutMillis)
+    static void waitForSchemaVersions(
+            Cassandra.Client client,
+            String tableName,
+            int schemaTimeoutMillis)
+            throws TException {
+        waitForSchemaVersions(client, tableName, schemaTimeoutMillis, false);
+    }
+
+    static void waitForSchemaVersions(
+            Cassandra.Client client,
+            String tableName,
+            int schemaTimeoutMillis,
+            boolean allowUnresponsiveNode)
             throws TException {
         long start = System.currentTimeMillis();
         long sleepTime = INITIAL_SLEEP_TIME;
@@ -92,7 +104,16 @@ public final class CassandraKeyValueServices {
                 .append(" and examine their logs to determine the issue.")
                 .append(" Fixing the underlying issue and restarting Cassandra")
                 .append(" should resolve the problem. You can quick-check this with 'nodetool describecluster'.");
-        throw new IllegalStateException(sb.toString());
+
+        // 1 real schema version that is correctly distributed + precisely one node that is at version 'unreachable'
+        if (allowUnresponsiveNode
+                && versions.entrySet().size() == 2
+                && versions.keySet().contains("UNREACHABLE")
+                && versions.get("UNREACHABLE").size() == 1) {
+            log.error(sb.toString());
+        } else {
+            throw new IllegalStateException(sb.toString());
+        }
     }
 
     /**
@@ -111,13 +132,12 @@ public final class CassandraKeyValueServices {
                 waitForSchemaVersions(
                         client,
                         "(none, just an initialization check)",
-                        config.schemaMutationTimeoutMillis() / 4);
+                        config.schemaMutationTimeoutMillis(),
+                        true);
                 return null;
             });
         } catch (TException e) {
-            log.error(errorMessage, e);
-        } catch (IllegalStateException e) {
-            log.error(errorMessage, e);
+            throw new RuntimeException(errorMessage, e);
         }
     }
 
