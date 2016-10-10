@@ -1519,9 +1519,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
             CassandraKeyValueServices.waitForSchemaVersions(
                     client,
-                    "(all tables in a call to createTables)",
+                    "(a call to createTables, filtered down to create: " + tableNamesToTableMetadata.keySet() + ")",
                     configManager.getConfig().schemaMutationTimeoutMillis());
-
             return null;
         });
     }
