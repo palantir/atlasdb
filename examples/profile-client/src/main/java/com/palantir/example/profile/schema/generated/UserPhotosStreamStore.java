@@ -358,7 +358,6 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
 
     /**
      * This exists to avoid unused import warnings
-     * {@link AbstractExpiringStreamStore}
      * {@link AbstractPersistentStreamStore}
      * {@link ArrayListMultimap}
      * {@link Arrays}
@@ -377,7 +376,6 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
      * {@link DeleteOnCloseFileInputStream}
      * {@link DigestInputStream}
      * {@link Entry}
-     * {@link ExpiringStreamStore}
      * {@link File}
      * {@link FileNotFoundException}
      * {@link FileOutputStream}
