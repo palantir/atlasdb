@@ -25,7 +25,6 @@ import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,7 +49,6 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
@@ -67,7 +65,7 @@ public class PersistentLocksShould {
         KeyValueService keyValueService = mock(KeyValueService.class);
         when(keyValueService.getAllTableNames()).thenReturn(ImmutableSet.of());
 
-        new PersistentLock(keyValueService);
+        PersistentLock.create(keyValueService);
 
         verify(keyValueService).createTable(eq(AtlasDbConstants.PERSISTED_LOCKS_TABLE), any(byte[].class));
     }
@@ -75,7 +73,7 @@ public class PersistentLocksShould {
     @Test
     public void createAndReleaseLockIfNotAlreadyLocked() throws PersistentLockIsTakenException {
         KeyValueService keyValueService = spy(new InMemoryKeyValueService(false));
-        PersistentLock persistentLock = new PersistentLock(keyValueService);
+        PersistentLock persistentLock = PersistentLock.create(keyValueService);
 
         persistentLock.runWithExclusiveLock(NO_ACTION, PersistentLockName.of("deletionLock"), REASON);
 
@@ -86,7 +84,7 @@ public class PersistentLocksShould {
     @Test
     public void successfullyGrabLockAfterItWasReleased() throws PersistentLockIsTakenException {
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
-        PersistentLock persistentLock = new PersistentLock(keyValueService);
+        PersistentLock persistentLock = PersistentLock.create(keyValueService);
 
         persistentLock.runWithExclusiveLock(NO_ACTION, PersistentLockName.of("deletionLock"), REASON);
         persistentLock.runWithExclusiveLock(NO_ACTION, PersistentLockName.of("deletionLock"), REASON);
@@ -95,7 +93,7 @@ public class PersistentLocksShould {
     @Test
     public void runActionWhileLockIsHeld() throws PersistentLockIsTakenException {
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
-        PersistentLock persistentLock = new PersistentLock(keyValueService);
+        PersistentLock persistentLock = PersistentLock.create(keyValueService);
         AtomicInteger actionsRan = new AtomicInteger(0);
 
         persistentLock.runWithExclusiveLock(
@@ -116,7 +114,7 @@ public class PersistentLocksShould {
     @Test
     public void throwIfLockAlreadyExists() throws PersistentLockIsTakenException {
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
-        PersistentLock persistentLock = new PersistentLock(keyValueService);
+        PersistentLock persistentLock = PersistentLock.create(keyValueService);
         PersistentLockName deletionLock = PersistentLockName.of("deletionLock");
         LockEntry existingLock = LockEntry.of(PersistentLockName.of("deletionLock"), 4321, REASON);
         keyValueService.put(AtlasDbConstants.PERSISTED_LOCKS_TABLE, existingLock.insertionMap(), 0);
@@ -131,7 +129,7 @@ public class PersistentLocksShould {
     public void forbidTwoProcessesFromRunningConcurrently()
             throws InterruptedException, ExecutionException, BrokenBarrierException {
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
-        PersistentLock persistentLock = new PersistentLock(keyValueService);
+        PersistentLock persistentLock = PersistentLock.create(keyValueService);
         PersistentLockName deletionLock = PersistentLockName.of("deletionLock");
 
         ExecutorService executorService = Executors.newFixedThreadPool(2);
@@ -168,7 +166,7 @@ public class PersistentLocksShould {
     @Test
     public void allowNonExclusiveLocksToBeTakenOutConcurrently() throws PersistentLockIsTakenException {
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
-        PersistentLock persistentLock = new PersistentLock(keyValueService);
+        PersistentLock persistentLock = PersistentLock.create(keyValueService);
 
         persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, false);
         persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, false);
@@ -177,7 +175,7 @@ public class PersistentLocksShould {
     @Test
     public void forbidExclusiveLockIfAnotherExclusiveLockIsTaken() throws PersistentLockIsTakenException {
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
-        PersistentLock persistentLock = new PersistentLock(keyValueService);
+        PersistentLock persistentLock = PersistentLock.create(keyValueService);
 
         persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, true);
 
@@ -188,7 +186,7 @@ public class PersistentLocksShould {
     @Test
     public void forbidExclusiveLockIfNonExlusiveLockIsTaken() throws PersistentLockIsTakenException {
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
-        PersistentLock persistentLock = new PersistentLock(keyValueService);
+        PersistentLock persistentLock = PersistentLock.create(keyValueService);
 
         persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, false);
 
@@ -199,7 +197,7 @@ public class PersistentLocksShould {
     @Test
     public void forbidNonExclusiveLockIfExclusiveLockIsTaken() throws PersistentLockIsTakenException {
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
-        PersistentLock persistentLock = new PersistentLock(keyValueService);
+        PersistentLock persistentLock = PersistentLock.create(keyValueService);
 
         persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, true);
 

@@ -85,7 +85,7 @@ public class PersistentLockCommandTest {
     }
 
     private List<PersistentLockName> getAllLockNames(KeyValueService keyValueService) {
-        PersistentLock persistentLock = new PersistentLock(keyValueService);
+        PersistentLock persistentLock = PersistentLock.create(keyValueService);
 
         return persistentLock.allLockEntries().stream()
                 .map(lockEntry -> lockEntry.lockName())
@@ -93,7 +93,7 @@ public class PersistentLockCommandTest {
     }
 
     private void writeLock(KeyValueService keyValueService) throws PersistentLockIsTakenException {
-        PersistentLock persistentLock = new PersistentLock(keyValueService);
+        PersistentLock persistentLock = PersistentLock.create(keyValueService);
         persistentLock.acquireLock(LOCK_NAME, "Some reason");
     }
 }
