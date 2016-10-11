@@ -123,8 +123,8 @@ public abstract class AbstractSweeperTest {
     }
 
     @After
-    public void tearDown() {
-        kvs.teardown();
+    public void close() {
+        kvs.close();
     }
 
     /**

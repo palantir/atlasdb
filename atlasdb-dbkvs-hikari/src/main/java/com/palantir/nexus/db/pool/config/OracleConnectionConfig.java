@@ -19,6 +19,7 @@ import static com.palantir.nexus.db.pool.config.ConnectionProtocol.TCP;
 import static com.palantir.nexus.db.pool.config.ConnectionProtocol.TCPS;
 
 import java.io.File;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -29,6 +30,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.nexus.db.DBType;
 
 @JsonDeserialize(as = ImmutableOracleConnectionConfig.class)
@@ -85,6 +87,15 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
         return false;
     }
 
+    /**
+     * Set arbitrary additional connection parameters.
+     * See https://docs.oracle.com/cd/E11882_01/appdev.112/e13995/oracle/jdbc/OracleDriver.html
+     */
+    @Value.Default
+    public Map<String, String> getConnectionParameters() {
+        return ImmutableMap.of();
+    }
+
     @Value.Default
     public ConnectionProtocol getProtocol() {
         return TCP;
@@ -101,6 +112,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     @Value.Auxiliary
     public Properties getHikariProperties() {
         Properties props = new Properties();
+        props.putAll(getConnectionParameters());
 
         props.setProperty("user", getDbLogin());
         props.setProperty("password", getDbPassword().unmasked());

@@ -46,18 +46,8 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
-    public void initializeFromFreshInstance() {
-        delegate().initializeFromFreshInstance();
-    }
-
-    @Override
     public void close() {
         delegate().close();
-    }
-
-    @Override
-    public void teardown() {
-        delegate().teardown();
     }
 
     @Override
@@ -130,13 +120,6 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp) {
         return delegate().getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
-    }
-
-    @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
-                                                                       RangeRequest rangeRequest,
-                                                                       long timestamp) {
-        return delegate().getRangeWithHistory(tableRef, rangeRequest, timestamp);
     }
 
     @Override

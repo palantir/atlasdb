@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.cassandra.thrift.InvalidRequestException;
@@ -32,7 +33,7 @@ public class CassandraConnectionIntegrationTest {
 
     private static final CassandraKeyValueServiceConfig NO_CREDS_CKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig
             .builder()
-            .addServers(CassandraTestSuite.CASSANDRA_THRIFT_ADDRESS)
+            .addServers(CassandraTestSuite.cassandraThriftAddress)
             .poolSize(20)
             .keyspace("atlasdb")
             .credentials(Optional.absent())
@@ -54,12 +55,12 @@ public class CassandraConnectionIntegrationTest {
 
     @Test
     public void testAuthProvided() {
-        CassandraKeyValueService kv = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), LEADER_CONFIG);
-        kv.teardown();
-        assert true; // getting here implies authentication succeeded
+        CassandraKeyValueService.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.cassandraKvsConfig),
+                LEADER_CONFIG).close();
     }
 
+    // Don't worry about failing this test if you're running against a local Cassandra that isn't setup with auth magic
     @Test
     public void testAuthMissing() {
         try {
@@ -67,13 +68,13 @@ public class CassandraConnectionIntegrationTest {
                     CassandraKeyValueServiceConfigManager.createSimpleManager(NO_CREDS_CKVS_CONFIG), LEADER_CONFIG);
             fail();
         } catch (RuntimeException e) {
-            boolean threwIRE = false;
-            Throwable t = e.getCause();
-            while (!threwIRE && t != null) {
-                threwIRE |= t instanceof InvalidRequestException;
-                t = t.getCause();
+            boolean threwInvalidRequestException = false;
+            Throwable cause = e.getCause();
+            while (!threwInvalidRequestException && cause != null) {
+                threwInvalidRequestException |= cause instanceof InvalidRequestException;
+                cause = cause.getCause();
             }
-            assert threwIRE;
+            assertTrue(threwInvalidRequestException);
             return;
         }
         fail();

@@ -40,30 +40,12 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 @Path("/keyvalue")
 public interface KeyValueService extends AutoCloseable {
     /**
-     * Performs any initialization that must be done on a fresh instance of the key-value store,
-     * such as creating the metadata table.
-     *
-     * This method should be called when the key-value store is first created. Further calls in the
-     * lifetime of the key-value store should be silently ignored.
-     */
-    @POST
-    @Path("initialize")
-    void initializeFromFreshInstance();
-
-    /**
      * Performs non-destructive cleanup when the KVS is no longer needed.
      */
     @POST
     @Path("close")
     @Override
     void close();
-
-    /**
-     * Performs any cleanup when clearing the database. This method may delete data irrecoverably.
-     */
-    @POST
-    @Path("teardown")
-    void teardown();
 
     /**
      * Gets all key value services this key value service delegates to directly.
@@ -382,25 +364,6 @@ public interface KeyValueService extends AutoCloseable {
     ClosableIterator<RowResult<Value>> getRange(@QueryParam("tableRef") TableReference tableRef,
                                                 RangeRequest rangeRequest,
                                                 @QueryParam("timestamp") long timestamp);
-
-    /**
-     * For each row in the specified range, returns all versions strictly before
-     * timestamp.
-     * <p>
-     * This has the same consistency guarantees that {@link #getRangeOfTimestamps(TableReference, RangeRequest, long)}.
-     * <p>
-     * Remember to close any {@link ClosableIterator}s you get in a finally block.
-     * @param rangeRequest the range to load.
-     * @param timestamp specifies the maximum timestamp (exclusive) at which to
-     */
-    @POST
-    @Path("get-range-with-history")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Idempotent
-    ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(@QueryParam("tableRef") TableReference tableRef,
-                                                                RangeRequest rangeRequest,
-                                                                @QueryParam("timestamp") long timestamp);
 
     /**
      * Gets timestamp values from the key-value store. For each row, this returns all associated

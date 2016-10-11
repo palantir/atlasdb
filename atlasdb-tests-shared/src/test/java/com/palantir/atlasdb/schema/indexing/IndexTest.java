@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.schema.indexing;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Assert;
@@ -24,7 +25,9 @@ import org.junit.Test;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.hash.Hashing;
 import com.palantir.atlasdb.AtlasDbTestCase;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.schema.indexing.generated.DataTable;
 import com.palantir.atlasdb.schema.indexing.generated.DataTable.Index1IdxTable.Index1IdxRow;
@@ -37,6 +40,7 @@ import com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.FooToIdIdx
 import com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.TwoColumnsNamedColumnValue;
 import com.palantir.atlasdb.schema.indexing.generated.TwoColumnsTable.TwoColumnsRow;
 import com.palantir.atlasdb.table.description.Schemas;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
@@ -160,6 +164,20 @@ public class IndexTest extends AtlasDbTestCase {
                 return null;
             }
         });
+    }
+
+    @Test
+    public void testFirstRowComponentIsHashed() {
+        long rawComponent = 1L;
+
+        byte[] persistedRow = FooToIdIdxTable.FooToIdIdxRow.of(rawComponent).persistToBytes();
+
+        long hashedValue = Hashing.murmur3_128().hashBytes(ValueType.FIXED_LONG.convertFromJava(rawComponent)).asLong();
+        byte[] expected = PtBytes.toBytes(Long.MIN_VALUE ^ hashedValue);
+
+        byte[] firstComponentOfRow = Arrays.copyOf(persistedRow, 8); // We're only interested in the first 8 bytes.
+
+        Assert.assertArrayEquals(expected, firstComponentOfRow);
     }
 
     private IndexTestTableFactory getTableFactory() {

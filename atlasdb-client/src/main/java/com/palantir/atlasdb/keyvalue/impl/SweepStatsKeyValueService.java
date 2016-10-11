@@ -153,16 +153,6 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
         });
     }
 
-    @Override
-    public void teardown() {
-        terminateExecutor(new Runnable() {
-            @Override
-            public void run() {
-                delegate().teardown();
-            }
-        });
-    }
-
     private void forceFlush() {
         recordModifications(WRITE_THRESHOLD);
         if (flushExecutor.isShutdown()) {

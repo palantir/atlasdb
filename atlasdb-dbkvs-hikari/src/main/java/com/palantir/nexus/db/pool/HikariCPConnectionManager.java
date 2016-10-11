@@ -49,20 +49,14 @@ import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException;
 public class HikariCPConnectionManager extends BaseConnectionManager {
     private static final Logger log = LoggerFactory.getLogger(HikariCPConnectionManager.class);
 
-    // TODO: Make this delay configurable?
-    private static final long COOLDOWN_MILLISECONDS = 30000;
-
     private ConnectionConfig connConfig;
 
     private enum StateType {
         // Base state at construction.  Nothing is set.
         ZERO,
 
-        // "Normal" state.  dataSourceProxy and poolProxy are set.
+        // "Normal" state.  dataSourcePool and poolProxy are set.
         NORMAL,
-
-        // Elevated state.  elevatedStateTimeMillis, dataSourceProxy, poolProxy are set.
-        ELEVATED,
 
         // Closed state.  closeTrace is set.
         CLOSED;
@@ -70,21 +64,19 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
     private static class State {
         public final StateType type;
-        public final long elevatedStateTimeMillis;
         public final HikariDataSource dataSourcePool;
         public final HikariPoolMXBean poolProxy;
         public final Throwable closeTrace;
 
-        public State(StateType type, long elevatedStateTimeMillis, HikariDataSource dataSourcePool, HikariPoolMXBean poolProxy, Throwable closeTrace) {
+        public State(StateType type, HikariDataSource dataSourcePool, HikariPoolMXBean poolProxy, Throwable closeTrace) {
             this.type = type;
-            this.elevatedStateTimeMillis = elevatedStateTimeMillis;
             this.dataSourcePool = dataSourcePool;
             this.poolProxy = poolProxy;
             this.closeTrace = closeTrace;
         }
     }
 
-    private volatile State state = new State(StateType.ZERO, 0, null, null, null);
+    private volatile State state = new State(StateType.ZERO, null, null, null);
 
     public HikariCPConnectionManager(ConnectionConfig connConfig) {
         this.connConfig = Preconditions.checkNotNull(connConfig);
@@ -140,7 +132,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                             // The state hasn't changed on us, we can perform
                             // the initialization and start
                             // getConnectionInternal() over again.
-                            state = initialState();
+                            state = normalState();
                         } else {
                             // Someone else changed the state on us, just start
                             // over.
@@ -150,52 +142,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
                 case NORMAL:
                     // Normal state, we try to get a connection.
-                    try {
-                        return stateLocal.dataSourcePool.getConnection();
-                    } catch (SQLException e) {
-                        // No luck, consider this a timeout, worthy of turning
-                        // it to eleven.  If we "timed out" getting connections
-                        // we probably deadlocked.
-                        log.error("\"Timed out\" getting connection from pool.", e);
-                        // Ah, let's take it to eleven...
-                    }
-                    // But first we need to lock and make sure it hasn't moved
-                    // on us.
-                    synchronized (this) {
-                        if (state == stateLocal) {
-                            // The state hasn't changed on us, we can perform
-                            // the elevation and start getConnectionInternal()
-                            // over again.
-                            state = elevatedState(state);
-                        } else {
-                            // Someone else changed the state on us, just start
-                            // over.
-                        }
-                    }
-                    break;
-
-                case ELEVATED:
-                    // Elevated state, but is it expired?
-                    if (System.currentTimeMillis() < stateLocal.elevatedStateTimeMillis + COOLDOWN_MILLISECONDS) {
-                        // Nope, the purest case -- delegate and hope for the
-                        // best (there is no twelve to which to turn it).
-                        return stateLocal.dataSourcePool.getConnection();
-                    } else {
-                        // Ah, but the elevated state is expired, we should amp
-                        // it back down.  But first, blah blah blah locks.
-                        synchronized (this) {
-                            if (state == stateLocal) {
-                                // The state hasn't changed on us, we can
-                                // perform the unelevation and start
-                                // getConnectionInternal() over again.
-                                state = normalState(state);
-                            } else {
-                                // Someone else changed the state on us, just
-                                // start over.
-                            }
-                        }
-                    }
-                    break;
+                    return stateLocal.dataSourcePool.getConnection();
 
                 case CLOSED:
                     throw new SQLException("Hikari connection pool already closed!", stateLocal.closeTrace);
@@ -255,7 +202,6 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                     break;
 
                 case NORMAL:
-                case ELEVATED:
                     if (log.isDebugEnabled()) {
                         log.debug(
                                 "Closing connection pool: {}",
@@ -270,7 +216,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                     break;
             }
         } finally {
-            state = new State(StateType.CLOSED, 0, null, null, new Throwable("Hikari pool closed here"));
+            state = new State(StateType.CLOSED, null, null, new Throwable("Hikari pool closed here"));
         }
     }
 
@@ -280,11 +226,11 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     @Override
     public synchronized void init() throws SQLException {
         if (state.type == StateType.ZERO) {
-            state = initialState();
+            state = normalState();
         }
     }
 
-    private State initialState() throws SQLException {
+    private State normalState() throws SQLException {
         HikariDataSource dataSourcePool = getDatasourcePool();
         boolean keep = false;
 
@@ -293,7 +239,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
             HikariPoolMXBean poolProxy = initPoolMbeans();
             testDataSource(dataSourcePool);
             keep = true;
-            return new State(StateType.NORMAL, 0, dataSourcePool, poolProxy, null);
+            return new State(StateType.NORMAL, dataSourcePool, poolProxy, null);
         } finally {
             if (!keep) {
                 IOUtils.closeQuietly(dataSourcePool);
@@ -351,51 +297,6 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         }
 
         return dataSourcePool;
-    }
-
-
-
-    private State elevatedState(State oldState) {
-        HikariDataSource dataSourcePool = oldState.dataSourcePool;
-        HikariPoolMXBean poolProxy = oldState.poolProxy;
-
-        /**
-         *  Nigel Tufnel: The numbers all go to eleven. Look, right across the board, eleven,
-         *                eleven, eleven and...
-         * Marty DiBergi: Oh, I see. And most amps go up to ten?
-         *  Nigel Tufnel: Exactly.
-         * Marty DiBergi: Does that mean it's louder? Is it any louder?
-         *  Nigel Tufnel: Well, it's one louder, isn't it? It's not ten. You see, most
-         *                blokes, you know, will be playing at ten. You're on ten here,
-         *                all the way up, all the way up, all the way up, you're on ten
-         *                on your guitar. Where can you go from there? Where?
-         * Marty DiBergi: I don't know.
-         *  Nigel Tufnel: Nowhere. Exactly. What we do is, if we need that extra push
-         *                over the cliff, you know what we do?
-         * Marty DiBergi: Put it up to eleven.
-         *  Nigel Tufnel: Eleven. Exactly. One louder.
-         * Marty DiBergi: Why don't you just make ten louder and make ten be the top
-         *                number and make that a little louder?
-         *  Nigel Tufnel: [pause] These go to eleven.
-         */
-
-        int normalSize = connConfig.getMaxConnections();
-        int elevatedSize = normalSize + 11;
-        log.info("Elevating connection pool: {} -> {}", normalSize, elevatedSize);
-        dataSourcePool.setMaximumPoolSize(elevatedSize);
-
-        return new State(StateType.ELEVATED, System.currentTimeMillis(), dataSourcePool, poolProxy, null);
-    }
-
-    private State normalState(State oldState) {
-        HikariDataSource dataSourcePool = oldState.dataSourcePool;
-        HikariPoolMXBean poolProxy = oldState.poolProxy;
-
-        int normalSize = connConfig.getMaxConnections();
-        log.info("De-elevating connection pool: {}", normalSize);
-        dataSourcePool.setMaximumPoolSize(normalSize);
-
-        return new State(StateType.NORMAL, 0, dataSourcePool, poolProxy, null);
     }
 
     /**

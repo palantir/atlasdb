@@ -30,11 +30,11 @@ public class DockerizedDatabaseUri {
     }
 
     public static DockerizedDatabaseUri fromUriString(String uri) {
-        String[] parts = uri.split(DELIMITER);
+        String[] parts = uri.trim().split(DELIMITER);
         String[] addrParts = parts[1].split(":");
         return new DockerizedDatabaseUri(
                 KeyValueServiceType.valueOf(parts[0]),
-                new InetSocketAddress(addrParts[0], Integer.parseInt(addrParts[1])));
+                InetSocketAddress.createUnresolved(addrParts[0], Integer.parseInt(addrParts[1])));
     }
 
     public KeyValueServiceType getKeyValueServiceType() {

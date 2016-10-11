@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -1595,18 +1596,22 @@ public final class TwoColumnsTable implements
         /**
          * <pre>
          * FooToIdIdxRow {
+         *   {@literal Long firstComponentHash};
          *   {@literal Long foo};
          * }
          * </pre>
          */
         public static final class FooToIdIdxRow implements Persistable, Comparable<FooToIdIdxRow> {
+            private final long firstComponentHash;
             private final long foo;
 
             public static FooToIdIdxRow of(long foo) {
-                return new FooToIdIdxRow(foo);
+                long firstComponentHash = Hashing.murmur3_128().hashBytes(ValueType.FIXED_LONG.convertFromJava(foo)).asLong();
+                return new FooToIdIdxRow(firstComponentHash, foo);
             }
 
-            private FooToIdIdxRow(long foo) {
+            private FooToIdIdxRow(long firstComponentHash, long foo) {
+                this.firstComponentHash = firstComponentHash;
                 this.foo = foo;
             }
 
@@ -1634,23 +1639,27 @@ public final class TwoColumnsTable implements
 
             @Override
             public byte[] persistToBytes() {
+                byte[] firstComponentHashBytes = PtBytes.toBytes(Long.MIN_VALUE ^ firstComponentHash);
                 byte[] fooBytes = PtBytes.toBytes(Long.MIN_VALUE ^ foo);
-                return EncodingUtils.add(fooBytes);
+                return EncodingUtils.add(firstComponentHashBytes, fooBytes);
             }
 
             public static final Hydrator<FooToIdIdxRow> BYTES_HYDRATOR = new Hydrator<FooToIdIdxRow>() {
                 @Override
                 public FooToIdIdxRow hydrateFromBytes(byte[] __input) {
                     int __index = 0;
+                    Long firstComponentHash = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                    __index += 8;
                     Long foo = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    return new FooToIdIdxRow(foo);
+                    return new FooToIdIdxRow(firstComponentHash, foo);
                 }
             };
 
             @Override
             public String toString() {
                 return MoreObjects.toStringHelper(getClass().getSimpleName())
+                    .add("firstComponentHash", firstComponentHash)
                     .add("foo", foo)
                     .toString();
             }
@@ -1667,17 +1676,18 @@ public final class TwoColumnsTable implements
                     return false;
                 }
                 FooToIdIdxRow other = (FooToIdIdxRow) obj;
-                return Objects.equal(foo, other.foo);
+                return Objects.equal(firstComponentHash, other.firstComponentHash) && Objects.equal(foo, other.foo);
             }
 
             @Override
             public int hashCode() {
-                return Objects.hashCode(foo);
+                return Arrays.deepHashCode(new Object[]{ firstComponentHash, foo });
             }
 
             @Override
             public int compareTo(FooToIdIdxRow o) {
                 return ComparisonChain.start()
+                    .compare(this.firstComponentHash, o.firstComponentHash)
                     .compare(this.foo, o.foo)
                     .result();
             }
@@ -2215,6 +2225,7 @@ public final class TwoColumnsTable implements
      * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
+     * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
@@ -2274,7 +2285,6 @@ public final class TwoColumnsTable implements
      * {@link Set}
      * {@link Sets}
      * {@link Sha256Hash}
-     * {@link BatchColumnRangeSelection}
      * {@link SortedMap}
      * {@link Supplier}
      * {@link TableReference}
@@ -2285,5 +2295,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ECOL+1PLpES26L2U9fKefQ==";
+    static String __CLASS_HASH = "66SlMxZFOkyB9LuOCDm9hQ==";
 }

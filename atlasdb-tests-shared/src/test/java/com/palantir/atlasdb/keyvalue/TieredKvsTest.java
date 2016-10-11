@@ -111,10 +111,10 @@ public class TieredKvsTest {
     }
 
     @After
-    public void tearDown() {
-        tieredKvs.teardown();
-        primaryKvs.teardown();
-        secondaryKvs.teardown();
+    public void close() {
+        tieredKvs.close();
+        primaryKvs.close();
+        secondaryKvs.close();
     }
 
     @Test
@@ -324,7 +324,7 @@ public class TieredKvsTest {
                 assertEquals(expected.get(j), range300.next());
             }
             assertFalse(range300.hasNext());
-            tearDown();
+            close();
             setup();
         }
     }

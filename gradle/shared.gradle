@@ -77,3 +77,14 @@ afterEvaluate {
         }
     }
 }
+
+test {
+    testLogging {
+        showExceptions true
+        exceptionFormat "full"
+        showCauses true
+        showStackTraces true
+
+        events "started", "passed", "skipped", "failed"
+    }
+}

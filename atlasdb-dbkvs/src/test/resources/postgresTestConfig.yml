@@ -12,3 +12,6 @@ atlasdb:
       dbPassword: testpassword
       connectionTimeoutSeconds: 5
       socketTimeoutSeconds: 30
+      connectionParameters:
+        foo: 100
+        bar: baz
