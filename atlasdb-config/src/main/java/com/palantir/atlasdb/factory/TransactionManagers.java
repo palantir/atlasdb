@@ -46,6 +46,7 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.CellsSweeper;
+import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
 import com.palantir.atlasdb.table.description.Schema;
@@ -188,7 +189,8 @@ public final class TransactionManagers {
                 Suppliers.ofInstance(config.getSweepPauseMillis()),
                 Suppliers.ofInstance(config.getSweepBatchSize()),
                 Suppliers.ofInstance(config.getSweepCellBatchSize()),
-                SweepTableFactory.of());
+                SweepTableFactory.of(),
+                new NoOpBackgroundSweeperPerformanceLogger());
         backgroundSweeper.runInBackground();
 
         return transactionManager;
