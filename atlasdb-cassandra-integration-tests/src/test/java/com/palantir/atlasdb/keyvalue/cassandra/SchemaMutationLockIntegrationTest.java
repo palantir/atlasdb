@@ -97,17 +97,29 @@ public class SchemaMutationLockIntegrationTest {
         TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
         clientPool = new CassandraClientPool(simpleManager.getConfig());
-        lockTable = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, quickTimeoutConfig),
+        lockTable = new UniqueSchemaMutationLockTable(
+                new SchemaMutationLockTables(clientPool, quickTimeoutConfig),
                 LockLeader.I_AM_THE_LOCK_LEADER);
-        heartbeatService = new HeartbeatService(clientPool, queryRunner,
-                quickTimeoutConfig.heartbeatTimePeriodMillis(), lockTable.getOnlyTable(), writeConsistency);
-        schemaMutationLock = new SchemaMutationLock(supportsCas, simpleManager, clientPool, queryRunner,
-                writeConsistency, lockTable, heartbeatService);
+        heartbeatService = new HeartbeatService(
+                clientPool,
+                queryRunner,
+                HeartbeatService.DEFAULT_HEARTBEAT_TIME_PERIOD_MILLIS,
+                lockTable.getOnlyTable(),
+                writeConsistency);
+        schemaMutationLock = new SchemaMutationLock(
+                supportsCas,
+                simpleManager,
+                clientPool,
+                queryRunner,
+                writeConsistency,
+                lockTable,
+                heartbeatService,
+                SchemaMutationLock.DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS);
     }
 
     @Test
     public void testLockAndUnlockWithoutContention() {
-        schemaMutationLock.runWithLock(() -> { });
+        schemaMutationLock.runWithLock(DO_NOTHING);
     }
 
     @Test
@@ -151,20 +163,22 @@ public class SchemaMutationLockIntegrationTest {
         // only run this test with cas
         Assume.assumeTrue(casEnabled);
 
+        SchemaMutationLock quickHeartbeatTimeoutLock = createQuickHeartbeatTimeoutLock();
+
         expectedException.expect(ExecutionException.class);
         expectedException.expectCause(instanceOf(RuntimeException.class));
         expectedException.expectMessage("The current lock holder has failed to update its heartbeat.");
 
         Future initialLockHolder = CassandraTestTools.async(executorService, () ->
-                schemaMutationLock.runWithLock(() -> {
+                quickHeartbeatTimeoutLock.runWithLock(() -> {
                     // Wait for few heartbeats
-                    Thread.sleep(quickTimeoutConfig.heartbeatTimePeriodMillis() * 2);
+                    Thread.sleep(HeartbeatService.DEFAULT_HEARTBEAT_TIME_PERIOD_MILLIS * 2);
 
                     heartbeatService.stopBeating();
 
                     // Try acquiring lock with dead heartbeat
                     Future lockGrabber = CassandraTestTools.async(executorService,
-                            () -> schemaMutationLock.runWithLock(DO_NOTHING));
+                            () -> quickHeartbeatTimeoutLock.runWithLock(DO_NOTHING));
 
                     // verify that lock is not acquired
                     lockGrabber.get();
@@ -194,6 +208,14 @@ public class SchemaMutationLockIntegrationTest {
         setUpWithNonHeartbeatClearedLock();
 
         schemaMutationLock.runWithLock(DO_NOTHING);
+    }
+
+    private SchemaMutationLock createQuickHeartbeatTimeoutLock() {
+        CassandraKeyValueServiceConfigManager configManager =
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.cassandraKvsConfig);
+        TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
+        return new SchemaMutationLock(true, configManager, clientPool, queryRunner, writeConsistency, lockTable,
+                heartbeatService, 2000);
     }
 
     private void setUpWithNonHeartbeatClearedLock() throws TException {

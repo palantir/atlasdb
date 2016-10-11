@@ -86,7 +86,6 @@ public final class CassandraConstants {
 
     public static final String GLOBAL_DDL_LOCK_ROW_NAME = "Global DDL lock";
     public static final String GLOBAL_DDL_LOCK_COLUMN_NAME = "id_with_lock";
-    public static final long TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS = 1000;
 
     static final int SCHEMA_MUTATION_LOCK_TIMEOUT_MULTIPLIER = 10;
 

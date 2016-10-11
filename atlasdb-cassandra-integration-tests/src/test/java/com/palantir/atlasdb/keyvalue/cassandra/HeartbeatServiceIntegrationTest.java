@@ -15,18 +15,22 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.CqlRow;
 import org.apache.thrift.TException;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,7 +39,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 
@@ -56,23 +59,72 @@ public class HeartbeatServiceIntegrationTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     @Before
-    public void setUp() throws Exception {
-        ImmutableCassandraKeyValueServiceConfig quickHeartbeatConfig = CassandraTestSuite.cassandraKvsConfig
-                .withHeartbeatTimePeriodMillis(heartbeatTimePeriodMillis);
+    public void setUp() throws TException {
         CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(
-                quickHeartbeatConfig);
+                CassandraTestSuite.cassandraKvsConfig);
         queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
 
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
         clientPool = new CassandraClientPool(simpleManager.getConfig());
-        lockTable = new UniqueSchemaMutationLockTable(new SchemaMutationLockTables(clientPool, quickHeartbeatConfig),
-                                                      LockLeader.I_AM_THE_LOCK_LEADER);
+        lockTable = new UniqueSchemaMutationLockTable(
+                new SchemaMutationLockTables(clientPool, CassandraTestSuite.cassandraKvsConfig),
+                LockLeader.I_AM_THE_LOCK_LEADER);
         heartbeatService = new HeartbeatService(clientPool,
                                                 queryRunner,
-                                                quickHeartbeatConfig.heartbeatTimePeriodMillis(),
+                                                heartbeatTimePeriodMillis,
                                                 lockTable.getOnlyTable(),
                                                 writeConsistency);
         clientPool.runWithRetry(this::createLockEntry);
+    }
+
+    @After
+    public void cleanUp() throws TException {
+        heartbeatService.stopBeating();
+        clientPool.runWithRetry(this::truncateLocks);
+    }
+
+    private CqlResult truncateLocks(Cassandra.Client client) throws TException {
+        String truncateCql = String.format("TRUNCATE \"%s\";", lockTable.getOnlyTable().getQualifiedName());
+        ByteBuffer queryBuffer = ByteBuffer.wrap(truncateCql.getBytes(StandardCharsets.UTF_8));
+        return client.execute_cql3_query(queryBuffer, Compression.NONE, writeConsistency);
+    }
+
+    @Test
+    public void testNormalStartStopBeatingSequence() throws TException, InterruptedException {
+        assertEquals(0, getCurrentHeartbeat());
+        heartbeatService.startBeatingForLock(lockId);
+        Thread.sleep(10 * heartbeatTimePeriodMillis);
+        heartbeatService.stopBeating();
+        assertNotEquals(0, getCurrentHeartbeat());
+    }
+
+    @Test
+    public void testStartBeatingWithoutStopping() {
+        expectedException.expect(IllegalStateException.class);
+        expectedException.expectMessage(HeartbeatService.START_BEATING_ERR_MSG);
+
+        heartbeatService.startBeatingForLock(lockId);
+
+        // try starting another heartbeat without stopping an existing heartbeat
+        heartbeatService.startBeatingForLock(lockId - 10);
+    }
+
+    @Test
+    public void testSingleHeartbeat() throws TException {
+        Heartbeat heartbeat = new Heartbeat(clientPool, queryRunner,
+                lockTable.getOnlyTable(), writeConsistency, lockId);
+        heartbeat.run();
+        assertEquals(1, getCurrentHeartbeat());
+    }
+
+    @Test
+    public void testHeartbeatWithInvalidLock() throws TException {
+        long invalidLockId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
+        Heartbeat heartbeat = new Heartbeat(clientPool, queryRunner, lockTable.getOnlyTable(),
+                writeConsistency, invalidLockId);
+        heartbeat.run();
+        // value should not be updated because an IllegalStateException will be thrown and caught
+        assertEquals(0, getCurrentHeartbeat());
     }
 
     private CqlResult createLockEntry(Cassandra.Client client) throws TException {
@@ -89,57 +141,23 @@ public class HeartbeatServiceIntegrationTest {
         return client.execute_cql3_query(queryBuffer, Compression.NONE, writeConsistency);
     }
 
-
-
-    @After
-    public void cleanUp() throws Exception {
-        heartbeatService.stopBeating();
-        clientPool.runWithRetry(this::truncateLocks);
+    private long getCurrentHeartbeat() throws TException {
+        List<CqlRow> resultBeforeHeartbeat = clientPool.runWithRetry(this::readLockEntry).getRows();
+        assertEquals(1, resultBeforeHeartbeat.size());
+        List<Column> resultColumnsBeforeHeartbeat = resultBeforeHeartbeat.get(0).getColumns();
+        assertEquals(1, resultColumnsBeforeHeartbeat.size());
+        return SchemaMutationLock.getHeartbeatCountFromColumn(resultColumnsBeforeHeartbeat.get(0));
     }
 
-    private CqlResult truncateLocks(Cassandra.Client client) throws TException {
-        String truncateCql = String.format("TRUNCATE \"%s\";", lockTable.getOnlyTable().getQualifiedName());
-        ByteBuffer queryBuffer = ByteBuffer.wrap(truncateCql.getBytes(StandardCharsets.UTF_8));
-        return client.execute_cql3_query(queryBuffer, Compression.NONE, writeConsistency);
-    }
-
-    @Test
-    public void testNormalStartStopBeatingSequence() throws InterruptedException {
-        Assert.assertEquals(0, heartbeatService.getCurrentHeartbeatCount());
-        heartbeatService.startBeatingForLock(lockId);
-        Thread.sleep(10 * heartbeatTimePeriodMillis);
-        heartbeatService.stopBeating();
-        Assert.assertNotEquals(0, heartbeatService.getCurrentHeartbeatCount());
-    }
-
-    @Test
-    public void testStartBeatingWithoutStopping() {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage(HeartbeatService.startBeatingErr);
-
-        heartbeatService.startBeatingForLock(lockId);
-
-        // try starting another heartbeat without stopping an existing heartbeat
-        heartbeatService.startBeatingForLock(lockId - 10);
-    }
-
-    @Test
-    public void testSingleHeartbeat() {
-        AtomicInteger heartbeatCount = new AtomicInteger(0);
-        Heartbeat heartbeat = new Heartbeat(clientPool, queryRunner, heartbeatCount,
-                lockTable.getOnlyTable(), writeConsistency, lockId);
-        heartbeat.run();
-        Assert.assertEquals(1, heartbeatCount.get());
-    }
-
-    @Test
-    public void testHeartbeatWithInvalidLock() {
-        long invalidLockId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
-        AtomicInteger heartbeatCount = new AtomicInteger(0);
-        Heartbeat heartbeat = new Heartbeat(clientPool, queryRunner, heartbeatCount,
-                lockTable.getOnlyTable(), writeConsistency, invalidLockId);
-        heartbeat.run();
-        // value should not be updated because an IllegalStateException will be thrown and caught
-        Assert.assertEquals(0, heartbeatCount.get());
+    private CqlResult readLockEntry(Cassandra.Client client) throws TException {
+        String lockRowName = CassandraKeyValueServices.encodeAsHex(
+                CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME.getBytes(StandardCharsets.UTF_8));
+        String lockColName = CassandraKeyValueServices.encodeAsHex(
+                CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8));
+        String createCql = String.format(
+                "SELECT \"value\" FROM \"%s\" WHERE key = %s AND column1 = %s AND column2 = -1;",
+                lockTable.getOnlyTable().getQualifiedName(), lockRowName, lockColName);
+        ByteBuffer queryBuffer = ByteBuffer.wrap(createCql.getBytes(StandardCharsets.UTF_8));
+        return client.execute_cql3_query(queryBuffer, Compression.NONE, ConsistencyLevel.LOCAL_QUORUM);
     }
 }

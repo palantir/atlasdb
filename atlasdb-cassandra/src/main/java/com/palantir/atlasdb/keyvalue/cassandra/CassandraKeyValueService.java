@@ -225,9 +225,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 new HeartbeatService(
                         clientPool,
                         queryRunner,
-                        configManager.getConfig().heartbeatTimePeriodMillis(),
+                        HeartbeatService.DEFAULT_HEARTBEAT_TIME_PERIOD_MILLIS,
                         schemaMutationLockTable.getOnlyTable(),
-                        writeConsistency));
+                        writeConsistency),
+                SchemaMutationLock.DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS);
 
         createTable(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
