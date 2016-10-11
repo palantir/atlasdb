@@ -17,11 +17,9 @@ package com.palantir.atlasdb.ete;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang3.StringUtils;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
@@ -36,12 +34,6 @@ import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
-import com.palantir.docker.compose.execution.DockerComposeExecArgument;
-import com.palantir.docker.compose.execution.DockerComposeExecOption;
-import com.palantir.giraffe.command.Command;
-import com.palantir.giraffe.command.Commands;
-import com.palantir.giraffe.host.HostAccessors;
-import com.palantir.giraffe.host.HostControlSystem;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -125,7 +117,6 @@ public final class MultiCassandraTestSuite {
             throw new RuntimeException(e);
         }
         waitForAllPorts(container);
-        waitForNodetoolToConfirmStatus(container, "UN", 3);
     }
 
     private static void waitForAllPorts(Container container) {
@@ -135,65 +126,9 @@ public final class MultiCassandraTestSuite {
     }
 
     public static void waitUntilAllNodesAreUp() {
-        Container container = MULTINODE_CASSANDRA_SETUP.containers().container(CASSANDRA_NODES.get(0));
-        waitForNodetoolToConfirmStatus(container, "UN", 3);
-    }
-
-    private static void waitForNodetoolToConfirmStatus(Container container, String status, int expectedNodeCount) {
-        Awaitility.await()
-                .atMost(360, TimeUnit.SECONDS)
-                .pollInterval(5, TimeUnit.SECONDS)
-                .until(() -> {
-                    try {
-                        return MultiCassandraTestSuite.verifyCorrectNumberOfNodesHaveStatus(
-                                container,
-                                expectedNodeCount,
-                                status);
-                    } catch (Exception e) {
-                        return false;
-                    }
-                });
-    }
-
-    public static Boolean verifyCorrectNumberOfNodesHaveStatus(Container container, int expectedCount, String status)
-            throws IOException, InterruptedException {
-        Optional<String> nodetoolStatus = getNodetoolStatus(container.getContainerName());
-        return nodetoolStatus.isPresent()
-                && StringUtils.countMatches(nodetoolStatus.get(), status) == expectedCount;
-    }
-
-    private static Optional<String> getNodetoolStatus(String containerName) {
-        Optional<String> giraffeStatus = getNodetoolStatusWithGiraffe(containerName);
-        if (giraffeStatus.isPresent()) {
-            return giraffeStatus;
-        } else {
-            return getNodetoolStatusWithDockerExec(containerName);
-        }
-    }
-
-    private static Optional<String> getNodetoolStatusWithGiraffe(String containerName) {
-        HostControlSystem hcs = HostAccessors.getDefault().open();
-        Command command = hcs.getCommand(String.format(
-                "sudo lxc-attach -n \"$(docker inspect --format \"{{.Id}}\" %s)\" -- bash -c nodetool status",
-                containerName));
-
-        try {
-            return Optional.of(Commands.execute(command).getStdOut());
-        } catch (IOException e) {
-            System.out.println("Error when getting nodetool status via giraffe: " + e);
-            return Optional.empty();
-        }
-    }
-
-    private static Optional<String> getNodetoolStatusWithDockerExec(String containerName) {
-        try {
-            return Optional.of(MULTINODE_CASSANDRA_SETUP.exec(
-                    DockerComposeExecOption.options("-T"),
-                    containerName,
-                    DockerComposeExecArgument.arguments("bash", "-c", "nodetool status | grep UN")));
-        } catch (IOException | InterruptedException e) {
-            System.out.println("Error when getting nodetool status via docker-exec: " + e);
-            return Optional.empty();
+        for (String containerName : CASSANDRA_NODES) {
+            Container container = MULTINODE_CASSANDRA_SETUP.containers().container(containerName);
+            waitForAllPorts(container);
         }
     }
 }
