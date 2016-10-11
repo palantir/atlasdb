@@ -79,6 +79,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
     private final Supplier<Long> sweepPauseMillis;
     private final Supplier<Integer> sweepBatchSize;
     private final SweepTableFactory tableFactory;
+    private final Optional<BackgroundSweeperPerformanceLogger> sweepPerfLogger;
     private volatile float batchSizeMultiplier = 1.0f;
     private Thread daemon;
 
@@ -94,6 +95,18 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                                  Supplier<Long> sweepPauseMillis,
                                  Supplier<Integer> sweepBatchSize,
                                  SweepTableFactory tableFactory) {
+        this(txManager, kvs, sweepRunner, isSweepEnabled, sweepPauseMillis, sweepBatchSize, tableFactory,
+                Optional.absent());
+    }
+
+    public BackgroundSweeperImpl(LockAwareTransactionManager txManager,
+                                 KeyValueService kvs,
+                                 SweepTaskRunner sweepRunner,
+                                 Supplier<Boolean> isSweepEnabled,
+                                 Supplier<Long> sweepPauseMillis,
+                                 Supplier<Integer> sweepBatchSize,
+                                 SweepTableFactory tableFactory,
+                                 Optional<BackgroundSweeperPerformanceLogger> sweepPerfLogger) {
         this.txManager = txManager;
         this.kvs = kvs;
         this.sweepRunner = sweepRunner;
@@ -101,6 +114,7 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
         this.sweepPauseMillis = sweepPauseMillis;
         this.sweepBatchSize = sweepBatchSize;
         this.tableFactory = tableFactory;
+        this.sweepPerfLogger = sweepPerfLogger;
     }
 
     @Override
@@ -184,12 +198,17 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                     progress.getFullTableName()),
                     batchSize,
                     progress.getStartRow());
+            long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
             log.debug("Swept {} unique cells from {} starting at {}"
                     + " and performed {} deletions in {} ms"
                     + " up to timestamp {}.",
                     results.getCellsExamined(), progress.getFullTableName(),
                     progress.getStartRow() == null ? "0" : PtBytes.encodeHexString(progress.getStartRow()),
-                    results.getCellsDeleted(), watch.elapsed(TimeUnit.MILLISECONDS), results.getSweptTimestamp());
+                    results.getCellsDeleted(), elapsedMillis, results.getSweptTimestamp());
+            if (sweepPerfLogger.isPresent()) {
+                sweepPerfLogger.get().logSweepResults(results, progress.getFullTableName(),
+                        progress.getStartRow(), elapsedMillis);
+            }
             saveSweepResults(progress, results);
             return true;
         } catch (RuntimeException e) {
@@ -324,8 +343,13 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
         if (cellsDeleted > 0) {
             Stopwatch watch = Stopwatch.createStarted();
             kvs.compactInternally(TableReference.createUnsafe(progress.getFullTableName()));
+            long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
             log.debug("Finished performing compactInternally on {} in {} ms.",
-                    progress.getFullTableName(), watch.elapsed(TimeUnit.MILLISECONDS));
+                    progress.getFullTableName(), elapsedMillis);
+            if (sweepPerfLogger.isPresent()) {
+                sweepPerfLogger.get().logInternalCompaction(progress.getFullTableName(), cellsDeleted,
+                        cellsExamined, elapsedMillis);
+            }
         }
 
         // Truncate instead of delete because the progress table contains only
