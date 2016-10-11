@@ -5,14 +5,9 @@ machine:
     version:
       oraclejdk8
   environment:
-    _JAVA_OPTIONS: "-Xmx384m"
-    GRADLE_OPTS: '-Xmx384m -XX:+UseG1GC -XX:+CMSClassUnloadingEnabled -XX:InitialCodeCacheSize=64M -XX:CodeCacheExpansionSize=1M -XX:CodeCacheMinimumFreeSpace=1M -XX:ReservedCodeCacheSize=200M -XX:MinMetaspaceExpansion=1M -XX:MaxMetaspaceExpansion=8M -XX:MaxMetaspaceSize=200M -XX:MaxDirectMemorySize=96M -XX:CompressedClassSpaceSize=256M -Xss1024K'
+    _JAVA_OPTIONS: "-Xmx384M"
+    GRADLE_OPTS: '-Xss1024K -XX:+CMSClassUnloadingEnabled -XX:InitialCodeCacheSize=32M -XX:CodeCacheExpansionSize=1M -XX:CodeCacheMinimumFreeSpace=1M -XX:ReservedCodeCacheSize=150M -XX:MinMetaspaceExpansion=1M -XX:MaxMetaspaceExpansion=8M -XX:MaxMetaspaceSize=128M -XX:MaxDirectMemorySize=96M -XX:CompressedClassSpaceSize=128M'
     TERM: dumb
-    MALLOC_ARENA_MAX: 1
-    MALLOC_MMAP_THRESHOLD_: 131072
-    MALLOC_TRIM_THRESHOLD_: 131072
-    MALLOC_TOP_PAD_: 131072
-    MALLOC_MMAP_MAX_: 65536
   services:
     - docker
 
