@@ -18,10 +18,13 @@ package com.palantir.atlasdb.persistentlock;
 import org.junit.Test;
 
 public class PersistentLockNameShould {
-
     @Test (expected = IllegalArgumentException.class)
     public void notAllowDelimiterInName() {
         PersistentLockName.of("someName" + LockEntry.DELIMITER);
     }
 
+    @Test
+    public void allowNameWithoutDelimiter() {
+        PersistentLockName.of("someName");
+    }
 }
