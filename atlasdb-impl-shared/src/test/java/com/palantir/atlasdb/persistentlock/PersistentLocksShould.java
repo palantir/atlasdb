@@ -36,6 +36,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import org.junit.Rule;
@@ -72,16 +73,6 @@ public class PersistentLocksShould {
     }
 
     @Test
-    public void notCreatePersistedLocksTableIfItAlreadyExists() {
-        KeyValueService keyValueService = mock(KeyValueService.class);
-        when(keyValueService.getAllTableNames()).thenReturn(ImmutableSet.of(AtlasDbConstants.PERSISTED_LOCKS_TABLE));
-
-        new PersistentLock(keyValueService);
-
-        verify(keyValueService, times(0)).createTable(any(TableReference.class), any(byte[].class));
-    }
-
-    @Test
     public void createAndReleaseLockIfNotAlreadyLocked() throws PersistentLockIsTakenException {
         KeyValueService keyValueService = spy(new InMemoryKeyValueService(false));
         PersistentLock persistentLock = new PersistentLock(keyValueService);
@@ -105,17 +96,21 @@ public class PersistentLocksShould {
     public void runActionWhileLockIsHeld() throws PersistentLockIsTakenException {
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
         PersistentLock persistentLock = new PersistentLock(keyValueService);
+        AtomicInteger actionsRan = new AtomicInteger(0);
 
         persistentLock.runWithExclusiveLock(
                 () -> {
                     ImmutableList<RowResult<Value>> rowResults = ImmutableList.copyOf(
                             keyValueService.getRange(AtlasDbConstants.PERSISTED_LOCKS_TABLE, RangeRequest.all(), 1));
                     assertThat(rowResults.size(), equalTo(1));
+                    actionsRan.incrementAndGet();
                     return null;
                 },
                 PersistentLockName.of("deletionLock"),
                 REASON
         );
+
+        assertThat(actionsRan.get(), equalTo(1));
     }
 
     @Test
@@ -177,6 +172,17 @@ public class PersistentLocksShould {
 
         persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, false);
         persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, false);
+    }
+
+    @Test
+    public void forbidExclusiveLockIfAnotherExclusiveLockIsTaken() throws PersistentLockIsTakenException {
+        KeyValueService keyValueService = new InMemoryKeyValueService(false);
+        PersistentLock persistentLock = new PersistentLock(keyValueService);
+
+        persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, true);
+
+        expectedException.expect(PersistentLockIsTakenException.class);
+        persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, true);
     }
 
     @Test
