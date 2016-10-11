@@ -55,7 +55,7 @@ final class SchemaMutationLock {
     private static final long GLOBAL_DDL_LOCK_CLEARED_ID = Long.MAX_VALUE;
     private static final String GLOBAL_DDL_LOCK_CLEARED_VALUE =
             lockValueFromIdAndHeartbeat(GLOBAL_DDL_LOCK_CLEARED_ID, 0);
-    private static final int TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS = 1000;
+    private static final int INITIAL_TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS = 1000;
     private static final int TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS_CAP = 5000;
     private static final int MAX_UNLOCK_RETRY_COUNT = 5;
 
@@ -102,16 +102,20 @@ final class SchemaMutationLock {
 
         long lockId = waitForSchemaMutationLock();
         try {
-            try {
-                heartbeatService.startBeatingForLock(lockId);
-                action.execute();
-            } catch (Exception e) {
-                throw Throwables.throwUncheckedException(e);
-            } finally {
-                heartbeatService.stopBeating();
-            }
+            runActionWithHeartbeat(action, lockId);
         } finally {
             schemaMutationUnlock(lockId);
+        }
+    }
+
+    private void runActionWithHeartbeat(Action action, long lockId) {
+        try {
+            heartbeatService.startBeatingForLock(lockId);
+            action.execute();
+        } catch (Exception e) {
+            throw Throwables.throwUncheckedException(e);
+        } finally {
+            heartbeatService.stopBeating();
         }
     }
 
@@ -167,7 +171,7 @@ final class SchemaMutationLock {
 
                 Column lastSeenColumn = null;
                 long lastSeenColumnUpdateTs = 0;
-                int currentTimeBetweenLockAttemptsMillis = TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS;
+                int currentTimeBetweenLockAttemptsMillis = INITIAL_TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS;
 
                 // We use schemaMutationTimeoutMillis to wait for schema mutations to agree as well as
                 // to specify the timeout period before we give up trying to acquire the schema mutation lock
@@ -206,9 +210,8 @@ final class SchemaMutationLock {
                     }
 
 
-                    currentTimeBetweenLockAttemptsMillis = Math.min(
-                            2 * currentTimeBetweenLockAttemptsMillis,
-                            TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS_CAP);
+                    currentTimeBetweenLockAttemptsMillis = getCappedTimeBetweenLockAttemptsWithBackoff(
+                            currentTimeBetweenLockAttemptsMillis);
                     Thread.sleep(currentTimeBetweenLockAttemptsMillis);
                     casResult = writeDdlLockWithCas(client, expected, ourUpdate);
                 }
@@ -278,14 +281,14 @@ final class SchemaMutationLock {
     private void schemaMutationUnlock(long perOperationNodeId) {
         boolean unlockDone = false;
         boolean isInterrupted = false;
-        long currentSleepMillis = TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS;
+        int currentSleepMillis = INITIAL_TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS;
         for (int unlockRetryCount = 0; unlockRetryCount < MAX_UNLOCK_RETRY_COUNT; unlockRetryCount++) {
             unlockDone = trySchemaMutationUnlockOnce(perOperationNodeId);
             if (unlockDone) {
                 break;
             }
 
-            currentSleepMillis = Math.min(2 * currentSleepMillis, TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS_CAP);
+            currentSleepMillis = getCappedTimeBetweenLockAttemptsWithBackoff(currentSleepMillis);
             try {
                 Thread.sleep(currentSleepMillis);
             } catch (InterruptedException e) {
@@ -399,6 +402,10 @@ final class SchemaMutationLock {
         return CassandraKeyValueServices.makeCompositeBuffer(
                 CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8),
                 AtlasDbConstants.TRANSACTION_TS).array();
+    }
+
+    private static int getCappedTimeBetweenLockAttemptsWithBackoff(int currentTimeValue) {
+        return Math.min(2 * currentTimeValue, TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS_CAP);
     }
 
     static String lockValueFromIdAndHeartbeat(long id, int heartbeatCount) {
