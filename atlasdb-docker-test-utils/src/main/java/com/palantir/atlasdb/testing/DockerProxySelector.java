@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import com.google.common.base.Throwables;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.docker.compose.connection.Cluster;
 
@@ -58,6 +58,6 @@ public class DockerProxySelector extends ProxySelector {
 
     @Override
     public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {
-        throw Throwables.propagate(ioe);
+        Preconditions.checkArgument(uri != null && sa != null && ioe != null, "Invalid connectFailed call");
     }
 }
