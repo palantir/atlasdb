@@ -6,7 +6,7 @@ machine:
       oraclejdk8
   environment:
     _JAVA_OPTIONS: "-Xmx384m"
-    GRADLE_OPTS: '-Xmx384m -Dorg.gradle.jvmargs="-Xmx384m -XX:+HeapDumpOnOutOfMemoryError"'
+    GRADLE_OPTS: '-Xmx384m -XX:+UseG1GC -XX:+CMSClassUnloadingEnabled -XX:InitialCodeCacheSize=64M -XX:CodeCacheExpansionSize=1M -XX:CodeCacheMinimumFreeSpace=1M -XX:ReservedCodeCacheSize=200M -XX:MinMetaspaceExpansion=1M -XX:MaxMetaspaceExpansion=8M -XX:MaxMetaspaceSize=200M -XX:MaxDirectMemorySize=96M -XX:CompressedClassSpaceSize=256M -Xss1024K'
     TERM: dumb
     MALLOC_ARENA_MAX: 1
     MALLOC_MMAP_THRESHOLD_: 131072
