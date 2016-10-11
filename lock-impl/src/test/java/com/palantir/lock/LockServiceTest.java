@@ -778,7 +778,8 @@ public abstract class LockServiceTest {
     }
 
     /** Tests using multiple threads to grab the same locks */
-    @Test public void testNumerousClientsPerLock() throws Exception {
+    @Test(timeout = 120000)
+    public void testNumerousClientsPerLock() throws Exception {
         new File("lock_server_timestamp.dat").delete();
         server = SimulatingServerProxy.newProxyInstance(LockService.class, LockServiceImpl.create(
                 new LockServerOptions() {
