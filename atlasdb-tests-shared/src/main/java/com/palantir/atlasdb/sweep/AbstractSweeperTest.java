@@ -119,7 +119,9 @@ public abstract class AbstractSweeperTest {
         Supplier<Long> sweepNoPause = () -> 0L;
         Supplier<Integer> batchSizeSupplier = () -> batchSize;
         Supplier<Integer> cellBatchSizeSupplier = () -> DEFAULT_CELL_BATCH_SIZE;
-        backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause, batchSizeSupplier, cellBatchSizeSupplier, SweepTableFactory.of());
+        backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause,
+                batchSizeSupplier, cellBatchSizeSupplier, SweepTableFactory.of(),
+                new NoOpBackgroundSweeperPerformanceLogger());
     }
 
     @After
