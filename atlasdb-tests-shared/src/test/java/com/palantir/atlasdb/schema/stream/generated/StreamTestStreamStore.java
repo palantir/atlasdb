@@ -43,9 +43,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata.Builder;
-import com.palantir.atlasdb.stream.AbstractExpiringStreamStore;
 import com.palantir.atlasdb.stream.AbstractPersistentStreamStore;
-import com.palantir.atlasdb.stream.ExpiringStreamStore;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.stream.StreamCleanedException;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -360,7 +358,6 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
 
     /**
      * This exists to avoid unused import warnings
-     * {@link AbstractExpiringStreamStore}
      * {@link AbstractPersistentStreamStore}
      * {@link ArrayListMultimap}
      * {@link Arrays}
@@ -379,7 +376,6 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
      * {@link DeleteOnCloseFileInputStream}
      * {@link DigestInputStream}
      * {@link Entry}
-     * {@link ExpiringStreamStore}
      * {@link File}
      * {@link FileNotFoundException}
      * {@link FileOutputStream}

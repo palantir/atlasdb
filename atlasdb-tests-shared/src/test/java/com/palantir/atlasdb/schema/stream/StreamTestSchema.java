@@ -40,7 +40,6 @@ public class StreamTestSchema implements AtlasSchema {
         schema.addStreamStoreDefinition(
                 new StreamStoreDefinitionBuilder("stream_test_with_hash", "stream_test_with_hash", ValueType.VAR_LONG)
                     .inMemoryThreshold(4000)
-                    .expirationStrategy(ExpirationStrategy.INDIVIDUALLY_SPECIFIED)
                     .compressBlocksInDb()
                     .hashFirstRowComponent()
                     .isAppendHeavyAndReadLight()

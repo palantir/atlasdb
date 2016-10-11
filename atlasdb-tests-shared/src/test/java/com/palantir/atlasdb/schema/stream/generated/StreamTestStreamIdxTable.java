@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -697,6 +698,7 @@ public final class StreamTestStreamIdxTable implements
      * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
+     * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
@@ -756,7 +758,6 @@ public final class StreamTestStreamIdxTable implements
      * {@link Set}
      * {@link Sets}
      * {@link Sha256Hash}
-     * {@link BatchColumnRangeSelection}
      * {@link SortedMap}
      * {@link Supplier}
      * {@link TableReference}
@@ -767,5 +768,5 @@ public final class StreamTestStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "jJyGwP1HCiEW0sggTP2biw==";
+    static String __CLASS_HASH = "RWGGRzsQqW5WjkujG24BfQ==";
 }

@@ -35,15 +35,13 @@ public class StreamStoreDefinition {
     private final ValueType idType;
 
     private int inMemoryThreshold;
-    private ExpirationStrategy expirationStrategy;
 
-    StreamStoreDefinition(Map<String, TableDefinition> streamStoreTables, String shortName, String longName, ValueType idType, int inMemoryThreshold, ExpirationStrategy expirationStrategy) {
+    StreamStoreDefinition(Map<String, TableDefinition> streamStoreTables, String shortName, String longName, ValueType idType, int inMemoryThreshold) {
         this.streamStoreTables = streamStoreTables;
         this.shortName = shortName;
         this.longName = longName;
         this.idType = idType;
         this.inMemoryThreshold = inMemoryThreshold;
-        this.expirationStrategy = expirationStrategy;
     }
 
     public Map<String, TableDefinition> getTables() {
@@ -51,7 +49,7 @@ public class StreamStoreDefinition {
     }
 
     public StreamStoreRenderer getRenderer(String packageName, String name) {
-        return new StreamStoreRenderer(Renderers.CamelCase(longName), idType, packageName, name, inMemoryThreshold, expirationStrategy);
+        return new StreamStoreRenderer(Renderers.CamelCase(longName), idType, packageName, name, inMemoryThreshold);
     }
 
     public Multimap<String, Supplier<OnCleanupTask>> getCleanupTasks(String packageName, String name, StreamStoreRenderer renderer, Namespace namespace) {

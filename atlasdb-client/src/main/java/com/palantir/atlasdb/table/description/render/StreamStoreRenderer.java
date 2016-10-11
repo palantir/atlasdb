@@ -56,10 +56,7 @@ import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
-import com.palantir.atlasdb.stream.AbstractExpiringStreamStore;
 import com.palantir.atlasdb.stream.AbstractPersistentStreamStore;
-import com.palantir.atlasdb.stream.ExpiringStreamStore;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.stream.StreamCleanedException;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -82,15 +79,13 @@ public class StreamStoreRenderer {
     private final String packageName;
     private final String schemaName;
     private final int inMemoryThreshold;
-    private final ExpirationStrategy expirationStrategy;
 
-    public StreamStoreRenderer(String name, ValueType streamIdType, String packageName, String schemaName, int inMemoryThreshold, ExpirationStrategy expirationStrategy) {
+    public StreamStoreRenderer(String name, ValueType streamIdType, String packageName, String schemaName, int inMemoryThreshold) {
         this.name = name;
         this.streamIdType = streamIdType;
         this.packageName = packageName;
         this.schemaName = schemaName;
         this.inMemoryThreshold = inMemoryThreshold;
-        this.expirationStrategy = expirationStrategy;
     }
 
     public String getPackageName() {
@@ -141,7 +136,7 @@ public class StreamStoreRenderer {
                 importRenderer.renderImports();
                 line();
                 line("@Generated(\"",  StreamStoreRenderer.class.getName(), "\")");
-                line("public final class ", StreamStore, " extends ", (isExpiring() ? "AbstractExpiringStreamStore<" + StreamId + ">" : "AbstractPersistentStreamStore"), " {"); {
+                line("public final class ", StreamStore, " extends AbstractPersistentStreamStore", " {"); {
                     fields();
                     line();
                     constructors();
@@ -173,14 +168,12 @@ public class StreamStoreRenderer {
                     putHashIndexTask();
                     line();
                     deleteStreams();
-                    if (!isExpiring()) {
-                        line();
-                        markStreamsAsUsedInternal();
-                        line();
-                        unmarkStreamsAsUsed();
-                        line();
-                        touchMetadataWhileMarkingUsedForConflicts();
-                    }
+                    line();
+                    markStreamsAsUsedInternal();
+                    line();
+                    unmarkStreamsAsUsed();
+                    line();
+                    touchMetadataWhileMarkingUsedForConflicts();
                     line();
                     importRenderer.renderImportJavaDoc();
                     line("static final int dummy = 0;");
@@ -217,17 +210,14 @@ public class StreamStoreRenderer {
             }
 
             private void storeBlock() {
-                String params = isExpiring() ? ", final long duration, final TimeUnit unit" : "";
-                String args = isExpiring() ? ", duration, unit" : "";
-                String streamType = isExpiring() ? StreamId : "long";
                 line("@Override");
-                line("protected void storeBlock(Transaction t, ", streamType, " id, long blockNumber, final byte[] block", params, ") {"); {
+                line("protected void storeBlock(Transaction t, long id, long blockNumber, final byte[] block) {"); {
                     line("Preconditions.checkArgument(block.length <= BLOCK_SIZE_IN_BYTES, \"Block to store in DB must be less than BLOCK_SIZE_IN_BYTES\");");
                     line("final ", StreamValueRow, " row = ", StreamValueRow, ".of(id, blockNumber);");
                     line("try {"); {
                         line("// Do a touch operation on this table to ensure we get a conflict if someone cleans it up.");
-                        line("touchMetadataWhileStoringForConflicts(t, row.getId(), row.getBlockId()", args, ");");
-                        line("tables.get", StreamValueTable, "(t).putValue(row, block", args, ");");
+                        line("touchMetadataWhileStoringForConflicts(t, row.getId(), row.getBlockId());");
+                        line("tables.get", StreamValueTable, "(t).putValue(row, block);");
                     } line("} catch (RuntimeException e) {"); {
                         line("log.error(\"Error storing block \" + row.getBlockId() + \" for stream id \" + row.getId(), e);");
                         line("throw e;");
@@ -236,32 +226,28 @@ public class StreamStoreRenderer {
             }
 
             private void touchMetadataWhileStoringForConflicts() {
-                String params = isExpiring() ? ", long duration, TimeUnit unit" : "";
-                String args = isExpiring() ? ", duration, unit" : "";
-                line("private void touchMetadataWhileStoringForConflicts(Transaction t, ", StreamId, " id, long blockNumber", params, ") {"); {
+                line("private void touchMetadataWhileStoringForConflicts(Transaction t, ", StreamId, " id, long blockNumber) {"); {
                     line(StreamMetadataTable, " metaTable = tables.get", StreamMetadataTable, "(t);");
                     line(StreamMetadataRow, " row = ", StreamMetadataRow, ".of(id);");
                     line("StreamMetadata metadata = metaTable.getMetadatas(ImmutableSet.of(row)).values().iterator().next();");
                     line("Preconditions.checkState(metadata.getStatus() == Status.STORING, \"This stream is being cleaned up while storing blocks: \" + id);");
                     line("Builder builder = StreamMetadata.newBuilder(metadata);");
                     line("builder.setLength(blockNumber * BLOCK_SIZE_IN_BYTES + 1);");
-                    line("metaTable.putMetadata(row, builder.build()", args, ");");
+                    line("metaTable.putMetadata(row, builder.build());");
                 } line("}");
             }
 
             private void putMetadataAndHashIndexTask() {
-                String streamType = isExpiring() ? StreamId : "long";
-                String params = isExpiring() ? ", long duration, TimeUnit unit" : "";
-                String args = isExpiring() ? ", duration, unit" : "";
+
                 line("@Override");
-                line("protected void putMetadataAndHashIndexTask(Transaction t, Map<", StreamId, ", StreamMetadata> streamIdsToMetadata", params, ") {"); {
+                line("protected void putMetadataAndHashIndexTask(Transaction t, Map<", StreamId, ", StreamMetadata> streamIdsToMetadata) {"); {
                     line(StreamMetadataTable, " mdTable = tables.get", StreamMetadataTable, "(t);");
                     line("Map<", StreamId, ", StreamMetadata> prevMetadatas = getMetadata(t, streamIdsToMetadata.keySet());");
                     line();
                     line("Map<", StreamMetadataRow, ", StreamMetadata> rowsToStoredMetadata = Maps.newHashMap();");
                     line("Map<", StreamMetadataRow, ", StreamMetadata> rowsToUnstoredMetadata = Maps.newHashMap();");
                     line("for (Entry<", StreamId, ", StreamMetadata> e : streamIdsToMetadata.entrySet()) {"); {
-                        line(streamType, " streamId = e.getKey();");
+                        line("long streamId = e.getKey();");
                         line("StreamMetadata metadata = e.getValue();");
                         line("StreamMetadata prevMetadata = prevMetadatas.get(streamId);");
                         line("if (metadata.getStatus() == Status.STORED) {"); {
@@ -278,12 +264,12 @@ public class StreamStoreRenderer {
                             line("rowsToUnstoredMetadata.put(", StreamMetadataRow, ".of(streamId), metadata);");
                         } line("}");
                     } line("}");
-                    line("putHashIndexTask(t, rowsToStoredMetadata", args, ");");
+                    line("putHashIndexTask(t, rowsToStoredMetadata);");
                     line();
                     line("Map<", StreamMetadataRow, ", StreamMetadata> rowsToMetadata = Maps.newHashMap();");
                     line("rowsToMetadata.putAll(rowsToStoredMetadata);");
                     line("rowsToMetadata.putAll(rowsToUnstoredMetadata);");
-                    line("mdTable.putMetadata(rowsToMetadata", args, ");");
+                    line("mdTable.putMetadata(rowsToMetadata);");
                 } line("}");
             }
 
@@ -405,9 +391,7 @@ public class StreamStoreRenderer {
             }
 
             private void putHashIndexTask() {
-                String params = isExpiring() ? ", long duration, TimeUnit unit" : "";
-                String args = isExpiring() ? ", duration, unit" : "";
-                line("private void putHashIndexTask(Transaction t, Map<", StreamMetadataRow, ", StreamMetadata> rowsToMetadata", params, ") {"); {
+                line("private void putHashIndexTask(Transaction t, Map<", StreamMetadataRow, ", StreamMetadata> rowsToMetadata) {"); {
                     line("Multimap<", StreamHashAidxRow, ", ", StreamHashAidxColumnValue, "> indexMap = HashMultimap.create();");
                     line("for (Entry<", StreamMetadataRow, ", StreamMetadata> e : rowsToMetadata.entrySet()) {"); {
                         line(StreamMetadataRow, " row = e.getKey();");
@@ -426,7 +410,7 @@ public class StreamStoreRenderer {
                         line("indexMap.put(hashRow, columnValue);");
                     } line("}");
                     line(StreamHashAidxTable, " hiTable = tables.get", StreamHashAidxTable, "(t);");
-                    line("hiTable.put(indexMap", args, ");");
+                    line("hiTable.put(indexMap);");
                 } line("}");
             }
 
@@ -533,10 +517,6 @@ public class StreamStoreRenderer {
                 } line("}");
             }
         }.render();
-    }
-
-    private boolean isExpiring() {
-        return expirationStrategy == ExpirationStrategy.INDIVIDUALLY_SPECIFIED;
     }
 
     public String renderIndexCleanupTask() {
@@ -717,7 +697,6 @@ public class StreamStoreRenderer {
         Throwables.class,
         ConcatenatedInputStream.class,
         Cell.class,
-        ExpiringStreamStore.class,
         PersistentStreamStore.class,
         Transaction.class,
         TransactionManager.class,
@@ -731,7 +710,6 @@ public class StreamStoreRenderer {
         TransactionFailedRetriableException.class,
         StreamCleanedException.class,
         AbstractPersistentStreamStore.class,
-        AbstractExpiringStreamStore.class,
         List.class,
         CheckForNull.class,
         Generated.class,
