@@ -58,7 +58,7 @@ public class PersistentLockCommand extends SingleBackendCommand {
     @Override
     public int execute(final AtlasDbServices services) {
         KeyValueService keyValueService = services.getKeyValueService();
-        PersistentLock persistentLock = new PersistentLock(keyValueService);
+        PersistentLock persistentLock = PersistentLock.create(keyValueService);
 
         if (acquireLockName != null) {
             return acquireLock(persistentLock, acquireLockName);
