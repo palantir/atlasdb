@@ -58,7 +58,7 @@ public abstract class LockEntry {
     }
 
     public static LockEntry fromRowResult(RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
-        String rowName = new String(rowResult.getRowName(), StandardCharsets.UTF_8);
+        String rowName = asString(rowResult.getRowName());
         String reason = valueOfColumnInRow(REASON_FOR_LOCK_COLUMN, rowResult);
         boolean exclusive = Boolean.parseBoolean(valueOfColumnInRow(EXCLUSIVE_COLUMN, rowResult));
 
