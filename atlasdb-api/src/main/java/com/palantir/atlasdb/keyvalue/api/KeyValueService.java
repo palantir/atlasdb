@@ -48,13 +48,6 @@ public interface KeyValueService extends AutoCloseable {
     void close();
 
     /**
-     * Performs any cleanup when clearing the database. This method may delete data irrecoverably.
-     */
-    @POST
-    @Path("teardown")
-    void teardown();
-
-    /**
      * Gets all key value services this key value service delegates to directly.
      * <p>
      * This can be used to decompose a complex key value service using table splits, tiers,
@@ -371,25 +364,6 @@ public interface KeyValueService extends AutoCloseable {
     ClosableIterator<RowResult<Value>> getRange(@QueryParam("tableRef") TableReference tableRef,
                                                 RangeRequest rangeRequest,
                                                 @QueryParam("timestamp") long timestamp);
-
-    /**
-     * For each row in the specified range, returns all versions strictly before
-     * timestamp.
-     * <p>
-     * This has the same consistency guarantees that {@link #getRangeOfTimestamps(TableReference, RangeRequest, long)}.
-     * <p>
-     * Remember to close any {@link ClosableIterator}s you get in a finally block.
-     * @param rangeRequest the range to load.
-     * @param timestamp specifies the maximum timestamp (exclusive) at which to
-     */
-    @POST
-    @Path("get-range-with-history")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Idempotent
-    ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(@QueryParam("tableRef") TableReference tableRef,
-                                                                RangeRequest rangeRequest,
-                                                                @QueryParam("timestamp") long timestamp);
 
     /**
      * Gets timestamp values from the key-value store. For each row, this returns all associated

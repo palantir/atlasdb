@@ -283,18 +283,6 @@ public class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
-        if (log.isTraceEnabled()) {
-            Stopwatch stopwatch = Stopwatch.createStarted();
-            ClosableIterator<RowResult<Set<Value>>> result = delegate.getRangeWithHistory(tableRef, rangeRequest, timestamp);
-            logTimeAndTable("getRangeWithHistory", tableRef.getQualifiedName(), stopwatch);
-            return result;
-        } else {
-            return delegate.getRangeWithHistory(tableRef, rangeRequest, timestamp);
-        }
-    }
-
-    @Override
     public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         if (log.isTraceEnabled()) {
             Stopwatch stopwatch = Stopwatch.createStarted();
@@ -396,17 +384,6 @@ public class ProfilingKeyValueService implements KeyValueService {
             logTime("close", stopwatch);
         } else {
             delegate.close();
-        }
-    }
-
-    @Override
-    public void teardown() {
-        if (log.isTraceEnabled()) {
-            Stopwatch stopwatch = Stopwatch.createStarted();
-            delegate.teardown();
-            logTime("teardown", stopwatch);
-        } else {
-            delegate.teardown();
         }
     }
 

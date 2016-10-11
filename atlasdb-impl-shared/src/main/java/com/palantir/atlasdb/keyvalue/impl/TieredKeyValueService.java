@@ -133,13 +133,6 @@ public final class TieredKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void teardown() {
-        primary.teardown();
-        secondary.teardown();
-        executor.shutdown();
-    }
-
-    @Override
     public Collection<? extends KeyValueService> getDelegates() {
         return ImmutableList.of(primary, secondary);
     }
@@ -368,19 +361,6 @@ public final class TieredKeyValueService implements KeyValueService {
                 primary.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
         return new ClosableMergedIterator<>(rangeRequest, primaryIter,
                 request -> secondary.getRangeOfTimestamps(tableRef, request, timestamp));
-    }
-
-    @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(final TableReference tableRef,
-                                                                       final RangeRequest rangeRequest,
-                                                                       final long timestamp) {
-        if (isNotTiered(tableRef)) {
-            return primary.getRangeWithHistory(tableRef, rangeRequest, timestamp);
-        }
-        ClosableIterator<RowResult<Set<Value>>> primaryIter =
-                primary.getRangeWithHistory(tableRef, rangeRequest, timestamp);
-        return new ClosableMergedIterator<>(rangeRequest, primaryIter,
-                request -> secondary.getRangeWithHistory(tableRef, request, timestamp));
     }
 
     @Override

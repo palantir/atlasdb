@@ -273,11 +273,6 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void teardown() {
-        close();
-    }
-
-    @Override
     public void truncateTables(final Set<TableReference> tableRefs) {
         List<Future<Void>> futures = Lists.newArrayList();
         for (final TableReference tableRef : tableRefs) {

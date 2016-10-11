@@ -199,16 +199,6 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableReference,
-                                                                       RangeRequest rangeRequest,
-                                                                       long timestamp) {
-        return delegate().getRangeWithHistory(
-                tableMapper.getMappedTableName(tableReference),
-                rangeRequest,
-                timestamp);
-    }
-
-    @Override
     public Map<Cell, Value> getRows(TableReference tableRef,
                                     Iterable<byte[]> rows,
                                     ColumnSelection columnSelection,
@@ -287,11 +277,6 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     @Override
     public void close() {
         delegate().close();
-    }
-
-    @Override
-    public void teardown() {
-        delegate().teardown();
     }
 
     @Override

@@ -63,11 +63,6 @@ public class ThrowingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void teardown() {
-        // do nothing
-    }
-
-    @Override
     public Collection<? extends KeyValueService> getDelegates() {
         throw throwEx();
     }
@@ -144,13 +139,6 @@ public class ThrowingKeyValueService implements KeyValueService {
 
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
-                                                                       RangeRequest rangeRequest,
-                                                                       long timestamp) {
-        throw throwEx();
-    }
-
-    @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp) {
         throw throwEx();

@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.jdbc;
 
-import org.junit.Ignore;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.jdbc.JdbcKeyValueService;
@@ -39,12 +37,6 @@ public class JdbcKeyValueSharedTest extends AbstractAtlasDbKeyValueServiceTest {
     @Override
     protected KeyValueService getKeyValueService() {
         return db;
-    }
-
-    @Override
-    @Ignore
-    public void testGetRangeWithHistory() {
-        // ignore
     }
 
     @Override

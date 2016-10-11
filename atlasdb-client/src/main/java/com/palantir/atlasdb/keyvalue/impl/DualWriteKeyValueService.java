@@ -57,12 +57,6 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void teardown() {
-        delegate1.teardown();
-        delegate2.teardown();
-    }
-
-    @Override
     public Collection<? extends KeyValueService> getDelegates() {
         return ImmutableList.of(delegate1, delegate2);
     }
@@ -194,11 +188,6 @@ public class DualWriteKeyValueService implements KeyValueService {
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         return delegate1.getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
-    }
-
-    @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
-        return delegate1.getRangeWithHistory(tableRef, rangeRequest, timestamp);
     }
 
     @Override

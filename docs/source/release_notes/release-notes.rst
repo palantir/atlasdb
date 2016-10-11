@@ -40,7 +40,12 @@ v0.19.0
 
     *    - Type
          - Change
-
+    *    - |breaking|
+         - Removed KeyValueService.[initializeFromFresh|tearDown|getRangeWithHistory]
+           It is likely all callers of tearDown just want to call close.
+           Also removed Partitioning and Remoting KVSs, which were unused and had many unimplemented methods.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1041>`__)
+            
     *    - |fixed|
          - In Cassandra KVS, We now no longer take out the schema mutation lock in calls to `createTables` if tables already exist.
            This fixes the issue that prevented the `clean-cass-locks-state` CLI from running correctly.

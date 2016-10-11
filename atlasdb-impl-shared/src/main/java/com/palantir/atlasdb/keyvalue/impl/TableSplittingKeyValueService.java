@@ -241,13 +241,6 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
-                                                                       RangeRequest rangeRequest,
-                                                                       long timestamp) {
-        return getDelegate(tableRef).getRangeWithHistory(tableRef, rangeRequest, timestamp);
-    }
-
-    @Override
     public Map<Cell, Value> getRows(TableReference tableRef,
                                     Iterable<byte[]> rows,
                                     ColumnSelection columnSelection,
@@ -322,13 +315,6 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     public void close() {
         for (KeyValueService delegate : delegates) {
             delegate.close();
-        }
-    }
-
-    @Override
-    public void teardown() {
-        for (KeyValueService delegate : delegates) {
-            delegate.teardown();
         }
     }
 

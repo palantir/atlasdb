@@ -157,12 +157,6 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public void teardown() {
-        super.teardown();
-        close();
-    }
-
-    @Override
     public Map<Cell, Value> getRows(
             TableReference tableRef,
             Iterable<byte[]> rows,
@@ -411,14 +405,6 @@ public class DbKvs extends AbstractKeyValueService {
                     }
                 };
         return ClosableIterators.wrap(rows.iterator());
-    }
-
-    @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(
-            TableReference tableRef,
-            RangeRequest rangeRequest,
-            long timestamp) {
-        throw new UnsupportedOperationException();
     }
 
     private TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getPage(

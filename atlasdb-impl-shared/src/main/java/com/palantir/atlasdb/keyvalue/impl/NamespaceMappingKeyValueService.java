@@ -130,13 +130,6 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
-                                                                       RangeRequest rangeRequest,
-                                                                       long timestamp) {
-        return delegate().getRangeWithHistory(tableRef, rangeRequest, timestamp);
-    }
-
-    @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
@@ -212,11 +205,6 @@ public class NamespaceMappingKeyValueService extends ForwardingObject implements
     @Override
     public void close() {
         delegate().close();
-    }
-
-    @Override
-    public void teardown() {
-        delegate().teardown();
     }
 
     @Override

@@ -44,8 +44,6 @@ public interface NamespacedKeyValueService {
 
     void close();
 
-    void teardown();
-
     TableMappingService getTableMapper();
 
     @Idempotent
@@ -102,12 +100,6 @@ public interface NamespacedKeyValueService {
 
     @Idempotent
     ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableReference,
-                                                                RangeRequest rangeRequest,
-                                                                long timestamp);
-
-
-    @Idempotent
-    ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableReference,
                                                                 RangeRequest rangeRequest,
                                                                 long timestamp);
 
