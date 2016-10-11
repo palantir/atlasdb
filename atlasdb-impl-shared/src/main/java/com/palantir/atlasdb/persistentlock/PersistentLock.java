@@ -33,17 +33,21 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.Throwables;
 
-public class PersistentLock {
+public final class PersistentLock {
     private static final long LOCKS_TIMESTAMP = 0L;
 
     private static final Logger log = LoggerFactory.getLogger(PersistentLock.class);
 
     private final KeyValueService keyValueService;
 
-    public PersistentLock(KeyValueService keyValueService) {
+    private PersistentLock(KeyValueService keyValueService) {
         this.keyValueService = keyValueService;
+    }
 
-        createPersistedLocksTable();
+    public static PersistentLock create(KeyValueService keyValueService) {
+        PersistentLock persistentLock = new PersistentLock(keyValueService);
+        persistentLock.createPersistedLocksTable();
+        return persistentLock;
     }
 
     public <T> T runWithExclusiveLock(
