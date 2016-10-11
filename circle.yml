@@ -8,7 +8,11 @@ machine:
     _JAVA_OPTIONS: "-Xmx384m"
     GRADLE_OPTS: '-Xmx384m -Dorg.gradle.jvmargs="-Xmx384m -XX:+HeapDumpOnOutOfMemoryError"'
     TERM: dumb
-    MALLOC_ARENA_MAX: 2
+    MALLOC_ARENA_MAX: 1
+    MALLOC_MMAP_THRESHOLD_: 131072
+    MALLOC_TRIM_THRESHOLD_: 131072
+    MALLOC_TOP_PAD_: 131072
+    MALLOC_MMAP_MAX_: 65536
   services:
     - docker
 
