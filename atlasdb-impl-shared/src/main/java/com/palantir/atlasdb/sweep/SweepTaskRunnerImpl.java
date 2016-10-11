@@ -74,7 +74,7 @@ import com.palantir.common.base.ClosableIterator;
  */
 public class SweepTaskRunnerImpl implements SweepTaskRunner {
     private static final Logger log = LoggerFactory.getLogger(SweepTaskRunnerImpl.class);
-    public static final int CELL_BATCH_SIZE = 1;
+    public static final int CELL_BATCH_SIZE = 200;
 
     private final KeyValueService keyValueService;
     private final Supplier<Long> unreadableTimestampSupplier;
@@ -157,6 +157,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                                 .build();
                         int cellsSwept = sweepForCells(currentBatchCells, tableRef, sweeper, sweepTs, peekingValues);
                         totalCellsSwept.addAndGet(cellsSwept);
+                        System.out.println("totalCellsSwept = " + totalCellsSwept.get());
                         return true;
                     });
 
