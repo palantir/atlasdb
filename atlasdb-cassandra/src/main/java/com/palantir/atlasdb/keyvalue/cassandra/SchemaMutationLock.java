@@ -48,18 +48,18 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 
 final class SchemaMutationLock {
+    public static final long GLOBAL_DDL_LOCK_CLEARED_ID = Long.MAX_VALUE;
+    public static final int DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS = 60000;
+
     private static final Logger log = LoggerFactory.getLogger(SchemaMutationLock.class);
     private static final Pattern GLOBAL_DDL_LOCK_FORMAT_PATTERN = Pattern.compile(
             "^(?<lockId>\\d+)_(?<heartbeatCount>\\d+)$");
     private static final String GLOBAL_DDL_LOCK_FORMAT = "%1$d_%2$d";
-    private static final long GLOBAL_DDL_LOCK_CLEARED_ID = Long.MAX_VALUE;
     private static final String GLOBAL_DDL_LOCK_CLEARED_VALUE =
             lockValueFromIdAndHeartbeat(GLOBAL_DDL_LOCK_CLEARED_ID, 0);
     private static final int INITIAL_TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS = 1000;
     private static final int TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS_CAP = 5000;
     private static final int MAX_UNLOCK_RETRY_COUNT = 5;
-
-    public static final int DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS = 60000;
 
     private final boolean supportsCas;
     private final CassandraKeyValueServiceConfigManager configManager;

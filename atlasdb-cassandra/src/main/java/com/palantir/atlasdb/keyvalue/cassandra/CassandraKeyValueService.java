@@ -844,7 +844,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private void putForSingleHostInternal(final InetSocketAddress host,
-            final TableReference tableRef,
+                                          final TableReference tableRef,
                                           final Iterable<Map.Entry<Cell, Value>> values,
                                           final int ttl) throws Exception {
         clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
@@ -1890,8 +1890,23 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     public void cleanUpSchemaMutationLockTablesState() throws Exception {
         Set<TableReference> tables = lockTables.getAllLockTables();
-        dropTablesInternal(tables);
-        log.info("Dropped all schema mutation lock tables [{}]", tables.toString());
+        clientPool.runWithRetry(client ->
+                batchMutateInternal(client, tables, getMutationsForLockTablesCleanUp(tables), writeConsistency));
+        log.info("Reset the schema mutation locks in tables [{}]", tables.toString());
+    }
+
+    private Map<ByteBuffer, Map<String, List<Mutation>>> getMutationsForLockTablesCleanUp(Set<TableReference> tables) {
+        Map<ByteBuffer, Map<String, List<Mutation>>> mutationsMap = Maps.newHashMap();
+
+        Column col = SchemaMutationLock.lockColumnFromIdAndHeartbeat(SchemaMutationLock.GLOBAL_DDL_LOCK_CLEARED_ID, 0);
+        Mutation mutation = new Mutation().setColumn_or_supercolumn(new ColumnOrSuperColumn().setColumn(col));
+        Map<String, List<Mutation>> rowPuts = Maps.newHashMap();
+        for (TableReference table : tables) {
+            rowPuts.put(internalTableName(table), Lists.newArrayList(mutation));
+        }
+
+        mutationsMap.put(SchemaMutationLock.getGlobalDdlLockRowName(), rowPuts);
+        return mutationsMap;
     }
 
     private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
