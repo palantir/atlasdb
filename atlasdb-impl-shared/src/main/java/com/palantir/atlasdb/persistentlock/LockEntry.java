@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.persistentlock;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Map;
 
 import org.immutables.value.Value;
