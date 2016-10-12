@@ -4,34 +4,37 @@ services:
   cassandra1:
      image: com.palantir.docker/atlas-cassandra:2.2-v0.1
      environment:
-      - CASSANDRA_SEEDS=cassandra1,cassandra2
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
       - LOCAL_JMX=no
-     ports:
-      - 9160:9160
 
   cassandra2:
     image: com.palantir.docker/atlas-cassandra:2.2-v0.1
     environment:
-      - CASSANDRA_SEEDS=cassandra1,cassandra2
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
       - LOCAL_JMX=no
-    ports:
-      - 9161:9160
 
   cassandra3:
     image: com.palantir.docker/atlas-cassandra:2.2-v0.1
     environment:
-      - CASSANDRA_SEEDS=cassandra1,cassandra2
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
       - LOCAL_JMX=no
-    ports:
-      - 9162:9160
 
   ete1:
     build: .
-    command: bash -c 'cp var/conf/atlasdb-ete.multiple-cassandra.yml var/conf/atlasdb-ete.yml && dockerize -timeout 240s -wait tcp://cassandra1:9160 -wait tcp://cassandra2:9160 -wait tcp://cassandra3:9160 && service/bin/init.sh console'
+    command: bash -c 'cp var/conf/atlasdb-ete.multiple-cassandra.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://cassandra1:9160 -wait tcp://cassandra2:9160 -wait tcp://cassandra3:9160 && service/bin/init.sh console'
     environment:
       - ME=ete1
     ports:
       - "3828"
+
+  ete-cli:
+    build: .
+    entrypoint: [bash, -c, 'cp var/conf/atlasdb-ete.multiple-cassandra.yml var/conf/atlasdb-ete.yml && "$$@"', --]
+    command: exit
+    environment:
+      - ME=ete1
+    depends_on:
+      - ete1

@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableList;
         TodoEteTest.class,
         DropwizardEteTest.class
 })
-public class CassandraNoLeaderTestSuite {
+public class CassandraNoLeaderTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
