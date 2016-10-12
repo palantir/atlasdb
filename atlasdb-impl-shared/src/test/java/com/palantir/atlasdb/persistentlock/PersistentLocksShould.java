@@ -164,6 +164,15 @@ public class PersistentLocksShould {
     }
 
     @Test
+    public void allowDifferentLocksToBeTakenOutConcurrently() throws PersistentLockIsTakenException{
+        KeyValueService keyValueService = new InMemoryKeyValueService(false);
+        PersistentLock persistentLock = PersistentLock.create(keyValueService);
+
+        persistentLock.acquireLock(PersistentLockName.of("firstLock"), REASON, true);
+        persistentLock.acquireLock(PersistentLockName.of("otherLock"), REASON, true);
+    }
+
+    @Test
     public void allowNonExclusiveLocksToBeTakenOutConcurrently() throws PersistentLockIsTakenException {
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
         PersistentLock persistentLock = PersistentLock.create(keyValueService);
