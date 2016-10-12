@@ -164,7 +164,7 @@ public class PersistentLocksShould {
     }
 
     @Test
-    public void allowDifferentLocksToBeTakenOutConcurrently() throws PersistentLockIsTakenException{
+    public void allowDifferentLocksToBeTakenOutConcurrently() throws PersistentLockIsTakenException {
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
         PersistentLock persistentLock = PersistentLock.create(keyValueService);
 

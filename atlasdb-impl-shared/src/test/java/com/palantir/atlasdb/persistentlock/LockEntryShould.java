@@ -25,12 +25,10 @@ import java.util.stream.Collectors;
 
 import org.junit.Test;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 
 public class LockEntryShould {
-
     private final long lockId = 1234;
     private final String reason = "exclusiveStr";
     private final boolean exclusive = false;
@@ -42,7 +40,7 @@ public class LockEntryShould {
     public void insertionMapContainsCorrectRow() {
         Set<String> rowNames = lockEntry.insertionMap().keySet().stream()
                 .map(Cell::getRowName)
-                .map(bytes -> new String(bytes, Charsets.UTF_8))
+                .map(bytes -> new String(bytes, StandardCharsets.UTF_8))
                 .collect(Collectors.toSet());
 
         assertThat(rowNames, contains("lockName_1234"));
@@ -84,5 +82,4 @@ public class LockEntryShould {
                     rowBytes,
                     LockEntry.EXCLUSIVE_COLUMN.getBytes(StandardCharsets.UTF_8));
     }
-
 }
