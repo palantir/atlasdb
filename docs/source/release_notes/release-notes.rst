@@ -51,6 +51,11 @@ v0.19.0
            This fixes the issue that prevented the `clean-cass-locks-state` CLI from running correctly.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/991>`__)
 
+    *    - |fixed|
+         - Added a wait period before declaring someone dead based on lack of heartbeat. This will ensure we handle
+           delayed heartbeats in high load situations (eg. on circleci)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1035>`__)
+
     *    - |breaking|
          - Removed the following classes and interfaces that appeared to be unused:
            ``AbstractStringCollector``,
