@@ -29,11 +29,11 @@ import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 
 public class LockEntryShould {
-    private final long lockId = 1234;
-    private final String reason = "exclusiveStr";
-    private final boolean exclusive = false;
-    private final LockEntry lockEntry = LockEntry.of(PersistentLockName.of("lockName"), lockId, reason, exclusive);
+    private static final long LOCK_ID = 1234;
+    private static final String REASON = "exclusiveStr";
+    private static final boolean EXCLUSIVE = false;
 
+    private final LockEntry lockEntry = LockEntry.of(PersistentLockName.of("lockName"), LOCK_ID, REASON, EXCLUSIVE);
     private final byte[] rowBytes = "lockName_1234".getBytes(StandardCharsets.UTF_8);
 
     @Test
@@ -50,7 +50,7 @@ public class LockEntryShould {
     public void insertionMapContainsReason() {
         byte[] reasonBytes = lockEntry.insertionMap().get(getReasonKey());
 
-        assertThat(new String(reasonBytes, StandardCharsets.UTF_8), equalTo(reason));
+        assertThat(new String(reasonBytes, StandardCharsets.UTF_8), equalTo(REASON));
     }
 
     @Test
@@ -58,7 +58,7 @@ public class LockEntryShould {
         byte[] exclusiveBytes = lockEntry.insertionMap().get(getExclusiveKey());
 
         boolean exclusiveFlag = Boolean.parseBoolean(new String(exclusiveBytes, StandardCharsets.UTF_8));
-        assertThat(exclusiveFlag, equalTo(false));
+        assertThat(exclusiveFlag, equalTo(EXCLUSIVE));
     }
 
     @Test
