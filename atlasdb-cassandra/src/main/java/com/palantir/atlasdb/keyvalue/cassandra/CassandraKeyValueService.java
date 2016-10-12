@@ -844,7 +844,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private void putForSingleHostInternal(final InetSocketAddress host,
-            final TableReference tableRef,
+                                          final TableReference tableRef,
                                           final Iterable<Map.Entry<Cell, Value>> values,
                                           final int ttl) throws Exception {
         clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
@@ -1890,8 +1890,23 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     public void cleanUpSchemaMutationLockTablesState() throws Exception {
         Set<TableReference> tables = lockTables.getAllLockTables();
-        dropTablesInternal(tables);
-        log.info("Dropped all schema mutation lock tables [{}]", tables.toString());
+        if (tables.size() == 0) {
+            return;
+        }
+        TableReference tableToKeep = extractFirstTable(tables);
+        if (tables.size() > 0) {
+            dropTablesInternal(tables);
+            log.info("Dropped tables [{}]", tables.toString());
+        }
+        schemaMutationLock.cleanLockState();
+        log.info("Reset the schema mutation lock in table [{}]", tableToKeep.toString());
+    }
+
+    private TableReference extractFirstTable(Set<TableReference> tables) {
+        Iterator<TableReference> it = tables.iterator();
+        TableReference tableToKeep = it.next();
+        it.remove();
+        return tableToKeep;
     }
 
     private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
