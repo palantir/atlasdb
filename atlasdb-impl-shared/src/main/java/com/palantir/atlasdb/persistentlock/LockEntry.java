@@ -65,18 +65,6 @@ public abstract class LockEntry {
         return ImmutableLockEntry.of(extractLockName(rowName), extractLockId(rowName), reason, exclusive);
     }
 
-    public static String valueOfColumnInRow(
-            String columnName,
-            RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
-        Cell columnCell = rowResult.getCellSet().stream()
-                .filter(cell -> Arrays.equals(cell.getColumnName(), asUtf8Bytes(columnName)))
-                .findFirst()
-                .get();
-
-        byte[] contents = rowResult.getColumns().get(columnCell.getColumnName()).getContents();
-        return asString(contents);
-    }
-
     public Map<Cell, byte[]> insertionMap() {
         return ImmutableMap.of(
                 reasonCell(), asUtf8Bytes(reason()),
@@ -87,6 +75,13 @@ public abstract class LockEntry {
         return ImmutableMultimap.of(
                 reasonCell(), timestamp,
                 exclusiveCell(), timestamp);
+    }
+
+    private static String valueOfColumnInRow(
+            String columnName,
+            RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
+        byte[] contents = rowResult.getColumns().get(asUtf8Bytes(columnName)).getContents();
+        return asString(contents);
     }
 
     private Cell reasonCell() {
