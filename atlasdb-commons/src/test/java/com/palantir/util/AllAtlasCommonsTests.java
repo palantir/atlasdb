@@ -21,11 +21,13 @@ import org.junit.runners.Suite.SuiteClasses;
 
 import com.palantir.common.base.ThrowablesTest;
 import com.palantir.util.crypto.Sha256HashTest;
+import com.palantir.util.paging.PageDrainerTest;
 
 @RunWith(Suite.class)
 @SuiteClasses({
     ThrowablesTest.class,
     Sha256HashTest.class,
+    PageDrainerTest.class,
 })
 public class AllAtlasCommonsTests {
     // blank

@@ -31,6 +31,122 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.19.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+    *    - |breaking|
+         - Removed KeyValueService.[initializeFromFresh|tearDown|getRangeWithHistory]
+           It is likely all callers of tearDown just want to call close.
+           Also removed Partitioning and Remoting KVSs, which were unused and had many unimplemented methods.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1041>`__)
+            
+    *    - |fixed|
+         - In Cassandra KVS, We now no longer take out the schema mutation lock in calls to `createTables` if tables already exist.
+           This fixes the issue that prevented the `clean-cass-locks-state` CLI from running correctly.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/991>`__)
+
+    *    - |breaking|
+         - Removed the following classes that appeared to be unused - ``ManyHostPoolingContainer``, ``CloseShieldedKeyValueService``, ``RowWrapper``, ``BatchRowVisitor``,
+           ``MapCollector``, ``DBMgrConfigurationException``, and ``SqlStackLogWrapper``.  Please reach out to us if you are adversly affected by these removals.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1027>`__)
+
+    *   - |changed|
+        - The SQL connection manager will no longer temporarily increase the pool size by eleven
+          connections when the pool is exhausted.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/971>`__)
+           
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.18.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed a bug introduced in 0.17.0, where products upgraded to 0.17.0 would see a "dead heartbeat" error on first start-up, requiring users to manually truncate the ``_locks`` table.
+           Upgrading to AtlasDB 0.18.0 from any previous version will work correctly without requiring manual intervention.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1016>`__)
+
+    *    - |fixed|
+         - Dropping a table and then creating it again no longer adds an additional row to the ``_metadata`` table.
+           Historical versions of the metadata entry before the most recent one are **not** deleted, so if you routinely drop and recreate the same table, you might consider :ref:`sweeping <sweep>` the ``_metadata`` table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/946>`__)
+
+    *    - |improved|
+         - Users of DBKVS can now set arbitrary connection parameters.
+           This is useful if, for example, you wish to boost performance by adjusting the default batch size for fetching rows from the underlying database.
+           See the :ref:`documentation <postgres-configuration>` for how to set these parameters, and `the JDBC docs <https://jdbc.postgresql.org/documentation/head/connect.html>`__ for a full list.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1001>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.17.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - The schema mutation lock holder now writes a "heartbeat" to the database to indicate that it is still responsive.
+           Other processes that are waiting for the schema mutation lock will now be able to see this heartbeat, infer that the lock holder is still working, and wait for longer.
+           This should reduce the need to manually truncate the locks table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/934>`__)
+
+    *    - |new|
+         - ``hashFirstRowComponent`` can now be used on index definitions to prevent hotspotting when creating schemas.
+           For more information on using ``hashFirstRowComponent``, see the :ref:`Partitioners <tables-and-indices-partitioners>` documentation.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/986>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.16.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |breaking|
+         - Removed ``TransactionManager`` implementations ``ShellAwareReadOnlyTransactionManager``
+           and ``AtlasDbBackendDebugTransactionManager``. These are no longer
+           supported by AtlasDB and products are not expected to use them.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/939>`__)
+
+    *    - |improved|
+         - ``TransactionMangers.create()`` now accepts ``LockServerOptions`` which can be used to
+           apply configurations to the embedded LockServer instance running in the product.  The other
+           ``create()`` methods will continue to use ``LockServerOptions.DEFAULT``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/984>`__)
+
+    *    - |fixed|
+         - :ref:`Column paging Sweep <cassandra-sweep-config>` (in beta) correctly handles cases where table names have both upper and lowercase characters and cases where sweep is run multiple times on the same table.
+           If you are using the regular implementation of Sweep (i.e. you do not specify ``timestampsGetterBatchSize`` in your AtlasDB config), then you are not affected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/951>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.15.0
 =======
 
@@ -41,25 +157,46 @@ v0.15.0
     *    - Type
          - Change
 
+    *    - |improved|
+         - We have removed references to temp tables and no longer attempt to drop temp tables when aborting transactions.
+
+           Temp tables are not currently being used by any KVSs, yet we were still calling ``dropTempTables()`` when we abort transactions.
+           Since dropping tables is a schema mutation, this has the side effect of increasing the likelihood that we lose the schema mutation lock when there are many concurrent transactions.
+           Removing temp tables entirely should reduce the need to manually truncate the locks table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/916>`__)
+
+    *    - |breaking|
+         - All TransactionManagers are now AutoCloseable and implement a close method that will free up the underlying resources.
+
+           If your service implements a ``TransactionManager`` and does not extend ``AbstractTransactionManager``, you now have to add a close method to the implementation.
+           No operations can be performed using the TransactionManager once it is closed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/907>`__)
+
     *    - |new|
-         - ``CassandraKeyValueServiceConfiguration`` now supports :ref:`column paging <cassandra-sweep-config>`
-           via the ``timestampsGetterBatchSize`` parameter.
+         - :ref:`AtlasDB Sweep <physical-cleanup-sweep>` now uses :ref:`column paging <cassandra-sweep-config>` via the ``timestampsGetterBatchSize`` parameter to better handle sweeping cells with many historical versions.
 
-           Enabling such paging could make :ref:`Sweep <physical-cleanup-sweep>` more reliable by helping
-           prevent sweep jobs from causing Cassandra nodes to run out of memory if the underlying Cassandra
-           KVS contains rows that store large values and change frequently.
-
-           This feature is experimental and disabled by default; please
-           reach out to the AtlasDB dev team if you would like to enable it.
+           By paging over historical versions of cells during sweeping, we can avoid out of memory exceptions in Cassandra when we have particularly large cells or many historical versions of cells.
+           This feature is only implemented for Cassandra KVS and is disabled by default; please reach out to the AtlasDB dev team if you would like to enable it.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/834>`__)
 
     *    - |new|
-         - Added a second implementation of ``getRowsColumnRange`` method which allows you to page through dynamic columns
-           in a single iterator. This is expected to perform better than the previous ``getRowsColumnRange`` which allows
-           you to page through columns per row with certain KVS stores (e.g. SQL stores), so should be preferred
-           unless it is necessary to page through the results for different rows separately. Products or clients
-           using wide rows should consider using ``getRowsColumnRange`` instead of ``getRows`` in ``KeyValueService``.
+         - Added a second implementation of ``getRowsColumnRange`` method which allows you to page through dynamic columns in a single iterator.
+           This is expected to perform better than the previous ``getRowsColumnRange``, which allows you to page through columns per row with certain KVS stores (e.g. DB KVS).
+           The new method should be preferred unless it is necessary to page through the results for different rows separately.
+
+           Products or clients using wide rows should consider using ``getRowsColumnRange`` instead of ``getRows`` in ``KeyValueService``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/724>`__)
+
+    *    - |new|
+         - Added an :ref:`offline CLI <offline-clis>` called ``clean-cass-locks-state`` to truncate the locks table when the schema mutation lock has been lost.
+
+           This is useful on Cassandra KVS if an AtlasDB client goes down during a schema mutation and does not release the schema mutation lock, preventing other clients from continuing.
+           Previously an error message would direct users to manually truncate this table with CQL, but now this error message references the CLI.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/888>`__)
+
+    *    - |changed|
+         - Reverted our Dagger dependency from 2.4 to 2.0.2 and shadowed it so that it won't conflict with internal products.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/926>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -98,6 +235,7 @@ v0.14.0
            This also bumps our Guava dependency from 18.0 to 19.0 to accommodate a Dagger compile dependency.
            We plan on shading Dagger in the next release of AtlasDB, but products can force a Guava 18.0 runtime dependency to workaround the issue in the meantime.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/878>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

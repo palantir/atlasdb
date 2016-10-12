@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -56,7 +57,9 @@ public class Gradle extends ExternalResource {
             Process process = new ProcessBuilder(pathToGradlew.toFile().getAbsolutePath(), command)
                     .redirectErrorStream(true)
                     .start();
-            IOUtils.copy(process.getInputStream(), System.out);
+            try (InputStream processInputStream = process.getInputStream()) {
+                IOUtils.copy(processInputStream, System.out);
+            }
             assertThat(process.waitFor(), is(equalTo(0)));
         } catch (IOException e) {
             throw new RuntimeException(e);

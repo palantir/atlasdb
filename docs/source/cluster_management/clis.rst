@@ -11,13 +11,6 @@ For certain pieces of common functionality AtlasDB offers command line
 scripts. These scripts can be used to help automate common maintance
 tasks as well as help resolve problems encountered during operation.
 
-Writing Your Own
-================
-
-You can write a new CLI by extending ``SingleBackendCommand.java`` which
-offers default AtlasDB configuration and connection out of the box.
-
-
 Compiling The CLI
 =================
 
@@ -37,7 +30,10 @@ The following useful commands come with the vanilla atlasdb-cli.
 sweep
 -----
 
-Sweep old table rows. This can be useful for improving performance if having too many dead cells is impacting read times.  The command allows you to specify a namespace or a specific set of tables. Run ``./bin/atlasdb help sweep`` for more information.
+Sweep old table rows.
+This can be useful for improving performance if having too many dead cells is impacting read times.
+The command allows you to specify a namespace or a specific set of tables.
+For more information, check out :ref:`the sweep CLI documentation <atlas_sweep_cli>`, or run ``./bin/atlasdb help sweep``.
 
 
 timestamp
@@ -45,13 +41,30 @@ timestamp
 
 Read or recalculate the immutable timestamp. Run ``./bin/atlasdb help timestamp`` for more information.
 
+migrate
+-------
+
+This cli can help you migrate your AtlasDB client product from one KVS to another.
+You will need to supply two different KVS configurations to the script.
+In the general case you first call ``–-setup``, then ``-–migrate``, then ``-–validate`` each time supplying the old and new configurations.
+For more information run ``./bin/atlasdb help migrate`` for more information.
+ 
+.. code-block:: bash
+
+     ./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
+     ./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml --migrate
+     ./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml --validate
+
+.. _offline-clis:
+
 Offline CLIs
 ============
 
-Due to their destructive nature for in-progress transactions, there are two sub-commands of the timestamp CLI which can only be run when AtlasDB is offline. These are:
+Due to their potentially destructive nature if run concurrently with active AtlasDB services, there a number of CLIs which can only be run when AtlasDB is offline. These are:
 
-  - ``clean-transactions``
-  - ``fast-forward``
+  - ``clean-cass-locks-state``
+  - ``timestamp clean-transactions``
+  - ``timestamp fast-forward``
 
 To run these CLIs, first ensure that all of your AtlasDB clients are shut down, and then run the CLI with the ``--offline`` flag.
 
@@ -64,3 +77,9 @@ Running commands without any servers being up
 ---------------------------------------------
 
 If you want a command to run without any servers being up, you can either use the ``--offline`` flag, or pass in a configuration file without leader, lock, or timestamp blocks. Either option will start an embedded timestamp and lock server.
+
+Writing Your Own
+================
+
+You can write a new CLI by extending ``SingleBackendCommand.java`` which
+offers default AtlasDB configuration and connection out of the box.

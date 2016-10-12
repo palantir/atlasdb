@@ -150,23 +150,10 @@ public class DbKvs extends AbstractKeyValueService {
             }
         });
     }
-
-    @Override
-    public void initializeFromFreshInstance() {
-        // do nothing
-    }
-
-    @Override
     public void close() {
         super.close();
         dbTables.close();
         connections.close();
-    }
-
-    @Override
-    public void teardown() {
-        super.teardown();
-        close();
     }
 
     @Override
@@ -418,14 +405,6 @@ public class DbKvs extends AbstractKeyValueService {
                     }
                 };
         return ClosableIterators.wrap(rows.iterator());
-    }
-
-    @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(
-            TableReference tableRef,
-            RangeRequest rangeRequest,
-            long timestamp) {
-        throw new UnsupportedOperationException();
     }
 
     private TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getPage(
@@ -865,7 +844,7 @@ public class DbKvs extends AbstractKeyValueService {
                     dbReadTable.getRowsColumnRangeCounts(rowList, timestamp, columnRangeSelection)) {
                 while (iter.hasNext()) {
                     AgnosticLightResultRow row = iter.next();
-                    Sha256Hash rowHash = Sha256Hash.computeHash(row.getBlob("row_name"));
+                    Sha256Hash rowHash = Sha256Hash.computeHash(row.getBytes("row_name"));
                     counts.put(rowHash, row.getInteger("column_count"));
                 }
             }

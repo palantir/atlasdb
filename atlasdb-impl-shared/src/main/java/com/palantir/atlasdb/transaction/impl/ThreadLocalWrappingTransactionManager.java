@@ -38,4 +38,10 @@ public class ThreadLocalWrappingTransactionManager extends WrappingTransactionMa
         }
         return transactionWrapper.wrap(transaction);
     }
+
+    @Override
+    public void close() throws Exception {
+        super.close();
+        wrapper.remove();
+    }
 }

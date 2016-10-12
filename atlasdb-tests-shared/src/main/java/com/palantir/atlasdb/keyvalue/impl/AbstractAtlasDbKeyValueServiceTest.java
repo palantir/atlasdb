@@ -16,13 +16,13 @@
 package com.palantir.atlasdb.keyvalue.impl;
 
 import static java.util.Collections.emptyMap;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -105,8 +105,8 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
     @After
     public void tearDown() throws Exception {
-        keyValueService.dropTable(TEST_TABLE);
-        keyValueService.teardown();
+        keyValueService.dropTables(keyValueService.getAllTableNames());
+        keyValueService.close();
     }
 
     @Test
@@ -738,34 +738,6 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     }
 
     @Test
-    public void testGetRangeWithHistory() {
-        testGetRangeWithHistory(false);
-        if (reverseRangesSupported()) {
-            testGetRangeWithHistory(true);
-        }
-    }
-
-    private void testGetRangeWithHistory(boolean reverse) {
-        putTestDataForMultipleTimestamps();
-        final RangeRequest range;
-        if (!reverse) {
-            range = RangeRequest.builder().startRowInclusive(row0).endRowExclusive(row1).build();
-        } else {
-            range = RangeRequest.reverseBuilder().startRowInclusive(row0).build();
-        }
-        ClosableIterator<RowResult<Set<Value>>> rangeWithHistory = keyValueService.getRangeWithHistory(
-                TEST_TABLE, range, TEST_TIMESTAMP + 2);
-        RowResult<Set<Value>> row0 = rangeWithHistory.next();
-        assertTrue(!rangeWithHistory.hasNext());
-        rangeWithHistory.close();
-        assertEquals(1, Iterables.size(row0.getCells()));
-        Entry<Cell, Set<Value>> cell0 = row0.getCells().iterator().next();
-        assertEquals(2, cell0.getValue().size());
-        assertTrue(cell0.getValue().contains(Value.create(value0_t0, TEST_TIMESTAMP)));
-        assertTrue(cell0.getValue().contains(Value.create(value0_t1, TEST_TIMESTAMP + 1)));
-    }
-
-    @Test
     public void testGetRangeWithTimestamps() {
         testGetRangeWithTimestamps(false);
         if (reverseRangesSupported()) {
@@ -876,16 +848,6 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     }
 
     @Test
-    public void testGetRangeWithHistoryThrowsOnError() {
-        try {
-            keyValueService.getRangeWithHistory(TEST_NONEXISTING_TABLE, RangeRequest.all(), MAX_TIMESTAMP).hasNext();
-            Assert.fail("getRangeWithHistory must throw on failure");
-        } catch (RuntimeException e) {
-            // Expected
-        }
-    }
-
-    @Test
     public void testGetRangeOfTimestampsThrowsOnError() {
         try {
             keyValueService.getRangeOfTimestamps(TEST_NONEXISTING_TABLE, RangeRequest.all(), MAX_TIMESTAMP).hasNext();
@@ -940,28 +902,6 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         assertThat(getOnlyItemInTableRange(), is(originalData));
     }
 
-    @Test
-    public void testCannotModifyValuesAfterGetRangeWithHistory() {
-        assumeTrue(kvsSupportsGetRangeWithHistory());
-
-        Cell cell = Cell.create(row0, column0);
-        byte[] originalData = new byte[1];
-        writeToCell(cell, originalData);
-
-        modifyValue(getOnlyItemInTableRangeWithHistory());
-
-        assertThat(getOnlyItemInTableRangeWithHistory(), is(originalData));
-    }
-
-    private boolean kvsSupportsGetRangeWithHistory() {
-        try {
-            keyValueService.getRangeWithHistory(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP);
-            return true;
-        } catch (UnsupportedOperationException e) {
-            return false;
-        }
-    }
-
     private void modifyValue(byte[] retrievedValue) {
         retrievedValue[0] = (byte) 50;
     }
@@ -994,16 +934,6 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         }
     }
 
-    private byte[] getOnlyItemInTableRangeWithHistory() {
-        try (ClosableIterator<RowResult<Set<Value>>> rangeIterator =
-                     keyValueService.getRangeWithHistory(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 3)) {
-            byte[] contents = Iterables.getOnlyElement(rangeIterator.next().getOnlyColumnValue()).getContents();
-
-            assertFalse("There should only be one row in the table", rangeIterator.hasNext());
-            return contents;
-        }
-    }
-
     @Test
     public void shouldAllowNotHavingAnyDynamicColumns() {
         keyValueService.createTable(DynamicColumnTable.reference(), DynamicColumnTable.metadata());
@@ -1014,7 +944,6 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         Map<Cell, Long> valueToGet = ImmutableMap.of(cell, MAX_TIMESTAMP);
 
         assertThat(keyValueService.get(DynamicColumnTable.reference(), valueToGet), is(emptyMap()));
-
     }
 
     @Test

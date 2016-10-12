@@ -60,7 +60,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
     @Option(name = {"-r", "--config-root"},
             title = "CONFIG ROOT",
             description = "field in the config yaml file that contains the atlasdb configuration root")
-    private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_ROOT;
+    private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_PATH;
 
     @Option(name = {"-t", "--threads"},
             title = "THREADS",

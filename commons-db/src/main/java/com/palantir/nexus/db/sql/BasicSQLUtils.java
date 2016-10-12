@@ -259,7 +259,7 @@ public class BasicSQLUtils {
      * Passes all exceptions and errors back to the client.
      * Runs in another thread - do not acquire connections from within the callable (it will fail).
      * N.B. (DCohen) Despite the claim in the previous line, there is code that acquires connections from within the callable successfully.
-     * Unclear why this is bad.  {@link com.palantir.nexus.db.sql.id.DbSequenceBackedIdGenerator#generate(long[])}
+     * Unclear why this is bad.
      *
      * Should only use low-level type stuff.
      *

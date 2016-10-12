@@ -20,10 +20,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 
+import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Closeables;
@@ -39,63 +42,74 @@ import com.palantir.example.profile.schema.generated.UserPhotosStreamValueTable;
 import com.palantir.util.crypto.Sha256Hash;
 
 public class ProfileStoreTest {
-    TransactionManager txnMgr;
-    UserProfile user = UserProfile.newBuilder().setBirthEpochDay(0).setName("first last").build();
-    public static final byte[] IMAGE = new byte[] {0, 1, 2, 3};
+    private static final byte[] IMAGE = new byte[] {0, 1, 2, 3};
+    private static final UserProfile USER = UserProfile.newBuilder()
+            .setBirthEpochDay(0)
+            .setName("first last")
+            .build();
 
-    @Before
-    public void setup() {
-        txnMgr = InMemoryAtlasDbFactory.createInMemoryTransactionManager(ProfileSchema.INSTANCE);
-    }
+    private final TransactionManager txnMgr = InMemoryAtlasDbFactory
+            .createInMemoryTransactionManager(ProfileSchema.INSTANCE);
 
-    interface ProfileStoreTask<T> {
-        public T execute(ProfileStore store);
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
+
+    @After
+    public void after() throws Exception {
+        txnMgr.close();
     }
 
     @Test
     public void testStore() {
         final UUID userId = storeUser();
-        runWithRetry(new ProfileStoreTask<UUID>() {
-            @Override
-            public UUID execute(ProfileStore store) {
-                UserProfile storedData = store.getUserData(userId);
-                Assert.assertEquals(user, storedData);
-                return userId;
-            }
+        runWithRetry(store -> {
+            UserProfile storedData = store.getUserData(userId);
+            Assert.assertEquals(USER, storedData);
+            return userId;
         });
+    }
+
+    @Test
+    public void testStoreGetDataThrowsAfterTransactionManagerIsClosedThrows() throws Exception {
+        txnMgr.close();
+        exception.expect(IllegalStateException.class);
+        exception.expectMessage("Operations cannot be performed on closed TransactionManager.");
+        testStore();
     }
 
     @Test
     public void testStoreImage() {
         final UUID userId = storeUser();
         storeImage(userId);
-        runWithRetry(new ProfileStoreTask<Void>() {
-            @Override
-            public Void execute(ProfileStore store) {
-                InputStream image = store.getImageForUser(userId);
-                try {
-                    Sha256Hash hash = Sha256Hash.createFrom(image);
-                    Assert.assertEquals(Sha256Hash.computeHash(IMAGE), hash);
-                } catch (IOException e) {
-                    throw Throwables.throwUncheckedException(e);
-                } finally {
-                    Closeables.closeQuietly(image);
-                }
-                return null;
+        runWithRetry(store -> {
+            InputStream image = store.getImageForUser(userId);
+            try {
+                Sha256Hash hash = Sha256Hash.createFrom(image);
+                Assert.assertEquals(Sha256Hash.computeHash(IMAGE), hash);
+            } catch (IOException e) {
+                throw Throwables.throwUncheckedException(e);
+            } finally {
+                Closeables.closeQuietly(image);
             }
+            return null;
         });
     }
 
+    @Test
+    public void testStoreImageThrowsAfterTransactionManagerIsClosedThrows() throws Exception {
+        txnMgr.close();
+        exception.expect(IllegalStateException.class);
+        exception.expectMessage("Operations cannot be performed on closed TransactionManager.");
+        testStoreImage();
+    }
+
     private void storeImage(final UUID userId) {
-        runWithRetry(new ProfileStoreTask<Void>() {
-            @Override
-            public Void execute(ProfileStore store) {
-                Sha256Hash imageHash = Sha256Hash.computeHash(IMAGE);
-                store.updateImage(userId, imageHash, new ByteArrayInputStream(IMAGE));
-                UserProfile storedData = store.getUserData(userId);
-                Assert.assertEquals(user, storedData);
-                return null;
-            }
+        runWithRetry(store -> {
+            Sha256Hash imageHash = Sha256Hash.computeHash(IMAGE);
+            store.updateImage(userId, imageHash, new ByteArrayInputStream(IMAGE));
+            UserProfile storedData = store.getUserData(userId);
+            Assert.assertEquals(USER, storedData);
+            return null;
         });
     }
 
@@ -103,18 +117,15 @@ public class ProfileStoreTest {
     public void testDeleteImage() {
         final UUID userId = storeUser();
         storeImage(userId);
-        runWithRetry(Transaction.TransactionType.AGGRESSIVE_HARD_DELETE, new ProfileStoreTask<UUID>() {
-            @Override
-            public UUID execute(ProfileStore store) {
-                store.deleteImage(userId);
-                return userId;
-            }
+        runWithRetry(Transaction.TransactionType.AGGRESSIVE_HARD_DELETE, store -> {
+            store.deleteImage(userId);
+            return userId;
         });
         txnMgr.runTaskWithRetry(new TransactionTask<Void, RuntimeException>() {
             @Override
-            public Void execute(Transaction t) {
+            public Void execute(Transaction txn) {
                 ProfileTableFactory tables = ProfileTableFactory.of();
-                UserPhotosStreamValueTable streams = tables.getUserPhotosStreamValueTable(t);
+                UserPhotosStreamValueTable streams = tables.getUserPhotosStreamValueTable(txn);
                 Assert.assertTrue(streams.getAllRowsUnordered().isEmpty());
                 return null;
             }
@@ -122,42 +133,49 @@ public class ProfileStoreTest {
     }
 
     @Test
+    public void testDeleteImageThrowsAfterTransactionManagerIsClosedThrows() throws Exception {
+        txnMgr.close();
+        exception.expect(IllegalStateException.class);
+        exception.expectMessage("Operations cannot be performed on closed TransactionManager.");
+        testDeleteImage();
+    }
+
+    @Test
     public void testBirthdayIndex() {
         final UUID userId = storeUser();
-        runWithRetry(new ProfileStoreTask<UUID>() {
-            @Override
-            public UUID execute(ProfileStore store) {
-                Set<UUID> usersWithBirthday = store.getUsersWithBirthday(user.getBirthEpochDay());
-                Assert.assertEquals(ImmutableSet.of(userId), usersWithBirthday);
-                return userId;
-            }
+        runWithRetry(store -> {
+            Set<UUID> usersWithBirthday = store.getUsersWithBirthday(USER.getBirthEpochDay());
+            Assert.assertEquals(ImmutableSet.of(userId), usersWithBirthday);
+            return userId;
         });
+    }
+
+    @Test
+    public void testBirthdayIndexThrowsAfterTransactionManagerIsClosedThrows() throws Exception {
+        txnMgr.close();
+        exception.expect(IllegalStateException.class);
+        exception.expectMessage("Operations cannot be performed on closed TransactionManager.");
+        testDeleteImage();
     }
 
     private UUID storeUser() {
-        return runWithRetry(new ProfileStoreTask<UUID>() {
-            @Override
-            public UUID execute(ProfileStore store) {
-                UUID userId = store.storeNewUser(user);
-                UserProfile storedData = store.getUserData(userId);
-                Assert.assertEquals(user, storedData);
-                return userId;
-            }
+        return runWithRetry(store -> {
+            UUID userId = store.storeNewUser(USER);
+            UserProfile storedData = store.getUserData(userId);
+            Assert.assertEquals(USER, storedData);
+            return userId;
         });
     }
 
-    protected <T> T runWithRetry(final ProfileStoreTask<T> task) {
+    private <T> T runWithRetry(Function<ProfileStore, T> task) {
         return runWithRetry(Transaction.TransactionType.DEFAULT, task);
     }
 
-    protected <T> T runWithRetry(final Transaction.TransactionType type, final ProfileStoreTask<T> task) {
-        return txnMgr.runTaskWithRetry(new TransactionTask<T, RuntimeException>() {
-            @Override
-            public T execute(Transaction t) {
-                t.setTransactionType(type);
-                ProfileStore store = new ProfileStore(txnMgr, t);
-                return task.execute(store);
-            }
+    private <T> T runWithRetry(Transaction.TransactionType type, Function<ProfileStore, T> task) {
+        return txnMgr.runTaskWithRetry(txn -> {
+            txn.setTransactionType(type);
+            ProfileStore store = new ProfileStore(txnMgr, txn);
+            return task.apply(store);
         });
 
     }

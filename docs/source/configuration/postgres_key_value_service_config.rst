@@ -56,3 +56,19 @@ A minimal AtlasDB configuration for running against postgres will look like :
 
 
 For more details on the leader block, see :ref:`Leader Configuration <leader-config>`.
+
+Connection parameters
+---------------------
+
+If you would like to customise the JDBC connection parameters, for example if you are experiencing performance issues, then you may supply them under the ``connection`` section of the ``keyValueService`` config.
+An example is shown below; for full documentation on which parameters are available, check out `the JDBC docs <https://jdbc.postgresql.org/documentation/head/connect.html>`__.
+
+.. code-block:: yaml
+
+  atlasdb:
+    keyValueService:
+      # as above - skipped for brevity
+      connection:
+        # as above - skipped for brevity
+        connectionParameters: # JDBC connection parameters
+          defaultRowFetchSize: 100 # Default: unlimited. Adjusts the number of rows fetched in each database request.

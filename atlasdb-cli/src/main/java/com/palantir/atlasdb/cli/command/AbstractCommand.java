@@ -45,7 +45,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
             title = "CONFIG ROOT",
             type = OptionType.GLOBAL,
             description = "field in the config yaml file that contains the atlasdb configuration root")
-    private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_ROOT;
+    private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_PATH;
 
     @Option(name = {"--offline"},
             title = "OFFLINE",

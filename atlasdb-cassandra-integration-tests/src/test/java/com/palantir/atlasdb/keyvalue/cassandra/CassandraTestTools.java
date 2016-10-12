@@ -33,12 +33,12 @@ import com.jayway.awaitility.core.ConditionTimeoutException;
  * Utilities for ETE tests
  * Created by aloro on 12/04/2016.
  */
-class CassandraTestTools {
+public final class CassandraTestTools {
     private CassandraTestTools() {
         // Empty constructor for utility class
     }
 
-    static void waitTillServiceIsUp(String host, int port, Duration timeout) {
+    public static void waitTillServiceIsUp(String host, int port, Duration timeout) {
         try {
             Awaitility.await()
                     .pollInterval(50, TimeUnit.MILLISECONDS)
@@ -46,6 +46,21 @@ class CassandraTestTools {
                     .until(isPortListening(host, port));
         } catch (ConditionTimeoutException e) {
             throw new IllegalStateException("Timeout for port " + port + " on host " + host + ".");
+        }
+    }
+
+    public static Future async(ExecutorService executorService, Runnable callable) {
+        return executorService.submit(callable);
+    }
+
+    public static void assertThatFutureDidNotSucceedYet(Future future) throws InterruptedException {
+        if (future.isDone()) {
+            try {
+                future.get();
+                throw new AssertionError("Future task should have failed but finished successfully");
+            } catch (ExecutionException e) {
+                // if execution is done, we expect it to have failed
+            }
         }
     }
 
@@ -58,20 +73,5 @@ class CassandraTestTools {
                 return false;
             }
         };
-    }
-
-    static Future async(ExecutorService executorService, Runnable callable) {
-        return executorService.submit(callable);
-    }
-
-    static void assertThatFutureDidNotSucceedYet(Future future) throws InterruptedException {
-        if (future.isDone()) {
-            try {
-                future.get();
-                throw new AssertionError("Future task should have failed but finished successfully");
-            } catch (ExecutionException e) {
-                // if execution is done, we expect it to have failed
-            }
-        }
     }
 }

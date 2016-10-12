@@ -5,8 +5,8 @@ machine:
     version:
       oraclejdk8
   environment:
-    _JAVA_OPTIONS: "-Xmx512m"
-    GRADLE_OPTS: '-Dorg.gradle.jvmargs="-Xmx512m -XX:+HeapDumpOnOutOfMemoryError"'
+    _JAVA_OPTIONS: "-Xmx384M"
+    GRADLE_OPTS: '-Xss1024K -XX:+CMSClassUnloadingEnabled -XX:InitialCodeCacheSize=32M -XX:CodeCacheExpansionSize=1M -XX:CodeCacheMinimumFreeSpace=1M -XX:ReservedCodeCacheSize=150M -XX:MinMetaspaceExpansion=1M -XX:MaxMetaspaceExpansion=8M -XX:MaxMetaspaceSize=128M -XX:MaxDirectMemorySize=96M -XX:CompressedClassSpaceSize=128M'
     TERM: dumb
   services:
     - docker
@@ -23,17 +23,18 @@ dependencies:
     - sudo pip install docker-compose
     - sudo pkill -u postgres
   override:
-    - ./gradlew compileTestJava
+    - ./gradlew --profile --parallel resolveConfigurations
     - sudo pip install sphinx sphinx_rtd_theme
   cache_directories:
     - ~/.gradle
+    - ~/.m2
 
 test:
   override:
     - ./scripts/circle-ci/run-circle-tests.sh:
         parallel: true
   post:
-    - ./gradlew jacocoFullReport:
+    - ./gradlew --profile jacocoFullReport -x classes:
         parallel: true
     - bash <(curl -s https://codecov.io/bash):
         parallel: true
@@ -49,13 +50,14 @@ test:
         parallel: true
 
 deployment:
-  github-pages:
+  publish-docs-and-snapshots:
     branch: develop
     owner: palantir
     commands:
+      - ./gradlew artifactoryPublish -x check
       - ./scripts/circle-ci/publish-github-page.sh
   bintray:
     tag: /[0-9]+(\.[0-9]+){2}(-alpha|-beta)?(\+[0-9]{3})?/
     owner: palantir
     commands:
-      - ./gradlew bintrayUpload -x test
+      - ./gradlew bintrayUpload -x check

@@ -265,11 +265,6 @@ public class RocksDbKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void initializeFromFreshInstance() {
-        // nothing
-    }
-
-    @Override
     public void close() {
         if (!closed) {
             try {
@@ -282,11 +277,6 @@ public class RocksDbKeyValueService implements KeyValueService {
                 closed = true;
             }
         }
-    }
-
-    @Override
-    public void teardown() {
-        close();
     }
 
     @Override
@@ -473,15 +463,6 @@ public class RocksDbKeyValueService implements KeyValueService {
         ColumnFamily table = columnFamilies.get(tableRef.getQualifiedName());
         RocksIterator iter = getDb().newIterator(table.getHandle());
         return new ValueRangeIterator(table, iter, rangeRequest, timestamp);
-    }
-
-    @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
-                                                                       RangeRequest rangeRequest,
-                                                                       long timestamp) {
-        ColumnFamily table = columnFamilies.get(tableRef.getQualifiedName());
-        RocksIterator iter = getDb().newIterator(table.getHandle());
-        return new HistoryRangeIterator(table, iter, rangeRequest, timestamp);
     }
 
     @Override

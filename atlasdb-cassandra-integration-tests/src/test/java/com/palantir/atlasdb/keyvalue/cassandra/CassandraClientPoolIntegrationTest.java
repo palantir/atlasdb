@@ -15,8 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,12 +38,10 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.transport.TTransportException;
 import org.hamcrest.Matchers;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
@@ -52,15 +57,14 @@ public class CassandraClientPoolIntegrationTest {
     @Before
     public void setUp() {
         kv = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG),
-                CassandraTestSuite.LEADER_CONFIG);
-        kv.initializeFromFreshInstance();
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.cassandraKvsConfig),
+                CassandraTestSuite.leaderConfig);
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
 
     @After
-    public void tearDown() {
-        kv.teardown();
+    public void close() {
+        kv.close();
     }
 
     // This is a dumb test in the current test suite that has just one local Cassandra node.
@@ -74,13 +78,13 @@ public class CassandraClientPoolIntegrationTest {
             Range<LightweightOppToken> tokenRange = entry.getKey();
             List<InetSocketAddress> hosts = entry.getValue();
 
-            clientPool.getRandomHostForKey("A".getBytes());
+            clientPool.getRandomHostForKey("A".getBytes(StandardCharsets.UTF_8));
 
             if (tokenRange.hasLowerBound()) {
-                Assert.assertTrue(hosts.contains(clientPool.getRandomHostForKey(tokenRange.lowerEndpoint().bytes)));
+                assertTrue(hosts.contains(clientPool.getRandomHostForKey(tokenRange.lowerEndpoint().bytes)));
             }
             if (tokenRange.hasUpperBound()) {
-                Assert.assertTrue(hosts.contains(clientPool.getRandomHostForKey(tokenRange.upperEndpoint().bytes)));
+                assertTrue(hosts.contains(clientPool.getRandomHostForKey(tokenRange.upperEndpoint().bytes)));
             }
         }
     }
@@ -88,46 +92,39 @@ public class CassandraClientPoolIntegrationTest {
     @Test
     public void testPoolGivenNoOptionTalksToBlacklistedHosts() {
         kv.clientPool.blacklistedHosts.putAll(
-                Maps.transformValues(kv.clientPool.currentPools, new Function<CassandraClientPoolingContainer, Long>() {
-                    @Override
-                    public Long apply(CassandraClientPoolingContainer dontCare) {
-                        return Long.MAX_VALUE;
-                    }
-                }));
+                Maps.transformValues(kv.clientPool.currentPools, clientPoolContainer -> Long.MAX_VALUE));
         try {
             kv.clientPool.run(describeRing);
         } catch (Exception e) {
-            Assert.fail("Should have been allowed to attempt forward progress after blacklisting all hosts in pool.");
+            fail("Should have been allowed to attempt forward progress after blacklisting all hosts in pool.");
         }
 
         kv.clientPool.blacklistedHosts.clear();
     }
 
-    private FunctionCheckedException<Cassandra.Client, List<TokenRange>, Exception> describeRing = new FunctionCheckedException<Cassandra.Client, List<TokenRange>, Exception>() {
-        @Override
-        public List<TokenRange> apply (Cassandra.Client client) throws Exception {
-            return client.describe_ring("atlasdb");
-        }};
+    private FunctionCheckedException<Cassandra.Client, List<TokenRange>, Exception> describeRing =
+            client -> client.describe_ring("atlasdb");
 
     @Test
     public void testIsConnectionException() {
-        Assert.assertFalse(CassandraClientPool.isConnectionException(new TimedOutException()));
-        Assert.assertFalse(CassandraClientPool.isConnectionException(new TTransportException()));
-        Assert.assertTrue(CassandraClientPool.isConnectionException(new TTransportException(new SocketTimeoutException())));
+        assertFalse(CassandraClientPool.isConnectionException(new TimedOutException()));
+        assertFalse(CassandraClientPool.isConnectionException(new TTransportException()));
+        assertTrue(CassandraClientPool.isConnectionException(new TTransportException(new SocketTimeoutException())));
     }
 
     @Test
     public void testIsRetriableException() {
-        Assert.assertTrue(CassandraClientPool.isRetriableException(new TimedOutException()));
-        Assert.assertTrue(CassandraClientPool.isRetriableException(new TTransportException()));
-        Assert.assertTrue(CassandraClientPool.isRetriableException(new TTransportException(new SocketTimeoutException())));
+        assertTrue(CassandraClientPool.isRetriableException(new TimedOutException()));
+        assertTrue(CassandraClientPool.isRetriableException(new TTransportException()));
+        assertTrue(CassandraClientPool.isRetriableException(new TTransportException(new SocketTimeoutException())));
     }
 
     @Test
     public void testIsRetriableWithBackoffException() {
-        Assert.assertTrue(CassandraClientPool.isRetriableWithBackoffException(new NoSuchElementException()));
-        Assert.assertTrue(CassandraClientPool.isRetriableWithBackoffException(new UnavailableException()));
-        Assert.assertTrue(CassandraClientPool.isRetriableWithBackoffException(new TTransportException(new UnavailableException())));
+        assertTrue(CassandraClientPool.isRetriableWithBackoffException(new NoSuchElementException()));
+        assertTrue(CassandraClientPool.isRetriableWithBackoffException(new UnavailableException()));
+        assertTrue(CassandraClientPool.isRetriableWithBackoffException(
+                new TTransportException(new UnavailableException())));
     }
 
     @Test
@@ -143,7 +140,7 @@ public class CassandraClientPoolIntegrationTest {
         int prevKey = 0;
         for (Map.Entry<Integer, InetSocketAddress> entry : result.entrySet()) {
             int currWeight = entry.getKey() - prevKey;
-            Assert.assertEquals(expectedWeight, currWeight);
+            assertEquals(expectedWeight, currWeight);
             prevKey = entry.getKey();
         }
     }
@@ -169,7 +166,7 @@ public class CassandraClientPoolIntegrationTest {
                 hostWithLargestWeight = entry.getValue();
             }
         }
-        Assert.assertEquals(lowActivityHost, hostWithLargestWeight);
+        assertEquals(lowActivityHost, hostWithLargestWeight);
     }
 
     @Test
@@ -193,7 +190,7 @@ public class CassandraClientPoolIntegrationTest {
                 hostWithSmallestWeight = entry.getValue();
             }
         }
-        Assert.assertEquals(highActivityHost, hostWithSmallestWeight);
+        assertEquals(highActivityHost, hostWithSmallestWeight);
     }
 
     @Test
@@ -208,7 +205,7 @@ public class CassandraClientPoolIntegrationTest {
         int prevKey = 0;
         for (Map.Entry<Integer, InetSocketAddress> entry : result.entrySet()) {
             int currWeight = entry.getKey() - prevKey;
-            Assert.assertThat(currWeight, Matchers.greaterThan(0));
+            assertThat(currWeight, Matchers.greaterThan(0));
             prevKey = entry.getKey();
         }
     }
@@ -238,7 +235,7 @@ public class CassandraClientPoolIntegrationTest {
             numTimesSelected.put(host, numTimesSelected.get(host) + 1);
         }
 
-        Assert.assertEquals(hostsToWeight, numTimesSelected);
+        assertEquals(hostsToWeight, numTimesSelected);
     }
 
     private static CassandraClientPoolingContainer createMockClientPoolingContainerWithUtilization(int utilization) {

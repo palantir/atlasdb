@@ -65,6 +65,7 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -103,6 +104,19 @@ public final class TransactionManagers {
             Set<Schema> schemas,
             Environment env,
             boolean allowHiddenTableAccess) {
+        return create(config, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
+    }
+
+    /**
+     * Create a {@link SerializableTransactionManager} with provided configuration, a set of
+     * {@link Schema}s, {@link LockServerOptions}, and an environment in which to register HTTP server endpoints.
+     */
+    public static SerializableTransactionManager create(
+            AtlasDbConfig config,
+            Set<Schema> schemas,
+            Environment env,
+            LockServerOptions lockServerOptions,
+            boolean allowHiddenTableAccess) {
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
@@ -110,7 +124,7 @@ public final class TransactionManagers {
         LockAndTimestampServices lts = createLockAndTimestampServices(
                 config,
                 env,
-                LockServiceImpl::create,
+                () -> LockServiceImpl.create(lockServerOptions),
                 atlasFactory::getTimestampService);
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);

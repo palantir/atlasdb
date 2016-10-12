@@ -1,3 +1,5 @@
+.. _atlas_config:
+
 =============
 Configuration
 =============

@@ -51,4 +51,9 @@ public abstract class ForwardingTransactionManager extends ForwardingObject impl
             throws E {
         return delegate().runTaskReadOnly(task);
     }
+
+    @Override
+    public void close() throws Exception {
+        delegate().close();
+    }
 }

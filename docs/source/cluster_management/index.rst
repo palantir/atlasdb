@@ -10,3 +10,4 @@ Cluster Management
    clis
    console
    dropwizard-bundle
+   sweep

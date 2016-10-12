@@ -23,7 +23,7 @@
 }
 
 .changetype.changetype-changed {
-  background: #DB3737;
+  background: #D9822B;
 }
 
 .changetype.changetype-breaking {
@@ -31,13 +31,13 @@
 }
 
 .changetype.changetype-new {
-  background: #0F9960;
+  background: #137CBD;
 }
 
 .changetype.changetype-fixed {
-  background: #D9822B;
+  background: #0F9960;
 }
 
 .changetype.changetype-improved {
-  background: #137CBD;
+  background: #0F9960;
 }

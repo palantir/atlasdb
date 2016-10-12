@@ -21,8 +21,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 
 import org.junit.Test;
@@ -36,7 +36,7 @@ import com.palantir.nexus.db.pool.config.ConnectionConfig;
 public class TestConfigLoading {
     @Test
     public void testLoadingConfig() throws IOException {
-        AtlasDbConfigs.load(new File(getClass().getClassLoader().getResource("postgresTestConfig.yml").getFile()));
+        getPostgresTestConfig();
     }
 
     @Test
@@ -69,6 +69,15 @@ public class TestConfigLoading {
     }
 
     @Test
+    public void testAdditionalConnectionParameters() throws IOException {
+        ConnectionConfig connectionConfig = getConnectionConfig();
+        Properties props = connectionConfig.getHikariProperties();
+
+        assertThat(props.getProperty("foo"), equalTo("100"));
+        assertThat(props.getProperty("bar"), equalTo("baz"));
+    }
+
+    @Test
     public void testPasswordIsMasked() throws IOException {
         ConnectionConfig connectionConfig = getConnectionConfig();
         assertThat(connectionConfig.getDbPassword().unmasked(), equalTo("testpassword"));
@@ -78,11 +87,18 @@ public class TestConfigLoading {
     }
 
     private ConnectionConfig getConnectionConfig() throws IOException {
-        AtlasDbConfig config = AtlasDbConfigs.load(
-                new File(getClass().getClassLoader().getResource("postgresTestConfig.yml").getFile()));
+        AtlasDbConfig config = getPostgresTestConfig();
         KeyValueServiceConfig keyValueServiceConfig = config.keyValueService();
         DbKeyValueServiceConfig dbkvsConfig = (DbKeyValueServiceConfig) keyValueServiceConfig;
         return dbkvsConfig.connection();
+    }
+
+    private AtlasDbConfig getPostgresTestConfig() throws IOException {
+        // Palantir internal runs this test from the jar rather than from source. This means that the resource
+        // cannot be loaded as a file. Instead it must be loaded as a stream.
+        try (InputStream stream = getClass().getClassLoader().getResourceAsStream("postgresTestConfig.yml")) {
+            return AtlasDbConfigs.load(stream);
+        }
     }
 
     private void verifyHikariProperty(ConnectionConfig connectionConfig, String property, int expectedValueSeconds) {

@@ -86,11 +86,6 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void initializeFromFreshInstance() {
-        // All initialization is done in the constructor and initializers above
-    }
-
-    @Override
     public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows,
                                     ColumnSelection columnSelection, long timestamp) {
         Map<Cell, Value> result = Maps.newHashMap();
@@ -196,29 +191,6 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 }
                 if (!timestamps.isEmpty()) {
                     return timestamps;
-                } else {
-                    return null;
-                }
-            }
-        });
-    }
-
-    @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef, final RangeRequest range, final long timestamp) {
-        return getRangeInternal(tableRef, range, new ResultProducer<Set<Value>>() {
-            @Override
-            public Set<Value> apply(Iterator<Entry<Key, byte[]>> entries) {
-                Set<Value> values = Sets.newHashSet();
-                while (entries.hasNext()) {
-                    Entry<Key, byte[]> entry = entries.next();
-                    Key key = entry.getKey();
-                    if (key.ts >= timestamp) {
-                        break;
-                    }
-                    values.add(Value.createWithCopyOfData(entry.getValue(), key.ts));
-                }
-                if (!values.isEmpty()) {
-                    return values;
                 } else {
                     return null;
                 }
