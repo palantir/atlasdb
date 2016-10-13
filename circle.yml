@@ -31,6 +31,8 @@ dependencies:
 
 test:
   override:
+    - ./gradlew --profile --continue --parallel compileJava compileTestJava:
+        parallel: true
     - ./scripts/circle-ci/run-circle-tests.sh:
         parallel: true
   post:
