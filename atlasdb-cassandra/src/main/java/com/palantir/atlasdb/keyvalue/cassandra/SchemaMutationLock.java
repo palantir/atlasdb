@@ -306,9 +306,13 @@ final class SchemaMutationLock {
         try {
             result = clientPool.runWithRetry(client -> {
                 Column existingColumn = queryExistingLockColumn(client);
+                long existingLockId = getLockIdFromColumn(existingColumn);
 
-                Preconditions.checkState(isValidColumnForLockId(existingColumn, perOperationNodeId),
-                        "Trying to unlock unowned lock");
+                if (existingLockId != GLOBAL_DDL_LOCK_CLEARED_ID) {
+                    Preconditions.checkState(existingLockId == perOperationNodeId,
+                            String.format("Trying to unlock unowned lock. Expected [%d], but got [%d]",
+                                    perOperationNodeId, existingLockId));
+                }
 
                 List<Column> ourExpectedLock = ImmutableList.of(existingColumn);
                 Column clearedLock = lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE);
@@ -366,10 +370,6 @@ final class SchemaMutationLock {
         throw new IllegalStateException(String.format("Another process cleared our schema mutation lock from"
                 + " underneath us. Our ID, which we expected, was %s, the value we saw in the database"
                 + " was instead %s.", expectedLock, remoteLock));
-    }
-
-    private static boolean isValidColumnForLockId(Column column, long lockId) {
-        return getLockIdFromColumn(column) == lockId;
     }
 
     private static Column lockColumnWithValue(byte[] value) {
