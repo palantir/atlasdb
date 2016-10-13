@@ -33,6 +33,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra.Client;
@@ -59,7 +60,6 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -1462,13 +1462,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                 @Override
                 public Set<TableReference> apply(Client client) throws Exception {
-                    return FluentIterable.from(client.describe_keyspace(config.keyspace()).getCf_defs())
-                            .transform(new Function<CfDef, TableReference>() {
-                                @Override
-                                public TableReference apply(CfDef cf) {
-                                    return fromInternalTableName(cf.getName());
-                                }
-                            }).toSet();
+                    return client.describe_keyspace(config.keyspace()).getCf_defs().stream().map(
+                            cf -> fromInternalTableName(cf.getName())).collect(Collectors.toSet());
                 }
 
                 @Override
