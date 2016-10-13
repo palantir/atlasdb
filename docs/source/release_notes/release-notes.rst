@@ -48,8 +48,8 @@ v0.19.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1041>`__)
 
     *    - |fixed|
-         - In Cassandra KVS, we now no longer take out the schema mutation lock in calls to `createTables` if tables already exist.
-           This fixes the issue that prevented the `clean-cass-locks-state` CLI from running correctly.
+         - In Cassandra KVS, we now no longer take out the schema mutation lock in calls to ``createTables`` if tables already exist.
+           This fixes the issue that prevented the ``clean-cass-locks-state`` CLI from running correctly.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/991>`__)
 
     *    - |fixed|
