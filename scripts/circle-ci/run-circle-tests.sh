@@ -9,7 +9,7 @@ set -x
 
 # CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
 
-# CONTAINER_2=(':atlasdb-ete-tests:check')
+CONTAINER_2=(':atlasdb-ete-tests:check')
 
 # CONTAINER_3=(':atlasdb-timelock-ete:check' ':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-tests-shared:check' ':atlasdb-ete-test-utils:check' ':atlasdb-cassandra:check' ':atlasdb-api:check')
 
@@ -24,9 +24,9 @@ set -x
 # done
 
 case $CIRCLE_NODE_INDEX in
-    0) ./gradlew :atlasdb-ete-tests:test -i -Dtest.single=MultiCassandraTestSuite ;;
+    # 0) ./gradlew :atlasdb-ete-tests:test -i -Dtest.single=MultiCassandraTestSuite ;;
     # 1) ./gradlew --profile --continue --parallel ${CONTAINER_1[@]} ;;
-    # 2) ./gradlew --profile --continue --parallel ${CONTAINER_2[@]} ;;
+    2) ./gradlew --profile --continue --parallel ${CONTAINER_2[@]} ;;
     # 3) ./gradlew --profile --continue ${CONTAINER_3[@]} && checkDocsBuild ;;
     # 4) ./gradlew --profile --continue --parallel ${CONTAINER_4[@]} ;;
 esac
