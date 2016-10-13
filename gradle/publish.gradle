@@ -15,7 +15,7 @@ task testJar(type: Jar) {
 publishing {
     publications {
         artifactory(MavenPublication) {
-            from components.hasProperty('shadow') ? components.shadow : components.java
+            from components.hasProperty('shadow') ? components.shadow : components.java          
             artifact(sourceJar) {
                 classifier 'sources'
             }
@@ -57,7 +57,7 @@ bintrayUpload.onlyIf {
     System.getenv('BINTRAY_USERNAME') && System.getenv('BINTRAY_PASSWORD') && project.version ==~ releaseVersionRegex
 }
 
-bintrayUpload.dependsOn 'generatePomFileForArtifactoryPublication', 'jar', 'shadowJar', 'sourceJar', 'testJar', 'build'
+bintrayUpload.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
 
 artifactory {
     publish {
@@ -78,4 +78,4 @@ artifactory {
 artifactoryPublish.onlyIf {
   System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD') && !(project.version ==~ releaseVersionRegex)
 }
-artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'jar', 'shadowJar', 'sourceJar', 'testJar', 'build'
+artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
