@@ -47,6 +47,6 @@ class CassandraDao {
 
         return ks.getCf_defs().stream()
                 .map(cf -> CassandraKeyValueService.fromInternalTableName(cf.getName().toLowerCase()))
-                .collect(Collectors.toSet()));
+                .collect(Collectors.toSet());
     }
 }
