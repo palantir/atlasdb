@@ -19,12 +19,12 @@ import java.nio.ByteBuffer;
 import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnPath;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.NotFoundException;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +40,6 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
@@ -95,45 +94,29 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     private ColumnOrSuperColumn getStoredLimit(ByteBuffer rowName, ColumnPath columnPath) {
         return clientPool.runWithRetry(client -> {
-                try {
-                    return client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM);
-                } catch (NotFoundException e) {
-                    return null;
-                } catch (Exception e) {
-                    throw Throwables.throwUncheckedException(e);
-                }
-            });
+            try {
+                return client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM);
+            } catch (NotFoundException e) {
+                return null;
+            } catch (Exception e) {
+                throw Throwables.throwUncheckedException(e);
+            }
+        });
     }
 
     private void setInitialValue() {
-        clientPool.runWithRetry(client -> {
-            cas(client, null, INITIAL_VALUE);
-            return null;
-        });
+        cas(null, INITIAL_VALUE);
     }
 
     @Override
     public synchronized void storeUpperLimit(final long limit) {
-        clientPool.runWithRetry(new FunctionCheckedException<Client, Void, RuntimeException>() {
-            @Override
-            public Void apply(Client client) {
-                cas(client, currentLimit, limit);
-                return null;
-            }
-
-        });
+        cas(currentLimit, limit);
     }
 
-    private void cas(Client client, Long oldVal, long newVal) {
+    private void cas(Long oldVal, long newVal) {
         final CASResult result;
         try {
-            result = client.cas(
-                    getRowName(),
-                    AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
-                    oldVal == null ? ImmutableList.of() : ImmutableList.of(makeColumn(oldVal)),
-                    ImmutableList.of(makeColumn(newVal)),
-                    ConsistencyLevel.SERIAL,
-                    ConsistencyLevel.EACH_QUORUM);
+            result = checkAndSet(oldVal, newVal);
         } catch (Exception e) {
             lastWriteException = e;
             throw Throwables.throwUncheckedException(e);
@@ -152,6 +135,24 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             lastWriteException = null;
             currentLimit = newVal;
         }
+    }
+
+    private CASResult checkAndSet(Long oldVal, long newVal) {
+        CASResult result;
+        result = clientPool.runWithRetry(client -> {
+            try {
+                return client.cas(
+                        getRowName(),
+                        AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
+                        oldVal == null ? ImmutableList.of() : ImmutableList.of(makeColumn(oldVal)),
+                        ImmutableList.of(makeColumn(newVal)),
+                        ConsistencyLevel.SERIAL,
+                        ConsistencyLevel.EACH_QUORUM);
+            } catch (TException e) {
+                throw Throwables.throwUncheckedException(e);
+            }
+        });
+        return result;
     }
 
     private Column makeColumn(long ts) {
