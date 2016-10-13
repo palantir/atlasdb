@@ -34,6 +34,9 @@
   
 
   
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
     <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
         <link rel="up" title="Cluster Management" href="index.html"/>
         <link rel="next" title="Console" href="console.html"/>
@@ -93,9 +96,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../configuration/index.html">Configuration</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Cluster Management</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="backup-restore.html">Backup and Restore</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="">Command Line Utilities</a><ul class="simple">
-</ul>
-</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Command Line Utilities</a></li>
 <li class="toctree-l2"><a class="reference internal" href="console.html">Console</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dropwizard-bundle.html">Dropwizard bundle</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sweep.html">AtlasDB Sweep Job</a></li>
@@ -126,7 +127,7 @@
         <div class="rst-content">
           
 
-
+ 
 
 
 
@@ -161,7 +162,7 @@ tasks as well as help resolve problems encountered during operation.</p>
 <div class="section" id="compiling-the-cli">
 <h2>Compiling The CLI<a class="headerlink" href="#compiling-the-cli" title="Permalink to this headline">¶</a></h2>
 <p>Right now, the best way to get the CLI is by cloning the atlasdb source code and running:</p>
-<div class="code bash highlight-python"><div class="highlight"><pre>$ ./gradlew atlasdb-cli:distZip
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./gradlew atlasdb-cli:distZip
 </pre></div>
 </div>
 <p>This will create a zip file in <code class="docutils literal"><span class="pre">atlasdb-cli/build/distributions</span></code>, which you can unzip on the machine where your AtlasDB server is installed.</p>
@@ -174,7 +175,7 @@ tasks as well as help resolve problems encountered during operation.</p>
 <p>Sweep old table rows.
 This can be useful for improving performance if having too many dead cells is impacting read times.
 The command allows you to specify a namespace or a specific set of tables.
-For more information, check out <a class="reference internal" href="sweep/sweep-cli.html#atlas-sweep-cli"><span>the sweep CLI documentation</span></a>, or run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">sweep</span></code>.</p>
+For more information, check out <a class="reference internal" href="sweep/sweep-cli.html#atlas-sweep-cli"><span class="std std-ref">the sweep CLI documentation</span></a>, or run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">sweep</span></code>.</p>
 </div>
 <div class="section" id="timestamp">
 <h3>timestamp<a class="headerlink" href="#timestamp" title="Permalink to this headline">¶</a></h3>
@@ -186,7 +187,7 @@ For more information, check out <a class="reference internal" href="sweep/sweep-
 You will need to supply two different KVS configurations to the script.
 In the general case you first call <code class="docutils literal"><span class="pre">–-setup</span></code>, then <code class="docutils literal"><span class="pre">-–migrate</span></code>, then <code class="docutils literal"><span class="pre">-–validate</span></code> each time supplying the old and new configurations.
 For more information run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">migrate</span></code> for more information.</p>
-<div class="highlight-bash"><div class="highlight"><pre>./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
+<div class="highlight-bash"><div class="highlight"><pre><span></span>./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
 ./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml --migrate
 ./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml --validate
 </pre></div>
