@@ -105,15 +105,18 @@ public final class CassandraKeyValueServices {
                 .append(" Fixing the underlying issue and restarting Cassandra")
                 .append(" should resolve the problem. You can quick-check this with 'nodetool describecluster'.");
 
-        // 1 real schema version that is correctly distributed + precisely one node that is at version 'unreachable'
         if (allowUnresponsiveNode
-                && versions.entrySet().size() == 2
-                && versions.keySet().contains("UNREACHABLE")
-                && versions.get("UNREACHABLE").size() == 1) {
+                && exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(versions)) {
             log.error(sb.toString());
         } else {
             throw new IllegalStateException(sb.toString());
         }
+    }
+
+    private static boolean exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(Map<String, List<String>> versions) {
+        return versions.entrySet().size() == 2
+                && versions.keySet().contains("UNREACHABLE")
+                && versions.get("UNREACHABLE").size() == 1;
     }
 
     /**
