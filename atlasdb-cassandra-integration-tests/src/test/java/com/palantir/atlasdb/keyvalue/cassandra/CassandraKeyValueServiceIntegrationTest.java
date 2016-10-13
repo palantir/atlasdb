@@ -143,7 +143,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
                 .collect(Collectors.toList()));
 
         assertTrue("After serialization and deserialization to database, Cf metadata did not match.",
-                CassandraKeyValueServices.isMatchingCf(kvs.getCfForTable(testTable, tableMetadata), clusterSideCf));
+                ColumnFamilyDefinitions.isMatchingCf(kvs.getCfForTable(testTable, tableMetadata), clusterSideCf));
     }
 
     @Test

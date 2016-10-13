@@ -108,8 +108,6 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.annotation.Idempotent;
@@ -253,7 +251,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     CfDef clientSideCf = getCfForTable(
                             fromInternalTableName(clusterSideCf.getName()),
                             clusterSideMetadata);
-                    if (!CassandraKeyValueServices.isMatchingCf(clientSideCf, clusterSideCf)) {
+                    if (!ColumnFamilyDefinitions.isMatchingCf(clientSideCf, clusterSideCf)) {
                         // mismatch; we have changed how we generate schema since we last persisted
                         log.warn("Upgrading table {} to new internal Cassandra schema", tableRef);
                         tablesToUpgrade.put(tableRef, clusterSideMetadata);
@@ -1172,78 +1170,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    // update CKVS.isMatchingCf if you update this method
     protected CfDef getCfForTable(TableReference tableRef, byte[] rawMetadata) {
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        Map<String, String> compressionOptions = Maps.newHashMap();
-        CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
-
-        boolean negativeLookups = false;
-        double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
-        int explicitCompressionBlockSizeKb = 0;
-        boolean appendHeavyAndReadLight = false;
-        TableMetadataPersistence.CachePriority cachePriority = TableMetadataPersistence.CachePriority.WARM;
-
-        if (!CassandraKeyValueServices.isEmptyOrInvalidMetadata(rawMetadata)) {
-            TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
-            negativeLookups = tableMetadata.hasNegativeLookups();
-            explicitCompressionBlockSizeKb = tableMetadata.getExplicitCompressionBlockSizeKB();
-            appendHeavyAndReadLight = tableMetadata.isAppendHeavyAndReadLight();
-            cachePriority = tableMetadata.getCachePriority();
-        }
-
-        if (explicitCompressionBlockSizeKb != 0) {
-            compressionOptions.put(
-                    CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY,
-                    CassandraConstants.DEFAULT_COMPRESSION_TYPE);
-            compressionOptions.put(
-                    CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY,
-                    Integer.toString(explicitCompressionBlockSizeKb));
-        } else {
-            // We don't really need compression here nor anticipate it will garner us any gains
-            // (which is why we're doing such a small chunk size), but this is how we can get "free" CRC checking.
-            compressionOptions.put(
-                    CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY,
-                    CassandraConstants.DEFAULT_COMPRESSION_TYPE);
-            compressionOptions.put(
-                    CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY,
-                    Integer.toString(AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB));
-        }
-
-        if (negativeLookups) {
-            falsePositiveChance = CassandraConstants.NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE;
-        }
-
-        if (appendHeavyAndReadLight) {
-            cf.setCompaction_strategy(CassandraConstants.SIZE_TIERED_COMPACTION_STRATEGY);
-            // clear out the now nonsensical "keep it at 80MB per sstable" option from LCS
-            cf.setCompaction_strategy_optionsIsSet(false);
-            if (!negativeLookups) {
-                falsePositiveChance = CassandraConstants.DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
-            } else {
-                falsePositiveChance = CassandraConstants.NEGATIVE_LOOKUPS_SIZE_TIERED_BLOOM_FILTER_FP_CHANCE;
-            }
-        }
-
-        switch (cachePriority) {
-            case COLDEST:
-                break;
-            case COLD:
-                break;
-            case WARM:
-                break;
-            case HOT:
-                break;
-            case HOTTEST:
-                cf.setPopulate_io_cache_on_flushIsSet(true);
-                break;
-            default:
-                throw new PalantirRuntimeException("Unknown cache priority: " + cachePriority);
-        }
-
-        cf.setBloom_filter_fp_chance(falsePositiveChance);
-        cf.setCompression_options(compressionOptions);
-        return cf;
+        return ColumnFamilyDefinitions.getCfDef(configManager.getConfig().keyspace(), tableRef, rawMetadata);
     }
 
     //TODO: after cassandra change: handle multiRanges
@@ -1505,7 +1433,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         clientPool.runWithRetry(client -> {
             for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
                 try {
-                    client.system_add_column_family(getCfForTable(tableEntry.getKey(), tableEntry.getValue()));
+                    client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
+                            configManager.getConfig().keyspace(),
+                            tableEntry.getKey(),
+                            tableEntry.getValue()));
                 } catch (UnavailableException e) {
                     throw new PalantirRuntimeException(
                             "Creating tables requires all Cassandra nodes to be up and available.");
