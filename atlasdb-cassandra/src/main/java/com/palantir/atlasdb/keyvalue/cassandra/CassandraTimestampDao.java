@@ -31,16 +31,17 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.base.Throwables;
 
-class CassandraTimestampDao {
+public class CassandraTimestampDao implements TimestampDao {
     private static final long CASSANDRA_TIMESTAMP = 0L;
 
     private final CassandraClientPool clientPool;
 
-    CassandraTimestampDao(CassandraClientPool clientPool) {
+    public CassandraTimestampDao(CassandraClientPool clientPool) {
         this.clientPool = clientPool;
     }
 
-    Optional<Long> getStoredLimit() {
+    @Override
+    public Optional<Long> getStoredLimit() {
         ByteBuffer rowName = getRowName();
         ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
         columnPath.setColumn(getColumnName());
@@ -61,7 +62,8 @@ class CassandraTimestampDao {
         return Optional.of(PtBytes.toLong(column.getValue()));
     }
 
-    boolean checkAndSet(Long oldVal, long newVal) {
+    @Override
+    public boolean checkAndSet(Long oldVal, long newVal) {
         CASResult casResult = clientPool.runWithRetry(client -> {
             try {
                 return client.cas(

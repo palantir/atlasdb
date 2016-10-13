@@ -52,7 +52,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             ConflictHandler.IGNORE_ALL);
 
     private static final long INITIAL_VALUE = 10000L;
-    private final CassandraTimestampDao cassandraTimestampDao;
+    private final TimestampDao timestampDao;
 
     @GuardedBy("this")
     private long currentLimit = -1;
@@ -63,17 +63,17 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         kvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
         CassandraClientPool clientPool = kvs.clientPool;
         Preconditions.checkNotNull(clientPool, "clientPool cannot be null");
-        CassandraTimestampDao dao = new CassandraTimestampDao(clientPool);
+        TimestampDao dao = new CassandraTimestampDao(clientPool);
         return new CassandraTimestampBoundStore(dao);
     }
 
-    private CassandraTimestampBoundStore(CassandraTimestampDao dao) {
-        this.cassandraTimestampDao = dao;
+    private CassandraTimestampBoundStore(TimestampDao dao) {
+        this.timestampDao = dao;
     }
 
     @Override
     public synchronized long getUpperLimit() {
-        Optional<Long> result = cassandraTimestampDao.getStoredLimit();
+        Optional<Long> result = timestampDao.getStoredLimit();
         if (!result.isPresent()) {
             setInitialValue();
             return INITIAL_VALUE;
@@ -95,7 +95,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private void cas(Long oldVal, long newVal) {
         final boolean result;
         try {
-            result = cassandraTimestampDao.checkAndSet(oldVal, newVal);
+            result = timestampDao.checkAndSet(oldVal, newVal);
         } catch (Exception e) {
             lastWriteException = e;
             throw Throwables.throwUncheckedException(e);
