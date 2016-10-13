@@ -15,7 +15,7 @@ task testJar(type: Jar) {
 publishing {
     publications {
         artifactory(MavenPublication) {
-            from components.hasProperty('shadow') ? components.shadow : components.java          
+            from components.hasProperty('shadow') ? components.shadow : components.java
             artifact(sourceJar) {
                 classifier 'sources'
             }
