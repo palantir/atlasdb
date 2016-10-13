@@ -21,7 +21,7 @@ public class InMemoryTimestampDao implements TimestampDao {
     private Long timestamp;
 
     public InMemoryTimestampDao() {
-        this.timestamp = 0L;
+        this.timestamp = -1L;
     }
 
     @Override
@@ -36,6 +36,12 @@ public class InMemoryTimestampDao implements TimestampDao {
 
     @Override
     public Optional<Long> getStoredLimit() {
-        return Optional.of(timestamp);
+        Optional<Long> ts = Optional.of(this.timestamp);
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return ts;
     }
 }

@@ -22,6 +22,7 @@ import javax.annotation.concurrent.GuardedBy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -39,7 +40,7 @@ import com.palantir.timestamp.TimestampBoundStore;
 
 public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampBoundStore.class);
-    private static final String ROW_AND_COLUMN_NAME = "ts";
+    /* package */ static final String ROW_AND_COLUMN_NAME = "ts";
 
     public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
             NameMetadataDescription.create(ImmutableList.of(
@@ -67,7 +68,8 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         return new CassandraTimestampBoundStore(dao);
     }
 
-    private CassandraTimestampBoundStore(TimestampDao dao) {
+    @VisibleForTesting
+    protected CassandraTimestampBoundStore(TimestampDao dao) {
         this.timestampDao = dao;
     }
 
@@ -79,6 +81,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             return INITIAL_VALUE;
         }
 
+        System.out.println("Storing limit of " + result.get());
         currentLimit = result.get();
         return currentLimit;
     }
@@ -89,6 +92,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     @Override
     public synchronized void storeUpperLimit(final long limit) {
+        System.out.println(String.format("Calling cas(%d,%d)", currentLimit, limit));
         cas(currentLimit, limit);
     }
 
@@ -112,6 +116,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             throw err;
         } else {
             lastWriteException = null;
+            System.out.println("Storing limit of " + newVal);
             currentLimit = newVal;
         }
     }

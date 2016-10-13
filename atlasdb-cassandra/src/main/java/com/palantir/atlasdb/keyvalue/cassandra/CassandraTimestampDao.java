@@ -91,11 +91,11 @@ public class CassandraTimestampDao implements TimestampDao {
 
     private static byte[] getColumnName() {
         return CassandraKeyValueServices
-                .makeCompositeBuffer(PtBytes.toBytes(ROW_AND_COLUMN_NAME), CASSANDRA_TIMESTAMP)
+                .makeCompositeBuffer(PtBytes.toBytes(CassandraTimestampBoundStore.ROW_AND_COLUMN_NAME), CASSANDRA_TIMESTAMP)
                 .array();
     }
 
     private static ByteBuffer getRowName() {
-        return ByteBuffer.wrap(PtBytes.toBytes(ROW_AND_COLUMN_NAME));
+        return ByteBuffer.wrap(PtBytes.toBytes(CassandraTimestampBoundStore.ROW_AND_COLUMN_NAME));
     }
 }
