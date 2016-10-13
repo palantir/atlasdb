@@ -16,16 +16,16 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.thrift.TException;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 
@@ -39,19 +39,20 @@ class CassandraDao {
     }
 
     Set<TableReference> getExistingTables() {
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
+        String keyspace = configManager.getConfig().keyspace();
+
         try {
-            return clientPool.runWithRetry(new FunctionCheckedException<Cassandra.Client, Set<TableReference>, Exception>() {
+            return clientPool.runWithRetry(
+                    new FunctionCheckedException<Cassandra.Client, Set<TableReference>, Exception>() {
 
                 @Override
                 public Set<TableReference> apply(Cassandra.Client client) throws Exception {
-                    return client.describe_keyspace(config.keyspace()).getCf_defs().stream().map(
-                            cf -> CassandraKeyValueService.fromInternalTableName(cf.getName())).collect(Collectors.toSet());
+                    return getExistingTables(client, keyspace);
                 }
 
                 @Override
                 public String toString() {
-                    return "describe_keyspace(" + config.keyspace() + ")";
+                    return "describe_keyspace(" + keyspace + ")";
                 }
             });
         } catch (Exception e) {
@@ -67,11 +68,21 @@ class CassandraDao {
         return clientPool.runWithRetry((client) -> getExistingTablesLowerCased(client, keyspace));
     }
 
+    private Set<TableReference> getExistingTables(Cassandra.Client client, String keyspace) throws TException {
+        return getTableReferences(client, keyspace, CfDef::getName);
+    }
+
     private Set<TableReference> getExistingTablesLowerCased(Cassandra.Client client, String keyspace) throws TException {
+        return getTableReferences(client, keyspace, cf -> cf.getName().toLowerCase());
+    }
+
+    private Set<TableReference> getTableReferences(Cassandra.Client client, String keyspace,
+            Function<CfDef, String> nameGetter) throws TException {
         KsDef ks = client.describe_keyspace(keyspace);
 
         return ks.getCf_defs().stream()
-                .map(cf -> CassandraKeyValueService.fromInternalTableName(cf.getName().toLowerCase()))
+                .map(nameGetter)
+                .map(CassandraKeyValueService::fromInternalTableName)
                 .collect(Collectors.toSet());
     }
 }
