@@ -17,6 +17,7 @@ package com.palantir.atlasdb.dropwizard.commands;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.commons.cli.Option;
 import org.slf4j.Logger;
@@ -71,7 +72,7 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
 
         // We do this here because there's no flag to connect to an offline
         // cluster in atlasdb-console (since this is passed in through bind)
-        if (namespace.getAttrs().containsKey("runCliOffline")) {
+        if (Objects.equals(namespace.getString("runCliOffline"), AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT)) {
             cliConfiguration = ImmutableAtlasDbConfig.builder()
                     .from(cliConfiguration)
                     .leader(Optional.absent())
