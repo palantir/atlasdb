@@ -34,9 +34,6 @@
   
 
   
-        <link rel="index" title="Index"
-              href="../genindex.html"/>
-        <link rel="search" title="Search" href="../search.html"/>
     <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
         <link rel="up" title="Releases" href="index.html"/>
         <link rel="next" title="Release Process" href="release-process.html"/>
@@ -98,7 +95,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../services/index.html">Services</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../miscellaneous/index.html">Miscellaneous</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Releases</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Changelog</a><ul class="simple">
+<li class="toctree-l2 current"><a class="current reference internal" href="">Changelog</a><ul class="simple">
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html">Release Process</a></li>
@@ -126,7 +123,7 @@
         <div class="rst-content">
           
 
- 
+
 
 
 
@@ -168,24 +165,53 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
-<td>Removed KeyValueService.[initializeFromFresh|tearDown|getRangeWithHistory]
-It is likely all callers of tearDown just want to call close.
+<td>Removed KeyValueService <code class="docutils literal"><span class="pre">initializeFromFreshInstance</span></code>, <code class="docutils literal"><span class="pre">tearDown</span></code>, and <code class="docutils literal"><span class="pre">getRangeWithHistory</span></code>.
+It is likely all callers of tearDown just want to call close, and getRangeWithHistory has been replaced with <code class="docutils literal"><span class="pre">getRangeOfTimestamps</span></code>.
 Also removed Partitioning and Remoting KVSs, which were unused and had many unimplemented methods.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1041">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>In Cassandra KVS, We now no longer take out the schema mutation lock in calls to <cite>createTables</cite> if tables already exist.
-This fixes the issue that prevented the <cite>clean-cass-locks-state</cite> CLI from running correctly.
+<td>In Cassandra KVS, we now no longer take out the schema mutation lock in calls to <code class="docutils literal"><span class="pre">createTables</span></code> if tables already exist.
+This fixes the issue that prevented the <code class="docutils literal"><span class="pre">clean-cass-locks-state</span></code> CLI from running correctly.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/991">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
-<td>Removed the following classes that appeared to be unused - <code class="docutils literal"><span class="pre">ManyHostPoolingContainer</span></code>, <code class="docutils literal"><span class="pre">CloseShieldedKeyValueService</span></code>, <code class="docutils literal"><span class="pre">RowWrapper</span></code>, <code class="docutils literal"><span class="pre">BatchRowVisitor</span></code>,
-<code class="docutils literal"><span class="pre">MapCollector</span></code>, <code class="docutils literal"><span class="pre">DBMgrConfigurationException</span></code>, and <code class="docutils literal"><span class="pre">SqlStackLogWrapper</span></code>.  Please reach out to us if you are adversly affected by these removals.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1027">Pull Request</a>)</td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Added a wait period before declaring someone dead based on lack of heartbeat.
+This will ensure we handle delayed heartbeats in high load situations (eg. on circleci).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1035">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
-<td>The SQL connection manager will no longer temporarily increase the pool size by eleven
-connections when the pool is exhausted.
+<tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<td><dl class="first docutils">
+<dt>Removed the following classes and interfaces that appeared to be unused:</dt>
+<dd><ul class="first last simple">
+<li><code class="docutils literal"><span class="pre">AbstractStringCollector</span></code></li>
+<li><code class="docutils literal"><span class="pre">BatchRowVisitor</span></code></li>
+<li><code class="docutils literal"><span class="pre">ChunkedRowVisitor</span></code></li>
+<li><code class="docutils literal"><span class="pre">CloseShieldedKeyValueService</span></code></li>
+<li><code class="docutils literal"><span class="pre">DBMgrConfigurationException</span></code></li>
+<li><code class="docutils literal"><span class="pre">IdGenerator</span></code></li>
+<li><code class="docutils literal"><span class="pre">ManyHostPoolingContainer</span></code></li>
+<li><code class="docutils literal"><span class="pre">MapCollector</span></code></li>
+<li><code class="docutils literal"><span class="pre">PalantirSequenceEnabledSqlConnection</span></code></li>
+<li><code class="docutils literal"><span class="pre">PalantirSqlConnectionRunner</span></code></li>
+<li><code class="docutils literal"><span class="pre">PaxosLearnerPersistence</span></code></li>
+<li><code class="docutils literal"><span class="pre">PaxosPingablePersistence</span></code></li>
+<li><code class="docutils literal"><span class="pre">PaxosProtos</span></code></li>
+<li><code class="docutils literal"><span class="pre">PostgresBlobs</span></code></li>
+<li><code class="docutils literal"><span class="pre">RowWrapper</span></code></li>
+<li><code class="docutils literal"><span class="pre">SqlConnectionImpl</span></code></li>
+<li><code class="docutils literal"><span class="pre">SqlStackLogWrapper</span></code></li>
+<li><code class="docutils literal"><span class="pre">StringCollector</span></code></li>
+<li><code class="docutils literal"><span class="pre">TLongQueue</span></code></li>
+</ul>
+</dd>
+</dl>
+<p class="last">Please reach out to us if you are adversely affected by these removals.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1027">Pull Request 1</a> and <a class="reference external" href="https://github.com/palantir/atlasdb/pull/1027">Pull Request 2</a>)</p>
+</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>The SQL connection manager will no longer temporarily increase the pool size by <a class="reference external" href="https://github.com/palantir/atlasdb/pull/971/files#diff-f0027e21eb0fc2a30cf8b011cc0a1adbL358">eleven</a> connections when the pool is exhausted.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/971">Pull Request</a>)</td>
 </tr>
 </tbody>
@@ -211,13 +237,13 @@ Upgrading to AtlasDB 0.18.0 from any previous version will work correctly withou
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Dropping a table and then creating it again no longer adds an additional row to the <code class="docutils literal"><span class="pre">_metadata</span></code> table.
-Historical versions of the metadata entry before the most recent one are <strong>not</strong> deleted, so if you routinely drop and recreate the same table, you might consider <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span class="std std-ref">sweeping</span></a> the <code class="docutils literal"><span class="pre">_metadata</span></code> table.
+Historical versions of the metadata entry before the most recent one are <strong>not</strong> deleted, so if you routinely drop and recreate the same table, you might consider <a class="reference internal" href="../cluster_management/sweep.html#sweep"><span>sweeping</span></a> the <code class="docutils literal"><span class="pre">_metadata</span></code> table.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/946">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Users of DBKVS can now set arbitrary connection parameters.
 This is useful if, for example, you wish to boost performance by adjusting the default batch size for fetching rows from the underlying database.
-See the <a class="reference internal" href="../configuration/postgres_key_value_service_config.html#postgres-configuration"><span class="std std-ref">documentation</span></a> for how to set these parameters, and <a class="reference external" href="https://jdbc.postgresql.org/documentation/head/connect.html">the JDBC docs</a> for a full list.
+See the <a class="reference internal" href="../configuration/postgres_key_value_service_config.html#postgres-configuration"><span>documentation</span></a> for how to set these parameters, and <a class="reference external" href="https://jdbc.postgresql.org/documentation/head/connect.html">the JDBC docs</a> for a full list.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1001">Pull Request</a>)</td>
 </tr>
 </tbody>
@@ -244,7 +270,7 @@ This should reduce the need to manually truncate the locks table.
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td><code class="docutils literal"><span class="pre">hashFirstRowComponent</span></code> can now be used on index definitions to prevent hotspotting when creating schemas.
-For more information on using <code class="docutils literal"><span class="pre">hashFirstRowComponent</span></code>, see the <a class="reference internal" href="../schemas/tables_and_indices.html#tables-and-indices-partitioners"><span class="std std-ref">Partitioners</span></a> documentation.
+For more information on using <code class="docutils literal"><span class="pre">hashFirstRowComponent</span></code>, see the <a class="reference internal" href="../schemas/tables_and_indices.html#tables-and-indices-partitioners"><span>Partitioners</span></a> documentation.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/986">Pull Request</a>)</td>
 </tr>
 </tbody>
@@ -276,7 +302,7 @@ apply configurations to the embedded LockServer instance running in the product.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/984">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td><a class="reference internal" href="../configuration/cassandra_KVS_configuration.html#cassandra-sweep-config"><span class="std std-ref">Column paging Sweep</span></a> (in beta) correctly handles cases where table names have both upper and lowercase characters and cases where sweep is run multiple times on the same table.
+<td><a class="reference internal" href="../configuration/cassandra_KVS_configuration.html#cassandra-sweep-config"><span>Column paging Sweep</span></a> (in beta) correctly handles cases where table names have both upper and lowercase characters and cases where sweep is run multiple times on the same table.
 If you are using the regular implementation of Sweep (i.e. you do not specify <code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> in your AtlasDB config), then you are not affected.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/951">Pull Request</a>)</td>
 </tr>
@@ -312,7 +338,7 @@ No operations can be performed using the TransactionManager once it is closed.
 </td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
-<td><p class="first"><a class="reference internal" href="../schemas/physical_cleanup.html#physical-cleanup-sweep"><span class="std std-ref">AtlasDB Sweep</span></a> now uses <a class="reference internal" href="../configuration/cassandra_KVS_configuration.html#cassandra-sweep-config"><span class="std std-ref">column paging</span></a> via the <code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> parameter to better handle sweeping cells with many historical versions.</p>
+<td><p class="first"><a class="reference internal" href="../schemas/physical_cleanup.html#physical-cleanup-sweep"><span>AtlasDB Sweep</span></a> now uses <a class="reference internal" href="../configuration/cassandra_KVS_configuration.html#cassandra-sweep-config"><span>column paging</span></a> via the <code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> parameter to better handle sweeping cells with many historical versions.</p>
 <p class="last">By paging over historical versions of cells during sweeping, we can avoid out of memory exceptions in Cassandra when we have particularly large cells or many historical versions of cells.
 This feature is only implemented for Cassandra KVS and is disabled by default; please reach out to the AtlasDB dev team if you would like to enable it.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/834">Pull Request</a>)</p>
@@ -327,7 +353,7 @@ The new method should be preferred unless it is necessary to page through the re
 </td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
-<td><p class="first">Added an <a class="reference internal" href="../cluster_management/clis.html#offline-clis"><span class="std std-ref">offline CLI</span></a> called <code class="docutils literal"><span class="pre">clean-cass-locks-state</span></code> to truncate the locks table when the schema mutation lock has been lost.</p>
+<td><p class="first">Added an <a class="reference internal" href="../cluster_management/clis.html#offline-clis"><span>offline CLI</span></a> called <code class="docutils literal"><span class="pre">clean-cass-locks-state</span></code> to truncate the locks table when the schema mutation lock has been lost.</p>
 <p class="last">This is useful on Cassandra KVS if an AtlasDB client goes down during a schema mutation and does not release the schema mutation lock, preventing other clients from continuing.
 Previously an error message would direct users to manually truncate this table with CQL, but now this error message references the CLI.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/888">Pull Request</a>)</p>
@@ -356,7 +382,7 @@ Previously an error message would direct users to manually truncate this table w
 <tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
 <td><p class="first"><code class="docutils literal"><span class="pre">TransactionManagers.create()</span></code> no longer takes in an argument of <code class="docutils literal"><span class="pre">Optional&lt;SSLSocketFactory&gt;</span> <span class="pre">sslSocketFactory</span></code>.
 Instead, security settings between AtlasDB clients are now specified directly in configuration via the new optional parameter <code class="docutils literal"><span class="pre">sslConfiguration</span></code> located in the <code class="docutils literal"><span class="pre">leader</span></code>, <code class="docutils literal"><span class="pre">timestamp</span></code>, and <code class="docutils literal"><span class="pre">lock</span></code> blocks.
-Details can be found in the <a class="reference internal" href="../configuration/leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a> documentation.</p>
+Details can be found in the <a class="reference internal" href="../configuration/leader_config.html#leader-config"><span>Leader Configuration</span></a> documentation.</p>
 <p class="last">To assist with back compatibility, we have introduced a helper method <code class="docutils literal"><span class="pre">AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig</span></code>, which will add the provided <code class="docutils literal"><span class="pre">sslConfiguration</span></code> to <code class="docutils literal"><span class="pre">config</span></code> if the SSL configuration is not specified directly in the <code class="docutils literal"><span class="pre">leader</span></code>, <code class="docutils literal"><span class="pre">timestamp</span></code>, or <code class="docutils literal"><span class="pre">lock</span></code> blocks.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/873">Pull Request 1</a> and <a class="reference external" href="https://github.com/palantir/atlasdb/pull/906">Pull Request 2</a>)</p>
 </td>
@@ -364,12 +390,12 @@ Details can be found in the <a class="reference internal" href="../configuration
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>AtlasDB could startup with a leader configuration that is nonsensical, such as specifying both a <code class="docutils literal"><span class="pre">leader</span></code> block as well as a remote <code class="docutils literal"><span class="pre">timestamp</span></code> and <code class="docutils literal"><span class="pre">lock</span></code> blocks.
 AtlasDB will now fail to start if your configuration is invalid with a sensible message, per <a class="reference external" href="https://github.com/palantir/atlasdb/issues/790">#790</a>, rather than potentially breaking in unexpected ways.
-Please refer to <a class="reference internal" href="../configuration/leader_config.html#leader-config-examples"><span class="std std-ref">Example Leader Configurations</span></a> for guidance on valid configurations.
+Please refer to <a class="reference internal" href="../configuration/leader_config.html#leader-config-examples"><span>Example Leader Configurations</span></a> for guidance on valid configurations.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/854">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed and standardized serialization and deserialization of AtlasDBConfig.
-This prevented CLIs deployed via the <a class="reference internal" href="../cluster_management/dropwizard-bundle.html#dropwizard-bundle"><span class="std std-ref">Dropwizard bundle</span></a> from loading configuration properly.
+This prevented CLIs deployed via the <a class="reference internal" href="../cluster_management/dropwizard-bundle.html#dropwizard-bundle"><span>Dropwizard bundle</span></a> from loading configuration properly.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/875">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
@@ -411,7 +437,7 @@ Removed the advice to restart the client, as it will not help in this scenario.
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Connections to Cassandra can be established over arbitrary ports.
-Previously AtlasDB clients would assume the default Cassandra port of 9160 despite what is specified in the <a class="reference internal" href="../configuration/cassandra_KVS_configuration.html#cassandra-kvs-config"><span class="std std-ref">Cassandra keyValueService configuration</span></a>.
+Previously AtlasDB clients would assume the default Cassandra port of 9160 despite what is specified in the <a class="reference internal" href="../configuration/cassandra_KVS_configuration.html#cassandra-kvs-config"><span>Cassandra keyValueService configuration</span></a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/771">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
@@ -440,7 +466,7 @@ This reduces the likelihood of clients losing the schema mutation lock and havin
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
-<td>AtlasDB will always try to register timestamp and lock endpoints for your application, whereas previously this only occurred if you specify a <a class="reference internal" href="../configuration/leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a>.
+<td>AtlasDB will always try to register timestamp and lock endpoints for your application, whereas previously this only occurred if you specify a <a class="reference internal" href="../configuration/leader_config.html#leader-config"><span>Leader Configuration</span></a>.
 This ensures that CLIs will be able to run against your service even in the single node case.
 For Dropwizard applications, this is only a breaking change if you try to initialize your KeyValueService after having initialized the Dropwizard application.
 Note: If you are initializing the KVS post-Dropwizard initialization, then your application will already fail when starting multiple AtlasDB clients.
@@ -448,7 +474,7 @@ Note: If you are initializing the KVS post-Dropwizard initialization, then your 
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>There is now a Dropwizard bundle which can be added to Dropwizard applications.
-This will add startup commands to launch the AtlasDB console and <a class="reference internal" href="../cluster_management/clis.html#clis"><span class="std std-ref">CLIs</span></a> suchs as <code class="docutils literal"><span class="pre">sweep</span></code> and <code class="docutils literal"><span class="pre">timestamp</span></code>, which is needed to perform <a class="reference internal" href="../cluster_management/backup-restore.html#backup-restore"><span class="std std-ref">live backups</span></a>.
+This will add startup commands to launch the AtlasDB console and <a class="reference internal" href="../cluster_management/clis.html#clis"><span>CLIs</span></a> suchs as <code class="docutils literal"><span class="pre">sweep</span></code> and <code class="docutils literal"><span class="pre">timestamp</span></code>, which is needed to perform <a class="reference internal" href="../cluster_management/backup-restore.html#backup-restore"><span>live backups</span></a>.
 These commands will only work if the server is started with a leader block in its configuration.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/629">Pull Request 1</a> and <a class="reference external" href="https://github.com/palantir/atlasdb/pull/696">Pull Request 2</a>)</td>
 </tr>
@@ -458,7 +484,7 @@ These commands will only work if the server is started with a leader block in it
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>All KVSs now come wrapped with ProfilingKeyValueService, which at the TRACE level provides timing information per KVS operation performed by AtlasDB.
-See <a class="reference internal" href="../configuration/logging.html#logging-configuration"><span class="std std-ref">Logging Configuration</span></a> for more details.
+See <a class="reference internal" href="../configuration/logging.html#logging-configuration"><span>Logging Configuration</span></a> for more details.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/798">Pull Request</a>)</td>
 </tr>
 </tbody>
@@ -642,7 +668,7 @@ and therefore lower latency.  (<a class="reference external" href="https://githu
 values include empty strings and empty protobufs.</p>
 <p>AtlasDB cannot currently distinguish between empty and deleted cells. In previous versions of AtlasDB, inserting
 an empty value into a <code class="docutils literal"><span class="pre">Cell</span></code> would delete that cell. Thus, in this snippet,</p>
-<div class="highlight-java"><div class="highlight"><pre><span></span><span class="n">Transaction</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">table</span><span class="o">,</span> <span class="n">ImmutableMap</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">myCell</span><span class="o">,</span> <span class="k">new</span> <span class="kt">byte</span><span class="o">[</span><span class="mi">0</span><span class="o">]))</span>
+<div class="highlight-java"><div class="highlight"><pre><span class="n">Transaction</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">table</span><span class="o">,</span> <span class="n">ImmutableMap</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">myCell</span><span class="o">,</span> <span class="k">new</span> <span class="kt">byte</span><span class="o">[</span><span class="mi">0</span><span class="o">]))</span>
 <span class="n">Transaction</span><span class="o">.</span><span class="na">get</span><span class="o">(</span><span class="n">table</span><span class="o">,</span> <span class="n">ImmutableSet</span><span class="o">.</span><span class="na">of</span><span class="o">(</span><span class="n">myCell</span><span class="o">)).</span><span class="na">get</span><span class="o">(</span><span class="n">myCell</span><span class="o">)</span>
 </pre></div>
 </div>
@@ -711,7 +737,7 @@ You will need to regenerate your schema code in order to see this fix.
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB can now be backed by Postgres via DB KVS. This is a very early release for this feature, so please contact us if you
-plan on using it. Please see <a class="reference internal" href="../configuration/postgres_key_value_service_config.html#postgres-configuration"><span class="std std-ref">the documentation</span></a> for more details.</td>
+plan on using it. Please see <a class="reference internal" href="../configuration/postgres_key_value_service_config.html#postgres-configuration"><span>the documentation</span></a> for more details.</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The In Memory Key Value Service now makes defensive copies of any data stored or retrieved. This may lead to a slight performance degradation to users of In Memory Key Value Service.

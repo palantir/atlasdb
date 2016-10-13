@@ -34,9 +34,6 @@
   
 
   
-        <link rel="index" title="Index"
-              href="../genindex.html"/>
-        <link rel="search" title="Search" href="../search.html"/>
     <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
         <link rel="up" title="Configuration" href="index.html"/>
         <link rel="next" title="Enabling Cassandra Tracing" href="enabling_cassandra_tracing.html"/>
@@ -94,7 +91,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../transactions/index.html">Transactions</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Configuration</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Cassandra Configuration</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">Cassandra Configuration</a><ul class="simple">
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="enabling_cassandra_tracing.html">Enabling Cassandra Tracing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="postgres_key_value_service_config.html">Postgres Key Value Service Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cassandra_KVS_configuration.html">Cassandra Key Value Service Configuration</a></li>
@@ -128,7 +127,7 @@
         <div class="rst-content">
           
 
- 
+
 
 
 
@@ -164,11 +163,11 @@ you must also bump up the <code class="docutils literal"><span class="pre">concu
 every single row being written on its own thread until the batch sync.
 This means you effectively need 1K threads to get any write throughput.</p>
 <p>Again, you should edit <code class="docutils literal"><span class="pre">conf/cassandra.yaml</span></code>:</p>
-<div class="code yaml highlight-default"><div class="highlight"><pre><span></span><span class="n">partitioner</span><span class="p">:</span> <span class="n">ByteOrderedPartitioner</span>
-<span class="n">commitlog_sync</span><span class="p">:</span> <span class="n">batch</span>
-<span class="n">commitlog_sync_batch_window_in_ms</span><span class="p">:</span> <span class="o">.</span><span class="mi">1</span>  <span class="c1"># .1 is only appropriate for SSDs.  Use 5 for HDDs.</span>
-<span class="c1"># If you use HDDs, make sure the commit log has its own disk because it will thrash it.</span>
-<span class="n">concurrent_writes</span><span class="p">:</span> <span class="mi">1024</span>
+<div class="code yaml highlight-python"><div class="highlight"><pre>partitioner: ByteOrderedPartitioner
+commitlog_sync: batch
+commitlog_sync_batch_window_in_ms: .1  # .1 is only appropriate for SSDs.  Use 5 for HDDs.
+# If you use HDDs, make sure the commit log has its own disk because it will thrash it.
+concurrent_writes: 1024
 </pre></div>
 </div>
 </div>

@@ -40,27 +40,52 @@ v0.19.0
 
     *    - Type
          - Change
+
     *    - |breaking|
-         - Removed KeyValueService.[initializeFromFresh|tearDown|getRangeWithHistory]
-           It is likely all callers of tearDown just want to call close.
+         - Removed KeyValueService ``initializeFromFreshInstance``, ``tearDown``, and ``getRangeWithHistory``.
+           It is likely all callers of tearDown just want to call close, and getRangeWithHistory has been replaced with ``getRangeOfTimestamps``.
            Also removed Partitioning and Remoting KVSs, which were unused and had many unimplemented methods.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1041>`__)
-            
+
     *    - |fixed|
-         - In Cassandra KVS, We now no longer take out the schema mutation lock in calls to `createTables` if tables already exist.
-           This fixes the issue that prevented the `clean-cass-locks-state` CLI from running correctly.
+         - In Cassandra KVS, we now no longer take out the schema mutation lock in calls to ``createTables`` if tables already exist.
+           This fixes the issue that prevented the ``clean-cass-locks-state`` CLI from running correctly.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/991>`__)
 
+    *    - |fixed|
+         - Added a wait period before declaring someone dead based on lack of heartbeat.
+           This will ensure we handle delayed heartbeats in high load situations (eg. on circleci).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1035>`__)
+
     *    - |breaking|
-         - Removed the following classes that appeared to be unused - ``ManyHostPoolingContainer``, ``CloseShieldedKeyValueService``, ``RowWrapper``, ``BatchRowVisitor``,
-           ``MapCollector``, ``DBMgrConfigurationException``, and ``SqlStackLogWrapper``.  Please reach out to us if you are adversly affected by these removals.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1027>`__)
+         - Removed the following classes and interfaces that appeared to be unused:
+              - ``AbstractStringCollector``
+              - ``BatchRowVisitor``
+              - ``ChunkedRowVisitor``
+              - ``CloseShieldedKeyValueService``
+              - ``DBMgrConfigurationException``
+              - ``IdGenerator``
+              - ``ManyHostPoolingContainer``
+              - ``MapCollector``
+              - ``PalantirSequenceEnabledSqlConnection``
+              - ``PalantirSqlConnectionRunner``
+              - ``PaxosLearnerPersistence``
+              - ``PaxosPingablePersistence``
+              - ``PaxosProtos``
+              - ``PostgresBlobs``
+              - ``RowWrapper``
+              - ``SqlConnectionImpl``
+              - ``SqlStackLogWrapper``
+              - ``StringCollector``
+              - ``TLongQueue``
+
+           Please reach out to us if you are adversely affected by these removals.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1027>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1027>`__)
 
     *   - |changed|
-        - The SQL connection manager will no longer temporarily increase the pool size by eleven
-          connections when the pool is exhausted.
+        - The SQL connection manager will no longer temporarily increase the pool size by `eleven <https://github.com/palantir/atlasdb/pull/971/files#diff-f0027e21eb0fc2a30cf8b011cc0a1adbL358>`__ connections when the pool is exhausted.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/971>`__)
-           
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
