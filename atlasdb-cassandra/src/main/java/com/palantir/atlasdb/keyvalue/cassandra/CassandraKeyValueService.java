@@ -321,7 +321,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
         Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost = partitionByHost(rows, Functions.identity()).entrySet();
         List<Callable<Map<Cell, Value>>> tasks = Lists.newArrayListWithCapacity(rowsByHost.size());
-        for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
+        for (final Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
                     "Atlas getRows " + hostAndRows.getValue().size()
                             + " rows from " + tableRef + " on " + hostAndRows.getKey(),
@@ -463,7 +463,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
 
         List<Callable<Void>> tasks = Lists.newArrayList();
-        for (Map.Entry<InetSocketAddress, List<Cell>> hostAndCells : hostsAndCells.entrySet()) {
+        for (Entry<InetSocketAddress, List<Cell>> hostAndCells : hostsAndCells.entrySet()) {
             if (log.isTraceEnabled()) {
                 log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
                         hostsAndCells.values().size(),
@@ -565,7 +565,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost =
                 partitionByHost(rows, Functions.<byte[]>identity()).entrySet();
         List<Callable<Map<byte[], RowColumnRangeIterator>>> tasks = Lists.newArrayListWithCapacity(rowsByHost.size());
-        for (final Map.Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
+        for (final Entry<InetSocketAddress, List<byte[]>> hostAndRows : rowsByHost) {
             tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
                     "Atlas getRowsColumnRange " + hostAndRows.getValue().size()
                             + " rows from " + tableRef + " on " + hostAndRows.getKey(),
@@ -820,16 +820,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private void putInternal(final TableReference tableRef,
-                             final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
+                             final Iterable<Entry<Cell, Value>> values) throws Exception {
         putInternal(tableRef, values, CassandraConstants.NO_TTL);
     }
 
     protected void putInternal(final TableReference tableRef,
-                               Iterable<Map.Entry<Cell, Value>> values,
+                               Iterable<Entry<Cell, Value>> values,
                                final int ttl) throws Exception {
         Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = partitionMapByHost(values);
         List<Callable<Void>> tasks = Lists.newArrayListWithCapacity(cellsByHost.size());
-        for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
+        for (final Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
             tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
                     "Atlas putInternal " + entry.getValue().size()
                             + " cell values to " + tableRef + " on " + entry.getKey(),
@@ -843,7 +843,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private void putForSingleHostInternal(final InetSocketAddress host,
             final TableReference tableRef,
-                                          final Iterable<Map.Entry<Cell, Value>> values,
+                                          final Iterable<Entry<Cell, Value>> values,
                                           final int ttl) throws Exception {
         clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
             @Override
@@ -854,7 +854,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 for (List<Entry<Cell, Value>> partition : partitionByCountAndBytes(values, mutationBatchCount,
                         mutationBatchSizeBytes, tableRef, ENTRY_SIZING_FUNCTION)) {
                     Map<ByteBuffer, Map<String, List<Mutation>>> map = Maps.newHashMap();
-                    for (Map.Entry<Cell, Value> e : partition) {
+                    for (Entry<Cell, Value> e : partition) {
                         Cell cell = e.getKey();
                         Column col = createColumn(cell, e.getValue(), ttl);
 
@@ -897,8 +897,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
             throws KeyAlreadyExistsException {
         List<TableCellAndValue> flattened = Lists.newArrayList();
-        for (Map.Entry<TableReference, ? extends Map<Cell, byte[]>> tableAndValues : valuesByTable.entrySet()) {
-            for (Map.Entry<Cell, byte[]> entry : tableAndValues.getValue().entrySet()) {
+        for (Entry<TableReference, ? extends Map<Cell, byte[]>> tableAndValues : valuesByTable.entrySet()) {
+            for (Entry<Cell, byte[]> entry : tableAndValues.getValue().entrySet()) {
                 flattened.add(new TableCellAndValue(tableAndValues.getKey(), entry.getKey(), entry.getValue()));
             }
         }
@@ -906,7 +906,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 partitionByHost(flattened, TableCellAndValue.EXTRACT_ROW_NAME_FUNCTION);
 
         List<Callable<Void>> callables = Lists.newArrayList();
-        for (Map.Entry<InetSocketAddress, List<TableCellAndValue>> entry : partitionedByHost.entrySet()) {
+        for (Entry<InetSocketAddress, List<TableCellAndValue>> entry : partitionedByHost.entrySet()) {
             callables.addAll(getMultiPutTasksForSingleHost(entry.getKey(), entry.getValue(), timestamp));
         }
         runAllTasksCancelOnFailure(callables);
@@ -1103,7 +1103,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         Map<InetSocketAddress, Map<Cell, Collection<Long>>> keysByHost = partitionMapByHost(keys.asMap().entrySet());
-        for (Map.Entry<InetSocketAddress, Map<Cell, Collection<Long>>> entry : keysByHost.entrySet()) {
+        for (Entry<InetSocketAddress, Map<Cell, Collection<Long>>> entry : keysByHost.entrySet()) {
             deleteOnSingleHost(entry.getKey(), tableRef, entry.getValue());
         }
     }
@@ -1403,8 +1403,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                 CassandraVerifier.sanityCheckTableName(table);
 
-                TableReference tableRefLowerCased = TableReference
-                        .createUnsafe(table.getQualifiedName().toLowerCase());
+                TableReference tableRefLowerCased = TableReference.createUnsafe(table.getQualifiedName().toLowerCase());
                 if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
                     filteredTables.put(table, metadata);
                 } else {
@@ -1663,7 +1662,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
         try {
             final Value value = Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP);
-            putInternal(tableRef, Iterables.transform(cells, new Function<Cell, Map.Entry<Cell, Value>>() {
+            putInternal(tableRef, Iterables.transform(cells, new Function<Cell, Entry<Cell, Value>>() {
                 @Override
                 public Entry<Cell, Value> apply(Cell cell) {
                     return Maps.immutableEntry(cell, value);
@@ -1689,7 +1688,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
                 @Override
                 public Void apply(Client client) throws Exception {
-                    for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
+                    for (Entry<Cell, byte[]> e : values.entrySet()) {
                         ByteBuffer rowName = ByteBuffer.wrap(e.getKey().getRowName());
                         byte[] contents = e.getValue();
                         long timestamp = AtlasDbConstants.TRANSACTION_TS;
@@ -1813,18 +1812,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         log.info("Dropped all schema mutation lock tables [{}]", tables.toString());
     }
 
-    private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
-        Map<InetSocketAddress, List<Map.Entry<Cell, V>>> partitionedByHost =
-                partitionByHost(cells, new Function<Map.Entry<Cell, V>, byte[]>() {
+    private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Entry<Cell, V>> cells) {
+        Map<InetSocketAddress, List<Entry<Cell, V>>> partitionedByHost =
+                partitionByHost(cells, new Function<Entry<Cell, V>, byte[]>() {
                     @Override
                     public byte[] apply(Entry<Cell, V> entry) {
                         return entry.getKey().getRowName();
                     }
                 });
         Map<InetSocketAddress, Map<Cell, V>> cellsByHost = Maps.newHashMap();
-        for (Map.Entry<InetSocketAddress, List<Map.Entry<Cell, V>>> hostAndCells : partitionedByHost.entrySet()) {
+        for (Entry<InetSocketAddress, List<Entry<Cell, V>>> hostAndCells : partitionedByHost.entrySet()) {
             Map<Cell, V> cellsForHost = Maps.newHashMapWithExpectedSize(hostAndCells.getValue().size());
-            for (Map.Entry<Cell, V> entry : hostAndCells.getValue()) {
+            for (Entry<Cell, V> entry : hostAndCells.getValue()) {
                 cellsForHost.put(entry.getKey(), entry.getValue());
             }
             cellsByHost.put(hostAndCells.getKey(), cellsForHost);
