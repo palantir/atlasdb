@@ -1357,16 +1357,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
     }
 
-    private Set<TableReference> getExistingTablesLowerCased(Client client) throws TException {
-        KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
-        Set<TableReference> existingTablesLowerCased = Sets.newHashSet();
-
-        for (CfDef cf : ks.getCf_defs()) {
-            existingTablesLowerCased.add(fromInternalTableName(cf.getName().toLowerCase()));
-        }
-        return existingTablesLowerCased;
-    }
-
     private Map<TableReference, byte[]> filterOutNoOpMetadataChanges(
             final Map<TableReference, byte[]> tableNamesToTableMetadata) {
         Map<TableReference, byte[]> existingTableMetadata = getMetadataForTables();
@@ -1405,8 +1395,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             final Map<TableReference, byte[]> tableNamesToTableMetadata) {
         Map<TableReference, byte[]> filteredTables = Maps.newHashMap();
         try {
-            Set<TableReference> existingTablesLowerCased =
-                    clientPool.runWithRetry((client) -> getExistingTablesLowerCased(client));
+            Set<TableReference> existingTablesLowerCased = getExistingTables();
 
             for (Entry<TableReference, byte[]> tableAndMetadataPair : tableNamesToTableMetadata.entrySet()) {
                 TableReference table = tableAndMetadataPair.getKey();
@@ -1427,6 +1416,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
 
         return filteredTables;
+    }
+
+    private Set<TableReference> getExistingTables() throws TException {
+        return new CassandraDao(clientPool, configManager).getExistingTables();
     }
 
     private void createTablesInternal(final Map<TableReference, byte[]> tableNamesToTableMetadata) throws Exception {
