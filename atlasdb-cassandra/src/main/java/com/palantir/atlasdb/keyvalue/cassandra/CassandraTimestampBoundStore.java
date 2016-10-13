@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
+
+import java.util.Optional;
+
 import javax.annotation.concurrent.GuardedBy;
 
-import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Column;
-import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
@@ -74,13 +73,13 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     @Override
     public synchronized long getUpperLimit() {
-        ColumnOrSuperColumn result = cassandraTimestampDao.getStoredLimit();
-        if (result == null) {
+        Optional<Long> result = cassandraTimestampDao.getStoredLimit();
+        if (!result.isPresent()) {
             setInitialValue();
             return INITIAL_VALUE;
         }
-        Column column = result.getColumn();
-        currentLimit = PtBytes.toLong(column.getValue());
+
+        currentLimit = result.get();
         return currentLimit;
     }
 
@@ -94,14 +93,14 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     }
 
     private void cas(Long oldVal, long newVal) {
-        final CASResult result;
+        final boolean result;
         try {
             result = cassandraTimestampDao.checkAndSet(oldVal, newVal);
         } catch (Exception e) {
             lastWriteException = e;
             throw Throwables.throwUncheckedException(e);
         }
-        if (!result.isSuccess()) {
+        if (!result) {
             String msg = "Timestamp limit changed underneath us (limit in memory: " + currentLimit
                     + "). This may indicate that another timestamp service is running against this cassandra keyspace."
                     + " This is likely caused by multiple copies of a service running without a configured set of"

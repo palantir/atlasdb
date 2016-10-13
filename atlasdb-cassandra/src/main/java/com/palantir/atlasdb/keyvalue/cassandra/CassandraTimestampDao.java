@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
+import java.util.Optional;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Column;
@@ -39,11 +40,11 @@ class CassandraTimestampDao {
         this.clientPool = clientPool;
     }
 
-    ColumnOrSuperColumn getStoredLimit() {
+    Optional<Long> getStoredLimit() {
         ByteBuffer rowName = getRowName();
         ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
         columnPath.setColumn(getColumnName());
-        return clientPool.runWithRetry(client -> {
+        ColumnOrSuperColumn cosc = clientPool.runWithRetry(client -> {
             try {
                 return client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM);
             } catch (NotFoundException e) {
@@ -52,10 +53,16 @@ class CassandraTimestampDao {
                 throw Throwables.throwUncheckedException(e);
             }
         });
+        if (cosc == null) {
+            return null;
+        }
+
+        Column column = cosc.getColumn();
+        return Optional.of(PtBytes.toLong(column.getValue()));
     }
 
-    CASResult checkAndSet(Long oldVal, long newVal) {
-        return clientPool.runWithRetry(client -> {
+    boolean checkAndSet(Long oldVal, long newVal) {
+        CASResult casResult = clientPool.runWithRetry(client -> {
             try {
                 return client.cas(
                         getRowName(),
@@ -69,6 +76,7 @@ class CassandraTimestampDao {
                 throw Throwables.throwUncheckedException(e);
             }
         });
+        return casResult.isSuccess();
     }
 
     private Column makeColumn(long ts) {
