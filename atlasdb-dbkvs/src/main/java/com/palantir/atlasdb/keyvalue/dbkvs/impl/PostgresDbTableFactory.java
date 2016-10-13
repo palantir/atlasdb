@@ -20,8 +20,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
@@ -35,8 +33,6 @@ public class PostgresDbTableFactory implements DbTableFactory {
 
     private final PostgresDdlConfig config;
     private final ExecutorService exec;
-    private final Cache<String, Boolean> queryOptimizerCache =
-            CacheBuilder.newBuilder().expireAfterWrite(3, TimeUnit.HOURS).build();
 
     public PostgresDbTableFactory(PostgresDdlConfig config) {
         this.config = config;
@@ -71,9 +67,7 @@ public class PostgresDbTableFactory implements DbTableFactory {
 
     @Override
     public DbReadTable createRead(String tableName, ConnectionSupplier conns) {
-        BatchedDbReadTable delegate = new BatchedDbReadTable(conns,
-                new PostgresQueryFactory(tableName, config), exec, config);
-        return new QueryOptimizingReadTable(delegate, tableName, queryOptimizerCache);
+        return new BatchedDbReadTable(conns, new PostgresQueryFactory(tableName, config), exec, config);
     }
 
     @Override
