@@ -80,28 +80,35 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     @Override
     public synchronized long getUpperLimit() {
-        return clientPool.runWithRetry(new FunctionCheckedException<Client, Long, RuntimeException>() {
-            @Override
-            public Long apply(Client client) {
-                ByteBuffer rowName = getRowName();
-                ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
-                columnPath.setColumn(getColumnName());
-                ColumnOrSuperColumn result;
+        ByteBuffer rowName = getRowName();
+        ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
+        columnPath.setColumn(getColumnName());
+        ColumnOrSuperColumn result = getStoredLimit(rowName, columnPath);
+        if (result == null) {
+            setInitialValue();
+            return INITIAL_VALUE;
+        }
+        Column column = result.getColumn();
+        currentLimit = PtBytes.toLong(column.getValue());
+        return currentLimit;
+    }
+
+    private ColumnOrSuperColumn getStoredLimit(ByteBuffer rowName, ColumnPath columnPath) {
+        return clientPool.runWithRetry(client -> {
                 try {
-                    result = client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM);
+                    return client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM);
                 } catch (NotFoundException e) {
-                    result = null;
+                    return null;
                 } catch (Exception e) {
                     throw Throwables.throwUncheckedException(e);
                 }
-                if (result == null) {
-                    cas(client, null, INITIAL_VALUE);
-                    return INITIAL_VALUE;
-                }
-                Column column = result.getColumn();
-                currentLimit = PtBytes.toLong(column.getValue());
-                return currentLimit;
-            }
+            });
+    }
+
+    private void setInitialValue() {
+        clientPool.runWithRetry(client -> {
+            cas(client, null, INITIAL_VALUE);
+            return null;
         });
     }
 
