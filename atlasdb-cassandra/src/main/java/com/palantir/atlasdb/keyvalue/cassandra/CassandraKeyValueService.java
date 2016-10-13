@@ -33,7 +33,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra.Client;
@@ -154,6 +153,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
 
     private final TracingQueryRunner queryRunner;
+    private final CassandraDao cassandraDao;
 
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
@@ -193,6 +193,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
 
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
+        this.cassandraDao = new CassandraDao(clientPool, configManager);
     }
 
     private LockLeader whoIsTheLockCreator() {
@@ -1395,7 +1396,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             final Map<TableReference, byte[]> tableNamesToTableMetadata) {
         Map<TableReference, byte[]> filteredTables = Maps.newHashMap();
         try {
-            Set<TableReference> existingTablesLowerCased = getExistingTables();
+            Set<TableReference> existingTablesLowerCased = cassandraDao.getExistingTablesLowerCased();
 
             for (Entry<TableReference, byte[]> tableAndMetadataPair : tableNamesToTableMetadata.entrySet()) {
                 TableReference table = tableAndMetadataPair.getKey();
@@ -1415,10 +1416,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
 
         return filteredTables;
-    }
-
-    private Set<TableReference> getExistingTables() throws TException {
-        return new CassandraDao(clientPool, configManager).getExistingTables();
     }
 
     private void createTablesInternal(final Map<TableReference, byte[]> tableNamesToTableMetadata) throws Exception {
@@ -1451,28 +1448,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return Sets.filter(getAllTablenamesWithoutFiltering(), tr -> !hiddenTables.isHidden(tr));
-    }
-
-    private Set<TableReference> getAllTablenamesWithoutFiltering() {
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        try {
-            return clientPool.runWithRetry(new FunctionCheckedException<Client, Set<TableReference>, Exception>() {
-
-                @Override
-                public Set<TableReference> apply(Client client) throws Exception {
-                    return client.describe_keyspace(config.keyspace()).getCf_defs().stream().map(
-                            cf -> fromInternalTableName(cf.getName())).collect(Collectors.toSet());
-                }
-
-                @Override
-                public String toString() {
-                    return "describe_keyspace(" + config.keyspace() + ")";
-                }
-            });
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        }
+        return Sets.filter(cassandraDao.getExistingTables(), tr -> !hiddenTables.isHidden(tr));
     }
 
     @Override
@@ -1510,7 +1486,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         Map<TableReference, byte[]> tableToMetadataContents = Maps.newHashMap();
 
         // we don't even have a metadata table yet. Return empty map.
-        if (!getAllTablenamesWithoutFiltering().contains(AtlasDbConstants.METADATA_TABLE)) {
+        if (!cassandraDao.getExistingTables().contains(AtlasDbConstants.METADATA_TABLE)) {
             log.trace("getMetadata called with no _metadata table present");
             return tableToMetadataContents;
         }

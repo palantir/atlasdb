@@ -22,8 +22,12 @@ import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.thrift.TException;
 
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.base.Throwables;
 
 class CassandraDao {
     private final CassandraClientPool clientPool;
@@ -34,11 +38,32 @@ class CassandraDao {
         this.configManager = configManager;
     }
 
-    Set<TableReference> getExistingTables() throws TException {
-        return getExistingTables(configManager.getConfig().keyspace());
+    Set<TableReference> getExistingTables() {
+        final CassandraKeyValueServiceConfig config = configManager.getConfig();
+        try {
+            return clientPool.runWithRetry(new FunctionCheckedException<Cassandra.Client, Set<TableReference>, Exception>() {
+
+                @Override
+                public Set<TableReference> apply(Cassandra.Client client) throws Exception {
+                    return client.describe_keyspace(config.keyspace()).getCf_defs().stream().map(
+                            cf -> CassandraKeyValueService.fromInternalTableName(cf.getName())).collect(Collectors.toSet());
+                }
+
+                @Override
+                public String toString() {
+                    return "describe_keyspace(" + config.keyspace() + ")";
+                }
+            });
+        } catch (Exception e) {
+            throw Throwables.throwUncheckedException(e);
+        }
     }
 
-    private Set<TableReference> getExistingTables(String keyspace) throws TException {
+    Set<TableReference> getExistingTablesLowerCased() throws TException {
+        return getExistingTablesLowerCased(configManager.getConfig().keyspace());
+    }
+
+    private Set<TableReference> getExistingTablesLowerCased(String keyspace) throws TException {
         return clientPool.runWithRetry((client) -> getExistingTablesLowerCased(client, keyspace));
     }
 
