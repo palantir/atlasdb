@@ -41,6 +41,11 @@ v0.20.0
     *    - Type
          - Change
 
+    *    - |breaking|
+         - Hotspotting warnings, previously logged at ERROR, will now throw ``IllegalStateException`` on start-up.
+           Products who hit this warning will need to add ``ignoreHotspottingChecks()`` to the relevant tables of their schema.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/947>`__)
+
     *    - |fixed|
          - The dropwizard console no longer always starts up embedded timestamp and lock services.
            This fixes the issue where running the console would cause the ``MultipleRunningTimestampServiceError``

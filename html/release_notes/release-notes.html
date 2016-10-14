@@ -167,12 +167,17 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<td>Hotspotting warnings, previously logged at ERROR, will now throw <code class="docutils literal"><span class="pre">IllegalStateException</span></code> on start-up.
+Products who hit this warning will need to add <code class="docutils literal"><span class="pre">ignoreHotspottingChecks()</span></code> to the relevant tables of their schema.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/947">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The dropwizard console no longer always starts up embedded timestamp and lock services.
 This fixes the issue where running the console would cause the <code class="docutils literal"><span class="pre">MultipleRunningTimestampServiceError</span></code>
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1063">Pull Request</a>).</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The <code class="docutils literal"><span class="pre">atlasdb-dagger</span></code> project now publishes a shadowed version so we do not rely on the version of dagger on the classpath.
 This fixes the issue where running the CLIs would cause a <code class="docutils literal"><span class="pre">ClassNotFoundException</span></code>
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1065">Pull Request</a>).</td>
