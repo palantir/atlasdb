@@ -22,7 +22,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.annotations.VisibleForTesting;
 
 public class AvailableTimestamps {
-    protected static final long DEFAULT_ALLOCATION_BUFFER_SIZE = 1000 * 1000;
+    protected static final long DEFAULT_ALLOCATION_BUFFER_SIZE = 10; //00 * 1000;
     private static final long MAX_TIMESTAMPS_TO_HAND_OUT = 10 * 1000;
 
     private final LastReturnedTimestamp lastReturnedTimestamp;
