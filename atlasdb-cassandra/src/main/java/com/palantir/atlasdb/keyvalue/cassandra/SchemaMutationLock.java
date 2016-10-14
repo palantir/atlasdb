@@ -217,7 +217,7 @@ final class SchemaMutationLock {
                 }
 
                 // we won the lock!
-                log.info("Successfully acquired schema mutation lock.");
+                log.info("Successfully acquired schema mutation lock with id [{}]", perOperationNodeId);
                 return null;
             });
         } catch (InterruptedException e) {
@@ -302,9 +302,8 @@ final class SchemaMutationLock {
     }
 
     private boolean trySchemaMutationUnlockOnce(long perOperationNodeId) {
-        boolean result;
         try {
-            result = clientPool.runWithRetry(client -> {
+            return clientPool.runWithRetry(client -> {
                 Column existingColumn = queryExistingLockColumn(client);
                 long existingLockId = getLockIdFromColumn(existingColumn);
                 if (existingLockId == GLOBAL_DDL_LOCK_CLEARED_ID) {
@@ -312,21 +311,20 @@ final class SchemaMutationLock {
                 }
 
                 Preconditions.checkState(existingLockId == perOperationNodeId,
-                        String.format("Trying to unlock unowned lock. Expected [%d], but got [%d]",
-                                perOperationNodeId, existingLockId));
+                        "Trying to unlock unowned lock. Expected [%s], but got [%s]",
+                        perOperationNodeId, existingLockId);
 
                 List<Column> ourExpectedLock = ImmutableList.of(existingColumn);
                 Column clearedLock = lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE);
                 CASResult casResult = writeDdlLockWithCas(client, ourExpectedLock, clearedLock);
                 if (casResult.isSuccess()) {
-                    log.info("Successfully released schema mutation lock.");
+                    log.info("Successfully released schema mutation lock with id [{}]", existingLockId);
                 }
                 return casResult.isSuccess();
             });
         } catch (TException e) {
             throw Throwables.throwUncheckedException(e);
         }
-        return result;
     }
 
     private Column queryExistingLockColumn(Client client) throws TException {
