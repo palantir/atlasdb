@@ -36,9 +36,6 @@ dependencies:
   override:
     - ./gradlew --profile --parallel resolveConfigurations
     - sudo pip install sphinx sphinx_rtd_theme
-  cache_directories:
-    - ~/.gradle
-    - ~/.m2
 
 test:
   pre:
