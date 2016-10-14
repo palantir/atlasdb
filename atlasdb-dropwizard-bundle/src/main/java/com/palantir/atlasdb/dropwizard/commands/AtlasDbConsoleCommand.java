@@ -71,7 +71,7 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
 
         // We do this here because there's no flag to connect to an offline
         // cluster in atlasdb-console (since this is passed in through bind)
-        if (namespace.getAttrs().containsKey("runCliOffline")) {
+        if (isCliRunningOffline(namespace)) {
             cliConfiguration = ImmutableAtlasDbConfig.builder()
                     .from(cliConfiguration)
                     .leader(Optional.absent())
@@ -89,6 +89,10 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
                 .addAll(AtlasDbCommandUtils.gatherPassedInArguments(namespace.getAttrs()))
                 .build();
 
+        runAtlasDbConsole(allArgs);
+    }
+
+    protected void runAtlasDbConsole(List<String> allArgs) {
         try {
             AtlasConsoleMain.main(allArgs.toArray(new String[] {}));
         } catch (Throwable e) {

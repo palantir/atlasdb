@@ -28,3 +28,6 @@ shadowJar {
     include dependency(group: 'com.google.dagger', name: 'dagger', version: libVersions.dagger)
   }
 }
+
+jar.dependsOn shadowJar
+jar.onlyIf { false }
