@@ -15,46 +15,43 @@
  */
 package com.palantir.atlasdb.ete;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
 
-public class MultiCassandraSingleNodeDownTest {
-    private static final String CASSANDRA_NODE_TO_KILL = "cassandra1";
+import feign.FeignException;
+
+public class MultiCassandraDoubleNodeDownEteTest {
+    private static final List<String> CASSANDRA_NODES_TO_KILL = ImmutableList.of("cassandra1", "cassandra2");
 
     @BeforeClass
     public static void shutdownCassandraNode() {
-        MultiCassandraTestSuite.killCassandraContainer(CASSANDRA_NODE_TO_KILL);
+        CASSANDRA_NODES_TO_KILL.forEach(MultiCassandraTestSuite::killCassandraContainer);
     }
 
     @AfterClass
     public static void startupCassandraNode() {
-        MultiCassandraTestSuite.startCassandraContainer(CASSANDRA_NODE_TO_KILL);
+        CASSANDRA_NODES_TO_KILL.forEach(MultiCassandraTestSuite::startCassandraContainer);
     }
 
-    @Test
-    public void shouldBeAbleToWriteWithOneCassandraNodeDown() {
+    @Test(expected = FeignException.class)
+    public void shouldNotBeAbleToWriteWithTwoCassandraNodseDown() {
         TodoResource todos = EteSetup.createClientToSingleNode(TodoResource.class);
-        Todo todo = getUniqueTodo();
-
-        todos.addTodo(todo);
+        todos.addTodo(getUniqueTodo());
     }
 
-    @Test
-    public void shouldBeAbleToReadWithOneCassandraNodeDown() {
+    @Test(expected = FeignException.class)
+    public void shouldNotBeAbleToReadWithTwoCassandraNodesDown() {
         TodoResource todos = EteSetup.createClientToSingleNode(TodoResource.class);
-        Todo todo = getUniqueTodo();
-
-        todos.addTodo(todo);
-        assertThat(todos.getTodoList()).contains(todo);
+        todos.getTodoList();
     }
 
     private static Todo getUniqueTodo() {
