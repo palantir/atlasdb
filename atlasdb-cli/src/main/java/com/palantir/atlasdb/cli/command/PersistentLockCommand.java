@@ -60,19 +60,23 @@ public class PersistentLockCommand extends SingleBackendCommand {
         KeyValueService keyValueService = services.getKeyValueService();
         PersistentLock persistentLock = PersistentLock.create(keyValueService);
 
-        if (acquireLockName != null) {
+        if (listLocks) {
+            return printLockList(persistentLock);
+        } else if (acquireLockName != null) {
             return acquireLock(persistentLock, acquireLockName);
         } else if (releaseLockName != null) {
             if (releaseLockId != null) {
                 return releaseLock(persistentLock, releaseLockName, Long.parseLong(releaseLockId));
             } else {
-                log.error("To release a lock, you must specify its lockId");
+                String message = "To release a lock, you must specify its lockId, e.g.: \n"
+                        + "persistent-lock --release --lockId <LOCK_ID> \n"
+                        + "To see all locks and lockIds, run: \n"
+                        + "persistent-lock --list";
+                log.error(message);
                 return 1;
             }
-        } else if (listLocks) {
-            return printLockList(persistentLock);
         } else {
-            log.error("See the help page for instructions on how to use this CLI");
+            log.error("Specify one of --list, --acquire, or --release");
             return 1;
         }
     }
