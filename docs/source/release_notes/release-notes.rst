@@ -46,6 +46,11 @@ v0.20.0
            This fixes the issue where running the console would cause the ``MultipleRunningTimestampServiceError``
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1063>`__).
 
+    *    - |fixed|
+         - The ``atlasdb-dagger`` project now publishes a shadowed version so we do not rely on the version of dagger on the classpath.
+           This fixes the issue where running the CLIs would cause a ``ClassNotFoundException``
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1065>`__).
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
