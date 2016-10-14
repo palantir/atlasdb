@@ -28,6 +28,14 @@ First we need to define what the logical point in time of our backup is going to
 
      $ ./bin/atlasdb --config <config-file> --config-root <path-to-atlas-block> timestamp fetch --file <backup-directory>/backup.timestamp
 
+We also want to prevent any deletions from taking place, as they could corrupt the backup(for example, sweep might start
+during a backup and determine that a value is obsolete and needs to be cleaned up, even if that value was critical as of
+the backup timestamp).  To do this, we acquire the backup lock, which prevents delete-heavy workflows such as sweep from running.
+
+.. code:: bash
+
+     $ ./bin/atlasdb --config <config-file> --config-root <path-to-atlas-block> backup-lock --acquire
+
 Next, we back-up the underlying key value service we're using.  For the purposes of this documention, we will assume you can backup your specific key value service.
 
 Common KVS layers:
@@ -36,13 +44,20 @@ Common KVS layers:
 -  Postgres `backup and restore <https://www.postgresql.org/docs/9.1/static/backup-dump.html>`__.
 -  If you are using RocksDB, you can simply compress the database files on disk with ``tar -czf backup.tgz path/to/data``.
 
-Finally, we take the fast-forward timestamp.  Like the backup timestamp, the fast-forward timestamp is simply another fresh one that we fetch from atlas.  The purpose of this timestamp is to have a logical point in time for which we can guarantee that any reads or writes that took place during the backup process happened before this.  Fetching it is similar to that of the backup timestamp:
+Then, we take the fast-forward timestamp.  Like the backup timestamp, the fast-forward timestamp is simply another fresh one that we fetch from atlas.  The purpose of this timestamp is to have a logical point in time for which we can guarantee that any reads or writes that took place during the backup process happened before this.  Fetching it is similar to that of the backup timestamp:
 
 .. code:: bash
 
      $ ./bin/atlasdb --config <config-file> --config-root <path-to-atlas-block> timestamp fetch --file <backup-directory>/fast-forward.timestamp
 
 These two timestamp files and the entirety of your underlying storage's backup are your entire atlasdb backup.
+
+Finally, we release the backup lock to allow other delete-heavy workflows to resume.
+
+.. code:: bash
+
+     $ ./bin/atlasdb --config <config-file> --config-root <path-to-atlas-block> backup-lock --release
+
 
 Restoring from a Backup
 =======================
@@ -61,10 +76,16 @@ Next, we want to clean out any transactions that were committed after our backup
 
      $ ./bin/atlasdb --config <config-file> --config-root <path-to-atlas-block> timestamp clean-transactions --file <backup-directory>/backup.timestamp
 
-Finally, we fast-forward the timstamp service to the fast-forward timestamp to ensure that any future transactions we perform don't use a timestamp that could have potentially been used and written data to during the time after we took the backup timstamp but before our backup of our underlying kvs completed:
+Next, we fast-forward the timstamp service to the fast-forward timestamp to ensure that any future transactions we perform don't use a timestamp that could have potentially been used and written data to during the time after we took the backup timstamp but before our backup of our underlying kvs completed:
 
 .. code:: bash
 
      $ ./bin/atlasdb --config <config-file> --config-root <path-to-atlas-block> timestamp fast-forward --file <backup-directory>/fast-forward.timestamp
+
+Finally, the backup lock is persisted to disk and may have been saved as part of the backup.  We can release it with
+
+.. code:: bash
+
+     $ ./bin/atlasdb --config <config-file> --config-root <path-to-atlas-block> backup-lock --release
 
 The AtlasDB restore is now complete.

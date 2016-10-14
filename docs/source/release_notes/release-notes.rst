@@ -50,6 +50,15 @@ develop
            that need to be created when a large number of transactions begin.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1294>`__)
 
+    *    - |new|
+         - Introduced the deletion lock.
+           This feature is motivated by the fact that running a backup and a KVS deletion (for example as part of sweeping) and
+           can corrupt the backup.
+           The sweep and scrub tasks now acquire a deletion lock before running. When performing a backup, users
+           should use the new :ref:`backup-lock CLI <clis>` to acquire the deletion lock before running a :ref:`backup <backup-restore>`,
+           and to release it after the backup completes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1011>`__)
+           
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -387,7 +396,6 @@ v0.20.0
          - The ``metadataTableName`` for Oracle is now ``atlasdb_metadata`` instead of ``_metadata``.
            This is due to Oracle's restriction of not allowing table names with a leading underscore.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
-
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
