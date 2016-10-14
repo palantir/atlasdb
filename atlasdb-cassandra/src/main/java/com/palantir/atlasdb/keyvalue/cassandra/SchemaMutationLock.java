@@ -302,26 +302,31 @@ final class SchemaMutationLock {
     }
 
     private boolean trySchemaMutationUnlockOnce(long perOperationNodeId) {
-        CASResult result;
+        boolean result;
         try {
             result = clientPool.runWithRetry(client -> {
                 Column existingColumn = queryExistingLockColumn(client);
                 long existingLockId = getLockIdFromColumn(existingColumn);
-
-                if (existingLockId != GLOBAL_DDL_LOCK_CLEARED_ID) {
-                    Preconditions.checkState(existingLockId == perOperationNodeId,
-                            String.format("Trying to unlock unowned lock. Expected [%d], but got [%d]",
-                                    perOperationNodeId, existingLockId));
+                if (existingLockId == GLOBAL_DDL_LOCK_CLEARED_ID) {
+                    return true;
                 }
+
+                Preconditions.checkState(existingLockId == perOperationNodeId,
+                        String.format("Trying to unlock unowned lock. Expected [%d], but got [%d]",
+                                perOperationNodeId, existingLockId));
 
                 List<Column> ourExpectedLock = ImmutableList.of(existingColumn);
                 Column clearedLock = lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE);
-                return writeDdlLockWithCas(client, ourExpectedLock, clearedLock);
+                CASResult casResult = writeDdlLockWithCas(client, ourExpectedLock, clearedLock);
+                if (casResult.isSuccess()) {
+                    log.info("Successfully released schema mutation lock.");
+                }
+                return casResult.isSuccess();
             });
         } catch (TException e) {
             throw Throwables.throwUncheckedException(e);
         }
-        return result.isSuccess();
+        return result;
     }
 
     private Column queryExistingLockColumn(Client client) throws TException {
