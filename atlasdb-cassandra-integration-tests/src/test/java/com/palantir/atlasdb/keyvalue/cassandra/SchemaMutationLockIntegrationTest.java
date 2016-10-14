@@ -219,22 +219,7 @@ public class SchemaMutationLockIntegrationTest {
     }
 
     private void setUpWithNonHeartbeatClearedLock() throws TException {
-        clientPool.runWithRetry(this::createNonHeartbeatClearedLockEntry);
-    }
-
-    private CqlResult createNonHeartbeatClearedLockEntry(Cassandra.Client client) throws TException {
         String lockValue = CassandraKeyValueServices.encodeAsHex(Longs.toByteArray(Long.MAX_VALUE));
-        String lockRowName = CassandraKeyValueServices.encodeAsHex(
-                CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME.getBytes(StandardCharsets.UTF_8));
-        String lockColName = CassandraKeyValueServices.encodeAsHex(
-                CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8));
-        String createCql = String.format(
-                "UPDATE \"%s\" SET value = %s WHERE key = %s AND column1 = %s AND column2 = -1;",
-                lockTable.getOnlyTable().getQualifiedName(),
-                lockValue,
-                lockRowName,
-                lockColName);
-        ByteBuffer queryBuffer = ByteBuffer.wrap(createCql.getBytes(StandardCharsets.UTF_8));
-        return client.execute_cql3_query(queryBuffer, Compression.NONE, writeConsistency);
+        CassandraTestTools.setLocksTableValue(clientPool, lockTable, lockValue, writeConsistency);
     }
 }

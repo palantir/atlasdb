@@ -386,7 +386,8 @@ final class SchemaMutationLock {
         return lockColumnWithValue(strValue.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static long getLockIdFromColumn(Column column) {
+    @VisibleForTesting
+    static long getLockIdFromColumn(Column column) {
         String columnStringValue = new String(column.getValue(), StandardCharsets.UTF_8);
         Matcher columnStringMatcher = GLOBAL_DDL_LOCK_FORMAT_PATTERN.matcher(columnStringValue);
         Preconditions.checkState(columnStringMatcher.matches(), "Invalid format for a lock column");
