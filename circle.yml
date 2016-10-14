@@ -11,6 +11,18 @@ machine:
   services:
     - docker
 
+checkout:
+  post:
+    - sudo service clamav-freshclam stop
+    - sudo service couchdb stop
+    - sudo service memcached stop
+    - sudo service mongodb stop
+    - sudo service mysql stop
+    - sudo service postgresql stop
+    - sudo service rabbitmq-server stop
+    - sudo service redis-server stop
+    - sudo service zookeeper stop
+
 general:
   artifacts:
     - "build/reports/profile"
@@ -21,7 +33,6 @@ general:
 dependencies:
   pre:
     - sudo pip install docker-compose
-    - sudo pkill -u postgres
   override:
     - ./gradlew --profile --parallel resolveConfigurations
     - sudo pip install sphinx sphinx_rtd_theme
