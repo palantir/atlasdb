@@ -59,16 +59,16 @@ public class AtlasDbConsoleCommandTest {
     public void lockAndTimestampFieldsShouldBeSetWhenRunningOnline() throws JsonProcessingException {
         AtlasDbConfig cliConfig = getConfigFromConsoleCommand(ONLINE_PARAMS, MINIMAL_LEADER_CONFIG);
 
-        assertThat(cliConfig.lock().isPresent()).describedAs("Lock block is missing").isTrue();
-        assertThat(cliConfig.timestamp().isPresent()).describedAs("Timestamp block is missing").isTrue();
+        assertThat(cliConfig.lock().isPresent()).describedAs("Lock block must be present").isTrue();
+        assertThat(cliConfig.timestamp().isPresent()).describedAs("Timestamp block must be present").isTrue();
     }
 
     @Test
     public void lockAndTimestampFieldsShouldBeEmptyWhenRunningOffline() throws JsonProcessingException {
         AtlasDbConfig cliConfig = getConfigFromConsoleCommand(OFFLINE_PARAMS, MINIMAL_LEADER_CONFIG);
 
-        assertThat(cliConfig.lock().isPresent()).describedAs("Lock block is present").isFalse();
-        assertThat(cliConfig.timestamp().isPresent()).describedAs("Timestamp block is present").isFalse();
+        assertThat(cliConfig.lock().isPresent()).describedAs("Lock block must be absent").isFalse();
+        assertThat(cliConfig.timestamp().isPresent()).describedAs("Timestamp block must be absent").isFalse();
     }
 
     private AtlasDbConfig getConfigFromConsoleCommand(Map<String, Object> params, AtlasDbConfig config)
