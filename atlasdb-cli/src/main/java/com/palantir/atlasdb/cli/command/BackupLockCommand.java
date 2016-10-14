@@ -15,16 +15,14 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import java.util.Set;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.persistentlock.DeletionLock;
 import com.palantir.atlasdb.persistentlock.LockEntry;
 import com.palantir.atlasdb.persistentlock.PersistentLock;
 import com.palantir.atlasdb.persistentlock.PersistentLockIsTakenException;
-import com.palantir.atlasdb.persistentlock.PersistentLockName;
 import com.palantir.atlasdb.services.AtlasDbServices;
 
 import io.airlift.airline.Command;
@@ -62,11 +60,11 @@ public class BackupLockCommand extends SingleBackendCommand {
         }
     }
 
-    private int acquireLock(PersistentLock persistentLock, String lockName) {
+    private int acquireLock(PersistentLock persistentLock) {
         try {
             LockEntry acquiredLock = persistentLock.acquireLock(
-                    PersistentLockName.of(lockName), "PersistentLock CLI command");
-            log.info("Successfully acquired persistent lock {}", acquiredLock);
+                    DeletionLock.DELETION_LOCK_NAME, "backup lock CLI");
+            log.info("Successfully acquired deletion lock {}", acquiredLock);
             return 0;
         } catch (PersistentLockIsTakenException e) {
             log.error("Could not acquire the lock because it was already taken", e);
@@ -74,19 +72,9 @@ public class BackupLockCommand extends SingleBackendCommand {
         }
     }
 
-    private int releaseLock(PersistentLock persistentLock, String lockName, long lockId) {
-        LockEntry lockToRelease = LockEntry.of(PersistentLockName.of(lockName), lockId);
-        persistentLock.releaseLock(lockToRelease);
-        log.info("This persistent lock is now released: {}", lockToRelease);
-        return 0;
-    }
-
-    private int printLockList(PersistentLock persistentLock) {
-        Set<LockEntry> allLockEntries = persistentLock.allLockEntries();
-        log.info("The following persistent locks are currently taken out (total {})", allLockEntries.size());
-        for (LockEntry lockEntry : allLockEntries) {
-            log.info(" - {}", lockEntry.toString());
-        }
+    private int releaseLock(PersistentLock persistentLock) {
+        LockEntry releasedLock = persistentLock.releaseOnlyLock(DeletionLock.DELETION_LOCK_NAME);
+        log.info("This persistent lock is now released: {}", releasedLock);
         return 0;
     }
 }
