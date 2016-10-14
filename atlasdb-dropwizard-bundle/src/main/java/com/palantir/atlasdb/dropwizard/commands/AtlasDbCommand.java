@@ -15,11 +15,14 @@
  */
 package com.palantir.atlasdb.dropwizard.commands;
 
+import java.util.Objects;
+
 import com.palantir.atlasdb.dropwizard.AtlasDbConfigurationProvider;
 
 import io.dropwizard.Configuration;
 import io.dropwizard.cli.ConfiguredCommand;
 import net.sourceforge.argparse4j.impl.Arguments;
+import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 
 public abstract class AtlasDbCommand<T extends Configuration & AtlasDbConfigurationProvider>
@@ -47,5 +50,9 @@ public abstract class AtlasDbCommand<T extends Configuration & AtlasDbConfigurat
                 .required(false)
                 .action(Arguments.storeConst())
                 .setConst(AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT);
+    }
+
+    protected boolean isCliRunningOffline(Namespace namespace) {
+        return Objects.equals(namespace.getString("runCliOffline"), AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT);
     }
 }
