@@ -19,17 +19,24 @@ import java.util.concurrent.ExecutorService;
 
 import javax.annotation.concurrent.ThreadSafe;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.PTExecutors;
 
 @ThreadSafe
 public class PersistentTimestampService implements TimestampService {
+    private static final Logger log = LoggerFactory.getLogger(PersistentTimestampService.class);
+
     private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
 
     private final ExecutorService executor;
     private final AvailableTimestamps availableTimestamps;
 
     public PersistentTimestampService(AvailableTimestamps availableTimestamps, ExecutorService executor) {
+        log.warn("[TRACE: MT] Creating PersistentTimestampService object. This should only happen once.");
+
         this.availableTimestamps = availableTimestamps;
         this.executor = executor;
     }

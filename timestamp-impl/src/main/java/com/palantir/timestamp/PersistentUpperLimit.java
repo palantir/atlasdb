@@ -21,11 +21,15 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.concurrent.GuardedBy;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 import com.palantir.exception.PalantirInterruptedException;
 
 public class PersistentUpperLimit {
+    private static final Logger log = LoggerFactory.getLogger(PersistentUpperLimit.class);
 
     private final TimestampBoundStore tbs;
     private final Clock clock;
@@ -36,6 +40,7 @@ public class PersistentUpperLimit {
     private volatile long lastIncreasedTime;
 
     public PersistentUpperLimit(TimestampBoundStore tbs, Clock clock, TimestampAllocationFailures allocationFailures) {
+        log.warn("[TRACE: MT] Creating PersistentUpperLimit object. This should only happen once.");
         this.tbs = tbs;
         this.clock = clock;
         this.allocationFailures = checkNotNull(allocationFailures);

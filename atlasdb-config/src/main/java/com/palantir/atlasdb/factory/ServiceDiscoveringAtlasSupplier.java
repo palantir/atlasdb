@@ -19,6 +19,9 @@ import java.util.ServiceLoader;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -29,6 +32,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.TimestampService;
 
 public class ServiceDiscoveringAtlasSupplier {
+    private static final Logger log = LoggerFactory.getLogger(ServiceDiscoveringAtlasSupplier.class);
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
 
     private final KeyValueServiceConfig config;
@@ -53,6 +57,7 @@ public class ServiceDiscoveringAtlasSupplier {
     }
 
     public TimestampService getTimestampService() {
+        log.warn("[TRACE: MT] Fetching timestamp service. This should only happen once.");
         return timestampService.get();
     }
 

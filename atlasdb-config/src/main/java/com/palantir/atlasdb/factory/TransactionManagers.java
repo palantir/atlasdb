@@ -117,6 +117,7 @@ public final class TransactionManagers {
             Environment env,
             LockServerOptions lockServerOptions,
             boolean allowHiddenTableAccess) {
+        log.warn("[TRACE: MT] TransactionManagers.create. This should only happen once.");
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
         KeyValueService rawKvs = atlasFactory.getKeyValueService();

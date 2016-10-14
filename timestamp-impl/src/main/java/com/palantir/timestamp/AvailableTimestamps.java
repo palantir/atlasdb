@@ -19,9 +19,14 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 
 public class AvailableTimestamps {
+    private static final Logger log = LoggerFactory.getLogger(AvailableTimestamps.class);
+
     protected static final long DEFAULT_ALLOCATION_BUFFER_SIZE = 10; //00 * 1000;
     private static final long MAX_TIMESTAMPS_TO_HAND_OUT = 10 * 1000;
 
@@ -36,6 +41,7 @@ public class AvailableTimestamps {
 
     @VisibleForTesting
     AvailableTimestamps(LastReturnedTimestamp lastReturnedTimestamp, PersistentUpperLimit upperLimit, long allocationBufferSize) {
+        log.warn("[TRACE: MT] Creating AvailableTimestamps object. This should only happen once.");
         this.lastReturnedTimestamp = lastReturnedTimestamp;
         this.upperLimit = upperLimit;
         this.allocationBufferSize = allocationBufferSize;
@@ -48,7 +54,9 @@ public class AvailableTimestamps {
                 "Can only hand out %s timestamps at a time, but %s were requested",
                 MAX_TIMESTAMPS_TO_HAND_OUT, numberToHandOut);
 
-        return handOutTimestamp(lastHandedOut() + numberToHandOut);
+        long targetTimestamp = lastHandedOut() + numberToHandOut;
+        log.warn("[TRACE: MT] Handing out {} timestamps, taking us to {}.", numberToHandOut, targetTimestamp);
+        return handOutTimestamp(targetTimestamp);
     }
 
     public synchronized void refreshBuffer() {
@@ -72,6 +80,7 @@ public class AvailableTimestamps {
     }
 
     private synchronized TimestampRange handOutTimestamp(long targetTimestamp) {
+
         checkArgument(
                 targetTimestamp > lastHandedOut(),
                 "Could not hand out timestamp '%s' as it was earlier than the last handed out timestamp: %s",
