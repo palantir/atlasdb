@@ -21,17 +21,17 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public class DeletionLock {
     private final PersistentLock persistentLock;
-    private PersistentLockName lockName = PersistentLockName.of("DeletionLock");
+    public static final PersistentLockName DELETION_LOCK_NAME = PersistentLockName.of("DeletionLock");
 
     public DeletionLock(KeyValueService keyValueService) {
         this.persistentLock = PersistentLock.create(keyValueService);
     }
 
     public <T> T runWithLock(Supplier<T> supplier, String reason) throws PersistentLockIsTakenException {
-        return persistentLock.runWithExclusiveLock(supplier, lockName, reason);
+        return persistentLock.runWithExclusiveLock(supplier, DELETION_LOCK_NAME, reason);
     }
 
     public <T> T  runWithLockNonExclusively(Supplier<T> supplier, String reason) throws PersistentLockIsTakenException {
-        return persistentLock.runWithNonExclusiveLock(supplier, lockName, reason);
+        return persistentLock.runWithNonExclusiveLock(supplier, DELETION_LOCK_NAME, reason);
     }
 }
