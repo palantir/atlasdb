@@ -31,6 +31,24 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.20.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - The dropwizard console no longer always starts up embedded timestamp and lock services.
+           This fixes the issue where running the console would cause the ``MultipleRunningTimestampServiceError``
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1063>`__).
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.19.0
 =======
 
