@@ -213,4 +213,26 @@ public class PersistentLocksShould {
         expectedException.expect(PersistentLockIsTakenException.class);
         persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, false);
     }
+
+    @Test
+    public void releaseOnlyLockIfItIsUnique() throws PersistentLockIsTakenException {
+        KeyValueService keyValueService = new InMemoryKeyValueService(false);
+        PersistentLock persistentLock = PersistentLock.create(keyValueService);
+        PersistentLockName onlyLockName = PersistentLockName.of("onlyLock");
+        persistentLock.acquireLock(onlyLockName, REASON, true);
+
+        persistentLock.releaseOnlyLock(onlyLockName);
+    }
+
+    @Test
+    public void failToReleaseOnlyLockIfItIsNotUnique() throws PersistentLockIsTakenException {
+        KeyValueService keyValueService = new InMemoryKeyValueService(false);
+        PersistentLock persistentLock = PersistentLock.create(keyValueService);
+        PersistentLockName onlyLockName = PersistentLockName.of("onlyLock");
+        persistentLock.acquireLock(onlyLockName, REASON, false);
+        persistentLock.acquireLock(onlyLockName, REASON, false);
+
+        expectedException.expect(IllegalArgumentException.class);
+        persistentLock.releaseOnlyLock(onlyLockName);
+    }
 }

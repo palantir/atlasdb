@@ -98,6 +98,21 @@ public final class PersistentLock {
         keyValueService.delete(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lock.deletionMapWithTimestamp(LOCKS_TIMESTAMP));
     }
 
+    public LockEntry releaseOnlyLock(PersistentLockName lockName) {
+        Set<LockEntry> matchingLockEntries = allLockEntries().stream()
+                .filter(lockEntry -> lockEntry.lockName().equals(lockName))
+                .collect(Collectors.toSet());
+
+        if (matchingLockEntries.size() != 1) {
+            throw new IllegalArgumentException("Expected to find only one lock with name " + lockName
+                    + " but the set of matching entries is " + matchingLockEntries);
+        }
+
+        LockEntry onlyLock = matchingLockEntries.iterator().next();
+        releaseLock(onlyLock);
+        return onlyLock;
+    }
+
     private LockEntry generateUniqueLockEntry(PersistentLockName lockName, String reason, boolean exclusive) {
         long thisId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE);
         return LockEntry.of(lockName, thisId, reason, exclusive);
