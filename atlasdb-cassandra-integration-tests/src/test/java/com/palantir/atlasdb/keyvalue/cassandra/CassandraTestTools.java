@@ -110,8 +110,8 @@ public final class CassandraTestTools {
         });
     }
 
-    public static String getHexEncodedBytes(String s) {
-        return CassandraKeyValueServices.encodeAsHex(s.getBytes(StandardCharsets.UTF_8));
+    public static String getHexEncodedBytes(String str) {
+        return CassandraKeyValueServices.encodeAsHex(str.getBytes(StandardCharsets.UTF_8));
     }
 
     public static long readLockIdFromLocksTable(CassandraClientPool clientPool, UniqueSchemaMutationLockTable lockTable)
@@ -121,8 +121,8 @@ public final class CassandraTestTools {
         return SchemaMutationLock.getLockIdFromColumn(resultColumn);
     }
 
-    public static long readHeartbeatCountFromLocksTable(CassandraClientPool clientPool, UniqueSchemaMutationLockTable lockTable)
-            throws TException {
+    public static long readHeartbeatCountFromLocksTable(CassandraClientPool clientPool,
+            UniqueSchemaMutationLockTable lockTable) throws TException {
         CqlResult result = CassandraTestTools.readLocksTable(clientPool, lockTable);
         Column resultColumn = getColumnFromCqlResult(result);
         return SchemaMutationLock.getHeartbeatCountFromColumn(resultColumn);
