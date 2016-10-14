@@ -30,25 +30,17 @@ import com.palantir.atlasdb.services.AtlasDbServices;
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 
-@Command(name = "persistent-lock", description = "Manipulate persistent locks - use with caution!")
-public class PersistentLockCommand extends SingleBackendCommand {
-    private static final Logger log = LoggerFactory.getLogger(PersistentLockCommand.class);
-
-    @Option(name = {"-l", "--list"},
-            description = "List all the persistent locks currently taken")
-    boolean listLocks;
+@Command(name = "backup-lock", description = "Acquire or release the backup lock. Used to to prevent deletions")
+public class BackupLockCommand extends SingleBackendCommand {
+    private static final Logger log = LoggerFactory.getLogger(BackupLockCommand.class);
 
     @Option(name = {"-a", "--acquire"},
-            description = "Name of the lock to acquire")
-    String acquireLockName;
+            description = "Acquire a backup lock")
+    boolean acquireLock;
 
     @Option(name = {"-r", "--release"},
             description = "Name of the lock to release")
-    String releaseLockName;
-
-    @Option(name = {"-i", "--lockId"},
-            description = "Long ID of the lock to release")
-    String releaseLockId;
+    boolean releaseLock;
 
     @Override
     public boolean isOnlineRunSupported() {
@@ -60,23 +52,12 @@ public class PersistentLockCommand extends SingleBackendCommand {
         KeyValueService keyValueService = services.getKeyValueService();
         PersistentLock persistentLock = PersistentLock.create(keyValueService);
 
-        if (listLocks) {
-            return printLockList(persistentLock);
-        } else if (acquireLockName != null) {
-            return acquireLock(persistentLock, acquireLockName);
-        } else if (releaseLockName != null) {
-            if (releaseLockId != null) {
-                return releaseLock(persistentLock, releaseLockName, Long.parseLong(releaseLockId));
-            } else {
-                String message = "To release a lock, you must specify its lockId, e.g.: \n"
-                        + "persistent-lock --release <LOCK_NAME> --lockId <LOCK_ID> \n"
-                        + "To see all locks and lockIds, run: \n"
-                        + "persistent-lock --list";
-                log.error(message);
-                return 1;
-            }
+        if (acquireLock) {
+            return acquireLock(persistentLock);
+        } else if (releaseLock) {
+            return releaseLock(persistentLock);
         } else {
-            log.error("Specify one of --list, --acquire, or --release");
+            log.error("Specify one of --acquire or --release");
             return 1;
         }
     }
