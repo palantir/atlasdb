@@ -89,6 +89,10 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
                 .addAll(AtlasDbCommandUtils.gatherPassedInArguments(namespace.getAttrs()))
                 .build();
 
+        runAtlasDbConsole(allArgs);
+    }
+
+    protected void runAtlasDbConsole(List<String> allArgs) {
         try {
             AtlasConsoleMain.main(allArgs.toArray(new String[] {}));
         } catch (Throwable e) {
