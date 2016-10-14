@@ -30,7 +30,13 @@ dependencies:
     - ~/.m2
 
 test:
+  pre:
+    - ./scripts/circle-ci/track-memory-usage.sh:
+        background: true
+        parallel: true
   override:
+    - ./gradlew --profile --continue --parallel compileJava compileTestJava:
+        parallel: true
     - ./scripts/circle-ci/run-circle-tests.sh:
         parallel: true
   post:
