@@ -31,6 +31,24 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.20.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |breaking|
+         - Hotspotting warnings, previously logged at ERROR, will now throw ``IllegalStateException`` on start-up.
+           Products who hit this warning will need to add ``ignoreHotspottingChecks()`` to the relevant tables of their schema.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/947>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.18.0
 =======
 
