@@ -34,7 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.Throwables;
 
 public final class PersistentLock {
-    private static final long LOCKS_TIMESTAMP = 0L;
+    public static final long LOCKS_TIMESTAMP = 0L;
 
     private static final Logger log = LoggerFactory.getLogger(PersistentLock.class);
 

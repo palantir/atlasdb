@@ -16,20 +16,22 @@
 package com.palantir.atlasdb.cli.command;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import static com.palantir.atlasdb.persistentlock.PersistentLock.LOCKS_TIMESTAMP;
+
+import java.util.Set;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.cli.runner.SingleBackendCliTestRunner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.persistentlock.LockEntry;
 import com.palantir.atlasdb.persistentlock.PersistentLock;
-import com.palantir.atlasdb.persistentlock.PersistentLockIsTakenException;
 import com.palantir.atlasdb.persistentlock.PersistentLockName;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.services.ServicesConfigModule;
@@ -43,6 +45,7 @@ public class PersistentLockCommandTest {
     private static final PersistentLockName LOCK_NAME = PersistentLockName.of("someLockName");
 
     private static AtlasDbServicesFactory moduleFactory;
+    public static final long CUSTOM_LOCK_ID = 1234;
 
     @BeforeClass
     public static void setup() throws Exception {
@@ -67,8 +70,21 @@ public class PersistentLockCommandTest {
 
             runner.run();
 
-            List<PersistentLockName> lockNames = getAllLockNames(services.getKeyValueService());
-            assertThat(lockNames, contains(LOCK_NAME));
+            assertThat(getAllLocks(services.getKeyValueService()).size(), equalTo(1));
+        }
+    }
+
+    @Test
+    public void releaseLock() throws Exception {
+        try (SingleBackendCliTestRunner runner = makeRunner(
+                LOCK_COMMAND_NAME, "--release", LOCK_NAME.name(), "--lockId", String.valueOf(CUSTOM_LOCK_ID))) {
+            TestAtlasDbServices services = runner.connect(moduleFactory);
+            KeyValueService keyValueService = services.getKeyValueService();
+            insertLockWithId(keyValueService, CUSTOM_LOCK_ID);
+
+            runner.run();
+
+            assertThat(getAllLocks(keyValueService).size(), equalTo(0));
         }
     }
 
@@ -76,7 +92,7 @@ public class PersistentLockCommandTest {
     public void listLocks() throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner(LOCK_COMMAND_NAME, "--list")) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
-            writeLock(services.getKeyValueService());
+            insertLockWithId(services.getKeyValueService(), CUSTOM_LOCK_ID);
 
             String stdout = runner.run();
 
@@ -84,16 +100,16 @@ public class PersistentLockCommandTest {
         }
     }
 
-    private List<PersistentLockName> getAllLockNames(KeyValueService keyValueService) {
+
+    private Set<LockEntry> getAllLocks(KeyValueService keyValueService) {
         PersistentLock persistentLock = PersistentLock.create(keyValueService);
 
-        return persistentLock.allLockEntries().stream()
-                .map(lockEntry -> lockEntry.lockName())
-                .collect(Collectors.toList());
+        return persistentLock.allLockEntries();
     }
 
-    private void writeLock(KeyValueService keyValueService) throws PersistentLockIsTakenException {
-        PersistentLock persistentLock = PersistentLock.create(keyValueService);
-        persistentLock.acquireLock(LOCK_NAME, "Some reason");
+    private void insertLockWithId(KeyValueService keyValueService, long lockId) {
+        LockEntry customEntry = LockEntry.of(LOCK_NAME, lockId, "some reason");
+        keyValueService.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        keyValueService.put(AtlasDbConstants.PERSISTED_LOCKS_TABLE, customEntry.insertionMap(), LOCKS_TIMESTAMP);
     }
 }
