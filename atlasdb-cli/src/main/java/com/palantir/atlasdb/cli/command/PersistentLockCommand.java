@@ -100,7 +100,7 @@ public class PersistentLockCommand extends SingleBackendCommand {
         Set<LockEntry> allLockEntries = persistentLock.allLockEntries();
         log.info("The following persistent locks are currently taken out (total {})", allLockEntries.size());
         for (LockEntry lockEntry : allLockEntries) {
-            log.info("  {}", lockEntry.toString());
+            log.info(" - {}", lockEntry.toString());
         }
         return 0;
     }
