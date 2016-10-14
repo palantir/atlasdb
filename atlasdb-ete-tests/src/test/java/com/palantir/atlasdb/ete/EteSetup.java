@@ -35,6 +35,7 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.execution.DockerComposeRunArgument;
 import com.palantir.docker.compose.execution.DockerComposeRunOption;
 
@@ -77,6 +78,10 @@ public class EteSetup {
 
     static <T> T createClientToAllNodes(Class<T> clazz) {
         return createClientToMultipleNodes(clazz, availableClients, SERVER_PORT);
+    }
+
+    public static Container getContainer(String containerName) {
+        return docker.containers().container(containerName);
     }
 
     private static ExternalResource waitForServersToBeReady() {
