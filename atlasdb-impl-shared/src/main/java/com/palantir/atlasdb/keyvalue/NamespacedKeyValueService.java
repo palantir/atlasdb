@@ -42,11 +42,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public interface NamespacedKeyValueService {
     Collection<? extends KeyValueService> getDelegates();
 
-    void initializeFromFreshInstance();
-
     void close();
-
-    void teardown();
 
     TableMappingService getTableMapper();
 
@@ -104,12 +100,6 @@ public interface NamespacedKeyValueService {
 
     @Idempotent
     ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableReference,
-                                                                RangeRequest rangeRequest,
-                                                                long timestamp);
-
-
-    @Idempotent
-    ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableReference,
                                                                 RangeRequest rangeRequest,
                                                                 long timestamp);
 

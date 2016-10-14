@@ -72,6 +72,7 @@ public class EmptyTables {
                 getSecondTableRef(),
                 Tables.ROW_COMPONENT,
                 Tables.COLUMN_NAME);
+        makeTableEmpty();
     }
 
     @TearDown(Level.Invocation)

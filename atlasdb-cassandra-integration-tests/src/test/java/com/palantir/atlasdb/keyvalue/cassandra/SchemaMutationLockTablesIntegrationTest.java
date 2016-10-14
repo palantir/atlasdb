@@ -16,23 +16,22 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static java.util.Collections.synchronizedList;
-import static java.util.stream.IntStream.range;
-
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
 import java.util.function.IntConsumer;
+import java.util.stream.IntStream;
 
 import org.apache.thrift.TException;
 import org.junit.Before;
@@ -48,8 +47,8 @@ public class SchemaMutationLockTablesIntegrationTest {
     private CassandraClientPool clientPool;
 
     @Before
-    public void setupKVS() throws TException, InterruptedException {
-        config = CassandraTestSuite.CASSANDRA_KVS_CONFIG
+    public void setupKvs() throws TException, InterruptedException {
+        config = CassandraTestSuite.cassandraKvsConfig
                 .withKeyspace(UUID.randomUUID().toString().replace('-', '_')); // Hyphens not allowed in C* schema
         clientPool = new CassandraClientPool(config);
         clientPool.runOneTimeStartupChecks();
@@ -92,10 +91,10 @@ public class SchemaMutationLockTablesIntegrationTest {
     public void whenTablesAreCreatedConcurrentlyAtLeastOneThreadShouldSeeBothTables() {
         CyclicBarrier barrier = new CyclicBarrier(2);
 
-        List<Set<TableReference>> lockTablesSeen = synchronizedList(new ArrayList<>());
+        List<Set<TableReference>> lockTablesSeen = Collections.synchronizedList(new ArrayList<>());
 
-        range(0,2).parallel()
-                .forEach(ignoringExceptions( () -> {
+        IntStream.range(0, 2).parallel()
+                .forEach(ignoringExceptions(() -> {
                     barrier.await();
                     lockTables.createLockTable();
                     lockTablesSeen.add(lockTables.getAllLockTables());
@@ -106,7 +105,7 @@ public class SchemaMutationLockTablesIntegrationTest {
     }
 
     private IntConsumer ignoringExceptions(Callable function) {
-        return (i) -> {
+        return (iterationCount) -> {
             try {
                 function.call();
             } catch (Exception e) {

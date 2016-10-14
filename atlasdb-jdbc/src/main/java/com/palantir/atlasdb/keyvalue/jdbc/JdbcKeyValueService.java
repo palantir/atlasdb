@@ -184,11 +184,6 @@ public class JdbcKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void initializeFromFreshInstance() {
-        // do nothing
-    }
-
-    @Override
     public Collection<? extends KeyValueService> getDelegates() {
         return ImmutableList.of();
     }
@@ -681,13 +676,6 @@ public class JdbcKeyValueService implements KeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
-                                                                       RangeRequest rangeRequest,
-                                                                       long timestamp) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(final TableReference tableRef,
                                                                        final RangeRequest rangeRequest,
                                                                        final long timestamp) {
@@ -1016,11 +1004,6 @@ public class JdbcKeyValueService implements KeyValueService {
                 throw Throwables.propagate(e);
             }
         }
-    }
-
-    @Override
-    public void teardown() {
-        close();
     }
 
     <T> T run(final Function<DSLContext, T> fun) {

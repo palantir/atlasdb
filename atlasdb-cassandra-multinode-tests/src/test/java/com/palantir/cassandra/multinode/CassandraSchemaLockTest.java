@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -57,39 +58,37 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.ete.Gradle;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.docker.compose.DockerComposeRule;
-import com.palantir.docker.compose.connection.Container;
-import com.palantir.docker.compose.connection.DockerPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CassandraSchemaLockTest {
     private static final String LOCAL_SERVER_ADDRESS = "http://localhost:3828";
-    private static final int THRIFT_PORT_NUMBER_1 = 9160;
-    private static final int THRIFT_PORT_NUMBER_2 = 9161;
-    private static final int THRIFT_PORT_NUMBER_3 = 9162;
+    private static final int THRIFT_PORT = 9160;
     private static final int THREAD_COUNT = 4;
 
     private static final String CONTAINER_LOGS_DIRECTORY = "container-logs";
     private static final DockerComposeRule CASSANDRA_DOCKER_SETUP = DockerComposeRule.builder()
             .file("src/test/resources/docker-compose-multinode.yml")
-            .waitingForService("cassandra1", Container::areAllPortsOpen)
-            .waitingForService("cassandra2", Container::areAllPortsOpen)
-            .waitingForService("cassandra3", Container::areAllPortsOpen)
             .saveLogsTo(CONTAINER_LOGS_DIRECTORY)
             .build();
 
     private static final Gradle GRADLE_PREPARE_TASK =
             Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
+
+    private static final DockerProxyRule DOCKER_PROXY_RULE = new DockerProxyRule(CASSANDRA_DOCKER_SETUP.projectName());
+
     @ClassRule
-    public static final RuleChain CASSANDRA_DOCKER_SET_UP = RuleChain
+    public static final RuleChain ALL_RULES = RuleChain
             .outerRule(GRADLE_PREPARE_TASK)
-            .around(CASSANDRA_DOCKER_SETUP);
+            .around(CASSANDRA_DOCKER_SETUP)
+            .around(DOCKER_PROXY_RULE);
 
     private static final CassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(getCassandraThriftAddressFromPort(THRIFT_PORT_NUMBER_1))
-            .addServers(getCassandraThriftAddressFromPort(THRIFT_PORT_NUMBER_2))
-            .addServers(getCassandraThriftAddressFromPort(THRIFT_PORT_NUMBER_3))
+            .addServers(InetSocketAddress.createUnresolved("cassandra1", THRIFT_PORT))
+            .addServers(InetSocketAddress.createUnresolved("cassandra2", THRIFT_PORT))
+            .addServers(InetSocketAddress.createUnresolved("cassandra3", THRIFT_PORT))
             .keyspace("atlasdb")
             .replicationFactor(1)
             .credentials(ImmutableCassandraCredentialsConfig.builder()
@@ -98,7 +97,7 @@ public class CassandraSchemaLockTest {
                     .build())
             .build();
 
-    private static final Optional<LeaderConfig> leaderConfig = Optional.of(ImmutableLeaderConfig.builder()
+    private static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig.builder()
             .quorumSize(1)
             .localServer(LOCAL_SERVER_ADDRESS)
             .leaders(ImmutableSet.of(LOCAL_SERVER_ADDRESS))
@@ -162,7 +161,7 @@ public class CassandraSchemaLockTest {
             @Override
             protected boolean matchesSafely(File file, Description mismatchDescription) {
                 try {
-                    List<String> badLines = Files.lines(Paths.get(file.getAbsolutePath()))
+                    List<String> badLines = Files.lines(Paths.get(file.getAbsolutePath()), StandardCharsets.ISO_8859_1)
                             .filter(line -> line.contains("Column family ID mismatch"))
                             .collect(Collectors.toList());
 
@@ -188,17 +187,11 @@ public class CassandraSchemaLockTest {
             try {
                 CassandraKeyValueService.create(
                         CassandraKeyValueServiceConfigManager.createSimpleManager(KVS_CONFIG),
-                        leaderConfig);
+                        LEADER_CONFIG);
                 return true;
             } catch (Exception e) {
                 return false;
             }
         };
-    }
-
-    private static InetSocketAddress getCassandraThriftAddressFromPort(int port) {
-        DockerPort dockerPort = CASSANDRA_DOCKER_SETUP.hostNetworkedPort(port);
-        String hostname = dockerPort.getIp();
-        return new InetSocketAddress(hostname, dockerPort.getExternalPort());
     }
 }
