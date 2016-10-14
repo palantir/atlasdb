@@ -33,6 +33,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra.Client;
@@ -1396,7 +1397,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             final Map<TableReference, byte[]> tableNamesToTableMetadata) {
         Map<TableReference, byte[]> filteredTables = Maps.newHashMap();
         try {
-            Set<TableReference> existingTablesLowerCased = cassandraDao.getExistingTablesLowerCased();
+            Set<TableReference> existingTablesLowerCased = cassandraDao.getExistingTablesLowerCased().stream()
+                    .map(AbstractKeyValueService::fromInternalTableName)
+                    .collect(Collectors.toSet());
 
             for (Entry<TableReference, byte[]> tableAndMetadataPair : tableNamesToTableMetadata.entrySet()) {
                 TableReference table = tableAndMetadataPair.getKey();
@@ -1449,7 +1452,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return Sets.filter(cassandraDao.getExistingTables(), tr -> !hiddenTables.isHidden(tr));
+        return cassandraDao.getExistingTables().stream()
+                .map(AbstractKeyValueService::fromInternalTableName)
+                .filter(tr -> !hiddenTables.isHidden(tr))
+                .collect(Collectors.toSet());
     }
 
     @Override
