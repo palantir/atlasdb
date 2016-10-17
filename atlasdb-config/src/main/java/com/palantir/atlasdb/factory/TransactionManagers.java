@@ -188,6 +188,7 @@ public final class TransactionManagers {
                 Suppliers.ofInstance(config.enableSweep()),
                 Suppliers.ofInstance(config.getSweepPauseMillis()),
                 Suppliers.ofInstance(config.getSweepBatchSize()),
+                Suppliers.ofInstance(config.getSweepCellBatchSize()),
                 SweepTableFactory.of());
         backgroundSweeper.runInBackground();
 

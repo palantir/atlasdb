@@ -77,6 +77,7 @@ public class SweepTaskRunnerImplTest {
     public static final long OLD_START_TS = 10L;
     public static final long COMMIT_TS = 30L;
     public static final long NEW_START_TS = 20L;
+    public static final int ROW_BATCH_SIZE = 1000;
 
     private final KeyValueService mockKvs = mock(KeyValueService.class);
     private final Supplier<Long> mockImmutableTimestampSupplier = mock(Supplier.class);
@@ -255,7 +256,7 @@ public class SweepTaskRunnerImplTest {
     @Test
     public void cellSweeperCallsShouldBatchRows() {
         int numBatches = 3;
-        int maxBatchSize = SweepTaskRunnerImpl.CELL_BATCH_SIZE;
+        int maxBatchSize = 100;
         int numRows = numBatches * maxBatchSize;
         List<RowResult<Set<Long>>> timestamps = makeTimestamps(numRows, 1);
 
@@ -265,7 +266,7 @@ public class SweepTaskRunnerImplTest {
     @Test
     public void cellSweeperCallsShouldBatchColumns() {
         int numBatches = 3;
-        int maxBatchSize = SweepTaskRunnerImpl.CELL_BATCH_SIZE;
+        int maxBatchSize = 100;
         int numCols = numBatches * maxBatchSize;
         List<RowResult<Set<Long>>> timestamps = makeTimestamps(1, numCols);
 
@@ -282,7 +283,7 @@ public class SweepTaskRunnerImplTest {
         when(mockKvs.getRangeOfTimestamps(eq(TABLE_REFERENCE), any(RangeRequest.class), anyLong()))
                 .thenReturn(ClosableIterators.wrap(timestamps.iterator()));
 
-        sweepTaskRunner.run(TABLE_REFERENCE, 1000, null);
+        sweepTaskRunner.run(TABLE_REFERENCE, ROW_BATCH_SIZE, maxBatchSize, null);
 
         verifyAllCallsRespectBatching(batches, maxBatchSize);
     }
