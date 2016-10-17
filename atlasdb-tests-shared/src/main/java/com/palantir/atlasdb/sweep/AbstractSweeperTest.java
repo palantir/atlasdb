@@ -22,7 +22,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Supplier;
@@ -537,61 +536,6 @@ public abstract class AbstractSweeperTest {
         SweepResults sweepResults = completeSweep(mixedCaseTable, 30);
 
         Assert.assertEquals(sweepResults.getCellsDeleted(), 1);
-    }
-
-    @Ignore
-    @Test
-    public void ensureSweepDoesNotOom() {
-        // repro works with Xmx32M
-        TableReference table = TableReference.create(Namespace.create("someNamespace"), "someTable");
-        createTable(table, SweepStrategy.CONSERVATIVE);
-
-        int rows = 20_000; //12_000
-        int cols = 1;  // 40_000
-        putLotsOfData(table, rows, cols, 10);
-        putLotsOfData(table, rows, cols, 20);
-
-        SweepResults sweepResults = sweep(table, 30, 1_000_000);
-        Assert.assertEquals(sweepResults.getCellsDeleted(), rows * cols);
-    }
-
-    @Ignore
-    @Test
-    public void ensureSweepDoesNotOomCols() {
-        // repro works with Xmx32M
-        TableReference table = TableReference.create(Namespace.create("someNamespace"), "someTable");
-        createTable(table, SweepStrategy.CONSERVATIVE);
-
-        int rows = 1;
-        int cols = 40_000;
-        putLotsOfData(table, rows, cols, 10);
-        putLotsOfData(table, rows, cols, 20);
-
-        SweepResults sweepResults = sweep(table, 30, 1_000_000);
-        Assert.assertEquals(sweepResults.getCellsDeleted(), rows * cols);
-    }
-
-    private int putLotsOfData(TableReference bigRows, int rows, int cols, long ts) {
-        for (int j = 0; j < rows; j++) {
-            String rowStr = makeLongString(800) + j;
-            for (int i = 0; i < cols; i++) {
-                String column = "col" + i;
-                Cell cell = Cell.create(rowStr.getBytes(), column.getBytes());
-                kvs.put(bigRows, ImmutableMap.of(cell, "val".getBytes()), ts);
-            }
-        }
-        txService.putUnlessExists(ts, ts);
-
-        System.out.println("Finished putting to KVS at ts=" + ts);
-        return cols;
-    }
-
-    private String makeLongString(int length) {
-        String result = "";
-        for (int i = 0; i < length; i++) {
-            result += "a";
-        }
-        return result;
     }
 
     private void testSweepManyRows(SweepStrategy strategy) {
