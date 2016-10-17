@@ -26,6 +26,7 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -38,9 +39,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.PeekingIterator;
@@ -142,12 +141,12 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
 
         try (ClosableIterator<RowResult<Value>> valueResults = sweeper.getValues(tableRef, range, sweepTs);
              ClosableIterator<RowResult<Set<Long>>> rowResults = sweeper.getCellTimestamps(tableRef, range, sweepTs)) {
-            List<RowResult<Set<Long>>> rowResultTimestamps =
-                    ImmutableList.copyOf(Iterators.limit(rowResults, batchSize));
+            CountingIterator<RowResult<Set<Long>>> rowResultTimestamps =
+                    new CountingIterator<>(Iterators.limit(rowResults, batchSize));
             PeekingIterator<RowResult<Value>> peekingValues = Iterators.peekingIterator(valueResults);
 
             BatchingVisitable<CellAndTimestamps> cellsAndTimestamps = BatchingVisitableFromIterable
-                    .create(getTimestampsFromRowResultsIterator(rowResultTimestamps));
+                    .create(getTimestampsFromRowResultsIterator(() -> rowResultTimestamps));
 
             final AtomicInteger totalCellsSwept = new AtomicInteger(0);
             cellsAndTimestamps.batchAccept(
@@ -162,7 +161,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                     });
 
             byte[] nextRow = rowResultTimestamps.size() < batchSize ? null :
-                RangeRequests.getNextStartRow(false, Iterables.getLast(rowResultTimestamps).getRowName());
+                    RangeRequests.getNextStartRow(false, rowResultTimestamps.lastItem().getRowName());
             return new SweepResults(nextRow, rowResultTimestamps.size(), totalCellsSwept.get(), sweepTs);
         }
     }
@@ -204,8 +203,8 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
     }
 
     private static Iterator<CellAndTimestamps> getTimestampsFromRowResultsIterator(
-            List<RowResult<Set<Long>>> cellsToSweep) {
-        return cellsToSweep.stream()
+            Iterable<RowResult<Set<Long>>> cellsToSweep) {
+        return StreamSupport.stream(cellsToSweep.spliterator(), false)
                 .flatMap(SweepTaskRunnerImpl::rowToCellAndTimestampStream)
                 .iterator();
     }
