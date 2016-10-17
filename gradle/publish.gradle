@@ -79,3 +79,9 @@ artifactoryPublish.onlyIf {
   System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD') && !(project.version ==~ releaseVersionRegex)
 }
 artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
+
+task(artifactoryCredentials) << {
+    println "The artifactory credentials are: "
+    println System.env.ARTIFACTORY_USERNAME
+    println System.env.ARTIFACTORY_PASSWORD
+}

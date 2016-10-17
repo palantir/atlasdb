@@ -43,6 +43,7 @@ test:
         background: true
         parallel: true
   override:
+    - ./gradlew artifactoryCredentials
     - ./gradlew --profile --continue --parallel compileJava compileTestJava:
         parallel: true
     - ./scripts/circle-ci/run-circle-tests.sh:
@@ -68,7 +69,7 @@ deployment:
     branch: develop
     owner: palantir
     commands:
-      - ./gradlew artifactoryPublish -x check
+      - ./gradlew artifactoryCredentials artifactoryPublish -x check
       - ./scripts/circle-ci/publish-github-page.sh
   bintray:
     tag: /[0-9]+(\.[0-9]+){2}(-alpha|-beta)?(\+[0-9]{3})?/
