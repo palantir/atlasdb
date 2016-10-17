@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import org.junit.Ignore;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
@@ -32,11 +30,5 @@ public class DbkvsPostgresKeyValueServiceTest extends AbstractAtlasDbKeyValueSer
             }
         }
         return kvs;
-    }
-
-    @Override
-    @Ignore
-    public void testGetRangeWithHistory() {
-        /* Have to ignore this test as it is an unsupported operation for this KVS */
     }
 }

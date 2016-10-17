@@ -31,14 +31,14 @@ public class CassandraTimestampIntegrationTest {
     @Before
     public void setUp() {
         kv = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.CASSANDRA_KVS_CONFIG), CassandraTestSuite.LEADER_CONFIG);
-        kv.initializeFromFreshInstance();
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.cassandraKvsConfig),
+                CassandraTestSuite.leaderConfig);
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
 
     @After
-    public void tearDown() {
-        kv.teardown();
+    public void close() {
+        kv.close();
     }
 
     @Test

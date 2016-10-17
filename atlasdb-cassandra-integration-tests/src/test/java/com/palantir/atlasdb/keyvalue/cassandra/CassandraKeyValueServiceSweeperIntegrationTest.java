@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsEqual.equalTo;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 
@@ -48,11 +48,11 @@ public class CassandraKeyValueServiceSweeperIntegrationTest extends AbstractSwee
     @Override
     protected KeyValueService getKeyValueService() {
         ImmutableCassandraKeyValueServiceConfig config = useColumnBatchSize
-                ? CassandraTestSuite.CASSANDRA_KVS_CONFIG.withTimestampsGetterBatchSize(Optional.of(10))
-                : CassandraTestSuite.CASSANDRA_KVS_CONFIG;
+                ? CassandraTestSuite.cassandraKvsConfig.withTimestampsGetterBatchSize(Optional.of(10))
+                : CassandraTestSuite.cassandraKvsConfig;
 
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config), CassandraTestSuite.LEADER_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(config), CassandraTestSuite.leaderConfig);
     }
 
     @Test

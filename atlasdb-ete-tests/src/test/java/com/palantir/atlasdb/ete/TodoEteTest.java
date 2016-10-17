@@ -17,7 +17,7 @@ package com.palantir.atlasdb.ete;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsNull.nullValue;
 
@@ -36,7 +36,7 @@ public class TodoEteTest {
         TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
         todoClient.addTodo(TODO);
-        assertThat(todoClient.getTodoList(), contains(TODO));
+        assertThat(todoClient.getTodoList(), hasItem(TODO));
     }
 
     @Test

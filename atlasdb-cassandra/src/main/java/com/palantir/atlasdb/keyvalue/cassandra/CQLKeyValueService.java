@@ -258,11 +258,6 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void initializeFromFreshInstance() {
-        // we already did our init in our factory method
-    }
-
-    @Override
     public void close() {
         log.info("Closing CQLKeyValueService");
         session.close();
@@ -902,19 +897,6 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 timestamp,
                 deleteConsistency,
                 TimestampExtractor.SUPPLIER);
-    }
-
-    @Override
-    @Idempotent
-    public ClosableIterator<RowResult<Set<Value>>> getRangeWithHistory(TableReference tableRef,
-                                                                       RangeRequest rangeRequest,
-                                                                       long timestamp) {
-        return getRangeWithPageCreator(
-                tableRef,
-                rangeRequest,
-                timestamp,
-                deleteConsistency,
-                HistoryExtractor.SUPPLIER);
     }
 
     public <T, U> ClosableIterator<RowResult<U>> getRangeWithPageCreator(

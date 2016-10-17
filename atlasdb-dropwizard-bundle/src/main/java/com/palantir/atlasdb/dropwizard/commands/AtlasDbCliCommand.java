@@ -18,7 +18,6 @@ package com.palantir.atlasdb.dropwizard.commands;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
@@ -130,10 +129,7 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
         Iterable<String> groups = Iterables.limit(namespace.getList(COMMAND_NAME_ATTR), 1);
         Iterable<String> commands = Iterables.skip(namespace.getList(COMMAND_NAME_ATTR), 1);
 
-        List<String> offlineArg =
-                Objects.equals(namespace.getString("runCliOffline"), AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT)
-                        ? ImmutableList.of("--offline")
-                        : ImmutableList.of();
+        List<String> offlineArg = isCliRunningOffline(namespace) ? ImmutableList.of("--offline") : ImmutableList.of();
 
         List<String> allArgs = ImmutableList.<String>builder()
                 .addAll(offlineArg)

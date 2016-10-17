@@ -18,21 +18,24 @@ package com.palantir.atlasdb.ete;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import org.junit.rules.ExternalResource;
 import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.jayway.awaitility.Awaitility;
+import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.Container;
-import com.palantir.docker.compose.connection.DockerPort;
-import com.palantir.docker.compose.connection.waiting.HealthCheck;
-import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.docker.compose.execution.DockerComposeRunArgument;
 import com.palantir.docker.compose.execution.DockerComposeRunOption;
 
@@ -40,7 +43,7 @@ public class EteSetup {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
 
-    private static final int TIMELOCK_SERVER_PORT = 3828;
+    private static final short SERVER_PORT = 3828;
 
     private static DockerComposeRule docker;
     private static List<String> availableClients;
@@ -50,13 +53,16 @@ public class EteSetup {
 
         docker = DockerComposeRule.builder()
                 .file(composeFile)
-                .waitingForService(getSingleClient(), toBeReady())
                 .saveLogsTo("container-logs/" + name)
                 .build();
 
+        DockerProxyRule dockerProxyRule = new DockerProxyRule(docker.projectName());
+
         return RuleChain
                 .outerRule(GRADLE_PREPARE_TASK)
-                .around(docker);
+                .around(docker)
+                .around(dockerProxyRule)
+                .around(waitForServersToBeReady());
     }
 
     static String runCliCommand(String command) throws IOException, InterruptedException {
@@ -67,47 +73,50 @@ public class EteSetup {
     }
 
     static <T> T createClientToSingleNode(Class<T> clazz) {
-        return createClientFor(clazz, asPort(getSingleClient()));
+        return createClientFor(clazz, Iterables.getFirst(availableClients, null), SERVER_PORT);
     }
 
     static <T> T createClientToAllNodes(Class<T> clazz) {
-        return createClientToMultipleNodes(clazz, availableClients);
+        return createClientToMultipleNodes(clazz, availableClients, SERVER_PORT);
     }
 
-    private static <T> T createClientToMultipleNodes(Class<T> clazz, List<String> nodeNames) {
-        Collection<String> uris = ImmutableList.copyOf(nodeNames).stream()
-                .map(node -> asPort(node))
-                .map(port -> port.inFormat("http://$HOST:$EXTERNAL_PORT"))
+    public static Container getContainer(String containerName) {
+        return docker.containers().container(containerName);
+    }
+
+    private static ExternalResource waitForServersToBeReady() {
+        return new ExternalResource() {
+            @Override
+            protected void before() throws Throwable {
+                Awaitility.await()
+                        .ignoreExceptions()
+                        .atMost(Duration.TWO_MINUTES)
+                        .pollInterval(Duration.ONE_SECOND)
+                        .until(serversAreReady());
+            }
+        };
+    }
+
+    private static Callable<Boolean> serversAreReady() {
+        return () -> {
+            for (String client : availableClients) {
+                TodoResource todos = createClientFor(TodoResource.class, client, SERVER_PORT);
+                todos.isHealthy();
+            }
+            return true;
+        };
+    }
+
+    private static <T> T createClientToMultipleNodes(Class<T> clazz, List<String> nodeNames, short port) {
+        Collection<String> uris = nodeNames.stream()
+                .map(nodeName -> String.format("http://%s:%s", nodeName, port))
                 .collect(Collectors.toList());
 
         return AtlasDbHttpClients.createProxyWithFailover(NO_SSL, uris, clazz);
     }
 
-    private static DockerPort asPort(String node) {
-        return docker.containers().container(node).port(TIMELOCK_SERVER_PORT);
-    }
-
-    private static String getSingleClient() {
-        return availableClients.get(0);
-    }
-
-    private static <T> T createClientFor(Class<T> clazz, Container container) {
-        return createClientFor(clazz, container.port(TIMELOCK_SERVER_PORT));
-    }
-
-    private static <T> T createClientFor(Class<T> clazz, DockerPort port) {
-        String uri = port.inFormat("http://$HOST:$EXTERNAL_PORT");
+    private static <T> T createClientFor(Class<T> clazz, String host, short port) {
+        String uri = String.format("http://%s:%s", host, port);
         return AtlasDbHttpClients.createProxy(NO_SSL, uri, clazz);
-    }
-
-    private static HealthCheck<Container> toBeReady() {
-        return (container) -> {
-            TodoResource todos = createClientFor(TodoResource.class, container);
-
-            return SuccessOrFailure.onResultOf(() -> {
-                todos.isHealthy();
-                return true;
-            });
-        };
     }
 }
