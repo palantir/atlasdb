@@ -118,6 +118,13 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     }
 
     @Test
+    public void canCreateTablesWithLongNames() {
+        keyValueService.createTable(
+                TableReference.createWithEmptyNamespace("ThisIsALongTableNameThatGoesOverOracleTableNameLengthLimit"),
+                AtlasDbConstants.GENERIC_TABLE_METADATA);
+    }
+
+    @Test
     public void testGetRowColumnSelection() {
         Cell cell1 = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col1"));
         Cell cell2 = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col2"));
