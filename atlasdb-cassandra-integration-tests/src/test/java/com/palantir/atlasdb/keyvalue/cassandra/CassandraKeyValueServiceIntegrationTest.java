@@ -59,7 +59,6 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyValueServiceTest {
-
     private static final long LOCK_ID = 123456789;
 
     private KeyValueService keyValueService;

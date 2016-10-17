@@ -203,7 +203,7 @@ public class SchemaMutationLockIntegrationTest {
         Assume.assumeTrue(casEnabled);
 
         // set up pre heartbeat old style cleared lock
-        lockTestTools.setLocksTableValue(Long.MAX_VALUE);
+        lockTestTools.setOldStyleNonHeartbeatLocksTableValue(Long.MAX_VALUE);
 
         schemaMutationLock.runWithLock(DO_NOTHING);
     }
