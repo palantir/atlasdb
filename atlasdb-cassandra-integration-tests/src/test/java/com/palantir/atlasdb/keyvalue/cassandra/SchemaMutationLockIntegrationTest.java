@@ -198,12 +198,12 @@ public class SchemaMutationLockIntegrationTest {
     }
 
     @Test
-    public void testNonHeartbeatClearedLockPostMigration() throws TException {
+    public void testLegacyClearedLockPostMigration() throws TException {
         // only run this test with cas
         Assume.assumeTrue(casEnabled);
 
-        // set up pre heartbeat old style cleared lock
-        lockTestTools.setOldStyleNonHeartbeatLocksTableValue(Long.MAX_VALUE);
+        // set up pre heartbeat legacy cleared lock
+        lockTestTools.setLegacyLocksTableValue(Long.MAX_VALUE);
 
         schemaMutationLock.runWithLock(DO_NOTHING);
     }

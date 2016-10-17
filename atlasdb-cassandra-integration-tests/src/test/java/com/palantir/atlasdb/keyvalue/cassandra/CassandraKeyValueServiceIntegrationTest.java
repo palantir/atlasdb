@@ -178,14 +178,16 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
                 new SchemaMutationLockTables(ckvs.clientPool, CassandraTestSuite.cassandraKvsConfig),
                 LockLeader.I_AM_THE_LOCK_LEADER);
         SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(ckvs.clientPool, lockTable);
-
-        // grab lock
-        lockTestTools.setLocksTableValue(LOCK_ID, 0);
+        grabLock(lockTestTools);
 
         ckvs.cleanUpSchemaMutationLockTablesState();
 
         CqlResult result = lockTestTools.readLocksTable();
         assertThat(result.getRows(), is(empty()));
+    }
+
+    private void grabLock(SchemaMutationLockTestTools lockTestTools) throws TException {
+        lockTestTools.setLocksTableValue(LOCK_ID, 0);
     }
 
     private static int getAmountOfGarbageInMetadataTable(KeyValueService keyValueService, TableReference tableRef) {

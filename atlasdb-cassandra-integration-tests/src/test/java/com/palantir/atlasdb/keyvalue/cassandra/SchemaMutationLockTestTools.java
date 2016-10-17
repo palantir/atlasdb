@@ -15,10 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-
-import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertThat;
-
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -43,7 +39,7 @@ public final class SchemaMutationLockTestTools {
         this.lockTable = lockTable;
     }
 
-    public CqlResult setOldStyleNonHeartbeatLocksTableValue(long lockId) throws TException {
+    public CqlResult setLegacyLocksTableValue(long lockId) throws TException {
         String lockValue = CassandraKeyValueServices.encodeAsHex(Longs.toByteArray(lockId));
         return setLocksTableValueInternal(lockValue);
     }

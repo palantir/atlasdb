@@ -80,11 +80,11 @@ public class HeartbeatServiceIntegrationTest {
 
     @Test
     public void testNormalStartStopBeatingSequence() throws TException, InterruptedException {
-        assertThat(lockTestTools.readHeartbeatCountFromLocksTable(), is(0));
+        assertThat(lockTestTools.readHeartbeatCountFromLocksTable(), is(0L));
         heartbeatService.startBeatingForLock(lockId);
         Thread.sleep(10 * heartbeatTimePeriodMillis);
         heartbeatService.stopBeating();
-        assertThat(lockTestTools.readHeartbeatCountFromLocksTable(), not(0));
+        assertThat(lockTestTools.readHeartbeatCountFromLocksTable(), is(not(0L)));
     }
 
     @Test
@@ -103,7 +103,7 @@ public class HeartbeatServiceIntegrationTest {
         Heartbeat heartbeat = new Heartbeat(clientPool, queryRunner,
                 lockTable.getOnlyTable(), writeConsistency, lockId);
         heartbeat.run();
-        assertThat(lockTestTools.readHeartbeatCountFromLocksTable(), is(1));
+        assertThat(lockTestTools.readHeartbeatCountFromLocksTable(), is(1L));
     }
 
     @Test
@@ -113,6 +113,6 @@ public class HeartbeatServiceIntegrationTest {
                 writeConsistency, invalidLockId);
         heartbeat.run();
         // value should not be updated because an IllegalStateException will be thrown and caught
-        assertThat(lockTestTools.readHeartbeatCountFromLocksTable(), is(0));
+        assertThat(lockTestTools.readHeartbeatCountFromLocksTable(), is(0L));
     }
 }
