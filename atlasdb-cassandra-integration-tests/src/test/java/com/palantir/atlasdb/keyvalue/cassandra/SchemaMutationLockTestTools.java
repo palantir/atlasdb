@@ -79,7 +79,7 @@ public final class SchemaMutationLockTestTools {
         return SchemaMutationLock.getLockIdFromColumn(resultColumn);
     }
 
-    public long readHeartbeatCountFromLocksTable() throws TException {
+    public int readHeartbeatCountFromLocksTable() throws TException {
         CqlResult result = readLocksTable();
         Column resultColumn = getColumnFromCqlResult(result);
         return SchemaMutationLock.getHeartbeatCountFromColumn(resultColumn);

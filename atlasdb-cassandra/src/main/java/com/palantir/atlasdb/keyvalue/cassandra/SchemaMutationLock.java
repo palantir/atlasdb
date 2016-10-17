@@ -395,11 +395,11 @@ final class SchemaMutationLock {
     }
 
     @VisibleForTesting
-    static long getHeartbeatCountFromColumn(Column column) {
+    static int getHeartbeatCountFromColumn(Column column) {
         String columnStringValue = new String(column.getValue(), StandardCharsets.UTF_8);
         Matcher columnStringMatcher = GLOBAL_DDL_LOCK_FORMAT_PATTERN.matcher(columnStringValue);
         Preconditions.checkState(columnStringMatcher.matches(), "Invalid format for a lock column");
-        return Long.parseLong(columnStringMatcher.group("heartbeatCount"));
+        return Integer.parseInt(columnStringMatcher.group("heartbeatCount"));
     }
 
     private static byte[] getGlobalDdlLockColumnName() {
