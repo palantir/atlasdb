@@ -57,8 +57,8 @@ public class CassandraClientPoolIntegrationTest {
     @Before
     public void setUp() {
         kv = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.cassandraKvsConfig),
-                CassandraTestSuite.leaderConfig);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuiteUtils.cassandraKvsConfig),
+                CassandraTestSuiteUtils.leaderConfig);
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
 

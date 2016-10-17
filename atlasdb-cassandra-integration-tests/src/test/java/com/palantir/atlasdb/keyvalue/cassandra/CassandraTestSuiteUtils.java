@@ -56,7 +56,7 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
         SchemaMutationLockIntegrationTest.class,
         SchemaMutationLockTablesIntegrationTest.class
         })
-public final class CassandraTestSuite {
+public final class CassandraTestSuiteUtils {
     public static final int THRIFT_PORT_NUMBER = 9160;
 
     private static final DockerComposeRule docker = DockerComposeRule.builder()
