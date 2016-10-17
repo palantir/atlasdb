@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OracleDbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleTableNameMapper;
 import com.palantir.db.oracle.JdbcHandler;
 
 @JsonDeserialize(as = ImmutableOracleDdlConfig.class)
@@ -59,6 +60,11 @@ public abstract class OracleDdlConfig extends DdlConfig {
     @Value.Default
     public boolean enableOracleEnterpriseFeatures() {
         return false;
+    }
+
+    @Value.Default
+    public TableNameMapper tableNameMapper() {
+        return new OracleTableNameMapper();
     }
 
     @Override
