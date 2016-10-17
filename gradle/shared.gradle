@@ -78,7 +78,7 @@ afterEvaluate {
     }
 }
 
-test {
+tasks.withType(Test) {
     testLogging {
         showExceptions true
         exceptionFormat "full"
