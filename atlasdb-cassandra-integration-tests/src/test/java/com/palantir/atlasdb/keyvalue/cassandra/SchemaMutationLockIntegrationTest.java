@@ -41,7 +41,6 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.LockLeader;
@@ -214,7 +213,6 @@ public class SchemaMutationLockIntegrationTest {
     }
 
     private void setUpWithNonHeartbeatClearedLock() throws TException {
-        String lockValue = CassandraKeyValueServices.encodeAsHex(Longs.toByteArray(Long.MAX_VALUE));
-        CassandraTestTools.setLocksTableValue(clientPool, lockTable, lockValue, writeConsistency);
+        CassandraTestTools.setLocksTableValue(clientPool, lockTable, Long.MAX_VALUE, writeConsistency);
     }
 }

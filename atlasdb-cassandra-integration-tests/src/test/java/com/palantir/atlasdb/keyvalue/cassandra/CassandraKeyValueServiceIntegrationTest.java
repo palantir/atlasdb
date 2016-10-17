@@ -16,8 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.startsWith;
@@ -60,6 +61,9 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyValueServiceTest {
+
+    private static final long LOCK_ID = 123456789;
+
     private KeyValueService keyValueService;
     private ExecutorService executorService;
     private Logger logger = mock(Logger.class);
@@ -179,14 +183,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
         grabLock(ckvs, lockTable);
         ckvs.cleanUpSchemaMutationLockTablesState();
         CqlResult result = CassandraTestTools.readLocksTable(ckvs.clientPool, lockTable);
-        assertEquals(result.getRows().size(), 0);
+        assertThat(result.getRows(), is(empty()));
     }
 
     private void grabLock(CassandraKeyValueService ckvs, UniqueSchemaMutationLockTable lockTable) throws TException {
-        long lockId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
-        String lockValue = CassandraTestTools.getHexEncodedBytes(
-                SchemaMutationLock.lockValueFromIdAndHeartbeat(lockId, 0));
-        CassandraTestTools.setLocksTableValue(ckvs.clientPool, lockTable, lockValue, ConsistencyLevel.EACH_QUORUM);
+        CassandraTestTools.setLocksTableValue(ckvs.clientPool, lockTable, LOCK_ID, 0, ConsistencyLevel.EACH_QUORUM);
     }
 
     private static int getAmountOfGarbageInMetadataTable(KeyValueService keyValueService, TableReference tableRef) {

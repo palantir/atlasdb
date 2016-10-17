@@ -15,8 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThat;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -66,9 +67,7 @@ public class HeartbeatServiceIntegrationTest {
                                                 heartbeatTimePeriodMillis,
                                                 lockTable.getOnlyTable(),
                                                 writeConsistency);
-        String lockValue = CassandraTestTools.getHexEncodedBytes(
-                SchemaMutationLock.lockValueFromIdAndHeartbeat(lockId, 0));
-        CassandraTestTools.setLocksTableValue(clientPool, lockTable, lockValue, writeConsistency);
+        CassandraTestTools.setLocksTableValue(clientPool, lockTable, lockId, 0, writeConsistency);
     }
 
     @After
@@ -79,11 +78,11 @@ public class HeartbeatServiceIntegrationTest {
 
     @Test
     public void testNormalStartStopBeatingSequence() throws TException, InterruptedException {
-        assertEquals(0, CassandraTestTools.readHeartbeatCountFromLocksTable(clientPool, lockTable));
+        assertThat(CassandraTestTools.readHeartbeatCountFromLocksTable(clientPool, lockTable), is(0));
         heartbeatService.startBeatingForLock(lockId);
         Thread.sleep(10 * heartbeatTimePeriodMillis);
         heartbeatService.stopBeating();
-        assertNotEquals(0, CassandraTestTools.readHeartbeatCountFromLocksTable(clientPool, lockTable));
+        assertThat(CassandraTestTools.readHeartbeatCountFromLocksTable(clientPool, lockTable), not(0));
     }
 
     @Test
@@ -102,7 +101,7 @@ public class HeartbeatServiceIntegrationTest {
         Heartbeat heartbeat = new Heartbeat(clientPool, queryRunner,
                 lockTable.getOnlyTable(), writeConsistency, lockId);
         heartbeat.run();
-        assertEquals(1, CassandraTestTools.readHeartbeatCountFromLocksTable(clientPool, lockTable));
+        assertThat(CassandraTestTools.readHeartbeatCountFromLocksTable(clientPool, lockTable), is(1));
     }
 
     @Test
@@ -112,6 +111,6 @@ public class HeartbeatServiceIntegrationTest {
                 writeConsistency, invalidLockId);
         heartbeat.run();
         // value should not be updated because an IllegalStateException will be thrown and caught
-        assertEquals(0, CassandraTestTools.readHeartbeatCountFromLocksTable(clientPool, lockTable));
+        assertThat(CassandraTestTools.readHeartbeatCountFromLocksTable(clientPool, lockTable), is(0));
     }
 }

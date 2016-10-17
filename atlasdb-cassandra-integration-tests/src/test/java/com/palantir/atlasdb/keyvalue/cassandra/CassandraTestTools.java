@@ -15,7 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -38,6 +39,8 @@ import org.apache.cassandra.thrift.CqlRow;
 import org.apache.thrift.TException;
 import org.joda.time.Duration;
 
+import com.google.common.collect.Iterables;
+import com.google.common.primitives.Longs;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.core.ConditionTimeoutException;
 
@@ -76,19 +79,24 @@ public final class CassandraTestTools {
         }
     }
 
+    // for handling old non-heartbeat lock values
     public static CqlResult setLocksTableValue(
             CassandraClientPool clientPool,
             UniqueSchemaMutationLockTable lockTable,
-            String hexLockValue,
+            long lockId,
             ConsistencyLevel consistency) throws TException {
-        return clientPool.run(client -> {
-            String updateCql = "UPDATE \"%s\" SET value = %s WHERE key = %s AND column1 = %s AND column2 = -1;";
-            String lockRowName = getHexEncodedBytes(CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME);
-            String lockColName = getHexEncodedBytes(CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME);
-            String lockTableName = lockTable.getOnlyTable().getQualifiedName();
-            updateCql = String.format(updateCql, lockTableName, hexLockValue, lockRowName, lockColName);
-            return runCqlQuery(updateCql, client, consistency);
-        });
+        String lockValue = CassandraKeyValueServices.encodeAsHex(Longs.toByteArray(lockId));
+        return setLocksTableValueInternal(clientPool, lockTable, lockValue, consistency);
+    }
+
+    public static CqlResult setLocksTableValue(
+            CassandraClientPool clientPool,
+            UniqueSchemaMutationLockTable lockTable,
+            long lockId,
+            int heartbeatCount,
+            ConsistencyLevel consistency) throws TException {
+        String lockValue = getHexEncodedBytes(SchemaMutationLock.lockValueFromIdAndHeartbeat(lockId, heartbeatCount));
+        return setLocksTableValueInternal(clientPool, lockTable, lockValue, consistency);
     }
 
     public static CqlResult truncateLocksTable(CassandraClientPool clientPool, UniqueSchemaMutationLockTable lockTable)
@@ -110,10 +118,6 @@ public final class CassandraTestTools {
         });
     }
 
-    public static String getHexEncodedBytes(String str) {
-        return CassandraKeyValueServices.encodeAsHex(str.getBytes(StandardCharsets.UTF_8));
-    }
-
     public static long readLockIdFromLocksTable(CassandraClientPool clientPool, UniqueSchemaMutationLockTable lockTable)
             throws TException {
         CqlResult result = CassandraTestTools.readLocksTable(clientPool, lockTable);
@@ -128,12 +132,31 @@ public final class CassandraTestTools {
         return SchemaMutationLock.getHeartbeatCountFromColumn(resultColumn);
     }
 
+    private static String getHexEncodedBytes(String str) {
+        return CassandraKeyValueServices.encodeAsHex(str.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static CqlResult setLocksTableValueInternal(
+            CassandraClientPool clientPool,
+            UniqueSchemaMutationLockTable lockTable,
+            String hexLockValue,
+            ConsistencyLevel consistency) throws TException {
+        return clientPool.run(client -> {
+            String updateCql = "UPDATE \"%s\" SET value = %s WHERE key = %s AND column1 = %s AND column2 = -1;";
+            String lockRowName = getHexEncodedBytes(CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME);
+            String lockColName = getHexEncodedBytes(CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME);
+            String lockTableName = lockTable.getOnlyTable().getQualifiedName();
+            updateCql = String.format(updateCql, lockTableName, hexLockValue, lockRowName, lockColName);
+            return runCqlQuery(updateCql, client, consistency);
+        });
+    }
+
     private static Column getColumnFromCqlResult(CqlResult result) {
         List<CqlRow> resultRows = result.getRows();
-        assertEquals(1, resultRows.size());
-        List<Column> resultColumns = resultRows.get(0).getColumns();
-        assertEquals(1, resultColumns.size());
-        return resultColumns.get(0);
+        assertThat(resultRows, hasSize(1));
+        List<Column> resultColumns = Iterables.getOnlyElement(resultRows).getColumns();
+        assertThat(resultColumns, hasSize(1));
+        return Iterables.getOnlyElement(resultColumns);
     }
 
     private static CqlResult runCqlQuery(String query, Client client, ConsistencyLevel consistency) throws TException {
