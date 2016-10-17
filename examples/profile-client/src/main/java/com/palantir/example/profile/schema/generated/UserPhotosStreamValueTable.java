@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -662,6 +663,7 @@ public final class UserPhotosStreamValueTable implements
      * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
+     * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
@@ -721,7 +723,6 @@ public final class UserPhotosStreamValueTable implements
      * {@link Set}
      * {@link Sets}
      * {@link Sha256Hash}
-     * {@link BatchColumnRangeSelection}
      * {@link SortedMap}
      * {@link Supplier}
      * {@link TableReference}
@@ -732,5 +733,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "t58IjZtpdGvphNV/ppNVQg==";
+    static String __CLASS_HASH = "11U7hhsQBFXzGm9lOsmI2Q==";
 }

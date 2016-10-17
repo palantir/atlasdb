@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -1206,6 +1207,7 @@ public final class SweepPriorityTable implements
      * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
+     * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
@@ -1265,7 +1267,6 @@ public final class SweepPriorityTable implements
      * {@link Set}
      * {@link Sets}
      * {@link Sha256Hash}
-     * {@link BatchColumnRangeSelection}
      * {@link SortedMap}
      * {@link Supplier}
      * {@link TableReference}
@@ -1276,5 +1277,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "GxCYqoJ/e6qtTWpXb+zeIQ==";
+    static String __CLASS_HASH = "Ae0O8slz9jXz8xm0fRoAfQ==";
 }
