@@ -34,13 +34,17 @@ import org.junit.runners.Suite;
         HeartbeatServiceIntegrationTest.class,
         SchemaMutationLockIntegrationTest.class,
         SchemaMutationLockTablesIntegrationTest.class
-})
-public class CassandraSuite {
+        })
+public final class CassandraSuite {
     @ClassRule
     public static final RuleChain CASSANDRA_DOCKER_SET_UP = CassandraTestSuiteUtils.CASSANDRA_DOCKER_SET_UP;
 
     @BeforeClass
     public static void beforeClass() throws IOException, InterruptedException {
         CassandraTestSuiteUtils.waitUntilCassandraIsUp();
+    }
+
+    private CassandraSuite() {
+        // Hidden constructor
     }
 }

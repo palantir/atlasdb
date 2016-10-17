@@ -27,13 +27,17 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
         CassandraKeyValueServiceTransactionIntegrationTest.class,
         CassandraKeyValueServiceSerializableTransactionIntegrationTest.class
-})
-public class CassandraTransactionsSuite {
+        })
+public final class CassandraTransactionsSuite {
     @ClassRule
     public static final RuleChain CASSANDRA_DOCKER_SET_UP = CassandraTestSuiteUtils.CASSANDRA_DOCKER_SET_UP;
 
     @BeforeClass
     public static void beforeClass() throws IOException, InterruptedException {
         CassandraTestSuiteUtils.waitUntilCassandraIsUp();
+    }
+
+    private CassandraTransactionsSuite() {
+        //Hidden constructor
     }
 }

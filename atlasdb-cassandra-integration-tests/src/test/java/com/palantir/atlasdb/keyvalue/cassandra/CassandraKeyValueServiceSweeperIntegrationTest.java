@@ -52,7 +52,8 @@ public class CassandraKeyValueServiceSweeperIntegrationTest extends AbstractSwee
                 : CassandraTestSuiteUtils.cassandraKvsConfig;
 
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config), CassandraTestSuiteUtils.leaderConfig);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(config),
+                CassandraTestSuiteUtils.leaderConfig);
     }
 
     @Test
