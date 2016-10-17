@@ -74,7 +74,6 @@ import com.palantir.common.base.ClosableIterator;
  */
 public class SweepTaskRunnerImpl implements SweepTaskRunner {
     private static final Logger log = LoggerFactory.getLogger(SweepTaskRunnerImpl.class);
-    public static final int CELL_BATCH_SIZE = 1;
 
     private final KeyValueService keyValueService;
     private final Supplier<Long> unreadableTimestampSupplier;
@@ -99,7 +98,8 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
     }
 
     @Override
-    public SweepResults run(TableReference tableRef, int batchSize, @Nullable byte[] nullableStartRow) {
+    public SweepResults run(
+            TableReference tableRef, int rowBatchSize, int cellBatchSize, @Nullable byte[] nullableStartRow) {
         Preconditions.checkNotNull(tableRef, "tableRef cannot be null");
         Preconditions.checkState(!AtlasDbConstants.hiddenTables.contains(tableRef));
 
@@ -132,7 +132,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         byte[] startRow = MoreObjects.firstNonNull(nullableStartRow, PtBytes.EMPTY_BYTE_ARRAY);
         RangeRequest range = RangeRequest.builder()
                 .startRowInclusive(startRow)
-                .batchHint(batchSize)
+                .batchHint(rowBatchSize)
                 .build();
 
         Sweeper sweeper = getSweeperFor(sweepStrategy);
@@ -142,7 +142,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         try (ClosableIterator<RowResult<Value>> valueResults = sweeper.getValues(tableRef, range, sweepTs);
              ClosableIterator<RowResult<Set<Long>>> rowResults = sweeper.getCellTimestamps(tableRef, range, sweepTs)) {
             CountingIterator<RowResult<Set<Long>>> rowResultTimestamps =
-                    new CountingIterator<>(Iterators.limit(rowResults, batchSize));
+                    new CountingIterator<>(Iterators.limit(rowResults, rowBatchSize));
             PeekingIterator<RowResult<Value>> peekingValues = Iterators.peekingIterator(valueResults);
 
             BatchingVisitable<CellAndTimestamps> cellsAndTimestamps = BatchingVisitableFromIterable
@@ -150,7 +150,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
 
             final AtomicInteger totalCellsSwept = new AtomicInteger(0);
             cellsAndTimestamps.batchAccept(
-                    CELL_BATCH_SIZE,
+                    cellBatchSize,
                     currentBatch -> {
                         CellsAndTimestamps currentBatchCells = ImmutableCellsAndTimestamps.builder()
                                 .addAllCellAndTimestampsList(currentBatch)
@@ -160,7 +160,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                         return true;
                     });
 
-            byte[] nextRow = rowResultTimestamps.size() < batchSize ? null :
+            byte[] nextRow = rowResultTimestamps.size() < rowBatchSize ? null :
                     RangeRequests.getNextStartRow(false, rowResultTimestamps.lastItem().getRowName());
             return new SweepResults(nextRow, rowResultTimestamps.size(), totalCellsSwept.get(), sweepTs);
         }
