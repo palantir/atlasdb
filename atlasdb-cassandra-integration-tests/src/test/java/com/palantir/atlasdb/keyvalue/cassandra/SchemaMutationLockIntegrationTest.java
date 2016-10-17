@@ -58,6 +58,7 @@ public class SchemaMutationLockIntegrationTest {
     private ConsistencyLevel writeConsistency;
     private CassandraClientPool clientPool;
     private UniqueSchemaMutationLockTable lockTable;
+    private SchemaMutationLockTestTools lockTestTools;
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
     @SuppressWarnings({"WeakerAccess", "DefaultAnnotationParam"}) // test parameter
@@ -109,6 +110,7 @@ public class SchemaMutationLockIntegrationTest {
                 lockTable,
                 heartbeatService,
                 SchemaMutationLock.DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS);
+        lockTestTools = new SchemaMutationLockTestTools(clientPool, lockTable);
     }
 
     @Test
@@ -199,7 +201,9 @@ public class SchemaMutationLockIntegrationTest {
     public void testNonHeartbeatClearedLockPostMigration() throws TException {
         // only run this test with cas
         Assume.assumeTrue(casEnabled);
-        setUpWithNonHeartbeatClearedLock();
+
+        // set up pre heartbeat old style cleared lock
+        lockTestTools.setLocksTableValue(Long.MAX_VALUE);
 
         schemaMutationLock.runWithLock(DO_NOTHING);
     }
@@ -210,9 +214,5 @@ public class SchemaMutationLockIntegrationTest {
         TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
         return new SchemaMutationLock(true, configManager, clientPool, queryRunner, writeConsistency, lockTable,
                 heartbeatService, 2000);
-    }
-
-    private void setUpWithNonHeartbeatClearedLock() throws TException {
-        CassandraTestTools.setLocksTableValue(clientPool, lockTable, Long.MAX_VALUE, writeConsistency);
     }
 }

@@ -15,32 +15,17 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.cassandra.thrift.Cassandra.Client;
-import org.apache.cassandra.thrift.Column;
-import org.apache.cassandra.thrift.Compression;
-import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.CqlResult;
-import org.apache.cassandra.thrift.CqlRow;
-import org.apache.thrift.TException;
 import org.joda.time.Duration;
 
-import com.google.common.collect.Iterables;
-import com.google.common.primitives.Longs;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.core.ConditionTimeoutException;
 
@@ -77,91 +62,6 @@ public final class CassandraTestTools {
                 // if execution is done, we expect it to have failed
             }
         }
-    }
-
-    // for handling old non-heartbeat lock values
-    public static CqlResult setLocksTableValue(
-            CassandraClientPool clientPool,
-            UniqueSchemaMutationLockTable lockTable,
-            long lockId,
-            ConsistencyLevel consistency) throws TException {
-        String lockValue = CassandraKeyValueServices.encodeAsHex(Longs.toByteArray(lockId));
-        return setLocksTableValueInternal(clientPool, lockTable, lockValue, consistency);
-    }
-
-    public static CqlResult setLocksTableValue(
-            CassandraClientPool clientPool,
-            UniqueSchemaMutationLockTable lockTable,
-            long lockId,
-            int heartbeatCount,
-            ConsistencyLevel consistency) throws TException {
-        String lockValue = getHexEncodedBytes(SchemaMutationLock.lockValueFromIdAndHeartbeat(lockId, heartbeatCount));
-        return setLocksTableValueInternal(clientPool, lockTable, lockValue, consistency);
-    }
-
-    public static CqlResult truncateLocksTable(CassandraClientPool clientPool, UniqueSchemaMutationLockTable lockTable)
-            throws TException {
-        return clientPool.run(client -> {
-            String truncateCql = String.format("TRUNCATE \"%s\";", lockTable.getOnlyTable().getQualifiedName());
-            return runCqlQuery(truncateCql, client, ConsistencyLevel.ALL);
-        });
-    }
-
-    public static CqlResult readLocksTable(CassandraClientPool clientPool, UniqueSchemaMutationLockTable lockTable)
-            throws TException {
-        return clientPool.run(client -> {
-            String selectCql = "SELECT \"value\" FROM \"%s\" WHERE key = %s AND column1 = %s AND column2 = -1;";
-            String lockRowName = getHexEncodedBytes(CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME);
-            String lockColName = getHexEncodedBytes(CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME);
-            selectCql = String.format(selectCql, lockTable.getOnlyTable().getQualifiedName(), lockRowName, lockColName);
-            return runCqlQuery(selectCql, client, ConsistencyLevel.LOCAL_QUORUM);
-        });
-    }
-
-    public static long readLockIdFromLocksTable(CassandraClientPool clientPool, UniqueSchemaMutationLockTable lockTable)
-            throws TException {
-        CqlResult result = CassandraTestTools.readLocksTable(clientPool, lockTable);
-        Column resultColumn = getColumnFromCqlResult(result);
-        return SchemaMutationLock.getLockIdFromColumn(resultColumn);
-    }
-
-    public static long readHeartbeatCountFromLocksTable(CassandraClientPool clientPool,
-            UniqueSchemaMutationLockTable lockTable) throws TException {
-        CqlResult result = CassandraTestTools.readLocksTable(clientPool, lockTable);
-        Column resultColumn = getColumnFromCqlResult(result);
-        return SchemaMutationLock.getHeartbeatCountFromColumn(resultColumn);
-    }
-
-    private static String getHexEncodedBytes(String str) {
-        return CassandraKeyValueServices.encodeAsHex(str.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static CqlResult setLocksTableValueInternal(
-            CassandraClientPool clientPool,
-            UniqueSchemaMutationLockTable lockTable,
-            String hexLockValue,
-            ConsistencyLevel consistency) throws TException {
-        return clientPool.run(client -> {
-            String updateCql = "UPDATE \"%s\" SET value = %s WHERE key = %s AND column1 = %s AND column2 = -1;";
-            String lockRowName = getHexEncodedBytes(CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME);
-            String lockColName = getHexEncodedBytes(CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME);
-            String lockTableName = lockTable.getOnlyTable().getQualifiedName();
-            updateCql = String.format(updateCql, lockTableName, hexLockValue, lockRowName, lockColName);
-            return runCqlQuery(updateCql, client, consistency);
-        });
-    }
-
-    private static Column getColumnFromCqlResult(CqlResult result) {
-        List<CqlRow> resultRows = result.getRows();
-        assertThat(resultRows, hasSize(1));
-        List<Column> resultColumns = Iterables.getOnlyElement(resultRows).getColumns();
-        assertThat(resultColumns, hasSize(1));
-        return Iterables.getOnlyElement(resultColumns);
-    }
-
-    private static CqlResult runCqlQuery(String query, Client client, ConsistencyLevel consistency) throws TException {
-        ByteBuffer queryBuffer = ByteBuffer.wrap(query.getBytes(StandardCharsets.UTF_8));
-        return client.execute_cql3_query(queryBuffer, Compression.NONE, consistency);
     }
 
     private static Callable<Boolean> isPortListening(String host, int port) {
