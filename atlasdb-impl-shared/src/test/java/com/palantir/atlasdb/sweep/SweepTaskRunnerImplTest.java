@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyCollection;
 import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -28,7 +27,6 @@ import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.Set;
 
 import org.junit.Test;
 
@@ -39,18 +37,14 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
-import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.sweepers.ConservativeSweeper;
 import com.palantir.atlasdb.sweep.sweepers.Sweeper;
 import com.palantir.atlasdb.sweep.sweepers.ThoroughSweeper;
-import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterators;
@@ -62,74 +56,27 @@ public class SweepTaskRunnerImplTest {
     private static final long HIGH_COMMIT_TS = 102L;
     private static final long VALID_TIMESTAMP = 123L;
 
-    private static final TableReference TABLE_REFERENCE = TableReference.create(Namespace.create("ns"), "testTable");
     private static final Cell SINGLE_CELL = Cell.create(
             "cellRow".getBytes(StandardCharsets.UTF_8),
             "cellCol".getBytes(StandardCharsets.UTF_8));
-    private static final Set<Cell> SINGLE_CELL_SET = ImmutableSet.of(SINGLE_CELL);
-    private static final Multimap<Cell, Long> SINGLE_CELL_TS_PAIR = ImmutableMultimap.<Cell, Long>builder()
-            .putAll(
-                    Cell.create(
-                            "cellPairRow".getBytes(StandardCharsets.UTF_8),
-                            "cellPairCol".getBytes(StandardCharsets.UTF_8)),
-                    ImmutableSet.of(5L, 10L, 15L, 20L))
-            .build();
 
     private final KeyValueService mockKvs = mock(KeyValueService.class);
-    private final Follower mockFollower = mock(Follower.class);
     private final Supplier<Long> mockImmutableTimestampSupplier = mock(Supplier.class);
     private final Supplier<Long> mockUnreadableTimestampSupplier = mock(Supplier.class);
     private final TransactionService mockTransactionService = mock(TransactionService.class);
+    private final CellsSweeper mockCellsSweeper = mock(CellsSweeper.class);
     private final SweepTaskRunnerImpl sweepTaskRunner = new SweepTaskRunnerImpl(
-            null,
             mockKvs,
             mockUnreadableTimestampSupplier,
             mockImmutableTimestampSupplier,
             mockTransactionService,
             null,
-            ImmutableList.of(mockFollower));
+            mockCellsSweeper);
     private final Sweeper thoroughSweeper = new ThoroughSweeper(mockKvs, mockImmutableTimestampSupplier);
     private final Sweeper conservativeSweeper = new ConservativeSweeper(
             mockKvs,
             mockImmutableTimestampSupplier,
             mockUnreadableTimestampSupplier);
-
-    @Test
-    public void ensureCellSweepDeletesCells() {
-        sweepTaskRunner.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, ImmutableSet.of());
-
-        verify(mockKvs).delete(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR);
-    }
-
-    @Test
-    public void ensureSentinelsAreAddedToKvs() {
-        sweepTaskRunner.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, SINGLE_CELL_SET);
-
-        verify(mockKvs).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL_SET);
-    }
-
-    @Test
-    public void ensureFollowersRunAgainstCellsToSweep() {
-        sweepTaskRunner.sweepCells(TABLE_REFERENCE, SINGLE_CELL_TS_PAIR, ImmutableSet.of());
-
-        verify(mockFollower)
-                .run(any(), any(), eq(SINGLE_CELL_TS_PAIR.keySet()), eq(Transaction.TransactionType.HARD_DELETE));
-    }
-
-    @Test
-    public void sentinelsArentAddedIfNoCellsToSweep() {
-        sweepTaskRunner.sweepCells(TABLE_REFERENCE, ImmutableMultimap.of(), SINGLE_CELL_SET);
-
-        verify(mockKvs, never()).addGarbageCollectionSentinelValues(TABLE_REFERENCE, SINGLE_CELL_SET);
-    }
-
-    @Test
-    public void ensureNoActionTakenIfNoCellsToSweep() {
-        sweepTaskRunner.sweepCells(TABLE_REFERENCE, ImmutableMultimap.of(), ImmutableSet.of());
-
-        verify(mockKvs, never()).delete(any(), any());
-        verify(mockKvs, never()).addGarbageCollectionSentinelValues(any(), any());
-    }
 
     @Test
     public void sweepValidTimestamps() {

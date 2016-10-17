@@ -45,7 +45,6 @@ import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -60,8 +59,6 @@ import com.palantir.atlasdb.sweep.sweepers.ConservativeSweeper;
 import com.palantir.atlasdb.sweep.sweepers.NothingSweeper;
 import com.palantir.atlasdb.sweep.sweepers.Sweeper;
 import com.palantir.atlasdb.sweep.sweepers.ThoroughSweeper;
-import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -75,28 +72,26 @@ import com.palantir.common.base.ClosableIterator;
 public class SweepTaskRunnerImpl implements SweepTaskRunner {
     private static final Logger log = LoggerFactory.getLogger(SweepTaskRunnerImpl.class);
 
-    private final TransactionManager txManager;
     private final KeyValueService keyValueService;
     private final Supplier<Long> unreadableTimestampSupplier;
     private final Supplier<Long> immutableTimestampSupplier;
     private final TransactionService transactionService;
     private final SweepStrategyManager sweepStrategyManager;
-    private final Collection<Follower> followers;
+    private final CellsSweeper cellsSweeper;
 
-    public SweepTaskRunnerImpl(TransactionManager txManager,
-                           KeyValueService keyValueService,
-                           Supplier<Long> unreadableTimestampSupplier,
-                           Supplier<Long> immutableTimestampSupplier,
-                           TransactionService transactionService,
-                           SweepStrategyManager sweepStrategyManager,
-                           Collection<Follower> followers) {
-        this.txManager = txManager;
+    public SweepTaskRunnerImpl(
+            KeyValueService keyValueService,
+            Supplier<Long> unreadableTimestampSupplier,
+            Supplier<Long> immutableTimestampSupplier,
+            TransactionService transactionService,
+            SweepStrategyManager sweepStrategyManager,
+            CellsSweeper cellsSweeper) {
         this.keyValueService = keyValueService;
         this.unreadableTimestampSupplier = unreadableTimestampSupplier;
         this.immutableTimestampSupplier = immutableTimestampSupplier;
         this.transactionService = transactionService;
         this.sweepStrategyManager = sweepStrategyManager;
-        this.followers = followers;
+        this.cellsSweeper = cellsSweeper;
     }
 
     @Override
@@ -154,7 +149,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                     currentBatchWithoutIgnoredTimestamps, peekingValues, sweepTs, sweeper);
 
             Multimap<Cell, Long> startTimestampsToSweepPerCell = cellsToSweep.timestampsAsMultimap();
-            sweepCells(tableRef, startTimestampsToSweepPerCell, cellsToSweep.allSentinels());
+            cellsSweeper.sweepCells(tableRef, startTimestampsToSweepPerCell, cellsToSweep.allSentinels());
 
             byte[] nextRow = rowResultTimestamps.size() < batchSize ? null :
                 RangeRequests.getNextStartRow(false, Iterables.getLast(rowResultTimestamps).getRowName());
@@ -301,25 +296,5 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         boolean needsSentinel = sweeper.shouldAddSentinels() && commitedTssToSweep.size() > 1;
 
         return CellToSweep.of(cell, sweepTimestamps, needsSentinel);
-    }
-
-    @VisibleForTesting
-    void sweepCells(
-            TableReference tableRef,
-            Multimap<Cell, Long> cellTsPairsToSweep,
-            Set<Cell> sentinelsToAdd) {
-        if (cellTsPairsToSweep.isEmpty()) {
-            return;
-        }
-
-        for (Follower follower : followers) {
-            follower.run(txManager, tableRef, cellTsPairsToSweep.keySet(), TransactionType.HARD_DELETE);
-        }
-        if (!sentinelsToAdd.isEmpty()) {
-            keyValueService.addGarbageCollectionSentinelValues(
-                    tableRef,
-                    sentinelsToAdd);
-        }
-        keyValueService.delete(tableRef, cellTsPairsToSweep);
     }
 }
