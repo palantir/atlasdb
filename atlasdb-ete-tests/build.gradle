@@ -70,8 +70,16 @@ task prepareForEteTests(type: Copy, dependsOn: ['distTar', ':atlasdb-ete-test-ut
     rename { filename -> 'atlasdb-ete-snapshot.tgz' }
 }
 
-test.dependsOn 'prepareForEteTests'
-test.exclude '**/*EteTest*'
+task longTest(type: Test) {
+    dependsOn prepareForEteTests
+    include '**/MultiCassandraTestSuite.class'
+}
+
+test {
+    dependsOn longTest, prepareForEteTests
+    exclude '**/MultiCassandraTestSuite.class'
+    exclude '**/*EteTest.class'
+}
 
 distribution {
     serviceName 'atlasdb-ete'

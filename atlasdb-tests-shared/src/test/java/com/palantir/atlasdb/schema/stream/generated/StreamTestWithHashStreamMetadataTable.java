@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -89,9 +90,9 @@ import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class StreamTestWithHashStreamMetadataTable implements
-        AtlasDbMutableExpiringTable<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow,
-                                       StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataNamedColumnValue<?>,
-                                       StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRowResult>,
+        AtlasDbMutablePersistentTable<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow,
+                                         StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataNamedColumnValue<?>,
+                                         StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRowResult>,
         AtlasDbNamedMutableTable<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow,
                                     StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataNamedColumnValue<?>,
                                     StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRowResult> {
@@ -437,41 +438,41 @@ public final class StreamTestWithHashStreamMetadataTable implements
         return ret;
     }
 
-    public void putMetadata(StreamTestWithHashStreamMetadataRow row, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value, long duration, TimeUnit unit) {
-        put(ImmutableMultimap.of(row, Metadata.of(value)), duration, unit);
+    public void putMetadata(StreamTestWithHashStreamMetadataRow row, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value) {
+        put(ImmutableMultimap.of(row, Metadata.of(value)));
     }
 
-    public void putMetadata(Map<StreamTestWithHashStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> map, long duration, TimeUnit unit) {
+    public void putMetadata(Map<StreamTestWithHashStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> map) {
         Map<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<StreamTestWithHashStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> e : map.entrySet()) {
             toPut.put(e.getKey(), Metadata.of(e.getValue()));
         }
-        put(Multimaps.forMap(toPut), duration, unit);
+        put(Multimaps.forMap(toPut));
     }
 
-    public void putMetadataUnlessExists(StreamTestWithHashStreamMetadataRow row, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value, long duration, TimeUnit unit) {
-        putUnlessExists(ImmutableMultimap.of(row, Metadata.of(value)), duration, unit);
+    public void putMetadataUnlessExists(StreamTestWithHashStreamMetadataRow row, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value) {
+        putUnlessExists(ImmutableMultimap.of(row, Metadata.of(value)));
     }
 
-    public void putMetadataUnlessExists(Map<StreamTestWithHashStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> map, long duration, TimeUnit unit) {
+    public void putMetadataUnlessExists(Map<StreamTestWithHashStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> map) {
         Map<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<StreamTestWithHashStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> e : map.entrySet()) {
             toPut.put(e.getKey(), Metadata.of(e.getValue()));
         }
-        putUnlessExists(Multimaps.forMap(toPut), duration, unit);
+        putUnlessExists(Multimaps.forMap(toPut));
     }
 
     @Override
-    public void put(Multimap<StreamTestWithHashStreamMetadataRow, ? extends StreamTestWithHashStreamMetadataNamedColumnValue<?>> rows, long duration, TimeUnit unit) {
+    public void put(Multimap<StreamTestWithHashStreamMetadataRow, ? extends StreamTestWithHashStreamMetadataNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
-        t.put(tableRef, ColumnValues.toCellValues(rows, duration, unit));
+        t.put(tableRef, ColumnValues.toCellValues(rows));
         for (StreamTestWithHashStreamMetadataTrigger trigger : triggers) {
             trigger.putStreamTestWithHashStreamMetadata(rows);
         }
     }
 
     @Override
-    public void putUnlessExists(Multimap<StreamTestWithHashStreamMetadataRow, ? extends StreamTestWithHashStreamMetadataNamedColumnValue<?>> rows, long duration, TimeUnit unit) {
+    public void putUnlessExists(Multimap<StreamTestWithHashStreamMetadataRow, ? extends StreamTestWithHashStreamMetadataNamedColumnValue<?>> rows) {
         Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
         Multimap<StreamTestWithHashStreamMetadataRow, StreamTestWithHashStreamMetadataNamedColumnValue<?>> toPut = HashMultimap.create();
         for (Entry<StreamTestWithHashStreamMetadataRow, ? extends StreamTestWithHashStreamMetadataNamedColumnValue<?>> entry : rows.entries()) {
@@ -479,7 +480,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
                 toPut.put(entry.getKey(), entry.getValue());
             }
         }
-        put(toPut, duration, unit);
+        put(toPut);
     }
 
     public void deleteMetadata(StreamTestWithHashStreamMetadataRow row) {
@@ -683,6 +684,7 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
+     * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
@@ -742,7 +744,6 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link Set}
      * {@link Sets}
      * {@link Sha256Hash}
-     * {@link BatchColumnRangeSelection}
      * {@link SortedMap}
      * {@link Supplier}
      * {@link TableReference}
@@ -753,5 +754,5 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6TxIbSu1jMtQmRISOb/WSw==";
+    static String __CLASS_HASH = "LtssOu3G6WMusTy4ebGgYQ==";
 }

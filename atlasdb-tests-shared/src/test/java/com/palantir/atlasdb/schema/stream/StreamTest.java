@@ -33,7 +33,6 @@ import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -51,7 +50,6 @@ import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestTableFactory;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow;
-import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow;
 import com.palantir.atlasdb.stream.GenericStreamStore;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
@@ -154,29 +152,6 @@ public class StreamTest extends AtlasDbTestCase {
         verifyLoadingStreams(id, bytesToStore, store);
 
         store.storeStream(new ByteArrayInputStream(bytesToStore));
-        verifyLoadingStreams(id, bytesToStore, store);
-
-        return id;
-    }
-
-    @Test
-    public void testExpiringStoreByteStream() throws IOException {
-        storeAndCheckExpiringByteStreams(0);
-        storeAndCheckExpiringByteStreams(100);
-        storeAndCheckExpiringByteStreams(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES + 500);
-        storeAndCheckExpiringByteStreams(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 3);
-        storeAndCheckExpiringByteStreams(5000000);
-    }
-
-    private long storeAndCheckExpiringByteStreams(int size) throws IOException {
-        final byte[] bytesToStore = new byte[size];
-        Random rand = new Random();
-        rand.nextBytes(bytesToStore);
-
-        final long id = timestampService.getFreshTimestamp();
-        StreamTestWithHashStreamStore store = StreamTestWithHashStreamStore.of(txManager, StreamTestTableFactory.of());
-        store.storeStream(id, new ByteArrayInputStream(bytesToStore), 5, TimeUnit.SECONDS);
-
         verifyLoadingStreams(id, bytesToStore, store);
 
         return id;
