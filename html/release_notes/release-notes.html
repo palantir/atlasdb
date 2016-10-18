@@ -182,6 +182,33 @@ This fixes the issue where running the console would cause the <code class="docu
 This fixes the issue where running the CLIs would cause a <code class="docutils literal"><span class="pre">ClassNotFoundException</span></code>
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1065">Pull Request</a>).</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Oracle is supported via DBKVS if you have runtime dependency on an Oracle driver that resolves the JsonType &#8220;jdbcHandler&#8221;.
+All table names in the schema must be less than 30 characters long if you wish to run against Oracle as a backing store.
+See <a class="reference internal" href="../configuration/oracle_key_value_service_config.html#oracle-configuration"><span class="std std-ref">Oracle KVS Configuration</span></a> for details on how to configure your service to use Oracle.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/985">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<td>The DBKVS config now enforces that the namespace must always be empty for <code class="docutils literal"><span class="pre">metadataTable</span></code> in the <code class="docutils literal"><span class="pre">ddl</span></code> block.
+The <code class="docutils literal"><span class="pre">metadataTable</span></code> parameter defaults to an empty name space, so no action is needed if this value is not configured.
+See the <a class="reference internal" href="../configuration/oracle_key_value_service_config.html#oracle-config-params"><span class="std std-ref">Oracle connection config</span></a> documentation for more details.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/985">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>We have changed the default <code class="docutils literal"><span class="pre">tablePrefix</span></code> for <code class="docutils literal"><span class="pre">OracleDdlConfig</span></code> to be <code class="docutils literal"><span class="pre">a_</span></code>.
+Previously this would default to be empty and so user-defined tables could have a leading underscore, which is an invalid table name for Oracle.
+This change is specific to Oracle and does not affect DBKVS on Postgres.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/985">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The <code class="docutils literal"><span class="pre">metadataTableName</span></code> for Oracle is now <code class="docutils literal"><span class="pre">atlasdb_metadata</span></code> instead of <code class="docutils literal"><span class="pre">_metadata</span></code>.
+This is due to Oracle&#8217;s restriction of not allowing table names with a leading underscore.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/985">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<td>The <code class="docutils literal"><span class="pre">overflowIds</span></code> config parameter in <code class="docutils literal"><span class="pre">OracleDdlConfig</span></code> is now Optional and is overriden by a default sequence supplier if absent.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/985">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>

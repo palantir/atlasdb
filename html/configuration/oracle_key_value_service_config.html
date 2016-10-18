@@ -1,0 +1,375 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Oracle Key Value Service Configuration &mdash; AtlasDB develop documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
+  
+    <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
+        <link rel="up" title="Configuration" href="index.html"/>
+        <link rel="next" title="Postgres Key Value Service Configuration" href="postgres_key_value_service_config.html"/>
+        <link rel="prev" title="Cassandra Key Value Service Configuration" href="cassandra_KVS_configuration.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> AtlasDB
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                develop
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../transactions/index.html">Transactions</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Configuration</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="cassandra_config.html">Cassandra Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enabling_cassandra_tracing.html">Enabling Cassandra Tracing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cassandra_KVS_configuration.html">Cassandra Key Value Service Configuration</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Oracle Key Value Service Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="postgres_key_value_service_config.html">Postgres Key Value Service Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="leader_config.html">Leader Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logging.html">Logging Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../services/index.html">Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../miscellaneous/index.html">Miscellaneous</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes/index.html">Releases</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">AtlasDB</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+ 
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="index.html">Configuration</a> &raquo;</li>
+      
+    <li>Oracle Key Value Service Configuration</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/configuration/oracle_key_value_service_config.rst" class="fa fa-github"> Edit on GitHub</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="oracle-key-value-service-configuration">
+<span id="oracle-configuration"></span><h1>Oracle Key Value Service Configuration<a class="headerlink" href="#oracle-key-value-service-configuration" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="enabling-oracle-for-your-application">
+<h2>Enabling Oracle for your Application<a class="headerlink" href="#enabling-oracle-for-your-application" title="Permalink to this headline">¶</a></h2>
+<p>To enable your application to be backed by Oracle, you just need to add AtlasDB DbKvs and the OracleJDBC driver as a
+runtime dependency. In gradle this looks like:</p>
+<div class="highlight-groovy"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:&lt;atlas version&gt;&#39;</span>
+<span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:dbkvs-oracle-driver:&lt;oracle driver version&gt;&#39;</span>
+</pre></div>
+</div>
+<p>e.g.</p>
+<div class="highlight-groovy"><div class="highlight"><pre><span></span><span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-dbkvs:0.19.0&#39;</span>
+<span class="n">runtime</span> <span class="s1">&#39;com.palantir.atlasdb:dbkvs-oracle-driver:0.3.0&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="configuring-a-running-application-to-use-oracle">
+<h2>Configuring a Running Application to Use Oracle<a class="headerlink" href="#configuring-a-running-application-to-use-oracle" title="Permalink to this headline">¶</a></h2>
+<p>A minimal AtlasDB configuration for running against Oracle will look like the below.</p>
+<div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">keyValueService</span><span class="p p-Indicator">:</span>
+    <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">relational</span>
+    <span class="l l-Scalar l-Scalar-Plain">ddl</span><span class="p p-Indicator">:</span>
+      <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">oracle</span>
+      <span class="l l-Scalar l-Scalar-Plain">overflowMigrationState</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">3</span>
+      <span class="l l-Scalar l-Scalar-Plain">jdbcHandler</span><span class="p p-Indicator">:</span>
+        <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">oracle</span>
+    <span class="l l-Scalar l-Scalar-Plain">connection</span><span class="p p-Indicator">:</span>
+      <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">oracle</span>
+      <span class="l l-Scalar l-Scalar-Plain">host</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">localhost</span>
+      <span class="l l-Scalar l-Scalar-Plain">port</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">1521</span>
+      <span class="l l-Scalar l-Scalar-Plain">sid</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">oracle</span>
+      <span class="l l-Scalar l-Scalar-Plain">dbLogin</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">palantir</span>
+      <span class="l l-Scalar l-Scalar-Plain">dbPassword</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">palpal</span>
+
+  <span class="l l-Scalar l-Scalar-Plain">leader</span><span class="p p-Indicator">:</span>
+    <span class="c1"># This should be at least half the number of nodes in your cluster</span>
+    <span class="l l-Scalar l-Scalar-Plain">quorumSize</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">2</span>
+    <span class="l l-Scalar l-Scalar-Plain">learnerLogDir</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
+    <span class="l l-Scalar l-Scalar-Plain">acceptorLogDir</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">var/data/paxosLogs</span>
+    <span class="c1"># This should be different for every node. If ssl is not enabled, then the host must be specified as http</span>
+    <span class="l l-Scalar l-Scalar-Plain">localServer</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">https://&lt;yourhost&gt;:3828</span>
+    <span class="c1"># This should be the same for every node. If ssl is not enabled, then the host must be specified as http</span>
+    <span class="l l-Scalar l-Scalar-Plain">lockCreator</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span>
+    <span class="c1"># This should be the same for every node</span>
+    <span class="l l-Scalar l-Scalar-Plain">leaders</span><span class="p p-Indicator">:</span>
+      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host1:3828</span> <span class="c1"># If ssl is not enabled, then the hosts must be specified as http</span>
+      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host2:3828</span>
+      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">https://host3:3828</span>
+</pre></div>
+</div>
+<p>For more details on the leader block, see <a class="reference internal" href="leader_config.html#leader-config"><span class="std std-ref">Leader Configuration</span></a>.</p>
+</div>
+<div class="section" id="configuration-parameters">
+<span id="oracle-config-params"></span><h2>Configuration Parameters<a class="headerlink" href="#configuration-parameters" title="Permalink to this headline">¶</a></h2>
+<p>The Oracle Configuration has 2 major blocks:</p>
+<p>The DDL Config Block:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="8%" />
+<col width="67%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Property</th>
+<th class="head">Description</th>
+<th class="head">Required</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>overflowMigrationState</td>
+<td>The value should be 3(FINISHED) for all new clients.</td>
+<td>Yes</td>
+</tr>
+<tr class="row-odd"><td>tableFactorySupplier</td>
+<td>This should supply the <code class="docutils literal"><span class="pre">DbTableFactory</span></code> required for setting up database operations.</td>
+<td>No</td>
+</tr>
+<tr class="row-even"><td>metadataTable</td>
+<td>The metadataTable should be a tableReference to the metadata table. The default value is
+{namespace:&#8221;&#8221;, tablename:&#8221;_metadata&#8221;}.</td>
+<td>No</td>
+</tr>
+<tr class="row-odd"><td>tablePrefix</td>
+<td>The value should be a string with only alpha numeric characters or underscores. This should not begin
+with an underscore. Default value is &#8220;a_&#8221;.</td>
+<td>No</td>
+</tr>
+<tr class="row-even"><td>poolSize</td>
+<td>The number of threads in the connection pool to Oracle, defaults to 64.</td>
+<td>No</td>
+</tr>
+<tr class="row-odd"><td>fetchBatchSize</td>
+<td>The number of cells fetched in batch queries like <code class="docutils literal"><span class="pre">getAllRows</span></code>, <code class="docutils literal"><span class="pre">getAllTimestamps</span></code> etc., defaults to 256.</td>
+<td>No</td>
+</tr>
+<tr class="row-even"><td>mutationBatchCount</td>
+<td>The maximum number of cells in a batch for write operations like <code class="docutils literal"><span class="pre">put</span></code>, <code class="docutils literal"><span class="pre">putWithTimestamps</span></code>,
+defaults to 1000.</td>
+<td>No</td>
+</tr>
+<tr class="row-odd"><td>mutationBatchSizeBytes</td>
+<td>The maximum bytes in a batch for write operations like <code class="docutils literal"><span class="pre">put</span></code>, <code class="docutils literal"><span class="pre">putWithTimestamps</span></code>, defaults to 2MB.</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>The Connection Config block:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="8%" />
+<col width="67%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Property</th>
+<th class="head">Description</th>
+<th class="head">Required</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>host</td>
+<td>The host running Oracle.</td>
+<td>Yes</td>
+</tr>
+<tr class="row-odd"><td>port</td>
+<td>The port exposed by the Oracle server for Oracle client connections.</td>
+<td>Yes</td>
+</tr>
+<tr class="row-even"><td>sid</td>
+<td>The site identifier for the Oracle server.</td>
+<td>Yes</td>
+</tr>
+<tr class="row-odd"><td>dbLogin</td>
+<td>The Oracle DB username.</td>
+<td>Yes</td>
+</tr>
+<tr class="row-even"><td>dbPassword</td>
+<td>The Oracle DB password.</td>
+<td>Yes</td>
+</tr>
+<tr class="row-odd"><td>testQuery</td>
+<td>Query used to check if driver supports JDBC4. Defaults to &#8220;SELECT 1 FROM dual&#8221;.</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>There are more parameters in the Connection config, which have sensible default values.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="postgres_key_value_service_config.html" class="btn btn-neutral float-right" title="Postgres Key Value Service Configuration" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="cassandra_KVS_configuration.html" class="btn btn-neutral" title="Cassandra Key Value Service Configuration" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Palantir Technologies.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'develop',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
