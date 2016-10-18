@@ -11,6 +11,7 @@ dependencies {
   compile project(':commons-api')
 
   testCompile project(':atlasdb-config')
+  testCompile 'org.mockito:mockito-core:' + libVersions.mockito
 
   processor 'org.immutables:value:' + libVersions.immutables
   processor "com.google.auto.service:auto-service:1.0-rc2"
