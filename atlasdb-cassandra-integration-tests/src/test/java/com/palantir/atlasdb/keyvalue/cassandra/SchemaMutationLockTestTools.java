@@ -39,8 +39,8 @@ public final class SchemaMutationLockTestTools {
         this.lockTable = lockTable;
     }
 
-    public CqlResult setLegacyLocksTableValue(long lockId) throws TException {
-        String lockValue = CassandraKeyValueServices.encodeAsHex(Longs.toByteArray(lockId));
+    public CqlResult setLegacyClearedLocksTableValue() throws TException {
+        String lockValue = CassandraKeyValueServices.encodeAsHex(Longs.toByteArray(Long.MAX_VALUE));
         return setLocksTableValueInternal(lockValue);
     }
 

@@ -202,8 +202,7 @@ public class SchemaMutationLockIntegrationTest {
         // only run this test with cas
         Assume.assumeTrue(casEnabled);
 
-        // set up pre heartbeat legacy cleared lock
-        lockTestTools.setLegacyLocksTableValue(Long.MAX_VALUE);
+        lockTestTools.setLegacyClearedLocksTableValue();
 
         schemaMutationLock.runWithLock(DO_NOTHING);
     }
