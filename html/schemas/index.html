@@ -272,7 +272,7 @@ characteristics, among other things. The supported types are:</p>
 <th class="head">Java Type</th>
 <th class="head">Format</th>
 <th class="head">Anywhere in
-table?</th>
+row components?</th>
 <th class="head">Range
 Scans?</th>
 </tr>
@@ -361,8 +361,9 @@ numbers.</td></tr>
 <table class="docutils footnote" frame="void" id="id10" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label">[2]</td><td><em>(<a class="fn-backref" href="#id5">1</a>, <a class="fn-backref" href="#id7">2</a>)</em> A <code class="docutils literal"><span class="pre">STRING</span></code> or <code class="docutils literal"><span class="pre">BLOB</span></code> can only be a row or column component
-if it is the last component of the component list.</td></tr>
+<tr><td class="label">[2]</td><td><em>(<a class="fn-backref" href="#id5">1</a>, <a class="fn-backref" href="#id7">2</a>)</em> A <code class="docutils literal"><span class="pre">STRING</span></code> or <code class="docutils literal"><span class="pre">BLOB</span></code> can only be a row component
+if it is the last component of the component list.  There is schema validation
+to ensure this is true.</td></tr>
 </tbody>
 </table>
 <table class="docutils footnote" frame="void" id="id11" rules="none">
