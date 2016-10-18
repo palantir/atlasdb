@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.cassandra;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.auto.service.AutoService;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -30,6 +33,7 @@ import com.palantir.timestamp.TimestampService;
 
 @AutoService(AtlasDbFactory.class)
 public class CassandraAtlasDbFactory implements AtlasDbFactory {
+    private static final Logger log = LoggerFactory.getLogger(CassandraAtlasDbFactory.class);
 
     @Override
     public KeyValueService createRawKeyValueService(
@@ -52,6 +56,8 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs) {
+        log.trace("Creating timestamp service. This should only happen once.");
+
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(rawKvs instanceof CassandraKeyValueService,
                 "TimestampService must be created from an instance of"
