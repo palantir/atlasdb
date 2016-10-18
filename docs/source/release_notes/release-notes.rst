@@ -31,7 +31,7 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-v0.21.0
+v0.20.0
 =======
 
 .. list-table::
@@ -40,6 +40,21 @@ v0.21.0
 
     *    - Type
          - Change
+
+    *    - |breaking|
+         - Hotspotting warnings, previously logged at ERROR, will now throw ``IllegalStateException`` on start-up.
+           Products who hit this warning will need to add ``ignoreHotspottingChecks()`` to the relevant tables of their schema.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/947>`__)
+
+    *    - |fixed|
+         - The dropwizard console no longer always starts up embedded timestamp and lock services.
+           This fixes the issue where running the console would cause the ``MultipleRunningTimestampServiceError``
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1063>`__).
+
+    *    - |fixed|
+         - The ``atlasdb-dagger`` project now publishes a shadowed version so we do not rely on the version of dagger on the classpath.
+           This fixes the issue where running the CLIs would cause a ``ClassNotFoundException``
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1065>`__).
 
     *    - |new|
          - Oracle is supported via DBKVS if you have runtime dependency on an Oracle driver that resolves the JsonType "jdbcHandler".
@@ -67,34 +82,6 @@ v0.21.0
     *    - |breaking|
          - The ``overflowIds`` config parameter in ``OracleDdlConfig`` is now Optional and is overriden by a default sequence supplier if absent.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
-
-.. <<<<------------------------------------------------------------------------------------------------------------->>>>
-
-=======
-v0.20.0
-=======
-
-.. list-table::
-    :widths: 5 40
-    :header-rows: 1
-
-    *    - Type
-         - Change
-
-    *    - |breaking|
-         - Hotspotting warnings, previously logged at ERROR, will now throw ``IllegalStateException`` on start-up.
-           Products who hit this warning will need to add ``ignoreHotspottingChecks()`` to the relevant tables of their schema.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/947>`__)
-
-    *    - |fixed|
-         - The dropwizard console no longer always starts up embedded timestamp and lock services.
-           This fixes the issue where running the console would cause the ``MultipleRunningTimestampServiceError``
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1063>`__).
-
-    *    - |fixed|
-         - The ``atlasdb-dagger`` project now publishes a shadowed version so we do not rely on the version of dagger on the classpath.
-           This fixes the issue where running the CLIs would cause a ``ClassNotFoundException``
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1065>`__).
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
