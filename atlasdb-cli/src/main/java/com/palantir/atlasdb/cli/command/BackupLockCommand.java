@@ -50,14 +50,17 @@ public class BackupLockCommand extends SingleBackendCommand {
         KeyValueService keyValueService = services.getKeyValueService();
         PersistentLock persistentLock = PersistentLock.create(keyValueService);
 
+        if (!exactlyOneParameterIsSet(acquireLock, releaseLock)) {
+            log.error("Specify one of --acquire or --release");
+            return 1;
+        }
+
         if (acquireLock) {
             return acquireLock(persistentLock);
         } else if (releaseLock) {
             return releaseLock(persistentLock);
-        } else {
-            log.error("Specify one of --acquire or --release");
-            return 1;
         }
+        throw new IllegalStateException("Should have hit one of the cases");
     }
 
     private int acquireLock(PersistentLock persistentLock) {
