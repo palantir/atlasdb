@@ -100,6 +100,16 @@ public class PersistentLockCommandTest {
         }
     }
 
+    @Test
+    public void acquireAndReleaseInSameCommandShouldFail() throws Exception {
+        try (SingleBackendCliTestRunner runner = makeRunner(LOCK_COMMAND_NAME, "--acquire", "foo", "--release", "foo")) {
+            runner.connect(moduleFactory);
+
+            String stdout = runner.run();
+
+            assertThat(stdout, containsString("Specify one of --list, --acquire, or --release"));
+        }
+    }
 
     private Set<LockEntry> getAllLocks(KeyValueService keyValueService) {
         PersistentLock persistentLock = PersistentLock.create(keyValueService);

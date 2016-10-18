@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.cli.command;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 
 import java.util.Set;
@@ -79,6 +80,17 @@ public class BackupLockCommandTest {
             runner.run();
 
             assertThat(getAllLocks(keyValueService).size(), equalTo(0));
+        }
+    }
+
+    @Test
+    public void acquireAndReleaseInSameCommandShouldFail() throws Exception {
+        try (SingleBackendCliTestRunner runner = makeRunner(LOCK_COMMAND_NAME, "--acquire", "--release")) {
+            runner.connect(moduleFactory);
+
+            String stdout = runner.run();
+
+            assertThat(stdout, containsString("Specify one of --acquire or --release"));
         }
     }
 
