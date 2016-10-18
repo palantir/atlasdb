@@ -12,7 +12,7 @@ fi
 cd $(dirname $0)
 
 CURRENT_REF=$(git log -1 --format="%H")
-CHANGELOG_MODIFIED=$(git diff origin/develop --name-only | grep $CHANGELOG -q >/dev/null)$?
+CHANGELOG_MODIFIED=$(git diff origin/develop...HEAD --name-only | grep $CHANGELOG -q >/dev/null)$?
 
 if [ $CHANGELOG_MODIFIED -ne 0 ];
 then
