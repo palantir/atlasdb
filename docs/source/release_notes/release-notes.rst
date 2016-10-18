@@ -41,9 +41,6 @@ v0.20.0
     *    - Type
          - Change
 
-    *    - |new|
-         - Added a PR status check to ensure people update the release notes.
-
     *    - |breaking|
          - Hotspotting warnings, previously logged at ERROR, will now throw ``IllegalStateException`` on start-up.
            Products who hit this warning will need to add ``ignoreHotspottingChecks()`` to the relevant tables of their schema.
