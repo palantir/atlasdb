@@ -60,6 +60,11 @@ public class PersistentLockCommand extends SingleBackendCommand {
         KeyValueService keyValueService = services.getKeyValueService();
         PersistentLock persistentLock = PersistentLock.create(keyValueService);
 
+        if (!exactlyOneParameterIsSet(listLocks, acquireLockName, releaseLockName)) {
+            log.error("Specify one of --list, --acquire, or --release");
+            return 1;
+        }
+
         if (listLocks) {
             return printLockList(persistentLock);
         } else if (acquireLockName != null) {
@@ -75,10 +80,8 @@ public class PersistentLockCommand extends SingleBackendCommand {
                 log.error(message);
                 return 1;
             }
-        } else {
-            log.error("Specify one of --list, --acquire, or --release");
-            return 1;
         }
+        throw new IllegalStateException("Should have hit one of the cases");
     }
 
     private int acquireLock(PersistentLock persistentLock, String lockName) {
