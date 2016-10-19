@@ -44,7 +44,7 @@ v0.21.0
     *    - |new|
          - Sweep now supports batching on a per-cell level, in addition to the previous per-row batching.
            This is useful for keeping batch sizes small if the rows are wide.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/947>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1068>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
