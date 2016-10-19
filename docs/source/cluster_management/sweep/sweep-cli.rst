@@ -24,6 +24,9 @@ The following options are set as part of your :ref:`AtlasDB configuration <atlas
 - ``sweepBatchSize``
   If you have extremely large rows, you may want to set a lower batch size. If you have extremely small rows, you may want to up the batch size. (Default: 1000)
 
+- ``sweepCellBatchSize``
+  Provides finer control of the maximum number of cells to sweep at a time, independent of how large rows are. (Default: 10,000)
+
 - ``sweepPauseMillis``
   If you want to use less shared DB resources during user-facing hours, you can specify a wait time in between batches. (Default: 0 ms)
 
