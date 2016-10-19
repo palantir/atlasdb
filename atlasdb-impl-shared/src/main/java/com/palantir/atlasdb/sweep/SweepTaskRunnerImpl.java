@@ -151,11 +151,9 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             final AtomicInteger totalCellsSwept = new AtomicInteger(0);
             cellsAndTimestamps.batchAccept(
                     cellBatchSize,
-                    currentBatch -> {
-                        CellsAndTimestamps currentBatchCells = ImmutableCellsAndTimestamps.builder()
-                                .addAllCellAndTimestampsList(currentBatch)
-                                .build();
-                        int cellsSwept = sweepForCells(currentBatchCells, tableRef, sweeper, sweepTs, peekingValues);
+                    thisBatch -> {
+                        CellsAndTimestamps thisBatchCells = CellsAndTimestamps.fromCellAndTimestampsList(thisBatch);
+                        int cellsSwept = sweepForCells(thisBatchCells, tableRef, sweeper, sweepTs, peekingValues);
                         totalCellsSwept.addAndGet(cellsSwept);
                         return true;
                     });

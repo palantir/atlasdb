@@ -33,6 +33,12 @@ public abstract class CellsAndTimestamps {
                 .build();
     }
 
+    public static CellsAndTimestamps fromCellAndTimestampsList(List<CellAndTimestamps> cellAndTimestampsList) {
+        return ImmutableCellsAndTimestamps.builder()
+                .addAllCellAndTimestampsList(cellAndTimestampsList)
+                .build();
+    }
+
     public Set<Long> getAllTimestampValues() {
         Set<Long> allTimestampValues = TDecorators.wrap(new TLongHashSet());
         for (CellAndTimestamps cellAndTimestamps : cellAndTimestampsList()) {
