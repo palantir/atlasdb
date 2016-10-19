@@ -1890,23 +1890,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     public void cleanUpSchemaMutationLockTablesState() throws Exception {
         Set<TableReference> tables = lockTables.getAllLockTables();
-        if (tables.size() == 0) {
+        java.util.Optional<TableReference> tableToKeep = tables.stream().findFirst();
+        if (!tableToKeep.isPresent()) {
+            log.info("No lock tables to clean up.");
             return;
         }
-        TableReference tableToKeep = extractFirstTable(tables);
+        tables.remove(tableToKeep.get());
         if (tables.size() > 0) {
             dropTablesInternal(tables);
             log.info("Dropped tables [{}]", tables.toString());
         }
         schemaMutationLock.cleanLockState();
-        log.info("Reset the schema mutation lock in table [{}]", tableToKeep.toString());
-    }
-
-    private TableReference extractFirstTable(Set<TableReference> tables) {
-        Iterator<TableReference> it = tables.iterator();
-        TableReference tableToKeep = it.next();
-        it.remove();
-        return tableToKeep;
+        log.info("Reset the schema mutation lock in table [{}]", tableToKeep.get().toString());
     }
 
     private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {
