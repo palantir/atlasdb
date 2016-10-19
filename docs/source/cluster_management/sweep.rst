@@ -45,10 +45,10 @@ The following options are set as part of your :ref:`AtlasDB configuration <atlas
    :header: "Name", "Background or CLI", "Description"
    :widths: 20, 40, 200
 
-   ``sweepBatchSize``, both, "If you have extremely large rows, you may want to set a lower batch size. If you have extremely small rows, you may want to up the batch size. (Default: 1000)"
-   ``sweepCellBatchSize``, both, "Provides finer control of the maximum number of cells to sweep at a time, independent of how large rows are. (Default: 10,000)"
-   ``sweepPauseMillis``, Background only, "If you want to use less shared DB resources during user-facing hours, you can specify a wait time in between batches. (Default: 0 ms)"
-   ``keyValueService/timestampsGetterBatchSize``, both, "(Cassandra KVS only): For really, really large rows, you can set a batch size for the number of columns to fetch in a single database query. See :ref:`Cassandra KVS config <cassandra-configuration>`. (absent by default, meaning fetch all columns per row)"
+   ``sweepBatchSize``, both, "Maximum number of rows to sweep at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance. (Default: 1000)"
+   ``sweepCellBatchSize``, both, "Maximum number of cells to sweep at once. Similar to ``maxBatchSize`` but provides finer control if the row widths vary greatly. (Default: 10,000)"
+   ``sweepPauseMillis``, Background only, "Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours. (Default: 0 ms)"
+   ``keyValueService/timestampsGetterBatchSize``, both, "(Cassandra KVS only): Specify a limit on the maximum number of columns to fetch in a single database query. Set this if your Cassandra OOMs when attempting to run sweep with even a small row batch size. See :ref:`Cassandra KVS config <cassandra-configuration>`. (absent by default, meaning fetch all columns per row)"
 
 
 Ways to Sweep
