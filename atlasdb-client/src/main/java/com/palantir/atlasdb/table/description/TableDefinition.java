@@ -107,6 +107,7 @@ public class TableDefinition extends AbstractDefinition {
         Preconditions.checkState(state == State.DEFINING_ROW_NAME);
         Preconditions.checkState(rowNameComponents.isEmpty(), "hashRowComponent must be the first row component");
         hashFirstRowComponent = true;
+        ignoreHotspottingChecks = true;
     }
 
     public void rowComponent(String componentName, ValueType valueType) {
