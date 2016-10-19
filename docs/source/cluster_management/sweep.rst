@@ -31,6 +31,18 @@ Reasons to Sweep
     - Making many edits to the same row will leave behind many tombstoned entries, so it's advantageous to sweep these tables to increase performance.
 
 
+Ways to Sweep
+-------------
+
+- :ref:`Background sweep process<background_sweep>` scheduled periodically:
+  Under normal use, the sweep job is intended to run at a constant interval as a background sweep process that does not consume significant system resources.
+
+- :ref:`Sweep CLI<atlas_sweep_cli>` triggered manually:
+  You may trigger the sweep job on demand via the sweep CLI. This could be useful in order to address any one-off performance issues.
+  Also, long-running AtlasDB instances with high data scale and months/years of user activity that want to enable the background sweep job
+  may benefit from manually sweeping specific tables first, to reduce the number of unused cells that have accumulated over time.
+
+
 .. _sweep_tunable_parameters:
 
 Tunable Configuration Options
@@ -47,18 +59,6 @@ You may set them as part of your :ref:`AtlasDB configuration <atlas_config>`, or
    ``sweepCellBatchSize``, ``--cell-batch-size``, "10,000", "Maximum number of cells to sweep at once. Similar to ``maxBatchSize`` but provides finer control if the row widths vary greatly."
    ``sweepPauseMillis``, ``--sleep``, "0 ms", "Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours."
    "``timestampsGetterBatchSize`` under ``keyValueService`` (see :ref:`Cassandra KVS config <cassandra-configuration>`)", "Not available, the CLI will pick up the value from the config", "Absent (fetch all columns)", "(Cassandra KVS only): Specify a limit on the maximum number of columns to fetch in a single database query. Set this if your Cassandra OOMs when attempting to run sweep with even a small row batch size."
-
-
-Ways to Sweep
--------------
-
-- :ref:`Background sweep process<background_sweep>` scheduled periodically:
-  Under normal use, the sweep job is intended to run at a constant interval as a background sweep process that does not consume significant system resources.
-
-- :ref:`Sweep CLI<atlas_sweep_cli>` triggered manually:
-  You may trigger the sweep job on demand via the sweep CLI. This could be useful in order to address any one-off performance issues.
-  Also, long-running AtlasDB instances with high data scale and months/years of user activity that want to enable the background sweep job
-  may benefit from manually sweeping specific tables first, to reduce the number of unused cells that have accumulated over time.
 
 .. toctree::
     :maxdepth: 1
