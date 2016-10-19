@@ -147,6 +147,5 @@ public class SchemasTest {
     private byte[] getSimpleTableDefinitionAsBytes(TableReference tableRef) {
         return getSimpleTableDefinition(tableRef).toTableMetadata().persistToBytes();
     }
-
 }
 

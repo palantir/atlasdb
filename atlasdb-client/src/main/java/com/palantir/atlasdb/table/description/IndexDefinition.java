@@ -106,6 +106,7 @@ public class IndexDefinition extends AbstractDefinition {
         Preconditions.checkState(state == State.DEFINING_ROW_COMPONENTS);
         Preconditions.checkState(rowComponents.isEmpty(), "hashRowComponent must be the first row component");
         hashFirstRowComponent = true;
+        ignoreHotspottingChecks = true;
     }
 
     public void partition(RowNamePartitioner... partitioners) {
