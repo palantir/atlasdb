@@ -172,6 +172,10 @@
 This is useful for keeping batch sizes small if the rows are wide.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/947">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Will not throw <code class="docutils literal"><span class="pre">IllegalStateException</span></code> on start-up due to hotspotting, if <code class="docutils literal"><span class="pre">hashFirstRowComponent()</span></code> is used in the schema.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1091">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
