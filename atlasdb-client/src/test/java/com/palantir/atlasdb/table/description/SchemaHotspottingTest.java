@@ -34,14 +34,13 @@ public class SchemaHotspottingTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+    private static final String SCHEMA_NAME = "TestSchema";
+    private static final String INDEX_NAME = "TestIndex";
     private static final String TABLE_NAME = "TestTable";
-    private static final String ROW_COMPONENT_NAME = "testRowComponent";
-
-    Schema hotspottingSchema = getHotspottingSchema();
-    Schema indexHotspottingSchema = getIndexHotspottingSchema();
+    private static final String ROW_COMPONENT_NAME = "TestRowComponent";
 
     private static Schema getHotspottingSchema() {
-        Schema suffersFromHotspoting = new Schema("SuffersFromHotspotting", "unused", Namespace.DEFAULT_NAMESPACE);
+        Schema suffersFromHotspoting = new Schema(SCHEMA_NAME, "unused", Namespace.DEFAULT_NAMESPACE);
         suffersFromHotspoting.addTableDefinition(TABLE_NAME, new TableDefinition() {{
             rowName();
                 rowComponent(ROW_COMPONENT_NAME, ValueType.VAR_STRING);
@@ -51,7 +50,7 @@ public class SchemaHotspottingTest {
     }
 
     private static Schema getIgnoredHotspottingSchema() {
-        Schema ignoredHotspottingSchema = new Schema("IgnoredHotspotting", "valid.package", Namespace.DEFAULT_NAMESPACE);
+        Schema ignoredHotspottingSchema = new Schema(SCHEMA_NAME, "valid.package", Namespace.DEFAULT_NAMESPACE);
         ignoredHotspottingSchema.addTableDefinition(TABLE_NAME, new TableDefinition() {{
             ignoreHotspottingChecks();
             rowName();
@@ -62,7 +61,7 @@ public class SchemaHotspottingTest {
     }
 
     private static Schema getTableFirstRowComponentHashedSchema() {
-        Schema tableFirstRowComponentHashed = new Schema("FirstRowComponentHashed", "unused", Namespace.DEFAULT_NAMESPACE);
+        Schema tableFirstRowComponentHashed = new Schema(SCHEMA_NAME, "unused", Namespace.DEFAULT_NAMESPACE);
         tableFirstRowComponentHashed.addTableDefinition(TABLE_NAME, new TableDefinition() {{
             rowName();
                 hashFirstRowComponent();
@@ -74,7 +73,7 @@ public class SchemaHotspottingTest {
 
     private static Schema getIndexHotspottingSchema() {
         Schema suffersFromIndexHotspoting = getIgnoredHotspottingSchema();
-        suffersFromIndexHotspoting.addIndexDefinition("hotSpottingIndex", new IndexDefinition(IndexDefinition.IndexType.CELL_REFERENCING) {{
+        suffersFromIndexHotspoting.addIndexDefinition(INDEX_NAME, new IndexDefinition(IndexDefinition.IndexType.CELL_REFERENCING) {{
             onTable(TABLE_NAME);
             rowName();
                 componentFromRow(ROW_COMPONENT_NAME, ValueType.VAR_STRING);
@@ -84,7 +83,7 @@ public class SchemaHotspottingTest {
 
     private static Schema getIgnoredIndexHotspottingSchema() {
         Schema ignoredIndexHotspottingSchema = getIgnoredHotspottingSchema();
-        ignoredIndexHotspottingSchema.addIndexDefinition("ignoreHotSpottingIndex", new IndexDefinition(IndexDefinition.IndexType.CELL_REFERENCING) {{
+        ignoredIndexHotspottingSchema.addIndexDefinition(INDEX_NAME, new IndexDefinition(IndexDefinition.IndexType.CELL_REFERENCING) {{
             ignoreHotspottingChecks();
             onTable(TABLE_NAME);
             rowName();
@@ -95,7 +94,7 @@ public class SchemaHotspottingTest {
 
     private static Schema getIndexFirstRowComponentHashedSchema() {
         Schema indexFirstRowComponentHashed = getIgnoredHotspottingSchema();
-        indexFirstRowComponentHashed.addIndexDefinition("firstRowComponentHashedIndex", new IndexDefinition(IndexDefinition.IndexType.CELL_REFERENCING) {{
+        indexFirstRowComponentHashed.addIndexDefinition(INDEX_NAME, new IndexDefinition(IndexDefinition.IndexType.CELL_REFERENCING) {{
             onTable(TABLE_NAME);
             rowName();
                 hashFirstRowComponent();
@@ -106,22 +105,22 @@ public class SchemaHotspottingTest {
 
     @Test (expected = IllegalStateException.class)
     public void testHardFailOnValidateOfTableHotspottingSchema() {
-        hotspottingSchema.validate();
+        getHotspottingSchema().validate();
     }
 
     @Test (expected = IllegalStateException.class)
     public void testHardFailOnValidateOfIndexHotspottingSchema() {
-        indexHotspottingSchema.validate();
+        getIndexHotspottingSchema().validate();
     }
 
     @Test (expected = IllegalStateException.class)
     public void testFailToGenerateTableHotspottingSchema() throws IOException {
-        hotspottingSchema.renderTables(new TemporaryFolder().getRoot());
+        getHotspottingSchema().renderTables(new TemporaryFolder().getRoot());
     }
 
     @Test (expected = IllegalStateException.class)
     public void testFailToGenerateIndexHotspottingSchema() throws IOException {
-        indexHotspottingSchema.renderTables(new TemporaryFolder().getRoot());
+        getIndexHotspottingSchema().renderTables(new TemporaryFolder().getRoot());
     }
 
     @Test
@@ -153,6 +152,6 @@ public class SchemaHotspottingTest {
 
         File validDirectory = srcDir.listFiles()[0];
         assertThat(Arrays.asList(validDirectory.list()), contains(equalTo("package")));
-        assertThat(Arrays.asList(validDirectory.listFiles()[0].list()), containsInAnyOrder(equalTo("IgnoredHotspottingTableFactory.java"), equalTo(TABLE_NAME + "Table.java")));
+        assertThat(Arrays.asList(validDirectory.listFiles()[0].list()), containsInAnyOrder(equalTo(SCHEMA_NAME + "TableFactory.java"), equalTo(TABLE_NAME + "Table.java")));
     }
 }
