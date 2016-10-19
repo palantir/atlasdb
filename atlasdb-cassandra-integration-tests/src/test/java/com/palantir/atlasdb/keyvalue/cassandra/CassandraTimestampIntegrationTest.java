@@ -15,15 +15,28 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.base.Optional;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
+import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampBoundStore;
+import com.palantir.timestamp.TimestampService;
 
 public class CassandraTimestampIntegrationTest {
     private CassandraKeyValueService kv;
@@ -66,7 +79,7 @@ public class CassandraTimestampIntegrationTest {
         ts.storeUpperLimit(limit + 20);
         try {
             ts2.storeUpperLimit(limit + 20);
-            Assert.fail();
+            fail();
         } catch (MultipleRunningTimestampServiceError e) {
             // expected
         }
@@ -78,9 +91,79 @@ public class CassandraTimestampIntegrationTest {
 
         try {
             ts2.storeUpperLimit(limit + 40);
-            Assert.fail();
+            fail();
         } catch (MultipleRunningTimestampServiceError e) {
             // expected
+        }
+    }
+
+    @Test
+    public void testQuorumStuff() throws InterruptedException {
+        LeaderElectionService leadership1 = mock(LeaderElectionService.class);
+        LeaderElectionService leadership2 = mock(LeaderElectionService.class);
+
+        AtomicInteger leaderIdx = new AtomicInteger(1);
+
+        when(leadership1.blockOnBecomingLeader()).thenAnswer((inv) -> {
+            waitUntilLeader(leaderIdx, 1);
+            return mock(LeaderElectionService.LeadershipToken.class);
+        });
+
+        when(leadership2.blockOnBecomingLeader()).thenAnswer((inv) -> {
+            waitUntilLeader(leaderIdx, 2);
+            return mock(LeaderElectionService.LeadershipToken.class);
+        });
+
+        when(leadership1.getSuspectedLeaderInMemory()).thenReturn(Optional.absent());
+        when(leadership2.getSuspectedLeaderInMemory()).thenReturn(Optional.absent());
+
+        TimestampService ts = AwaitingLeadershipProxy.newProxyInstance(
+                TimestampService.class,
+                () -> PersistentTimestampService.create(CassandraTimestampBoundStore.create(kv)),
+                leadership1);
+        TimestampService ts2 = AwaitingLeadershipProxy.newProxyInstance(
+                TimestampService.class,
+                () -> PersistentTimestampService.create(CassandraTimestampBoundStore.create(kv)),
+                leadership2);
+
+        //====== SET FIRST TS SERVICE AS LEADER
+        leaderIdx.set(1);
+        when(leadership1.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
+                .thenReturn(LeaderElectionService.StillLeadingStatus.LEADING);
+        Thread.sleep(1000);
+
+        ts.getFreshTimestamp();
+        try {
+            ts2.getFreshTimestamp();
+            fail();
+        } catch (NotCurrentLeaderException e) {
+            // This should fail
+        }
+
+        //======= SET SECOND TS SERVICE AS LEADER. DO NOT QUERY FIRST TS SERVICE
+        leaderIdx.set(2);
+        when(leadership1.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
+                .thenReturn(LeaderElectionService.StillLeadingStatus.NOT_LEADING);
+        when(leadership2.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
+                .thenReturn(LeaderElectionService.StillLeadingStatus.LEADING);
+        Thread.sleep(1000);
+
+        ts2.getFreshTimestamp();
+
+        //======= SET FIRST TS SERVICE AS LEADER. MAKE SURE TO QUERY DATABASE
+        leaderIdx.set(1);
+        when(leadership1.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
+                .thenReturn(LeaderElectionService.StillLeadingStatus.LEADING);
+        when(leadership2.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
+                .thenReturn(LeaderElectionService.StillLeadingStatus.NOT_LEADING);
+
+        ts.getFreshTimestamps(100000000);
+        ts.getFreshTimestamp();
+    }
+
+    private static void waitUntilLeader(AtomicInteger leaderIdx, int wantedIdx) throws InterruptedException {
+        while (leaderIdx.get() != wantedIdx) {
+            Thread.sleep(10);
         }
     }
 }
