@@ -79,7 +79,6 @@ public class SchemaHotspottingTest {
             onTable(IGNORED_HOTSPOTTING_TABLE);
             rowName();
                 componentFromRow(HOTSPOTTER_ROW_COMPONENT, ValueType.VAR_STRING);
-            rangeScanAllowed();
         }});
         return suffersFromIndexHotspoting;
     }
@@ -91,7 +90,6 @@ public class SchemaHotspottingTest {
             onTable(IGNORED_HOTSPOTTING_TABLE);
             rowName();
                 componentFromRow(HOTSPOTTER_ROW_COMPONENT, ValueType.VAR_STRING);
-            rangeScanAllowed();
         }});
         return ignoredIndexHotspottingSchema;
     }
@@ -103,7 +101,6 @@ public class SchemaHotspottingTest {
             rowName();
                 hashFirstRowComponent();
                 componentFromRow(HOTSPOTTER_ROW_COMPONENT, ValueType.VAR_STRING);
-            rangeScanAllowed();
         }});
         return indexFirstRowComponentHashed;
     }
