@@ -142,12 +142,21 @@ public abstract class AtlasDbConfig {
     }
 
     /**
-     * The number of cells to process per batch by the background
+     * The number of rows to process per batch by the background
      * sweeper.
      */
     @Value.Default
     public int getSweepBatchSize() {
         return AtlasDbConstants.DEFAULT_SWEEP_BATCH_SIZE;
+    }
+
+    /**
+     * The maximum number of cells to process per batch by the background
+     * sweeper.
+     */
+    @Value.Default
+    public int getSweepCellBatchSize() {
+        return AtlasDbConstants.DEFAULT_SWEEP_CELL_BATCH_SIZE;
     }
 
     @Value.Check

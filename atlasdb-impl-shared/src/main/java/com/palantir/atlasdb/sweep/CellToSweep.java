@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import java.util.Optional;
 import java.util.Set;
 
 import org.immutables.value.Value;
@@ -22,14 +23,24 @@ import org.immutables.value.Value;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 
 @Value.Immutable
-public abstract class TimestampsAndSentinels {
-    public static TimestampsAndSentinels of(Set<Long> timestamps, Set<Cell> sentinelsToAdd) {
-        return ImmutableTimestampsAndSentinels.builder()
+public abstract class CellToSweep {
+    public static CellToSweep of(Cell cell, Set<Long> timestamps, boolean needsSentinel) {
+        return ImmutableCellToSweep.builder()
+                .cell(cell)
                 .timestamps(timestamps)
-                .sentinelsToAdd(sentinelsToAdd)
+                .needsSentinel(needsSentinel)
                 .build();
     }
 
+    public abstract Cell cell();
     public abstract Set<Long> timestamps();
-    public abstract Set<Cell> sentinelsToAdd();
+    public abstract boolean needsSentinel();
+
+    public Optional<Cell> sentinel() {
+        if (needsSentinel()) {
+            return Optional.of(cell());
+        } else {
+            return Optional.empty();
+        }
+    }
 }
