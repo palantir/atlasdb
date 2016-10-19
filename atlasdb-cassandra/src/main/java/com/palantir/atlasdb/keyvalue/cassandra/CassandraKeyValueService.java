@@ -1493,7 +1493,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         Map<TableReference, byte[]> tableToMetadataContents = Maps.newHashMap();
 
         // we don't even have a metadata table yet. Return empty map.
-        if (!getAllTableNamesWithoutFiltering().contains(AtlasDbConstants.METADATA_TABLE)) {
+        if (!getAllTableReferencesWithoutFiltering().contains(AtlasDbConstants.METADATA_TABLE)) {
             log.trace("getMetadata called with no _metadata table present");
             return tableToMetadataContents;
         }
@@ -1522,9 +1522,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return tableToMetadataContents;
     }
 
-    private Set<String> getAllTableNamesWithoutFiltering() {
+    private Set<TableReference> getAllTableReferencesWithoutFiltering() {
         return getTableReferencesWithoutFiltering()
-                .map(TableReference::getTablename)
                 .collect(Collectors.toSet());
     }
 
