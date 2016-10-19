@@ -46,6 +46,17 @@ public class SchemaHotspottingTest {
         return suffersFromHotspoting;
     }
 
+    private static Schema getFirstRowComponentHashedSchema() {
+        Schema firstRowComponentHashedToAvoidHotspotting = new Schema("SuffersFromHotspoting", "unused", Namespace.DEFAULT_NAMESPACE);
+        firstRowComponentHashedToAvoidHotspotting.addTableDefinition("HotspottingTable", new TableDefinition() {{
+            rowName();
+            hashFirstRowComponent();
+            rowComponent("Hotspotter", ValueType.VAR_STRING);
+            noColumns();
+        }});
+        return firstRowComponentHashedToAvoidHotspotting;
+    }
+
     private static Schema getIgnoredHotspottingSchema() {
         Schema ignoredHotspotting = new Schema("IgnoredHotspotting", "valid.package", Namespace.DEFAULT_NAMESPACE);
         ignoredHotspotting.addTableDefinition("IgnoredHotspottingTable", new TableDefinition() {{
@@ -70,6 +81,11 @@ public class SchemaHotspottingTest {
     @Test
     public void testNoFailureWhenHotspottingIgnored() {
         getIgnoredHotspottingSchema().validate();
+    }
+
+    @Test
+    public void testNoFailureWhenFirstRowComponentHashed() {
+        getFirstRowComponentHashedSchema().validate();
     }
 
     @Test
