@@ -15,13 +15,18 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.ColumnDef;
+import org.apache.cassandra.thrift.TriggerDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -31,7 +36,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.exception.PalantirRuntimeException;
 
 final class ColumnFamilyDefinitions {
-    private static Logger log = LoggerFactory.getLogger(ColumnFamilyDefinitions.class);
+    private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class); // did this on purpose
 
     private ColumnFamilyDefinitions() {
         // Utility class
@@ -40,7 +45,7 @@ final class ColumnFamilyDefinitions {
     // update isMatchingCf if you update this method
     static CfDef getCfDef(String keyspace, TableReference tableRef, byte[] rawMetadata) {
         Map<String, String> compressionOptions = Maps.newHashMap();
-        CfDef cf = CassandraConstants.getStandardCfDef(keyspace, AbstractKeyValueService.internalTableName(tableRef));
+        CfDef cf = getStandardCfDef(keyspace, AbstractKeyValueService.internalTableName(tableRef));
 
         boolean negativeLookups = false;
         double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
@@ -107,6 +112,33 @@ final class ColumnFamilyDefinitions {
 
         cf.setBloom_filter_fp_chance(falsePositiveChance);
         cf.setCompression_options(compressionOptions);
+        return cf;
+    }
+
+    // update CKVS.isMatchingCf if you update this method
+    static CfDef getStandardCfDef(String keyspace, String internalTableName) {
+        CfDef cf = new CfDef(keyspace, internalTableName);
+        cf.setComparator_type("CompositeType(BytesType,LongType)");
+        cf.setCompaction_strategy(CassandraConstants.LEVELED_COMPACTION_STRATEGY);
+        cf.setCompaction_strategy_options(ImmutableMap.of("sstable_size_in_mb", CassandraConstants.SSTABLE_SIZE_IN_MB));
+        cf.setCompression_options(Maps.<String, String>newHashMap());
+        cf.setGc_grace_seconds(CassandraConstants.GC_GRACE_SECONDS);
+
+        // explicitly set fields to default values
+        cf.setCaching("KEYS_ONLY");
+        cf.setDclocal_read_repair_chance(0.1);
+        cf.setTriggers(new ArrayList<TriggerDef>());
+        cf.setCells_per_row_to_cache("0");
+        cf.setMin_index_interval(128);
+        cf.setMax_index_interval(2048);
+        cf.setComment("");
+        cf.setColumn_metadata(new ArrayList<ColumnDef>());
+        cf.setMin_compaction_threshold(4);
+        cf.setMax_compaction_threshold(32);
+        cf.setKey_validation_class("org.apache.cassandra.db.marshal.BytesType");
+        cf.setCompaction_strategy_options(new HashMap<String, String>());
+        cf.setDefault_validation_class("org.apache.cassandra.db.marshal.BytesType");
+
         return cf;
     }
 

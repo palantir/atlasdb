@@ -93,31 +93,4 @@ public final class CassandraConstants {
         // Utility class
     }
 
-    // update CKVS.isMatchingCf if you update this method
-    static CfDef getStandardCfDef(String keyspace, String internalTableName) {
-        CfDef cf = new CfDef(keyspace, internalTableName);
-        cf.setComparator_type("CompositeType(BytesType,LongType)");
-        cf.setCompaction_strategy(LEVELED_COMPACTION_STRATEGY);
-        cf.setCompaction_strategy_options(ImmutableMap.of("sstable_size_in_mb", CassandraConstants.SSTABLE_SIZE_IN_MB));
-        cf.setCompression_options(Maps.<String, String>newHashMap());
-        cf.setGc_grace_seconds(GC_GRACE_SECONDS);
-
-        // explicitly set fields to default values
-        cf.setCaching("KEYS_ONLY");
-        cf.setDclocal_read_repair_chance(0.1);
-        cf.setTriggers(new ArrayList<TriggerDef>());
-        cf.setCells_per_row_to_cache("0");
-        cf.setMin_index_interval(128);
-        cf.setMax_index_interval(2048);
-        cf.setComment("");
-        cf.setColumn_metadata(new ArrayList<ColumnDef>());
-        cf.setMin_compaction_threshold(4);
-        cf.setMax_compaction_threshold(32);
-        cf.setKey_validation_class("org.apache.cassandra.db.marshal.BytesType");
-        cf.setCompaction_strategy_options(new HashMap<String, String>());
-        cf.setDefault_validation_class("org.apache.cassandra.db.marshal.BytesType");
-
-        return cf;
-    }
-
 }
