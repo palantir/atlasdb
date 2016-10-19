@@ -19,6 +19,8 @@ dependencies {
   compile(project(":atlasdb-commons"))
   compile(project(":lock-impl"))
 
+  compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
+
   processor 'org.immutables:value:' + libVersions.immutables
   processor 'com.google.auto.service:auto-service:1.0-rc2'
 

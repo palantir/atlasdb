@@ -17,13 +17,16 @@ package com.palantir.atlasdb.sweep;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -36,9 +39,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.PeekingIterator;
@@ -62,6 +63,8 @@ import com.palantir.atlasdb.sweep.sweepers.ThoroughSweeper;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.common.base.BatchingVisitable;
+import com.palantir.common.base.BatchingVisitableFromIterable;
 import com.palantir.common.base.ClosableIterator;
 
 /**
@@ -95,7 +98,8 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
     }
 
     @Override
-    public SweepResults run(TableReference tableRef, int batchSize, @Nullable byte[] nullableStartRow) {
+    public SweepResults run(
+            TableReference tableRef, int rowBatchSize, int cellBatchSize, @Nullable byte[] nullableStartRow) {
         Preconditions.checkNotNull(tableRef, "tableRef cannot be null");
         Preconditions.checkState(!AtlasDbConstants.hiddenTables.contains(tableRef));
 
@@ -128,7 +132,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         byte[] startRow = MoreObjects.firstNonNull(nullableStartRow, PtBytes.EMPTY_BYTE_ARRAY);
         RangeRequest range = RangeRequest.builder()
                 .startRowInclusive(startRow)
-                .batchHint(batchSize)
+                .batchHint(rowBatchSize)
                 .build();
 
         Sweeper sweeper = getSweeperFor(sweepStrategy);
@@ -137,23 +141,28 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
 
         try (ClosableIterator<RowResult<Value>> valueResults = sweeper.getValues(tableRef, range, sweepTs);
              ClosableIterator<RowResult<Set<Long>>> rowResults = sweeper.getCellTimestamps(tableRef, range, sweepTs)) {
-            List<RowResult<Set<Long>>> rowResultTimestamps =
-                    ImmutableList.copyOf(Iterators.limit(rowResults, batchSize));
+            CountingIterator<RowResult<Set<Long>>> rowResultTimestamps =
+                    new CountingIterator<>(Iterators.limit(rowResults, rowBatchSize));
             PeekingIterator<RowResult<Value>> peekingValues = Iterators.peekingIterator(valueResults);
 
-            CellsAndTimestamps cellsAndTimestamps = rowsToCellsAndTimestamps(rowResultTimestamps);
-            CellsAndTimestamps currentBatchWithoutIgnoredTimestamps =
-                    removeIgnoredTimestamps(cellsAndTimestamps, sweeper.getTimestampsToIgnore());
+            BatchingVisitable<CellAndTimestamps> cellsAndTimestamps = BatchingVisitableFromIterable
+                    .create(getTimestampsFromRowResultsIterator(() -> rowResultTimestamps));
 
-            CellsToSweep cellsToSweep = getStartTimestampsPerRowToSweep(
-                    currentBatchWithoutIgnoredTimestamps, peekingValues, sweepTs, sweeper);
+            final AtomicInteger totalCellsSwept = new AtomicInteger(0);
+            cellsAndTimestamps.batchAccept(
+                    cellBatchSize,
+                    currentBatch -> {
+                        CellsAndTimestamps currentBatchCells = ImmutableCellsAndTimestamps.builder()
+                                .addAllCellAndTimestampsList(currentBatch)
+                                .build();
+                        int cellsSwept = sweepForCells(currentBatchCells, tableRef, sweeper, sweepTs, peekingValues);
+                        totalCellsSwept.addAndGet(cellsSwept);
+                        return true;
+                    });
 
-            Multimap<Cell, Long> startTimestampsToSweepPerCell = cellsToSweep.timestampsAsMultimap();
-            cellsSweeper.sweepCells(tableRef, startTimestampsToSweepPerCell, cellsToSweep.allSentinels());
-
-            byte[] nextRow = rowResultTimestamps.size() < batchSize ? null :
-                RangeRequests.getNextStartRow(false, Iterables.getLast(rowResultTimestamps).getRowName());
-            return new SweepResults(nextRow, rowResultTimestamps.size(), startTimestampsToSweepPerCell.size(), sweepTs);
+            byte[] nextRow = rowResultTimestamps.size() < rowBatchSize ? null :
+                    RangeRequests.getNextStartRow(false, rowResultTimestamps.lastItem().getRowName());
+            return new SweepResults(nextRow, rowResultTimestamps.size(), totalCellsSwept.get(), sweepTs);
         }
     }
 
@@ -175,16 +184,32 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         }
     }
 
-    private static CellsAndTimestamps rowsToCellsAndTimestamps(List<RowResult<Set<Long>>> cellsToSweep) {
-        List<CellAndTimestamps> cellsAndTimestmaps = cellsToSweep.stream()
-                .flatMap(SweepTaskRunnerImpl::rowToCellsAndTimestamps)
-                .collect(Collectors.toList());
-        return ImmutableCellsAndTimestamps.builder()
-                .addAllCellAndTimestampsList(cellsAndTimestmaps)
-                .build();
+    private int sweepForCells(
+            CellsAndTimestamps currentBatch,
+            TableReference tableRef,
+            Sweeper sweeper,
+            long sweepTs,
+            PeekingIterator<RowResult<Value>> peekingValues) {
+        CellsAndTimestamps currentBatchWithoutIgnoredTimestamps =
+                removeIgnoredTimestamps(currentBatch, sweeper.getTimestampsToIgnore());
+
+        CellsToSweep cellsToSweep = getStartTimestampsPerRowToSweep(
+                currentBatchWithoutIgnoredTimestamps, peekingValues, sweepTs, sweeper);
+
+        Multimap<Cell, Long> startTimestampsToSweepPerCell = cellsToSweep.timestampsAsMultimap();
+        cellsSweeper.sweepCells(tableRef, startTimestampsToSweepPerCell, cellsToSweep.allSentinels());
+
+        return startTimestampsToSweepPerCell.size();
     }
 
-    private static Stream<CellAndTimestamps> rowToCellsAndTimestamps(RowResult<Set<Long>> rowResult) {
+    private static Iterator<CellAndTimestamps> getTimestampsFromRowResultsIterator(
+            Iterable<RowResult<Set<Long>>> cellsToSweep) {
+        return StreamSupport.stream(cellsToSweep.spliterator(), false)
+                .flatMap(SweepTaskRunnerImpl::rowToCellAndTimestampStream)
+                .iterator();
+    }
+
+    private static Stream<CellAndTimestamps> rowToCellAndTimestampStream(RowResult<Set<Long>> rowResult) {
         Set<Map.Entry<Cell, Set<Long>>> cellsInRow = ImmutableSet.copyOf(rowResult.getCells());
         return cellsInRow.stream()
                 .map(SweepTaskRunnerImpl::convertToCellAndTimestamps);
