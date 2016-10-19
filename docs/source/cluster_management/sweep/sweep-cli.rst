@@ -14,7 +14,7 @@ If you ever need to force a particular table or namespace to be swept immediatel
    ``-t``, ``--table <table name>``, "A fully qualified table name to sweep. For example, to sweep the accounts table in the bank namespace, you would use ``-t bank.accounts``."
    ``-r``, ``--row <row name>``, "A row name encoded in hexadecimal to start sweeping from. The CLI prints out row names as it runs, so you can use this to easily resume a manual sweep job without unnecessarily processing rows that have already been recently swept. If this option is omitted, sweeping will process all rows of the table."
 
-You must specify exactly one of ``-a``, ``-n``, and ``-t``. If you are sweeping a specific table with `-t`, you may additionally specify the start row with ``-r``. This is useful for resuming failed jobs.
+You must specify exactly one of ``-a``, ``-n``, and ``-t``. If you are sweeping a specific table with ``-t``, you may additionally specify the start row with ``-r``. This is useful for resuming failed jobs.
 
 Additionally, see the list of :ref:`tunable sweep parameters <sweep_tunable_parameters>` if the defaults are not working well for your AtlasDB instance.
 
