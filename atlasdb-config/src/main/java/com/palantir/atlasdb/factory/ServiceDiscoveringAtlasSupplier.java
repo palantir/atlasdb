@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.util.ThreadDumps;
 
 public class ServiceDiscoveringAtlasSupplier {
     private static final Logger log = LoggerFactory.getLogger(ServiceDiscoveringAtlasSupplier.class);
@@ -60,6 +61,8 @@ public class ServiceDiscoveringAtlasSupplier {
         log.trace("Fetching timestamp service from thread {}. This should only happen once.",
                 Thread.currentThread().getName(),
                 new RuntimeException("Not necessarily exceptional, but here's a stack trace..."));
+        log.trace("Thread dump: " + ThreadDumps.programmaticThreadDump());
+
         return timestampService.get();
     }
 

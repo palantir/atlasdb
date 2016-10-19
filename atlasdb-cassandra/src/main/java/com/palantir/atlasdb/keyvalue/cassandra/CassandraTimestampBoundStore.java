@@ -48,6 +48,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
+import com.palantir.util.ThreadDumps;
 
 public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampBoundStore.class);
@@ -151,6 +152,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     + " service.";
             MultipleRunningTimestampServiceError err = new MultipleRunningTimestampServiceError(msg);
             log.error(msg, err);
+            log.error("Thread dump: " + ThreadDumps.programmaticThreadDump());
             lastWriteException = err;
             // TODO should we kill the whole process here? (at least on 0.18.2)
             throw err;
