@@ -42,13 +42,13 @@ The following optional parameters can be tuned to optimize Sweep performance for
 The following options are set as part of your :ref:`AtlasDB configuration <atlas_config>`.
 
 .. csv-table::
-   :header: "Name", "Background or CLI", "Description"
-   :widths: 20, 40, 200
+   :header: "Name", "Default", "Background or CLI", "Description"
+   :widths: 20, 20, 40, 200
 
-   ``sweepBatchSize``, both, "Maximum number of rows to sweep at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance. (Default: 1000)"
-   ``sweepCellBatchSize``, both, "Maximum number of cells to sweep at once. Similar to ``maxBatchSize`` but provides finer control if the row widths vary greatly. (Default: 10,000)"
-   ``sweepPauseMillis``, Background only, "Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours. (Default: 0 ms)"
-   ``keyValueService/timestampsGetterBatchSize``, both, "(Cassandra KVS only): Specify a limit on the maximum number of columns to fetch in a single database query. Set this if your Cassandra OOMs when attempting to run sweep with even a small row batch size. See :ref:`Cassandra KVS config <cassandra-configuration>`. (absent by default, meaning fetch all columns per row)"
+   ``sweepBatchSize``, "1,000", both, "Maximum number of rows to sweep at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance."
+   ``sweepCellBatchSize``, "10,000", both, "Maximum number of cells to sweep at once. Similar to ``maxBatchSize`` but provides finer control if the row widths vary greatly."
+   ``sweepPauseMillis``, "0 ms", Background only, "Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours."
+   "``timestampsGetterBatchSize`` under ``keyValueService`` (see :ref:`Cassandra KVS config <cassandra-configuration>`)", "Absent (fetch all columns)", both, "(Cassandra KVS only): Specify a limit on the maximum number of columns to fetch in a single database query. Set this if your Cassandra OOMs when attempting to run sweep with even a small row batch size."
 
 
 Ways to Sweep
