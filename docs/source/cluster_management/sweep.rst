@@ -30,6 +30,10 @@ Reasons to Sweep
 2. Improving Performance
     - Making many edits to the same row will leave behind many tombstoned entries, so it's advantageous to sweep these tables to increase performance.
 
+3. Improving Stability
+    - We have seen situations in the field where reading rows with many historical values caused the underlying Cassandra KVS to run out of memory.
+      This situation could have been mitigating by sweeping the table in question.
+
 
 Ways to Sweep
 -------------
