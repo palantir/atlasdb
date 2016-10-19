@@ -50,10 +50,13 @@ public class AvailableTimestamps {
     }
 
     public synchronized void refreshBuffer() {
-        long buffer = upperLimit.get() - lastHandedOut();
+        long currentUpperLimit = upperLimit.get();
+        long buffer = currentUpperLimit - lastHandedOut();
 
         if (buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, MINUTES)) {
-            log.trace("refreshBuffer: refreshing and allocating timestamps");
+            log.trace("refreshBuffer: refreshing and allocating timestamps. Buffer {}, Current upper limit {}.",
+                    buffer,
+                    currentUpperLimit);
             allocateEnoughTimestampsToHandOut(lastHandedOut() + ALLOCATION_BUFFER_SIZE);
         } else {
             log.trace("refreshBuffer: refreshing, but not allocating");
@@ -87,7 +90,7 @@ public class AvailableTimestamps {
     private void allocateEnoughTimestampsToHandOut(long timestamp) {
         log.trace("Increasing limit to at least {}.", timestamp);
         upperLimit.increaseToAtLeast(timestamp);
-        log.trace("Increasing done. Limit is now {}.", timestamp);
+        log.trace("Increased to at least {}. Limit is now {}.", timestamp, getUpperLimit());
     }
 
     public long getUpperLimit() {
