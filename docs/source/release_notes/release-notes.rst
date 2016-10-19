@@ -46,6 +46,10 @@ v0.21.0
            This is useful for keeping batch sizes small if the rows are wide.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/947>`__)
 
+    *    - |fixed|
+         - Will not throw ``IllegalStateException`` on start-up due to hotspotting, if ``hashFirstRowComponent()`` is used in the schema.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1091>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
