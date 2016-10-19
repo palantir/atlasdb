@@ -18,13 +18,11 @@ package com.palantir.atlasdb.sweep;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -189,7 +187,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             long sweepTs,
             PeekingIterator<RowResult<Value>> peekingValues) {
         CellsAndTimestamps currentBatchWithoutIgnoredTimestamps =
-                removeIgnoredTimestamps(currentBatch, sweeper.getTimestampsToIgnore());
+                currentBatch.withoutIgnoredTimestamps(sweeper.getTimestampsToIgnore());
 
         CellsToSweep cellsToSweep = getStartTimestampsPerRowToSweep(
                 currentBatchWithoutIgnoredTimestamps, peekingValues, sweepTs, sweeper);
@@ -216,16 +214,6 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
     private static CellAndTimestamps convertToCellAndTimestamps(
             Map.Entry<Cell, Set<Long>> entry) {
         return CellAndTimestamps.of(entry.getKey(), entry.getValue());
-    }
-
-    @VisibleForTesting
-    static CellsAndTimestamps removeIgnoredTimestamps(CellsAndTimestamps original, Set<Long> timestampsToIgnore) {
-        List<CellAndTimestamps> cellsAndTimestamps = original.cellAndTimestampsList().stream()
-                .map(item -> CellAndTimestamps.of(item.cell(), Sets.difference(item.timestamps(), timestampsToIgnore)))
-                .collect(Collectors.toList());
-        return ImmutableCellsAndTimestamps.builder()
-                .cellAndTimestampsList(cellsAndTimestamps)
-                .build();
     }
 
     @Override

@@ -17,8 +17,11 @@ package com.palantir.atlasdb.sweep;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
+
+import com.google.common.collect.Sets;
 
 import gnu.trove.TDecorators;
 import gnu.trove.set.hash.TLongHashSet;
@@ -45,5 +48,14 @@ public abstract class CellsAndTimestamps {
             allTimestampValues.addAll(cellAndTimestamps.timestamps());
         }
         return allTimestampValues;
+    }
+
+    public CellsAndTimestamps withoutIgnoredTimestamps(Set<Long> timestampsToIgnore) {
+        List<CellAndTimestamps> cellsAndTimestamps = cellAndTimestampsList().stream()
+                .map(item -> CellAndTimestamps.of(item.cell(), Sets.difference(item.timestamps(), timestampsToIgnore)))
+                .collect(Collectors.toList());
+        return ImmutableCellsAndTimestamps.builder()
+                .cellAndTimestampsList(cellsAndTimestamps)
+                .build();
     }
 }

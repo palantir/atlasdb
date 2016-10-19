@@ -99,29 +99,6 @@ public class SweepTaskRunnerImplTest {
             mockUnreadableTimestampSupplier);
 
     @Test
-    public void sweepValidTimestamps() {
-        CellAndTimestamps itemWithValidTimestamp = CellAndTimestamps.of(SINGLE_CELL, ImmutableSet.of(VALID_TIMESTAMP));
-        CellsAndTimestamps cellsToSweep = CellsAndTimestamps.withSingleItem(itemWithValidTimestamp);
-
-        CellsAndTimestamps result = SweepTaskRunnerImpl.removeIgnoredTimestamps(cellsToSweep, ImmutableSet.of());
-
-        assertThat(result).isEqualTo(cellsToSweep);
-    }
-
-    @Test
-    public void doNotSweepIgnoredTimestamps() {
-        CellAndTimestamps itemWithNoTimestamps = CellAndTimestamps.of(SINGLE_CELL, ImmutableSet.of());
-        CellAndTimestamps itemWithInvalidTimestamp =
-                CellAndTimestamps.of(SINGLE_CELL, ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP));
-        CellsAndTimestamps cellsToSweep = CellsAndTimestamps.withSingleItem(itemWithInvalidTimestamp);
-
-        CellsAndTimestamps result = SweepTaskRunnerImpl.removeIgnoredTimestamps(
-                cellsToSweep, ImmutableSet.of(Value.INVALID_VALUE_TIMESTAMP));
-
-        assertThat(result).isEqualTo(CellsAndTimestamps.withSingleItem(itemWithNoTimestamps));
-    }
-
-    @Test
     public void thoroughWillReturnTheImmutableTimestamp() {
         when(mockImmutableTimestampSupplier.get()).thenReturn(VALID_TIMESTAMP);
 
