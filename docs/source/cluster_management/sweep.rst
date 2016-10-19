@@ -30,6 +30,27 @@ Reasons to Sweep
 2. Improving Performance
     - Making many edits to the same row will leave behind many tombstoned entries, so it's advantageous to sweep these tables to increase performance.
 
+
+.. _sweep_tunable_parameters:
+
+Tunable Configuration Options
+-----------------------------
+
+
+The following optional parameters can be tuned to optimize Sweep performance for a specific AtlasDB instance:
+
+The following options are set as part of your :ref:`AtlasDB configuration <atlas_config>`.
+
+.. csv-table::
+   :header: "Name", "Background or CLI", "Description"
+   :widths: 20, 40, 200
+
+   ``sweepBatchSize``, both, "If you have extremely large rows, you may want to set a lower batch size. If you have extremely small rows, you may want to up the batch size. (Default: 1000)"
+   ``sweepCellBatchSize``, both, "Provides finer control of the maximum number of cells to sweep at a time, independent of how large rows are. (Default: 10,000)"
+   ``sweepPauseMillis``, Background only, "If you want to use less shared DB resources during user-facing hours, you can specify a wait time in between batches. (Default: 0 ms)"
+   ``keyValueService/timestampsGetterBatchSize``, both, "(Cassandra KVS only): For really, really large rows, you can set a batch size for the number of columns to fetch in a single database query. See :ref:`Cassandra KVS config <cassandra-configuration>`. (absent by default, meaning fetch all columns per row)"
+
+
 Ways to Sweep
 -------------
 
