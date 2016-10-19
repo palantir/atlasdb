@@ -36,7 +36,6 @@ Reasons to Sweep
 Tunable Configuration Options
 -----------------------------
 
-
 The following optional parameters can be tuned to optimize Sweep performance for a specific AtlasDB instance.
 You may set them as part of your :ref:`AtlasDB configuration <atlas_config>`, or as a CLI option if you are running sweep using the CLI.
 
@@ -53,20 +52,13 @@ You may set them as part of your :ref:`AtlasDB configuration <atlas_config>`, or
 Ways to Sweep
 -------------
 
-Under normal use, the sweep job is intended to run at a constant interval as a background process that does not consume significant system resources.
-Older AtlasDB instances with high data scale and months/years of user activity will likely have a large number of accumulated cells that are eligible for sweeping (i.e. a lot of unused data in AtlasDB that has never been swept).
-In this case, consider manually sweeping specific tables to reduce the number of unused cells that have accumulated over time.
+- :ref:`Background sweep process<background_sweep>` scheduled periodically:
+  Under normal use, the sweep job is intended to run at a constant interval as a background sweep process that does not consume significant system resources.
 
-Background Sweep
-~~~~~~~~~~~~~~~~
-
-For more information on how to set up a regular sweep job on your system, check out the :ref:`background_sweep` documentation.
-
-Targeted Sweep
-~~~~~~~~~~~~~~
-
-If there are specific tables that have built up over time to a large size, you might consider running the targeted sweep job.
-For more information about how to do this, check out our documentation on the :ref:`atlas-sweep-cli`.
+- :ref:`Sweep CLI<atlas-sweep-cli>` triggered manually:
+  You may trigger the sweep job on demand via the sweep CLI. This could be useful in order to address any one-off performance issues.
+  Also, long-running AtlasDB instances with high data scale and months/years of user activity that want to enable the background sweep job
+  may benefit from manually sweeping specific tables first, to reduce the number of unused cells that have accumulated over time.
 
 .. toctree::
     :maxdepth: 1
