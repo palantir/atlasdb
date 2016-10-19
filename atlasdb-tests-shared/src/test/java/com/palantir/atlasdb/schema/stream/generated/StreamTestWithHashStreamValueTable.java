@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -89,9 +90,9 @@ import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class StreamTestWithHashStreamValueTable implements
-        AtlasDbMutableExpiringTable<StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow,
-                                       StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueNamedColumnValue<?>,
-                                       StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRowResult>,
+        AtlasDbMutablePersistentTable<StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow,
+                                         StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueNamedColumnValue<?>,
+                                         StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRowResult>,
         AtlasDbNamedMutableTable<StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow,
                                     StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueNamedColumnValue<?>,
                                     StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRowResult> {
@@ -425,41 +426,41 @@ public final class StreamTestWithHashStreamValueTable implements
         return ret;
     }
 
-    public void putValue(StreamTestWithHashStreamValueRow row, byte[] value, long duration, TimeUnit unit) {
-        put(ImmutableMultimap.of(row, Value.of(value)), duration, unit);
+    public void putValue(StreamTestWithHashStreamValueRow row, byte[] value) {
+        put(ImmutableMultimap.of(row, Value.of(value)));
     }
 
-    public void putValue(Map<StreamTestWithHashStreamValueRow, byte[]> map, long duration, TimeUnit unit) {
+    public void putValue(Map<StreamTestWithHashStreamValueRow, byte[]> map) {
         Map<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<StreamTestWithHashStreamValueRow, byte[]> e : map.entrySet()) {
             toPut.put(e.getKey(), Value.of(e.getValue()));
         }
-        put(Multimaps.forMap(toPut), duration, unit);
+        put(Multimaps.forMap(toPut));
     }
 
-    public void putValueUnlessExists(StreamTestWithHashStreamValueRow row, byte[] value, long duration, TimeUnit unit) {
-        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)), duration, unit);
+    public void putValueUnlessExists(StreamTestWithHashStreamValueRow row, byte[] value) {
+        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
     }
 
-    public void putValueUnlessExists(Map<StreamTestWithHashStreamValueRow, byte[]> map, long duration, TimeUnit unit) {
+    public void putValueUnlessExists(Map<StreamTestWithHashStreamValueRow, byte[]> map) {
         Map<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<StreamTestWithHashStreamValueRow, byte[]> e : map.entrySet()) {
             toPut.put(e.getKey(), Value.of(e.getValue()));
         }
-        putUnlessExists(Multimaps.forMap(toPut), duration, unit);
+        putUnlessExists(Multimaps.forMap(toPut));
     }
 
     @Override
-    public void put(Multimap<StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueNamedColumnValue<?>> rows, long duration, TimeUnit unit) {
+    public void put(Multimap<StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
-        t.put(tableRef, ColumnValues.toCellValues(rows, duration, unit));
+        t.put(tableRef, ColumnValues.toCellValues(rows));
         for (StreamTestWithHashStreamValueTrigger trigger : triggers) {
             trigger.putStreamTestWithHashStreamValue(rows);
         }
     }
 
     @Override
-    public void putUnlessExists(Multimap<StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueNamedColumnValue<?>> rows, long duration, TimeUnit unit) {
+    public void putUnlessExists(Multimap<StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueNamedColumnValue<?>> rows) {
         Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
         Multimap<StreamTestWithHashStreamValueRow, StreamTestWithHashStreamValueNamedColumnValue<?>> toPut = HashMultimap.create();
         for (Entry<StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueNamedColumnValue<?>> entry : rows.entries()) {
@@ -467,7 +468,7 @@ public final class StreamTestWithHashStreamValueTable implements
                 toPut.put(entry.getKey(), entry.getValue());
             }
         }
-        put(toPut, duration, unit);
+        put(toPut);
     }
 
     public void deleteValue(StreamTestWithHashStreamValueRow row) {
@@ -671,6 +672,7 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
+     * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
@@ -730,7 +732,6 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link Set}
      * {@link Sets}
      * {@link Sha256Hash}
-     * {@link BatchColumnRangeSelection}
      * {@link SortedMap}
      * {@link Supplier}
      * {@link TableReference}
@@ -741,5 +742,5 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "vSj9JEE6PI8qkAS1FRl1MA==";
+    static String __CLASS_HASH = "YvfesKswtHnrBJU/eOpdvg==";
 }

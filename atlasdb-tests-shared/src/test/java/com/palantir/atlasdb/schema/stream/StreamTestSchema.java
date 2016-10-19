@@ -18,7 +18,6 @@ package com.palantir.atlasdb.schema.stream;
 import java.io.File;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -40,7 +39,6 @@ public class StreamTestSchema implements AtlasSchema {
         schema.addStreamStoreDefinition(
                 new StreamStoreDefinitionBuilder("stream_test_with_hash", "stream_test_with_hash", ValueType.VAR_LONG)
                     .inMemoryThreshold(4000)
-                    .expirationStrategy(ExpirationStrategy.INDIVIDUALLY_SPECIFIED)
                     .compressBlocksInDb()
                     .hashFirstRowComponent()
                     .isAppendHeavyAndReadLight()

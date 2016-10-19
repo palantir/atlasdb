@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -89,10 +90,10 @@ import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class StreamTestWithHashStreamHashAidxTable implements
-        AtlasDbDynamicMutableExpiringTable<StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow,
-                                              StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxColumn,
-                                              StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxColumnValue,
-                                              StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRowResult> {
+        AtlasDbDynamicMutablePersistentTable<StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow,
+                                                StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxColumn,
+                                                StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxColumnValue,
+                                                StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRowResult> {
     private final Transaction t;
     private final List<StreamTestWithHashStreamHashAidxTrigger> triggers;
     private final static String rawTableName = "stream_test_with_hash_stream_hash_aidx";
@@ -471,36 +472,36 @@ public final class StreamTestWithHashStreamHashAidxTable implements
     }
 
     @Override
-    public void put(StreamTestWithHashStreamHashAidxRow rowName, Iterable<StreamTestWithHashStreamHashAidxColumnValue> values, long duration, TimeUnit unit) {
-        put(ImmutableMultimap.<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue>builder().putAll(rowName, values).build(), duration, unit);
+    public void put(StreamTestWithHashStreamHashAidxRow rowName, Iterable<StreamTestWithHashStreamHashAidxColumnValue> values) {
+        put(ImmutableMultimap.<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
     }
 
     @Override
-    public void put(long duration, TimeUnit unit, StreamTestWithHashStreamHashAidxRow rowName, StreamTestWithHashStreamHashAidxColumnValue... values) {
-        put(ImmutableMultimap.<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue>builder().putAll(rowName, values).build(), duration, unit);
+    public void put(StreamTestWithHashStreamHashAidxRow rowName, StreamTestWithHashStreamHashAidxColumnValue... values) {
+        put(ImmutableMultimap.<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
     }
 
     @Override
-    public void put(Multimap<StreamTestWithHashStreamHashAidxRow, ? extends StreamTestWithHashStreamHashAidxColumnValue> values, long duration, TimeUnit unit) {
+    public void put(Multimap<StreamTestWithHashStreamHashAidxRow, ? extends StreamTestWithHashStreamHashAidxColumnValue> values) {
         t.useTable(tableRef, this);
-        t.put(tableRef, ColumnValues.toCellValues(values, duration, unit));
+        t.put(tableRef, ColumnValues.toCellValues(values));
         for (StreamTestWithHashStreamHashAidxTrigger trigger : triggers) {
             trigger.putStreamTestWithHashStreamHashAidx(values);
         }
     }
 
     @Override
-    public void putUnlessExists(StreamTestWithHashStreamHashAidxRow rowName, Iterable<StreamTestWithHashStreamHashAidxColumnValue> values, long duration, TimeUnit unit) {
-        putUnlessExists(ImmutableMultimap.<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue>builder().putAll(rowName, values).build(), duration, unit);
+    public void putUnlessExists(StreamTestWithHashStreamHashAidxRow rowName, Iterable<StreamTestWithHashStreamHashAidxColumnValue> values) {
+        putUnlessExists(ImmutableMultimap.<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
     }
 
     @Override
-    public void putUnlessExists(long duration, TimeUnit unit, StreamTestWithHashStreamHashAidxRow rowName, StreamTestWithHashStreamHashAidxColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue>builder().putAll(rowName, values).build(), duration, unit);
+    public void putUnlessExists(StreamTestWithHashStreamHashAidxRow rowName, StreamTestWithHashStreamHashAidxColumnValue... values) {
+        putUnlessExists(ImmutableMultimap.<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue>builder().putAll(rowName, values).build());
     }
 
     @Override
-    public void putUnlessExists(Multimap<StreamTestWithHashStreamHashAidxRow, ? extends StreamTestWithHashStreamHashAidxColumnValue> rows, long duration, TimeUnit unit) {
+    public void putUnlessExists(Multimap<StreamTestWithHashStreamHashAidxRow, ? extends StreamTestWithHashStreamHashAidxColumnValue> rows) {
         Multimap<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumn> toGet = Multimaps.transformValues(rows, StreamTestWithHashStreamHashAidxColumnValue.getColumnNameFun());
         Multimap<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue> existing = get(toGet);
         Multimap<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue> toPut = HashMultimap.create();
@@ -509,7 +510,18 @@ public final class StreamTestWithHashStreamHashAidxTable implements
                 toPut.put(entry.getKey(), entry.getValue());
             }
         }
-        put(toPut, duration, unit);
+        put(toPut);
+    }
+
+    @Override
+    public void touch(Multimap<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumn> values) {
+        Multimap<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue> currentValues = get(values);
+        put(currentValues);
+        Multimap<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumn> toDelete = HashMultimap.create(values);
+        for (Map.Entry<StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxColumnValue> e : currentValues.entries()) {
+            toDelete.remove(e.getKey(), e.getValue().getColumnName());
+        }
+        delete(toDelete);
     }
 
     public static ColumnSelection getColumnSelection(Collection<StreamTestWithHashStreamHashAidxColumn> cols) {
@@ -686,6 +698,7 @@ public final class StreamTestWithHashStreamHashAidxTable implements
      * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
+     * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
@@ -745,7 +758,6 @@ public final class StreamTestWithHashStreamHashAidxTable implements
      * {@link Set}
      * {@link Sets}
      * {@link Sha256Hash}
-     * {@link BatchColumnRangeSelection}
      * {@link SortedMap}
      * {@link Supplier}
      * {@link TableReference}
@@ -756,5 +768,5 @@ public final class StreamTestWithHashStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "edn2wopHGkw2IhP8P85htA==";
+    static String __CLASS_HASH = "K32efRGq/RejiNhV+66mnQ==";
 }

@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 
@@ -55,11 +54,6 @@ public class StreamStoreDefinitionBuilder {
         return this;
     }
 
-    public StreamStoreDefinitionBuilder expirationStrategy(ExpirationStrategy expirationStrategy) {
-        streamTables.forEach((tableName, streamTableBuilder) -> streamTableBuilder.expirationStrategy(expirationStrategy));
-        return this;
-    }
-
     public StreamStoreDefinitionBuilder inMemoryThreshold(int inMemoryThreshold) {
         this.inMemoryThreshold = inMemoryThreshold;
         return this;
@@ -67,13 +61,11 @@ public class StreamStoreDefinitionBuilder {
 
     public StreamStoreDefinition build() {
         Map<String, TableDefinition> tablesToCreate = streamTables.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().build()));
-        ExpirationStrategy expirationStrategy = tablesToCreate.values().stream().findFirst().get().getExpirationStrategy();
 
-        if (expirationStrategy.equals(ExpirationStrategy.NEVER)) {
-            Preconditions.checkArgument(valueType.getJavaClassName().equals("long"), "Stream ids must be a long for persistent streams.");
-        }
+        Preconditions.checkArgument(valueType.getJavaClassName().equals("long"), "Stream ids must be a long");
 
-        return new StreamStoreDefinition(tablesToCreate, shortName, longName, valueType, inMemoryThreshold, expirationStrategy);
+
+        return new StreamStoreDefinition(tablesToCreate, shortName, longName, valueType, inMemoryThreshold);
     }
 
 }
