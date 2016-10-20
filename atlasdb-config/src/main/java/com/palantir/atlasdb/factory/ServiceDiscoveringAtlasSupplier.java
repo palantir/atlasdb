@@ -19,6 +19,9 @@ import java.util.ServiceLoader;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -27,8 +30,10 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.util.debug.ThreadDumps;
 
 public class ServiceDiscoveringAtlasSupplier {
+    private static final Logger log = LoggerFactory.getLogger(ServiceDiscoveringAtlasSupplier.class);
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
 
     private final KeyValueServiceConfig config;
@@ -53,6 +58,12 @@ public class ServiceDiscoveringAtlasSupplier {
     }
 
     public TimestampService getTimestampService() {
+        if (log.isTraceEnabled()) {
+            log.trace("Fetching timestamp service from thread {}. This should only happen once.",
+                    Thread.currentThread().getName());
+            log.trace("Thread dump: " + ThreadDumps.programmaticThreadDump());
+        }
+
         return timestampService.get();
     }
 

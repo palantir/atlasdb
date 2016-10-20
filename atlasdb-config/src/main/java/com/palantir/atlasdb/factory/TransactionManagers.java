@@ -103,6 +103,7 @@ public final class TransactionManagers {
             Set<Schema> schemas,
             Environment env,
             boolean allowHiddenTableAccess) {
+        log.trace("TransactionManagers.create. This should only happen once.");
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
