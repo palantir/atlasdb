@@ -162,7 +162,8 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     private String getCurrentTimestampValues(CASResult result) {
         return result.current_values.stream()
-                .map(col -> PtBytes.toLong(col.getValue()))
+                .map(Column::getValue)
+                .map(PtBytes::toLong)
                 .map(String::valueOf)
                 .collect(Collectors.joining(", "));
     }
