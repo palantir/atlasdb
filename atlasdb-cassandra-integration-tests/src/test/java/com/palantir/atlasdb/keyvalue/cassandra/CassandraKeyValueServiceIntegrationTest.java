@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
@@ -27,9 +28,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -209,22 +208,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
 
     private void createExtraLocksTable(SchemaMutationLockTables lockTables) throws TException {
         TableReference originalTable = Iterables.getOnlyElement(lockTables.getAllLockTables());
-        SchemaMutationLockTables mockedLockTables = spy(lockTables);
-
-        // hide the current table
-        when(mockedLockTables.getAllLockTables())
-                .thenAnswer((invocation) -> {
-                    Set<TableReference> tables = (Set<TableReference>) invocation.callRealMethod();
-                    return tables.stream()
-                            .filter(table -> !table.equals(originalTable))
-                            .collect(Collectors.toSet());
-                });
-
-        UniqueSchemaMutationLockTable lockTable = new UniqueSchemaMutationLockTable(mockedLockTables,
-                LockLeader.I_AM_THE_LOCK_LEADER);
-
-        // this call to getOnlyTable should not find any existing table and create a new one.
-        assertThat(lockTable.getOnlyTable(), is(not(originalTable)));
+        lockTables.createLockTable();
+        assertThat(lockTables.getAllLockTables(), hasItem(not(originalTable)));
     }
 
     private static int getAmountOfGarbageInMetadataTable(KeyValueService keyValueService, TableReference tableRef) {
