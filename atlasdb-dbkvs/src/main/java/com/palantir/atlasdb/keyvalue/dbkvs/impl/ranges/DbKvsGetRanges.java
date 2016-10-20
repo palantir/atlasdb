@@ -196,14 +196,14 @@ public class DbKvsGetRanges {
             // QA-69854 Special case 1 row reads because oracle is terrible at optimizing queries
             String query = dbType == DBType.ORACLE
                     ? getSimpleRowSelectOneQueryOracle(tableRef, minMax, extraWhere)
-                    : getSimpleRowSelectOneQueryPostgres(tableRef, minMax, extraWhere, order);
+                    : getSimpleRowSelectOneQueryPostgres(tableRef, extraWhere, order);
             return Pair.create(query, args);
         } else {
             String query = String.format(
                     SIMPLE_ROW_SELECT_TEMPLATE,
-                    tableRef,
+                    DbKvs.internalTableName(tableRef),
                     prefixedTableName(tableRef),
-                    dbType == DBType.ORACLE ? prefixedTableName(tableRef) : getInternalTableName(tableRef),
+                    dbType == DBType.ORACLE ? getInternalTableName(tableRef) : prefixedTableName(tableRef),
                     extraWhere,
                     order);
             String limitQuery = BasicSQLUtils.limitQuery(query, numRowsToGet, args, dbType);
@@ -285,7 +285,7 @@ public class DbKvsGetRanges {
             RangeRequest request) {
         return rows.transform(RowResults.<Value>createFilterColumns(new Predicate<byte[]>() {
             @Override
-            public boolean apply(byte[] col) {
+            p   ublic boolean apply(byte[] col) {
                 return request.containsColumn(col);
             }
         })).filter(Predicates.not(RowResults.<Value>createIsEmptyPredicate()));
@@ -304,14 +304,12 @@ public class DbKvsGetRanges {
 
     private String getSimpleRowSelectOneQueryPostgres(
             TableReference tableRef,
-            String minMax,
             String extraWhere,
             String order) {
         return String.format(
                 SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE,
                 DbKvs.internalTableName(tableRef),
                 prefixedTableName(tableRef),
-                minMax,
                 prefixedTableName(tableRef),
                 extraWhere,
                 order);
