@@ -31,6 +31,37 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.21.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new|
+         - Sweep now supports batching on a per-cell level, in addition to the previous per-row batching.
+           This is useful for keeping batch sizes small if the rows are wide.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/947>`__)
+
+    *    - |fixed|
+         - Will not throw ``IllegalStateException`` on start-up due to hotspotting, if ``hashFirstRowComponent()`` is used in the schema.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1091>`__)
+
+    *    - |fixed|
+         - Introduced the deletion lock.
+           This feature is motivated by the fact that running a backup and a KVS deletion (for example as part of sweeping) and
+           can corrupt the backup.
+           The sweep and scrub tasks now acquire a deletion lock before running. When performing a backup, users
+           should use the new :ref:`backup-lock CLI <clis>` to acquire the deletion lock before running a :ref:`backup <backup-restore>`,
+           and to release it after the backup completes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1011>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.20.0
 =======
 
@@ -57,14 +88,31 @@ v0.20.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1065>`__).
 
     *    - |new|
-         - Introduced the deletion lock.
-           This feature is motivated by the fact that running a backup and a KVS deletion (for example as part of sweeping) and
-           can corrupt the backup.
-           The sweep and scrub tasks now acquire a deletion lock before running. When performing a backup, users
-           should use the new :ref:`backup-lock CLI <clis>` to acquire the deletion lock before running a :ref:`backup <backup-restore>`,
-           and to release it after the backup completes.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1011>`__)
+         - Oracle is supported via DBKVS if you have runtime dependency on an Oracle driver that resolves the JsonType "jdbcHandler".
+           All table names in the schema must be less than 30 characters long if you wish to run against Oracle as a backing store.
+           See :ref:`Oracle KVS Configuration <oracle-configuration>` for details on how to configure your service to use Oracle.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
+    *    - |breaking|
+         - The DBKVS config now enforces that the namespace must always be empty for ``metadataTable`` in the ``ddl`` block.
+           The ``metadataTable`` parameter defaults to an empty name space, so no action is needed if this value is not configured.
+           See the :ref:`Oracle connection config <oracle-config-params>` documentation for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
+
+    *    - |fixed|
+         - We have changed the default ``tablePrefix`` for ``OracleDdlConfig`` to be ``a_``.
+           Previously this would default to be empty and so user-defined tables could have a leading underscore, which is an invalid table name for Oracle.
+           This change is specific to Oracle and does not affect DBKVS on Postgres.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
+
+    *    - |fixed|
+         - The ``metadataTableName`` for Oracle is now ``atlasdb_metadata`` instead of ``_metadata``.
+           This is due to Oracle's restriction of not allowing table names with a leading underscore.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
+
+    *    - |breaking|
+         - The ``overflowIds`` config parameter in ``OracleDdlConfig`` is now Optional and is overriden by a default sequence supplier if absent.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

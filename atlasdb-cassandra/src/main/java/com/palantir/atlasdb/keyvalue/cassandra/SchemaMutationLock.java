@@ -217,7 +217,7 @@ final class SchemaMutationLock {
                 }
 
                 // we won the lock!
-                log.info("Successfully acquired schema mutation lock.");
+                log.info("Successfully acquired schema mutation lock with id [{}]", perOperationNodeId);
                 return null;
             });
         } catch (InterruptedException e) {
@@ -302,22 +302,29 @@ final class SchemaMutationLock {
     }
 
     private boolean trySchemaMutationUnlockOnce(long perOperationNodeId) {
-        CASResult result;
         try {
-            result = clientPool.runWithRetry(client -> {
+            return clientPool.runWithRetry(client -> {
                 Column existingColumn = queryExistingLockColumn(client);
+                long existingLockId = getLockIdFromColumn(existingColumn);
+                if (existingLockId == GLOBAL_DDL_LOCK_CLEARED_ID) {
+                    return true;
+                }
 
-                Preconditions.checkState(isValidColumnForLockId(existingColumn, perOperationNodeId),
-                        "Trying to unlock unowned lock");
+                Preconditions.checkState(existingLockId == perOperationNodeId,
+                        "Trying to unlock lock [%s] but a different lock [%s] is taken out.",
+                        perOperationNodeId, existingLockId);
 
                 List<Column> ourExpectedLock = ImmutableList.of(existingColumn);
                 Column clearedLock = lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE);
-                return writeDdlLockWithCas(client, ourExpectedLock, clearedLock);
+                CASResult casResult = writeDdlLockWithCas(client, ourExpectedLock, clearedLock);
+                if (casResult.isSuccess()) {
+                    log.info("Successfully released schema mutation lock with id [{}]", existingLockId);
+                }
+                return casResult.isSuccess();
             });
         } catch (TException e) {
             throw Throwables.throwUncheckedException(e);
         }
-        return result.isSuccess();
     }
 
     private Column queryExistingLockColumn(Client client) throws TException {
@@ -366,10 +373,6 @@ final class SchemaMutationLock {
         throw new IllegalStateException(String.format("Another process cleared our schema mutation lock from"
                 + " underneath us. Our ID, which we expected, was %s, the value we saw in the database"
                 + " was instead %s.", expectedLock, remoteLock));
-    }
-
-    private static boolean isValidColumnForLockId(Column column, long lockId) {
-        return getLockIdFromColumn(column) == lockId;
     }
 
     private static Column lockColumnWithValue(byte[] value) {

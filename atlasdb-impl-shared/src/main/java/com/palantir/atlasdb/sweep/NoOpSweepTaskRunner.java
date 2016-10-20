@@ -21,7 +21,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrat
 
 public class NoOpSweepTaskRunner implements SweepTaskRunner {
     @Override
-    public SweepResults run(TableReference tableRef, int batchSize, byte[] startRow) {
+    public SweepResults run(TableReference tableRef, int rowBatchSize, int cellBatchSize, byte[] startRow) {
         return SweepResults.createEmptySweepResult(getSweepTimestamp(SweepStrategy.NOTHING));
     }
 

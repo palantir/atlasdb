@@ -27,12 +27,13 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleRawQueryFactory;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleTableInitializer;
 import com.palantir.common.base.Throwables;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class OracleDbTableFactory implements DbTableFactory {
-    private final Cache<String, TableSize> tableSizeByTableName = CacheBuilder.newBuilder().build();
+    private final Cache<TableReference, TableSize> tableSizeByTableRef = CacheBuilder.newBuilder().build();
     private final OracleDdlConfig config;
 
     public OracleDbTableFactory(OracleDdlConfig config) {
@@ -40,8 +41,8 @@ public class OracleDbTableFactory implements DbTableFactory {
     }
 
     @Override
-    public DbMetadataTable createMetadata(String tableName, ConnectionSupplier conns) {
-        return new SimpleDbMetadataTable(tableName, conns, config);
+    public DbMetadataTable createMetadata(TableReference tableRef, ConnectionSupplier conns) {
+        return new SimpleDbMetadataTable(tableRef, conns, config);
     }
 
     @Override
@@ -51,30 +52,19 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbTableInitializer createInitializer(ConnectionSupplier conns) {
-        /* No initialization required for Oracle */
-        return new DbTableInitializer() {
-            @Override
-            public void createUtilityTables() {
-                //no op
-            }
-
-            @Override
-            public void createMetadataTable(String metadataTableName) {
-                //no op - will be required for Oracle to work
-            }
-        };
+        return new OracleTableInitializer(conns, config);
     }
 
     @Override
-    public DbReadTable createRead(String tableName, ConnectionSupplier conns) {
-        TableSize tableSize = getTableSize(conns, tableName);
+    public DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns) {
+        TableSize tableSize = getTableSize(conns, tableRef);
         DbQueryFactory queryFactory;
         switch (tableSize) {
             case OVERFLOW:
-                queryFactory = new OracleOverflowQueryFactory(tableName, config);
+                queryFactory = new OracleOverflowQueryFactory(DbKvs.internalTableName(tableRef), config);
                 break;
             case RAW:
-                queryFactory = new OracleRawQueryFactory(tableName, config);
+                queryFactory = new OracleRawQueryFactory(DbKvs.internalTableName(tableRef), config);
                 break;
             default:
                 throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
@@ -83,31 +73,32 @@ public class OracleDbTableFactory implements DbTableFactory {
     }
 
     @Override
-    public DbWriteTable createWrite(String tableName, ConnectionSupplier conns) {
-        TableSize tableSize = getTableSize(conns, tableName);
+    public DbWriteTable createWrite(TableReference tableRef, ConnectionSupplier conns) {
+        TableSize tableSize = getTableSize(conns, tableRef);
         switch (tableSize) {
             case OVERFLOW:
-                return new OracleOverflowWriteTable(tableName, conns, config);
+                return OracleOverflowWriteTable.create(DbKvs.internalTableName(tableRef), conns, config);
             case RAW:
-                return new SimpleDbWriteTable(tableName, conns, config);
+                return new SimpleDbWriteTable(DbKvs.internalTableName(tableRef), conns, config);
             default:
                 throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
         }
     }
 
-    private TableSize getTableSize(final ConnectionSupplier conns, final String tableName) {
+    private TableSize getTableSize(final ConnectionSupplier conns, final TableReference tableRef) {
         try {
-            return tableSizeByTableName.get(tableName, new Callable<TableSize>() {
+            return tableSizeByTableRef.get(tableRef, new Callable<TableSize>() {
                 @Override
                 public TableSize call() {
-                    String metadataTableName = config.metadataTable().getQualifiedName();
                     AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
-                            String.format("SELECT table_size FROM %s WHERE table_name = ?", metadataTableName),
-                            tableName);
+                            String.format(
+                                    "SELECT table_size FROM %s WHERE table_name = ?",
+                                    config.metadataTable().getQualifiedName()),
+                            tableRef.getQualifiedName());
                     Preconditions.checkArgument(
                             !results.rows().isEmpty(),
                             "table %s not found",
-                            tableName);
+                            tableRef.getQualifiedName());
                     return TableSize.byId(results.get(0).getInteger("table_size"));
                 }
             });

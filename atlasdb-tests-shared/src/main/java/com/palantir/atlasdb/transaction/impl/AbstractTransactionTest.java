@@ -32,7 +32,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -104,13 +103,18 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
-    public void testBigValue() {
-        byte[] bytes = new byte[64*1024];
+    public void testMultipleBigValues() {
+        testBigValue(0);
+        testBigValue(1);
+    }
+
+    private void testBigValue(int i) {
+        byte[] bytes = new byte[64 * 1024];
         new Random().nextBytes(bytes);
         String encodeHexString = BaseEncoding.base16().lowerCase().encode(bytes);
-        putDirect("row1", "col1", encodeHexString, 0);
-        Pair<String, Long> pair = getDirect("row1", "col1", 1);
-        Assert.assertEquals(0L, (long)pair.getRhSide());
+        putDirect("row" + i, "col" + i, encodeHexString, 0);
+        Pair<String, Long> pair = getDirect("row" + i, "col" + i, 1);
+        assertEquals(0L, (long) pair.getRhSide());
         assertEquals(encodeHexString, pair.getLhSide());
     }
 

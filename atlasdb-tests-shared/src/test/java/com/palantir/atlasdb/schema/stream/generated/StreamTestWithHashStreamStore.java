@@ -43,9 +43,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata.Builder;
-import com.palantir.atlasdb.stream.AbstractExpiringStreamStore;
 import com.palantir.atlasdb.stream.AbstractPersistentStreamStore;
-import com.palantir.atlasdb.stream.ExpiringStreamStore;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.stream.StreamCleanedException;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -63,7 +61,7 @@ import com.palantir.util.file.TempFileUtils;
 
 
 @Generated("com.palantir.atlasdb.table.description.render.StreamStoreRenderer")
-public final class StreamTestWithHashStreamStore extends AbstractExpiringStreamStore<Long> {
+public final class StreamTestWithHashStreamStore extends AbstractPersistentStreamStore {
     public static final int BLOCK_SIZE_IN_BYTES = 1000000; // 1MB. DO NOT CHANGE THIS WITHOUT AN UPGRADE TASK
     public static final int IN_MEMORY_THRESHOLD = 4000; // streams under this size are kept in memory when loaded
     public static final String STREAM_FILE_PREFIX = "StreamTestWithHash_stream_";
@@ -95,38 +93,38 @@ public final class StreamTestWithHashStreamStore extends AbstractExpiringStreamS
     }
 
     @Override
-    protected void storeBlock(Transaction t, Long id, long blockNumber, final byte[] block, final long duration, final TimeUnit unit) {
+    protected void storeBlock(Transaction t, long id, long blockNumber, final byte[] block) {
         Preconditions.checkArgument(block.length <= BLOCK_SIZE_IN_BYTES, "Block to store in DB must be less than BLOCK_SIZE_IN_BYTES");
         final StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow row = StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow.of(id, blockNumber);
         try {
             // Do a touch operation on this table to ensure we get a conflict if someone cleans it up.
-            touchMetadataWhileStoringForConflicts(t, row.getId(), row.getBlockId(), duration, unit);
-            tables.getStreamTestWithHashStreamValueTable(t).putValue(row, block, duration, unit);
+            touchMetadataWhileStoringForConflicts(t, row.getId(), row.getBlockId());
+            tables.getStreamTestWithHashStreamValueTable(t).putValue(row, block);
         } catch (RuntimeException e) {
             log.error("Error storing block " + row.getBlockId() + " for stream id " + row.getId(), e);
             throw e;
         }
     }
 
-    private void touchMetadataWhileStoringForConflicts(Transaction t, Long id, long blockNumber, long duration, TimeUnit unit) {
+    private void touchMetadataWhileStoringForConflicts(Transaction t, Long id, long blockNumber) {
         StreamTestWithHashStreamMetadataTable metaTable = tables.getStreamTestWithHashStreamMetadataTable(t);
         StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow row = StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow.of(id);
         StreamMetadata metadata = metaTable.getMetadatas(ImmutableSet.of(row)).values().iterator().next();
         Preconditions.checkState(metadata.getStatus() == Status.STORING, "This stream is being cleaned up while storing blocks: " + id);
         Builder builder = StreamMetadata.newBuilder(metadata);
         builder.setLength(blockNumber * BLOCK_SIZE_IN_BYTES + 1);
-        metaTable.putMetadata(row, builder.build(), duration, unit);
+        metaTable.putMetadata(row, builder.build());
     }
 
     @Override
-    protected void putMetadataAndHashIndexTask(Transaction t, Map<Long, StreamMetadata> streamIdsToMetadata, long duration, TimeUnit unit) {
+    protected void putMetadataAndHashIndexTask(Transaction t, Map<Long, StreamMetadata> streamIdsToMetadata) {
         StreamTestWithHashStreamMetadataTable mdTable = tables.getStreamTestWithHashStreamMetadataTable(t);
         Map<Long, StreamMetadata> prevMetadatas = getMetadata(t, streamIdsToMetadata.keySet());
 
         Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> rowsToStoredMetadata = Maps.newHashMap();
         Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> rowsToUnstoredMetadata = Maps.newHashMap();
         for (Entry<Long, StreamMetadata> e : streamIdsToMetadata.entrySet()) {
-            Long streamId = e.getKey();
+            long streamId = e.getKey();
             StreamMetadata metadata = e.getValue();
             StreamMetadata prevMetadata = prevMetadatas.get(streamId);
             if (metadata.getStatus() == Status.STORED) {
@@ -143,12 +141,12 @@ public final class StreamTestWithHashStreamStore extends AbstractExpiringStreamS
                 rowsToUnstoredMetadata.put(StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow.of(streamId), metadata);
             }
         }
-        putHashIndexTask(t, rowsToStoredMetadata, duration, unit);
+        putHashIndexTask(t, rowsToStoredMetadata);
 
         Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> rowsToMetadata = Maps.newHashMap();
         rowsToMetadata.putAll(rowsToStoredMetadata);
         rowsToMetadata.putAll(rowsToUnstoredMetadata);
-        mdTable.putMetadata(rowsToMetadata, duration, unit);
+        mdTable.putMetadata(rowsToMetadata);
     }
 
     private long getNumberOfBlocksFromMetadata(StreamMetadata metadata) {
@@ -245,7 +243,7 @@ public final class StreamTestWithHashStreamStore extends AbstractExpiringStreamS
         return rows;
     }
 
-    private void putHashIndexTask(Transaction t, Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> rowsToMetadata, long duration, TimeUnit unit) {
+    private void putHashIndexTask(Transaction t, Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> rowsToMetadata) {
         Multimap<StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow, StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxColumnValue> indexMap = HashMultimap.create();
         for (Entry<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> e : rowsToMetadata.entrySet()) {
             StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow row = e.getKey();
@@ -264,7 +262,7 @@ public final class StreamTestWithHashStreamStore extends AbstractExpiringStreamS
             indexMap.put(hashRow, columnValue);
         }
         StreamTestWithHashStreamHashAidxTable hiTable = tables.getStreamTestWithHashStreamHashAidxTable(t);
-        hiTable.put(indexMap, duration, unit);
+        hiTable.put(indexMap);
     }
 
     /**
@@ -304,9 +302,62 @@ public final class StreamTestWithHashStreamStore extends AbstractExpiringStreamS
         table.delete(smRows);
     }
 
+    @Override
+    protected void markStreamsAsUsedInternal(Transaction t, final Map<Long, byte[]> streamIdsToReference) {
+        if (streamIdsToReference.isEmpty()) {
+            return;
+        }
+        StreamTestWithHashStreamIdxTable index = tables.getStreamTestWithHashStreamIdxTable(t);
+        Multimap<StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxColumnValue> rowsToValues = HashMultimap.create();
+        for (Map.Entry<Long, byte[]> entry : streamIdsToReference.entrySet()) {
+            Long streamId = entry.getKey();
+            byte[] reference = entry.getValue();
+            StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxColumn col = StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxColumn.of(reference);
+            StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxColumnValue value = StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxColumnValue.of(col, 0L);
+            rowsToValues.put(StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow.of(streamId), value);
+        }
+        index.put(rowsToValues);
+    }
+
+    @Override
+    public void unmarkStreamsAsUsed(Transaction t, final Map<Long, byte[]> streamIdsToReference) {
+        if (streamIdsToReference.isEmpty()) {
+            return;
+        }
+        StreamTestWithHashStreamIdxTable index = tables.getStreamTestWithHashStreamIdxTable(t);
+        Multimap<StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxColumn> toDelete = ArrayListMultimap.create(streamIdsToReference.size(), 1);
+        for (Map.Entry<Long, byte[]> entry : streamIdsToReference.entrySet()) {
+            Long streamId = entry.getKey();
+            byte[] reference = entry.getValue();
+            StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxColumn col = StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxColumn.of(reference);
+            toDelete.put(StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow.of(streamId), col);
+        }
+        index.delete(toDelete);
+    }
+
+    @Override
+    protected void touchMetadataWhileMarkingUsedForConflicts(Transaction t, Iterable<Long> ids) {
+        StreamTestWithHashStreamMetadataTable metaTable = tables.getStreamTestWithHashStreamMetadataTable(t);
+        Set<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow> rows = Sets.newHashSet();
+        for (Long id : ids) {
+            rows.add(StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow.of(id));
+        }
+        Map<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> metadatas = metaTable.getMetadatas(rows);
+        for (Map.Entry<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, StreamMetadata> e : metadatas.entrySet()) {
+            StreamMetadata metadata = e.getValue();
+            Preconditions.checkState(metadata.getStatus() == Status.STORED,
+            "Stream: " + e.getKey().getId() + " has status: " + metadata.getStatus());
+            metaTable.putMetadata(e.getKey(), metadata);
+        }
+        SetView<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow> missingRows = Sets.difference(rows, metadatas.keySet());
+        if (!missingRows.isEmpty()) {
+            throw new IllegalStateException("Missing metadata rows for:" + missingRows
+            + " rows: " + rows + " metadata: " + metadatas + " txn timestamp: " + t.getTimestamp());
+        }
+    }
+
     /**
      * This exists to avoid unused import warnings
-     * {@link AbstractExpiringStreamStore}
      * {@link AbstractPersistentStreamStore}
      * {@link ArrayListMultimap}
      * {@link Arrays}
@@ -325,7 +376,6 @@ public final class StreamTestWithHashStreamStore extends AbstractExpiringStreamS
      * {@link DeleteOnCloseFileInputStream}
      * {@link DigestInputStream}
      * {@link Entry}
-     * {@link ExpiringStreamStore}
      * {@link File}
      * {@link FileNotFoundException}
      * {@link FileOutputStream}

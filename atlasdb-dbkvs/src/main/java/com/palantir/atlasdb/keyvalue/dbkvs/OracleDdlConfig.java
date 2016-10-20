@@ -15,12 +15,18 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OracleDbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
@@ -45,7 +51,8 @@ public abstract class OracleDdlConfig extends DdlConfig {
         return "ao_";
     }
 
-    public abstract Supplier<Long> overflowIds();
+    @JsonIgnore
+    public abstract Optional<Supplier<Long>> overflowIds();
 
     public abstract OverflowMigrationState overflowMigrationState();
 
@@ -59,8 +66,37 @@ public abstract class OracleDdlConfig extends DdlConfig {
         return () -> new OracleDbTableFactory(this);
     }
 
+    @Value.Default
+    @Override
+    public String tablePrefix() {
+        return "a_";
+    }
+
+    @Value.Default
+    @Override
+    public TableReference metadataTable() {
+        return AtlasDbConstants.ORACLE_METADATA_TABLE;
+    }
+
     @Override
     public final String type() {
         return TYPE;
+    }
+
+    @Value.Check
+    protected final void checkOracleConfig() {
+        Preconditions.checkState(tablePrefix() != null, "Oracle 'tablePrefix' cannot be null.");
+        Preconditions.checkState(!tablePrefix().isEmpty(), "Oracle 'tablePrefix' must not be an empty string.");
+        Preconditions.checkState(!tablePrefix().startsWith("_"), "Oracle 'tablePrefix' cannot begin with underscore.");
+        Preconditions.checkState(
+                tablePrefix().length() <= 7,
+                "Oracle 'tablePrefix' cannot be more than 7 characters long.");
+
+        Preconditions.checkState(
+                !overflowTablePrefix().startsWith("_"),
+                "Oracle 'overflowTablePrefix' cannot begin with underscore.");
+        Preconditions.checkState(overflowTablePrefix().length() <= 6,
+                "Oracle 'overflowTablePrefix' cannot be more than 6 characters long.");
+
     }
 }

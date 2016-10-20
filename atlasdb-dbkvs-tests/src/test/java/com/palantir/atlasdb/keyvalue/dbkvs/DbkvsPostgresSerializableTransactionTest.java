@@ -16,19 +16,14 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
+import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 
-public class DbkvsKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
+public class DbkvsPostgresSerializableTransactionTest extends
+        AbstractSerializableTransactionTest {
+
     @Override
     protected KeyValueService getKeyValueService() {
-        KeyValueService kvs = ConnectionManagerAwareDbKvs.create(DbkvsTestSuite.getKvsConfig());
-        for (TableReference table : kvs.getAllTableNames()) {
-            if (!table.getQualifiedName().equals("_metadata")) {
-                kvs.dropTable(table);
-            }
-        }
-        return kvs;
+        return ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
     }
 }

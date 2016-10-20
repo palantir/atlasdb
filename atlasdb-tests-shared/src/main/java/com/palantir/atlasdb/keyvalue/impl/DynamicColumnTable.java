@@ -30,7 +30,7 @@ public class DynamicColumnTable {
     }};
 
     public static TableReference reference() {
-        return TableReference.create(Namespace.DEFAULT_NAMESPACE, "dynamicColumnsTable");
+        return TableReference.create(Namespace.DEFAULT_NAMESPACE, "dynamicColsTable");
     }
 
     public static byte[] metadata() {

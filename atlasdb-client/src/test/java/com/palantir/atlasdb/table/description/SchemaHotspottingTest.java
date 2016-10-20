@@ -34,46 +34,117 @@ public class SchemaHotspottingTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    Schema hotspottingSchema = getHotspottingSchema();
+    private static final String SCHEMA_NAME = "TestSchema";
+    private static final String INDEX_NAME = "TestIndex";
+    private static final String TABLE_NAME = "TestTable";
+    private static final String ROW_COMPONENT_NAME = "TestRowComponent";
 
     private static Schema getHotspottingSchema() {
-        Schema suffersFromHotspoting = new Schema("SuffersFromHotspoting", "unused", Namespace.DEFAULT_NAMESPACE);
-        suffersFromHotspoting.addTableDefinition("HotspottingTable", new TableDefinition() {{
+        Schema suffersFromHotspoting = new Schema(SCHEMA_NAME, "unused", Namespace.DEFAULT_NAMESPACE);
+        suffersFromHotspoting.addTableDefinition(TABLE_NAME, new TableDefinition() {{
             rowName();
-                rowComponent("Hotspotter", ValueType.VAR_STRING);
+                rowComponent(ROW_COMPONENT_NAME, ValueType.VAR_STRING);
             noColumns();
         }});
         return suffersFromHotspoting;
     }
 
     private static Schema getIgnoredHotspottingSchema() {
-        Schema ignoredHotspotting = new Schema("IgnoredHotspotting", "valid.package", Namespace.DEFAULT_NAMESPACE);
-        ignoredHotspotting.addTableDefinition("IgnoredHotspottingTable", new TableDefinition() {{
+        Schema ignoredHotspottingSchema = new Schema(SCHEMA_NAME, "valid.package", Namespace.DEFAULT_NAMESPACE);
+        ignoredHotspottingSchema.addTableDefinition(TABLE_NAME, new TableDefinition() {{
             ignoreHotspottingChecks();
             rowName();
-                rowComponent("Hotspotter", ValueType.VAR_STRING);
+                rowComponent(ROW_COMPONENT_NAME, ValueType.VAR_STRING);
             noColumns();
         }});
-        return ignoredHotspotting;
+        return ignoredHotspottingSchema;
+    }
+
+    private static Schema getTableFirstRowComponentHashedSchema() {
+        Schema tableFirstRowComponentHashed = new Schema(SCHEMA_NAME, "unused", Namespace.DEFAULT_NAMESPACE);
+        tableFirstRowComponentHashed.addTableDefinition(TABLE_NAME, new TableDefinition() {{
+            rowName();
+                hashFirstRowComponent();
+                rowComponent(ROW_COMPONENT_NAME, ValueType.VAR_STRING);
+            noColumns();
+        }});
+        return tableFirstRowComponentHashed;
+    }
+
+    private static Schema getIndexHotspottingSchema() {
+        Schema suffersFromIndexHotspoting = getIgnoredHotspottingSchema();
+        suffersFromIndexHotspoting.addIndexDefinition(INDEX_NAME, new IndexDefinition(IndexDefinition.IndexType.CELL_REFERENCING) {{
+            onTable(TABLE_NAME);
+            rowName();
+                componentFromRow(ROW_COMPONENT_NAME, ValueType.VAR_STRING);
+        }});
+        return suffersFromIndexHotspoting;
+    }
+
+    private static Schema getIgnoredIndexHotspottingSchema() {
+        Schema ignoredIndexHotspottingSchema = getIgnoredHotspottingSchema();
+        ignoredIndexHotspottingSchema.addIndexDefinition(INDEX_NAME, new IndexDefinition(IndexDefinition.IndexType.CELL_REFERENCING) {{
+            ignoreHotspottingChecks();
+            onTable(TABLE_NAME);
+            rowName();
+                componentFromRow(ROW_COMPONENT_NAME, ValueType.VAR_STRING);
+        }});
+        return ignoredIndexHotspottingSchema;
+    }
+
+    private static Schema getIndexFirstRowComponentHashedSchema() {
+        Schema indexFirstRowComponentHashed = getIgnoredHotspottingSchema();
+        indexFirstRowComponentHashed.addIndexDefinition(INDEX_NAME, new IndexDefinition(IndexDefinition.IndexType.CELL_REFERENCING) {{
+            onTable(TABLE_NAME);
+            rowName();
+                hashFirstRowComponent();
+                componentFromRow(ROW_COMPONENT_NAME, ValueType.VAR_STRING);
+        }});
+        return indexFirstRowComponentHashed;
     }
 
     @Test (expected = IllegalStateException.class)
-    public void testHardFailOnValidateOfHotspottingSchema() {
-        hotspottingSchema.validate();
+    public void testHardFailOnValidateOfTableHotspottingSchema() {
+        getHotspottingSchema().validate();
     }
 
     @Test (expected = IllegalStateException.class)
-    public void testFailToGenerateHotspottingSchema() throws IOException {
-        hotspottingSchema.renderTables(new TemporaryFolder().getRoot());
+    public void testHardFailOnValidateOfIndexHotspottingSchema() {
+        getIndexHotspottingSchema().validate();
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void testFailToGenerateTableHotspottingSchema() throws IOException {
+        getHotspottingSchema().renderTables(new TemporaryFolder().getRoot());
+    }
+
+    @Test (expected = IllegalStateException.class)
+    public void testFailToGenerateIndexHotspottingSchema() throws IOException {
+        getIndexHotspottingSchema().renderTables(new TemporaryFolder().getRoot());
     }
 
     @Test
-    public void testNoFailureWhenHotspottingIgnored() {
+    public void testNoFailureWhenTableHotspottingIgnored() {
         getIgnoredHotspottingSchema().validate();
     }
 
     @Test
-    public void testSuccessfulGenerationWhenHotspottingIgnored() throws IOException {
+    public void testNoFailureWhenIndexHotspottingIgnored() {
+        getIgnoredIndexHotspottingSchema().validate();
+    }
+
+    @Test
+    public void testNoFailureWhenTableFirstRowComponentHashed() {
+        getTableFirstRowComponentHashedSchema().validate();
+    }
+
+    @Test
+    public void testNoFailureWhenIndexFirstRowComponentHashed() {
+        getIndexFirstRowComponentHashedSchema().validate();
+    }
+
+    @Test
+    public void testSuccessfulGenerationWhenTableHotspottingIgnored() throws IOException {
         File srcDir = temporaryFolder.getRoot();
         getIgnoredHotspottingSchema().renderTables(srcDir);
 
@@ -81,6 +152,6 @@ public class SchemaHotspottingTest {
 
         File validDirectory = srcDir.listFiles()[0];
         assertThat(Arrays.asList(validDirectory.list()), contains(equalTo("package")));
-        assertThat(Arrays.asList(validDirectory.listFiles()[0].list()), containsInAnyOrder(equalTo("IgnoredHotspottingTableFactory.java"), equalTo("IgnoredHotspottingTableTable.java")));
+        assertThat(Arrays.asList(validDirectory.listFiles()[0].list()), containsInAnyOrder(equalTo(SCHEMA_NAME + "TableFactory.java"), equalTo(TABLE_NAME + "Table.java")));
     }
 }

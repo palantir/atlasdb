@@ -38,19 +38,30 @@ import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.palantir.nexus.db.sql.SqlConnection;
 
-public class OracleOverflowWriteTable implements DbWriteTable {
+public final class OracleOverflowWriteTable implements DbWriteTable {
     private static final Logger log = LoggerFactory.getLogger(OracleOverflowWriteTable.class);
 
     private final String tableName;
     private final ConnectionSupplier conns;
     private final OracleDdlConfig config;
+    private final OverflowSequenceSupplier overflowSequenceSupplier;
 
-    public OracleOverflowWriteTable(String tableName,
-                                    ConnectionSupplier conns,
-                                    OracleDdlConfig config) {
+    private OracleOverflowWriteTable(String tableName,
+            ConnectionSupplier conns,
+            OracleDdlConfig config,
+            OverflowSequenceSupplier sequenceSupplier) {
         this.tableName = tableName;
         this.conns = conns;
         this.config = config;
+        this.overflowSequenceSupplier = sequenceSupplier;
+    }
+
+    public static OracleOverflowWriteTable create(
+            String tableName,
+            ConnectionSupplier conns,
+            OracleDdlConfig config) {
+        OverflowSequenceSupplier sequenceSupplier = OverflowSequenceSupplier.create(conns, config.tablePrefix());
+        return new OracleOverflowWriteTable(tableName, conns, config, sequenceSupplier);
     }
 
     @Override
@@ -63,7 +74,7 @@ public class OracleOverflowWriteTable implements DbWriteTable {
             if (val.length <= 2000) {
                 args.add(new Object[] { cell.getRowName(), cell.getColumnName(), ts, val, null });
             } else {
-                long overflowId = config.overflowIds().get();
+                long overflowId = config.overflowIds().orElse(overflowSequenceSupplier).get();
                 overflowArgs.add(new Object[] { overflowId, val });
                 args.add(new Object[] { cell.getRowName(), cell.getColumnName(), ts, null, overflowId });
             }
@@ -83,7 +94,7 @@ public class OracleOverflowWriteTable implements DbWriteTable {
                         cell.getRowName(), cell.getColumnName(), val.getTimestamp(), val.getContents(), null
                 });
             } else {
-                long overflowId = config.overflowIds().get();
+                long overflowId = config.overflowIds().orElse(overflowSequenceSupplier).get();
                 overflowArgs.add(new Object[] { overflowId, val.getContents() });
                 args.add(new Object[] {
                         cell.getRowName(), cell.getColumnName(), val.getTimestamp(), null, overflowId

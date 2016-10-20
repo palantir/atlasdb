@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cleaner.Cleaner;
-import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -74,6 +73,7 @@ public abstract class AbstractSweeperTest {
     protected static final TableReference TABLE_NAME = TableReference.createWithEmptyNamespace("test_table");
     private static final String COL = "c";
     protected static final int DEFAULT_BATCH_SIZE = 1000;
+    protected static final int DEFAULT_CELL_BATCH_SIZE = 1_000_000;
 
     protected KeyValueService kvs;
     protected final AtomicLong sweepTimestamp = new AtomicLong();
@@ -98,7 +98,8 @@ public abstract class AbstractSweeperTest {
         setupTables(kvs);
         Supplier<Long> tsSupplier = sweepTimestamp::get;
         DeletionLock deletionLock = new DeletionLock(kvs);
-        sweepRunner = new SweepTaskRunnerImpl(txManager, kvs, deletionLock, tsSupplier, tsSupplier, txService, ssm, ImmutableList.<Follower>of());
+        CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
+        sweepRunner = new SweepTaskRunnerImpl(kvs, deletionLock, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
         setupBackgroundSweeper(DEFAULT_BATCH_SIZE);
     }
 
@@ -119,7 +120,8 @@ public abstract class AbstractSweeperTest {
         Supplier<Boolean> sweepEnabledSupplier = () -> true;
         Supplier<Long> sweepNoPause = () -> 0L;
         Supplier<Integer> batchSizeSupplier = () -> batchSize;
-        backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause, batchSizeSupplier, SweepTableFactory.of());
+        Supplier<Integer> cellBatchSizeSupplier = () -> DEFAULT_CELL_BATCH_SIZE;
+        backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause, batchSizeSupplier, cellBatchSizeSupplier, SweepTableFactory.of());
     }
 
     @After
@@ -590,7 +592,7 @@ public abstract class AbstractSweeperTest {
 
     private SweepResults sweep(TableReference tableReference, long ts, int batchSize) {
         sweepTimestamp.set(ts);
-        return sweepRunner.run(tableReference, batchSize, new byte[0]);
+        return sweepRunner.run(tableReference, batchSize, DEFAULT_CELL_BATCH_SIZE, new byte[0]);
     }
 
     private SweepResults partialSweep(long ts, int batchSize) {

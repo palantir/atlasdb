@@ -35,3 +35,7 @@ atlasdb-cli/var/data/
 
 # Rocksdb data
 var/data/rocksdb
+
+# Memory tracker nohup
+nohup.out
+nohup.err

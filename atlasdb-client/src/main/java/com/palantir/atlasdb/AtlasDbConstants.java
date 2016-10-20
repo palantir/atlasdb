@@ -36,6 +36,7 @@ public class AtlasDbConstants {
     public static final TableReference METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final TableReference PERSISTED_LOCKS_TABLE =
             TableReference.createWithEmptyNamespace("_persisted_locks");
+    public static final TableReference ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace("atlasdb_metadata");
     public static final String NAMESPACE_PREFIX = "_n_";
     public static final String NAMESPACE_SHORT_COLUMN_NAME = "s";
     public static final byte[] NAMESPACE_SHORT_COLUMN_BYTES = PtBytes.toBytes(NAMESPACE_SHORT_COLUMN_NAME);
@@ -84,5 +85,6 @@ public class AtlasDbConstants {
     public static final boolean DEFAULT_ENABLE_SWEEP = false;
     public static final long DEFAULT_SWEEP_PAUSE_MILLIS = 5 * 1000;
     public static final int DEFAULT_SWEEP_BATCH_SIZE = 1000;
+    public static final int DEFAULT_SWEEP_CELL_BATCH_SIZE = 10_000;
     public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;
 }

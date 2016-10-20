@@ -33,7 +33,6 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
-import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -49,6 +48,7 @@ import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
+import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
 import com.palantir.atlasdb.table.description.Schema;
@@ -177,14 +177,13 @@ public final class TransactionManagers {
 
         DeletionLock deletionLock = new DeletionLock(kvs);
         SweepTaskRunner sweepRunner = new SweepTaskRunnerImpl(
-                transactionManager,
                 kvs,
                 deletionLock,
                 getUnreadableTsSupplier(transactionManager),
                 getImmutableTsSupplier(transactionManager),
                 transactionService,
                 sweepStrategyManager,
-                ImmutableList.<Follower>of(follower));
+                new CellsSweeper(transactionManager, kvs, ImmutableList.of(follower)));
         BackgroundSweeper backgroundSweeper = new BackgroundSweeperImpl(
                 transactionManager,
                 kvs,
@@ -192,6 +191,7 @@ public final class TransactionManagers {
                 Suppliers.ofInstance(config.enableSweep()),
                 Suppliers.ofInstance(config.getSweepPauseMillis()),
                 Suppliers.ofInstance(config.getSweepBatchSize()),
+                Suppliers.ofInstance(config.getSweepCellBatchSize()),
                 SweepTableFactory.of());
         backgroundSweeper.runInBackground();
 
