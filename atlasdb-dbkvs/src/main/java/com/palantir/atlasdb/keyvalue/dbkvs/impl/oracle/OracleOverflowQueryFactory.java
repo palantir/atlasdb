@@ -90,7 +90,7 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
     private String prefixedOverflowTableName() {
         return config
                 .tableNameMapper()
-                .hashTableNameToFitOracleTableNameLimits(config.overflowTablePrefix(), tableName);
+                .getShortPrefixedTableName(config.overflowTablePrefix(), tableName);
     }
 
     private String structArrayPrefix() {
