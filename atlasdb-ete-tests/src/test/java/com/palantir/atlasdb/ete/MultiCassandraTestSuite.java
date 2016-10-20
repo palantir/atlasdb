@@ -42,8 +42,10 @@ public class MultiCassandraTestSuite extends EteSetup {
     private static final int CASSANDRA_PORT = 9160;
 
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP =
-            EteSetup.setupComposition("cassandra-multinode", "docker-compose.multiple-cassandra.yml", CLIENTS);
+    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
+            MultiCassandraTestSuite.class,
+            "docker-compose.multiple-cassandra.yml",
+            CLIENTS);
 
     public static void killCassandraContainer(String containerName) {
         Container container = EteSetup.getContainer(containerName);

@@ -40,6 +40,7 @@ import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
+import com.palantir.docker.compose.logging.LogDirectory;
 
 @SuppressWarnings("checkstyle:HideUtilityClassConstructor")
 @RunWith(Suite.class)
@@ -62,7 +63,7 @@ public final class CassandraTestSuite {
     private static final DockerComposeRule docker = DockerComposeRule.builder()
             .file("src/test/resources/docker-compose.yml")
             .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen())
-            .saveLogsTo("container-logs")
+            .saveLogsTo(LogDirectory.circleAwareLogDirectory(CassandraTestSuite.class))
             .build();
     private static final Gradle GRADLE_PREPARE_TASK =
             Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");

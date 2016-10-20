@@ -35,6 +35,7 @@ import org.junit.rules.ExpectedException;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
+import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
@@ -47,7 +48,7 @@ public class HikariCpConnectionManagerTest {
     public static final DockerComposeRule docker = DockerComposeRule.builder()
             .file("src/test/resources/docker-compose.yml")
             .waitingForService("postgres", Container::areAllPortsOpen)
-            .saveLogsTo("container-logs")
+            .saveLogsTo(LogDirectory.circleAwareLogDirectory(HikariCpConnectionManagerTest.class))
             .skipShutdown(true)
             .build();
 

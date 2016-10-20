@@ -38,6 +38,7 @@ import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.execution.DockerComposeRunArgument;
 import com.palantir.docker.compose.execution.DockerComposeRunOption;
+import com.palantir.docker.compose.logging.LogDirectory;
 
 public class EteSetup {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
@@ -48,15 +49,16 @@ public class EteSetup {
     private static DockerComposeRule docker;
     private static List<String> availableClients;
 
-    static RuleChain setupComposition(String name, String composeFile, List<String> availableClientNames) {
+    static RuleChain setupComposition(Class<?> eteClass, String composeFile, List<String> availableClientNames) {
         availableClients = ImmutableList.copyOf(availableClientNames);
 
+        String logDirectory = EteSetup.class.getSimpleName() + "-" + eteClass.getSimpleName();
         docker = DockerComposeRule.builder()
                 .file(composeFile)
-                .saveLogsTo("container-logs/" + name)
+                .saveLogsTo(LogDirectory.circleAwareLogDirectory(logDirectory))
                 .build();
 
-        DockerProxyRule dockerProxyRule = new DockerProxyRule(docker.projectName());
+        DockerProxyRule dockerProxyRule = new DockerProxyRule(docker.projectName(), eteClass);
 
         return RuleChain
                 .outerRule(GRADLE_PREPARE_TASK)

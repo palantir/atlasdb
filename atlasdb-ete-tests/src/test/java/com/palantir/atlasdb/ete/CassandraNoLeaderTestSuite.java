@@ -33,6 +33,8 @@ public class CassandraNoLeaderTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP =
-            EteSetup.setupComposition("cassandra-no-leader", "docker-compose.no-leader.cassandra.yml", CLIENTS);
+    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
+            CassandraNoLeaderTestSuite.class,
+            "docker-compose.no-leader.cassandra.yml",
+            CLIENTS);
 }
