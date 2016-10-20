@@ -63,6 +63,8 @@ public final class LockStore {
                 .filter(LockEntry::tombstoned)
                 .collect(Collectors.toSet());
 
+        attemptToCleanupTombstonedEntries(tombstonedLockEntries);
+
         return Sets.difference(allLockEntriesIncludingTombstones, tombstonedLockEntries);
     }
 
@@ -74,5 +76,21 @@ public final class LockStore {
     public void insertLockEntry(LockEntry lockEntry) {
         log.debug("Attempting to acquire persistent lock {}", lockEntry);
         keyValueService.put(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.insertionMap(), LOCKS_TIMESTAMP);
+    }
+
+    private void attemptToCleanupTombstonedEntries(Set<LockEntry> tombstonedLockEntries) {
+        log.debug("Attempting to clean up {} tombstoned persistent lock entries", tombstonedLockEntries.size());
+        try {
+            for (LockEntry lockEntry : tombstonedLockEntries) {
+                keyValueService.delete(
+                        AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.deletionMapWithTimestamp(LOCKS_TIMESTAMP));
+            }
+        } catch (Exception e) {
+            log.info("Failed to clean up one or more tombstoned persistent lock entry. "
+                    + "This should not affect normal operation. "
+                    + "This could be because delete operations require CONSISTENCY_ALL and one of your nodes is down. "
+                    + "See debug-level logging for the exact error. ");
+            log.debug("Failed to clean up a tombstoned persistent lock entry for the following reason: ", e);
+        }
     }
 }
