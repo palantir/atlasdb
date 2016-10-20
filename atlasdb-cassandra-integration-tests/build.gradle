@@ -6,6 +6,7 @@ dependencies {
   testCompile project(":atlasdb-cassandra")
   testCompile project(":atlasdb-tests-shared")
   testCompile project(":atlasdb-ete-test-utils")
+  testCompile project(":atlasdb-docker-test-utils")
 
   testCompile 'org.apache.cassandra:cassandra-all:' + libVersions.cassandra
   testCompile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
