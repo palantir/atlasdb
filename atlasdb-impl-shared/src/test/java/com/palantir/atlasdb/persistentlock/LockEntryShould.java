@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -69,6 +70,14 @@ public class LockEntryShould {
 
         assertThat(deletionMap.get(getReasonKey()), contains(timestamp));
         assertThat(deletionMap.get(getExclusiveKey()), contains(timestamp));
+        assertThat(deletionMap.get(getTombstoneKey()), contains(timestamp));
+    }
+
+    @Test
+    public void tombstoneMapContainsTrueEntry() {
+        Map<Cell, byte[]> tombstoneMap = lockEntry.writeTombstoneMap();
+
+        assertThat(tombstoneMap.get(getTombstoneKey()), equalTo("true".getBytes(StandardCharsets.UTF_8)));
     }
 
     private Cell getReasonKey() {
@@ -81,5 +90,11 @@ public class LockEntryShould {
         return Cell.create(
                     rowBytes,
                     LockEntry.EXCLUSIVE_COLUMN.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private Cell getTombstoneKey() {
+        return Cell.create(
+                rowBytes,
+                LockEntry.TOMBSTONE_COLUMN.getBytes(StandardCharsets.UTF_8));
     }
 }

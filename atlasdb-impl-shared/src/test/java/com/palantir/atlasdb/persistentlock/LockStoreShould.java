@@ -15,17 +15,16 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.core.IsNot.not;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.util.Set;
 
@@ -54,7 +53,8 @@ public class LockStoreShould {
     public void createPersistedLocksTable() {
         LockStore.create(keyValueService);
 
-        verify(keyValueService, atLeastOnce()).createTable(eq(AtlasDbConstants.PERSISTED_LOCKS_TABLE), any(byte[].class));
+        verify(keyValueService, atLeastOnce())
+                .createTable(eq(AtlasDbConstants.PERSISTED_LOCKS_TABLE), any(byte[].class));
     }
 
     @Test
@@ -74,5 +74,29 @@ public class LockStoreShould {
         Set<LockEntry> lockEntries = lockStore.allLockEntries();
 
         assertThat(lockEntries, not(hasItems(lockEntry)));
+    }
+
+    @Test
+    public void deletedEntriesShouldNotBeVisibleIfDeletionFails() {
+        doThrow(new RuntimeException("deletion failed"))
+                .when(keyValueService).delete(any(TableReference.class), any(Multimap.class));
+        lockStore.insertLockEntry(lockEntry);
+        lockStore.releaseLockEntry(lockEntry);
+
+        Set<LockEntry> lockEntries = lockStore.allLockEntries();
+
+        assertThat(lockEntries, not(hasItems(lockEntry)));
+    }
+
+    @Test
+    public void deletedEntriesShouldNotContainTombstonedEntries() {
+        doThrow(new RuntimeException("deletion failed"))
+                .when(keyValueService).delete(any(TableReference.class), any(Multimap.class));
+        lockStore.insertLockEntry(lockEntry);
+        lockStore.releaseLockEntry(lockEntry);
+
+        Set<LockEntry> lockEntries = lockStore.allLockEntries();
+
+        assertThat(lockEntries.size(), equalTo(0));
     }
 }

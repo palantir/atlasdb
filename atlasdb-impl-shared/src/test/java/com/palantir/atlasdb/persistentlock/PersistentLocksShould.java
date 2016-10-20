@@ -19,12 +19,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyMap;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
@@ -41,7 +35,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -56,17 +49,6 @@ public class PersistentLocksShould {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
-    @Test
-    public void createAndReleaseLockIfNotAlreadyLocked() throws PersistentLockIsTakenException {
-        KeyValueService keyValueService = spy(new InMemoryKeyValueService(false));
-        PersistentLock persistentLock = PersistentLock.create(LockStore.create(keyValueService));
-
-        persistentLock.runWithExclusiveLock(NO_ACTION, PersistentLockName.of("deletionLock"), REASON);
-
-        verify(keyValueService).put(eq(AtlasDbConstants.PERSISTED_LOCKS_TABLE), anyMap(), anyLong());
-        verify(keyValueService).delete(eq(AtlasDbConstants.PERSISTED_LOCKS_TABLE), any(Multimap.class));
-    }
 
     @Test
     public void successfullyGrabLockAfterItWasReleased() throws PersistentLockIsTakenException {
