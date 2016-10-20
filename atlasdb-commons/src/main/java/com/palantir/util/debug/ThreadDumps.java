@@ -22,6 +22,9 @@ import java.lang.management.ThreadMXBean;
 
 import javax.management.JMException;
 
+// WARNING: This class was copied verbatim from an internal product. We are aware that the code quality is not great
+// and we lack tests, however this is covered by testing in the internal product
+// DO NOT CHANGE THIS CLASS!
 public class ThreadDumps {
     public static String programmaticThreadDump() {
         String serverName = "Stack Trace"; //$NON-NLS-1$
