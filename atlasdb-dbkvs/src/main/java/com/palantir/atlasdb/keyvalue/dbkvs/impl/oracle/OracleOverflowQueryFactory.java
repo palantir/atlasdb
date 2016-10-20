@@ -27,9 +27,11 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowValue;
 import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
 
 public class OracleOverflowQueryFactory extends OracleQueryFactory {
+    private final String overflowTableName;
     public OracleOverflowQueryFactory(String tableName,
-                                      OracleDdlConfig config) {
+            OracleDdlConfig config, String overflowTableName) {
         super(tableName, config);
+        this.overflowTableName = overflowTableName;
     }
 
     @Override
@@ -79,18 +81,12 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
     private FullQuery getNewOverflowQuery(ArrayHandler arg) {
         String query = " /* SELECT_OVERFLOW (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t o) LEADING(t o) INDEX(o pk_" + prefixedOverflowTableName() + ") */ "
+                + "   /*+ USE_NL(t o) LEADING(t o) INDEX(o pk_" + overflowTableName + ") */ "
                 + "   o.id, o.val "
-                + " FROM " + prefixedOverflowTableName() + " o,"
+                + " FROM " + overflowTableName + " o,"
                 + "   TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE t.max_ts = o.id ";
         return new FullQuery(query).withArg(arg);
-    }
-
-    private String prefixedOverflowTableName() {
-        return config
-                .tableNameMapper()
-                .getShortPrefixedTableName(config.overflowTablePrefix(), tableName);
     }
 
     private String structArrayPrefix() {
