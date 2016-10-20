@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -32,6 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.CqlResult;
 import org.apache.thrift.TException;
 import org.junit.After;
 import org.junit.Before;
@@ -44,6 +47,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -55,6 +59,8 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyValueServiceTest {
+    private static final long LOCK_ID = 123456789;
+
     private KeyValueService keyValueService;
     private ExecutorService executorService;
     private Logger logger = mock(Logger.class);
@@ -163,6 +169,25 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
         int garbageAfterTest = getAmountOfGarbageInMetadataTable(keyValueService, testTable);
 
         assertThat(garbageAfterTest, lessThanOrEqualTo(preExistingGarbageBeforeTest));
+    }
+
+    @Test
+    public void testLockTablesStateCleanUp() throws Exception {
+        CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
+        UniqueSchemaMutationLockTable lockTable = new UniqueSchemaMutationLockTable(
+                new SchemaMutationLockTables(ckvs.clientPool, CassandraTestSuite.cassandraKvsConfig),
+                LockLeader.I_AM_THE_LOCK_LEADER);
+        SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(ckvs.clientPool, lockTable);
+        grabLock(lockTestTools);
+
+        ckvs.cleanUpSchemaMutationLockTablesState();
+
+        CqlResult result = lockTestTools.readLocksTable();
+        assertThat(result.getRows(), is(empty()));
+    }
+
+    private void grabLock(SchemaMutationLockTestTools lockTestTools) throws TException {
+        lockTestTools.setLocksTableValue(LOCK_ID, 0);
     }
 
     private static int getAmountOfGarbageInMetadataTable(KeyValueService keyValueService, TableReference tableRef) {

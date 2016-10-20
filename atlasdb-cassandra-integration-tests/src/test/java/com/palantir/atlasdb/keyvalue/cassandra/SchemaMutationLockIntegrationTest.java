@@ -19,8 +19,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
@@ -31,10 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.CqlResult;
 import org.apache.thrift.TException;
 import org.junit.Assume;
 import org.junit.Before;
@@ -46,7 +41,6 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.LockLeader;
@@ -64,6 +58,7 @@ public class SchemaMutationLockIntegrationTest {
     private ConsistencyLevel writeConsistency;
     private CassandraClientPool clientPool;
     private UniqueSchemaMutationLockTable lockTable;
+    private SchemaMutationLockTestTools lockTestTools;
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
     @SuppressWarnings({"WeakerAccess", "DefaultAnnotationParam"}) // test parameter
@@ -115,6 +110,7 @@ public class SchemaMutationLockIntegrationTest {
                 lockTable,
                 heartbeatService,
                 SchemaMutationLock.DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS);
+        lockTestTools = new SchemaMutationLockTestTools(clientPool, lockTable);
     }
 
     @Test
@@ -202,10 +198,11 @@ public class SchemaMutationLockIntegrationTest {
     }
 
     @Test
-    public void testNonHeartbeatClearedLockPostMigration() throws TException {
+    public void testLegacyClearedLockPostMigration() throws TException {
         // only run this test with cas
         Assume.assumeTrue(casEnabled);
-        setUpWithNonHeartbeatClearedLock();
+
+        lockTestTools.setLegacyClearedLocksTableValue();
 
         schemaMutationLock.runWithLock(DO_NOTHING);
     }
@@ -216,25 +213,5 @@ public class SchemaMutationLockIntegrationTest {
         TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
         return new SchemaMutationLock(true, configManager, clientPool, queryRunner, writeConsistency, lockTable,
                 heartbeatService, 2000);
-    }
-
-    private void setUpWithNonHeartbeatClearedLock() throws TException {
-        clientPool.runWithRetry(this::createNonHeartbeatClearedLockEntry);
-    }
-
-    private CqlResult createNonHeartbeatClearedLockEntry(Cassandra.Client client) throws TException {
-        String lockValue = CassandraKeyValueServices.encodeAsHex(Longs.toByteArray(Long.MAX_VALUE));
-        String lockRowName = CassandraKeyValueServices.encodeAsHex(
-                CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME.getBytes(StandardCharsets.UTF_8));
-        String lockColName = CassandraKeyValueServices.encodeAsHex(
-                CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME.getBytes(StandardCharsets.UTF_8));
-        String createCql = String.format(
-                "UPDATE \"%s\" SET value = %s WHERE key = %s AND column1 = %s AND column2 = -1;",
-                lockTable.getOnlyTable().getQualifiedName(),
-                lockValue,
-                lockRowName,
-                lockColName);
-        ByteBuffer queryBuffer = ByteBuffer.wrap(createCql.getBytes(StandardCharsets.UTF_8));
-        return client.execute_cql3_query(queryBuffer, Compression.NONE, writeConsistency);
     }
 }
