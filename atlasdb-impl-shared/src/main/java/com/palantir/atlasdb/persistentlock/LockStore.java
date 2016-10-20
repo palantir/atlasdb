@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -54,15 +55,20 @@ public final class LockStore {
         Set<RowResult<Value>> allLockRows = ImmutableSet.copyOf(keyValueService.getRange(
                 AtlasDbConstants.PERSISTED_LOCKS_TABLE, RangeRequest.all(), LOCKS_TIMESTAMP + 1));
 
-        return allLockRows.stream()
+        Set<LockEntry> allLockEntriesIncludingTombstones = allLockRows.stream()
                 .map(LockEntry::fromRowResult)
                 .collect(Collectors.toSet());
+
+        Set<LockEntry> tombstonedLockEntries = allLockEntriesIncludingTombstones.stream()
+                .filter(LockEntry::tombstoned)
+                .collect(Collectors.toSet());
+
+        return Sets.difference(allLockEntriesIncludingTombstones, tombstonedLockEntries);
     }
 
     public void releaseLockEntry(LockEntry lockEntry) {
         log.debug("Releasing persistent lock {}", lockEntry);
-        keyValueService.delete(
-                AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.deletionMapWithTimestamp(LOCKS_TIMESTAMP));
+        keyValueService.put(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.writeTombstoneMap(), LOCKS_TIMESTAMP);
     }
 
     public void insertLockEntry(LockEntry lockEntry) {
