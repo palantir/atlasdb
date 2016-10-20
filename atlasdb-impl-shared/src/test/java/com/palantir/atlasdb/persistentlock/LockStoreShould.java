@@ -15,26 +15,64 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.core.IsNot.not;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Set;
+
+import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
 public class LockStoreShould {
+    private LockStore lockStore;
+    private KeyValueService keyValueService;
+
+    private final LockEntry lockEntry = LockEntry.of(PersistentLockName.of("lockName"), 1234);
+
+    @Before
+    public void setup() {
+        keyValueService = spy(new InMemoryKeyValueService(false));
+        lockStore = LockStore.create(keyValueService);
+    }
+
     @Test
     public void createPersistedLocksTable() {
-        KeyValueService keyValueService = mock(KeyValueService.class);
-        when(keyValueService.getAllTableNames()).thenReturn(ImmutableSet.of());
-
         LockStore.create(keyValueService);
 
-        verify(keyValueService).createTable(eq(AtlasDbConstants.PERSISTED_LOCKS_TABLE), any(byte[].class));
+        verify(keyValueService, atLeastOnce()).createTable(eq(AtlasDbConstants.PERSISTED_LOCKS_TABLE), any(byte[].class));
+    }
+
+    @Test
+    public void insertedEntriesShouldBeVisible() {
+        lockStore.insertLockEntry(lockEntry);
+
+        Set<LockEntry> lockEntries = lockStore.allLockEntries();
+
+        assertThat(lockEntries, hasItems(lockEntry));
+    }
+
+    @Test
+    public void deletedEntriesShouldNotBeVisible() {
+        lockStore.insertLockEntry(lockEntry);
+        lockStore.releaseLockEntry(lockEntry);
+
+        Set<LockEntry> lockEntries = lockStore.allLockEntries();
+
+        assertThat(lockEntries, not(hasItems(lockEntry)));
     }
 }
