@@ -15,9 +15,16 @@ version = rootProject.version
 group = rootProject.group
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven {
         url 'http://dl.bintray.com/palantir/releases/'
+    }
+    maven {
+        url 'https://artifactory.palantir.build/artifactory/all-jar'
+    }
+    maven {
+        url 'https://plugins.gradle.org/m2/'
     }
 }
 
