@@ -59,8 +59,7 @@ public class ServiceDiscoveringAtlasSupplier {
 
     public TimestampService getTimestampService() {
         log.trace("Fetching timestamp service from thread {}. This should only happen once.",
-                Thread.currentThread().getName(),
-                new RuntimeException("Not necessarily exceptional, but here's a stack trace..."));
+                Thread.currentThread().getName());
         log.trace("Thread dump: " + ThreadDumps.programmaticThreadDump());
 
         return timestampService.get();

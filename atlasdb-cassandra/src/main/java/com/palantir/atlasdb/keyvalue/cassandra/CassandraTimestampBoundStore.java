@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.GuardedBy;
@@ -28,7 +27,6 @@ import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnPath;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.NotFoundException;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -143,8 +141,9 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             throw Throwables.throwUncheckedException(e);
         }
         if (!result.isSuccess()) {
-            String msg = "Timestamp limit changed underneath us (limit in memory: " + currentLimit
-                    + ", stored in DB: " + getCurrentValues(result)
+            String msg = "Unable to CAS from " + oldVal + " to " + newVal + ". "
+                    + "Timestamp limit changed underneath us (limit in memory: " + currentLimit
+                    + ", stored in DB: " + getCurrentTimestampValues(result)
                     + "). This may indicate that another timestamp service is running against this cassandra keyspace."
                     + " This is likely caused by multiple copies of a service running without a configured set of"
                     + " leaders or a CLI being run with an embedded timestamp service against an already running"
@@ -153,7 +152,6 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             log.error(msg, err);
             log.error("Thread dump: " + ThreadDumps.programmaticThreadDump());
             lastWriteException = err;
-            // TODO should we kill the whole process here? (at least on 0.18.2)
             throw err;
         } else {
             log.trace("[CAS] Setting cached limit to {}.", newVal);
@@ -162,10 +160,11 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         }
     }
 
-    private String getCurrentValues(CASResult result) {
-        List<Long> timestamps = result.current_values.stream().map(col -> PtBytes.toLong(col.getValue())).collect(
-                Collectors.toList());
-        return StringUtils.join(timestamps, ',');
+    private String getCurrentTimestampValues(CASResult result) {
+        return result.current_values.stream()
+                .map(col -> PtBytes.toLong(col.getValue()))
+                .map(String::valueOf)
+                .collect(Collectors.joining(", "));
     }
 
     private Column makeColumn(long ts) {
