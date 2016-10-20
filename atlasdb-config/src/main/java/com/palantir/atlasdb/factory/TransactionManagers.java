@@ -104,6 +104,7 @@ public final class TransactionManagers {
             Set<Schema> schemas,
             Environment env,
             boolean allowHiddenTableAccess) {
+        log.trace("TransactionManagers.create. This should only happen once.");
         return create(config, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
     }
 

@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
+
 import java.nio.ByteBuffer;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.GuardedBy;
 
@@ -44,6 +46,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
+import com.palantir.util.debug.ThreadDumps;
 
 public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampBoundStore.class);
@@ -75,11 +78,13 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     }
 
     private CassandraTimestampBoundStore(CassandraClientPool clientPool) {
+        log.trace("Creating CassandraTimestampBoundStore object. This should only happen once.");
         this.clientPool = Preconditions.checkNotNull(clientPool, "clientPool cannot be null");
     }
 
     @Override
     public synchronized long getUpperLimit() {
+        log.trace("[GET] Getting upper limit");
         return clientPool.runWithRetry(new FunctionCheckedException<Client, Long, RuntimeException>() {
             @Override
             public Long apply(Client client) {
@@ -95,11 +100,13 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     throw Throwables.throwUncheckedException(e);
                 }
                 if (result == null) {
+                    log.trace("[GET] Null result, setting upper value to {}", INITIAL_VALUE);
                     cas(client, null, INITIAL_VALUE);
                     return INITIAL_VALUE;
                 }
                 Column column = result.getColumn();
                 currentLimit = PtBytes.toLong(column.getValue());
+                log.trace("[GET] Setting cached limit to {}.", currentLimit);
                 return currentLimit;
             }
         });
@@ -107,19 +114,20 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     @Override
     public synchronized void storeUpperLimit(final long limit) {
+        log.trace("[PUT] Storing upper limit of {}.", limit);
         clientPool.runWithRetry(new FunctionCheckedException<Client, Void, RuntimeException>() {
             @Override
             public Void apply(Client client) {
                 cas(client, currentLimit, limit);
                 return null;
             }
-
         });
     }
 
     private void cas(Client client, Long oldVal, long newVal) {
         final CASResult result;
         try {
+            log.trace("[CAS] Trying to set from {} to {}.", oldVal, newVal);
             result = client.cas(
                     getRowName(),
                     AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
@@ -128,23 +136,36 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     ConsistencyLevel.SERIAL,
                     ConsistencyLevel.EACH_QUORUM);
         } catch (Exception e) {
+            log.error("[CAS] Error trying to set from {} to {}: {}", oldVal, newVal, e.getMessage());
             lastWriteException = e;
             throw Throwables.throwUncheckedException(e);
         }
         if (!result.isSuccess()) {
-            String msg = "Timestamp limit changed underneath us (limit in memory: " + currentLimit
+            String msg = "Unable to CAS from " + oldVal + " to " + newVal + ". "
+                    + "Timestamp limit changed underneath us (limit in memory: " + currentLimit
+                    + ", stored in DB: " + getCurrentTimestampValues(result)
                     + "). This may indicate that another timestamp service is running against this cassandra keyspace."
                     + " This is likely caused by multiple copies of a service running without a configured set of"
                     + " leaders or a CLI being run with an embedded timestamp service against an already running"
                     + " service.";
             MultipleRunningTimestampServiceError err = new MultipleRunningTimestampServiceError(msg);
             log.error(msg, err);
+            log.error("Thread dump: " + ThreadDumps.programmaticThreadDump());
             lastWriteException = err;
             throw err;
         } else {
+            log.trace("[CAS] Setting cached limit to {}.", newVal);
             lastWriteException = null;
             currentLimit = newVal;
         }
+    }
+
+    private String getCurrentTimestampValues(CASResult result) {
+        return result.current_values.stream()
+                .map(Column::getValue)
+                .map(PtBytes::toLong)
+                .map(String::valueOf)
+                .collect(Collectors.joining(", "));
     }
 
     private Column makeColumn(long ts) {
