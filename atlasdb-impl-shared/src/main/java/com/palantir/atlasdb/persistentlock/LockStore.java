@@ -88,7 +88,7 @@ public final class LockStore {
         } catch (Exception e) {
             log.info("Failed to clean up one or more tombstoned persistent lock entry. "
                     + "This should not affect normal operation. "
-                    + "This could be because delete operations require CONSISTENCY_ALL and one of your nodes is down. "
+                    + "This could be because delete operations oftentimes have higher consistency requirements. "
                     + "See debug-level logging for the exact error. ");
             log.debug("Failed to clean up a tombstoned persistent lock entry for the following reason: ", e);
         }
