@@ -123,8 +123,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                 cas(client, currentLimit, limit);
                 return null;
             }
-
-        }, true);
+        });
     }
 
     private void cas(Client client, Long oldVal, long newVal) {
