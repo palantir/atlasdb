@@ -16,15 +16,20 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -34,7 +39,8 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
-import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.Column;
+import org.apache.cassandra.thrift.CqlRow;
 import org.apache.thrift.TException;
 import org.junit.After;
 import org.junit.Before;
@@ -174,20 +180,51 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
     @Test
     public void testLockTablesStateCleanUp() throws Exception {
         CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
-        UniqueSchemaMutationLockTable lockTable = new UniqueSchemaMutationLockTable(
-                new SchemaMutationLockTables(ckvs.clientPool, CassandraTestSuite.KVS_CONFIG),
-                LockLeader.I_AM_THE_LOCK_LEADER);
-        SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(ckvs.clientPool, lockTable);
+        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
+                ckvs.clientPool,
+                CassandraTestSuite.KVS_CONFIG);
+        SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
+                ckvs.clientPool,
+                new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
+
         grabLock(lockTestTools);
+        createExtraLocksTable(lockTables);
 
         ckvs.cleanUpSchemaMutationLockTablesState();
 
-        CqlResult result = lockTestTools.readLocksTable();
-        assertThat(result.getRows(), is(empty()));
+        // depending on which table we pick when running cleanup on multiple lock tables, we might have a table with
+        // no rows or a table with a single row containing the cleared lock value (both are valid clean states).
+        List<CqlRow> resultRows = lockTestTools.readLocksTable().getRows();
+        assertThat(resultRows, either(is(empty())).or(hasSize(1)));
+        if (resultRows.size() == 1) {
+            Column resultColumn = Iterables.getOnlyElement(Iterables.getOnlyElement(resultRows).getColumns());
+            long lockId = SchemaMutationLock.getLockIdFromColumn(resultColumn);
+            assertThat(lockId, is(SchemaMutationLock.GLOBAL_DDL_LOCK_CLEARED_ID));
+        }
     }
 
     private void grabLock(SchemaMutationLockTestTools lockTestTools) throws TException {
         lockTestTools.setLocksTableValue(LOCK_ID, 0);
+    }
+
+    private void createExtraLocksTable(SchemaMutationLockTables lockTables) throws TException {
+        TableReference originalTable = Iterables.getOnlyElement(lockTables.getAllLockTables());
+        SchemaMutationLockTables mockedLockTables = spy(lockTables);
+
+        // hide the current table
+        when(mockedLockTables.getAllLockTables())
+                .thenAnswer((invocation) -> {
+                    Set<TableReference> tables = (Set<TableReference>) invocation.callRealMethod();
+                    return tables.stream()
+                            .filter(table -> !table.equals(originalTable))
+                            .collect(Collectors.toSet());
+                });
+
+        UniqueSchemaMutationLockTable lockTable = new UniqueSchemaMutationLockTable(mockedLockTables,
+                LockLeader.I_AM_THE_LOCK_LEADER);
+
+        // this call to getOnlyTable should not find any existing table and create a new one.
+        assertThat(lockTable.getOnlyTable(), is(not(originalTable)));
     }
 
     private static int getAmountOfGarbageInMetadataTable(KeyValueService keyValueService, TableReference tableRef) {
