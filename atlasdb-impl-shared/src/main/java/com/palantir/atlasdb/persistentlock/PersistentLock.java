@@ -26,28 +26,25 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.Throwables;
 
 public final class PersistentLock {
-    public static final long LOCKS_TIMESTAMP = 0L;
-
     private static final Logger log = LoggerFactory.getLogger(PersistentLock.class);
 
-    private final KeyValueService keyValueService;
+    private final LockStore lockStore;
 
-    private PersistentLock(KeyValueService keyValueService) {
-        this.keyValueService = keyValueService;
+    private PersistentLock(LockStore lockStore) {
+        this.lockStore = lockStore;
+    }
+
+    public static PersistentLock create(LockStore lockStore) {
+        return new PersistentLock(lockStore);
     }
 
     public static PersistentLock create(KeyValueService keyValueService) {
-        PersistentLock persistentLock = new PersistentLock(keyValueService);
-        persistentLock.createPersistedLocksTable();
-        return persistentLock;
+        LockStore lockStore = LockStore.create(keyValueService);
+        return new PersistentLock(lockStore);
     }
 
     public <T> T runWithExclusiveLock(
@@ -88,14 +85,13 @@ public final class PersistentLock {
             PersistentLockName lockName, String reason, boolean exclusive) throws PersistentLockIsTakenException {
         LockEntry lockEntry = generateUniqueLockEntry(lockName, reason, exclusive);
 
-        insertLockEntry(lockEntry);
+        lockStore.insertLockEntry(lockEntry);
 
         return verifyLockWasAcquired(lockEntry);
     }
 
     public void releaseLock(LockEntry lock) {
-        log.debug("Releasing persistent lock {}", lock);
-        keyValueService.delete(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lock.deletionMapWithTimestamp(LOCKS_TIMESTAMP));
+        lockStore.releaseLockEntry(lock);
     }
 
     public LockEntry releaseOnlyLock(PersistentLockName lockName) {
@@ -116,11 +112,6 @@ public final class PersistentLock {
     private LockEntry generateUniqueLockEntry(PersistentLockName lockName, String reason, boolean exclusive) {
         long thisId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE);
         return LockEntry.of(lockName, thisId, reason, exclusive);
-    }
-
-    private void insertLockEntry(LockEntry lockEntry) {
-        log.debug("Attempting to acquire persistent lock {}", lockEntry);
-        keyValueService.put(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.insertionMap(), LOCKS_TIMESTAMP);
     }
 
     private LockEntry verifyLockWasAcquired(LockEntry desiredLock) throws PersistentLockIsTakenException {
@@ -167,16 +158,6 @@ public final class PersistentLock {
     }
 
     public Set<LockEntry> allLockEntries() {
-        Set<RowResult<Value>> allLockRows = ImmutableSet.copyOf(keyValueService.getRange(
-                AtlasDbConstants.PERSISTED_LOCKS_TABLE, RangeRequest.all(), LOCKS_TIMESTAMP + 1));
-
-        return allLockRows.stream()
-                .map(LockEntry::fromRowResult)
-                .collect(Collectors.toSet());
-    }
-
-    private void createPersistedLocksTable() {
-        keyValueService.createTable(
-                AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        return lockStore.allLockEntries();
     }
 }
