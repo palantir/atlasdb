@@ -57,6 +57,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.persistentlock.DeletionLock;
 import com.palantir.atlasdb.persistentlock.PersistentLockIsTakenException;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
@@ -86,15 +87,15 @@ public class SweepTaskRunnerImplTest {
     public static final int ROW_BATCH_SIZE = 1000;
 
     private final KeyValueService mockKvs = mock(KeyValueService.class);
-    private final DeletionLock mockDeletionLock = mock(DeletionLock.class);
     private final Supplier<Long> mockImmutableTimestampSupplier = mock(Supplier.class);
     private final Supplier<Long> mockUnreadableTimestampSupplier = mock(Supplier.class);
     private final TransactionService mockTransactionService = mock(TransactionService.class);
     private final CellsSweeper mockCellsSweeper = mock(CellsSweeper.class);
     private final SweepStrategyManager mockSweepStrategyManager = mock(SweepStrategyManager.class);
+    private final DeletionLock deletionLock = new DeletionLock(new InMemoryKeyValueService(false));
     private final SweepTaskRunnerImpl sweepTaskRunner = new SweepTaskRunnerImpl(
             mockKvs,
-            mockDeletionLock,
+            deletionLock,
             mockUnreadableTimestampSupplier,
             mockImmutableTimestampSupplier,
             mockTransactionService,
