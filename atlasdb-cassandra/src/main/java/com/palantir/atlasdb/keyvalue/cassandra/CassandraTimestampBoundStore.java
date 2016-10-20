@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
+
 import java.nio.ByteBuffer;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.GuardedBy;
 
@@ -44,6 +46,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
+import com.palantir.util.debug.ThreadDumps;
 
 public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampBoundStore.class);
@@ -118,7 +121,6 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                 cas(client, currentLimit, limit);
                 return null;
             }
-
         });
     }
 
@@ -139,13 +141,16 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             throw Throwables.throwUncheckedException(e);
         }
         if (!result.isSuccess()) {
-            String msg = "Timestamp limit changed underneath us (limit in memory: " + currentLimit
+            String msg = "Unable to CAS from " + oldVal + " to " + newVal + ". "
+                    + "Timestamp limit changed underneath us (limit in memory: " + currentLimit
+                    + ", stored in DB: " + getCurrentTimestampValues(result)
                     + "). This may indicate that another timestamp service is running against this cassandra keyspace."
                     + " This is likely caused by multiple copies of a service running without a configured set of"
                     + " leaders or a CLI being run with an embedded timestamp service against an already running"
                     + " service.";
             MultipleRunningTimestampServiceError err = new MultipleRunningTimestampServiceError(msg);
             log.error(msg, err);
+            log.error("Thread dump: " + ThreadDumps.programmaticThreadDump());
             lastWriteException = err;
             throw err;
         } else {
@@ -153,6 +158,14 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             lastWriteException = null;
             currentLimit = newVal;
         }
+    }
+
+    private String getCurrentTimestampValues(CASResult result) {
+        return result.current_values.stream()
+                .map(Column::getValue)
+                .map(PtBytes::toLong)
+                .map(String::valueOf)
+                .collect(Collectors.joining(", "));
     }
 
     private Column makeColumn(long ts) {
