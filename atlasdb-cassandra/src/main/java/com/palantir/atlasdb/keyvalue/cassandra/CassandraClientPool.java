@@ -446,31 +446,18 @@ public class CassandraClientPool {
                 }
             };
 
-    public <V, K extends Exception> V runWithRetry(
-            FunctionCheckedException<Cassandra.Client, V, K> fn,
-            boolean printHost) throws K {
-        return runWithRetryOnHost(getRandomGoodHost().getHost(), fn, printHost);
-    }
-
     public <V, K extends Exception> V runWithRetry(FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
-        return runWithRetryOnHost(getRandomGoodHost().getHost(), fn, false);
+        return runWithRetryOnHost(getRandomGoodHost().getHost(), fn);
     }
 
     public <V, K extends Exception> V runWithRetryOnHost(
             InetSocketAddress specifiedHost,
             FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
-        return runWithRetryOnHost(specifiedHost, fn, false);
-    }
-
-    private <V, K extends Exception> V runWithRetryOnHost(
-            InetSocketAddress specifiedHost,
-            FunctionCheckedException<Cassandra.Client, V, K> fn,
-            boolean printHost) throws K {
         int numTries = 0;
         boolean shouldRetryOnDifferentHost = false;
         while (true) {
-            if (printHost) {
-                log.trace("Running function on host {}.", specifiedHost.getHostName());
+            if (log.isTraceEnabled()) {
+                log.trace("Running function on host {}.", specifiedHost.getHostString());
             }
             CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
 
