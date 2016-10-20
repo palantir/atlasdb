@@ -27,7 +27,6 @@ import com.google.common.base.Throwables;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ProjectName;
 import com.palantir.docker.compose.connection.Container;
-import com.palantir.docker.compose.logging.FileLogCollector;
 import com.palantir.docker.compose.logging.LogDirectory;
 
 public class DockerProxyRuleTest {
