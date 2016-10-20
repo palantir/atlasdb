@@ -19,12 +19,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Callable;
 
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
@@ -42,21 +37,7 @@ import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 @SuppressWarnings("checkstyle:HideUtilityClassConstructor")
-@RunWith(Suite.class)
-@SuiteClasses({
-        CassandraKeyValueServiceTransactionIntegrationTest.class,
-        CassandraClientPoolIntegrationTest.class,
-        CassandraConnectionIntegrationTest.class,
-        CassandraKeyValueServiceTableCreationIntegrationTest.class,
-        CassandraKeyValueServiceSerializableTransactionIntegrationTest.class,
-        CassandraKeyValueServiceSweeperIntegrationTest.class,
-        CassandraTimestampIntegrationTest.class,
-        CassandraKeyValueServiceIntegrationTest.class,
-        HeartbeatServiceIntegrationTest.class,
-        SchemaMutationLockIntegrationTest.class,
-        SchemaMutationLockTablesIntegrationTest.class
-        })
-public final class CassandraTestSuite {
+public final class CassandraTestSuiteUtils {
     public static final int THRIFT_PORT_NUMBER = 9160;
 
     private static final DockerComposeRule docker = DockerComposeRule.builder()
@@ -67,7 +48,6 @@ public final class CassandraTestSuite {
     private static final Gradle GRADLE_PREPARE_TASK =
             Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
 
-    @ClassRule
     public static final RuleChain CASSANDRA_DOCKER_SET_UP = RuleChain.outerRule(GRADLE_PREPARE_TASK)
             .around(docker);
 
@@ -77,7 +57,6 @@ public final class CassandraTestSuite {
 
     static Optional<LeaderConfig> leaderConfig;
 
-    @BeforeClass
     public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {
         DockerPort port = docker.hostNetworkedPort(THRIFT_PORT_NUMBER);
         String hostname = port.getIp();

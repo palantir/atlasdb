@@ -25,8 +25,8 @@ public class CassandraKeyValueServiceSerializableTransactionIntegrationTest exte
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.cassandraKvsConfig),
-                CassandraTestSuite.leaderConfig);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuiteUtils.cassandraKvsConfig),
+                CassandraTestSuiteUtils.leaderConfig);
     }
 
     @Override

@@ -33,7 +33,7 @@ public class CassandraConnectionIntegrationTest {
 
     private static final CassandraKeyValueServiceConfig NO_CREDS_CKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig
             .builder()
-            .addServers(CassandraTestSuite.cassandraThriftAddress)
+            .addServers(CassandraTestSuiteUtils.cassandraThriftAddress)
             .poolSize(20)
             .keyspace("atlasdb")
             .credentials(Optional.absent())
@@ -56,7 +56,7 @@ public class CassandraConnectionIntegrationTest {
     @Test
     public void testAuthProvided() {
         CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.cassandraKvsConfig),
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuiteUtils.cassandraKvsConfig),
                 LEADER_CONFIG).close();
     }
 
