@@ -90,7 +90,9 @@ public class AvailableTimestamps {
     private void allocateEnoughTimestampsToHandOut(long timestamp) {
         log.trace("Increasing limit to at least {}.", timestamp);
         upperLimit.increaseToAtLeast(timestamp);
-        log.trace("Increased to at least {}. Limit is now {}.", timestamp, getUpperLimit());
+        if (log.isTraceEnabled()) {
+            log.trace("Increased to at least {}. Limit is now {}.", timestamp, getUpperLimit());
+        }
     }
 
     public long getUpperLimit() {
