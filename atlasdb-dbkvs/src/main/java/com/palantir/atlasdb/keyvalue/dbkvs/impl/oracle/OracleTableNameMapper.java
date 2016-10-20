@@ -18,14 +18,10 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 import com.palantir.atlasdb.keyvalue.dbkvs.TableNameMapper;
 
 public final class OracleTableNameMapper implements TableNameMapper {
-    static final int ORACLE_TABLE_NAME_LIMIT = 27; // pk_ + name must be 30 characters
-
-    public OracleTableNameMapper() {
-        //Utility class
-    }
+    static final int ORACLE_TABLE_NAME_LIMIT = 30; // pk_ + name must be 30 characters
 
     @Override
-    public String hashTableNameToFitOracleTableNameLimits(String tablePrefix, String tableName) {
+    public String getShortPrefixedTableName(String tablePrefix, String tableName) {
         int unPrefixedHashSize = ORACLE_TABLE_NAME_LIMIT - tablePrefix.length();
         if (tableName.length() < unPrefixedHashSize) {
             return tablePrefix + tableName;

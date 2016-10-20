@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
@@ -63,23 +64,33 @@ public class OracleDdlTable implements DbDdlTable {
         }
 
         executeIgnoringError(
-                "CREATE TABLE " + prefixedTableName() + " ("
+                "CREATE TABLE " + shortenedTableName() + " ("
                 + "  row_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL,"
                 + "  col_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL,"
                 + "  ts         NUMBER(20) NOT NULL,"
                 + "  val        RAW(2000), "
                 + (needsOverflow ? "  overflow   NUMBER(38), " : "")
-                + "  CONSTRAINT pk_" + prefixedTableName() + " PRIMARY KEY (row_name, col_name, ts) "
+                + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortenedTableName())
+                + " PRIMARY KEY (row_name, col_name, ts) "
                 + ") organization index compress overflow",
                 "ORA-00955");
+        conns.get().insertOneUnregisteredQuery(
+                "INSERT INTO " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " (table_name, short_table_name) VALUES (?, ?)",
+                prefixedTableName(),
+                shortenedTableName());
+
         if (needsOverflow && config.overflowMigrationState() != OverflowMigrationState.UNSTARTED) {
             executeIgnoringError(
-                    "CREATE TABLE " + prefixedOverflowTableName() + " ("
+                    "CREATE TABLE " + shortenedOverflowTableName() + " ("
                     + "  id  NUMBER(38) NOT NULL, "
                     + "  val BLOB NOT NULL,"
-                    + "  CONSTRAINT pk_" + prefixedOverflowTableName() + " PRIMARY KEY (id)"
+                    + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortenedOverflowTableName()) + " PRIMARY KEY (id)"
                     + ")",
                     "ORA-00955");
+            conns.get().insertOneUnregisteredQuery(
+                    "INSERT INTO " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " (table_name, short_table_name) VALUES (?, ?)",
+                    prefixedOverflowTableName(),
+                    shortenedOverflowTableName());
         }
 
         conns.get().insertOneUnregisteredQuery(
@@ -90,8 +101,8 @@ public class OracleDdlTable implements DbDdlTable {
 
     @Override
     public void drop() {
-        executeIgnoringError("DROP TABLE " + prefixedTableName() + " PURGE", "ORA-00942");
-        executeIgnoringError("DROP TABLE " + prefixedOverflowTableName() + " PURGE", "ORA-00942");
+        executeIgnoringError("DROP TABLE " + shortenedTableName() + " PURGE", "ORA-00942");
+        executeIgnoringError("DROP TABLE " + shortenedOverflowTableName() + " PURGE", "ORA-00942");
         conns.get().executeUnregisteredQuery(
                 "DELETE FROM " + config.metadataTable().getQualifiedName()
                 + " WHERE table_name = ?", tableRef.getQualifiedName());
@@ -99,8 +110,8 @@ public class OracleDdlTable implements DbDdlTable {
 
     @Override
     public void truncate() {
-        executeIgnoringError("TRUNCATE TABLE " + prefixedTableName(), "ORA-00942");
-        executeIgnoringError("TRUNCATE TABLE " + prefixedOverflowTableName(), "ORA-00942");
+        executeIgnoringError("TRUNCATE TABLE " + shortenedTableName(), "ORA-00942");
+        executeIgnoringError("TRUNCATE TABLE " + shortenedOverflowTableName(), "ORA-00942");
     }
 
     @Override
@@ -133,7 +144,7 @@ public class OracleDdlTable implements DbDdlTable {
     public void compactInternally() {
         if (config.enableOracleEnterpriseFeatures()) {
             try {
-                conns.get().executeUnregisteredQuery("ALTER TABLE " + prefixedTableName() + " MOVE ONLINE");
+                conns.get().executeUnregisteredQuery("ALTER TABLE " + shortenedTableName() + " MOVE ONLINE");
             } catch (PalantirSqlException e) {
                 log.error("Tried to clean up " + tableRef + " bloat after a sweep operation,"
                         + " but underlying Oracle database or configuration does not support this"
@@ -145,15 +156,29 @@ public class OracleDdlTable implements DbDdlTable {
             }
         }
     }
-    private String prefixedTableName() {
-        return config.tableNameMapper().hashTableNameToFitOracleTableNameLimits(
+    private String shortenedTableName() {
+        return config.tableNameMapper().getShortPrefixedTableName(
                 config.tablePrefix(),
                 DbKvs.internalTableName(tableRef));
     }
 
-    private String prefixedOverflowTableName() {
-        return config.tableNameMapper().hashTableNameToFitOracleTableNameLimits(
+    private String shortenedOverflowTableName() {
+        return config.tableNameMapper().getShortPrefixedTableName(
                 config.overflowTablePrefix(),
                 DbKvs.internalTableName(tableRef));
+    }
+
+    private String prefixedTableName() {
+        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
+    }
+
+    private String prefixedOverflowTableName() {
+        return config.overflowTablePrefix() + DbKvs.internalTableName(tableRef);
+    }
+
+    private String getPrimaryKeyConstraintName(String tableName) {
+        final String primaryKeyConstraintPrefix = "pk_";
+        int unPrefixedNameLength = OracleTableNameMapper.ORACLE_TABLE_NAME_LIMIT - primaryKeyConstraintPrefix.length();
+        return primaryKeyConstraintPrefix + tableName.substring(0, Math.min(unPrefixedNameLength, tableName.length()));
     }
 }

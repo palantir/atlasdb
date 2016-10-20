@@ -439,7 +439,7 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
     }
 
     private String prefixedTableName() {
-        return config.tableNameMapper().hashTableNameToFitOracleTableNameLimits(
+        return config.tableNameMapper().getShortPrefixedTableName(
                 config.tablePrefix(),
                 tableName);
     }

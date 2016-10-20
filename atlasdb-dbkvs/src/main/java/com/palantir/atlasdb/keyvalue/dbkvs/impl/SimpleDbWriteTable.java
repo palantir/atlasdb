@@ -132,7 +132,7 @@ public class SimpleDbWriteTable implements DbWriteTable {
         if (config.type().equals(OracleDdlConfig.TYPE)) {
             return ((OracleDdlConfig) config)
                     .tableNameMapper()
-                    .hashTableNameToFitOracleTableNameLimits(config.tablePrefix(), tableName);
+                    .getShortPrefixedTableName(config.tablePrefix(), tableName);
         }
         return config.tablePrefix() + tableName;
     }

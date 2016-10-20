@@ -13,8 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-public interface TableNameMapper {
-    String getShortPrefixedTableName(String tablePrefix, String tableName);
+import static org.hamcrest.Matchers.lessThan;
+
+import org.junit.Assert;
+import org.junit.Test;
+
+public class OracleTableNameMapperTest {
+    OracleTableNameMapper oracleTableNameMapper = new OracleTableNameMapper();
+
+    @Test
+    public void shortTableNameMustBeLessThanThirtyCharactersLong() throws Exception {
+        Assert.assertThat(oracleTableNameMapper.getShortPrefixedTableName("a_", "AA").length(), lessThan(OracleTableNameMapper.ORACLE_TABLE_NAME_LIMIT));
+    }
 }
