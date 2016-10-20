@@ -31,11 +31,16 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.common.base.ClosableIterator;
 
 public class LockStoreShould {
     private LockStore lockStore;
@@ -98,5 +103,17 @@ public class LockStoreShould {
         Set<LockEntry> lockEntries = lockStore.allLockEntries();
 
         assertThat(lockEntries.size(), equalTo(0));
+    }
+
+    @Test
+    public void cleanupTombstonedEntriesOnLookup() {
+        lockStore.insertLockEntry(lockEntry);
+        lockStore.releaseLockEntry(lockEntry);
+
+        lockStore.allLockEntries();
+
+        ClosableIterator<RowResult<Value>> allLockEntriesInDatabase = keyValueService.getRange(
+                AtlasDbConstants.PERSISTED_LOCKS_TABLE, RangeRequest.all(), LockStore.LOCKS_TIMESTAMP);
+        assertThat(ImmutableList.copyOf(allLockEntriesInDatabase).size(), equalTo(0));
     }
 }
