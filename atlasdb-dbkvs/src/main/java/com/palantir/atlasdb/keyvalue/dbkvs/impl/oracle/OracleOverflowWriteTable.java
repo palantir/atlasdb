@@ -151,7 +151,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                             + "   (row_name, col_name, ts, val, overflow)"
                             + " SELECT ?, ?, ?, ?, ? FROM DUAL"
                             + " WHERE NOT EXISTS ("
-                            + "   SELECT * FROM " + getInternalTableName()
+                            + "   SELECT * FROM " + getInternalTableName(prefixedTableName())
                             + "   WHERE row_name = ?"
                             + "     AND col_name = ?"
                             + "     AND ts = ?)",
@@ -199,8 +199,8 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         } catch (PalantirSqlException | SQLException e) {
             //
         }
-        conn.updateManyUnregisteredQuery(" /* DELETE_ONE (" + tableRef.getQualifiedName() + ") */ "
-                + " DELETE /*+ INDEX(m pk_" + getInternalTableName(prefixedTableName()) + ") */ "
+        conn.updateManyUnregisteredQuery(" /* DELETE_ONE (" + prefixedTableName() + ") */ "
+                + " DELETE /*+ INDEX(m pk_" + prefixedTableName() + ") */ "
                 + " FROM " + getInternalTableName(prefixedTableName()) + " m "
                 + " WHERE m.row_name = ? "
                 + "  AND m.col_name = ? "
@@ -209,7 +209,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     private void deleteOverflow(String overflowTable, List<Object[]> args) {
-        conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE_OVERFLOW (" + tableRef.getQualifiedName() + ") */ "
+        conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE_OVERFLOW (" + overflowTable + ") */ "
                 + " DELETE /*+ INDEX(m pk_" + overflowTable + ") */ "
                 + "   FROM " + overflowTable + " m "
                 + "  WHERE m.id IN (SELECT /*+ INDEX(i pk_" + prefixedTableName() + ") */ "
@@ -232,14 +232,10 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     private String prefixedTableName() {
-        return config.tableNameMapper().getShortPrefixedTableName(
-                config.tablePrefix(),
-                DbKvs.internalTableName(tableRef));
+        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
     }
 
     private String prefixedOverflowTableName() {
-        return config.tableNameMapper().getShortPrefixedTableName(
-                config.overflowTablePrefix(),
-                DbKvs.internalTableName(tableRef));
+        return config.overflowTablePrefix() + DbKvs.internalTableName(tableRef);
     }
 }
