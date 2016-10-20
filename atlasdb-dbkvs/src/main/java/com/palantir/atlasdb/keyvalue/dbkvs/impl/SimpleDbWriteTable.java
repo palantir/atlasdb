@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.ExceptionCheck;
@@ -150,6 +151,9 @@ public class SimpleDbWriteTable implements DbWriteTable {
     }
 
     private String getInternalTableName() {
+        if (!config.type().equals(OracleDdlConfig.TYPE)) {
+            return prefixedTableName();
+        }
         AgnosticResultSet result = conns.get().selectResultSetUnregisteredQuery(
                 String.format(
                         "SELECT short_table_name FROM %s WHERE table_name = ?",
