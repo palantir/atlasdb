@@ -29,7 +29,7 @@ public class RocksDbSweeperTest extends AbstractSweeperTest {
 
     @After
     public void tearDown() {
-        super.close();
+        super.teardown();
         for (File file : Files.fileTreeTraverser().postOrderTraversal(tempDir)) {
             file.delete();
         }

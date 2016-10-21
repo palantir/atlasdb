@@ -26,6 +26,9 @@ public final class OracleTableNameMapper implements TableNameMapper {
 
     @Override
     public String getShortPrefixedTableName(String tablePrefix, String tableName) {
+        if (tablePrefix.length() + tableName.length() < ORACLE_TABLE_NAME_LIMIT) {
+            return tablePrefix + tableName;
+        }
         int unPrefixedHashSize = TABLE_NAME_LENGTH - tablePrefix.length();
         String randomHash = UUID.randomUUID().toString().substring(0, RANDOM_SUFFIX_LENGTH);
 

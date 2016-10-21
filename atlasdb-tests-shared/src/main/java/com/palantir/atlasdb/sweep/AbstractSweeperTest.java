@@ -102,7 +102,6 @@ public abstract class AbstractSweeperTest {
     }
 
     protected static void setupTables(KeyValueService kvs) {
-        tearDownTables(kvs);
         TransactionTables.createTables(kvs);
         Schemas.createTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
@@ -110,7 +109,6 @@ public abstract class AbstractSweeperTest {
     private static void tearDownTables(KeyValueService kvs) {
         kvs.getAllTableNames().stream()
                 .forEach(tableRef -> kvs.dropTable(tableRef));
-        TransactionTables.deleteTables(kvs);
         Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
 
@@ -123,7 +121,8 @@ public abstract class AbstractSweeperTest {
     }
 
     @After
-    public void close() {
+    public void teardown() {
+        tearDownTables(kvs);
         kvs.close();
     }
 
