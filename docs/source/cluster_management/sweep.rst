@@ -61,7 +61,12 @@ You may set them as part of your :ref:`AtlasDB configuration <atlas_config>`, or
    "``timestampsGetterBatchSize`` under ``keyValueService`` (see :ref:`Cassandra KVS config <cassandra-configuration>`)", "Not available, the CLI will pick up the value from the config", "Absent (fetch all columns)", "(Cassandra KVS only): Specify a limit on the maximum number of columns to fetch in a single database query. Set this if your Cassandra OOMs when attempting to run sweep with even a small row batch size."
 
 Following is more information about when each of the batching parameters is useful.
+In short, the recommendation is:
 
+- Decrease sweepCellBatchSize and sweepBatchSize if there is memory pressure on the client.
+- Set timestampsGetterBatchSize if there is memory pressure on Cassandra even after setting sweepBatchSize down to 1.
+
+**Decrease sweepCellBatchSize and sweepBatchSize if there is memory pressure on the client.**
 ``sweepBatchSize`` determines the maximum number of rows to sweep at a time.
 The ``sweepPauseMillis`` controls the pause time between sweeping this many rows.
 
@@ -71,6 +76,7 @@ In this setup, limiting ``sweepBatchSize`` to 100 would ensure that at most 10,0
 Instead, setting ``sweepCellBatchSize`` to 10,000 would allow both tables to be swept in optimal batches.
 In the future, we may deprecate ``sweepBatchSize`` in preference for ``sweepCellBatchSize``.
 
+**Set timestampsGetterBatchSize if there is memory pressure on Cassandra even after setting sweepBatchSize down to 1.**
 The sweep job works by requesting at least one full row at a time from the KVS. In some rare cases (most likely when storing large values), the Cassandra KVS will not be able to construct even a single row at a time.
 This situation will manifest with Cassandra OOMing during sweep even if ``sweepBatchSize`` is set to 1.
 If that happens, you can use ``timestampsGetterBatchSize`` to instruct Cassandra to read a smaller number of columns at a time before aggregating them into a single row metadata to pass on to the sweeper.
