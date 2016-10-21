@@ -35,7 +35,6 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.ete.Gradle;
 import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.logging.LogDirectory;
@@ -63,12 +62,9 @@ public final class CassandraTestSuite {
     private static final DockerProxyRule DOCKER_PROXY_RULE = new DockerProxyRule(
             DOCKER.projectName(),
             CassandraTestSuite.class);
-    private static final Gradle GRADLE_PREPARE_TASK =
-            Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
 
     @ClassRule
-    public static final RuleChain CASSANDRA_DOCKER_SET_UP = RuleChain.outerRule(GRADLE_PREPARE_TASK)
-            .around(DOCKER)
+    public static final RuleChain CASSANDRA_DOCKER_SET_UP = RuleChain.outerRule(DOCKER)
             .around(DOCKER_PROXY_RULE);
 
     static final ImmutableCassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
