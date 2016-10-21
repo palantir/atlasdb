@@ -34,7 +34,7 @@ public class HiddenTablesTest {
 
     @Test public void
     shouldSayMetadataIsHidden() {
-        assertThat(hiddenTables.isHidden(AtlasDbConstants.METADATA_TABLE), is(true));
+        assertThat(hiddenTables.isHidden(AtlasDbConstants.DEFAULT_METADATA_TABLE), is(true));
     }
 
     @Test public void

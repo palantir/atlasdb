@@ -141,8 +141,8 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
                 missingMetadataTable.getQualifiedName().getBytes(StandardCharsets.UTF_8),
                 "m".getBytes(StandardCharsets.UTF_8));
         Value persistedMetadata = Iterables.getLast(
-                kvs.get(AtlasDbConstants.METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE)).values());
-        kvs.delete(AtlasDbConstants.METADATA_TABLE, ImmutableMultimap.of(cell, persistedMetadata.getTimestamp()));
+                kvs.get(AtlasDbConstants.DEFAULT_METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE)).values());
+        kvs.delete(AtlasDbConstants.DEFAULT_METADATA_TABLE, ImmutableMultimap.of(cell, persistedMetadata.getTimestamp()));
 
         // pretend we started up again and did a createTable() for our existing table, that no longer has metadata
         kvs.createTable(missingMetadataTable, initialMetadata);
