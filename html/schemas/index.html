@@ -34,9 +34,6 @@
   
 
   
-        <link rel="index" title="Index"
-              href="../genindex.html"/>
-        <link rel="search" title="Search" href="../search.html"/>
     <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
         <link rel="next" title="Tables and Indices" href="tables_and_indices.html"/>
         <link rel="prev" title="Getting Started" href="../overview/getting_started.html"/> 
@@ -90,7 +87,7 @@
             
                 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Schemas</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Schemas</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="tables_and_indices.html">Tables and Indices</a></li>
 <li class="toctree-l2"><a class="reference internal" href="streams.html">Streams</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cleanup_tasks.html">Cleanup Tasks</a></li>
@@ -125,7 +122,7 @@
         <div class="rst-content">
           
 
- 
+
 
 
 
@@ -212,36 +209,36 @@ operation removes the specified cell-value pairs from the table.</p>
 </div>
 <div class="section" id="sample-schema-file">
 <h2>Sample Schema File<a class="headerlink" href="#sample-schema-file" title="Permalink to this headline">¶</a></h2>
-<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="k">class</span> <span class="nc">BlankSchema</span> <span class="p">{</span>
-    <span class="n">private</span> <span class="n">BlankSchema</span><span class="p">()</span> <span class="p">{</span>
-        <span class="o">//</span><span class="n">private</span>
-    <span class="p">}</span>
+<div class="code java highlight-python"><div class="highlight"><pre>public class BlankSchema {
+    private BlankSchema() {
+        //private
+    }
 
-    <span class="n">private</span> <span class="n">static</span> <span class="n">final</span> <span class="n">Schema</span> <span class="n">SCHEMA</span> <span class="o">=</span> <span class="n">generateSchema</span><span class="p">();</span>
+    private static final Schema SCHEMA = generateSchema();
 
-    <span class="n">private</span> <span class="n">static</span> <span class="n">Schema</span> <span class="n">generateSchema</span><span class="p">()</span> <span class="p">{</span>
-        <span class="o">//</span> <span class="n">Define</span> <span class="n">the</span> <span class="n">prefix</span> <span class="ow">and</span> <span class="n">package</span> <span class="k">for</span> <span class="n">generated</span> <span class="n">code</span>
-        <span class="n">Schema</span> <span class="n">schema</span> <span class="o">=</span> <span class="n">new</span> <span class="n">Schema</span><span class="p">(</span><span class="s2">&quot;BlankSchema&quot;</span><span class="p">,</span> <span class="s2">&quot;com.palantir.atlasdb.blankschema&quot;</span><span class="p">);</span>
+    private static Schema generateSchema() {
+        // Define the prefix and package for generated code
+        Schema schema = new Schema(&quot;BlankSchema&quot;, &quot;com.palantir.atlasdb.blankschema&quot;);
 
-        <span class="o">/*</span> <span class="n">Schema</span> <span class="n">definition</span> <span class="n">start</span> <span class="o">*/</span>
-        <span class="n">schema</span><span class="o">.</span><span class="n">addTableDefinition</span><span class="p">(</span><span class="s2">&quot;TableName&quot;</span><span class="p">,</span> <span class="n">new</span> <span class="n">TableDefinition</span><span class="p">()</span> <span class="p">{{</span>
-            <span class="o">...</span>
-        <span class="p">}});</span>
+        /* Schema definition start */
+        schema.addTableDefinition(&quot;TableName&quot;, new TableDefinition() {{
+            ...
+        }});
 
-        <span class="n">schema</span><span class="o">.</span><span class="n">addIndexDefinition</span><span class="p">(</span><span class="s2">&quot;IndexName&quot;</span><span class="p">,</span> <span class="n">new</span> <span class="n">IndexDefinition</span><span class="p">()</span> <span class="p">{{</span>
-            <span class="o">..</span>
-        <span class="p">}});</span>
-        <span class="o">/*</span> <span class="n">Schema</span> <span class="n">definition</span> <span class="n">end</span> <span class="o">*/</span>
+        schema.addIndexDefinition(&quot;IndexName&quot;, new IndexDefinition() {{
+            ..
+        }});
+        /* Schema definition end */
 
-        <span class="n">schema</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span> <span class="o">//</span> <span class="n">ensure</span> <span class="n">that</span> <span class="n">the</span> <span class="n">schema</span> <span class="k">as</span> <span class="n">constructed</span> <span class="ow">is</span> <span class="n">valid</span><span class="o">.</span>
-        <span class="k">return</span> <span class="n">schema</span><span class="p">;</span>
-    <span class="p">}</span>
+        schema.validate() // ensure that the schema as constructed is valid.
+        return schema;
+    }
 
-    <span class="n">public</span> <span class="n">static</span> <span class="n">void</span> <span class="n">main</span> <span class="p">(</span><span class="n">String</span><span class="p">[]</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
-        <span class="o">//</span> <span class="n">generate</span> <span class="n">the</span> <span class="n">java</span> <span class="n">classes</span><span class="p">,</span> <span class="ow">and</span> <span class="n">write</span> <span class="n">them</span> <span class="n">to</span> <span class="n">the</span> <span class="n">specified</span> <span class="n">source</span> <span class="n">folder</span><span class="o">.</span>
-        <span class="n">SCHEMA</span><span class="o">.</span><span class="n">renderTablesWithNamespace</span><span class="p">(</span><span class="n">new</span> <span class="n">File</span><span class="p">(</span><span class="s2">&quot;src&quot;</span><span class="p">),</span> <span class="n">Namespace</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;pt_met&quot;</span><span class="p">));</span>
-    <span class="p">}</span>
-<span class="p">}</span>
+    public static void main (String[] args) {
+        // generate the java classes, and write them to the specified source folder.
+        SCHEMA.renderTablesWithNamespace(new File(&quot;src&quot;), Namespace.create(&quot;pt_met&quot;));
+    }
+}
 </pre></div>
 </div>
 <p>Contrary to the standard SQL format, an AtlasDB schema is written in
@@ -253,7 +250,7 @@ java classes for creating, accessing, and manipulating these tables.</p>
 <p>AtlasDB understands three kinds of data: primitive ValueTypes, protocol
 buffer GeneratedMessages, and palantir Persistables.</p>
 <div class="section" id="primitive-valuetypes">
-<h4>Primitive ValueTypes<a class="headerlink" href="#primitive-valuetypes" title="Permalink to this headline">¶</a></h4>
+<span id="id1"></span><h4>Primitive ValueTypes<a class="headerlink" href="#primitive-valuetypes" title="Permalink to this headline">¶</a></h4>
 <p>AtlasDB represents simple data types by ValueType. Note that a
 Java primitive type can have multiple ValueTypes associated with it.
 Each ValueType represents a different method of storing that type in the
@@ -285,11 +282,11 @@ Scans?</th>
 <td>YES</td>
 </tr>
 <tr class="row-odd"><td>FIXED_LONG_LITTLE_ENDIAN
-<a class="footnote-reference" href="#id11" id="id1">[3]</a></td>
+<a class="footnote-reference" href="#id12" id="id2">[3]</a></td>
 <td>long</td>
 <td>byte[8]</td>
 <td>YES</td>
-<td>NO <a class="footnote-reference" href="#id12" id="id2">[4]</a></td>
+<td>NO <a class="footnote-reference" href="#id13" id="id3">[4]</a></td>
 </tr>
 <tr class="row-even"><td>NULLABLE_FIXED_LONG</td>
 <td>long</td>
@@ -299,13 +296,13 @@ Scans?</th>
 </tr>
 <tr class="row-odd"><td>VAR_LONG</td>
 <td>long</td>
-<td>byte[len] <a class="footnote-reference" href="#id9" id="id3">[1]</a></td>
+<td>byte[len] <a class="footnote-reference" href="#id10" id="id4">[1]</a></td>
 <td>YES</td>
 <td>YES</td>
 </tr>
 <tr class="row-even"><td>VAR_SIGNED_LONG</td>
 <td>long</td>
-<td>byte[len] <a class="footnote-reference" href="#id9" id="id4">[1]</a></td>
+<td>byte[len] <a class="footnote-reference" href="#id10" id="id5">[1]</a></td>
 <td>YES</td>
 <td>YES</td>
 </tr>
@@ -324,33 +321,33 @@ Scans?</th>
 <tr class="row-odd"><td>STRING</td>
 <td>String</td>
 <td>byte[]</td>
-<td>NO <a class="footnote-reference" href="#id10" id="id5">[2]</a></td>
+<td>NO <a class="footnote-reference" href="#id11" id="id6">[2]</a></td>
 <td>YES</td>
 </tr>
 <tr class="row-even"><td>VAR_STRING</td>
 <td>String</td>
 <td>byte[len]</td>
 <td>YES</td>
-<td>NO <a class="footnote-reference" href="#id12" id="id6">[4]</a></td>
+<td>NO <a class="footnote-reference" href="#id13" id="id7">[4]</a></td>
 </tr>
 <tr class="row-odd"><td>BLOB</td>
 <td>byte[]</td>
 <td>byte[]</td>
-<td>NO <a class="footnote-reference" href="#id10" id="id7">[2]</a></td>
+<td>NO <a class="footnote-reference" href="#id11" id="id8">[2]</a></td>
 <td>YES</td>
 </tr>
 <tr class="row-even"><td>SIZED_BLOB</td>
 <td>byte[]</td>
 <td>byte[len]</td>
 <td>YES</td>
-<td>NO <a class="footnote-reference" href="#id12" id="id8">[4]</a></td>
+<td>NO <a class="footnote-reference" href="#id13" id="id9">[4]</a></td>
 </tr>
 </tbody>
 </table>
-<table class="docutils footnote" frame="void" id="id9" rules="none">
+<table class="docutils footnote" frame="void" id="id10" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label">[1]</td><td><em>(<a class="fn-backref" href="#id3">1</a>, <a class="fn-backref" href="#id4">2</a>)</em> All long data types are signed, but <code class="docutils literal"><span class="pre">VAR_SIGNED_LONG</span></code> is
+<tr><td class="label">[1]</td><td><em>(<a class="fn-backref" href="#id4">1</a>, <a class="fn-backref" href="#id5">2</a>)</em> All long data types are signed, but <code class="docutils literal"><span class="pre">VAR_SIGNED_LONG</span></code> is
 encoded in a manner which stores negative numbers more efficiently than
 <code class="docutils literal"><span class="pre">VAR_LONG</span></code>.
 In particular, 0 to 127 are 1 byte for <code class="docutils literal"><span class="pre">VAR_LONG</span></code> and -64 to 63 are 1 byte for
@@ -358,26 +355,26 @@ In particular, 0 to 127 are 1 byte for <code class="docutils literal"><span clas
 numbers.</td></tr>
 </tbody>
 </table>
-<table class="docutils footnote" frame="void" id="id10" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label">[2]</td><td><em>(<a class="fn-backref" href="#id5">1</a>, <a class="fn-backref" href="#id7">2</a>)</em> A <code class="docutils literal"><span class="pre">STRING</span></code> or <code class="docutils literal"><span class="pre">BLOB</span></code> can only be a row component
-if it is the last component of the component list.  There is schema validation
-to ensure this is true.</td></tr>
-</tbody>
-</table>
 <table class="docutils footnote" frame="void" id="id11" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id1">[3]</a></td><td>This type can be useful on some key value stores because keys next
-to each other won&#8217;t be written next to each other.  This can be good because
-it will spread out the load of writes to many different ranges.</td></tr>
+<tr><td class="label">[2]</td><td><em>(<a class="fn-backref" href="#id6">1</a>, <a class="fn-backref" href="#id8">2</a>)</em> A <code class="docutils literal"><span class="pre">STRING</span></code> or <code class="docutils literal"><span class="pre">BLOB</span></code> can only be a row component
+if it is the last component of the component list.  There is schema validation
+to ensure this is true.</td></tr>
 </tbody>
 </table>
 <table class="docutils footnote" frame="void" id="id12" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label">[4]</td><td><em>(<a class="fn-backref" href="#id2">1</a>, <a class="fn-backref" href="#id6">2</a>, <a class="fn-backref" href="#id8">3</a>)</em> <p>If a type does not support range-scanning, <strong>range scans will still be available
+<tr><td class="label"><a class="fn-backref" href="#id2">[3]</a></td><td>This type can be useful on some key value stores because keys next
+to each other won&#8217;t be written next to each other.  This can be good because
+it will spread out the load of writes to many different ranges.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id13" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[4]</td><td><em>(<a class="fn-backref" href="#id3">1</a>, <a class="fn-backref" href="#id7">2</a>, <a class="fn-backref" href="#id9">3</a>)</em> <p>If a type does not support range-scanning, <strong>range scans will still be available
 in the API but will not behave as expected</strong>.
 In particular, range-scanning will exact-match components for <code class="docutils literal"><span class="pre">VAR_STRING</span></code> and
 <code class="docutils literal"><span class="pre">SIZED_BLOB</span></code> types.

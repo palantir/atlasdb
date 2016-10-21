@@ -34,9 +34,6 @@
   
 
   
-        <link rel="index" title="Index"
-              href="../genindex.html"/>
-        <link rel="search" title="Search" href="../search.html"/>
     <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
         <link rel="up" title="Cluster Management" href="index.html"/>
         <link rel="next" title="Command Line Utilities" href="clis.html"/>
@@ -95,7 +92,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../transactions/index.html">Transactions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../configuration/index.html">Configuration</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Cluster Management</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Backup and Restore</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="">Backup and Restore</a><ul class="simple">
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="clis.html">Command Line Utilities</a></li>
 <li class="toctree-l2"><a class="reference internal" href="console.html">Console</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dropwizard-bundle.html">Dropwizard bundle</a></li>
@@ -127,7 +126,7 @@
         <div class="rst-content">
           
 
- 
+
 
 
 
@@ -159,7 +158,7 @@
 </div>
 <div class="section" id="using-the-atlas-cli">
 <h2>Using the Atlas CLI<a class="headerlink" href="#using-the-atlas-cli" title="Permalink to this headline">¶</a></h2>
-<p>The set of tasks described in this page rely heavily on having a functioning Atlas CLI.  Please see <a class="reference internal" href="clis.html#clis"><span class="std std-ref">Command Line Utilities</span></a> for information in how to deploy and use a functioning Atlas CLI utility.</p>
+<p>The set of tasks described in this page rely heavily on having a functioning Atlas CLI.  Please see <a class="reference internal" href="clis.html#clis"><span>Command Line Utilities</span></a> for information in how to deploy and use a functioning Atlas CLI utility.</p>
 </div>
 <div class="section" id="cassandra-and-other-distributed-systems">
 <h2>Cassandra and Other Distributed Systems<a class="headerlink" href="#cassandra-and-other-distributed-systems" title="Permalink to this headline">¶</a></h2>
@@ -168,7 +167,7 @@
 <div class="section" id="taking-a-backup">
 <h2>Taking a Backup<a class="headerlink" href="#taking-a-backup" title="Permalink to this headline">¶</a></h2>
 <p>First we need to define what the logical point in time of our backup is going to be.  We will call this the backup timestamp.  Any transactions that occur after the backup timestamp will not be valid or included in our &#8220;logical&#8221; backup of atlas, even if they complete succesfully before the rest of the backup completes.  To get the backup timestamp simply fetch a fresh timestamp using the CLI:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/backup.timestamp
+<div class="code bash highlight-python"><div class="highlight"><pre>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/backup.timestamp
 </pre></div>
 </div>
 <p>Next, we back-up the underlying key value service we&#8217;re using.  For the purposes of this documention, we will assume you can backup your specific key value service.</p>
@@ -179,7 +178,7 @@
 <li>If you are using RocksDB, you can simply compress the database files on disk with <code class="docutils literal"><span class="pre">tar</span> <span class="pre">-czf</span> <span class="pre">backup.tgz</span> <span class="pre">path/to/data</span></code>.</li>
 </ul>
 <p>Finally, we take the fast-forward timestamp.  Like the backup timestamp, the fast-forward timestamp is simply another fresh one that we fetch from atlas.  The purpose of this timestamp is to have a logical point in time for which we can guarantee that any reads or writes that took place during the backup process happened before this.  Fetching it is similar to that of the backup timestamp:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/fast-forward.timestamp
+<div class="code bash highlight-python"><div class="highlight"><pre>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fetch --file &lt;backup-directory&gt;/fast-forward.timestamp
 </pre></div>
 </div>
 <p>These two timestamp files and the entirety of your underlying storage&#8217;s backup are your entire atlasdb backup.</p>
@@ -188,15 +187,15 @@
 <h2>Restoring from a Backup<a class="headerlink" href="#restoring-from-a-backup" title="Permalink to this headline">¶</a></h2>
 <p>The steps of a restore are assumed to be run entirely offline and on a complete empty key value service, i.e. if you&#8217;re running against Cassandra, the keyspace being used should not exist and no other processes should attempt to create or interact with that keyspace during the duration of this process.</p>
 <p>First, restore your underlying key value service.  As mentioned <a class="reference external" href="#cassandra-and-other-distributed-systems">above</a>, there are concerns around your underyling storage not being consistent across its distributed nodes.  In particular, we need to ensure a consistent view of atlas&#8217; _transactions table in order to provide a guarantee that our restore process happens correctly.  The actual steps to ensure this will vary between systems, but for cassandra this simply means running a full repair of that table on every node in your cluster.  An example of this on a single node is:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/nodetool repair --partitioner-range --full -- &lt;atlas-keyspace&gt; _transactions
+<div class="code bash highlight-python"><div class="highlight"><pre>$ ./bin/nodetool repair --partitioner-range --full -- &lt;atlas-keyspace&gt; _transactions
 </pre></div>
 </div>
 <p>Next, we want to clean out any transactions that were committed after our backup timestamp by deleting them from our _transactions table:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp clean-transactions --file &lt;backup-directory&gt;/backup.timestamp
+<div class="code bash highlight-python"><div class="highlight"><pre>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp clean-transactions --file &lt;backup-directory&gt;/backup.timestamp
 </pre></div>
 </div>
 <p>Finally, we fast-forward the timstamp service to the fast-forward timestamp to ensure that any future transactions we perform don&#8217;t use a timestamp that could have potentially been used and written data to during the time after we took the backup timstamp but before our backup of our underlying kvs completed:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fast-forward --file &lt;backup-directory&gt;/fast-forward.timestamp
+<div class="code bash highlight-python"><div class="highlight"><pre>$ ./bin/atlasdb --config &lt;config-file&gt; --config-root &lt;path-to-atlas-block&gt; timestamp fast-forward --file &lt;backup-directory&gt;/fast-forward.timestamp
 </pre></div>
 </div>
 <p>The AtlasDB restore is now complete.</p>

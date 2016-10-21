@@ -115,6 +115,8 @@ Value Types
 AtlasDB understands three kinds of data: primitive ValueTypes, protocol
 buffer GeneratedMessages, and palantir Persistables.
 
+.. _primitive-valuetypes:
+
 Primitive ValueTypes
 ~~~~~~~~~~~~~~~~~~~~
 
