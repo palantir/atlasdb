@@ -64,6 +64,23 @@ You may set them as part of your :ref:`AtlasDB configuration <atlas_config>`, or
    ``sweepPauseMillis``, ``--sleep``, "0 ms", "Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours."
    "``timestampsGetterBatchSize`` under ``keyValueService`` (see :ref:`Cassandra KVS config <cassandra-configuration>`)", "Not available, the CLI will pick up the value from the config", "Absent (fetch all columns)", "(Cassandra KVS only): Specify a limit on the maximum number of columns to fetch in a single database query. Set this if your Cassandra OOMs when attempting to run sweep with even a small row batch size."
 
+Following is more information about when each of the batching parameters is useful.
+
+``sweepBatchSize`` determines the maximum number of rows to sweep at a time.
+The ``sweepPauseMillis`` controls the pause time between sweeping this many rows.
+
+Since the number of columns per row can vary widely between tables, setting just a row batch size can lead to sweep batches containing different numbers of cells; setting ``sweepCellBatchSize`` can even this out.
+For example, consider a database that has one table having 1000 rows and 10 columns, a second table having 1000 rows and 100 columns, and that performs best when sweeping at most 10,000 cells at a time.
+Without the ``sweepCellBatchSize`` parameter, you would have to limit ``sweepBatchSize`` to 100 to ensure that at most 10,000 cells are swept at a time, and would needlessly page 10 times over the first table.
+Setting ``sweepCellBatchSize`` to 10,000 would allow both tables to be swept in optimal batches.
+In the future, we may deprecate ``sweepBatchSize`` in preference for ``sweepCellBatchSize``.
+
+The sweep job works by requesting at least one full row at a time from the KVS. In some rare cases (most likely when storing large values), the Cassandra KVS will not be able to construct even a single row at a time;
+this situation will manifest as Cassandra OOMing during sweep even if ``sweepBatchSize`` is set to 1.
+If that happens, you can use ``timestampsGetterBatchSize`` to instruct Cassandra to read a smaller number of columns at a time before aggregating them into a single row metadata to pass on to the sweeper.
+If ``timestampsGetterBatchSize`` is set, Cassandra will read at most one row at a time.
+The other batch parameters are still respected, but their values are unlikely to matter because the execution time will be dominated by the single-row reads.
+
 .. toctree::
     :maxdepth: 1
     :hidden:
