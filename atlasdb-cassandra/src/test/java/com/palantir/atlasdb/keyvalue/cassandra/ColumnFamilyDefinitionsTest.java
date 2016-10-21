@@ -39,6 +39,4 @@ public class ColumnFamilyDefinitionsTest {
                         onlyClassName.compaction_strategy),
                 ColumnFamilyDefinitions.isMatchingCf(fullyQualified, onlyClassName));
     }
-
-
 }

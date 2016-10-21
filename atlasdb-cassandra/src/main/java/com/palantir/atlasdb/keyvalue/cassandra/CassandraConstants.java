@@ -15,17 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Set;
 
-import org.apache.cassandra.thrift.CfDef;
-import org.apache.cassandra.thrift.ColumnDef;
-import org.apache.cassandra.thrift.TriggerDef;
-
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public final class CassandraConstants {
