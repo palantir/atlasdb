@@ -30,7 +30,7 @@ def getAtlasVersion(res):
     match = re.search('atlasVersion|atlasDbVersion', decodedContent)
     if match == None:
         eprint("Couldn't find version in <" + decodedContent + ">")
-        return "No AtlasDB version found"
+        return "no AtlasDB version found"
     return decodedContent[match.start():].splitlines()[0]
 
 def requestFile(repo, tag, filePath):
@@ -40,7 +40,7 @@ def getReleases(repo):
     res = requests.get(repoUrl + repo + '/releases', auth=auth)
     jsonRes = json.loads(res.text)
     if len(jsonRes) == 0:
-        print(repo + ' has no releases')
+        print(repo + ': has no releases')
     return jsonRes
 
 def getProducts(searchTerms):
@@ -63,4 +63,7 @@ print('Fetching atlas versions:')
 for productInfo in products:
     for release in getReleases(productInfo):
         versionFile = requestFile(productInfo, release['tag_name'], 'gradle.properties')
-        print(productInfo + ':' + release['tag_name'] + ':' + getAtlasVersion(versionFile))
+        if (versionFile.status_code == requests.codes.ok):
+            print(productInfo + '-' + release['tag_name'] + ': ' + getAtlasVersion(versionFile))
+        else:
+            print(productInfo + ': no version file found')
