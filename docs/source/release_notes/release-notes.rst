@@ -42,12 +42,13 @@ v0.21.0
          - Change
 
     *    - |new|
-         - Sweep now supports batching on a per-cell level, in addition to the previous per-row batching.
-           This is useful for keeping batch sizes small if the rows are wide.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/947>`__)
+         - Sweep now supports batching on a per-cell level via the ``sweepCellBatchSize`` parameter in your AtlasDB config.
+           This can decrease Sweep memory consumption on the client side if your tables have large cells or many columns (i.e. wide rows).
+           For information on how to configure Sweep batching, see the :ref:`sweep documentation <atlas-sweep-cli>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1068>`__)
 
     *    - |fixed|
-         - Will not throw ``IllegalStateException`` on start-up due to hotspotting, if ``hashFirstRowComponent()`` is used in the schema.
+         - If ``hashFirstRowComponent()`` is used in a table definition, we no longer throw ``IllegalStateException`` when generating schema code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1091>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
@@ -64,30 +65,33 @@ v0.20.0
          - Change
 
     *    - |breaking|
-         - Hotspotting warnings, previously logged at ERROR, will now throw ``IllegalStateException`` on start-up.
-           Products who hit this warning will need to add ``ignoreHotspottingChecks()`` to the relevant tables of their schema.
+         - Hotspotting warnings, previously logged at ERROR, will now throw ``IllegalStateException`` when generating your schema code.
+           Products who hit this warning will need to add ``ignoreHotspottingChecks()`` to the relevant tables of their schema, or modify their schemas such that the first row component is not a VAR_STRING, a VAR_LONG, a VAR_SIGNED_LONG, or a SIZED_BLOB.
+
+           See documentation on :ref:`primitive value types <primitive-valuetypes>` and :ref:`partitioners <tables-and-indices-partitioners>` for information on how to address your schemas.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/947>`__)
 
     *    - |fixed|
-         - The dropwizard console no longer always starts up embedded timestamp and lock services.
-           This fixes the issue where running the console would cause the ``MultipleRunningTimestampServiceError``
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1063>`__).
+         - The AtlasDB Console included in the Dropwizard bundle can startup in an "online" mode, i.e. it can connect to a running cluster.
+
+           See :ref:`AtlasDB Console <console>` for information on how to use AtlasDB console.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1063>`__)
 
     *    - |fixed|
          - The ``atlasdb-dagger`` project now publishes a shadowed version so we do not rely on the version of dagger on the classpath.
-           This fixes the issue where running the CLIs would cause a ``ClassNotFoundException``
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1065>`__).
+           This fixes the issue where running the CLIs would cause a ``ClassNotFoundException`` if your application also makes use of dagger.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1065>`__)
 
     *    - |new|
          - Oracle is supported via DBKVS if you have runtime dependency on an Oracle driver that resolves the JsonType "jdbcHandler".
-           All table names in the schema must be less than 30 characters long if you wish to run against Oracle as a backing store.
+           Due to an Oracle limitation, all table names in the schema must be less than 30 characters long.
+
            See :ref:`Oracle KVS Configuration <oracle-configuration>` for details on how to configure your service to use Oracle.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
-    *    - |breaking|
+    *    - |fixed|
          - The DBKVS config now enforces that the namespace must always be empty for ``metadataTable`` in the ``ddl`` block.
-           The ``metadataTable`` parameter defaults to an empty name space, so no action is needed if this value is not configured.
-           See the :ref:`Oracle connection config <oracle-config-params>` documentation for more details.
+           The ``metadataTable`` parameter defaults to an empty name space, and if this was configured to be anything else previously, DBKVS would not start.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
     *    - |fixed|
@@ -99,10 +103,6 @@ v0.20.0
     *    - |fixed|
          - The ``metadataTableName`` for Oracle is now ``atlasdb_metadata`` instead of ``_metadata``.
            This is due to Oracle's restriction of not allowing table names with a leading underscore.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
-
-    *    - |breaking|
-         - The ``overflowIds`` config parameter in ``OracleDdlConfig`` is now Optional and is overriden by a default sequence supplier if absent.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
