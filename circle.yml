@@ -43,7 +43,7 @@ test:
   override:
     - ./gradlew --profile --continue --parallel compileJava compileTestJava:
         parallel: true
-    - ./scripts/circle-ci/run-circle-tests.sh:
+    - ./scripts/circle-ci/run-circle-tests.sh | gawk '{ print strftime("[%Y-%m-%d %H:%M:%S]"), $0 }':
         parallel: true
   post:
     - ./gradlew --profile jacocoFullReport -x classes:
