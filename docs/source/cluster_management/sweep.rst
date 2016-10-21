@@ -46,7 +46,7 @@ Targeted Sweep
 ~~~~~~~~~~~~~~
 
 If there are specific tables that have built up over time to a large size, you might consider running the targeted sweep job.
-For more information about how to do this, check out our documentation on the :ref:`atlas_sweep_cli`.
+For more information about how to do this, check out our documentation on the :ref:`atlas-sweep-cli`.
 
 .. toctree::
     :maxdepth: 1

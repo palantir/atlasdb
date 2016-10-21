@@ -1,4 +1,4 @@
-.. _atlas_sweep_cli:
+.. _atlas-sweep-cli:
 
 AtlasDB Sweep Cli
 =================
