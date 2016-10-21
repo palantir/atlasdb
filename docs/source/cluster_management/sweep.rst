@@ -32,7 +32,7 @@ Reasons to Sweep
 
 3. Improving Stability
     - We have seen situations in the field where reading rows with many historical values caused the underlying Cassandra KVS to run out of memory.
-      This situation could have been mitigating by sweeping the table in question.
+      This situation could have been mitigated by sweeping the table in question.
 
 
 Ways to Sweep
