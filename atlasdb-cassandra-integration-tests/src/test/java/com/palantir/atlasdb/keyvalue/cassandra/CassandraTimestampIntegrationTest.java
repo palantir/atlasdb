@@ -31,8 +31,8 @@ public class CassandraTimestampIntegrationTest {
     @Before
     public void setUp() {
         kv = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.cassandraKvsConfig),
-                CassandraTestSuite.leaderConfig);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.KVS_CONFIG),
+                CassandraTestSuite.LEADER_CONFIG);
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
 

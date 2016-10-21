@@ -36,10 +36,9 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.ete.Gradle;
+import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.docker.compose.DockerComposeRule;
-import com.palantir.docker.compose.connection.DockerPort;
-import com.palantir.docker.compose.connection.waiting.HealthCheck;
-import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
+import com.palantir.docker.compose.logging.LogDirectory;
 
 @SuppressWarnings("checkstyle:HideUtilityClassConstructor")
 @RunWith(Suite.class)
@@ -57,56 +56,46 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
         SchemaMutationLockTablesIntegrationTest.class
         })
 public final class CassandraTestSuite {
-    public static final int THRIFT_PORT_NUMBER = 9160;
-
-    private static final DockerComposeRule docker = DockerComposeRule.builder()
+    private static final DockerComposeRule DOCKER = DockerComposeRule.builder()
             .file("src/test/resources/docker-compose.yml")
-            .waitingForHostNetworkedPort(THRIFT_PORT_NUMBER, toBeOpen())
-            .saveLogsTo("container-logs")
+            .saveLogsTo(LogDirectory.circleAwareLogDirectory(CassandraTestSuite.class))
             .build();
+    private static final DockerProxyRule DOCKER_PROXY_RULE = new DockerProxyRule(
+            DOCKER.projectName(),
+            CassandraTestSuite.class);
     private static final Gradle GRADLE_PREPARE_TASK =
             Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
 
     @ClassRule
     public static final RuleChain CASSANDRA_DOCKER_SET_UP = RuleChain.outerRule(GRADLE_PREPARE_TASK)
-            .around(docker);
+            .around(DOCKER)
+            .around(DOCKER_PROXY_RULE);
 
-    static InetSocketAddress cassandraThriftAddress;
+    static final ImmutableCassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
+            .addServers(new InetSocketAddress("cassandra", 9160))
+            .poolSize(20)
+            .keyspace("atlasdb")
+            .credentials(ImmutableCassandraCredentialsConfig.builder()
+                    .username("cassandra")
+                    .password("cassandra")
+                    .build())
+            .replicationFactor(1)
+            .mutationBatchCount(10000)
+            .mutationBatchSizeBytes(10000000)
+            .fetchBatchCount(1000)
+            .safetyDisabled(false)
+            .autoRefreshNodes(false)
+            .build();
 
-    static ImmutableCassandraKeyValueServiceConfig cassandraKvsConfig;
-
-    static Optional<LeaderConfig> leaderConfig;
+    static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
+            .builder()
+            .quorumSize(1)
+            .localServer("localhost")
+            .leaders(ImmutableSet.of("localhost"))
+            .build());
 
     @BeforeClass
     public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {
-        DockerPort port = docker.hostNetworkedPort(THRIFT_PORT_NUMBER);
-        String hostname = port.getIp();
-        cassandraThriftAddress = new InetSocketAddress(hostname, port.getExternalPort());
-
-        cassandraKvsConfig = ImmutableCassandraKeyValueServiceConfig.builder()
-                .addServers(cassandraThriftAddress)
-                .poolSize(20)
-                .keyspace("atlasdb")
-                .credentials(ImmutableCassandraCredentialsConfig.builder()
-                        .username("cassandra")
-                        .password("cassandra")
-                        .build())
-                .ssl(false)
-                .replicationFactor(1)
-                .mutationBatchCount(10000)
-                .mutationBatchSizeBytes(10000000)
-                .fetchBatchCount(1000)
-                .safetyDisabled(false)
-                .autoRefreshNodes(false)
-                .build();
-
-        leaderConfig = Optional.of(ImmutableLeaderConfig
-                .builder()
-                .quorumSize(1)
-                .localServer(hostname)
-                .leaders(ImmutableSet.of(hostname))
-                .build());
-
         Awaitility.await()
                 .atMost(Duration.ONE_MINUTE)
                 .pollInterval(Duration.ONE_SECOND)
@@ -117,16 +106,12 @@ public final class CassandraTestSuite {
         return () -> {
             try {
                 CassandraKeyValueService.create(
-                        CassandraKeyValueServiceConfigManager.createSimpleManager(cassandraKvsConfig),
-                        leaderConfig);
+                        CassandraKeyValueServiceConfigManager.createSimpleManager(KVS_CONFIG),
+                        LEADER_CONFIG);
                 return true;
             } catch (Exception e) {
                 return false;
             }
         };
-    }
-
-    private static HealthCheck<DockerPort> toBeOpen() {
-        return port -> SuccessOrFailure.fromBoolean(port.isListeningNow(), port + " was not open");
     }
 }

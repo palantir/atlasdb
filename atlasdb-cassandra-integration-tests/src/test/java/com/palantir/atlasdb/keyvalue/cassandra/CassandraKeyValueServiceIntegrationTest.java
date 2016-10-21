@@ -96,8 +96,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.cassandraKvsConfig),
-                CassandraTestSuite.leaderConfig,
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.KVS_CONFIG),
+                CassandraTestSuite.LEADER_CONFIG,
                 logger);
     }
 
@@ -175,7 +175,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
     public void testLockTablesStateCleanUp() throws Exception {
         CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
         UniqueSchemaMutationLockTable lockTable = new UniqueSchemaMutationLockTable(
-                new SchemaMutationLockTables(ckvs.clientPool, CassandraTestSuite.cassandraKvsConfig),
+                new SchemaMutationLockTables(ckvs.clientPool, CassandraTestSuite.KVS_CONFIG),
                 LockLeader.I_AM_THE_LOCK_LEADER);
         SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(ckvs.clientPool, lockTable);
         grabLock(lockTestTools);

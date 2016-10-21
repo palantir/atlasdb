@@ -60,6 +60,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.logging.LogDirectory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -68,16 +69,18 @@ public class CassandraSchemaLockTest {
     private static final int THRIFT_PORT = 9160;
     private static final int THREAD_COUNT = 4;
 
-    private static final String CONTAINER_LOGS_DIRECTORY = "container-logs";
+    private static final String LOG_DIRECTORY = LogDirectory.circleAwareLogDirectory(CassandraSchemaLockTest.class);
     private static final DockerComposeRule CASSANDRA_DOCKER_SETUP = DockerComposeRule.builder()
             .file("src/test/resources/docker-compose-multinode.yml")
-            .saveLogsTo(CONTAINER_LOGS_DIRECTORY)
+            .saveLogsTo(LOG_DIRECTORY)
             .build();
 
     private static final Gradle GRADLE_PREPARE_TASK =
             Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
 
-    private static final DockerProxyRule DOCKER_PROXY_RULE = new DockerProxyRule(CASSANDRA_DOCKER_SETUP.projectName());
+    private static final DockerProxyRule DOCKER_PROXY_RULE = new DockerProxyRule(
+            CASSANDRA_DOCKER_SETUP.projectName(),
+            CassandraSchemaLockTest.class);
 
     @ClassRule
     public static final RuleChain ALL_RULES = RuleChain
@@ -135,7 +138,7 @@ public class CassandraSchemaLockTest {
             executorService.shutdown();
             assertTrue(executorService.awaitTermination(4, TimeUnit.MINUTES));
         }
-        assertThat(new File(CONTAINER_LOGS_DIRECTORY),
+        assertThat(new File(LOG_DIRECTORY),
                 containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())));
     }
 

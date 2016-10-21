@@ -55,13 +55,13 @@ public class HeartbeatServiceIntegrationTest {
     @Before
     public void setUp() throws TException {
         CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(
-                CassandraTestSuite.cassandraKvsConfig);
+                CassandraTestSuite.KVS_CONFIG);
         queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
 
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
         clientPool = new CassandraClientPool(simpleManager.getConfig());
         lockTable = new UniqueSchemaMutationLockTable(
-                new SchemaMutationLockTables(clientPool, CassandraTestSuite.cassandraKvsConfig),
+                new SchemaMutationLockTables(clientPool, CassandraTestSuite.KVS_CONFIG),
                 LockLeader.I_AM_THE_LOCK_LEADER);
         heartbeatService = new HeartbeatService(clientPool,
                                                 queryRunner,
