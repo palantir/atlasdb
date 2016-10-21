@@ -34,6 +34,9 @@
   
 
   
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
     <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
         <link rel="up" title="Cluster Management" href="index.html"/>
         <link rel="next" title="AtlasDB Sweep Job" href="sweep.html"/>
@@ -95,9 +98,7 @@
 <li class="toctree-l2"><a class="reference internal" href="backup-restore.html">Backup and Restore</a></li>
 <li class="toctree-l2"><a class="reference internal" href="clis.html">Command Line Utilities</a></li>
 <li class="toctree-l2"><a class="reference internal" href="console.html">Console</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="">Dropwizard bundle</a><ul class="simple">
-</ul>
-</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Dropwizard bundle</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sweep.html">AtlasDB Sweep Job</a></li>
 </ul>
 </li>
@@ -126,7 +127,7 @@
         <div class="rst-content">
           
 
-
+ 
 
 
 
@@ -155,7 +156,7 @@
 <div class="section" id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
 <p>The AtlasDB Dropwizard bundle can be added to Dropwizard applications. This will add startup commands to launch
-the AtlasDB <a class="reference internal" href="console.html#console"><span>Console</span></a> and <a class="reference internal" href="clis.html#clis"><span>CLIs</span></a> such as <code class="docutils literal"><span class="pre">sweep</span></code> and <code class="docutils literal"><span class="pre">timestamp</span></code>.</p>
+the AtlasDB <a class="reference internal" href="console.html#console"><span class="std std-ref">Console</span></a> and <a class="reference internal" href="clis.html#clis"><span class="std std-ref">CLIs</span></a> such as <code class="docutils literal"><span class="pre">sweep</span></code> and <code class="docutils literal"><span class="pre">timestamp</span></code>.</p>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
 <p class="last">These commands will only work if the server is started with a leader block in the configuration.</p>
@@ -172,7 +173,7 @@ of the Dropwizard application.</li>
 </div>
 <div class="section" id="running-commands">
 <h2>Running commands<a class="headerlink" href="#running-commands" title="Permalink to this headline">¶</a></h2>
-<p>You can run AtlasDB tasks present in AtlasDB <a class="reference internal" href="console.html#console"><span>Console</span></a> and <a class="reference internal" href="clis.html#clis"><span>CLIs</span></a> using:</p>
+<p>You can run AtlasDB tasks present in AtlasDB <a class="reference internal" href="console.html#console"><span class="std std-ref">Console</span></a> and <a class="reference internal" href="clis.html#clis"><span class="std std-ref">CLIs</span></a> using:</p>
 <p><code class="docutils literal"><span class="pre">java</span> <span class="pre">-jar</span> <span class="pre">application.jar</span> <span class="pre">atlasdb</span> <span class="pre">[-h]</span> <span class="pre">{console,sweep,migrate,timestamp}</span> <span class="pre">...</span></code></p>
 </div>
 </div>

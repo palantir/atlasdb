@@ -34,6 +34,9 @@
   
 
   
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
     <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
         <link rel="up" title="Schemas" href="index.html"/>
         <link rel="next" title="Cleanup Tasks" href="cleanup_tasks.html"/>
@@ -90,9 +93,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Schemas</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="tables_and_indices.html">Tables and Indices</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="">Streams</a><ul class="simple">
-</ul>
-</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Streams</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cleanup_tasks.html">Cleanup Tasks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="physical_cleanup.html">Physical Cleanup</a></li>
 </ul>
@@ -125,7 +126,7 @@
         <div class="rst-content">
           
 
-
+ 
 
 
 
@@ -166,7 +167,7 @@ AtlasDB will also reference count these objects and clean them up when
 they are not used anymore. Also, the storage of the streams happens on
 separate transactions and does not count toward your byte limit for your
 local trasaction.</p>
-<div class="code java highlight-python"><div class="highlight"><pre>public void addStreamStoreDefinition(String long_name, String short_name, ValueType streamIdType, int inMemoryThreshold);
+<div class="code java highlight-default"><div class="highlight"><pre><span></span><span class="n">public</span> <span class="n">void</span> <span class="n">addStreamStoreDefinition</span><span class="p">(</span><span class="n">String</span> <span class="n">long_name</span><span class="p">,</span> <span class="n">String</span> <span class="n">short_name</span><span class="p">,</span> <span class="n">ValueType</span> <span class="n">streamIdType</span><span class="p">,</span> <span class="nb">int</span> <span class="n">inMemoryThreshold</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>The long name is the name of the stream store in the generated java

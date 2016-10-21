@@ -34,6 +34,9 @@
   
 
   
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
     <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
         <link rel="up" title="Overview" href="index.html"/>
         <link rel="next" title="Schemas" href="../schemas/index.html"/>
@@ -90,9 +93,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Overview</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="benefits.html">Benefits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="atlasdb_service_api.html">AtlasDB Service Api</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="">Getting Started</a><ul class="simple">
-</ul>
-</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Getting Started</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a></li>
@@ -124,7 +125,7 @@
         <div class="rst-content">
           
 
-
+ 
 
 
 
@@ -170,17 +171,17 @@ directory</a>.</p>
 <p>Mac users will need to install <cite>docker-machine</cite> and a virtualization environment as well to be able to run docker. Virtualbox is used in this example. Simplified set-up instructions are as follows:</p>
 <ol class="arabic">
 <li><p class="first">Install <code class="docutils literal"><span class="pre">docker-machine</span></code>, <code class="docutils literal"><span class="pre">docker</span></code> and <code class="docutils literal"><span class="pre">docker-compose</span></code></p>
-<div class="code bash highlight-python"><div class="highlight"><pre>brew install docker docker-machine docker-compose
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">brew</span> <span class="n">install</span> <span class="n">docker</span> <span class="n">docker</span><span class="o">-</span><span class="n">machine</span> <span class="n">docker</span><span class="o">-</span><span class="n">compose</span>
 </pre></div>
 </div>
 </li>
 <li><p class="first">Set up a <code class="docutils literal"><span class="pre">docker-machine</span></code> for Virtualbox (named <code class="docutils literal"><span class="pre">atlas</span></code> in the example, name can be chosen freely by the user)</p>
-<div class="code bash highlight-python"><div class="highlight"><pre>docker-machine create atlas --driver virtualbox
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">docker</span><span class="o">-</span><span class="n">machine</span> <span class="n">create</span> <span class="n">atlas</span> <span class="o">--</span><span class="n">driver</span> <span class="n">virtualbox</span>
 </pre></div>
 </div>
 </li>
 <li><p class="first">Set up the environment:</p>
-<div class="code bash highlight-python"><div class="highlight"><pre>eval $(docker-machine env atlas)
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span>eval $(docker-machine env atlas)
 </pre></div>
 </div>
 <p>These environment variables need to always be set before running the tests through <cite>gradle</cite>, or set manually as environment variables for the launch configurations in any IDE.</p>
@@ -195,18 +196,18 @@ bintray</a>. To
 include in a gradle project:</p>
 <ol class="arabic">
 <li><p class="first">Add bintray to your repository list:</p>
-<div class="code javascript highlight-python"><div class="highlight"><pre>repositories {
-    maven {
-        url &#39;https://dl.bintray.com/palantir/releases/&#39;
-    }
-}
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">repositories</span> <span class="p">{</span>
+    <span class="n">maven</span> <span class="p">{</span>
+        <span class="n">url</span> <span class="s1">&#39;https://dl.bintray.com/palantir/releases/&#39;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </li>
 <li><p class="first">Add the atlasdb-client dependency to projects using AtlasDB:</p>
-<div class="code javascript highlight-python"><div class="highlight"><pre>dependencies {
-    compile &#39;com.palantir.atlasdb:atlasdb-client:0.3.3&#39;
-}
+<div class="code javascript highlight-default"><div class="highlight"><pre><span></span><span class="n">dependencies</span> <span class="p">{</span>
+    <span class="nb">compile</span> <span class="s1">&#39;com.palantir.atlasdb:atlasdb-client:0.3.3&#39;</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </li>
@@ -216,7 +217,7 @@ include in a gradle project:</p>
 <h2>Standalone JSON/REST Server<a class="headerlink" href="#standalone-json-rest-server" title="Permalink to this headline">¶</a></h2>
 <p>The standalone server is a lightweight way to try out AtlasDB and can be
 done by running AtlasDbServiceServer in the atlasdb-service-server project.</p>
-<div class="code bash highlight-python"><div class="highlight"><pre>AtlasDbServiceServer server src/dist/atlasdb_standalone.yml
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">AtlasDbServiceServer</span> <span class="n">server</span> <span class="n">src</span><span class="o">/</span><span class="n">dist</span><span class="o">/</span><span class="n">atlasdb_standalone</span><span class="o">.</span><span class="n">yml</span>
 </pre></div>
 </div>
 <p>This is Dropwizard service that runs all the needed parts and doesn&#8217;t
