@@ -11,7 +11,6 @@ AtlasDB Sweep Job
 
    Running the Sweep Job while taking a Backup can cause **SEVERE DATA CORRUPTION** to your Backup.
 
-
 Under normal usage, the data written to the key value service backing AtlasDB is never updated or deleted.
 When a row in AtlasDB is "updated", a new version of the row with a higher timestamp is written.
 The old row is left untouched. When that row is later read, only the version with the higher timestamp is returned.
@@ -19,7 +18,6 @@ Deletions in AtlasDB are similar; in practice they are the same as updates with 
 
 To prevent an AtlasDB database from growing in size indefinitely, old versions of rows can be deleted through a process called sweeping.
 At a high level, this works by periodically scanning the database for rows with multiple versions and deleting the older versions from the database.
-
 
 Reasons to Sweep
 ----------------
@@ -34,7 +32,6 @@ Reasons to Sweep
     - We have seen situations in the field where reading rows with many historical values caused the underlying Cassandra KVS to run out of memory.
       This situation could have been mitigated by sweeping the table in question.
 
-
 Ways to Sweep
 -------------
 
@@ -45,7 +42,6 @@ Ways to Sweep
   You may trigger the sweep job on demand via the sweep CLI. This could be useful in order to address any one-off performance issues.
   Also, long-running AtlasDB instances with high data scale and months/years of user activity that want to enable the background sweep job
   may benefit from manually sweeping specific tables first, to reduce the number of unused cells that have accumulated over time.
-
 
 .. _sweep_tunable_parameters:
 
