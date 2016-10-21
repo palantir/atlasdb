@@ -71,12 +71,6 @@ public class SimpleDbWriteTable implements DbWriteTable {
 
     private void put(List<Object[]> args) {
         try {
-            //        if (config.type().equals(OracleDdlConfig.TYPE)) {
-            //            return ((OracleDdlConfig) config)
-            //                    .tableNameMapper()
-            //                    .getShortPrefixedTableName(config.tablePrefix(), tableRef);
-            //        }
-            //        return config.tablePrefix() + tableRef;
             conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + tableRef + ") */"
                     + " INSERT INTO " + getInternalTableName() + " (row_name, col_name, ts, val) "
                     + " VALUES (?, ?, ?, ?) ",
@@ -101,18 +95,6 @@ public class SimpleDbWriteTable implements DbWriteTable {
             }
             while (true) {
                 try {
-                    //        if (config.type().equals(OracleDdlConfig.TYPE)) {
-                    //            return ((OracleDdlConfig) config)
-                    //                    .tableNameMapper()
-                    //                    .getShortPrefixedTableName(config.tablePrefix(), tableRef);
-                    //        }
-                    //        return config.tablePrefix() + tableRef;
-                    //        if (config.type().equals(OracleDdlConfig.TYPE)) {
-                    //            return ((OracleDdlConfig) config)
-                    //                    .tableNameMapper()
-                    //                    .getShortPrefixedTableName(config.tablePrefix(), tableRef);
-                    //        }
-                    //        return config.tablePrefix() + tableRef;
                     conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + tableRef + ") */"
                             + " INSERT INTO " + getInternalTableName() + " (row_name, col_name, ts, val) "
                             + " SELECT ?, ?, ?, ? FROM DUAL"
