@@ -63,12 +63,9 @@ public final class CassandraTestSuite {
     private static final DockerProxyRule DOCKER_PROXY_RULE = new DockerProxyRule(
             DOCKER.projectName(),
             CassandraTestSuite.class);
-    private static final Gradle GRADLE_PREPARE_TASK =
-            Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
 
     @ClassRule
-    public static final RuleChain CASSANDRA_DOCKER_SET_UP = RuleChain.outerRule(GRADLE_PREPARE_TASK)
-            .around(DOCKER)
+    public static final RuleChain CASSANDRA_DOCKER_SET_UP = RuleChain.outerRule(DOCKER)
             .around(DOCKER_PROXY_RULE);
 
     static final ImmutableCassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()

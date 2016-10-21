@@ -2,12 +2,12 @@ version: '2'
 
 services:
   cassandra1:
-    image: com.palantir.docker/atlas-cassandra:2.2-v0.1
+    image: palantirtechnologies/docker-cassandra-atlasdb:latest
     environment:
       - LOCAL_JMX=no
 
   cassandra2:
-    image: com.palantir.docker/atlas-cassandra:2.2-v0.1
+    image: palantirtechnologies/docker-cassandra-atlasdb:latest
     depends_on:
       - cassandra1
     environment:
@@ -15,7 +15,7 @@ services:
       - LOCAL_JMX=no
 
   cassandra3:
-    image: com.palantir.docker/atlas-cassandra:2.2-v0.1
+    image: palantirtechnologies/docker-cassandra-atlasdb:latest
     depends_on:
       - cassandra1
     environment:

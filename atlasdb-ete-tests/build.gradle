@@ -63,7 +63,7 @@ configurations.matching({ it.name in ['compile', 'runtime'] }).all {
     }
 }
 
-task prepareForEteTests(type: Copy, dependsOn: ['distTar', ':atlasdb-ete-test-utils:buildCassandraImage']) {
+task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
     from distTar.outputs
     into 'build/docker/'
 

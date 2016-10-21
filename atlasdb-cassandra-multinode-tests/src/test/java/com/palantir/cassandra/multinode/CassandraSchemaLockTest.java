@@ -75,17 +75,12 @@ public class CassandraSchemaLockTest {
             .saveLogsTo(LOG_DIRECTORY)
             .build();
 
-    private static final Gradle GRADLE_PREPARE_TASK =
-            Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
-
     private static final DockerProxyRule DOCKER_PROXY_RULE = new DockerProxyRule(
             CASSANDRA_DOCKER_SETUP.projectName(),
             CassandraSchemaLockTest.class);
 
     @ClassRule
-    public static final RuleChain ALL_RULES = RuleChain
-            .outerRule(GRADLE_PREPARE_TASK)
-            .around(CASSANDRA_DOCKER_SETUP)
+    public static final RuleChain ALL_RULES = RuleChain.outerRule(CASSANDRA_DOCKER_SETUP)
             .around(DOCKER_PROXY_RULE);
 
     private static final CassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
