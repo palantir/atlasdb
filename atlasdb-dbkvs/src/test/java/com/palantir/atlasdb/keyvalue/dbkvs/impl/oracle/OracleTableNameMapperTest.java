@@ -15,8 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 
+import org.apache.log4j.helpers.Loader;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -26,5 +28,15 @@ public class OracleTableNameMapperTest {
     @Test
     public void shortTableNameMustBeLessThanThirtyCharactersLong() throws Exception {
         Assert.assertThat(oracleTableNameMapper.getShortPrefixedTableName("a_", "AA").length(), lessThan(OracleTableNameMapper.ORACLE_TABLE_NAME_LIMIT));
+    }
+
+    @Test
+    public void shouldNotModifyTableNamesMeetingTheCharacterLimits() {
+        Assert.assertThat(oracleTableNameMapper.getShortPrefixedTableName("a_", "AA"), is("a_AA"));
+    }
+
+    @Test
+    public void shouldNotModifySpecialTableNames() {
+        Assert.assertThat(oracleTableNameMapper.getShortPrefixedTableName("a_", Long.toString(Long.MAX_VALUE)), is("a_" + Long.toString(Long.MAX_VALUE)));
     }
 }
