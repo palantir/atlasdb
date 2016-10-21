@@ -73,7 +73,6 @@ public class AvailableTimestamps {
     }
 
     private synchronized TimestampRange handOutTimestamp(long targetTimestamp) {
-
         checkArgument(
                 targetTimestamp > lastHandedOut(),
                 "Could not hand out timestamp '%s' as it was earlier than the last handed out timestamp: %s",
