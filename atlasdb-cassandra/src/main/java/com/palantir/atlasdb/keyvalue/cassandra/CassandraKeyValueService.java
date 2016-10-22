@@ -1451,7 +1451,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             // if no existing table or if existing table's metadata is different
             if (!Arrays.equals(existingTableMetadata.get(tableReference), newMetadata)) {
                 Set<TableReference> matchingTables = Sets.filter(existingTableMetadata.keySet(), existingTableRef ->
-                        existingTableRef.getTablename().equalsIgnoreCase(tableReference.getTablename()));
+                        existingTableRef.getQualifiedName().equalsIgnoreCase(tableReference.getQualifiedName()));
 
                 // completely new table, not an update
                 if (matchingTables.isEmpty()) {

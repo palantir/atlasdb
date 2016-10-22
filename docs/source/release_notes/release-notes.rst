@@ -50,6 +50,13 @@ v0.21.0
     *    - |fixed|
          - If ``hashFirstRowComponent()`` is used in a table definition, we no longer throw ``IllegalStateException`` when generating schema code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1091>`__)
+ 
+
+    *    - |fixed|
+         - Fixed (and added tests for) a regression where you could no longer have tables
+           with the same table name spanned over multiple namespaces when running on Cassandra.
+	   (`Pull Request <https://github.com/palantir/atlasdb/pull/1110>`__)
+	
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
