@@ -177,6 +177,11 @@ For information on how to configure Sweep batching, see the <a class="reference 
 <td>If <code class="docutils literal"><span class="pre">hashFirstRowComponent()</span></code> is used in a table definition, we no longer throw <code class="docutils literal"><span class="pre">IllegalStateException</span></code> when generating schema code.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1091">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed (and added tests for) a regression where you could no longer have tables
+with the same table name spanned over multiple namespaces when running on Cassandra.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1110">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
