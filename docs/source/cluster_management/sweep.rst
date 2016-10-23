@@ -40,8 +40,8 @@ Ways to Sweep
 
 - :ref:`Sweep CLI<atlas-sweep-cli>` triggered manually:
   You may trigger the sweep job on demand via the sweep CLI. This could be useful in order to address any one-off performance issues.
-  Also, long-running AtlasDB instances with high data scale and months/years of user activity that want to enable the background sweep job
-  may benefit from manually sweeping specific tables first, to reduce the number of unused cells that have accumulated over time.
+  Long-running AtlasDB instances with large data scale may want to manually sweep specific tables before enabling the background sweeper.
+  Given that the background sweep job chooses which tables it sweeps, you can ensure that a one-off large sweep job occurs during non-peak usage hours.
 
 .. _sweep_tunable_parameters:
 
@@ -56,28 +56,30 @@ You may set them as part of your :ref:`AtlasDB configuration <atlas_config>`, or
    :widths: 20, 20, 40, 200
 
    ``sweepBatchSize``, ``--batch-size``, "1,000", "Maximum number of rows to sweep at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance."
-   ``sweepCellBatchSize``, ``--cell-batch-size``, "10,000", "Maximum number of cells to sweep at once. Similar to ``maxBatchSize`` but provides finer control if the row widths vary greatly."
+   ``sweepCellBatchSize``, ``--cell-batch-size``, "10,000", "Maximum number of cells to sweep at once. Similar to ``sweepBatchSize`` but provides finer control if the row widths vary greatly."
    ``sweepPauseMillis``, ``--sleep``, "0 ms", "Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours."
-   "``timestampsGetterBatchSize`` under ``keyValueService`` (see :ref:`Cassandra KVS config <cassandra-configuration>`)", "Not available, the CLI will pick up the value from the config", "Absent (fetch all columns)", "(Cassandra KVS only): Specify a limit on the maximum number of columns to fetch in a single database query. Set this if your Cassandra OOMs when attempting to run sweep with even a small row batch size."
+   "``timestampsGetterBatchSize`` (Cassandra KVS only, see :ref:`Cassandra KVS config <cassandra-configuration>`)", "Only specified in config", "Fetch all columns", "Specify a limit on the maximum number of columns to fetch in a single database query. Set this to a number fewer than your number of columns if your Cassandra OOMs when attempting to run sweep with even a small row batch size. This parameter should be used when tuning Sweep for cells with many historical versions."
 
 Following is more information about when each of the batching parameters is useful.
 In short, the recommendation is:
 
-- Decrease sweepCellBatchSize and sweepBatchSize if there is memory pressure on the client.
-- Set timestampsGetterBatchSize if there is memory pressure on Cassandra even after setting sweepBatchSize down to 1.
+- Decrease ``sweepCellBatchSize`` and ``sweepBatchSize`` if there is memory pressure on the client.
+- Decrease ``timestampsGetterBatchSize`` if there is memory pressure on Cassandra even after setting ``sweepBatchSize`` down to 1.
 
-**Decrease sweepCellBatchSize and sweepBatchSize if there is memory pressure on the client.**
-``sweepBatchSize`` determines the maximum number of rows to sweep at a time.
-The ``sweepPauseMillis`` controls the pause time between sweeping this many rows.
+Memory pressure on AtlasDB client: decrease sweepCellBatchSize and sweepBatchSize
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Since the number of columns per row can vary widely between tables, setting just a row batch size can lead to sweep batches containing different numbers of cells; setting ``sweepCellBatchSize`` can even this out.
 For example, consider a database that has one table with 1000 rows and 10 columns, a second table with 1000 rows and 100 columns, and that performs best when sweeping at most 10,000 cells at a time.
 In this setup, limiting ``sweepBatchSize`` to 100 would ensure that at most 10,000 cells are swept at a time, but would split the first table in 10 batches when only 1 was necessary.
 Instead, setting ``sweepCellBatchSize`` to 10,000 would allow both tables to be swept in optimal batches.
-In the future, we may deprecate ``sweepBatchSize`` in preference for ``sweepCellBatchSize``.
+In the future, we plan to deprecate ``sweepBatchSize`` in preference for ``sweepCellBatchSize``.
 
-**Set timestampsGetterBatchSize if there is memory pressure on Cassandra even after setting sweepBatchSize down to 1.**
-The sweep job works by requesting at least one full row at a time from the KVS. In some rare cases (most likely when storing large values), the Cassandra KVS will not be able to construct even a single row at a time.
+Memory pressure in Cassandra: decrease timestampsGetterBatchSize
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The sweep job works by requesting at least one full row at a time from the KVS, including all historical versions of each cell in the row.
+In some rare cases, the Cassandra KVS will not be able to construct a single full row in memory, likely due to specific cells being overwritten many times and/or containing very large values.
 This situation will manifest with Cassandra OOMing during sweep even if ``sweepBatchSize`` is set to 1.
 If that happens, you can use ``timestampsGetterBatchSize`` to instruct Cassandra to read a smaller number of columns at a time before aggregating them into a single row metadata to pass on to the sweeper.
 If ``timestampsGetterBatchSize`` is set, Cassandra will read at most one row at a time.
