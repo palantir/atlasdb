@@ -31,6 +31,30 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.21.1
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed a regression with Cassandra KVS where you could no longer create a table if it has the same name as another table in a different namespace.
+
+           To illustrate the issue, assume you have namespace ``namespace1`` and the table ``table1``, and you would like to add a column to ``table1`` and `version` the table by using the new namespace ``namespace2``.
+           On disk you already have the Cassandra table ``namespace1_table1``, and now you are trying to create ``namespace2_table1``.
+           Creating ``namespace2_table1`` would fail because Cassandra KVS believes that the table already exists.
+           This is relevant if you use multiple namespaces when performing schema migrations.
+
+           Note that namespace is an application level abstraction and is not the same as Cassandra keyspace.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1110>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.21.0
 =======
 
@@ -50,13 +74,6 @@ v0.21.0
     *    - |fixed|
          - If ``hashFirstRowComponent()`` is used in a table definition, we no longer throw ``IllegalStateException`` when generating schema code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1091>`__)
- 
-
-    *    - |fixed|
-         - Fixed (and added tests for) a regression where you could no longer have tables
-           with the same table name spanned over multiple namespaces when running on Cassandra.
-	   (`Pull Request <https://github.com/palantir/atlasdb/pull/1110>`__)
-	
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
