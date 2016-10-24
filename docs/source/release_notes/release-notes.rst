@@ -54,6 +54,11 @@ develop
            try the same operation on the same server(s).
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
+    *    - |new|
+         - Added the ability to do custom performance logging for Sweep. This is currently only available for
+           applications that call the ``BackgroundSweeperImpl`` constructor directly. Otherwise a
+           ``NoOpBackgroundSweeperPerformanceLogger`` is used.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1054>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
