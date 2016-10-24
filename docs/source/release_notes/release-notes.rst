@@ -70,6 +70,11 @@ v0.21.1
            Note that namespace is an application level abstraction and is not the same as Cassandra keyspace.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1110>`__)
 
+    *    - |improved|
+         - Sweep no longer immediately falls back to a ``sweepBatchSize`` of 1 after receiving an error.
+           See :ref:`sweep tuning <sweep_tunable_parameters>` documentation for more information on sweep tuning parameters.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1093>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -92,6 +97,7 @@ v0.21.0
     *    - |fixed|
          - If ``hashFirstRowComponent()`` is used in a table or index definition, we no longer throw ``IllegalStateException`` when generating schema code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1091>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
