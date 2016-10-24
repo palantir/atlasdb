@@ -181,13 +181,13 @@ public class OracleDdlTable implements DbDdlTable {
     private String shortenedTableName() {
         return config.tableNameMapper().getShortPrefixedTableName(
                 config.tablePrefix(),
-                DbKvs.internalTableName(tableRef));
+                tableRef);
     }
 
     private String shortenedOverflowTableName() {
         return config.tableNameMapper().getShortPrefixedTableName(
                 config.overflowTablePrefix(),
-                DbKvs.internalTableName(tableRef));
+                tableRef);
     }
 
     private String prefixedTableName() {

@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+
 public interface TableNameMapper {
-    String getShortPrefixedTableName(String tablePrefix, String tableName);
+    String getShortPrefixedTableName(String tablePrefix, TableReference tableRef);
 }
