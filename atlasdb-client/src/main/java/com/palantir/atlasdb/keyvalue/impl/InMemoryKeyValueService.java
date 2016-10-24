@@ -417,7 +417,13 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void truncateTable(TableReference tableRef) {
-        tables.get(tableRef).entries.clear();
+        Table table = tables.get(tableRef);
+        if (table != null) {
+            table.entries.clear();
+        } else {
+            throw new IllegalStateException(
+                    String.format("Truncate called on a table (%s) that did not exist", tableRef));
+        }
     }
 
     @Override
