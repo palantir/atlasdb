@@ -32,23 +32,25 @@ public final class OracleTableNameMapper implements TableNameMapper {
         }
 
         int numCharactersToDrop = fullTableName.length() - PREFIXED_TABLE_NAME_LENGTH;
-
         return tablePrefix + getShortTableName(tableName, numCharactersToDrop) + getRandomSuffix();
     }
 
     private String getShortTableName(String tableName, int numCharactersToDrop) {
         int noChangeUntilIndex = 0;
         String tableNameSubstring = tableName;
-        while (noChangeUntilIndex < tableName.length() && tableNameSubstring.length() - tableNameSubstring.replaceAll("a|e|i|o|u|", "").length() > numCharactersToDrop) {
+        while (noChangeUntilIndex < tableName.length()
+                && tableNameSubstring.length() - tableNameSubstring.replaceAll("a|e|i|o|u|", "").length() > numCharactersToDrop) {
             noChangeUntilIndex++;
             tableNameSubstring = tableNameSubstring.substring(1);
         }
 
-        String tableNameAfterDroppingVowels = tableName.substring(0, noChangeUntilIndex) + tableNameSubstring.replaceAll("a|e|i|o|u|", "");
+        String tableNameAfterDroppingVowels = tableName.substring(0, noChangeUntilIndex)
+                + tableNameSubstring.replaceAll("a|e|i|o|u|", "");
         int numCharactersDropped = tableName.length() - tableNameAfterDroppingVowels.length();
         final int numExtraCharacters = numCharactersToDrop - numCharactersDropped;
         if (numExtraCharacters > 0) {
-            tableNameAfterDroppingVowels = tableNameAfterDroppingVowels.substring(0, tableNameAfterDroppingVowels.length() - numExtraCharacters);
+            tableNameAfterDroppingVowels = tableNameAfterDroppingVowels.substring(0,
+                    tableNameAfterDroppingVowels.length() - numExtraCharacters);
         }
         return tableNameAfterDroppingVowels;
     }

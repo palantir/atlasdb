@@ -49,7 +49,7 @@ public class OracleTableNameMapperTest {
     }
 
     @Test
-    public void shouldReturnDifferentValidOracleTableNamesForLongTableNames() {
+    public void shouldReturnDifferentValidOracleTableNamesForAlmostSimilarLongTableNames() {
         String longTableName1 = LONG_TABLE_NAME_WITHOUT_VOWELS + "1";
         String longTableName2 = LONG_TABLE_NAME_WITHOUT_VOWELS + "2";
 
