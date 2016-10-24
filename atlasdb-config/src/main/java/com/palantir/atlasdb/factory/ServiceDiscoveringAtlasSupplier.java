@@ -58,11 +58,9 @@ public class ServiceDiscoveringAtlasSupplier {
     }
 
     public TimestampService getTimestampService() {
-        if (log.isTraceEnabled()) {
-            log.trace("Fetching timestamp service from thread {}. This should only happen once.",
-                    Thread.currentThread().getName());
-            log.trace("Thread dump: " + ThreadDumps.programmaticThreadDump());
-        }
+        log.info("Fetching timestamp service from thread {}. This should only happen once.",
+                Thread.currentThread().getName());
+        log.info("Thread dump: " + ThreadDumps.programmaticThreadDump());
 
         return timestampService.get();
     }
