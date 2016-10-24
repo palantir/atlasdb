@@ -59,6 +59,8 @@ public class OracleTableNameMapperTest {
         String shortTableName1 = nameMapper.getShortPrefixedTableName(TABLE_PREFIX, longTableName1);
         String shortTableName2= nameMapper.getShortPrefixedTableName(TABLE_PREFIX, longTableName2);
 
+        Assert.assertThat(shortTableName1.length(), is(TABLE_NAME_LENGTH));
+        Assert.assertThat(shortTableName2.length(), is(TABLE_NAME_LENGTH));
         Assert.assertNotEquals(shortTableName1, shortTableName2);
     }
 
