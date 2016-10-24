@@ -336,7 +336,7 @@ public interface KeyValueService extends AutoCloseable {
     /**
      * Truncate tables in the key-value store.
      * <p>
-     * This can be slightly faster than truncating a single table.
+     * This can be slightly faster than repeatedly truncating individual tables.
      *
      * @param tableRefs the name of the tables to truncate.
      *
