@@ -45,6 +45,12 @@ v0.22.0
          - The ``clean-cass-locks-state`` CLI now clears the lock instead of dropping the locks table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1056>`__)
 
+    *    - |new|
+         - Added the ability to do custom performance logging for Sweep. This is currently only available for
+           applications that call the ``BackgroundSweeperImpl`` constructor directly. Otherwise a
+           ``NoOpBackgroundSweeperPerformanceLogger`` is used.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1054>`__)
+
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
