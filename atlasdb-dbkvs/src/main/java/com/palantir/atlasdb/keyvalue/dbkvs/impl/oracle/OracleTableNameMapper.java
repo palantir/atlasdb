@@ -15,28 +15,45 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import java.util.UUID;
+import org.apache.commons.lang3.RandomStringUtils;
 
 import com.palantir.atlasdb.keyvalue.dbkvs.TableNameMapper;
 
 public final class OracleTableNameMapper implements TableNameMapper {
-    public static final int ORACLE_TABLE_NAME_LIMIT = 30; // pk_ + name must be 30 characters
-    private static final int RANDOM_SUFFIX_LENGTH = 5; // pk_ + name must be 30 characters
-    private static final int TABLE_NAME_LENGTH = ORACLE_TABLE_NAME_LIMIT - RANDOM_SUFFIX_LENGTH;
+    public static final int ORACLE_TABLE_NAME_LENGTH = 30;
+    public static final int RANDOM_SUFFIX_LENGTH = 5;
+    public static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_TABLE_NAME_LENGTH - RANDOM_SUFFIX_LENGTH;
 
     @Override
     public String getShortPrefixedTableName(String tablePrefix, String tableName) {
-        if (tablePrefix.length() + tableName.length() < ORACLE_TABLE_NAME_LIMIT) {
-            return tablePrefix + tableName;
+        String fullTableName = tablePrefix + tableName;
+        if (fullTableName.length() < ORACLE_TABLE_NAME_LENGTH) {
+            return fullTableName;
         }
-        int unPrefixedHashSize = TABLE_NAME_LENGTH - tablePrefix.length();
-        String randomHash = UUID.randomUUID().toString().substring(0, RANDOM_SUFFIX_LENGTH);
 
-        if (tableName.length() < unPrefixedHashSize) {
-            return tablePrefix + tableName + randomHash;
-        } else {
-            String prefixedTableName = tablePrefix + tableName.replaceAll("[AaEeIiOoUu]", "");
-            return prefixedTableName.substring(0, Math.min(prefixedTableName.length(), TABLE_NAME_LENGTH)) + randomHash;
+        int numCharactersToDrop = fullTableName.length() - PREFIXED_TABLE_NAME_LENGTH;
+
+        return tablePrefix + getShortTableName(tableName, numCharactersToDrop) + getRandomSuffix();
+    }
+
+    private String getShortTableName(String tableName, int numCharactersToDrop) {
+        int noChangeUntilIndex = 0;
+        String tableNameSubstring = tableName;
+        while (noChangeUntilIndex < tableName.length() && tableNameSubstring.length() - tableNameSubstring.replaceAll("a|e|i|o|u|", "").length() > numCharactersToDrop) {
+            noChangeUntilIndex++;
+            tableNameSubstring = tableNameSubstring.substring(1);
         }
+
+        String tableNameAfterDroppingVowels = tableName.substring(0, noChangeUntilIndex) + tableNameSubstring.replaceAll("a|e|i|o|u|", "");
+        int numCharactersDropped = tableName.length() - tableNameAfterDroppingVowels.length();
+        final int numExtraCharacters = numCharactersToDrop - numCharactersDropped;
+        if (numExtraCharacters > 0) {
+            tableNameAfterDroppingVowels = tableNameAfterDroppingVowels.substring(0, tableNameAfterDroppingVowels.length() - numExtraCharacters);
+        }
+        return tableNameAfterDroppingVowels;
+    }
+
+    private String getRandomSuffix() {
+        return RandomStringUtils.randomAlphanumeric(RANDOM_SUFFIX_LENGTH);
     }
 }

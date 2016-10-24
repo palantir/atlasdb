@@ -200,7 +200,7 @@ public class OracleDdlTable implements DbDdlTable {
 
     private String getPrimaryKeyConstraintName(String tableName) {
         final String primaryKeyConstraintPrefix = "pk_";
-        int unPrefixedNameLength = OracleTableNameMapper.ORACLE_TABLE_NAME_LIMIT - primaryKeyConstraintPrefix.length();
+        int unPrefixedNameLength = OracleTableNameMapper.ORACLE_TABLE_NAME_LENGTH - primaryKeyConstraintPrefix.length();
         return primaryKeyConstraintPrefix + tableName.substring(0, Math.min(unPrefixedNameLength, tableName.length()));
     }
 
