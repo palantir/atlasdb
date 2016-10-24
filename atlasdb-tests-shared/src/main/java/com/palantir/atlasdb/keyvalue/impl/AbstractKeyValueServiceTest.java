@@ -1020,11 +1020,12 @@ public abstract class AbstractKeyValueServiceTest {
     @Test
     public void dropTableShouldBeIdempotent() {
         keyValueService.dropTable(TEST_NONEXISTING_TABLE);
+        keyValueService.dropTable(TEST_NONEXISTING_TABLE);
     }
 
     @Test
     public void createTableShouldBeIdempotent() {
-        // previously created in setup
+        keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
