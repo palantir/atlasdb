@@ -154,22 +154,4 @@ public class TableTasksTest {
         Assert.assertEquals(keys1.keySet().size(), rowsVisited.get());
     }
 
-    @Test
-    public void shouldAllowSameTablenameDifferentNamespace() {
-        TableReference fooBar = TableReference.createUnsafe("foo.bar");
-        TableReference bazBar = TableReference.createUnsafe("baz.bar");
-
-        // try create table in same call
-        kvs.createTables(
-                ImmutableMap.of(
-                        fooBar, AtlasDbConstants.GENERIC_TABLE_METADATA,
-                        bazBar, AtlasDbConstants.GENERIC_TABLE_METADATA));
-
-        // try create table spanned over different calls
-        kvs.createTable(fooBar, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        kvs.createTable(bazBar, AtlasDbConstants.GENERIC_TABLE_METADATA);
-
-        // Simultaneously clean up this test and ensure that tables actually were created
-        kvs.dropTables(ImmutableSet.of(fooBar, bazBar));
-    }
 }

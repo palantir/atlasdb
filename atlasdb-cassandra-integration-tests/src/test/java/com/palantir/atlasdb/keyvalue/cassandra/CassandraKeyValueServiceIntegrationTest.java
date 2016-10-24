@@ -56,14 +56,14 @@ import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
-public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyValueServiceTest {
+public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
     private static final long LOCK_ID = 123456789;
 
     private KeyValueService keyValueService;

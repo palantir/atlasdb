@@ -65,7 +65,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 
-public abstract class AbstractAtlasDbKeyValueServiceTest {
+public abstract class AbstractKeyValueServiceTest {
     protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.pt_kvs_test");
     protected static final TableReference TEST_NONEXISTING_TABLE = TableReference.createFromFullyQualifiedName("ns2.some_nonexisting_table");
 
@@ -971,6 +971,63 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
 
         assertThat(values, is(emptyMap()));
     }
+
+
+    @Test
+    public void shouldAllowSameTablenameDifferentNamespace() {
+        TableReference fooBar = TableReference.createUnsafe("foo.bar");
+        TableReference bazBar = TableReference.createUnsafe("baz.bar");
+
+        // try create table in same call
+        keyValueService.createTables(
+                ImmutableMap.of(
+                        fooBar, AtlasDbConstants.GENERIC_TABLE_METADATA,
+                        bazBar, AtlasDbConstants.GENERIC_TABLE_METADATA));
+
+        // try create table spanned over different calls
+        keyValueService.createTable(fooBar, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        keyValueService.createTable(bazBar, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        // test table actually created
+        keyValueService.getRange(fooBar, RangeRequest.all(), 0L);
+        keyValueService.getRange(bazBar, RangeRequest.all(), 0L);
+
+        // clean up
+        keyValueService.dropTables(ImmutableSet.of(fooBar, bazBar));
+    }
+
+    @Test
+    public void truncateShouldBeIdempotent() {
+        TableReference fooBar = TableReference.createUnsafe("foo.bar");
+        keyValueService.createTable(fooBar, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        keyValueService.truncateTable(fooBar);
+        keyValueService.truncateTable(fooBar);
+
+        keyValueService.dropTable(fooBar);
+    }
+
+    @Test
+    public void truncateOfNonExistantTableShouldThrow() {
+        try {
+            keyValueService.truncateTable(TEST_NONEXISTING_TABLE);
+            Assert.fail("truncate must throw on failure");
+        } catch (RuntimeException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void dropTableShouldBeIdempotent() {
+        keyValueService.dropTable(TEST_NONEXISTING_TABLE);
+    }
+
+    @Test
+    public void createTableShouldBeIdempotent() {
+        // previously created in setup
+        keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+    }
+
 
     private byte[] dynamicColumn(long columnId) {
         return PtBytes.toBytes(columnId);
