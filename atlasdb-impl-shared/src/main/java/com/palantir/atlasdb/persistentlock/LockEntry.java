@@ -17,6 +17,8 @@ package com.palantir.atlasdb.persistentlock;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Optional;
+import java.util.SortedMap;
 
 import org.immutables.value.Value;
 
@@ -31,6 +33,7 @@ public abstract class LockEntry {
     public static final String DELIMITER = "_";
     public static final String REASON_FOR_LOCK_COLUMN = "reasonForLock";
     public static final String EXCLUSIVE_COLUMN = "exclusive";
+    public static final String TOMBSTONE_COLUMN = "tombstone";
 
     @Value.Parameter
     public abstract PersistentLockName lockName();
@@ -43,6 +46,11 @@ public abstract class LockEntry {
 
     @Value.Parameter
     public abstract boolean exclusive();
+
+    @Value.Default
+    public boolean tombstoned() {
+        return false;
+    }
 
     public static LockEntry of(PersistentLockName lockName, long lockId, String reason, boolean exclusive) {
         return ImmutableLockEntry.of(lockName, lockId, reason, exclusive);
@@ -58,10 +66,17 @@ public abstract class LockEntry {
 
     public static LockEntry fromRowResult(RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
         String rowName = asString(rowResult.getRowName());
-        String reason = valueOfColumnInRow(REASON_FOR_LOCK_COLUMN, rowResult);
-        boolean exclusive = Boolean.parseBoolean(valueOfColumnInRow(EXCLUSIVE_COLUMN, rowResult));
+        String reason = valueOfColumnInRow(REASON_FOR_LOCK_COLUMN, rowResult).get();
+        boolean exclusive = Boolean.parseBoolean(valueOfColumnInRow(EXCLUSIVE_COLUMN, rowResult).get());
+        boolean tombstoned = Boolean.parseBoolean(valueOfColumnInRow(TOMBSTONE_COLUMN, rowResult).orElse("false"));
 
-        return ImmutableLockEntry.of(extractLockName(rowName), extractLockId(rowName), reason, exclusive);
+        return ImmutableLockEntry.builder()
+                .lockName(extractLockName(rowName))
+                .lockId(extractLockId(rowName))
+                .reason(reason)
+                .exclusive(exclusive)
+                .tombstoned(tombstoned)
+                .build();
     }
 
     public Map<Cell, byte[]> insertionMap() {
@@ -70,17 +85,29 @@ public abstract class LockEntry {
                 exclusiveCell(), asUtf8Bytes(Boolean.toString(exclusive())));
     }
 
+    public Map<Cell, byte[]> writeTombstoneMap() {
+        return ImmutableMap.of(
+                tombstoneCell(), asUtf8Bytes(Boolean.toString(true)));
+    }
+
     public Multimap<Cell, Long> deletionMapWithTimestamp(long timestamp) {
         return ImmutableMultimap.of(
                 reasonCell(), timestamp,
-                exclusiveCell(), timestamp);
+                exclusiveCell(), timestamp,
+                tombstoneCell(), timestamp);
     }
 
-    private static String valueOfColumnInRow(
+    private static Optional<String> valueOfColumnInRow(
             String columnName,
             RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
-        byte[] contents = rowResult.getColumns().get(asUtf8Bytes(columnName)).getContents();
-        return asString(contents);
+        byte[] columnNameBytes = asUtf8Bytes(columnName);
+        SortedMap<byte[], com.palantir.atlasdb.keyvalue.api.Value> columns = rowResult.getColumns();
+        if (columns.containsKey(columnNameBytes)) {
+            byte[] contents = columns.get(columnNameBytes).getContents();
+            return Optional.of(asString(contents));
+        } else {
+            return Optional.empty();
+        }
     }
 
     private Cell reasonCell() {
@@ -89,6 +116,10 @@ public abstract class LockEntry {
 
     private Cell exclusiveCell() {
         return makeColumnCell(EXCLUSIVE_COLUMN);
+    }
+
+    private Cell tombstoneCell() {
+        return makeColumnCell(TOMBSTONE_COLUMN);
     }
 
     private Cell makeColumnCell(String columnName) {

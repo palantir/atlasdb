@@ -19,7 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 
-import static com.palantir.atlasdb.persistentlock.PersistentLock.LOCKS_TIMESTAMP;
+import static com.palantir.atlasdb.persistentlock.LockStore.LOCKS_TIMESTAMP;
 
 import java.util.Set;
 
