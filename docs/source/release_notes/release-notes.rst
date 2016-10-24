@@ -31,6 +31,28 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.22.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new|
+         - Introduced the deletion lock.
+           This feature is motivated by the fact that running a backup and a KVS deletion (for example as part of sweeping) and
+           can corrupt the backup.
+           The sweep and scrub tasks now acquire a deletion lock before running. When performing a backup, users
+           should use the new :ref:`backup-lock CLI <clis>` to acquire the deletion lock before running a :ref:`backup <backup-restore>`,
+           and to release it after the backup completes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1011>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.21.0
 =======
 
@@ -50,14 +72,6 @@ v0.21.0
          - Will not throw ``IllegalStateException`` on start-up due to hotspotting, if ``hashFirstRowComponent()`` is used in the schema.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1091>`__)
 
-    *    - |fixed|
-         - Introduced the deletion lock.
-           This feature is motivated by the fact that running a backup and a KVS deletion (for example as part of sweeping) and
-           can corrupt the backup.
-           The sweep and scrub tasks now acquire a deletion lock before running. When performing a backup, users
-           should use the new :ref:`backup-lock CLI <clis>` to acquire the deletion lock before running a :ref:`backup <backup-restore>`,
-           and to release it after the backup completes.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1011>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
