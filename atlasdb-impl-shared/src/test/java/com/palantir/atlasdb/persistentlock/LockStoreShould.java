@@ -112,7 +112,6 @@ public class LockStoreShould {
 
         lockStore.allLockEntries();
 
-        lockStore.shutdownBackgroundCleaner();
         ClosableIterator<RowResult<Value>> allLockEntriesInDatabase = keyValueService.getRange(
                 AtlasDbConstants.PERSISTED_LOCKS_TABLE, RangeRequest.all(), LockStore.LOCKS_TIMESTAMP + 1);
         assertThat(ImmutableList.copyOf(allLockEntriesInDatabase).size(), equalTo(0));

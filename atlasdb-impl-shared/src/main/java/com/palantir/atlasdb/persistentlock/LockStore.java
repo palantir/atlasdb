@@ -16,9 +16,6 @@
 package com.palantir.atlasdb.persistentlock;
 
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -38,7 +35,6 @@ public final class LockStore {
     private static final Logger log = LoggerFactory.getLogger(LockStore.class);
 
     private final KeyValueService keyValueService;
-    private final ExecutorService backgroundCleanExecutor = Executors.newSingleThreadExecutor();
 
     private LockStore(KeyValueService keyValueService) {
         this.keyValueService = keyValueService;
@@ -83,7 +79,9 @@ public final class LockStore {
     }
 
     private void backgroundCleanupTombstonedEntries(Set<LockEntry> tombstonedLockEntries) {
-        backgroundCleanExecutor.submit(() -> attemptToCleanupTombstonedEntries(tombstonedLockEntries));
+        Thread backgroundDeletionThread =
+                new Thread(() -> attemptToCleanupTombstonedEntries(tombstonedLockEntries), "Background deletions");
+        backgroundDeletionThread.run();
     }
 
     private void attemptToCleanupTombstonedEntries(Set<LockEntry> tombstonedLockEntries) {
@@ -100,10 +98,5 @@ public final class LockStore {
                     + "See debug-level logging for the exact error. ");
             log.debug("Failed to clean up a tombstoned persistent lock entry for the following reason: ", e);
         }
-    }
-
-    public void shutdownBackgroundCleaner() throws InterruptedException {
-        backgroundCleanExecutor.shutdown();
-        backgroundCleanExecutor.awaitTermination(10, TimeUnit.SECONDS);
     }
 }
