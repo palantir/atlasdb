@@ -68,8 +68,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     @GuardedBy("this")
     private long currentLimit = -1;
-    @GuardedBy("this")
-    private Throwable lastWriteException = null;
+
     private final CassandraClientPool clientPool;
 
     public static TimestampBoundStore create(CassandraKeyValueService kvs) {
@@ -137,7 +136,6 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     ConsistencyLevel.EACH_QUORUM);
         } catch (Exception e) {
             log.error("[CAS] Error trying to set from {} to {}: {}", oldVal, newVal, e.getMessage());
-            lastWriteException = e;
             throw Throwables.throwUncheckedException(e);
         }
         if (!result.isSuccess()) {
@@ -151,11 +149,9 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
             MultipleRunningTimestampServiceError err = new MultipleRunningTimestampServiceError(msg);
             log.error(msg, err);
             log.error("Thread dump: " + ThreadDumps.programmaticThreadDump());
-            lastWriteException = err;
             throw err;
         } else {
             log.trace("[CAS] Setting cached limit to {}.", newVal);
-            lastWriteException = null;
             currentLimit = newVal;
         }
     }
