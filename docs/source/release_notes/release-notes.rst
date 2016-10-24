@@ -31,6 +31,24 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+v0.22.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - The ``clean-cass-locks-state`` CLI would drop the whole _locks table, which is a valid way to clear the schema mutation lock, but this differs from how an actual lockholder clears the _locks table.
+           Now the CLI sets the schema mutation lock to a special "cleared" value to be more consistent with how real lockholders behave.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1056>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.21.1
 =======
 
@@ -72,7 +90,7 @@ v0.21.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1068>`__)
 
     *    - |fixed|
-         - If ``hashFirstRowComponent()`` is used in a table definition, we no longer throw ``IllegalStateException`` when generating schema code.
+         - If ``hashFirstRowComponent()`` is used in a table or index definition, we no longer throw ``IllegalStateException`` when generating schema code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1091>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
