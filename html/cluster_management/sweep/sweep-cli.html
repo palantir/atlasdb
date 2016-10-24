@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>AtlasDB Sweep Cli &mdash; AtlasDB develop documentation</title>
+  <title>AtlasDB Sweep CLI &mdash; AtlasDB develop documentation</title>
   
 
   
@@ -101,7 +101,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../dropwizard-bundle.html">Dropwizard bundle</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="../sweep.html">AtlasDB Sweep Job</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="background-sweep.html">Background Sweep</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">AtlasDB Sweep Cli</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">AtlasDB Sweep CLI</a></li>
 </ul>
 </li>
 </ul>
@@ -143,7 +143,7 @@
       
           <li><a href="../sweep.html">AtlasDB Sweep Job</a> &raquo;</li>
       
-    <li>AtlasDB Sweep Cli</li>
+    <li>AtlasDB Sweep CLI</li>
       <li class="wy-breadcrumbs-aside">
         
           
@@ -158,8 +158,15 @@
            <div itemprop="articleBody">
             
   <div class="section" id="atlasdb-sweep-cli">
-<span id="atlas-sweep-cli"></span><h1>AtlasDB Sweep Cli<a class="headerlink" href="#atlasdb-sweep-cli" title="Permalink to this headline">¶</a></h1>
-<p>If you ever need to force a particular table or namespace to be swept immediately, you can run the CLI <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">sweep</span></code>, which has the following arguments:</p>
+<span id="atlas-sweep-cli"></span><h1>AtlasDB Sweep CLI<a class="headerlink" href="#atlasdb-sweep-cli" title="Permalink to this headline">¶</a></h1>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">For instructions on how to run an AtlasDB CLI, see <a class="reference internal" href="../clis.html#clis"><span class="std std-ref">Command Line Utilities</span></a>.
+If you are using a recent version of AtlasDB, it may be easier to run the command via the
+<a class="reference internal" href="../dropwizard-bundle.html#dropwizard-bundle"><span class="std std-ref">Dropwizard Bundle</span></a> instead.</p>
+</div>
+<p>If you ever need to force a particular table or namespace to be swept immediately, you can run the CLI <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">sweep</span></code>.
+The CLI has the following arguments:</p>
 <table border="1" class="docutils">
 <colgroup>
 <col width="8%" />
@@ -191,22 +198,9 @@
 </tr>
 </tbody>
 </table>
-<p>You must specify exactly one of <code class="docutils literal"><span class="pre">-a</span></code>, <code class="docutils literal"><span class="pre">-n</span></code>, and <code class="docutils literal"><span class="pre">-t</span></code>. If you are sweeping a specific table with <cite>-t</cite>, you may additionally specify the start row with <code class="docutils literal"><span class="pre">-r</span></code>. This is useful for resuming failed jobs.</p>
-<div class="section" id="configuration-options">
-<h2>Configuration options<a class="headerlink" href="#configuration-options" title="Permalink to this headline">¶</a></h2>
-<p>The following options are set as part of your <a class="reference internal" href="../../configuration/index.html#atlas-config"><span class="std std-ref">AtlasDB configuration</span></a>.</p>
-<ul class="simple">
-<li><code class="docutils literal"><span class="pre">sweepBatchSize</span></code>
-If you have extremely large rows, you may want to set a lower batch size. If you have extremely small rows, you may want to up the batch size. (Default: 1000)</li>
-<li><code class="docutils literal"><span class="pre">sweepCellBatchSize</span></code>
-Provides finer control of the maximum number of cells to sweep at a time, independent of how large rows are. (Default: 10,000)</li>
-<li><code class="docutils literal"><span class="pre">sweepPauseMillis</span></code>
-If you want to use less shared DB resources during user-facing hours, you can specify a wait time in between batches. (Default: 0 ms)</li>
-<li><code class="docutils literal"><span class="pre">keyValueService/timestampsGetterBatchSize</span></code>
-(EXPERIMENTAL - Cassandra KVS only): For really, really large rows, you can set a batch size for the number of columns to fetch in a single database query. See <a class="reference internal" href="../../configuration/cassandra_KVS_configuration.html#cassandra-configuration"><span class="std std-ref">Cassandra KVS config</span></a>. (absent by default, meaning fetch all columns per row)</li>
-</ul>
+<p>You must specify exactly one of <code class="docutils literal"><span class="pre">-a</span></code>, <code class="docutils literal"><span class="pre">-n</span></code>, and <code class="docutils literal"><span class="pre">-t</span></code>. If you are sweeping a specific table with <code class="docutils literal"><span class="pre">-t</span></code>, you may additionally specify the start row with <code class="docutils literal"><span class="pre">-r</span></code>. This is useful for resuming failed jobs.</p>
+<p>Additionally, see the list of <a class="reference internal" href="../sweep.html#sweep-tunable-parameters"><span class="std std-ref">tunable sweep parameters</span></a> if the defaults are not working well for your AtlasDB instance.</p>
 <p>Be aware that manual sweeping will ignore all conditions that factor into determining whether background sweepers should run, and that the background sweeper will also be affected by system property changes.</p>
-</div>
 </div>
 
 

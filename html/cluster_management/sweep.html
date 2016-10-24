@@ -101,7 +101,7 @@
 <li class="toctree-l2"><a class="reference internal" href="dropwizard-bundle.html">Dropwizard bundle</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">AtlasDB Sweep Job</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="sweep/background-sweep.html">Background Sweep</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sweep/sweep-cli.html">AtlasDB Sweep Cli</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sweep/sweep-cli.html">AtlasDB Sweep CLI</a></li>
 </ul>
 </li>
 </ul>
@@ -190,21 +190,91 @@ At a high level, this works by periodically scanning the database for rows with 
 </dd>
 </dl>
 </li>
+<li><dl class="first docutils">
+<dt>Improving Stability</dt>
+<dd><ul class="first last simple">
+<li>We have seen situations in the field where reading rows with many historical values caused the underlying Cassandra KVS to run out of memory.
+This situation could have been mitigated by sweeping the table in question.</li>
+</ul>
+</dd>
+</dl>
+</li>
 </ol>
 </div>
 <div class="section" id="ways-to-sweep">
 <h2>Ways to Sweep<a class="headerlink" href="#ways-to-sweep" title="Permalink to this headline">¶</a></h2>
-<p>Under normal use, the sweep job is intended to run at a constant interval as a background process that does not consume significant system resources.
-Older AtlasDB instances with high data scale and months/years of user activity will likely have a large number of accumulated cells that are eligible for sweeping (i.e. a lot of unused data in AtlasDB that has never been swept).
-In this case, consider manually sweeping specific tables to reduce the number of unused cells that have accumulated over time.</p>
-<div class="section" id="background-sweep">
-<h3>Background Sweep<a class="headerlink" href="#background-sweep" title="Permalink to this headline">¶</a></h3>
-<p>For more information on how to set up a regular sweep job on your system, check out the <a class="reference internal" href="sweep/background-sweep.html#background-sweep"><span class="std std-ref">Background Sweep</span></a> documentation.</p>
+<ul class="simple">
+<li><a class="reference internal" href="sweep/background-sweep.html#background-sweep"><span class="std std-ref">Background sweep process</span></a> scheduled periodically:
+Under normal use, the sweep job is intended to run at a constant interval as a background sweep process that does not consume significant system resources.</li>
+<li><a class="reference internal" href="sweep/sweep-cli.html#atlas-sweep-cli"><span class="std std-ref">Sweep CLI</span></a> triggered manually:
+You may trigger the sweep job on demand via the sweep CLI. This could be useful in order to address any one-off performance issues.
+Long-running AtlasDB instances with large data scale may want to manually sweep specific tables before enabling the background sweeper.
+Given that the background sweep job chooses which tables it sweeps, you can ensure that a one-off large sweep job occurs during non-peak usage hours.</li>
+</ul>
 </div>
-<div class="section" id="targeted-sweep">
-<h3>Targeted Sweep<a class="headerlink" href="#targeted-sweep" title="Permalink to this headline">¶</a></h3>
-<p>If there are specific tables that have built up over time to a large size, you might consider running the targeted sweep job.
-For more information about how to do this, check out our documentation on the <a class="reference internal" href="sweep/sweep-cli.html#atlas-sweep-cli"><span class="std std-ref">AtlasDB Sweep Cli</span></a>.</p>
+<div class="section" id="tunable-configuration-options">
+<span id="sweep-tunable-parameters"></span><h2>Tunable Configuration Options<a class="headerlink" href="#tunable-configuration-options" title="Permalink to this headline">¶</a></h2>
+<p>The following optional parameters can be tuned to optimize Sweep performance for a specific AtlasDB instance.
+You may set them as part of your <a class="reference internal" href="../configuration/index.html#atlas-config"><span class="std std-ref">AtlasDB configuration</span></a>, or as a CLI option if you are running sweep using the CLI.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="7%" />
+<col width="7%" />
+<col width="14%" />
+<col width="71%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">AtlasDB Config</th>
+<th class="head">CLI Option</th>
+<th class="head">Default</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">sweepBatchSize</span></code></td>
+<td><code class="docutils literal"><span class="pre">--batch-size</span></code></td>
+<td>1,000</td>
+<td>Maximum number of rows to sweep at once. Decrease this if sweep fails to complete (for example if the sweep job or the underlying KVS runs out of memory). Increasing it may improve sweep performance.</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">sweepCellBatchSize</span></code></td>
+<td><code class="docutils literal"><span class="pre">--cell-batch-size</span></code></td>
+<td>10,000</td>
+<td>Maximum number of cells to sweep at once. Similar to <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> but provides finer control if the row widths vary greatly.</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">sweepPauseMillis</span></code></td>
+<td><code class="docutils literal"><span class="pre">--sleep</span></code></td>
+<td>0 ms</td>
+<td>Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours.</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> (Cassandra KVS only, see <a class="reference internal" href="../configuration/cassandra_KVS_configuration.html#cassandra-configuration"><span class="std std-ref">Cassandra KVS config</span></a>)</td>
+<td>Only specified in config</td>
+<td>Fetch all columns</td>
+<td>Specify a limit on the maximum number of columns to fetch in a single database query. Set this to a number fewer than your number of columns if your Cassandra OOMs when attempting to run sweep with even a small row batch size. This parameter should be used when tuning Sweep for cells with many historical versions.</td>
+</tr>
+</tbody>
+</table>
+<p>Following is more information about when each of the batching parameters is useful.
+In short, the recommendation is:</p>
+<ul class="simple">
+<li>Decrease <code class="docutils literal"><span class="pre">sweepCellBatchSize</span></code> and <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> if there is memory pressure on the client.</li>
+<li>Decrease <code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> if there is memory pressure on Cassandra even after setting <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> down to 1.</li>
+</ul>
+<div class="section" id="memory-pressure-on-atlasdb-client-decrease-sweepcellbatchsize-and-sweepbatchsize">
+<h3>Memory pressure on AtlasDB client: decrease sweepCellBatchSize and sweepBatchSize<a class="headerlink" href="#memory-pressure-on-atlasdb-client-decrease-sweepcellbatchsize-and-sweepbatchsize" title="Permalink to this headline">¶</a></h3>
+<p>Since the number of columns per row can vary widely between tables, setting just a row batch size can lead to sweep batches containing different numbers of cells; setting <code class="docutils literal"><span class="pre">sweepCellBatchSize</span></code> can even this out.
+For example, consider a database that has one table with 1000 rows and 10 columns, a second table with 1000 rows and 100 columns, and that performs best when sweeping at most 10,000 cells at a time.
+In this setup, limiting <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> to 100 would ensure that at most 10,000 cells are swept at a time, but would split the first table in 10 batches when only 1 was necessary.
+Instead, setting <code class="docutils literal"><span class="pre">sweepCellBatchSize</span></code> to 10,000 would allow both tables to be swept in optimal batches.
+In the future, we plan to deprecate <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> in preference for <code class="docutils literal"><span class="pre">sweepCellBatchSize</span></code>.</p>
+</div>
+<div class="section" id="memory-pressure-in-cassandra-decrease-timestampsgetterbatchsize">
+<h3>Memory pressure in Cassandra: decrease timestampsGetterBatchSize<a class="headerlink" href="#memory-pressure-in-cassandra-decrease-timestampsgetterbatchsize" title="Permalink to this headline">¶</a></h3>
+<p>The sweep job works by requesting at least one full row at a time from the KVS, including all historical versions of each cell in the row.
+In some rare cases, the Cassandra KVS will not be able to construct a single full row in memory, likely due to specific cells being overwritten many times and/or containing very large values.
+This situation will manifest with Cassandra OOMing during sweep even if <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> is set to 1.
+If that happens, you can use <code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> to instruct Cassandra to read a smaller number of columns at a time before aggregating them into a single row metadata to pass on to the sweeper.
+If <code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> is set, Cassandra will read at most one row at a time.
+The other batch parameters are still respected, but their values are unlikely to make a difference because the execution time will be dominated by the single-row reads.</p>
 <div class="toctree-wrapper compound">
 </div>
 </div>
