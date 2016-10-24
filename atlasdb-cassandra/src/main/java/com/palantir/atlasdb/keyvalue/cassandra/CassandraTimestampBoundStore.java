@@ -99,13 +99,13 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     throw Throwables.throwUncheckedException(e);
                 }
                 if (result == null) {
-                    log.trace("[GET] Null result, setting upper value to {}", INITIAL_VALUE);
+                    log.info("[GET] Null result, setting timestamp limit to {}", INITIAL_VALUE);
                     cas(client, null, INITIAL_VALUE);
                     return INITIAL_VALUE;
                 }
                 Column column = result.getColumn();
                 currentLimit = PtBytes.toLong(column.getValue());
-                log.trace("[GET] Setting cached limit to {}.", currentLimit);
+                log.info("[GET] Setting cached timestamp limit to {}.", currentLimit);
                 return currentLimit;
             }
         });
@@ -126,7 +126,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private void cas(Client client, Long oldVal, long newVal) {
         final CASResult result;
         try {
-            log.trace("[CAS] Trying to set from {} to {}.", oldVal, newVal);
+            log.trace("[CAS] Trying to set upper limit from {} to {}.", oldVal, newVal);
             result = client.cas(
                     getRowName(),
                     AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
@@ -135,7 +135,8 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     ConsistencyLevel.SERIAL,
                     ConsistencyLevel.EACH_QUORUM);
         } catch (Exception e) {
-            log.error("[CAS] Error trying to set from {} to {}: {}", oldVal, newVal, e.getMessage());
+            String msg = String.format("[CAS] Error trying to set from %s to %s", oldVal, newVal);
+            log.error(msg, e);
             throw Throwables.throwUncheckedException(e);
         }
         if (!result.isSuccess()) {
