@@ -66,7 +66,7 @@ v0.21.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1068>`__)
 
     *    - |fixed|
-         - If ``hashFirstRowComponent()`` is used in a table definition, we no longer throw ``IllegalStateException`` when generating schema code.
+         - If ``hashFirstRowComponent()`` is used in a table or index definition, we no longer throw ``IllegalStateException`` when generating schema code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1091>`__)
  
 
