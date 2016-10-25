@@ -16,10 +16,14 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -38,6 +42,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
  */
 public final class Cell implements Serializable, Comparable<Cell> {
     private static final long serialVersionUID = 1L;
+    private static final Logger log = LoggerFactory.getLogger(Cell.class);
 
     // Oracle has an upper bound on RAW types of 2000.
     public static final int MAX_NAME_LENGTH = 1500;
@@ -62,10 +67,18 @@ public final class Cell implements Serializable, Comparable<Cell> {
         return name != null && name.length > 0 && name.length <= MAX_NAME_LENGTH;
     }
 
-    public static void validateNameValid(byte[] name) {
+    private void validateNameValid(byte[] name) {
         Preconditions.checkNotNull(name, "name cannot be null");
         Preconditions.checkArgument(name.length > 0, "name must be non-empty");
-        Preconditions.checkArgument(name.length <= MAX_NAME_LENGTH, "name must be no larger than " + MAX_NAME_LENGTH);
+
+        String lengthErrorMessage = "name must be no longer than " + MAX_NAME_LENGTH;
+        if (log.isDebugEnabled()) {
+            lengthErrorMessage += ". Cell creation that was attempted was: " + this
+                    + "; since the vast majority of people encountering this problem are using unbounded Strings as"
+                    + " components, it may aid your debugging to know the ASCII interpretation of the bad field was:"
+                    + " [" + new String(name, StandardCharsets.US_ASCII) + "]";
+        }
+        Preconditions.checkArgument(name.length <= MAX_NAME_LENGTH, lengthErrorMessage);
     }
 
     private final byte[] rowName;
@@ -82,11 +95,11 @@ public final class Cell implements Serializable, Comparable<Cell> {
     private Cell(@JsonProperty("rowName") byte[] rowName,
                  @JsonProperty("columnName") byte[] columnName,
                  @JsonProperty("ttlDurationMillis") long ttlDurationMillis) {
-        validateNameValid(rowName);
-        validateNameValid(columnName);
         this.rowName = rowName;
         this.columnName = columnName;
         this.ttlDurationMillis = ttlDurationMillis;
+        validateNameValid(rowName);
+        validateNameValid(columnName);
     }
 
     /**
