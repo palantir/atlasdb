@@ -18,13 +18,12 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 import org.apache.commons.lang3.RandomStringUtils;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.TableNameMapper;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 
-final class OracleTableNameMapper implements TableNameMapper {
+public final class OracleTableNameMapper implements TableNameMapper {
     public static final int ORACLE_MAX_TABLE_NAME_LENGTH = 30;
     public static final int RANDOM_SUFFIX_LENGTH = 5;
-    public static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_MAX_TABLE_NAME_LENGTH - RANDOM_SUFFIX_LENGTH;
+    private static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_MAX_TABLE_NAME_LENGTH - RANDOM_SUFFIX_LENGTH;
 
     @Override
     public String getShortPrefixedTableName(String tablePrefix, TableReference tableRef) {
@@ -33,30 +32,45 @@ final class OracleTableNameMapper implements TableNameMapper {
             return fullTableName;
         }
 
-        int numCharactersToDrop = fullTableName.length() - PREFIXED_TABLE_NAME_LENGTH;
+        int maxTableNameLength = PREFIXED_TABLE_NAME_LENGTH - tablePrefix.length();
         return tablePrefix
-                + getShortTableName(DbKvs.internalTableName(tableRef), numCharactersToDrop)
+                + getShortTableName(DbKvs.internalTableName(tableRef), maxTableNameLength)
                 + getRandomSuffix();
     }
 
-    private String getShortTableName(String tableName, int numCharactersToDrop) {
-        int noChangeUntilIndex = 0;
-        String tableNameSubstring = tableName;
-        while (noChangeUntilIndex < tableName.length()
-                && tableNameSubstring.length() - tableNameSubstring.replaceAll("a|e|i|o|u|", "").length() > numCharactersToDrop) {
-            noChangeUntilIndex++;
-            tableNameSubstring = tableNameSubstring.substring(1);
+    private String getShortTableName(String tableName, int maximumLength) {
+        int numCharactersToDrop = tableName.length() - maximumLength;
+        String tableNameWithoutLastVowels = removeLastKVowels(tableName, numCharactersToDrop);
+        if (tableNameWithoutLastVowels.length() <= maximumLength) {
+            return tableNameWithoutLastVowels;
         }
+        return tableNameWithoutLastVowels.substring(0, maximumLength);
+    }
 
-        String tableNameAfterDroppingVowels = tableName.substring(0, noChangeUntilIndex)
-                + tableNameSubstring.replaceAll("a|e|i|o|u|", "");
-        int numCharactersDropped = tableName.length() - tableNameAfterDroppingVowels.length();
-        final int numExtraCharacters = numCharactersToDrop - numCharactersDropped;
-        if (numExtraCharacters > 0) {
-            tableNameAfterDroppingVowels = tableNameAfterDroppingVowels.substring(0,
-                    tableNameAfterDroppingVowels.length() - numExtraCharacters);
+    private String removeLastKVowels(String tableName, int numVowelsToDrop) {
+        final int kthLastVowelIndex = findKthLastVowelIndex(tableName, numVowelsToDrop);
+        String head = tableName.substring(0, kthLastVowelIndex);
+        String tail = tableName.substring(kthLastVowelIndex);
+        return head + removeAllLowerCaseVowels(tail);
+    }
+
+    private int findKthLastVowelIndex(String tableName, int k) {
+        final String vowels = "aeiou";
+        int vowelsFound = 0;
+        for (int i = tableName.length() - 1; i > 0; i--)
+        {
+            if (vowels.indexOf(tableName.toLowerCase().charAt(i)) >= 0) {
+                vowelsFound++;
+            }
+            if (vowelsFound == k) {
+                return i;
+            }
         }
-        return tableNameAfterDroppingVowels;
+        return 0;
+    }
+
+    private String removeAllLowerCaseVowels(String tableName) {
+        return tableName.replaceAll("a|e|i|o|u|", "");
     }
 
     private String getRandomSuffix() {

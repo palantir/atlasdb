@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.startsWith;
 
 import org.apache.commons.lang.RandomStringUtils;
@@ -55,6 +56,18 @@ public class OracleTableNameMapperTest {
     }
 
     @Test
+    public void shouldReturnValidAndLongestPossibleOracleTableNamesForLongTableNamesJustExceedingByOneCharacter() {
+        final String randomQualifiedTableName = "ns." + RandomStringUtils.randomAlphanumeric(25);
+        final TableReference tableRef = TableReference.createFromFullyQualifiedName(
+                randomQualifiedTableName);
+        String fullTableName = TABLE_PREFIX + DbKvs.internalTableName(tableRef);
+        final String shortTableName = nameMapper.getShortPrefixedTableName(TABLE_PREFIX, tableRef);
+        Assert.assertThat(fullTableName.length(), is(TABLE_NAME_LENGTH + 1));
+        Assert.assertThat(shortTableName.length(), is(TABLE_NAME_LENGTH));
+        Assert.assertTrue(shortTableName.matches(ORACLE_TABLE_NAME_REGEX));
+    }
+
+    @Test
     public void shouldReturnValidAndLongestPossibleOracleTableNamesForLongTableNames() {
         Assert.assertThat(DbKvs.internalTableName(LONG_TABLE_NAME_WITHOUT_VOWELS).length(), greaterThan(TABLE_NAME_LENGTH));
         String shortTableName = nameMapper.getShortPrefixedTableName(TABLE_PREFIX, LONG_TABLE_NAME_WITHOUT_VOWELS);
@@ -82,7 +95,7 @@ public class OracleTableNameMapperTest {
         String shortTableName = nameMapper.getShortPrefixedTableName(TABLE_PREFIX, longTableNameWithManyVowels);
         String expectedName = TABLE_PREFIX + "ns__eeeeeaaaabbbbbbbbbb";
 
-        Assert.assertThat(shortTableName.length(), is(TABLE_NAME_LENGTH));
+        Assert.assertThat(shortTableName.length(), lessThanOrEqualTo(TABLE_NAME_LENGTH));
         Assert.assertTrue(shortTableName.matches(ORACLE_TABLE_NAME_REGEX));
         Assert.assertThat(shortTableName, startsWith(expectedName));
     }
@@ -92,10 +105,23 @@ public class OracleTableNameMapperTest {
         TableReference longTableNameWithLessVowels = TableReference.createFromFullyQualifiedName("ns.eeeeebbbbbbbbbbccccccccccddddddcccc");
 
         String shortTableName = nameMapper.getShortPrefixedTableName(TABLE_PREFIX, longTableNameWithLessVowels);
-        String expectedName = TABLE_PREFIX + "ns__bbbbbbbbbbccccccccccddddddcccc".substring(0, 19);
+        String expectedName = TABLE_PREFIX + "ns__bbbbbbbbbbccccccccccddddddcccc".substring(0, 23);
 
         Assert.assertThat(shortTableName.length(), is(TABLE_NAME_LENGTH));
         Assert.assertTrue(shortTableName.matches(ORACLE_TABLE_NAME_REGEX));
         Assert.assertThat(shortTableName, startsWith(expectedName));
     }
+
+    @Test
+    public void shouldReturnMoreReadableTableNameForTableNamesWithDroppingOnlyVowels() {
+        TableReference longTableNameWithExactVowels = TableReference.createFromFullyQualifiedName("ns.aaaaabbbbbbrrrrrrpppopppp");
+
+        String shortTableName = nameMapper.getShortPrefixedTableName(TABLE_PREFIX, longTableNameWithExactVowels);
+        String expectedName = TABLE_PREFIX + "ns__bbbbbbrrrrrrppppppp";
+
+        Assert.assertThat(shortTableName.length(), is(TABLE_NAME_LENGTH));
+        Assert.assertTrue(shortTableName.matches(ORACLE_TABLE_NAME_REGEX));
+        Assert.assertThat(shortTableName, startsWith(expectedName));
+    }
+
 }
