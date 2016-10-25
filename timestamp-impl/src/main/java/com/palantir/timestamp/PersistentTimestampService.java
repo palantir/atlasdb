@@ -19,23 +19,18 @@ import java.util.concurrent.ExecutorService;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.PTExecutors;
 
 @ThreadSafe
 public class PersistentTimestampService implements TimestampService {
-    private static final Logger log = LoggerFactory.getLogger(PersistentTimestampService.class);
-
     private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
 
     private final ExecutorService executor;
     private final AvailableTimestamps availableTimestamps;
 
     public PersistentTimestampService(AvailableTimestamps availableTimestamps, ExecutorService executor) {
-        log.trace("Creating PersistentTimestampService object. This should only happen once.");
+        DebugLogger.logger.trace("Creating PersistentTimestampService object. This should only happen once.");
 
         this.availableTimestamps = availableTimestamps;
         this.executor = executor;
@@ -45,7 +40,8 @@ public class PersistentTimestampService implements TimestampService {
         PersistentUpperLimit upperLimit = new PersistentUpperLimit(tbs);
         LastReturnedTimestamp lastReturned = new LastReturnedTimestamp(upperLimit.get());
         AvailableTimestamps availableTimestamps = new AvailableTimestamps(lastReturned, upperLimit);
-        ExecutorService executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
+        ExecutorService executor = PTExecutors.newSingleThreadExecutor(
+                PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
 
         return new PersistentTimestampService(availableTimestamps, executor);
     }

@@ -21,8 +21,6 @@ import java.util.Set;
 import javax.net.ssl.SSLSocketFactory;
 
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -71,11 +69,10 @@ import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting.ssl.SslConfiguration;
 import com.palantir.remoting.ssl.SslSocketFactories;
+import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.TimestampService;
 
 public final class TransactionManagers {
-    private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
-
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
 
@@ -104,7 +101,7 @@ public final class TransactionManagers {
             Set<Schema> schemas,
             Environment env,
             boolean allowHiddenTableAccess) {
-        log.trace("TransactionManagers.create. This should only happen once.");
+        DebugLogger.logger.warn("Called TransactionManagers.create. This should only happen once.");
         return create(config, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
     }
 

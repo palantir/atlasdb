@@ -44,6 +44,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 import com.palantir.util.debug.ThreadDumps;
@@ -77,13 +78,13 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     }
 
     private CassandraTimestampBoundStore(CassandraClientPool clientPool) {
-        log.trace("Creating CassandraTimestampBoundStore object. This should only happen once.");
+        DebugLogger.logger.info("Creating CassandraTimestampBoundStore object. This should only happen once.");
         this.clientPool = Preconditions.checkNotNull(clientPool, "clientPool cannot be null");
     }
 
     @Override
     public synchronized long getUpperLimit() {
-        log.trace("[GET] Getting upper limit");
+        DebugLogger.logger.debug("[GET] Getting upper limit");
         return clientPool.runWithRetry(new FunctionCheckedException<Client, Long, RuntimeException>() {
             @Override
             public Long apply(Client client) {
@@ -99,13 +100,13 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     throw Throwables.throwUncheckedException(e);
                 }
                 if (result == null) {
-                    log.info("[GET] Null result, setting timestamp limit to {}", INITIAL_VALUE);
+                    DebugLogger.logger.info("[GET] Null result, setting timestamp limit to {}", INITIAL_VALUE);
                     cas(client, null, INITIAL_VALUE);
                     return INITIAL_VALUE;
                 }
                 Column column = result.getColumn();
                 currentLimit = PtBytes.toLong(column.getValue());
-                log.info("[GET] Setting cached timestamp limit to {}.", currentLimit);
+                DebugLogger.logger.info("[GET] Setting cached timestamp limit to {}.", currentLimit);
                 return currentLimit;
             }
         });
@@ -113,7 +114,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     @Override
     public synchronized void storeUpperLimit(final long limit) {
-        log.trace("[PUT] Storing upper limit of {}.", limit);
+        DebugLogger.logger.debug("[PUT] Storing upper limit of {}.", limit);
         clientPool.runWithRetry(new FunctionCheckedException<Client, Void, RuntimeException>() {
             @Override
             public Void apply(Client client) {
@@ -126,7 +127,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private void cas(Client client, Long oldVal, long newVal) {
         final CASResult result;
         try {
-            log.trace("[CAS] Trying to set upper limit from {} to {}.", oldVal, newVal);
+            DebugLogger.logger.info("[CAS] Trying to set upper limit from {} to {}.", oldVal, newVal);
             result = client.cas(
                     getRowName(),
                     AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
@@ -136,7 +137,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     ConsistencyLevel.EACH_QUORUM);
         } catch (Exception e) {
             String msg = String.format("[CAS] Error trying to set from %s to %s", oldVal, newVal);
-            log.error(msg, e);
+            logError(msg, e);
             throw Throwables.throwUncheckedException(e);
         }
         if (!result.isSuccess()) {
@@ -148,13 +149,18 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     + " leaders or a CLI being run with an embedded timestamp service against an already running"
                     + " service.";
             MultipleRunningTimestampServiceError err = new MultipleRunningTimestampServiceError(msg);
-            log.error(msg, err);
-            log.error("Thread dump: " + ThreadDumps.programmaticThreadDump());
+            logError(msg, err);
+            DebugLogger.logger.error("Thread dump: " + ThreadDumps.programmaticThreadDump());
             throw err;
         } else {
-            log.trace("[CAS] Setting cached limit to {}.", newVal);
+            DebugLogger.logger.info("[CAS] Setting cached limit to {}.", newVal);
             currentLimit = newVal;
         }
+    }
+
+    private void logError(String msg, Throwable cause) {
+        log.error(msg, cause);
+        DebugLogger.logger.error(msg, cause);
     }
 
     private String getCurrentTimestampValues(CASResult result) {

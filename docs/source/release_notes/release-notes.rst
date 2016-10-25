@@ -28,6 +28,24 @@ Changelog
 .. toctree::
   :hidden:
 
+=======
+v0.22.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Added a significant amount of logging aimed at tracking down the ``MultipleRunningTimestampServicesError``.
+           If clients are hitting this error, then they should add trace logging for ``com.palantir.timestamp``.
+           You can direct these logs to a separate file, see the :ref:`documentation <logging-configuration>` for more details.
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1098>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -45,15 +63,6 @@ v0.21.0
          - Sweep now supports batching on a per-cell level, in addition to the previous per-row batching.
            This is useful for keeping batch sizes small if the rows are wide.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/947>`__)
-
-    *    - |improved|
-         - Added a significant amount of logging at the TRACE level, aimed at tracking down the ``MultipleRunningTimestampServicesError``. If clients are hitting this error, then they should add trace logging for the following packages:
-              - ``com.palantir.atlasdb.cassandra``
-              - ``com.palantir.atlasdb.factory``
-              - ``com.palantir.atlasdb.keyvalue.cassandra``
-              - ``com.palantir.timestamp``
-
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1098>`__)
 
     *    - |fixed|
          - Will not throw ``IllegalStateException`` on start-up due to hotspotting, if ``hashFirstRowComponent()`` is used in the schema.
@@ -111,7 +120,7 @@ v0.20.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
     *    - |breaking|
-         - The ``overflowIds`` config parameter in ``OracleDdlConfig`` is now Optional and is overriden by a default sequence supplier if absent.
+         - The ``overflowIds`` config parameter in ``OracleDdlConfig`` is now Optional and is overridden by a default sequence supplier if absent.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>

@@ -19,12 +19,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class AvailableTimestamps {
-    private static final Logger log = LoggerFactory.getLogger(AvailableTimestamps.class);
-
     static final long ALLOCATION_BUFFER_SIZE = 1000 * 1000;
     private static final long MINIMUM_BUFFER = ALLOCATION_BUFFER_SIZE / 2;
     private static final long MAX_TIMESTAMPS_TO_HAND_OUT = 10 * 1000;
@@ -33,7 +28,7 @@ public class AvailableTimestamps {
     private final PersistentUpperLimit upperLimit;
 
     public AvailableTimestamps(LastReturnedTimestamp lastReturnedTimestamp, PersistentUpperLimit upperLimit) {
-        log.trace("Creating AvailableTimestamps object. This should only happen once.");
+        DebugLogger.logger.trace("Creating AvailableTimestamps object. This should only happen once.");
         this.lastReturnedTimestamp = lastReturnedTimestamp;
         this.upperLimit = upperLimit;
     }
@@ -45,7 +40,7 @@ public class AvailableTimestamps {
                 MAX_TIMESTAMPS_TO_HAND_OUT, numberToHandOut);
 
         long targetTimestamp = lastHandedOut() + numberToHandOut;
-        log.trace("Handing out {} timestamps, taking us to {}.", numberToHandOut, targetTimestamp);
+        DebugLogger.logger.trace("Handing out {} timestamps, taking us to {}.", numberToHandOut, targetTimestamp);
         return handOutTimestamp(targetTimestamp);
     }
 
@@ -54,12 +49,13 @@ public class AvailableTimestamps {
         long buffer = currentUpperLimit - lastHandedOut();
 
         if (buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, MINUTES)) {
-            log.trace("refreshBuffer: refreshing and allocating timestamps. Buffer {}, Current upper limit {}.",
+            DebugLogger.logger.trace(
+                    "refreshBuffer: refreshing and allocating timestamps. Buffer {}, Current upper limit {}.",
                     buffer,
                     currentUpperLimit);
             allocateEnoughTimestampsToHandOut(lastHandedOut() + ALLOCATION_BUFFER_SIZE);
         } else {
-            log.trace("refreshBuffer: refreshing, but not allocating");
+            DebugLogger.logger.trace("refreshBuffer: refreshing, but not allocating");
         }
     }
 
@@ -87,10 +83,10 @@ public class AvailableTimestamps {
     }
 
     private void allocateEnoughTimestampsToHandOut(long timestamp) {
-        log.trace("Increasing limit to at least {}.", timestamp);
+        DebugLogger.logger.trace("Increasing limit to at least {}.", timestamp);
         upperLimit.increaseToAtLeast(timestamp);
-        if (log.isTraceEnabled()) {
-            log.trace("Increased to at least {}. Limit is now {}.", timestamp, getUpperLimit());
+        if (DebugLogger.logger.isTraceEnabled()) {
+            DebugLogger.logger.trace("Increased to at least {}. Limit is now {}.", timestamp, getUpperLimit());
         }
     }
 
