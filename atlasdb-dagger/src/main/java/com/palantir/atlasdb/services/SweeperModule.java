@@ -44,7 +44,7 @@ public class SweeperModule {
                                                   Follower follower) {
         return new SweepTaskRunnerImpl(
                 kvs,
-                new DeletionLock(kvs),
+                DeletionLock.create(kvs),
                 txm::getUnreadableTimestamp,
                 txm::getImmutableTimestamp,
                 transactionService,

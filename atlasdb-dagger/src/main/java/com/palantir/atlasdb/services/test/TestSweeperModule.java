@@ -67,7 +67,7 @@ public class TestSweeperModule {
                                                   Follower follower) {
         Supplier<Long> unreadable = unreadableTs.isPresent() ? unreadableTs.get() : txm::getUnreadableTimestamp;
         Supplier<Long> immutable = immutableTs.isPresent() ? immutableTs.get() : txm::getImmutableTimestamp;
-        DeletionLock deletionLock = new DeletionLock(kvs);
+        DeletionLock deletionLock = DeletionLock.create(kvs);
         return new SweepTaskRunnerImpl(
                 kvs,
                 deletionLock,

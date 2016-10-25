@@ -110,7 +110,7 @@ public class DefaultCleanerBuilder {
     private Scrubber buildScrubber(Supplier<Long> unreadableTimestampSupplier,
                                    Supplier<Long> immutableTimestampSupplier) {
         ScrubberStore scrubberStore = KeyValueServiceScrubberStore.create(keyValueService);
-        DeletionLock deletionLock = new DeletionLock(keyValueService);
+        DeletionLock deletionLock = DeletionLock.create(keyValueService);
         return Scrubber.create(
                 keyValueService,
                 deletionLock,

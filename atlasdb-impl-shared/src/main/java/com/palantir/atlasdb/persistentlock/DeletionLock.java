@@ -23,8 +23,12 @@ public class DeletionLock {
     private final PersistentLock persistentLock;
     public static final PersistentLockName DELETION_LOCK_NAME = PersistentLockName.of("DeletionLock");
 
-    public DeletionLock(KeyValueService keyValueService) {
-        this.persistentLock = PersistentLock.create(keyValueService);
+    public static DeletionLock create(KeyValueService keyValueService) {
+        return new DeletionLock(PersistentLock.create(keyValueService));
+    }
+
+    private DeletionLock(PersistentLock persistentLock) {
+        this.persistentLock = persistentLock;
     }
 
     public <T> T runWithLock(Supplier<T> supplier, String reason) throws PersistentLockIsTakenException {

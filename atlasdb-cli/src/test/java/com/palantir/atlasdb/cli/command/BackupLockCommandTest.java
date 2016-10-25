@@ -56,7 +56,7 @@ public class BackupLockCommandTest {
     }
 
     private InMemoryTestRunner makeRunner(String... args) {
-        return new InMemoryTestRunner(PersistentLockCommand.class, args);
+        return new InMemoryTestRunner(BackupLockCommand.class, args);
     }
 
     @Test

@@ -175,7 +175,7 @@ public final class TransactionManagers {
                 cleaner,
                 allowHiddenTableAccess);
 
-        DeletionLock deletionLock = new DeletionLock(kvs);
+        DeletionLock deletionLock = DeletionLock.create(kvs);
         SweepTaskRunner sweepRunner = new SweepTaskRunnerImpl(
                 kvs,
                 deletionLock,

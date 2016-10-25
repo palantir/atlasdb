@@ -92,7 +92,7 @@ public class SweepTaskRunnerImplTest {
     private final TransactionService mockTransactionService = mock(TransactionService.class);
     private final CellsSweeper mockCellsSweeper = mock(CellsSweeper.class);
     private final SweepStrategyManager mockSweepStrategyManager = mock(SweepStrategyManager.class);
-    private final DeletionLock deletionLock = new DeletionLock(new InMemoryKeyValueService(false));
+    private final DeletionLock deletionLock = DeletionLock.create(new InMemoryKeyValueService(false));
     private final SweepTaskRunnerImpl sweepTaskRunner = new SweepTaskRunnerImpl(
             mockKvs,
             deletionLock,

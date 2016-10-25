@@ -99,7 +99,7 @@ public abstract class AbstractSweeperTest {
         setupTables(kvs);
         Supplier<Long> tsSupplier = sweepTimestamp::get;
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
-        DeletionLock deletionLock = new DeletionLock(kvs);
+        DeletionLock deletionLock = DeletionLock.create(kvs);
         sweepRunner = new SweepTaskRunnerImpl(kvs, deletionLock, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
         setupBackgroundSweeper(DEFAULT_BATCH_SIZE);
     }
