@@ -63,11 +63,11 @@ v0.21.1
          - Fixed a regression with Cassandra KVS where you could no longer create a table if it has the same name as another table in a different namespace.
 
            To illustrate the issue, assume you have namespace ``namespace1`` and the table ``table1``, and you would like to add a column to ``table1`` and `version` the table by using the new namespace ``namespace2``.
-           On disk you already have the Cassandra table ``namespace1_table1``, and now you are trying to create ``namespace2_table1``.
-           Creating ``namespace2_table1`` would fail because Cassandra KVS believes that the table already exists.
+           On disk you already have the Cassandra table ``namespace1__table1``, and now you are trying to create ``namespace2__table1``.
+           Creating ``namespace2__table1`` would fail because Cassandra KVS believes that the table already exists.
            This is relevant if you use multiple namespaces when performing schema migrations.
 
-           Note that namespace is an application level abstraction and is not the same as Cassandra keyspace.
+           Note that namespace is an application level abstraction defined as part of a AtlasDB schema and is not the same as Cassandra keyspace.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1110>`__)
 
     *    - |improved|
