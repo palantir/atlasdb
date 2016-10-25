@@ -43,6 +43,7 @@ import org.apache.cassandra.thrift.CqlRow;
 import org.apache.thrift.TException;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -53,6 +54,8 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.config.LockLeader;
+import com.palantir.atlasdb.containers.CassandraContainer;
+import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -65,6 +68,10 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyValueServiceTest {
     private static final long LOCK_ID = 123456789;
+
+    @ClassRule
+    public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
+            .with(new CassandraContainer());
 
     private KeyValueService keyValueService;
     private ExecutorService executorService;
@@ -101,8 +108,8 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.KVS_CONFIG),
-                CassandraTestSuite.LEADER_CONFIG,
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+                CassandraContainer.LEADER_CONFIG,
                 logger);
     }
 
@@ -181,7 +188,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
         CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
                 ckvs.clientPool,
-                CassandraTestSuite.KVS_CONFIG);
+                CassandraContainer.KVS_CONFIG);
         SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
                 ckvs.clientPool,
                 new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
