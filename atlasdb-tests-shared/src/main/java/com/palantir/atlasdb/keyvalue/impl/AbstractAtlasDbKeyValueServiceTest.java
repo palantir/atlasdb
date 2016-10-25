@@ -520,6 +520,13 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         assertEquals(TEST_TABLE, keyValueService.getAllTableNames().iterator().next());
     }
 
+
+    @Test
+    public void testCanDropDroppedTable() {
+        keyValueService.dropTable(TEST_TABLE);
+        keyValueService.dropTable(TEST_TABLE);
+    }
+
     @Test
     public void testTableMetadata() {
         assertEquals(AtlasDbConstants.GENERIC_TABLE_METADATA.length, keyValueService.getMetadataForTable(TEST_TABLE).length);

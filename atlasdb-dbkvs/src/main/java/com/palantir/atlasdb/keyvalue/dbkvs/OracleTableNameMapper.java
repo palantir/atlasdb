@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.apache.commons.lang3.RandomStringUtils;
 
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 
@@ -27,6 +28,7 @@ public final class OracleTableNameMapper implements TableNameMapper {
 
     @Override
     public String getShortPrefixedTableName(String tablePrefix, TableReference tableRef) {
+        Preconditions.checkState(tablePrefix.length() <= 7, "The tablePrefix can be at most 7 characters long");
         String fullTableName = tablePrefix + DbKvs.internalTableName(tableRef);
         if (fullTableName.length() <= ORACLE_MAX_TABLE_NAME_LENGTH) {
             return fullTableName;
@@ -70,7 +72,7 @@ public final class OracleTableNameMapper implements TableNameMapper {
     }
 
     private String removeAllLowerCaseVowels(String tableName) {
-        return tableName.replaceAll("a|e|i|o|u|", "");
+        return tableName.replaceAll("a|e|i|o|u", "");
     }
 
     private String getRandomSuffix() {

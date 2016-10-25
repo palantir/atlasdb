@@ -122,7 +122,14 @@ public class OracleDdlTable implements DbDdlTable {
     }
 
     private void dropTableInternal(String fullTableName) {
-        executeIgnoringError("DROP TABLE " + getInternalTableName(fullTableName) + " PURGE",
+        final String internalTableName;
+        try {
+             internalTableName = getInternalTableName(fullTableName);
+        } catch (IllegalArgumentException e) {
+            log.info("Table " + tableRef.getQualifiedName() + " not dropped as it does not exist");
+            return;
+        }
+        executeIgnoringError("DROP TABLE " + internalTableName + " PURGE",
                 ORACLE_NOT_EXISTS_ERROR);
         conns.get().executeUnregisteredQuery(
                 "DELETE FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
@@ -218,6 +225,9 @@ public class OracleDdlTable implements DbDdlTable {
                         "SELECT short_table_name FROM %s WHERE table_name = ?",
                         AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE),
                 tableName);
+        if (result.size() < 1) {
+            throw new IllegalArgumentException("There is no table mapping entry for : " + tableName + ". This must be because the table does not exist" );
+        }
         return result.get(0).getString("short_table_name");
     }
 }

@@ -28,8 +28,8 @@ public class RocksDbSweeperTest extends AbstractSweeperTest {
     private File tempDir;
 
     @After
-    public void tearDown() {
-        super.teardown();
+    public void close() {
+        super.close();
         for (File file : Files.fileTreeTraverser().postOrderTraversal(tempDir)) {
             file.delete();
         }

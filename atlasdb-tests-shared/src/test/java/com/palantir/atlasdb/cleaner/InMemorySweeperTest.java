@@ -29,8 +29,8 @@ public class InMemorySweeperTest extends AbstractSweeperTest {
 
     @Override
     @After
-    public void teardown() {
-        super.teardown();
+    public void close() {
+        super.close();
         exec.shutdown();
     }
 
