@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
+package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.apache.commons.lang3.RandomStringUtils;
 
@@ -21,15 +21,15 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.TableNameMapper;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 
-public final class OracleTableNameMapper implements TableNameMapper {
-    public static final int ORACLE_TABLE_NAME_LENGTH = 30;
+final class OracleTableNameMapper implements TableNameMapper {
+    public static final int ORACLE_MAX_TABLE_NAME_LENGTH = 30;
     public static final int RANDOM_SUFFIX_LENGTH = 5;
-    public static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_TABLE_NAME_LENGTH - RANDOM_SUFFIX_LENGTH;
+    public static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_MAX_TABLE_NAME_LENGTH - RANDOM_SUFFIX_LENGTH;
 
     @Override
     public String getShortPrefixedTableName(String tablePrefix, TableReference tableRef) {
         String fullTableName = tablePrefix + DbKvs.internalTableName(tableRef);
-        if (fullTableName.length() < ORACLE_TABLE_NAME_LENGTH) {
+        if (fullTableName.length() <= ORACLE_MAX_TABLE_NAME_LENGTH) {
             return fullTableName;
         }
 

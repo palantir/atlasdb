@@ -23,7 +23,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowValue;
 
 public class OracleRawQueryFactory extends OracleQueryFactory {
     public OracleRawQueryFactory(String tableName, OracleDdlConfig config) {
-        super(tableName, config);
+        super(config, tableName);
     }
 
     @Override

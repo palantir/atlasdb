@@ -28,9 +28,12 @@ import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
 
 public class OracleOverflowQueryFactory extends OracleQueryFactory {
     private final String overflowTableName;
-    public OracleOverflowQueryFactory(String tableName,
-            OracleDdlConfig config, String overflowTableName) {
-        super(tableName, config);
+
+    public OracleOverflowQueryFactory(
+            OracleDdlConfig config,
+            String tableName,
+            String overflowTableName) {
+        super(config, tableName);
         this.overflowTableName = overflowTableName;
     }
 
@@ -79,7 +82,7 @@ public class OracleOverflowQueryFactory extends OracleQueryFactory {
     }
 
     private FullQuery getNewOverflowQuery(ArrayHandler arg) {
-        String query = " /* SELECT_OVERFLOW (" + tableName + ") */ "
+        String query = " /* SELECT_OVERFLOW (" + overflowTableName + ") */ "
                 + " SELECT"
                 + "   /*+ USE_NL(t o) LEADING(t o) INDEX(o pk_" + overflowTableName + ") */ "
                 + "   o.id, o.val "

@@ -35,12 +35,12 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
 
 public abstract class OracleQueryFactory implements DbQueryFactory {
-    protected final String tableName;
     protected final OracleDdlConfig config;
+    protected final String tableName;
 
-    public OracleQueryFactory(String tableName, OracleDdlConfig config) {
-        this.tableName = tableName;
+    public OracleQueryFactory(OracleDdlConfig config, String tableName) {
         this.config = config;
+        this.tableName = tableName;
     }
 
     @Override

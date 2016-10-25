@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
+package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -41,6 +42,16 @@ public class OracleTableNameMapperTest {
     public void shouldNotModifyNameForShortTableNames() {
         String fullTableName = TABLE_PREFIX + DbKvs.internalTableName(SHORT_TABLE_NAME);
         Assert.assertThat(nameMapper.getShortPrefixedTableName(TABLE_PREFIX, SHORT_TABLE_NAME), is(fullTableName));
+    }
+
+    @Test
+    public void shouldNotModifyNameForTableNamesExactlyFittingOracleTableNameLimit() {
+        final String randomQualifiedTableName = "ns." + RandomStringUtils.random(24);
+        final TableReference tableRef = TableReference.createFromFullyQualifiedName(
+                randomQualifiedTableName);
+        String fullTableName = TABLE_PREFIX + DbKvs.internalTableName(tableRef);
+        Assert.assertThat(fullTableName.length(), is(TABLE_NAME_LENGTH));
+        Assert.assertThat(nameMapper.getShortPrefixedTableName(TABLE_PREFIX, tableRef), is(fullTableName));
     }
 
     @Test
@@ -77,7 +88,7 @@ public class OracleTableNameMapperTest {
     }
 
     @Test
-    public void shouldReturnMoreReadableTableNameForTableNamesWithVowelsAndStillLong() {
+    public void shouldReturnMoreReadableTableNameForTableNamesWithFewerVowels() {
         TableReference longTableNameWithLessVowels = TableReference.createFromFullyQualifiedName("ns.eeeeebbbbbbbbbbccccccccccddddddcccc");
 
         String shortTableName = nameMapper.getShortPrefixedTableName(TABLE_PREFIX, longTableNameWithLessVowels);
