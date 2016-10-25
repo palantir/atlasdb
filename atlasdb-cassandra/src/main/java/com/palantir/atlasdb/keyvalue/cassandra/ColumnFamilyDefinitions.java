@@ -42,7 +42,12 @@ final class ColumnFamilyDefinitions {
         // Utility class
     }
 
-    // update isMatchingCf if you update this method
+    /**
+     *  Provides a default column family definition given raw metadata, which is generally obtained from the _metadata
+     *  table.
+     *
+     *  Warning to developers: you must update CKVS.isMatchingCf if you update this method
+     */
     static CfDef getCfDef(String keyspace, TableReference tableRef, byte[] rawMetadata) {
         Map<String, String> compressionOptions = Maps.newHashMap();
         CfDef cf = getStandardCfDef(keyspace, AbstractKeyValueService.internalTableName(tableRef));
@@ -115,7 +120,12 @@ final class ColumnFamilyDefinitions {
         return cf;
     }
 
-    // update CKVS.isMatchingCf if you update this method
+    /**
+     *  Provides a basic column family definition. This is a subset of #getCfDef, and does not
+     *  include compression options, but also does not require raw metadata to be passed in.
+     *
+     *  Warning to developers: you must update CKVS.isMatchingCf if you update this method
+    */
     static CfDef getStandardCfDef(String keyspace, String internalTableName) {
         CfDef cf = new CfDef(keyspace, internalTableName);
         cf.setComparator_type("CompositeType(BytesType,LongType)");
