@@ -47,12 +47,12 @@ v0.21.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/947>`__)
 
     *    - |improved|
-         - Added a significant amount of logging at the TRACE level, aimed at tracking down the ``MultipleRunningTimestampServicesError``.
-           If clients are hitting this error, then they should add trace logging for the following packages:
+         - Added a significant amount of logging at the TRACE level, aimed at tracking down the ``MultipleRunningTimestampServicesError``. If clients are hitting this error, then they should add trace logging for the following packages:
               - ``com.palantir.atlasdb.cassandra``
               - ``com.palantir.atlasdb.factory``
               - ``com.palantir.atlasdb.keyvalue.cassandra``
               - ``com.palantir.timestamp``
+
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1098>`__)
 
     *    - |fixed|
