@@ -307,15 +307,26 @@ public class SweepTaskRunnerImplTest {
     public void throwIfDeletionLockIsTaken() throws PersistentLockIsTakenException {
         TableReference tableReference = TableReference.createWithEmptyNamespace("someTable");
 
-        int rowBatchSize = 10;
-        int cellBatchSize = 1000;
+        DeletionLock mockDeletionLock = mock(DeletionLock.class);
         when(mockDeletionLock.runWithLockNonExclusively(any(), anyString())).thenThrow(
                 new PersistentLockIsTakenException(ImmutableSet.of()));
+
+        SweepTaskRunnerImpl nonLockingSweepTaskRunner = new SweepTaskRunnerImpl(
+                mockKvs,
+                mockDeletionLock,
+                mockUnreadableTimestampSupplier,
+                mockImmutableTimestampSupplier,
+                mockTransactionService,
+                mockSweepStrategyManager,
+                mockCellsSweeper);
+
+        int rowBatchSize = 10;
+        int cellBatchSize = 1000;
         when(mockKvs.getMetadataForTable(tableReference)).thenReturn(new byte[1]);
 
         expectedException.expect(RuntimeException.class);
         expectedException.expectCause(instanceOf(PersistentLockIsTakenException.class));
-        sweepTaskRunner.run(tableReference, rowBatchSize, cellBatchSize, null);
+        nonLockingSweepTaskRunner.run(tableReference, rowBatchSize, cellBatchSize, null);
     }
 
     private Multimap<Cell, Long> twoCommittedTimestampsForSingleCell() {
