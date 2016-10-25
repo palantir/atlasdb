@@ -49,6 +49,11 @@ develop
          - Fixed an issue where some locks were not being tracked for continuous refreshing due to one of the lock methods not being
            overridden by the ``LockRefreshingLockService``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1134>`__)
+    *    - |improved|
+         - Additional debugging available for those receiving 'name must be no longer than 1500 bytes' errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
+    *    - |breaking|
+         - Cell.validateNameValid is now private
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
