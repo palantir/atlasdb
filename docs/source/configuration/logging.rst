@@ -26,7 +26,7 @@ To do this, add the following to your logging configuration:
 
     logging:
       loggers:
-        com.palantir.timestamps:
+        com.palantir.timestamp:
           level: TRACE
           additive: false
           appenders:
