@@ -44,6 +44,10 @@ public final class TableReference {
         return new TableReference(Namespace.EMPTY_NAMESPACE, tablename);
     }
 
+    /**
+     * @deprecated please use createFromFullyQualifiedName or createWithEmptyNamespace.
+     */
+    @Deprecated
     public static TableReference createUnsafe(String fullTableName) {
         return fullTableName.indexOf('.') < 0
                 ? createWithEmptyNamespace(fullTableName)
