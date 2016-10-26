@@ -15,9 +15,3 @@ dependencies {
   testCompile 'org.mockito:mockito-core:' + libVersions.mockito
   testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
 }
-
-test {
-    maxHeapSize = "1024m"
-    exclude '**/*IntegrationTest*'
-    maxParallelForks 2
-}
