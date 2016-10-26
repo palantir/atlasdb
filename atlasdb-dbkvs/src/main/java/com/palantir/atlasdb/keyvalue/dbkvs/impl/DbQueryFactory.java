@@ -48,4 +48,5 @@ public interface DbQueryFactory {
 
     FullQuery getRowsColumnRangeCountsQuery(Iterable<byte[]> rows, long ts, ColumnRangeSelection columnRangeSelection);
     FullQuery getRowsColumnRangeQuery(Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow, long ts);
+    FullQuery getRowsColumnRangeQuery(RowsColumnRangeBatchRequest partition, long ts);
 }

@@ -51,6 +51,9 @@ public interface DbReadTable {
     ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(
             Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow,
             long ts);
+    ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(
+            RowsColumnRangeBatchRequest rowsColumnRangeBatch,
+            long ts);
 
     boolean hasOverflowValues();
     ClosableIterator<AgnosticLightResultRow> getOverflow(Collection<OverflowValue> overflowIds);
