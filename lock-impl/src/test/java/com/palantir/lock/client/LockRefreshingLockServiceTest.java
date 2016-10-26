@@ -46,7 +46,7 @@ public class LockRefreshingLockServiceTest {
 //    private LockDescriptor lock2;
 
     @Before public void setUp() {
-        server = LockRefreshingLockService.create(LockServiceImpl.create(
+        server = new LockRefreshingLockService(LockServiceImpl.create(
                 new LockServerOptions() {
                     private static final long serialVersionUID = 1L;
                     @Override public boolean isStandaloneServer() {

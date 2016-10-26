@@ -46,6 +46,11 @@ develop
            Now the CLI sets the schema mutation lock to a special "cleared" value to be more consistent with how real lockholders behave.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1056>`__)
 
+    *    - |fixed|
+         - Fixed an issue where some locks were not being tracked for continuous refreshing due to one of the lock methods not being
+           overridden by the ``LockRefreshingLockService``.  Code has been refactored to reduce the risk of this mistake happening again.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1123>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
