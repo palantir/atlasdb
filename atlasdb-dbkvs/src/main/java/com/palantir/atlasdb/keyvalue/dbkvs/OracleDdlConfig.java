@@ -61,11 +61,6 @@ public abstract class OracleDdlConfig extends DdlConfig {
         return false;
     }
 
-    @Value.Default
-    public TableNameMapper tableNameMapper() {
-        return new OracleTableNameMapper();
-    }
-
     @Override
     public Supplier<DbTableFactory> tableFactorySupplier() {
         return () -> new OracleDbTableFactory(this);

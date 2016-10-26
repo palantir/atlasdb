@@ -45,6 +45,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
@@ -330,9 +331,7 @@ public class DbKvsGetRanges {
 
     private String getPrefixedTableName(TableReference tableRef) {
         if (config.type().equals(OracleDdlConfig.TYPE)) {
-            return ((OracleDdlConfig) config)
-                    .tableNameMapper()
-                    .getShortPrefixedTableName(config.tablePrefix(), tableRef);
+            return OracleTableNameMapper.getShortPrefixedTableName(config.tablePrefix(), tableRef);
         } else {
             return config.tablePrefix() + DbKvs.internalTableName(tableRef);
         }

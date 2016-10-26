@@ -32,6 +32,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
@@ -224,10 +225,10 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     private String getShortTableName() {
-        return config.tableNameMapper().getShortPrefixedTableName(config.tablePrefix(), tableRef);
+        return OracleTableNameMapper.getShortPrefixedTableName(config.tablePrefix(), tableRef);
     }
 
     private String getShortOverflowTableName() {
-        return config.tableNameMapper().getShortPrefixedTableName(config.overflowTablePrefix(), tableRef);
+        return OracleTableNameMapper.getShortPrefixedTableName(config.overflowTablePrefix(), tableRef);
     }
 }

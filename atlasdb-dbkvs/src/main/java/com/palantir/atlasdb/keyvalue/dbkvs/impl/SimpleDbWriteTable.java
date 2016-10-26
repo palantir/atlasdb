@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
@@ -135,6 +136,6 @@ public class SimpleDbWriteTable implements DbWriteTable {
         if (!config.type().equals(OracleDdlConfig.TYPE)) {
             return config.tablePrefix() + DbKvs.internalTableName(tableRef);
         }
-        return ((OracleDdlConfig) config).tableNameMapper().getShortPrefixedTableName(config.tablePrefix(), tableRef);
+        return OracleTableNameMapper.getShortPrefixedTableName(config.tablePrefix(), tableRef);
     }
 }

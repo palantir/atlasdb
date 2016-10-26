@@ -26,7 +26,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSize;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSizeCache;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
@@ -156,11 +155,11 @@ public class OracleDdlTable implements DbDdlTable {
     }
 
     private String getShortTableName() {
-        return config.tableNameMapper().getShortPrefixedTableName(config.tablePrefix(), tableRef);
+        return OracleTableNameMapper.getShortPrefixedTableName(config.tablePrefix(), tableRef);
     }
 
     private String getShortOverflowTableName() {
-        return config.tableNameMapper().getShortPrefixedTableName(config.overflowTablePrefix(), tableRef);
+        return OracleTableNameMapper.getShortPrefixedTableName(config.overflowTablePrefix(), tableRef);
     }
 
     private String getPrimaryKeyConstraintName(String tableName) {

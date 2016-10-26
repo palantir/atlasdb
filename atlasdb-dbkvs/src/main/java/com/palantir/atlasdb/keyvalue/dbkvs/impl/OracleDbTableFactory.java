@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowWriteTable;
@@ -79,11 +80,11 @@ public class OracleDbTableFactory implements DbTableFactory {
     }
 
     private String getShortTableName(TableReference tableRef) {
-        return config.tableNameMapper().getShortPrefixedTableName(config.tablePrefix(), tableRef);
+        return OracleTableNameMapper.getShortPrefixedTableName(config.tablePrefix(), tableRef);
     }
 
     private String getShortOverflowTableName(TableReference tableRef) {
-        return config.tableNameMapper().getShortPrefixedTableName(config.overflowTablePrefix(), tableRef);
+        return OracleTableNameMapper.getShortPrefixedTableName(config.overflowTablePrefix(), tableRef);
     }
 
     @Override
