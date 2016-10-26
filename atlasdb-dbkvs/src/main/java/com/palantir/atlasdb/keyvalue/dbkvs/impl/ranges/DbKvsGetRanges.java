@@ -36,7 +36,6 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.UnsignedBytes;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -45,6 +44,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
@@ -202,8 +202,8 @@ public class DbKvsGetRanges {
             String query = String.format(
                     SIMPLE_ROW_SELECT_TEMPLATE,
                     DbKvs.internalTableName(tableRef),
-                    prefixedTableName(tableRef),
-                    dbType == DBType.ORACLE ? getInternalTableName(tableRef) : prefixedTableName(tableRef),
+                    getPrefixedTableName(tableRef),
+                    getPrefixedTableName(tableRef),
                     extraWhere,
                     order);
             String limitQuery = BasicSQLUtils.limitQuery(query, numRowsToGet, args, dbType);
@@ -309,8 +309,8 @@ public class DbKvsGetRanges {
         return String.format(
                 SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE,
                 DbKvs.internalTableName(tableRef),
-                prefixedTableName(tableRef),
-                prefixedTableName(tableRef),
+                getPrefixedTableName(tableRef),
+                getPrefixedTableName(tableRef),
                 extraWhere,
                 order);
     }
@@ -322,23 +322,20 @@ public class DbKvsGetRanges {
         return String.format(
                 SIMPLE_ROW_SELECT_ONE_ORACLE_TEMPLATE,
                 DbKvs.internalTableName(tableRef),
-                prefixedTableName(tableRef),
+                getPrefixedTableName(tableRef),
                 minMax,
-                getInternalTableName(tableRef),
+                getPrefixedTableName(tableRef),
                 extraWhere);
     }
 
-    private String prefixedTableName(TableReference tableRef) {
-        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
-    }
-
-    private String getInternalTableName(TableReference tableRef) {
-        AgnosticResultSet result = connectionSupplier.get().selectResultSetUnregisteredQuery(
-                String.format(
-                        "SELECT short_table_name FROM %s WHERE table_name = ?",
-                        AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE),
-                prefixedTableName(tableRef));
-        return result.get(0).getString("short_table_name");
+    private String getPrefixedTableName(TableReference tableRef) {
+        if (config.type().equals(OracleDdlConfig.TYPE)) {
+            return ((OracleDdlConfig) config)
+                    .tableNameMapper()
+                    .getShortPrefixedTableName(config.tablePrefix(), tableRef);
+        } else {
+            return config.tablePrefix() + DbKvs.internalTableName(tableRef);
+        }
     }
 
     private static final String SIMPLE_ROW_SELECT_TEMPLATE =

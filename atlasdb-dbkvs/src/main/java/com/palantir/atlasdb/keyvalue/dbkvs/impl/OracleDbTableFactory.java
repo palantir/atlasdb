@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
@@ -24,7 +23,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleRawQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleTableInitializer;
 import com.palantir.nexus.db.DBType;
-import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class OracleDbTableFactory implements DbTableFactory {
     private final OracleDdlConfig config;
@@ -52,10 +50,10 @@ public class OracleDbTableFactory implements DbTableFactory {
     public DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns) {
         TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
         DbQueryFactory queryFactory;
-        String shortTableName = getInternalTableName(conns, prefixedTableName(tableRef));
+        String shortTableName = getShortTableName(tableRef);
         switch (tableSize) {
             case OVERFLOW:
-                String overflowTableName = getInternalTableName(conns, prefixedOverflowTableName(tableRef));
+                String overflowTableName = getShortOverflowTableName(tableRef);
                 queryFactory = new OracleOverflowQueryFactory(config, shortTableName, overflowTableName);
                 break;
             case RAW:
@@ -80,22 +78,14 @@ public class OracleDbTableFactory implements DbTableFactory {
         }
     }
 
-    private String getInternalTableName(final ConnectionSupplier conns, String tableName) {
-        AgnosticResultSet result = conns.get().selectResultSetUnregisteredQuery(
-                String.format(
-                        "SELECT short_table_name FROM %s WHERE table_name = ?",
-                        AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE),
-                tableName);
-        return result.get(0).getString("short_table_name");
+    private String getShortTableName(TableReference tableRef) {
+        return config.tableNameMapper().getShortPrefixedTableName(config.tablePrefix(), tableRef);
     }
 
-    private String prefixedTableName(TableReference tableRef) {
-        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
+    private String getShortOverflowTableName(TableReference tableRef) {
+        return config.tableNameMapper().getShortPrefixedTableName(config.overflowTablePrefix(), tableRef);
     }
 
-    private String prefixedOverflowTableName(TableReference tableRef) {
-        return config.overflowTablePrefix() + DbKvs.internalTableName(tableRef);
-    }
     @Override
     public DBType getDbType() {
         return DBType.ORACLE;

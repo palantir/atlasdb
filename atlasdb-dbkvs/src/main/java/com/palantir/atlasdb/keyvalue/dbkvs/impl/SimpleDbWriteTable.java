@@ -23,7 +23,6 @@ import java.util.Map.Entry;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -31,7 +30,6 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
 public class SimpleDbWriteTable implements DbWriteTable {
@@ -72,7 +70,7 @@ public class SimpleDbWriteTable implements DbWriteTable {
     private void put(List<Object[]> args) {
         try {
             conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + tableRef + ") */"
-                    + " INSERT INTO " + getInternalTableName() + " (row_name, col_name, ts, val) "
+                    + " INSERT INTO " + getPrefixedTableName() + " (row_name, col_name, ts, val) "
                     + " VALUES (?, ?, ?, ?) ",
                     args);
         } catch (PalantirSqlException e) {
@@ -96,9 +94,9 @@ public class SimpleDbWriteTable implements DbWriteTable {
             while (true) {
                 try {
                     conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + tableRef + ") */"
-                            + " INSERT INTO " + getInternalTableName() + " (row_name, col_name, ts, val) "
+                            + " INSERT INTO " + getPrefixedTableName() + " (row_name, col_name, ts, val) "
                             + " SELECT ?, ?, ?, ? FROM DUAL"
-                            + " WHERE NOT EXISTS (SELECT * FROM " + getInternalTableName() + " WHERE"
+                            + " WHERE NOT EXISTS (SELECT * FROM " + getPrefixedTableName() + " WHERE"
                             + " row_name = ? AND"
                             + " col_name = ? AND"
                             + " ts = ?)",
@@ -124,28 +122,18 @@ public class SimpleDbWriteTable implements DbWriteTable {
         }
 
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE (" + tableRef + ") */ "
-                + " DELETE /*+ INDEX(m pk_" + getInternalTableName() + ") */ "
-                + " FROM " + getInternalTableName() + " m "
+                + " DELETE /*+ INDEX(m pk_" + getPrefixedTableName() + ") */ "
+                + " FROM " + getPrefixedTableName() + " m "
                 + " WHERE m.row_name = ? "
                 + "  AND m.col_name = ? "
                 + "  AND m.ts = ?",
                 args);
     }
 
-    private String getInternalTableName() {
+    private String getPrefixedTableName() {
         if (!config.type().equals(OracleDdlConfig.TYPE)) {
-            return prefixedTableName();
+            return config.tablePrefix() + DbKvs.internalTableName(tableRef);
         }
-        AgnosticResultSet result = conns.get().selectResultSetUnregisteredQuery(
-                String.format(
-                        "SELECT short_table_name FROM %s WHERE table_name = ?",
-                        AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE),
-                prefixedTableName());
-        return result.get(0).getString("short_table_name");
+        return ((OracleDdlConfig) config).tableNameMapper().getShortPrefixedTableName(config.tablePrefix(), tableRef);
     }
-
-    private String prefixedTableName() {
-        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
-    }
-
 }

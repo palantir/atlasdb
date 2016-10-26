@@ -37,7 +37,6 @@ public class AtlasDbConstants {
 
     public static final TableReference ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace("atlasdb_metadata");
     public static final String ORACLE_OVERFLOW_SEQUENCE = "overflow_seq";
-    public static final String ORACLE_NAME_MAPPING_TABLE = "table_name_mapping";
 
     public static final String NAMESPACE_PREFIX = "_n_";
     public static final String NAMESPACE_SHORT_COLUMN_NAME = "s";

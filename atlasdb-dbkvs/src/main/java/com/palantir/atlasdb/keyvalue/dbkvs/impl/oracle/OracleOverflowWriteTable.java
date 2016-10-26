@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -38,7 +37,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.palantir.nexus.db.sql.SqlConnection;
 
@@ -117,13 +115,13 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
             } else {
                 conns.get().insertManyUnregisteredQuery(
                         "/* INSERT_OVERFLOW (" + tableRef.getQualifiedName() + ") */"
-                        + " INSERT INTO " + getInternalTableName(prefixedOverflowTableName()) + " (id, val) VALUES (?, ?) ",
+                        + " INSERT INTO " + getShortOverflowTableName() + " (id, val) VALUES (?, ?) ",
                         overflowArgs);
             }
         }
         try {
             conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + tableRef.getQualifiedName() + ") */"
-                    + " INSERT INTO " + getInternalTableName(prefixedTableName()) + " (row_name, col_name, ts, val, overflow) "
+                    + " INSERT INTO " + getShortTableName() + " (row_name, col_name, ts, val, overflow) "
                     + " VALUES (?, ?, ?, ?, ?) ",
                     args);
         } catch (PalantirSqlException e) {
@@ -147,11 +145,11 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
             while (true) {
                 try {
                     conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + tableRef.getQualifiedName() + ") */"
-                            + " INSERT INTO " + getInternalTableName(prefixedTableName())
+                            + " INSERT INTO " + getShortTableName()
                             + "   (row_name, col_name, ts, val, overflow)"
                             + " SELECT ?, ?, ?, ?, ? FROM DUAL"
                             + " WHERE NOT EXISTS ("
-                            + "   SELECT * FROM " + getInternalTableName(prefixedTableName())
+                            + "   SELECT * FROM " + getShortTableName()
                             + "   WHERE row_name = ?"
                             + "     AND col_name = ?"
                             + "     AND ts = ?)",
@@ -180,11 +178,11 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                 break;
             case IN_PROGRESS:
                 deleteOverflow(config.singleOverflowTable(), args);
-                deleteOverflow(getInternalTableName(prefixedOverflowTableName()), args);
+                deleteOverflow(getShortOverflowTableName(), args);
                 break;
             case FINISHING: // fall through
             case FINISHED:
-                deleteOverflow(getInternalTableName(prefixedOverflowTableName()), args);
+                deleteOverflow(getShortOverflowTableName(), args);
                 break;
             default:
                 throw new EnumConstantNotPresentException(
@@ -199,9 +197,9 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         } catch (PalantirSqlException | SQLException e) {
             //
         }
-        conn.updateManyUnregisteredQuery(" /* DELETE_ONE (" + prefixedTableName() + ") */ "
-                + " DELETE /*+ INDEX(m pk_" + prefixedTableName() + ") */ "
-                + " FROM " + getInternalTableName(prefixedTableName()) + " m "
+        conn.updateManyUnregisteredQuery(" /* DELETE_ONE (" + getShortTableName() + ") */ "
+                + " DELETE /*+ INDEX(m pk_" + getShortTableName() + ") */ "
+                + " FROM " + getShortTableName() + " m "
                 + " WHERE m.row_name = ? "
                 + "  AND m.col_name = ? "
                 + "  AND m.ts = ?",
@@ -212,9 +210,9 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE_OVERFLOW (" + overflowTable + ") */ "
                 + " DELETE /*+ INDEX(m pk_" + overflowTable + ") */ "
                 + "   FROM " + overflowTable + " m "
-                + "  WHERE m.id IN (SELECT /*+ INDEX(i pk_" + prefixedTableName() + ") */ "
+                + "  WHERE m.id IN (SELECT /*+ INDEX(i pk_" + getShortTableName() + ") */ "
                 + "                        i.overflow "
-                + "                   FROM " + getInternalTableName(prefixedTableName()) + " i "
+                + "                   FROM " + getShortTableName() + " i "
                 + "                  WHERE i.row_name = ? "
                 + "                    AND i.col_name = ? "
                 + "                    AND i.ts = ? "
@@ -222,20 +220,11 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                 args);
     }
 
-    private String getInternalTableName(String tableName) {
-        AgnosticResultSet result = conns.get().selectResultSetUnregisteredQuery(
-                String.format(
-                        "SELECT short_table_name FROM %s WHERE table_name = ?",
-                        AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE),
-                tableName);
-        return result.get(0).getString("short_table_name");
+    private String getShortTableName() {
+        return config.tableNameMapper().getShortPrefixedTableName(config.tablePrefix(), tableRef);
     }
 
-    private String prefixedTableName() {
-        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
-    }
-
-    private String prefixedOverflowTableName() {
-        return config.overflowTablePrefix() + DbKvs.internalTableName(tableRef);
+    private String getShortOverflowTableName() {
+        return config.tableNameMapper().getShortPrefixedTableName(config.overflowTablePrefix(), tableRef);
     }
 }
