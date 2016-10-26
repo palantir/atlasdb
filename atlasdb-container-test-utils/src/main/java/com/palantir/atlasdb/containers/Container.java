@@ -21,4 +21,13 @@ public abstract class Container {
     public abstract String getDockerComposeFile();
 
     public abstract SuccessOrFailure isReady();
+
+    public boolean equals(Object obj) {
+        return obj != null && this.getClass() == obj.getClass();
+    }
+
+    @Override
+    public int hashCode() {
+        return this.getClass().getName().hashCode();
+    }
 }

@@ -100,12 +100,16 @@ public class Containers extends ExternalResource {
 
     private static void onShutdown() {
         synchronized (Containers.class) {
-            if (dockerComposeRule != null) {
-                dockerComposeRule.after();
-            }
             if (dockerProxyRuleStarted) {
                 DOCKER_PROXY_RULE.after();
             }
+            if (dockerComposeRule != null) {
+                dockerComposeRule.after();
+            }
+            dockerProxyRuleStarted = false;
+            dockerComposeRule = null;
+            currentLogCollector = null;
+            containersStarted.clear();
         }
     }
 

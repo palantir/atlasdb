@@ -68,13 +68,4 @@ public class ThreeNodeCassandraCluster extends Container {
             return true;
         });
     }
-
-    public boolean equals(Object obj) {
-        return obj instanceof ThreeNodeCassandraCluster;
-    }
-
-    @Override
-    public int hashCode() {
-        return 1;
-    }
 }

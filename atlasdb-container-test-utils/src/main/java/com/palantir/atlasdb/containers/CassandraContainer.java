@@ -66,13 +66,4 @@ public class CassandraContainer extends Container {
             return true;
         });
     }
-
-    public boolean equals(Object obj) {
-        return obj instanceof CassandraContainer;
-    }
-
-    @Override
-    public int hashCode() {
-        return 0;
-    }
 }
