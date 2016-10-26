@@ -844,7 +844,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private void putForSingleHostInternal(final InetSocketAddress host,
-            final TableReference tableRef,
+                                          final TableReference tableRef,
                                           final Iterable<Map.Entry<Cell, Value>> values,
                                           final int ttl) throws Exception {
         clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
@@ -1451,7 +1451,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             // if no existing table or if existing table's metadata is different
             if (!Arrays.equals(existingTableMetadata.get(tableReference), newMetadata)) {
                 Set<TableReference> matchingTables = Sets.filter(existingTableMetadata.keySet(), existingTableRef ->
-                        existingTableRef.getTablename().equalsIgnoreCase(tableReference.getTablename()));
+                        existingTableRef.getQualifiedName().equalsIgnoreCase(tableReference.getQualifiedName()));
 
                 // completely new table, not an update
                 if (matchingTables.isEmpty()) {
@@ -1890,8 +1890,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     public void cleanUpSchemaMutationLockTablesState() throws Exception {
         Set<TableReference> tables = lockTables.getAllLockTables();
-        dropTablesInternal(tables);
-        log.info("Dropped all schema mutation lock tables [{}]", tables.toString());
+        java.util.Optional<TableReference> tableToKeep = tables.stream().findFirst();
+        if (!tableToKeep.isPresent()) {
+            log.info("No lock tables to clean up.");
+            return;
+        }
+        tables.remove(tableToKeep.get());
+        if (tables.size() > 0) {
+            dropTablesInternal(tables);
+            log.info("Dropped tables [{}]", tables.toString());
+        }
+        schemaMutationLock.cleanLockState();
+        log.info("Reset the schema mutation lock in table [{}]", tableToKeep.get().toString());
     }
 
     private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {

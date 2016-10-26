@@ -14,8 +14,3 @@ dependencies {
     testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
     testCompile group: 'com.google.code.findbugs', name: 'annotations', version: libVersions.findbugsAnnotations
 }
-
-test {
-    include '**/CassandraSchemaLockTest.class'
-    dependsOn ':atlasdb-ete-test-utils:buildCassandraImage'
-}

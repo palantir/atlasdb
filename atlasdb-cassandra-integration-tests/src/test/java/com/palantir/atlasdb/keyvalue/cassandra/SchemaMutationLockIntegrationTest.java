@@ -85,7 +85,7 @@ public class SchemaMutationLockIntegrationTest {
     }
 
     private void setUpWithCasSupportSetTo(boolean supportsCas) throws Exception {
-        quickTimeoutConfig = CassandraTestSuite.cassandraKvsConfig
+        quickTimeoutConfig = CassandraTestSuite.KVS_CONFIG
                 .withSchemaMutationTimeoutMillis(500);
         CassandraKeyValueServiceConfigManager simpleManager =
                 CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig);
@@ -156,7 +156,6 @@ public class SchemaMutationLockIntegrationTest {
 
     @Test
     public void testExceptionWithDeadHeartbeat() throws InterruptedException, ExecutionException {
-        // only run this test with cas
         Assume.assumeTrue(casEnabled);
 
         SchemaMutationLock quickHeartbeatTimeoutLock = createQuickHeartbeatTimeoutLock();
@@ -198,8 +197,15 @@ public class SchemaMutationLockIntegrationTest {
     }
 
     @Test
+    public void testCleanLockState() throws TException {
+        Assume.assumeTrue(casEnabled);
+        lockTestTools.setLocksTableValue(123456789L, 0);
+        schemaMutationLock.cleanLockState();
+        assertThat(lockTestTools.readLockIdFromLocksTable(), is(SchemaMutationLock.GLOBAL_DDL_LOCK_CLEARED_ID));
+    }
+
+    @Test
     public void testLegacyClearedLockPostMigration() throws TException {
-        // only run this test with cas
         Assume.assumeTrue(casEnabled);
 
         lockTestTools.setLegacyClearedLocksTableValue();
@@ -209,7 +215,7 @@ public class SchemaMutationLockIntegrationTest {
 
     private SchemaMutationLock createQuickHeartbeatTimeoutLock() {
         CassandraKeyValueServiceConfigManager configManager =
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.cassandraKvsConfig);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.KVS_CONFIG);
         TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
         return new SchemaMutationLock(true, configManager, clientPool, queryRunner, writeConsistency, lockTable,
                 heartbeatService, 2000);

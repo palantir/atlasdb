@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
+import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
@@ -51,8 +52,7 @@ public final class DbkvsPostgresTestSuite {
     public static final DockerComposeRule docker = DockerComposeRule.builder()
             .file("src/test/resources/docker-compose.yml")
             .waitingForService("postgres", Container::areAllPortsOpen)
-            .saveLogsTo("container-logs")
-            .skipShutdown(true)
+            .saveLogsTo(LogDirectory.circleAwareLogDirectory(DbkvsPostgresTestSuite.class))
             .build();
 
     @BeforeClass
