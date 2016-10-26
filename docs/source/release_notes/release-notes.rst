@@ -46,19 +46,6 @@ v0.22.0
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1098>`__)
 
-.. <<<<------------------------------------------------------------------------------------------------------------->>>>
-
-=======
-v0.22.0
-=======
-
-.. list-table::
-    :widths: 5 40
-    :header-rows: 1
-
-    *    - Type
-         - Change
-
     *    - |improved|
          - The ``clean-cass-locks-state`` CLI now clears the lock instead of dropping the locks table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1056>`__)
