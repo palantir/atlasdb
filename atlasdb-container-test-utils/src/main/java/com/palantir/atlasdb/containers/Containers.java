@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 import org.junit.rules.ExternalResource;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.testing.DockerProxyRule;
@@ -33,7 +34,8 @@ import com.palantir.docker.compose.logging.LogDirectory;
 
 public class Containers extends ExternalResource {
     private static final ProjectName PROJECT_NAME = ProjectName.fromString("atlasdbcontainers");
-    private static final DockerProxyRule DOCKER_PROXY_RULE = new DockerProxyRule(PROJECT_NAME, Container.class);
+    @VisibleForTesting
+    static final DockerProxyRule DOCKER_PROXY_RULE = new DockerProxyRule(PROJECT_NAME, Container.class);
 
     private static final Set<Container> containersToStart = new HashSet<>();
     private static final Set<Container> containersStarted = new HashSet<>();
@@ -98,7 +100,8 @@ public class Containers extends ExternalResource {
         }
     }
 
-    private static void onShutdown() {
+    @VisibleForTesting
+    static void onShutdown() {
         synchronized (Containers.class) {
             if (dockerProxyRuleStarted) {
                 DOCKER_PROXY_RULE.after();
