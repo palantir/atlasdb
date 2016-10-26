@@ -1409,7 +1409,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 CassandraVerifier.sanityCheckTableName(table);
 
                 TableReference tableRefLowerCased = TableReference
-                        .createUnsafe(table.getQualifiedName().toLowerCase());
+                        .createLowerCased(table);
                 if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
                     filteredTables.put(table, metadata);
                 } else {

@@ -44,6 +44,12 @@ public final class TableReference {
         return new TableReference(Namespace.EMPTY_NAMESPACE, tablename);
     }
 
+    public static TableReference createLowerCased(TableReference table) {
+        return create(
+                Namespace.create(table.namespace.getName().toLowerCase()),
+                table.tablename.toLowerCase());
+    }
+
     /**
      * @deprecated please use createFromFullyQualifiedName or createWithEmptyNamespace.
      */
@@ -119,5 +125,4 @@ public final class TableReference {
             throw new IllegalArgumentException(tableReferenceAsString + " is not a valid table reference.");
         }
     }
-
 }
