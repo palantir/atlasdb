@@ -69,7 +69,7 @@ import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractSweeperTest {
-    protected static final TableReference TABLE_NAME = TableReference.createWithEmptyNamespace("test_table_This_Is_ALongTableNameThatGoesOverOracleTableNameLengthLimit");
+    protected static TableReference testTableRef = TableReference.createWithEmptyNamespace("test_table");
     private static final String COL = "c";
     protected static final int DEFAULT_BATCH_SIZE = 1000;
     protected static final int DEFAULT_CELL_BATCH_SIZE = 1_000_000;
@@ -405,7 +405,7 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals(1, progressResults.size());
         SweepProgressRowResult result = Iterables.getOnlyElement(progressResults);
         Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
-        Assert.assertEquals(TABLE_NAME.getQualifiedName(), result.getFullTableName());
+        Assert.assertEquals(testTableRef.getQualifiedName(), result.getFullTableName());
         Assert.assertEquals(new Long(0), result.getCellsDeleted());
         Assert.assertEquals(new Long(2), result.getCellsExamined());
     }
@@ -428,7 +428,7 @@ public abstract class AbstractSweeperTest {
         Assert.assertEquals(1, progressResults.size());
         SweepProgressRowResult result = Iterables.getOnlyElement(progressResults);
         Assert.assertEquals(new Long(150), result.getMinimumSweptTimestamp());
-        Assert.assertEquals(TABLE_NAME.getQualifiedName(), result.getFullTableName());
+        Assert.assertEquals(testTableRef.getQualifiedName(), result.getFullTableName());
         Assert.assertEquals(new Long(0), result.getCellsDeleted());
         Assert.assertEquals(new Long(4), result.getCellsExamined());
     }
@@ -509,7 +509,7 @@ public abstract class AbstractSweeperTest {
         putIntoDefaultColumn("foo4", "buzz", 125);
         partialSweep(150, 2);
 
-        kvs.dropTable(TABLE_NAME);
+        kvs.dropTable(testTableRef);
 
         SweepResults results = completeSweep(175);
 
@@ -575,7 +575,7 @@ public abstract class AbstractSweeperTest {
     }
 
     protected SweepResults completeSweep(long ts) {
-        return completeSweep(TABLE_NAME, ts);
+        return completeSweep(testTableRef, ts);
     }
 
     protected SweepResults completeSweep(TableReference tableReference, long ts) {
@@ -585,7 +585,7 @@ public abstract class AbstractSweeperTest {
     }
 
     private SweepResults sweep(long ts, int batchSize) {
-        return sweep(TABLE_NAME, ts, batchSize);
+        return sweep(testTableRef, ts, batchSize);
     }
 
     private SweepResults sweep(TableReference tableReference, long ts, int batchSize) {
@@ -601,13 +601,13 @@ public abstract class AbstractSweeperTest {
 
     private String get(String row, long ts) {
         Cell cell = Cell.create(row.getBytes(), COL.getBytes());
-        Value val = kvs.get(TABLE_NAME, ImmutableMap.of(cell, ts)).get(cell);
+        Value val = kvs.get(testTableRef, ImmutableMap.of(cell, ts)).get(cell);
         return val == null ? null : new String(val.getContents());
     }
 
     private Set<Long> getAllTs(String row) {
         Cell cell = Cell.create(row.getBytes(), COL.getBytes());
-        return ImmutableSet.copyOf(kvs.getAllTimestamps(TABLE_NAME, ImmutableSet.of(cell), Long.MAX_VALUE).get(cell));
+        return ImmutableSet.copyOf(kvs.getAllTimestamps(testTableRef, ImmutableSet.of(cell), Long.MAX_VALUE).get(cell));
     }
 
     protected void putIntoDefaultColumn(final String row, final String val, final long ts) {
@@ -615,7 +615,7 @@ public abstract class AbstractSweeperTest {
     }
 
     protected void put(final String row, final String column, final String val, final long ts) {
-        put(TABLE_NAME, row, column, val, ts);
+        put(testTableRef, row, column, val, ts);
     }
 
     protected void put(final TableReference tableRef, final String row, final String column, final String val, final long ts) {
@@ -626,12 +626,12 @@ public abstract class AbstractSweeperTest {
 
     private void putUncommitted(final String row, final String val, final long ts) {
         Cell cell = Cell.create(row.getBytes(), COL.getBytes());
-        kvs.put(TABLE_NAME, ImmutableMap.of(cell, val.getBytes()), ts);
+        kvs.put(testTableRef, ImmutableMap.of(cell, val.getBytes()), ts);
     }
 
 
     protected void createTable(SweepStrategy sweepStrategy) {
-        createTable(TABLE_NAME, sweepStrategy);
+        createTable(testTableRef, sweepStrategy);
     }
 
     protected void createTable(TableReference tableReference, SweepStrategy sweepStrategy) {

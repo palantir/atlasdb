@@ -16,12 +16,15 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.sweep.AbstractSweeperTest;
 
 public class DbkvsOracleSweeperTest extends AbstractSweeperTest {
     @Override
     protected KeyValueService getKeyValueService() {
+        testTableRef = TableReference
+                .createWithEmptyNamespace("test_table_This_Is_ALongTableNameThatGoesOverOracleTableNameLengthLimit");
         return ConnectionManagerAwareDbKvs.create(DbkvsOracleTestSuite.getKvsConfig());
     }
 }

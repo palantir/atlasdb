@@ -21,14 +21,15 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 
 public class DbkvsOracleKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
+
     @Override
     protected KeyValueService getKeyValueService() {
+        testTableRef = TableReference
+                .createFromFullyQualifiedName("ns.This_Is_ALongTableNameThatGoesOverOracleTableNameLengthLimit");
+        testNonExistingTableRef = TableReference
+                .createFromFullyQualifiedName("ns2.some_nonexisting_ThisIsALongTableNameThatGoesOverOracleTableNameLengthLimit");
         KeyValueService kvs = ConnectionManagerAwareDbKvs.create(DbkvsOracleTestSuite.getKvsConfig());
-        for (TableReference table : kvs.getAllTableNames()) {
-            if (!table.getQualifiedName().equals("_metadata")) {
-                kvs.dropTable(table);
-            }
-        }
+        kvs.dropTables(kvs.getAllTableNames());
         return kvs;
     }
 }
