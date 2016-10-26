@@ -45,8 +45,10 @@ public final class TableReference {
     }
 
     public static TableReference createLowerCased(TableReference table) {
+        String name = table.namespace.getName().toLowerCase();
+        Namespace namespace = name.isEmpty() ? Namespace.EMPTY_NAMESPACE : Namespace.create(name);
         return create(
-                Namespace.create(table.namespace.getName().toLowerCase()),
+                namespace,
                 table.tablename.toLowerCase());
     }
 
