@@ -154,8 +154,8 @@
 <span id="change-log"></span><h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 </div>
-<div class="section" id="v0-22-0">
-<h2>v0.22.0<a class="headerlink" href="#v0-22-0" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="develop">
+<h2>develop<a class="headerlink" href="#develop" title="Permalink to this headline">¶</a></h2>
 <table border="1" class="docutils">
 <colgroup>
 <col width="11%" />
@@ -168,8 +168,40 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>The <code class="docutils literal"><span class="pre">clean-cass-locks-state</span></code> CLI now clears the lock instead of dropping the locks table.
+<td>The <code class="docutils literal"><span class="pre">clean-cass-locks-state</span></code> CLI would drop the whole _locks table, which is a valid way to clear the schema mutation lock, but this differs from how an actual lockholder clears the _locks table.
+Now the CLI sets the schema mutation lock to a special &#8220;cleared&#8221; value to be more consistent with how real lockholders behave.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1056">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-21-1">
+<h2>v0.21.1<a class="headerlink" href="#v0-21-1" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><p class="first">Fixed a regression with Cassandra KVS where you could no longer create a table if it has the same name as another table in a different namespace.</p>
+<p>To illustrate the issue, assume you have namespace <code class="docutils literal"><span class="pre">namespace1</span></code> and the table <code class="docutils literal"><span class="pre">table1</span></code>, and you would like to add a column to <code class="docutils literal"><span class="pre">table1</span></code> and <cite>version</cite> the table by using the new namespace <code class="docutils literal"><span class="pre">namespace2</span></code>.
+On disk you already have the Cassandra table <code class="docutils literal"><span class="pre">namespace1__table1</span></code>, and now you are trying to create <code class="docutils literal"><span class="pre">namespace2__table1</span></code>.
+Creating <code class="docutils literal"><span class="pre">namespace2__table1</span></code> would fail because Cassandra KVS believes that the table already exists.
+This is relevant if you use multiple namespaces when performing schema migrations.</p>
+<p class="last">Note that namespace is an application level abstraction defined as part of a AtlasDB schema and is not the same as Cassandra keyspace.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1110">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Sweep no longer immediately falls back to a <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> of 1 after receiving an error.
+See <a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">sweep tuning</span></a> documentation for more information on sweep tuning parameters.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1093">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -196,15 +228,6 @@ For information on how to configure Sweep batching, see the <a class="reference 
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>If <code class="docutils literal"><span class="pre">hashFirstRowComponent()</span></code> is used in a table or index definition, we no longer throw <code class="docutils literal"><span class="pre">IllegalStateException</span></code> when generating schema code.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1091">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed (and added tests for) a regression where you could no longer have tables
-with the same table name spanned over multiple namespaces when running on Cassandra.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1110">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Sweep no longer immediately falls back to a batch size of 1 after receiving an error.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1093">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>

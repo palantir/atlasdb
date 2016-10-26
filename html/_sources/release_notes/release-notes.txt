@@ -31,7 +31,7 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-v0.22.0
+develop
 =======
 
 .. list-table::
@@ -42,9 +42,38 @@ v0.22.0
          - Change
 
     *    - |improved|
-         - The ``clean-cass-locks-state`` CLI now clears the lock instead of dropping the locks table.
+         - The ``clean-cass-locks-state`` CLI would drop the whole _locks table, which is a valid way to clear the schema mutation lock, but this differs from how an actual lockholder clears the _locks table.
+           Now the CLI sets the schema mutation lock to a special "cleared" value to be more consistent with how real lockholders behave.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1056>`__)
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.21.1
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed a regression with Cassandra KVS where you could no longer create a table if it has the same name as another table in a different namespace.
+
+           To illustrate the issue, assume you have namespace ``namespace1`` and the table ``table1``, and you would like to add a column to ``table1`` and `version` the table by using the new namespace ``namespace2``.
+           On disk you already have the Cassandra table ``namespace1__table1``, and now you are trying to create ``namespace2__table1``.
+           Creating ``namespace2__table1`` would fail because Cassandra KVS believes that the table already exists.
+           This is relevant if you use multiple namespaces when performing schema migrations.
+
+           Note that namespace is an application level abstraction defined as part of a AtlasDB schema and is not the same as Cassandra keyspace.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1110>`__)
+
+    *    - |improved|
+         - Sweep no longer immediately falls back to a ``sweepBatchSize`` of 1 after receiving an error.
+           See :ref:`sweep tuning <sweep_tunable_parameters>` documentation for more information on sweep tuning parameters.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1093>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -69,14 +98,6 @@ v0.21.0
          - If ``hashFirstRowComponent()`` is used in a table or index definition, we no longer throw ``IllegalStateException`` when generating schema code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1091>`__)
 
-    *    - |fixed|
-         - Fixed (and added tests for) a regression where you could no longer have tables
-           with the same table name spanned over multiple namespaces when running on Cassandra.
-	   (`Pull Request <https://github.com/palantir/atlasdb/pull/1110>`__)
-
-    *    - |improved|
-         - Sweep no longer immediately falls back to a batch size of 1 after receiving an error.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1093>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
