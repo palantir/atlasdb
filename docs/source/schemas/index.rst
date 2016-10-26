@@ -9,6 +9,7 @@ Schemas
    streams
    cleanup_tasks
    physical_cleanup
+   oracle_table_mapping
 
 
 What to Expect

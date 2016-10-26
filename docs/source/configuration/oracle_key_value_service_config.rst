@@ -116,7 +116,23 @@ The DDL Config Block:
          - The maximum bytes in a batch for write operations like ``put``, ``putWithTimestamps``, defaults to 2MB.
          - No
 
-The Connection Config block:
+Connection parameters
+---------------------
+
+If you would like to customise the JDBC connection parameters, for example if you are experiencing performance issues, then you may supply them under the ``connection`` section of the ``keyValueService`` config.
+An example is shown below; for full documentation on which parameters are available, check out `the JDBC docs <https://jdbc.postgresql.org/documentation/head/connect.html>`__.
+
+.. code-block:: yaml
+
+  atlasdb:
+    keyValueService:
+      # as above - skipped for brevity
+      connection:
+        # as above - skipped for brevity
+        connectionParameters: # JDBC connection parameters
+          defaultRowFetchSize: 100 # Default: unlimited. Adjusts the number of rows fetched in each database request.
+
+These are the required parameters:
 
 .. list-table::
     :widths: 5 40 15
@@ -145,9 +161,3 @@ The Connection Config block:
     *    - dbPassword
          - The Oracle DB password.
          - Yes
-
-    *    - testQuery
-         - Query used to check if driver supports JDBC4. Defaults to "SELECT 1 FROM dual".
-         - No
-
-There are more parameters in the Connection config, which have sensible default values.
