@@ -39,7 +39,7 @@ public class ThreeNodeCassandraCluster extends Container {
                     .username("cassandra")
                     .password("cassandra")
                     .build())
-            .replicationFactor(1)
+            .replicationFactor(3)
             .mutationBatchCount(10000)
             .mutationBatchSizeBytes(10000000)
             .fetchBatchCount(1000)
