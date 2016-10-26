@@ -47,6 +47,7 @@ test:
     - ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh:
         parallel: true
   post:
+    - [[ $(git st --short) == "" ]] # check that we haven't left untracked modifications in the repo before publishing
     - ./scripts/time-cmd.sh ./gradlew --profile jacocoFullReport -x classes:
         parallel: true
     - bash <(curl -s https://codecov.io/bash):
