@@ -17,6 +17,10 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
+/**
+ * This is the mapper to shorten table names. The mapping should keep table names already meeting
+ * length limits unchanged.
+ */
 public interface TableNameMapper {
     String getShortPrefixedTableName(String tablePrefix, TableReference tableRef);
 }
