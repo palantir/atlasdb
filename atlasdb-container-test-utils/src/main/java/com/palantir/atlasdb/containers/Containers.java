@@ -15,14 +15,22 @@
  */
 package com.palantir.atlasdb.containers;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.IOUtils;
 import org.junit.rules.ExternalResource;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Throwables;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Sets;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.testing.DockerProxyRule;
@@ -39,6 +47,9 @@ public class Containers extends ExternalResource {
 
     private static final Set<Container> containersToStart = new HashSet<>();
     private static final Set<Container> containersStarted = new HashSet<>();
+    private static final LoadingCache<String, String> dockerComposeFilesToTemporaryCopies =
+            CacheBuilder.<String, String>newBuilder()
+                    .build(CacheLoader.from(Containers::getDockerComposeFile));
 
     private static volatile DockerComposeRule dockerComposeRule;
     private static volatile LogCollector currentLogCollector;
@@ -70,7 +81,7 @@ public class Containers extends ExternalResource {
 
             Set<String> containerDockerComposeFiles = containersToStart.stream()
                     .map(Container::getDockerComposeFile)
-                    .map(file -> Container.class.getResource(file).getPath())
+                    .map(dockerComposeFilesToTemporaryCopies::getUnchecked)
                     .collect(Collectors.toSet());
 
             if (currentLogCollector != null) {
@@ -97,6 +108,16 @@ public class Containers extends ExternalResource {
                         .until(() -> container.isReady().succeeded());
             }
             containersStarted.addAll(containersToStart);
+        }
+    }
+
+    private static String getDockerComposeFile(String configResource) {
+        try {
+            File configFile = File.createTempFile("config", ".yml");
+            IOUtils.copy(Containers.class.getResourceAsStream(configResource), new FileOutputStream(configFile));
+            return configFile.getPath();
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
         }
     }
 
