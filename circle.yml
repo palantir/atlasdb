@@ -29,9 +29,10 @@ general:
 
 dependencies:
   pre:
+    - curl -O 'http://ftp.de.debian.org/debian/pool/main/m/moreutils/moreutils_0.59-1_amd64.deb' && ar p moreutils_0.59-1_amd64.deb data.tar.xz | sudo tar xJ --strip-components=3 -C /usr/bin/ ./usr/bin/ts
     - sudo pip install docker-compose
   override:
-    - ./gradlew --profile --parallel resolveConfigurations
+    - ./scripts/time-cmd.sh ./gradlew --profile --parallel resolveConfigurations
     - sudo pip install sphinx sphinx_rtd_theme
     - scripts/circle-ci/pr_changelog_status_check.sh
 
@@ -41,12 +42,12 @@ test:
         background: true
         parallel: true
   override:
-    - ./gradlew --profile --continue --parallel compileJava compileTestJava:
+    - ./scripts/time-cmd.sh ./gradlew --profile --continue --parallel compileJava compileTestJava:
         parallel: true
-    - ./scripts/circle-ci/run-circle-tests.sh | gawk '{ print strftime("[%Y-%m-%d %H:%M:%S]"), $0 }':
+    - ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh:
         parallel: true
   post:
-    - ./gradlew --profile jacocoFullReport -x classes:
+    - ./scripts/time-cmd.sh ./gradlew --profile jacocoFullReport -x classes:
         parallel: true
     - bash <(curl -s https://codecov.io/bash):
         parallel: true

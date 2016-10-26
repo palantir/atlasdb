@@ -8,7 +8,6 @@ Background Sweep
    Background sweep is currently considered to be an experimental feature, and is disabled by default.
    If you are interested in trialling background sweep, please contact the AtlasDB team.
 
-
 How Background Sweep Works
 --------------------------
 
@@ -20,6 +19,11 @@ The Background Sweep Job determines which table to sweep by estimating which wou
 - The number of cells that were not deleted the last time a table was swept.
 - The amount of time that has passed since the it was last swept.
 
+Configuration
+-------------
+
+The background sweeper can be enabled by setting the ``enableSweep`` property in the :ref:`AtlasDB configuration <atlas_config>` to true.
+For other configuration options, see :ref:`Tunable Sweep Configuration Options<sweep_tunable_parameters>`.
 
 Additional logging for Background Sweep
 ---------------------------------------

@@ -55,7 +55,6 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.ete.Gradle;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.testing.DockerProxyRule;
@@ -75,17 +74,12 @@ public class CassandraSchemaLockTest {
             .saveLogsTo(LOG_DIRECTORY)
             .build();
 
-    private static final Gradle GRADLE_PREPARE_TASK =
-            Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
-
     private static final DockerProxyRule DOCKER_PROXY_RULE = new DockerProxyRule(
             CASSANDRA_DOCKER_SETUP.projectName(),
             CassandraSchemaLockTest.class);
 
     @ClassRule
-    public static final RuleChain ALL_RULES = RuleChain
-            .outerRule(GRADLE_PREPARE_TASK)
-            .around(CASSANDRA_DOCKER_SETUP)
+    public static final RuleChain ALL_RULES = RuleChain.outerRule(CASSANDRA_DOCKER_SETUP)
             .around(DOCKER_PROXY_RULE);
 
     private static final CassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
