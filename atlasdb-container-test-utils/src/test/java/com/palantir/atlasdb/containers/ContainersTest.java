@@ -15,27 +15,10 @@
  */
 package com.palantir.atlasdb.containers;
 
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-
-import org.junit.After;
 import org.junit.Test;
-
-import com.palantir.docker.compose.DockerComposeRule;
-import com.palantir.docker.compose.connection.Container;
-import com.palantir.docker.compose.logging.LogCollector;
-
-import net.amygdalum.xrayinterface.XRayInterface;
 
 @SuppressWarnings("checkstyle:IllegalThrows")
 public class ContainersTest {
-    @After
-    public void shutdownContainers() {
-        Containers.onShutdown();
-        resetDockerProxyRuleLogCollector();
-        clearDockerProxyRuleContainerCache();
-    }
-
     @Test
     public void containerStartsUpCorrectly() throws Throwable {
         Containers containers = new Containers(ContainersTest.class)
@@ -52,48 +35,5 @@ public class ContainersTest {
 
         containers = containers.with(new SecondNginxContainer());
         containers.before();
-    }
-
-    // There's a bug in docker-compose-rule where executor is not set to null when stopCollecting() is called
-    private void resetDockerProxyRuleLogCollector() {
-        DockerComposeRule proxyRuleDockerComposeRule = XRayInterface.xray(Containers.DOCKER_PROXY_RULE)
-                .to(OpenDockerProxyRule.class)
-                .getDockerComposeRule();
-
-        LogCollector proxyRuleLogCollector = XRayInterface.xray(proxyRuleDockerComposeRule)
-                .to(OpenDockerComposeRule.class)
-                .getLogCollector();
-
-        XRayInterface.xray(proxyRuleLogCollector)
-                .to(OpenFileLogCollector.class)
-                .setExecutor(null);
-    }
-
-    // There's a bug in docker-compose-rule where the containers are cached (so external ports don't get updated)
-    private void clearDockerProxyRuleContainerCache() {
-        DockerComposeRule proxyRuleDockerComposeRule = XRayInterface.xray(Containers.DOCKER_PROXY_RULE)
-                .to(OpenDockerProxyRule.class)
-                .getDockerComposeRule();
-
-        XRayInterface.xray(proxyRuleDockerComposeRule.containers().containerCache())
-                .to(OpenContainerCache.class)
-                .getContainers()
-                .clear();
-    }
-
-    interface OpenDockerProxyRule {
-        DockerComposeRule getDockerComposeRule();
-    }
-
-    interface OpenDockerComposeRule {
-        LogCollector getLogCollector();
-    }
-
-    interface OpenFileLogCollector {
-        void setExecutor(ExecutorService executor);
-    }
-
-    interface OpenContainerCache {
-        Map<String, Container> getContainers();
     }
 }
