@@ -95,7 +95,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         TransactionTables.createTables(keyValueService);
 
         TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
-        RemoteLockService lock = LockRefreshingLockService.create(LockServiceImpl.create(new LockServerOptions() {
+        RemoteLockService lock = new LockRefreshingLockService(LockServiceImpl.create(new LockServerOptions() {
             private static final long serialVersionUID = 1L;
 
             @Override
