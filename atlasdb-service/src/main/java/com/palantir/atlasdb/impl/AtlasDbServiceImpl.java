@@ -175,7 +175,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
 
     @Override
     public void truncateTable(final String fullyQualifiedTableName) {
-        kvs.truncateTable(getTableRef(fullyQualifiedTableName));
+        kvs.truncateTable(TableReference.createFromFullyQualifiedName(fullyQualifiedTableName));
     }
 
     private <T> T runReadOnly(TransactionToken token, RuntimeTransactionTask<T> task) {
