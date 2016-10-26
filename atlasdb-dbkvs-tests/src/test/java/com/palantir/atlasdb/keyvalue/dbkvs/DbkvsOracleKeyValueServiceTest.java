@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 
@@ -24,10 +23,6 @@ public class DbkvsOracleKeyValueServiceTest extends AbstractAtlasDbKeyValueServi
 
     @Override
     protected KeyValueService getKeyValueService() {
-        testTableRef = TableReference
-                .createFromFullyQualifiedName("ns.This_Is_ALongTableNameThatGoesOverOracleTableNameLengthLimit");
-        testNonExistingTableRef = TableReference
-                .createFromFullyQualifiedName("ns2.some_nonexisting_ThisIsALongTableNameThatGoesOverOracleTableNameLengthLimit");
         KeyValueService kvs = ConnectionManagerAwareDbKvs.create(DbkvsOracleTestSuite.getKvsConfig());
         kvs.dropTables(kvs.getAllTableNames());
         return kvs;

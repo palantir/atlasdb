@@ -97,14 +97,8 @@ public class OracleDdlTable implements DbDdlTable {
 
     @Override
     public void drop() {
-        executeIgnoringError("DROP TABLE " + getShortTableName() + " PURGE",
-                ORACLE_NOT_EXISTS_ERROR);
-
-        TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
-        if (tableSize.equals(TableSize.OVERFLOW)) {
-            executeIgnoringError("DROP TABLE " + getShortOverflowTableName() + " PURGE",
-                    ORACLE_NOT_EXISTS_ERROR);
-        }
+        executeIgnoringError("DROP TABLE " + getShortTableName() + " PURGE", ORACLE_NOT_EXISTS_ERROR);
+        executeIgnoringError("DROP TABLE " + getShortOverflowTableName() + " PURGE", ORACLE_NOT_EXISTS_ERROR);
 
         conns.get().executeUnregisteredQuery(
                 "DELETE FROM " + config.metadataTable().getQualifiedName()
@@ -114,10 +108,7 @@ public class OracleDdlTable implements DbDdlTable {
     @Override
     public void truncate() {
         executeIgnoringError("TRUNCATE TABLE " + getShortTableName(), ORACLE_NOT_EXISTS_ERROR);
-        TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
-        if (tableSize.equals(TableSize.OVERFLOW)) {
-            executeIgnoringError("TRUNCATE TABLE " + getShortOverflowTableName(), ORACLE_NOT_EXISTS_ERROR);
-        }
+        executeIgnoringError("TRUNCATE TABLE " + getShortOverflowTableName(), ORACLE_NOT_EXISTS_ERROR);
     }
 
     @Override
@@ -165,15 +156,11 @@ public class OracleDdlTable implements DbDdlTable {
     }
 
     private String getShortTableName() {
-        return config.tableNameMapper().getShortPrefixedTableName(
-                config.tablePrefix(),
-                tableRef);
+        return config.tableNameMapper().getShortPrefixedTableName(config.tablePrefix(), tableRef);
     }
 
     private String getShortOverflowTableName() {
-        return config.tableNameMapper().getShortPrefixedTableName(
-                config.overflowTablePrefix(),
-                tableRef);
+        return config.tableNameMapper().getShortPrefixedTableName(config.overflowTablePrefix(), tableRef);
     }
 
     private String getPrimaryKeyConstraintName(String tableName) {

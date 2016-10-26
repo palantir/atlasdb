@@ -79,7 +79,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     @Override
     protected Transaction startTransaction() {
         ImmutableMap<TableReference, ConflictHandler> tablesToWriteWrite = ImmutableMap.of(
-                testTableRef,
+                TEST_TABLE,
                 ConflictHandler.SERIALIZABLE,
                 TransactionConstants.TRANSACTION_TABLE,
                 ConflictHandler.IGNORE_ALL);
@@ -355,7 +355,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t0.commit();
 
         Transaction t1 = startTransaction();
-        RowResult<byte[]> first = BatchingVisitables.getFirst(t1.getRange(testTableRef, RangeRequest.builder().build()));
+        RowResult<byte[]> first = BatchingVisitables.getFirst(t1.getRange(TEST_TABLE, RangeRequest.builder().build()));
         put(t1, "row22", "col1", initialValue);
 
         Transaction t2 = startTransaction();
@@ -374,7 +374,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t0.commit();
 
         Transaction t1 = startTransaction();
-        RowResult<byte[]> first = BatchingVisitables.getFirst(t1.getRange(testTableRef, RangeRequest.builder().build()));
+        RowResult<byte[]> first = BatchingVisitables.getFirst(t1.getRange(TEST_TABLE, RangeRequest.builder().build()));
         put(t1, "row22", "col1", initialValue);
 
         Transaction t2 = startTransaction();
@@ -398,7 +398,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t0.commit();
 
         Transaction t1 = startTransaction();
-        BatchingVisitables.copyToList(t1.getRange(testTableRef, RangeRequest.builder().build()));
+        BatchingVisitables.copyToList(t1.getRange(TEST_TABLE, RangeRequest.builder().build()));
         put(t1, "row22", "col1", initialValue);
 
         Transaction t2 = startTransaction();
@@ -422,7 +422,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t0.commit();
 
         Transaction t1 = startTransaction();
-        BatchingVisitables.copyToList(t1.getRange(testTableRef, RangeRequest.builder().build()));
+        BatchingVisitables.copyToList(t1.getRange(TEST_TABLE, RangeRequest.builder().build()));
         put(t1, "row22", "col1", initialValue);
 
         Transaction t2 = startTransaction();
@@ -446,7 +446,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t0.commit();
 
         Transaction t1 = startTransaction();
-        BatchingVisitables.copyToList(t1.getRange(testTableRef, RangeRequest.builder().build()));
+        BatchingVisitables.copyToList(t1.getRange(TEST_TABLE, RangeRequest.builder().build()));
         put(t1, "row22", "col1", initialValue);
 
         Transaction t2 = startTransaction();
@@ -471,7 +471,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t0.commit();
 
         Transaction t1 = startTransaction();
-        BatchingVisitables.copyToList(t1.getRange(testTableRef, RangeRequest.builder().retainColumns(ImmutableList.of(PtBytes.toBytes("col1"))).build()));
+        BatchingVisitables.copyToList(t1.getRange(TEST_TABLE, RangeRequest.builder().retainColumns(ImmutableList.of(PtBytes.toBytes("col1"))).build()));
         get(t1, "row1", "col2");
 
         // We need to do at least one put so we don't get caught by the read only code path
@@ -490,8 +490,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         t0.commit();
 
         Transaction t1 = startTransaction();
-        BatchingVisitables.copyToList(t1.getRange(testTableRef, RangeRequest.builder().retainColumns(ImmutableList.of(PtBytes.toBytes("col1"))).build()));
-        BatchingVisitables.copyToList(t1.getRange(testTableRef, RangeRequest.builder().retainColumns(ImmutableList.of(PtBytes.toBytes("col2"))).build()));
+        BatchingVisitables.copyToList(t1.getRange(TEST_TABLE, RangeRequest.builder().retainColumns(ImmutableList.of(PtBytes.toBytes("col1"))).build()));
+        BatchingVisitables.copyToList(t1.getRange(TEST_TABLE, RangeRequest.builder().retainColumns(ImmutableList.of(PtBytes.toBytes("col2"))).build()));
 
         // We need to do at least one put so we don't get caught by the read only code path
         put(t1, "row22", "col2", initialValue);
@@ -506,7 +506,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t1.getRowsColumnRange(testTableRef, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         // Serializable transaction records only the first column as read.
         Map.Entry<Cell, byte[]> read = BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()));
         assertEquals(Cell.create(row, PtBytes.toBytes("col0")), read.getKey());
@@ -532,7 +532,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t1.getRowsColumnRange(testTableRef, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         // Serializable transaction records only the first column as read.
         Map.Entry<Cell, byte[]> read = BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()));
         assertEquals(Cell.create(row, PtBytes.toBytes("col0")), read.getKey());
@@ -559,7 +559,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t1.getRowsColumnRange(testTableRef, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         // Serializable transaction records only the first column as read.
         Map.Entry<Cell, byte[]> read = BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()));
         assertEquals(Cell.create(row, PtBytes.toBytes("col0")), read.getKey());
@@ -579,7 +579,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t1.getRowsColumnRange(testTableRef, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
+                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
         assertNull(BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values())));
         // Write to avoid the read only path.
         put(t1, "row1_1", "col0", "v0");
@@ -602,7 +602,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Transaction t1 = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                t1.getRowsColumnRange(testTableRef, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
+                t1.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
         // Intentionally not reading anything from the result, so we shouldn't get a conflict.
         // Write to avoid the read only path.
         put(t1, "row1_1", "col0", "v0");

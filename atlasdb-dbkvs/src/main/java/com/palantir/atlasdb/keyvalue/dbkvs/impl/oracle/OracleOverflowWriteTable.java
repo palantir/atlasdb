@@ -33,7 +33,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.exception.PalantirSqlException;
@@ -113,15 +112,17 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                         + " INSERT INTO " + config.singleOverflowTable() + " (id, val) VALUES (?, ?) ",
                         overflowArgs);
             } else {
+                String shortOverflowTableName = getShortOverflowTableName();
                 conns.get().insertManyUnregisteredQuery(
-                        "/* INSERT_OVERFLOW (" + tableRef.getQualifiedName() + ") */"
-                        + " INSERT INTO " + getShortOverflowTableName() + " (id, val) VALUES (?, ?) ",
+                        "/* INSERT_OVERFLOW (" + shortOverflowTableName + ") */"
+                        + " INSERT INTO " + shortOverflowTableName + " (id, val) VALUES (?, ?) ",
                         overflowArgs);
             }
         }
         try {
-            conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + tableRef.getQualifiedName() + ") */"
-                    + " INSERT INTO " + getShortTableName() + " (row_name, col_name, ts, val, overflow) "
+            String shortTableName = getShortTableName();
+            conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + shortTableName + ") */"
+                    + " INSERT INTO " + shortTableName + " (row_name, col_name, ts, val, overflow) "
                     + " VALUES (?, ?, ?, ?, ?) ",
                     args);
         } catch (PalantirSqlException e) {
@@ -144,12 +145,13 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
             }
             while (true) {
                 try {
-                    conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + tableRef.getQualifiedName() + ") */"
-                            + " INSERT INTO " + getShortTableName()
+                    String shortTableName = getShortTableName();
+                    conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + shortTableName + ") */"
+                            + " INSERT INTO " + shortTableName
                             + "   (row_name, col_name, ts, val, overflow)"
                             + " SELECT ?, ?, ?, ?, ? FROM DUAL"
                             + " WHERE NOT EXISTS ("
-                            + "   SELECT * FROM " + getShortTableName()
+                            + "   SELECT * FROM " + shortTableName
                             + "   WHERE row_name = ?"
                             + "     AND col_name = ?"
                             + "     AND ts = ?)",
@@ -191,7 +193,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         SqlConnection conn = conns.get();
         try {
             log.info("Got connection for delete on table {}: {}, autocommit={}",
-                    tableRef.getQualifiedName(),
+                    getShortTableName(),
                     conn.getUnderlyingConnection(),
                     conn.getUnderlyingConnection().getAutoCommit());
         } catch (PalantirSqlException | SQLException e) {
@@ -207,12 +209,13 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     private void deleteOverflow(String overflowTable, List<Object[]> args) {
+        String shortTableName = getShortTableName();
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE_OVERFLOW (" + overflowTable + ") */ "
                 + " DELETE /*+ INDEX(m pk_" + overflowTable + ") */ "
                 + "   FROM " + overflowTable + " m "
-                + "  WHERE m.id IN (SELECT /*+ INDEX(i pk_" + getShortTableName() + ") */ "
+                + "  WHERE m.id IN (SELECT /*+ INDEX(i pk_" + shortTableName + ") */ "
                 + "                        i.overflow "
-                + "                   FROM " + getShortTableName() + " i "
+                + "                   FROM " + shortTableName + " i "
                 + "                  WHERE i.row_name = ? "
                 + "                    AND i.col_name = ? "
                 + "                    AND i.ts = ? "

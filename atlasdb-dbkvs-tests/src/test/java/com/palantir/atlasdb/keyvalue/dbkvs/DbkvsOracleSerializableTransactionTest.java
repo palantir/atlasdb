@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 
@@ -25,7 +24,6 @@ public class DbkvsOracleSerializableTransactionTest extends
 
     @Override
     protected KeyValueService getKeyValueService() {
-        testTableRef = TableReference.createFromFullyQualifiedName("ns.This_Is_A_LongTableNameThatGoesOverOracleTableNameLengthLimits");
         return ConnectionManagerAwareDbKvs.create(DbkvsOracleTestSuite.getKvsConfig());
     }
 }

@@ -46,7 +46,7 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
 
 public abstract class TransactionTestSetup {
-    protected static TableReference testTableRef = TableReference.createFromFullyQualifiedName("ns.table1");
+    protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.table1");
 
     protected static LockClient lockClient = null;
     protected static LockServiceImpl lockService = null;
@@ -85,9 +85,9 @@ public abstract class TransactionTestSetup {
         keyValueService = getKeyValueService();
         timestampService = new InMemoryTimestampService();
         keyValueService.createTables(ImmutableMap.of(
-                testTableRef, AtlasDbConstants.GENERIC_TABLE_METADATA,
+                TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA,
                 TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
-        keyValueService.truncateTables(ImmutableSet.of(testTableRef, TransactionConstants.TRANSACTION_TABLE));
+        keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
         transactionService = TransactionServices.createTransactionService(keyValueService);
         conflictDetectionManager = ConflictDetectionManagers.createDefault(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
@@ -96,7 +96,7 @@ public abstract class TransactionTestSetup {
 
     @After
     public void tearDown() {
-        keyValueService.dropTables(ImmutableSet.of(testTableRef, TransactionConstants.TRANSACTION_TABLE));
+        keyValueService.dropTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
         keyValueService.close();
     }
 
@@ -117,7 +117,7 @@ public abstract class TransactionTestSetup {
             String rowName,
             String columnName,
             String value) {
-        put(t, testTableRef, rowName, columnName, value);
+        put(t, TEST_TABLE, rowName, columnName, value);
     }
 
     protected void put(Transaction t,
@@ -133,19 +133,19 @@ public abstract class TransactionTestSetup {
     }
 
     protected void delete(Transaction t, String rowName, String columnName) {
-        t.delete(testTableRef, ImmutableSet.of(Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(columnName))));
+        t.delete(TEST_TABLE, ImmutableSet.of(Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(columnName))));
     }
 
     protected String get(Transaction t,
             String rowName,
             String columnName) {
-        return get(t, testTableRef, rowName, columnName);
+        return get(t, TEST_TABLE, rowName, columnName);
     }
 
     protected String getCell(Transaction t,
             String rowName,
             String columnName) {
-        return getCell(t, testTableRef, rowName, columnName);
+        return getCell(t, TEST_TABLE, rowName, columnName);
     }
 
     protected String getCell(Transaction t,
@@ -179,11 +179,11 @@ public abstract class TransactionTestSetup {
             String value, long timestamp) {
         Cell k = Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(columnName));
         byte[] v = PtBytes.toBytes(value);
-        keyValueService.put(testTableRef, ImmutableMap.of(k, v), timestamp);
+        keyValueService.put(TEST_TABLE, ImmutableMap.of(k, v), timestamp);
     }
 
     protected Pair<String, Long> getDirect(String rowName, String columnName, long timestamp) {
-        return getDirect(testTableRef, rowName, columnName, timestamp);
+        return getDirect(TEST_TABLE, rowName, columnName, timestamp);
     }
 
     protected Pair<String, Long> getDirect(TableReference tableRef,

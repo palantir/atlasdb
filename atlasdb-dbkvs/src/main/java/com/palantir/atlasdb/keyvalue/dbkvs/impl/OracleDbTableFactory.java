@@ -53,8 +53,8 @@ public class OracleDbTableFactory implements DbTableFactory {
         String shortTableName = getShortTableName(tableRef);
         switch (tableSize) {
             case OVERFLOW:
-                String overflowTableName = getShortOverflowTableName(tableRef);
-                queryFactory = new OracleOverflowQueryFactory(config, shortTableName, overflowTableName);
+                String shortOverflowTableName = getShortOverflowTableName(tableRef);
+                queryFactory = new OracleOverflowQueryFactory(config, shortTableName, shortOverflowTableName);
                 break;
             case RAW:
                 queryFactory = new OracleRawQueryFactory(shortTableName, config);

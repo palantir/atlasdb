@@ -37,9 +37,7 @@ public class SimpleDbWriteTable implements DbWriteTable {
     protected final ConnectionSupplier conns;
     protected final DdlConfig config;
 
-    public SimpleDbWriteTable(TableReference tableRef,
-                              ConnectionSupplier conns,
-                              DdlConfig config) {
+    public SimpleDbWriteTable(TableReference tableRef, ConnectionSupplier conns, DdlConfig config) {
         this.tableRef = tableRef;
         this.conns = conns;
         this.config = config;
@@ -69,8 +67,9 @@ public class SimpleDbWriteTable implements DbWriteTable {
 
     private void put(List<Object[]> args) {
         try {
-            conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + tableRef + ") */"
-                    + " INSERT INTO " + getPrefixedTableName() + " (row_name, col_name, ts, val) "
+            String prefixedTableName = getPrefixedTableName();
+            conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + prefixedTableName + ") */"
+                    + " INSERT INTO " + prefixedTableName + " (row_name, col_name, ts, val) "
                     + " VALUES (?, ?, ?, ?) ",
                     args);
         } catch (PalantirSqlException e) {
@@ -93,10 +92,11 @@ public class SimpleDbWriteTable implements DbWriteTable {
             }
             while (true) {
                 try {
-                    conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + tableRef + ") */"
-                            + " INSERT INTO " + getPrefixedTableName() + " (row_name, col_name, ts, val) "
+                    String prefixedTableName = getPrefixedTableName();
+                    conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + prefixedTableName + ") */"
+                            + " INSERT INTO " + prefixedTableName + " (row_name, col_name, ts, val) "
                             + " SELECT ?, ?, ?, ? FROM DUAL"
-                            + " WHERE NOT EXISTS (SELECT * FROM " + getPrefixedTableName() + " WHERE"
+                            + " WHERE NOT EXISTS (SELECT * FROM " + prefixedTableName + " WHERE"
                             + " row_name = ? AND"
                             + " col_name = ? AND"
                             + " ts = ?)",
@@ -121,9 +121,10 @@ public class SimpleDbWriteTable implements DbWriteTable {
             args.add(new Object[] {cell.getRowName(), cell.getColumnName(), entry.getValue()});
         }
 
-        conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE (" + tableRef + ") */ "
-                + " DELETE /*+ INDEX(m pk_" + getPrefixedTableName() + ") */ "
-                + " FROM " + getPrefixedTableName() + " m "
+        String prefixedTableName = getPrefixedTableName();
+        conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE (" + prefixedTableName + ") */ "
+                + " DELETE /*+ INDEX(m pk_" + prefixedTableName + ") */ "
+                + " FROM " + prefixedTableName + " m "
                 + " WHERE m.row_name = ? "
                 + "  AND m.col_name = ? "
                 + "  AND m.ts = ?",
