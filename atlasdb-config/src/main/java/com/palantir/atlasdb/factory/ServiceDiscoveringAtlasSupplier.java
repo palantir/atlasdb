@@ -33,12 +33,17 @@ import com.palantir.util.debug.ThreadDumps;
 public class ServiceDiscoveringAtlasSupplier {
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
 
+    private static String timestampServiceCreationInfo = null;
+
     private final KeyValueServiceConfig config;
+    private final Optional<LeaderConfig> leaderConfig;
     private final Supplier<KeyValueService> keyValueService;
     private final Supplier<TimestampService> timestampService;
 
     public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
         this.config = config;
+        this.leaderConfig = leaderConfig;
+
         AtlasDbFactory atlasFactory = StreamSupport.stream(loader.spliterator(), false)
                 .filter(producesCorrectType())
                 .findFirst()
@@ -57,7 +62,24 @@ public class ServiceDiscoveringAtlasSupplier {
     public TimestampService getTimestampService() {
         DebugLogger.logger.info("Fetching timestamp service from thread {}. This should only happen once.",
                 Thread.currentThread().getName());
-        DebugLogger.logger.info("Thread dump: " + ThreadDumps.programmaticThreadDump());
+
+        String threadDump = ThreadDumps.programmaticThreadDump();
+        if (timestampServiceCreationInfo == null) {
+            timestampServiceCreationInfo = threadDump;
+        } else {
+            if (!leaderConfig.isPresent()) {
+                DebugLogger.logger.error("Timestamp service fetched for a second time, and there is no leader config."
+                        + "This means that you may soon encounter the MultipleRunningTimestampServices error."
+                        + "Now outputting thread dumps from both fetches of the timestamp service...");
+            } else {
+                DebugLogger.logger.warn("Timestamp service fetched for a second time. This is only OK if you are "
+                        + "running in an HA configuration and have just had a leadership election. "
+                        + "You do have a leader config, but we're printing thread dumps from both fetches of the "
+                        + "timestamp service, in case this second service was created in error.");
+            }
+            DebugLogger.logger.error("First thread dump: " + timestampServiceCreationInfo);
+            DebugLogger.logger.error("Second thread dump: " + threadDump);
+        }
 
         return timestampService.get();
     }
