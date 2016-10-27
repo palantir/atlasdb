@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Performance Benchmarking &mdash; AtlasDB develop documentation</title>
+  <title>Schema Migrations &mdash; AtlasDB develop documentation</title>
   
 
   
@@ -38,9 +38,9 @@
               href="../genindex.html"/>
         <link rel="search" title="Search" href="../search.html"/>
     <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
-        <link rel="up" title="Miscellaneous" href="index.html"/>
-        <link rel="next" title="Troubleshooting" href="../troubleshooting/index.html"/>
-        <link rel="prev" title="Contributing to AtlasDB" href="contributing.html"/> 
+        <link rel="up" title="Schemas" href="index.html"/>
+        <link rel="next" title="Transactions" href="../transactions/index.html"/>
+        <link rel="prev" title="Physical Cleanup" href="physical_cleanup.html"/> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
@@ -91,16 +91,20 @@
             
                 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Schemas</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tables_and_indices.html">Tables and Indices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="streams.html">Streams</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cleanup_tasks.html">Cleanup Tasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="physical_cleanup.html">Physical Cleanup</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Schema Migrations</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../transactions/index.html">Transactions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../configuration/index.html">Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../services/index.html">Services</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="index.html">Miscellaneous</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="contributing.html">Contributing to AtlasDB</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Performance Benchmarking</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../miscellaneous/index.html">Miscellaneous</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../troubleshooting/index.html">Troubleshooting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../release_notes/index.html">Releases</a></li>
 </ul>
@@ -133,13 +137,13 @@
   <ul class="wy-breadcrumbs">
     <li><a href="../index.html">Docs</a> &raquo;</li>
       
-          <li><a href="index.html">Miscellaneous</a> &raquo;</li>
+          <li><a href="index.html">Schemas</a> &raquo;</li>
       
-    <li>Performance Benchmarking</li>
+    <li>Schema Migrations</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/miscellaneous/performance.rst" class="fa fa-github"> Edit on GitHub</a>
+            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/schemas/migrating_schemas.rst" class="fa fa-github"> Edit on GitHub</a>
           
         
       </li>
@@ -149,29 +153,24 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="performance-benchmarking">
-<h1>Performance Benchmarking<a class="headerlink" href="#performance-benchmarking" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="running-benchmarks">
-<h2>Running Benchmarks<a class="headerlink" href="#running-benchmarks" title="Permalink to this headline">¶</a></h2>
-<ol class="arabic">
-<li><p class="first">Follow the steps provided in <a class="reference internal" href="../overview/getting_started.html#running-from-source"><span class="std std-ref">Running from Source</span></a>.</p>
-</li>
-<li><p class="first">Build the performance cli:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">gradlew</span> <span class="n">atlasdb</span><span class="o">-</span><span class="n">perf</span><span class="p">:</span><span class="n">installDist</span>
-<span class="n">cd</span> <span class="n">atlasdb</span><span class="o">-</span><span class="n">perf</span><span class="o">/</span><span class="n">build</span><span class="o">/</span><span class="n">install</span><span class="o">/</span><span class="n">atlasdb</span><span class="o">-</span><span class="n">perf</span><span class="o">/</span><span class="nb">bin</span>
-</pre></div>
-</div>
-</li>
-<li><p class="first">Run the performance cli:</p>
-<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">atlasdb</span><span class="o">-</span><span class="n">perf</span> <span class="o">--</span><span class="n">help</span>
-</pre></div>
-</div>
-</li>
+  <div class="section" id="schema-migrations">
+<span id="migrating-schemas"></span><h1>Schema Migrations<a class="headerlink" href="#schema-migrations" title="Permalink to this headline">¶</a></h1>
+<p>AtlasDB does not provide any mechanism or tooling specific to performing schema migrations.
+Products using AtlasDB need to validate the existing schema, create the proper tables, and migrate data as necessary and should not rely on AtlasDB to natively perform these operations.</p>
+<div class="section" id="schema-mutation-lock-cassandra-only">
+<span id="schema-mutation-lock"></span><h2>Schema Mutation Lock (Cassandra only)<a class="headerlink" href="#schema-mutation-lock-cassandra-only" title="Permalink to this headline">¶</a></h2>
+<p>Cassandra 2.1 introduced a race condition that allows clients to create two versions of a table with the same create table command.
+Upon restarting your Cassandra cluster, one table will be chosen arbitrarily and the other one will be deleted, corrupting your database.
+This is a known issue with Cassandra and is being tracked on <a class="reference external" href="https://issues.apache.org/jira/browse/CASSANDRA-10699">CASSANDRA-10699</a>.
+To get around this in the meantime, we do two things:</p>
+<ol class="arabic simple">
+<li>All <cite>schema mutations</cite> - creating, altering, or dropping tables - are protected by a non-expiring lock called the <cite>schema mutation lock</cite>, and the state of this lock lives in the <code class="docutils literal"><span class="pre">_locks</span></code> table in Cassandra.
+A lock holder will free the lock after finishing the schema mutation.
+A free lock will be denoted by <code class="docutils literal"><span class="pre">0x393232333337323033363835343737353830375f30</span></code>, or a <code class="docutils literal"><span class="pre">Long.MAX_0</span></code> in hex. A held lock will be anything other than the cleared value.</li>
+<li>We designate a lockCreator in the <a class="reference internal" href="../configuration/cassandra_KVS_configuration.html#cassandra-kvs-config"><span class="std std-ref">Cassandra KVS config</span></a> to ensure we do not hit the race condition while creating the <code class="docutils literal"><span class="pre">_locks</span></code> table.</li>
 </ol>
-</div>
-<div class="section" id="contributing-benchmarks">
-<h2>Contributing Benchmarks<a class="headerlink" href="#contributing-benchmarks" title="Permalink to this headline">¶</a></h2>
-<p>The benchmarks are written using the <a class="reference external" href="http://openjdk.java.net/projects/code-tools/jmh/">Java Benchmarking Harness</a> (JMH) bundled with OpenJDK.  To get started understanding JMH take a look at the <a class="reference external" href="http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/">JMH Samples</a>.  Our benchmarks are found in the <code class="code docutils literal"><span class="pre">atlasdb-perf</span></code> project.</p>
+<p>Occasionally we will lose an AtlasDB client while performing a schema mutation, and since the schema mutation lock does not expire, you will need to manually clear the lock.
+See <a class="reference internal" href="../troubleshooting/index.html#clearing-schema-mutation-lock"><span class="std std-ref">Clearing the schema mutation lock</span></a> for steps on how to manually clear the lock.</p>
 </div>
 </div>
 
@@ -182,10 +181,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../troubleshooting/index.html" class="btn btn-neutral float-right" title="Troubleshooting" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="../transactions/index.html" class="btn btn-neutral float-right" title="Transactions" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="contributing.html" class="btn btn-neutral" title="Contributing to AtlasDB" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="physical_cleanup.html" class="btn btn-neutral" title="Physical Cleanup" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

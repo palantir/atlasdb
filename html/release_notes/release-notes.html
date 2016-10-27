@@ -97,6 +97,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../services/index.html">Services</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../miscellaneous/index.html">Miscellaneous</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../troubleshooting/index.html">Troubleshooting</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Releases</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Changelog</a><ul class="simple">
 </ul>
@@ -248,7 +249,7 @@ For information on how to configure Sweep batching, see the <a class="reference 
 <tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
 <td><p class="first">Hotspotting warnings, previously logged at ERROR, will now throw <code class="docutils literal"><span class="pre">IllegalStateException</span></code> when generating your schema code.
 Products who hit this warning will need to add <code class="docutils literal"><span class="pre">ignoreHotspottingChecks()</span></code> to the relevant tables of their schema, or modify their schemas such that the first row component is not a VAR_STRING, a VAR_LONG, a VAR_SIGNED_LONG, or a SIZED_BLOB.</p>
-<p class="last">See documentation on <a class="reference internal" href="../schemas/index.html#primitive-valuetypes"><span class="std std-ref">primitive value types</span></a> and <a class="reference internal" href="../schemas/tables_and_indices.html#tables-and-indices-partitioners"><span class="std std-ref">partitioners</span></a> for information on how to address your schemas.
+<p class="last">See documentation on <a class="reference internal" href="../schemas/overview.html#primitive-valuetypes"><span class="std std-ref">primitive value types</span></a> and <a class="reference internal" href="../schemas/tables_and_indices.html#tables-and-indices-partitioners"><span class="std std-ref">partitioners</span></a> for information on how to address your schemas.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/947">Pull Request</a>)</p>
 </td>
 </tr>

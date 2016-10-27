@@ -1,0 +1,296 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Troubleshooting &mdash; AtlasDB develop documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
+  
+    <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="AtlasDB develop documentation" href="../index.html"/>
+        <link rel="next" title="Releases" href="../release_notes/index.html"/>
+        <link rel="prev" title="Performance Benchmarking" href="../miscellaneous/performance.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> AtlasDB
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                develop
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../transactions/index.html">Transactions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration/index.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../services/index.html">Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../miscellaneous/index.html">Miscellaneous</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes/index.html">Releases</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">AtlasDB</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+ 
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+    <li>Troubleshooting</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/troubleshooting/index.rst" class="fa fa-github"> Edit on GitHub</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="troubleshooting">
+<span id="id1"></span><h1>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this headline">¶</a></h1>
+<div class="contents local topic" id="contents">
+<ul class="simple">
+<li><a class="reference internal" href="#clearing-the-schema-mutation-lock" id="id2">Clearing the schema mutation lock</a><ul>
+<li><a class="reference internal" href="#clear-with-cli" id="id3">Clear with CLI</a></li>
+<li><a class="reference internal" href="#clear-with-cql" id="id4">Clear with CQL</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="clearing-the-schema-mutation-lock">
+<span id="clearing-schema-mutation-lock"></span><h2><a class="toc-backref" href="#id2">Clearing the schema mutation lock</a><a class="headerlink" href="#clearing-the-schema-mutation-lock" title="Permalink to this headline">¶</a></h2>
+<p>While performing schema mutations (e.g. creating or dropping tables) in Cassandra, we hold a <a class="reference internal" href="../schemas/migrating_schemas.html#schema-mutation-lock"><span class="std std-ref">schema mutation lock</span></a>.
+If an AtlasDB client dies while holding the lock, the lock must be manually cleared or clients will not be able to perform schema mutations.
+Prior to AtlasDB 0.19, we would always grab the schema mutation lock on startup, and thus would fail to start until the lock had been cleared.</p>
+<p>You will see one or both of the following exceptions when the schema mutation lock has been dropped:</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>// TimeoutException
+
+We have timed out waiting on the current schema mutation lock holder. We have
+tried to grab the lock for %d milliseconds unsuccessfully. This indicates
+that the current lock holder has died without releasing the lock and will
+require manual intervention. Shut down all AtlasDB clients operating on the
+%s keyspace and then run the clean-cass-locks-state cli command.
+</pre></div>
+</div>
+<div class="highlight-none"><div class="highlight"><pre><span></span>// RuntimeException
+
+The current lock holder has failed to update its heartbeat. We suspect that this
+might be due to a node crashing while holding the schema mutation lock. If this
+is indeed the case, run the clean-cass-locks-state cli command.
+</pre></div>
+</div>
+<div class="section" id="clear-with-cli">
+<h3><a class="toc-backref" href="#id3">Clear with CLI</a><a class="headerlink" href="#clear-with-cli" title="Permalink to this headline">¶</a></h3>
+<p>The <a class="reference internal" href="../cluster_management/dropwizard-bundle.html#dropwizard-bundle"><span class="std std-ref">AtlasDB Dropwizard bundle</span></a> comes with a command that will clear the schema mutation lock.
+To use the CLI, shut down your AtlasDB clients and run:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>./service/bin/&lt;service&gt; atlasdb clean-cass-locks-state var/conf/&lt;service&gt;.yml --offline
+</pre></div>
+</div>
+</div>
+<div class="section" id="clear-with-cql">
+<h3><a class="toc-backref" href="#id4">Clear with CQL</a><a class="headerlink" href="#clear-with-cql" title="Permalink to this headline">¶</a></h3>
+<p>If you prefer to clear the lock with the Cassandra Query Language (CQL), then you can run commands similar to the below.</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>cd my/cassandra/service/dir
+./bin/cqlsh
+cqlsh&gt; use &quot;myKeyspace&quot;;
+cqlsh:myKeyspace&gt; describe tables;
+
+&quot;myKeyspace__table1&quot;
+&quot;_locks&quot;
+&quot;myKeyspace__table2&quot;
+&quot;_timestamp&quot;
+&quot;myKeyspace__table3&quot;
+&quot;_transactions&quot;
+sweep__priority
+&quot;_scrub&quot;
+&quot;_punch&quot;
+&quot;_metadata&quot;
+sweep__progress
+
+cqlsh:myKeyspace&gt; select * from &quot;_locks&quot;;
+
+ key                              | column1                    | column2 | value
+----------------------------------+----------------------------+---------+--------------------
+ 0x476c6f62616c2044444c206c6f636b | 0x69645f776974685f6c6f636b |      -1 | 0x11884a8da443f45a
+
+(1 rows)
+cqlsh:myKeyspace&gt; truncate table &quot;_locks&quot;;
+cqlsh:myKeyspace&gt; select * from &quot;_locks&quot;;
+
+ key | column1 | column2 | value
+-----+---------+---------+-------
+
+(0 rows)
+cqlsh:myKeyspace&gt;
+</pre></div>
+</div>
+<p>You should now be able to successfully start your services.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../release_notes/index.html" class="btn btn-neutral float-right" title="Releases" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../miscellaneous/performance.html" class="btn btn-neutral" title="Performance Benchmarking" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Palantir Technologies.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'develop',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
