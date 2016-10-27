@@ -46,6 +46,10 @@ develop
            Now the CLI sets the schema mutation lock to a special "cleared" value to be more consistent with how real lockholders behave.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1056>`__)
 
+    *    - |improved|
+         - Substantially improved performance of the DbKvs implementation of the single-iterator version of getRowsColumnRange.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1132>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
