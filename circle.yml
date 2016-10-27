@@ -22,6 +22,7 @@ checkout:
     - sudo service rabbitmq-server stop
     - sudo service redis-server stop
     - sudo service zookeeper stop
+    - curl -O 'http://ftp.de.debian.org/debian/pool/main/m/moreutils/moreutils_0.59-1_amd64.deb' && ar p moreutils_0.59-1_amd64.deb data.tar.xz | sudo tar xJ --strip-components=3 -C /usr/bin/ ./usr/bin/ts
 
 general:
   artifacts:
@@ -29,7 +30,6 @@ general:
 
 dependencies:
   pre:
-    - curl -O 'http://ftp.de.debian.org/debian/pool/main/m/moreutils/moreutils_0.59-1_amd64.deb' && ar p moreutils_0.59-1_amd64.deb data.tar.xz | sudo tar xJ --strip-components=3 -C /usr/bin/ ./usr/bin/ts
     - sudo pip install docker-compose
   override:
     - ./scripts/time-cmd.sh ./gradlew --profile --parallel resolveConfigurations
