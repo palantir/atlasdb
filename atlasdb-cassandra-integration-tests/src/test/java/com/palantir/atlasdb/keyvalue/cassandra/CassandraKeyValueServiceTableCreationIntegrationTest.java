@@ -73,7 +73,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         kvs.close();
     }
 
-    @Test (timeout = 10 * 1000)
+    @Test(timeout = 10 * 1000)
     public void testTableCreationCanOccurAfterError() {
         try {
             kvs.createTable(BAD_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -86,7 +86,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
 
     @Test
     public void testCreatingMultipleTablesAtOnce() throws InterruptedException {
-        int threadCount =  16;
+        int threadCount = 16;
         CyclicBarrier barrier = new CyclicBarrier(threadCount);
         ForkJoinPool threadPool = new ForkJoinPool(threadCount);
 
@@ -142,7 +142,8 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
                 "m".getBytes(StandardCharsets.UTF_8));
         Value persistedMetadata = Iterables.getLast(
                 kvs.get(AtlasDbConstants.DEFAULT_METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE)).values());
-        kvs.delete(AtlasDbConstants.DEFAULT_METADATA_TABLE, ImmutableMultimap.of(cell, persistedMetadata.getTimestamp()));
+        kvs.delete(AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                ImmutableMultimap.of(cell, persistedMetadata.getTimestamp()));
 
         // pretend we started up again and did a createTable() for our existing table, that no longer has metadata
         kvs.createTable(missingMetadataTable, initialMetadata);
