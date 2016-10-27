@@ -11,4 +11,5 @@ These must be cleaned up or ignored so publishing can run successfully.
 ^^^^^^^^^^^See the above git status to figure out the problem^^^^^^^^^^
 #######################################################################
 EOF
+   exit 1
 fi
