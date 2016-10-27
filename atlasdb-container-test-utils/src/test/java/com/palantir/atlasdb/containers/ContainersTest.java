@@ -24,16 +24,20 @@ public class ContainersTest {
         Containers containers = new Containers(ContainersTest.class)
                 .with(new FirstNginxContainer());
 
-        containers.before();
+        setupContainers(containers);
     }
 
     @Test
     public void multipleContainersStartUpCorrectly() throws Throwable {
         Containers containers = new Containers(ContainersTest.class)
                 .with(new FirstNginxContainer());
-        containers.before();
+        setupContainers(containers);
 
         containers = containers.with(new SecondNginxContainer());
+        setupContainers(containers);
+    }
+
+    private static void setupContainers(Containers containers) throws Throwable {
         containers.before();
     }
 }

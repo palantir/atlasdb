@@ -74,40 +74,65 @@ public class Containers extends ExternalResource {
     @Override
     protected void before() throws Throwable {
         synchronized (Containers.class) {
-            if (!shutdownHookAdded) {
-                shutdownHookAdded = true;
-                Runtime.getRuntime().addShutdownHook(new Thread(Containers::onShutdown));
-            }
+            setupShutdownHook();
 
-            Set<String> containerDockerComposeFiles = containersToStart.stream()
-                    .map(Container::getDockerComposeFile)
-                    .map(dockerComposeFilesToTemporaryCopies::getUnchecked)
-                    .collect(Collectors.toSet());
+            setupLogCollectorForLogDirectory();
+            setupDockerComposeRule();
 
-            if (currentLogCollector != null) {
-                currentLogCollector.stopCollecting();
-            }
-            currentLogCollector = InterruptibleFileLogCollector.fromPath(logDirectory);
+            ensureDockerProxyRuleRunning();
 
-            dockerComposeRule = DockerComposeRule.builder()
-                    .files(DockerComposeFiles.from(containerDockerComposeFiles.toArray(new String[0])))
-                    .projectName(PROJECT_NAME)
-                    .logCollector(currentLogCollector)
-                    .build();
-            dockerComposeRule.before();
-
-            if (!dockerProxyRuleStarted) {
-                dockerProxyRuleStarted = true;
-                DOCKER_PROXY_RULE.before();
-            }
-
-            for (Container container : Sets.difference(containersToStart, containersStarted)) {
-                Awaitility.await()
-                        .atMost(com.jayway.awaitility.Duration.ONE_MINUTE)
-                        .pollInterval(com.jayway.awaitility.Duration.ONE_SECOND)
-                        .until(() -> container.isReady().succeeded());
-            }
+            waitForContainersToStart();
             containersStarted.addAll(containersToStart);
+        }
+    }
+
+    public String getLogDirectory() {
+        return logDirectory;
+    }
+
+    private void setupLogCollectorForLogDirectory() throws InterruptedException {
+        if (currentLogCollector != null) {
+            currentLogCollector.stopCollecting();
+        }
+        currentLogCollector = InterruptibleFileLogCollector.fromPath(logDirectory);
+    }
+
+    private void setupDockerComposeRule() throws InterruptedException, IOException {
+        Set<String> containerDockerComposeFiles = containersToStart.stream()
+                .map(Container::getDockerComposeFile)
+                .map(dockerComposeFilesToTemporaryCopies::getUnchecked)
+                .collect(Collectors.toSet());
+
+        dockerComposeRule = DockerComposeRule.builder()
+                .files(DockerComposeFiles.from(containerDockerComposeFiles.toArray(new String[0])))
+                .projectName(PROJECT_NAME)
+                .logCollector(currentLogCollector)
+                .build();
+
+        dockerComposeRule.before();
+    }
+
+    private static void setupShutdownHook() {
+        if (!shutdownHookAdded) {
+            shutdownHookAdded = true;
+            Runtime.getRuntime().addShutdownHook(new Thread(Containers::onShutdown));
+        }
+    }
+
+    @SuppressWarnings("checkstyle:IllegalThrows")
+    private static void ensureDockerProxyRuleRunning() throws Throwable {
+        if (!dockerProxyRuleStarted) {
+            dockerProxyRuleStarted = true;
+            DOCKER_PROXY_RULE.before();
+        }
+    }
+
+    private static void waitForContainersToStart() {
+        for (Container container : Sets.difference(containersToStart, containersStarted)) {
+            Awaitility.await()
+                    .atMost(com.jayway.awaitility.Duration.ONE_MINUTE)
+                    .pollInterval(com.jayway.awaitility.Duration.ONE_SECOND)
+                    .until(() -> container.isReady().succeeded());
         }
     }
 
@@ -135,9 +160,5 @@ public class Containers extends ExternalResource {
             currentLogCollector = null;
             containersStarted.clear();
         }
-    }
-
-    public String getLogDirectory() {
-        return logDirectory;
     }
 }
