@@ -168,6 +168,10 @@
 </div>
 <div class="section" id="configuring-a-running-application-to-use-postgres">
 <h2>Configuring a Running Application to Use Postgres<a class="headerlink" href="#configuring-a-running-application-to-use-postgres" title="Permalink to this headline">¶</a></h2>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">If you have multiple products using the same Postgres instance, they <em>must</em> use different databases.</p>
+</div>
 <p>A minimal AtlasDB configuration for running against postgres will look like :</p>
 <div class="highlight-yaml"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
   <span class="l l-Scalar l-Scalar-Plain">keyValueService</span><span class="p p-Indicator">:</span>
@@ -178,7 +182,7 @@
       <span class="l l-Scalar l-Scalar-Plain">type</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">postgres</span>
       <span class="l l-Scalar l-Scalar-Plain">host</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">dbhost</span>
       <span class="l l-Scalar l-Scalar-Plain">port</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">5432</span>
-      <span class="l l-Scalar l-Scalar-Plain">dbName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">atlas</span>
+      <span class="l l-Scalar l-Scalar-Plain">dbName</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">my-unique-db-name</span> <span class="c1"># must be unique per product</span>
       <span class="l l-Scalar l-Scalar-Plain">dbLogin</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">palantir</span>
       <span class="l l-Scalar l-Scalar-Plain">dbPassword</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">palantir</span>
 

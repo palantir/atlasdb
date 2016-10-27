@@ -22,6 +22,10 @@ e.g.
 Configuring a Running Application to Use Postgres
 =================================================
 
+.. warning::
+
+  If you have multiple products using the same Postgres instance, they *must* use different databases.
+
 A minimal AtlasDB configuration for running against postgres will look like :
 
 .. code-block:: yaml
@@ -35,7 +39,7 @@ A minimal AtlasDB configuration for running against postgres will look like :
         type: postgres
         host: dbhost
         port: 5432
-        dbName: atlas
+        dbName: my-unique-db-name # must be unique per product 
         dbLogin: palantir
         dbPassword: palantir
 
@@ -53,7 +57,6 @@ A minimal AtlasDB configuration for running against postgres will look like :
           - https://host1:3828 # If ssl is not enabled, then the hosts must be specified as http
           - https://host2:3828
           - https://host3:3828
-
 
 For more details on the leader block, see :ref:`Leader Configuration <leader-config>`.
 
