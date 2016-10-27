@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
@@ -59,7 +60,9 @@ public class AtlasDbConstants {
             PUNCH_TABLE,
             SCRUB_TABLE,
             NAMESPACE_TABLE,
-            PARTITION_MAP_TABLE);
+            PARTITION_MAP_TABLE,
+            SweepSchema.SWEEP_PRIORITY_TABLE,
+            SweepSchema.SWEEP_PROGRESS_TABLE);
     public static final Set<TableReference> SKIP_POSTFILTER_TABLES = ImmutableSet.of(TransactionConstants.TRANSACTION_TABLE,
             NAMESPACE_TABLE);
 

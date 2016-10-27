@@ -20,6 +20,9 @@ import java.io.File;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
+import com.palantir.atlasdb.schema.generated.SweepProgressTable;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -35,6 +38,8 @@ public enum SweepSchema implements AtlasSchema {
             return generateSchema();
         }
     });
+    public static final TableReference SWEEP_PRIORITY_TABLE = TableReference.create(SweepSchema.NAMESPACE, SweepPriorityTable.getRawTableName());
+    public static final TableReference SWEEP_PROGRESS_TABLE = TableReference.create(SweepSchema.NAMESPACE, SweepProgressTable.getRawTableName());
 
     private static Schema generateSchema() {
         Schema schema = new Schema("Sweep",

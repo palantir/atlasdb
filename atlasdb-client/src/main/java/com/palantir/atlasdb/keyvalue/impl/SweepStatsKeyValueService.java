@@ -70,9 +70,6 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
     private static final int WRITE_THRESHOLD = 1 << 16;
     private static final long FLUSH_DELAY_SECONDS = 42;
 
-    // This is gross and won't work if someone starts namespacing sweep differently
-    private static final TableReference SWEEP_PRIORITY_TABLE = TableReference.create(SweepSchema.INSTANCE.getNamespace(), SweepPriorityTable.getRawTableName());
-
     private final KeyValueService delegate;
     private final TimestampService timestampService;
     private final Multiset<TableReference> writesByTable = ConcurrentHashMultiset.create();
@@ -239,7 +236,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
             Collection<byte[]> rows = Collections2.transform(
                     Collections2.transform(tableNames, t -> t.getQualifiedName()),
                     Functions.compose(Persistables.persistToBytesFunction(), SweepPriorityRow.fromFullTableNameFun()));
-            Map<Cell, Value> oldWriteCounts = delegate().getRows(SWEEP_PRIORITY_TABLE, rows,
+            Map<Cell, Value> oldWriteCounts = delegate().getRows(SweepSchema.SWEEP_PRIORITY_TABLE, rows,
                     SweepPriorityTable.getColumnSelection(SweepPriorityNamedColumn.WRITE_COUNT), Long.MAX_VALUE);
             Map<Cell, byte[]> newWriteCounts = Maps.newHashMapWithExpectedSize(writes.elementSet().size());
             byte[] col = SweepPriorityNamedColumn.WRITE_COUNT.getShortName();
@@ -260,10 +257,10 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
             // Committing before writing is intentional, we want the start timestamp to
             // show up in the transaction table before we write do our writes.
             commit(timestamp);
-            delegate().put(SWEEP_PRIORITY_TABLE, newWriteCounts, timestamp);
+            delegate().put(SweepSchema.SWEEP_PRIORITY_TABLE, newWriteCounts, timestamp);
         } catch (RuntimeException e) {
             Set<TableReference> allTableNames = delegate().getAllTableNames();
-            if (!allTableNames.contains(SWEEP_PRIORITY_TABLE)
+            if (!allTableNames.contains(SweepSchema.SWEEP_PRIORITY_TABLE)
                     || !allTableNames.contains(TransactionConstants.TRANSACTION_TABLE)) {
                 // ignore problems when sweep or transaction tables don't exist
                 log.warn("Ignoring failed sweep stats flush due to {}", e.getMessage(), e);
