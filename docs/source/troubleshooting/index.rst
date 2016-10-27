@@ -1,9 +1,13 @@
+.. _troubleshooting:
+
 ===============
 Troubleshooting
 ===============
 
 .. contents::
    :local:
+
+.. _clearing-schema-mutation-lock:
 
 Clearing the schema mutation lock
 =================================

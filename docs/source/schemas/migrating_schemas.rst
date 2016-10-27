@@ -23,4 +23,4 @@ To get around this in the meantime, we do two things:
 #. We designate a lockCreator in the :ref:`Cassandra KVS config <cassandra-kvs-config>` to ensure we do not hit the race condition while creating the _locks table.
 
 Occasionally we will lose an AtlasDB client while performing a schema mutation, and since the schema mutation lock does not expire, you will need to manually clear the lock.
-See
+See :ref:`clearing-schema-mutation-lock` for steps on how to manually clear the lock.
