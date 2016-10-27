@@ -16,15 +16,25 @@ While performing schema mutations (e.g. creating or dropping tables) in Cassandr
 If an AtlasDB client dies while holding the lock, the lock must be manually cleared or clients will not be able to perform schema mutations.
 Prior to AtlasDB 0.19, we would always grab the schema mutation lock on startup, and thus would fail to start until the lock had been cleared.
 
-The error message you see when hitting this issue is the following.
+You will see one or both of the following exceptions when the schema mutation lock has been dropped:
 
 .. code-block:: none
+
+   // TimeoutException
 
    We have timed out waiting on the current schema mutation lock holder. We have
    tried to grab the lock for %d milliseconds unsuccessfully. This indicates
    that the current lock holder has died without releasing the lock and will
    require manual intervention. Shut down all AtlasDB clients operating on the
    %s keyspace and then run the clean-cass-locks-state cli command.
+
+.. code-block:: none
+
+   // RuntimeException
+
+   The current lock holder has failed to update its heartbeat. We suspect that this
+   might be due to a node crashing while holding the schema mutation lock. If this
+   is indeed the case, run the clean-cass-locks-state cli command.
 
 Clear with CLI
 --------------
