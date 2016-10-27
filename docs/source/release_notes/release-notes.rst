@@ -34,6 +34,17 @@ Changelog
 develop
 =======
 
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Substantially improved performance of the DbKvs implementation of the single-iterator version of getRowsColumnRange.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1132>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
