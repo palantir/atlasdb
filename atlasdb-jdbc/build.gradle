@@ -7,7 +7,6 @@ dependencies {
   compile project(":atlasdb-client")
   compile project(":timestamp-impl")
 
-  compile group: 'io.dropwizard', name: 'dropwizard-jackson'
   compile "org.jooq:jooq:3.6.4"
 
   processor "org.immutables:value:" + libVersions.immutables
