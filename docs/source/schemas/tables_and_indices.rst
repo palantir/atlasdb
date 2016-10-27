@@ -2,6 +2,10 @@
 Tables and Indices
 ==================
 
+.. contents::
+   :local:
+   :depth: 1
+
 Tables
 ======
 

@@ -33,6 +33,7 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.thrift.TException;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -44,6 +45,8 @@ import org.slf4j.LoggerFactory;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.LockLeader;
+import com.palantir.atlasdb.containers.CassandraContainer;
+import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.common.exception.PalantirRuntimeException;
 
@@ -51,6 +54,10 @@ import com.palantir.common.exception.PalantirRuntimeException;
 public class SchemaMutationLockIntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(SchemaMutationLockIntegrationTest.class);
     private static final SchemaMutationLock.Action DO_NOTHING = () -> { };
+
+    @ClassRule
+    public static final Containers CONTAINERS = new Containers(SchemaMutationLockIntegrationTest.class)
+            .with(new CassandraContainer());
 
     private SchemaMutationLock schemaMutationLock;
     private HeartbeatService heartbeatService;
@@ -85,7 +92,7 @@ public class SchemaMutationLockIntegrationTest {
     }
 
     private void setUpWithCasSupportSetTo(boolean supportsCas) throws Exception {
-        quickTimeoutConfig = CassandraTestSuite.KVS_CONFIG
+        quickTimeoutConfig = ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
                 .withSchemaMutationTimeoutMillis(500);
         CassandraKeyValueServiceConfigManager simpleManager =
                 CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig);
@@ -215,7 +222,7 @@ public class SchemaMutationLockIntegrationTest {
 
     private SchemaMutationLock createQuickHeartbeatTimeoutLock() {
         CassandraKeyValueServiceConfigManager configManager =
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.KVS_CONFIG);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG);
         TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
         return new SchemaMutationLock(true, configManager, clientPool, queryRunner, writeConsistency, lockTable,
                 heartbeatService, 2000);

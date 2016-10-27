@@ -298,7 +298,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         return tableName.replaceFirst("\\.", "__");
     }
 
-    protected TableReference fromInternalTableName(String tableName) {
+    protected static TableReference fromInternalTableName(String tableName) {
         if (tableName.startsWith("_")) {
             return TableReference.createUnsafe(tableName);
         }
