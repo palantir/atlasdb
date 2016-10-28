@@ -32,6 +32,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Cassandra;
@@ -264,13 +265,22 @@ public class CassandraClientPool {
     }
 
     private CassandraClientPoolingContainer getRandomGoodHost() {
+        return getRandomGoodHostForPredicate(address -> true);
+    }
+
+    private CassandraClientPoolingContainer getRandomGoodHostForPredicate(Predicate<InetSocketAddress> predicate) {
         Map<InetSocketAddress, CassandraClientPoolingContainer> pools = currentPools;
 
-        Set<InetSocketAddress> livingHosts = Sets.difference(pools.keySet(), blacklistedHosts.keySet());
+        Set<InetSocketAddress> filteredHosts = pools.keySet().stream().filter(predicate).collect(Collectors.toSet());
+        if (filteredHosts.isEmpty()) {
+            throw new IllegalArgumentException("No hosts match the provided predicate!");
+        }
+
+        Set<InetSocketAddress> livingHosts = Sets.difference(filteredHosts, blacklistedHosts.keySet());
         if (livingHosts.isEmpty()) {
-            log.error("There are no known live hosts in the connection pool. We're choosing"
+            log.error("There are no known live hosts in the connection pool matching the predicate. We're choosing"
                     + " one at random in a last-ditch attempt at forward progress.");
-            livingHosts = pools.keySet();
+            livingHosts = filteredHosts;
         }
 
         return pools.get(getRandomHostByActiveConnections(Maps.filterKeys(currentPools, livingHosts::contains)));
@@ -455,18 +465,20 @@ public class CassandraClientPool {
             FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
         int numTries = 0;
         boolean shouldRetryOnDifferentHost = false;
+        final Set<InetSocketAddress> triedHosts = Sets.newHashSet();
         while (true) {
             CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
 
             if (blacklistedHosts.containsKey(specifiedHost) || hostPool == null || shouldRetryOnDifferentHost) {
                 log.warn("Randomly redirected a query intended for host {}.", specifiedHost);
-                hostPool = getRandomGoodHost();
+                hostPool = getRandomGoodHostForPredicate(address -> !triedHosts.contains(address));
             }
 
             try {
                 return hostPool.runWithPooledResource(fn);
             } catch (Exception e) {
                 numTries++;
+                triedHosts.add(hostPool.getHost());
                 this.<K>handleException(numTries, hostPool.getHost(), e);
                 if (isRetriableWithBackoffException(e)) {
                     log.warn("Retrying with backoff a query intended for host {}.", hostPool.getHost(), e);
