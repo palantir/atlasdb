@@ -173,6 +173,11 @@
 Now the CLI sets the schema mutation lock to a special &#8220;cleared&#8221; value to be more consistent with how real lockholders behave.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1056">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed an issue where some locks were not being tracked for continuous refreshing due to one of the lock methods not being
+overridden by the <code class="docutils literal"><span class="pre">LockRefreshingLockService</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1134">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
