@@ -274,8 +274,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row2", "col1", "", 0);
         putDirect("row2", "col2", "", 0);
 
-        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(
-                TEST_TABLE, ImmutableList.of(RangeRequest.builder().build(), RangeRequest.builder().build()), 1);
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, ImmutableList.of(RangeRequest.builder().build(), RangeRequest.builder().build()), 1);
         assertTrue(ranges.size() >= 1);
     }
 
@@ -288,8 +287,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         final RangeRequest allRange = RangeRequest.builder().build();
         final RangeRequest oneRange = RangeRequest.builder().startRowInclusive("row2".getBytes()).build();
         final RangeRequest allRangeBatch = RangeRequest.builder().batchHint(3).build();
-        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(
-                TEST_TABLE, ImmutableList.of(allRange, oneRange, allRangeBatch), 1);
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, ImmutableList.of(allRange, oneRange, allRangeBatch), 1);
         assertTrue(ranges.get(allRange).getResults().size()>=1);
         assertEquals(2, ranges.get(allRangeBatch).getResults().size());
         assertFalse(ranges.get(allRangeBatch).moreResultsAvailable());
@@ -347,8 +345,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             putDirect("row"+i, "col1", "v1", 0);
         }
 
-        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(
-                TEST_TABLE, Iterables.limit(Iterables.cycle(RangeRequest.builder().batchHint(1000).build()), 100), 1);
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, Iterables.limit(Iterables.cycle(RangeRequest.builder().batchHint(1000).build()), 100), 1);
         assertEquals(1, ranges.keySet().size());
         assertEquals(totalPuts, ranges.values().iterator().next().getResults().size());
     }
@@ -363,8 +360,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
             putDirect("row"+i, "col1", "v1", 0);
         }
 
-        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(
-                TEST_TABLE, Iterables.limit(Iterables.cycle(RangeRequest.reverseBuilder().batchHint(1000).build()), 100), 1);
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, Iterables.limit(Iterables.cycle(RangeRequest.reverseBuilder().batchHint(1000).build()), 100), 1);
         assertEquals(1, ranges.keySet().size());
         assertEquals(totalPuts, ranges.values().iterator().next().getResults().size());
     }
@@ -377,8 +373,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         }
 
         RangeRequest rangeRequest = RangeRequest.builder().batchHint(1).build();
-        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(
-                TEST_TABLE, Iterables.limit(Iterables.cycle(rangeRequest), 100), 1);
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, Iterables.limit(Iterables.cycle(rangeRequest), 100), 1);
         assertEquals(1, ranges.keySet().size());
         assertEquals(1, ranges.values().iterator().next().getResults().size());
         assertEquals("row0", PtBytes.toString(ranges.values().iterator().next().getResults().iterator().next().getRowName()));
@@ -395,8 +390,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         }
 
         RangeRequest rangeRequest = RangeRequest.reverseBuilder().batchHint(1).build();
-        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(
-                TEST_TABLE, Iterables.limit(Iterables.cycle(rangeRequest), 100), 1);
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, Iterables.limit(Iterables.cycle(rangeRequest), 100), 1);
         assertEquals(1, ranges.keySet().size());
         assertEquals(1, ranges.values().iterator().next().getResults().size());
         assertEquals("row99", PtBytes.toString(ranges.values().iterator().next().getResults().iterator().next().getRowName()));
@@ -405,8 +399,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     @Test
     public void testRangePageBatchSizeOne() {
         RangeRequest rangeRequest = RangeRequest.builder().batchHint(1).build();
-        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(
-                TEST_TABLE, Collections.singleton(rangeRequest), 1);
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, Collections.singleton(rangeRequest), 1);
         assertEquals(1, ranges.keySet().size());
         assertEquals(0, ranges.values().iterator().next().getResults().size());
         assertEquals(false, ranges.values().iterator().next().moreResultsAvailable());
@@ -417,8 +410,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row1", "col2", "", 5);
         putDirect("row2", "col2", "", 0);
         RangeRequest rangeRequest = RangeRequest.builder().batchHint(1).build();
-        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(
-                TEST_TABLE, Collections.singleton(rangeRequest), 1);
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, Collections.singleton(rangeRequest), 1);
         assertEquals(1, ranges.keySet().size());
         TokenBackedBasicResultsPage<RowResult<Value>, byte[]> page = ranges.values().iterator().next();
         assertTrue(!page.getResults().isEmpty() || page.moreResultsAvailable());
@@ -459,8 +451,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row2", "col2", "", 0);
         putDirect("row3", "col2", "", 0);
         RangeRequest rangeRequest = RangeRequest.builder().batchHint(1).build();
-        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(
-                TEST_TABLE, Collections.singleton(rangeRequest), 1);
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, Collections.singleton(rangeRequest), 1);
         assertEquals(1, ranges.keySet().size());
         TokenBackedBasicResultsPage<RowResult<Value>, byte[]> page = ranges.values().iterator().next();
         assertTrue(page.moreResultsAvailable());
@@ -475,8 +466,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         putDirect("row2", "col2", "", 0);
         putDirect("row3", "col2", "", 5);
         RangeRequest rangeRequest = RangeRequest.reverseBuilder().batchHint(1).build();
-        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(
-                TEST_TABLE, Collections.singleton(rangeRequest), 1);
+        Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ranges = keyValueService.getFirstBatchForRanges(TEST_TABLE, Collections.singleton(rangeRequest), 1);
         assertEquals(1, ranges.keySet().size());
         TokenBackedBasicResultsPage<RowResult<Value>, byte[]> page = ranges.values().iterator().next();
         assertTrue(page.moreResultsAvailable());
@@ -497,8 +487,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         RangeRequest allRange = RangeRequest.builder().batchHint(3).build();
         t = startTransaction();
-        final Iterable<BatchingVisitable<RowResult<byte[]>>> ranges = t.getRanges(
-                TEST_TABLE, Iterables.limit(Iterables.cycle(allRange), 1000));
+        final Iterable<BatchingVisitable<RowResult<byte[]>>> ranges = t.getRanges(TEST_TABLE, Iterables.limit(Iterables.cycle(allRange), 1000));
         for (BatchingVisitable<RowResult<byte[]>> batchingVisitable : ranges) {
             final List<RowResult<byte[]>> list = BatchingVisitables.copyToList(batchingVisitable);
             assertEquals(1, list.size());
@@ -514,8 +503,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         RangeRequest range1 = RangeRequest.builder().batchHint(3).build();
         RangeRequest range2 = range1.getBuilder().retainColumns(ColumnSelection.create(ImmutableSet.of(PtBytes.toBytes("col1")))).build();
         t = startTransaction();
-        Iterable<BatchingVisitable<RowResult<byte[]>>> ranges = t.getRanges(
-                TEST_TABLE, Iterables.limit(Iterables.cycle(range1, range2), 1000));
+        Iterable<BatchingVisitable<RowResult<byte[]>>> ranges = t.getRanges(TEST_TABLE, Iterables.limit(Iterables.cycle(range1, range2), 1000));
         for (BatchingVisitable<RowResult<byte[]>> batchingVisitable : ranges) {
             final List<RowResult<byte[]>> list = BatchingVisitables.copyToList(batchingVisitable);
             assertEquals(1, list.size());

@@ -512,9 +512,8 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         assertEquals(TEST_TABLE, keyValueService.getAllTableNames().iterator().next());
     }
 
-
     @Test
-    public void testCanDropDroppedTable() {
+    public void testCanSameTableMultipleTimes() {
         keyValueService.dropTable(TEST_TABLE);
         keyValueService.dropTable(TEST_TABLE);
     }
@@ -525,8 +524,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         keyValueService.putMetadataForTable(TEST_TABLE, ArrayUtils.EMPTY_BYTE_ARRAY);
         assertEquals(0, keyValueService.getMetadataForTable(TEST_TABLE).length);
         keyValueService.putMetadataForTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        assertTrue(Arrays.equals(AtlasDbConstants.GENERIC_TABLE_METADATA, keyValueService.getMetadataForTable(
-                TEST_TABLE)));
+        assertTrue(Arrays.equals(AtlasDbConstants.GENERIC_TABLE_METADATA, keyValueService.getMetadataForTable(TEST_TABLE)));
     }
 
     private static <V, T extends Iterator<RowResult<V>>> void assertRangeSizeAndOrdering(T it, int expectedSize, RangeRequest rangeRequest) {
@@ -801,8 +799,7 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
         }
 
         try {
-            keyValueService.putWithTimestamps(
-                    TEST_TABLE, ImmutableMultimap.of(Cell.create(row0, column0), Value.create(value01, TEST_TIMESTAMP + 1)));
+            keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(Cell.create(row0, column0), Value.create(value01, TEST_TIMESTAMP + 1)));
             // Legal
         } catch (KeyAlreadyExistsException e) {
             // Legal
