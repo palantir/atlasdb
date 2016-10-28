@@ -1,7 +1,7 @@
 buildscript {
     repositories { jcenter() }
     dependencies {
-        classpath 'com.palantir.gradle.javadist:gradle-java-distribution:0.5.2'
+        classpath 'com.palantir.gradle.javadist:gradle-java-distribution:1.0.1'
     }
 }
 
@@ -9,7 +9,6 @@ apply from: "../gradle/shared.gradle"
 
 apply plugin: 'com.palantir.java-distribution'
 apply plugin: 'org.inferred.processors'
-
 
 dependencies {
     compile project(':lock-impl')
