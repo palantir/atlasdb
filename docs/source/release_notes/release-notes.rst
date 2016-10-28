@@ -56,6 +56,10 @@ v0.20.0
            This fixes the issue where running the CLIs would cause a ``ClassNotFoundException``
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1065>`__).
 
+    *    - |improved|
+         - AtlasDB clients can start even if one Cassandra node is unreachable.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1045>`__).
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
