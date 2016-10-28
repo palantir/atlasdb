@@ -43,27 +43,28 @@ import com.palantir.nexus.db.sql.SqlConnection;
 public final class OracleOverflowWriteTable implements DbWriteTable {
     private static final Logger log = LoggerFactory.getLogger(OracleOverflowWriteTable.class);
 
+    private final OracleDdlConfig config;
     private final TableReference tableRef;
     private final ConnectionSupplier conns;
-    private final OracleDdlConfig config;
     private final OverflowSequenceSupplier overflowSequenceSupplier;
 
-    private OracleOverflowWriteTable(TableReference tableRef,
-            ConnectionSupplier conns,
+    private OracleOverflowWriteTable(
             OracleDdlConfig config,
+            TableReference tableRef,
+            ConnectionSupplier conns,
             OverflowSequenceSupplier sequenceSupplier) {
+        this.config = config;
         this.tableRef = tableRef;
         this.conns = conns;
-        this.config = config;
         this.overflowSequenceSupplier = sequenceSupplier;
     }
 
     public static OracleOverflowWriteTable create(
+            OracleDdlConfig config,
             TableReference tableRef,
-            ConnectionSupplier conns,
-            OracleDdlConfig config) {
+            ConnectionSupplier conns) {
         OverflowSequenceSupplier sequenceSupplier = OverflowSequenceSupplier.create(conns, config.tablePrefix());
-        return new OracleOverflowWriteTable(tableRef, conns, config, sequenceSupplier);
+        return new OracleOverflowWriteTable(config, tableRef, conns, sequenceSupplier);
     }
 
     @Override

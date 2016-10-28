@@ -29,10 +29,7 @@ import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
 public class OracleOverflowQueryFactory extends OracleQueryFactory {
     private final String overflowTableName;
 
-    public OracleOverflowQueryFactory(
-            OracleDdlConfig config,
-            String tableName,
-            String overflowTableName) {
+    public OracleOverflowQueryFactory(OracleDdlConfig config, String tableName, String overflowTableName) {
         super(config, tableName);
         this.overflowTableName = overflowTableName;
     }
