@@ -6,19 +6,15 @@ schemas = [
 ]
 
 dependencies {
-  compile(project(":atlasdb-impl-shared"))
-  compile 'com.netflix.feign:feign-jackson:8.6.1'
-  compile('com.netflix.feign:feign-jaxrs:8.6.1') {
-      exclude module: 'jsr311-api'
-  }
-  testCompile(project(":atlasdb-config"))
+  compile project(":atlasdb-impl-shared")
+  testCompile project(":atlasdb-config")
 
-  compile(group: 'junit', name: 'junit', version: libVersions.junit) {
-    exclude group: 'org.hamcrest'
-  }
-  testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
-    exclude group: 'org.hamcrest'
-  }
-  compile 'org.hamcrest:hamcrest-core:' + libVersions.hamcrest
-  compile 'org.hamcrest:hamcrest-library:' + libVersions.hamcrest
+  compile group: 'com.netflix.feign', name: 'feign-jackson'
+  compile group: 'com.netflix.feign', name: 'feign-jaxrs'
+
+  compile group: 'junit', name: 'junit'
+  compile group: 'org.hamcrest', name: 'hamcrest-core'
+  compile group: 'org.hamcrest', name: 'hamcrest-library'
+
+  testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
 }

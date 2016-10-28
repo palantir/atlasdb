@@ -1,11 +1,9 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-    compile(group: 'junit', name: 'junit', version: libVersions.junit) {
-        exclude group: 'org.hamcrest'
-    }
-    compile group: 'org.hamcrest', name: 'hamcrest-all', version: libVersions.hamcrest
-    compile(group: 'commons-io', name: 'commons-io', version: libVersions.commons_io)
+    compile group: 'junit', name: 'junit'
+    compile group: 'org.hamcrest', name: 'hamcrest-all'
+    compile group: 'commons-io', name: 'commons-io'
 }
 
 sourceCompatibility = '1.8'
