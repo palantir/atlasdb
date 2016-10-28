@@ -90,6 +90,16 @@ public class LockRefreshingLockService extends ForwardingLockService {
     }
 
     @Override
+    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request)
+            throws InterruptedException {
+        HeldLocksToken lock = super.lockAndGetHeldLocks(client, request);
+        if (lock != null) {
+            toRefresh.add(lock.getLockRefreshToken());
+        }
+        return lock;
+    }
+
+    @Override
     public LockRefreshToken lock(String client, LockRequest request)
             throws InterruptedException {
         LockRefreshToken ret = super.lock(client, request);
@@ -130,6 +140,12 @@ public class LockRefreshingLockService extends ForwardingLockService {
     public boolean unlockSimple(SimpleHeldLocksToken token) {
         toRefresh.remove(token.asLockRefreshToken());
         return super.unlockSimple(token);
+    }
+
+    @Override
+    public boolean unlockAndFreeze(HeldLocksToken token) {
+        toRefresh.remove(token.getLockRefreshToken());
+        return super.unlockAndFreeze(token);
     }
 
     @Override
