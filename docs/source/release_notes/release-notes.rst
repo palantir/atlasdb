@@ -50,11 +50,6 @@ develop
            overridden by the ``LockRefreshingLockService``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1134>`__)
 
-    *    - |fixed|
-         - Fixed an issue where some locks were not being tracked for continuous refreshing due to one of the lock methods not being
-           overridden by the ``LockRefreshingLockService``.  Code has been refactored to reduce the risk of this mistake happening again.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1123>`__)
-
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
