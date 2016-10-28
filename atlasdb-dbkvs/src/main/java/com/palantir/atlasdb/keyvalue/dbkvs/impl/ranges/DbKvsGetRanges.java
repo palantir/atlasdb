@@ -332,31 +332,30 @@ public class DbKvsGetRanges {
     private String getPrefixedTableName(TableReference tableRef) {
         if (config.type().equals(OracleDdlConfig.TYPE)) {
             return OracleTableNameMapper.getShortPrefixedTableName(config.tablePrefix(), tableRef);
-        } else {
-            return config.tablePrefix() + DbKvs.internalTableName(tableRef);
         }
+        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
     }
 
     private static final String SIMPLE_ROW_SELECT_TEMPLATE =
             " /* SIMPLE_ROW_SELECT_TEMPLATE (%s) */ "
-                    + " SELECT /*+ INDEX(t pk_%s) */ "
-                    + "   DISTINCT row_name, ? as batch_num "
-                    + " FROM %s t "
-                    + " WHERE %s "
-                    + " ORDER BY row_name %s ";
+            + " SELECT /*+ INDEX(t pk_%s) */ "
+            + "   DISTINCT row_name, ? as batch_num "
+            + " FROM %s t "
+            + " WHERE %s "
+            + " ORDER BY row_name %s ";
 
     private static final String SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE =
             " /* SIMPLE_ROW_SELECT_ONE_TEMPLATE_PSQL (%s) */ "
-                    + " SELECT /*+ INDEX(t pk_%s) */ "
-                    + "   DISTINCT row_name, ? as batch_num "
-                    + " FROM %s t "
-                    + " WHERE %s "
-                    + " ORDER BY row_name %s LIMIT 1";
+            + " SELECT /*+ INDEX(t pk_%s) */ "
+            + "   DISTINCT row_name, ? as batch_num "
+            + " FROM %s t "
+            + " WHERE %s "
+            + " ORDER BY row_name %s LIMIT 1";
 
     private static final String SIMPLE_ROW_SELECT_ONE_ORACLE_TEMPLATE =
             " /* SIMPLE_ROW_SELECT_ONE_TEMPLATE_ORA (%s) */ "
-                    + " SELECT /*+ INDEX(t pk_%s) */ "
-                    + "   %s(row_name) as row_name, ? as batch_num "
-                    + " FROM %s t "
-                    + " WHERE %s";
+            + " SELECT /*+ INDEX(t pk_%s) */ "
+            + "   %s(row_name) as row_name, ? as batch_num "
+            + " FROM %s t "
+            + " WHERE %s";
 }
