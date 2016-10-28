@@ -46,9 +46,8 @@ v0.22.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1056>`__)
 
     *    - |improved|
-         - We now support Oracle for products with any schemas. The ``tableNameMapper()`` parameter in
-           ``OracleDdlConfig`` is now used to map Oracle table names exceeding 30 characters to meet the Oracle table name length limit.
-           This defaults to a mapper that drops optimal number of vowels and appends hashes to meet the limit.
+         - We now support Oracle for products with all valid schemas. Oracle table names exceeding 30 characters are now
+           mapped to shorter names by dropping a minimal number of vowels and appending a string hash.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1076>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
