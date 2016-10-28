@@ -268,12 +268,14 @@ public class CassandraClientPool {
         return getRandomGoodHostForPredicate(address -> true);
     }
 
-    private CassandraClientPoolingContainer getRandomGoodHostForPredicate(Predicate<InetSocketAddress> predicate) {
+    @VisibleForTesting
+    CassandraClientPoolingContainer getRandomGoodHostForPredicate(Predicate<InetSocketAddress> predicate) {
         Map<InetSocketAddress, CassandraClientPoolingContainer> pools = currentPools;
 
         Set<InetSocketAddress> filteredHosts = pools.keySet().stream().filter(predicate).collect(Collectors.toSet());
         if (filteredHosts.isEmpty()) {
-            throw new IllegalArgumentException("No hosts match the provided predicate!");
+            log.error("No hosts match the provided predicate. We will ignore said predicate.");
+            filteredHosts = pools.keySet();
         }
 
         Set<InetSocketAddress> livingHosts = Sets.difference(filteredHosts, blacklistedHosts.keySet());
