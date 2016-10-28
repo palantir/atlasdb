@@ -80,6 +80,41 @@ public class CassandraClientPoolTest {
         cassandraClientPool.getAddressForHost(HOSTNAME_3);
     }
 
+    @Test
+    public void shouldNotThrowIfPredicateMatchesNoServers() {
+        InetSocketAddress host = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host));
+
+        CassandraClientPoolingContainer container = cassandraClientPool.getRandomGoodHostForPredicate(address -> false);
+        assertThat(container.getHost(), equalTo(host));
+    }
+
+    @Test
+    public void shouldOnlyReturnHostsMatchingPredicate() {
+        InetSocketAddress host1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
+        InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host1, host2));
+
+        int numTrials = 50;
+        for (int i = 0; i < numTrials; i++) {
+            CassandraClientPoolingContainer container
+                    = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(host1));
+            assertThat(container.getHost(), equalTo(host1));
+        }
+    }
+
+    @Test
+    public void shouldNotReturnHostsNotMatchingPredicateEvenWithNodeFailure() {
+        InetSocketAddress host1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
+        InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host1, host2));
+
+        cassandraClientPool.blacklistedHosts.put(host1, System.currentTimeMillis());
+        CassandraClientPoolingContainer container
+                = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(host1));
+        assertThat(container.getHost(), equalTo(host1));
+    }
+
     private CassandraClientPool clientPoolWithServers(ImmutableSet<InetSocketAddress> servers) {
         return clientPoolWith(servers, ImmutableSet.of());
     }
@@ -97,7 +132,11 @@ public class CassandraClientPoolTest {
 
         CassandraClientPool cassandraClientPool = new CassandraClientPool(config);
         cassandraClientPool.currentPools = serversInPool.stream()
-                .collect(Collectors.toMap(Function.identity(), address -> mock(CassandraClientPoolingContainer.class)));
+                .collect(Collectors.toMap(Function.identity(), address -> {
+                    CassandraClientPoolingContainer poolingContainer = mock(CassandraClientPoolingContainer.class);
+                    when(poolingContainer.getHost()).thenReturn(address);
+                    return poolingContainer;
+                }));
         return cassandraClientPool;
     }
 }
