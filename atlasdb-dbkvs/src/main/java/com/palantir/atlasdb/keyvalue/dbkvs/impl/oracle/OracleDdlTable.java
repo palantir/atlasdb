@@ -18,12 +18,14 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSize;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -73,6 +75,7 @@ public class OracleDdlTable implements DbDdlTable {
                 + " PRIMARY KEY (row_name, col_name, ts) "
                 + ") organization index compress overflow",
                 ORACLE_ALREADY_EXISTS_ERROR);
+        putTableNameMapping(getPrefixedTableName(), shortTableName);
 
         if (needsOverflow && config.overflowMigrationState() != OverflowMigrationState.UNSTARTED) {
             final String shortOverflowTableName = getShortOverflowTableName();
@@ -83,6 +86,7 @@ public class OracleDdlTable implements DbDdlTable {
                     + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortOverflowTableName) + " PRIMARY KEY (id)"
                     + ")",
                     ORACLE_ALREADY_EXISTS_ERROR);
+            putTableNameMapping(getPrefixedOverflowTableName(), shortOverflowTableName);
         }
 
         conns.get().insertOneUnregisteredQuery(
@@ -91,14 +95,28 @@ public class OracleDdlTable implements DbDdlTable {
                 needsOverflow ? TableSize.OVERFLOW.getId() : TableSize.RAW.getId());
     }
 
+    private void putTableNameMapping(String fullTableName, String shortTableName) {
+        conns.get().insertOneUnregisteredQuery(
+                "INSERT INTO " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
+                        + " (table_name, short_table_name) VALUES (?, ?)",
+                fullTableName,
+                shortTableName);
+    }
+
     @Override
     public void drop() {
-        executeIgnoringError("DROP TABLE " + getShortTableName() + " PURGE", ORACLE_NOT_EXISTS_ERROR);
-        executeIgnoringError("DROP TABLE " + getShortOverflowTableName() + " PURGE", ORACLE_NOT_EXISTS_ERROR);
+        dropTableInternal(getPrefixedTableName(), getShortTableName());
+        dropTableInternal(getPrefixedOverflowTableName(), getShortOverflowTableName());
 
         conns.get().executeUnregisteredQuery(
                 "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
                 tableRef.getQualifiedName());
+    }
+
+    private void dropTableInternal(String fullTableName, String shortTableName) {
+        executeIgnoringError("DROP TABLE " + shortTableName + " PURGE", ORACLE_NOT_EXISTS_ERROR);
+        conns.get().executeUnregisteredQuery(
+                "DELETE FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE table_name = ?", fullTableName);
     }
 
     @Override
@@ -156,6 +174,14 @@ public class OracleDdlTable implements DbDdlTable {
 
     private String getShortOverflowTableName() {
         return OracleTableNameMapper.getShortPrefixedTableName(config.overflowTablePrefix(), tableRef);
+    }
+
+    private String getPrefixedTableName() {
+        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
+    }
+
+    private String getPrefixedOverflowTableName() {
+        return config.overflowTablePrefix() + DbKvs.internalTableName(tableRef);
     }
 
     private String getPrimaryKeyConstraintName(String tableName) {
