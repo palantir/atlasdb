@@ -41,10 +41,7 @@ public class OracleDdlTable implements DbDdlTable {
     private final ConnectionSupplier conns;
     private final OracleDdlConfig config;
 
-    public OracleDdlTable(
-            TableReference tableRef,
-            ConnectionSupplier conns,
-            OracleDdlConfig config) {
+    public OracleDdlTable(TableReference tableRef, ConnectionSupplier conns, OracleDdlConfig config) {
         this.tableRef = tableRef;
         this.conns = conns;
         this.config = config;
@@ -100,8 +97,8 @@ public class OracleDdlTable implements DbDdlTable {
         executeIgnoringError("DROP TABLE " + getShortOverflowTableName() + " PURGE", ORACLE_NOT_EXISTS_ERROR);
 
         conns.get().executeUnregisteredQuery(
-                "DELETE FROM " + config.metadataTable().getQualifiedName()
-                + " WHERE table_name = ?", tableRef.getQualifiedName());
+                "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
+                tableRef.getQualifiedName());
     }
 
     @Override
@@ -140,8 +137,7 @@ public class OracleDdlTable implements DbDdlTable {
     public void compactInternally() {
         if (config.enableOracleEnterpriseFeatures()) {
             try {
-                conns.get().executeUnregisteredQuery(
-                        "ALTER TABLE " + getShortTableName() + " MOVE ONLINE");
+                conns.get().executeUnregisteredQuery("ALTER TABLE " + getShortTableName() + " MOVE ONLINE");
             } catch (PalantirSqlException e) {
                 log.error("Tried to clean up " + tableRef + " bloat after a sweep operation,"
                         + " but underlying Oracle database or configuration does not support this"
@@ -164,7 +160,8 @@ public class OracleDdlTable implements DbDdlTable {
 
     private String getPrimaryKeyConstraintName(String tableName) {
         final String primaryKeyConstraintPrefix = "pk_";
-        int unPrefixedNameLength = OracleTableNameMapper.ORACLE_MAX_TABLE_NAME_LENGTH - primaryKeyConstraintPrefix.length();
+        int unPrefixedNameLength =
+                OracleTableNameMapper.ORACLE_MAX_TABLE_NAME_LENGTH - primaryKeyConstraintPrefix.length();
         return primaryKeyConstraintPrefix + tableName.substring(0, Math.min(unPrefixedNameLength, tableName.length()));
     }
 }
