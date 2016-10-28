@@ -57,6 +57,7 @@ distribution {
     serviceName 'atlasdb-ete'
     mainClass 'com.palantir.atlasdb.AtlasDbEteServer'
     args 'server', 'var/conf/atlasdb-ete.yml'
+    defaultJvmOpts '-Xmx384M'
 }
 
 sourceCompatibility = '1.8'
