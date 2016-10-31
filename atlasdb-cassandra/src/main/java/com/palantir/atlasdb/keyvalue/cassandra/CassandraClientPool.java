@@ -89,8 +89,10 @@ public class CassandraClientPool {
      * This is the maximum number of times we'll accept connection failures to one host before blacklisting it. Note
      * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
      */
-    private static final int MAX_TRIES_SAME_HOST = 3;
-    private static final int MAX_TRIES_TOTAL = 6;
+    @VisibleForTesting
+    static final int MAX_TRIES_SAME_HOST = 3;
+    @VisibleForTesting
+    static final int MAX_TRIES_TOTAL = 6;
 
     volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
     Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
