@@ -45,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -267,17 +268,21 @@ public class CassandraClientPool {
     }
 
     private CassandraClientPoolingContainer getRandomGoodHost() {
-        return getRandomGoodHostForPredicate(address -> true);
+        // Note that this is safe (unless there are 0 hosts in the pool, in which case IllegalStateException is not
+        // unreasonable)
+        return getRandomGoodHostForPredicate(address -> true).get();
     }
 
     @VisibleForTesting
-    CassandraClientPoolingContainer getRandomGoodHostForPredicate(Predicate<InetSocketAddress> predicate) {
+    Optional<CassandraClientPoolingContainer> getRandomGoodHostForPredicate(Predicate<InetSocketAddress> predicate) {
         Map<InetSocketAddress, CassandraClientPoolingContainer> pools = currentPools;
 
-        Set<InetSocketAddress> filteredHosts = pools.keySet().stream().filter(predicate).collect(Collectors.toSet());
+        Set<InetSocketAddress> filteredHosts = pools.keySet().stream()
+                .filter(predicate)
+                .collect(Collectors.toSet());
         if (filteredHosts.isEmpty()) {
-            log.error("No hosts match the provided predicate. We will ignore said predicate.");
-            filteredHosts = pools.keySet();
+            log.error("No hosts match the provided predicate.");
+            return Optional.absent();
         }
 
         Set<InetSocketAddress> livingHosts = Sets.difference(filteredHosts, blacklistedHosts.keySet());
@@ -287,7 +292,9 @@ public class CassandraClientPool {
             livingHosts = filteredHosts;
         }
 
-        return pools.get(getRandomHostByActiveConnections(Maps.filterKeys(currentPools, livingHosts::contains)));
+        CassandraClientPoolingContainer poolingContainer
+                = pools.get(getRandomHostByActiveConnections(Maps.filterKeys(currentPools, livingHosts::contains)));
+        return Optional.of(poolingContainer);
     }
 
     public InetSocketAddress getRandomHostForKey(byte[] key) {
@@ -469,7 +476,7 @@ public class CassandraClientPool {
             FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
         int numTries = 0;
         boolean shouldRetryOnDifferentHost = false;
-        final Set<InetSocketAddress> triedHosts = Sets.newHashSet();
+        Set<InetSocketAddress> triedHosts = Sets.newHashSet();
         while (true) {
             if (log.isTraceEnabled()) {
                 log.trace("Running function on host {}.", specifiedHost.getHostString());
@@ -478,7 +485,15 @@ public class CassandraClientPool {
 
             if (blacklistedHosts.containsKey(specifiedHost) || hostPool == null || shouldRetryOnDifferentHost) {
                 log.warn("Randomly redirected a query intended for host {}.", specifiedHost);
-                hostPool = getRandomGoodHostForPredicate(address -> !triedHosts.contains(address));
+                Optional<CassandraClientPoolingContainer> hostPoolCandidate
+                        = getRandomGoodHostForPredicate(address -> !triedHosts.contains(address));
+                if (hostPoolCandidate.isPresent()) {
+                    hostPool = hostPoolCandidate.get();
+                } else {
+                    // This means we've tried every host and failed.
+                    // In accordance with original behaviour, just retry in a last-ditch attempt.
+                    hostPool = getRandomGoodHost();
+                }
             }
 
             try {
