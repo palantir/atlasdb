@@ -19,22 +19,30 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.cassandra.thrift.InvalidRequestException;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.google.common.base.Optional;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.containers.CassandraContainer;
+import com.palantir.atlasdb.containers.Containers;
 
 public class CassandraConnectionIntegrationTest {
+    @ClassRule
+    public static final Containers CONTAINERS = new Containers(CassandraConnectionIntegrationTest.class)
+            .with(new CassandraContainer());
 
-    private static final CassandraKeyValueServiceConfig NO_CREDS_CKVS_CONFIG = CassandraTestSuite.KVS_CONFIG
+    private static final CassandraKeyValueServiceConfig NO_CREDS_CKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig
+            .copyOf(CassandraContainer.KVS_CONFIG)
             .withCredentials(Optional.absent());
 
     @Test
     public void testAuthProvided() {
         CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.KVS_CONFIG),
-                CassandraTestSuite.LEADER_CONFIG).close();
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+                CassandraContainer.LEADER_CONFIG).close();
     }
 
     // Don't worry about failing this test if you're running against a local Cassandra that isn't setup with auth magic
@@ -43,7 +51,7 @@ public class CassandraConnectionIntegrationTest {
         try {
             CassandraKeyValueService.create(
                     CassandraKeyValueServiceConfigManager.createSimpleManager(NO_CREDS_CKVS_CONFIG),
-                    CassandraTestSuite.LEADER_CONFIG);
+                    CassandraContainer.LEADER_CONFIG);
             fail();
         } catch (RuntimeException e) {
             boolean threwInvalidRequestException = false;

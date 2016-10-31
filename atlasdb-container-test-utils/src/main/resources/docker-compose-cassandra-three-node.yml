@@ -4,6 +4,7 @@ services:
   cassandra1:
     image: palantirtechnologies/docker-cassandra-atlasdb:latest
     environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - LOCAL_JMX=no
 
   cassandra2:
@@ -11,7 +12,7 @@ services:
     depends_on:
       - cassandra1
     environment:
-      - CASSANDRA_SEEDS=cassandra1
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - LOCAL_JMX=no
 
   cassandra3:
@@ -19,5 +20,5 @@ services:
     depends_on:
       - cassandra1
     environment:
-      - CASSANDRA_SEEDS=cassandra1,cassandra2
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - LOCAL_JMX=no

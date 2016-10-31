@@ -231,7 +231,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         writeConsistency),
                 SchemaMutationLock.DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS);
 
-        createTable(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
+        createTable(AtlasDbConstants.DEFAULT_METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
         CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(
@@ -1493,13 +1493,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         Map<TableReference, byte[]> tableToMetadataContents = Maps.newHashMap();
 
         // we don't even have a metadata table yet. Return empty map.
-        if (!getAllTableReferencesWithoutFiltering().contains(AtlasDbConstants.METADATA_TABLE)) {
+        if (!getAllTableReferencesWithoutFiltering().contains(AtlasDbConstants.DEFAULT_METADATA_TABLE)) {
             log.trace("getMetadata called with no _metadata table present");
             return tableToMetadataContents;
         }
 
         try (ClosableIterator<RowResult<Value>> range =
-                getRange(AtlasDbConstants.METADATA_TABLE, RangeRequest.all(), Long.MAX_VALUE)) {
+                getRange(AtlasDbConstants.DEFAULT_METADATA_TABLE, RangeRequest.all(), Long.MAX_VALUE)) {
             while (range.hasNext()) {
                 RowResult<Value> valueRow = range.next();
                 Iterable<Entry<Cell, Value>> cells = valueRow.getCells();
@@ -1582,7 +1582,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         // technically we're racing other services from here on, during an update period,
         // but the penalty for not caring is just some superfluous schema mutations and a
         // few dead rows in the metadata table.
-        Map<Cell, Value> persistedMetadata = get(AtlasDbConstants.METADATA_TABLE, requestForLatestDbSideMetadata);
+        Map<Cell, Value> persistedMetadata = get(
+                AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                requestForLatestDbSideMetadata);
         final Map<Cell, byte[]> newMetadata = Maps.newHashMap();
         final Collection<CfDef> updatedCfs = Lists.newArrayList();
         for (Entry<Cell, byte[]> entry : metadataRequestedForUpdate.entrySet()) {
@@ -1622,7 +1624,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         configManager.getConfig().schemaMutationTimeoutMillis());
             }
             // Done with actual schema mutation, push the metadata
-            put(AtlasDbConstants.METADATA_TABLE, newMetadata, System.currentTimeMillis());
+            put(AtlasDbConstants.DEFAULT_METADATA_TABLE, newMetadata, System.currentTimeMillis());
             return null;
         });
     }
@@ -1631,15 +1633,15 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         long ts = System.currentTimeMillis();
 
         Multimap<Cell, Long> oldVersions = getAllTimestamps(
-                AtlasDbConstants.METADATA_TABLE,
+                AtlasDbConstants.DEFAULT_METADATA_TABLE,
                 ImmutableSet.of(getMetadataCell(tableRef)),
                 ts);
 
-        put(AtlasDbConstants.METADATA_TABLE,
+        put(AtlasDbConstants.DEFAULT_METADATA_TABLE,
                 ImmutableMap.of(getMetadataCell(tableRef), meta),
                 ts);
 
-        delete(AtlasDbConstants.METADATA_TABLE, oldVersions);
+        delete(AtlasDbConstants.DEFAULT_METADATA_TABLE, oldVersions);
     }
 
     @Override
