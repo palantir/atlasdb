@@ -456,6 +456,9 @@ public class CassandraClientPool {
         int numTries = 0;
         boolean shouldRetryOnDifferentHost = false;
         while (true) {
+            if (log.isTraceEnabled()) {
+                log.trace("Running function on host {}.", specifiedHost.getHostString());
+            }
             CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
 
             if (blacklistedHosts.containsKey(specifiedHost) || hostPool == null || shouldRetryOnDifferentHost) {
