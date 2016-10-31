@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -88,12 +89,13 @@ public class CassandraClientPoolTest {
     }
 
     @Test
-    public void shouldNotThrowIfPredicateMatchesNoServers() {
+    public void shouldReturnAbsentIfPredicateMatchesNoServers() {
         InetSocketAddress host = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
         CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host));
 
-        CassandraClientPoolingContainer container = cassandraClientPool.getRandomGoodHostForPredicate(address -> false);
-        assertThat(container.getHost(), equalTo(host));
+        Optional<CassandraClientPoolingContainer> container
+                = cassandraClientPool.getRandomGoodHostForPredicate(address -> false);
+        assertThat(container.isPresent(), is(false));
     }
 
     @Test
@@ -104,9 +106,10 @@ public class CassandraClientPoolTest {
 
         int numTrials = 50;
         for (int i = 0; i < numTrials; i++) {
-            CassandraClientPoolingContainer container
+            Optional<CassandraClientPoolingContainer> container
                     = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(host1));
-            assertThat(container.getHost(), equalTo(host1));
+            assertThat(container.isPresent(), is(true));
+            assertThat(container.get().getHost(), equalTo(host1));
         }
     }
 
@@ -117,9 +120,10 @@ public class CassandraClientPoolTest {
         CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host1, host2));
 
         cassandraClientPool.blacklistedHosts.put(host1, System.currentTimeMillis());
-        CassandraClientPoolingContainer container
+        Optional<CassandraClientPoolingContainer> container
                 = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(host1));
-        assertThat(container.getHost(), equalTo(host1));
+        assertThat(container.isPresent(), is(true));
+        assertThat(container.get().getHost(), equalTo(host1));
     }
 
     @Test

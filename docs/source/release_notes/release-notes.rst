@@ -48,6 +48,13 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1098>`__)
 
+    *    - |improved|
+         - Random redirection of queries when retrying a Cassandra operation now retries said queries on distinct
+           hosts. Previously, this would independently select hosts randomly, meaning that we might unintentionally
+           try the same operation on the same server(s).
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
