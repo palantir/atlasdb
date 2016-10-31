@@ -58,19 +58,21 @@ def getReleases(repo):
 def getProducts(searchTerms):
     res = requests.get(githubUrl + 'search/code?q=' + searchTerms + '&per_page=100', auth=auth);
     jsonRes = json.loads(res.text)
-    print('Found ' + str(jsonRes['total_count']) + ' repos referencing ' + searchTerms + ':');
+    print('Found ' + str(jsonRes['total_count']) + ' repos referencing ' + searchTerms);
     repos = []
     for searchResult in jsonRes['items']:
-        repo = searchResult['repository']['full_name'];
-        print(repo)
-        repos.append(repo)
+        repos.append(searchResult['repository']['full_name'])
     return repos
 
 print('Fetching products using AtlasDB')
 
 products = frozenset(getProducts('atlas+extension:properties') + getProducts('atlasdb+extension:props'))
 
-print('Fetching atlas versions:')
+print('Found the following products:')
+for product in products:
+    print(product)
+
+print('Fetching AtlasDB versions:')
 
 for productInfo in products:
     for release in getReleases(productInfo):
