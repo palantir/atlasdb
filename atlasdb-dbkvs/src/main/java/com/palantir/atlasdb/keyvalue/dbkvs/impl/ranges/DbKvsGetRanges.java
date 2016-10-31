@@ -331,7 +331,7 @@ public class DbKvsGetRanges {
 
     private String getPrefixedTableName(TableReference tableRef) {
         if (config.type().equals(OracleDdlConfig.TYPE)) {
-            return OracleTableNameMapper.getShortPrefixedTableName(config.tablePrefix(), tableRef);
+            return new OracleTableNameMapper().getShortPrefixedTableName(config.tablePrefix(), tableRef);
         }
         return config.tablePrefix() + DbKvs.internalTableName(tableRef);
     }

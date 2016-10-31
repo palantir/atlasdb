@@ -47,24 +47,28 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     private final TableReference tableRef;
     private final ConnectionSupplier conns;
     private final OverflowSequenceSupplier overflowSequenceSupplier;
+    private final OracleTableNameMapper oracleTableNameMapper;
 
     private OracleOverflowWriteTable(
             OracleDdlConfig config,
             TableReference tableRef,
             ConnectionSupplier conns,
-            OverflowSequenceSupplier sequenceSupplier) {
+            OverflowSequenceSupplier sequenceSupplier,
+            OracleTableNameMapper oracleTableNameMapper) {
         this.config = config;
         this.tableRef = tableRef;
         this.conns = conns;
         this.overflowSequenceSupplier = sequenceSupplier;
+        this.oracleTableNameMapper = oracleTableNameMapper;
     }
 
     public static OracleOverflowWriteTable create(
             OracleDdlConfig config,
             TableReference tableRef,
-            ConnectionSupplier conns) {
+            ConnectionSupplier conns,
+            OracleTableNameMapper oracleTableNameMapper) {
         OverflowSequenceSupplier sequenceSupplier = OverflowSequenceSupplier.create(conns, config.tablePrefix());
-        return new OracleOverflowWriteTable(config, tableRef, conns, sequenceSupplier);
+        return new OracleOverflowWriteTable(config, tableRef, conns, sequenceSupplier, oracleTableNameMapper);
     }
 
     @Override
@@ -226,10 +230,10 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     private String getShortTableName() {
-        return OracleTableNameMapper.getShortPrefixedTableName(config.tablePrefix(), tableRef);
+        return oracleTableNameMapper.getShortPrefixedTableName(config.tablePrefix(), tableRef);
     }
 
     private String getShortOverflowTableName() {
-        return OracleTableNameMapper.getShortPrefixedTableName(config.overflowTablePrefix(), tableRef);
+        return oracleTableNameMapper.getShortPrefixedTableName(config.overflowTablePrefix(), tableRef);
     }
 }

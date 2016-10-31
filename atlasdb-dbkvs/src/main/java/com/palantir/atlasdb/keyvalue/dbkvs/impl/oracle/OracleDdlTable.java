@@ -42,11 +42,17 @@ public class OracleDdlTable implements DbDdlTable {
     private final TableReference tableRef;
     private final ConnectionSupplier conns;
     private final OracleDdlConfig config;
+    private final OracleTableNameMapper oracleTableNameMapper;
 
-    public OracleDdlTable(TableReference tableRef, ConnectionSupplier conns, OracleDdlConfig config) {
+    public OracleDdlTable(
+            TableReference tableRef,
+            ConnectionSupplier conns,
+            OracleDdlConfig config,
+            OracleTableNameMapper oracleTableNameMapper) {
         this.tableRef = tableRef;
         this.conns = conns;
         this.config = config;
+        this.oracleTableNameMapper = oracleTableNameMapper;
     }
 
     @Override
@@ -169,11 +175,11 @@ public class OracleDdlTable implements DbDdlTable {
     }
 
     private String getShortTableName() {
-        return OracleTableNameMapper.getShortPrefixedTableName(config.tablePrefix(), tableRef);
+        return oracleTableNameMapper.getShortPrefixedTableName(config.tablePrefix(), tableRef);
     }
 
     private String getShortOverflowTableName() {
-        return OracleTableNameMapper.getShortPrefixedTableName(config.overflowTablePrefix(), tableRef);
+        return oracleTableNameMapper.getShortPrefixedTableName(config.overflowTablePrefix(), tableRef);
     }
 
     private String getPrefixedTableName() {

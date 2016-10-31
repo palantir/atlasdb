@@ -27,9 +27,15 @@ import com.palantir.nexus.db.DBType;
 
 public class OracleDbTableFactory implements DbTableFactory {
     private final OracleDdlConfig config;
+    private final OracleTableNameMapper oracleTableNameMapper;
 
-    public OracleDbTableFactory(OracleDdlConfig config) {
+    private OracleDbTableFactory(OracleDdlConfig config, OracleTableNameMapper oracleTableNameMapper) {
         this.config = config;
+        this.oracleTableNameMapper = oracleTableNameMapper;
+    }
+
+    public static OracleDbTableFactory create(OracleDdlConfig config) {
+        return new OracleDbTableFactory(config, new OracleTableNameMapper());
     }
 
     @Override
@@ -39,7 +45,7 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbDdlTable createDdl(TableReference tableRef, ConnectionSupplier conns) {
-        return new OracleDdlTable(tableRef, conns, config);
+        return new OracleDdlTable(tableRef, conns, config, oracleTableNameMapper);
     }
 
     @Override
@@ -71,7 +77,7 @@ public class OracleDbTableFactory implements DbTableFactory {
         TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
         switch (tableSize) {
             case OVERFLOW:
-                return OracleOverflowWriteTable.create(config, tableRef, conns);
+                return OracleOverflowWriteTable.create(config, tableRef, conns, oracleTableNameMapper);
             case RAW:
                 return new SimpleDbWriteTable(tableRef, conns, config);
             default:
@@ -80,11 +86,11 @@ public class OracleDbTableFactory implements DbTableFactory {
     }
 
     private String getShortTableName(TableReference tableRef) {
-        return OracleTableNameMapper.getShortPrefixedTableName(config.tablePrefix(), tableRef);
+        return oracleTableNameMapper.getShortPrefixedTableName(config.tablePrefix(), tableRef);
     }
 
     private String getShortOverflowTableName(TableReference tableRef) {
-        return OracleTableNameMapper.getShortPrefixedTableName(config.overflowTablePrefix(), tableRef);
+        return oracleTableNameMapper.getShortPrefixedTableName(config.overflowTablePrefix(), tableRef);
     }
 
     @Override

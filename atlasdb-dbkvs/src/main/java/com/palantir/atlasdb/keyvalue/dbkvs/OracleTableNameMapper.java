@@ -27,11 +27,7 @@ public final class OracleTableNameMapper {
     public static final int RANDOM_SUFFIX_LENGTH = 5;
     private static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_MAX_TABLE_NAME_LENGTH - RANDOM_SUFFIX_LENGTH;
 
-    private OracleTableNameMapper() {
-        //Utility class
-    }
-
-    public static String getShortPrefixedTableName(String tablePrefix, TableReference tableRef) {
+    public String getShortPrefixedTableName(String tablePrefix, TableReference tableRef) {
         Preconditions.checkState(tablePrefix.length() <= 7, "The tablePrefix can be at most 7 characters long");
         String fullTableName = tablePrefix + DbKvs.internalTableName(tableRef);
         if (fullTableName.length() <= ORACLE_MAX_TABLE_NAME_LENGTH) {
@@ -44,7 +40,7 @@ public final class OracleTableNameMapper {
                 + getHashSuffix(fullTableName);
     }
 
-    private static String getShortTableName(String tableName, int maximumLength) {
+    private String getShortTableName(String tableName, int maximumLength) {
         int numCharactersToDrop = tableName.length() - maximumLength;
         String tableNameWithoutLastVowels = removeLastKVowels(tableName, numCharactersToDrop);
         if (tableNameWithoutLastVowels.length() <= maximumLength) {
@@ -53,14 +49,14 @@ public final class OracleTableNameMapper {
         return tableNameWithoutLastVowels.substring(0, maximumLength);
     }
 
-    private static String removeLastKVowels(String tableName, int numVowelsToDrop) {
+    private String removeLastKVowels(String tableName, int numVowelsToDrop) {
         final int kthLastVowelIndex = findKthLastVowelIndex(tableName, numVowelsToDrop);
         String head = tableName.substring(0, kthLastVowelIndex);
         String tail = tableName.substring(kthLastVowelIndex);
         return head + removeAllLowerCaseVowels(tail);
     }
 
-    private static int findKthLastVowelIndex(String tableName, int k) {
+    private int findKthLastVowelIndex(String tableName, int k) {
         final String vowels = "aeiou";
         int vowelsFound = 0;
         for (int i = tableName.length() - 1; i > 0; i--)
@@ -75,11 +71,11 @@ public final class OracleTableNameMapper {
         return 0;
     }
 
-    private static String removeAllLowerCaseVowels(String tableName) {
+    private String removeAllLowerCaseVowels(String tableName) {
         return tableName.replaceAll("a|e|i|o|u", "");
     }
 
-    private static String getHashSuffix(String fullTableName) {
+    private String getHashSuffix(String fullTableName) {
         Sha256Hash hash = Sha256Hash.computeHash(fullTableName.getBytes(StandardCharsets.UTF_8));
         return hash.serializeToHexString().substring(0, 5);
     }

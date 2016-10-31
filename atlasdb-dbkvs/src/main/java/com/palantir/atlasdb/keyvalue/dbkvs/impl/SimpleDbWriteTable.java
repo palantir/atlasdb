@@ -136,6 +136,6 @@ public class SimpleDbWriteTable implements DbWriteTable {
         if (!config.type().equals(OracleDdlConfig.TYPE)) {
             return config.tablePrefix() + DbKvs.internalTableName(tableRef);
         }
-        return OracleTableNameMapper.getShortPrefixedTableName(config.tablePrefix(), tableRef);
+        return new OracleTableNameMapper().getShortPrefixedTableName(config.tablePrefix(), tableRef);
     }
 }
