@@ -35,7 +35,8 @@ public class PersistentUpperLimit {
     private volatile long lastIncreasedTime;
 
     public PersistentUpperLimit(TimestampBoundStore tbs, Clock clock, TimestampAllocationFailures allocationFailures) {
-        DebugLogger.logger.trace("Creating PersistentUpperLimit object. This should only happen once.");
+        DebugLogger.logger.info("Creating PersistentUpperLimit object on thread {}. This should only happen once.",
+                Thread.currentThread().getName());
         this.tbs = tbs;
         this.clock = clock;
         this.allocationFailures = checkNotNull(allocationFailures);

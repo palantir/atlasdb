@@ -30,7 +30,9 @@ public class PersistentTimestampService implements TimestampService {
     private final AvailableTimestamps availableTimestamps;
 
     public PersistentTimestampService(AvailableTimestamps availableTimestamps, ExecutorService executor) {
-        DebugLogger.logger.trace("Creating PersistentTimestampService object. This should only happen once.");
+        DebugLogger.logger.info(
+                "Creating PersistentTimestampService object on thread {}. This should only happen once.",
+                Thread.currentThread().getName());
 
         this.availableTimestamps = availableTimestamps;
         this.executor = executor;

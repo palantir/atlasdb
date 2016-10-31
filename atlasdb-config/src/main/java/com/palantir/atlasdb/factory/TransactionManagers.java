@@ -101,7 +101,8 @@ public final class TransactionManagers {
             Set<Schema> schemas,
             Environment env,
             boolean allowHiddenTableAccess) {
-        DebugLogger.logger.warn("Called TransactionManagers.create. This should only happen once.");
+        DebugLogger.logger.info("Called TransactionManagers.create on thread {}. This should only happen once.",
+                Thread.currentThread().getName());
         return create(config, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
     }
 

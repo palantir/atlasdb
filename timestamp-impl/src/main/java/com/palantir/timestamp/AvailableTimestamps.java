@@ -28,7 +28,8 @@ public class AvailableTimestamps {
     private final PersistentUpperLimit upperLimit;
 
     public AvailableTimestamps(LastReturnedTimestamp lastReturnedTimestamp, PersistentUpperLimit upperLimit) {
-        DebugLogger.logger.trace("Creating AvailableTimestamps object. This should only happen once.");
+        DebugLogger.logger.info("Creating AvailableTimestamps object on thread {}. This should only happen once.",
+                Thread.currentThread().getName());
         this.lastReturnedTimestamp = lastReturnedTimestamp;
         this.upperLimit = upperLimit;
     }
