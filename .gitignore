@@ -30,7 +30,8 @@ generated_testSrc/
 out/
 atlasdb-cli/var/data/
 atlasdb-dbkvs-tests/src/test/java/com/palantir/atlasdb/keyvalue/dbkvs/DbkvsOracle*
-atlasdb-dbkvs-tests/src/test/java/com/palantir/atlasdb/keyvalue/dbkvs/OverflowSequenceSupplierEteTest.java
+atlasdb-dbkvs-tests/src/test/java/com/palantir/atlasdb/keyvalue/dbkvs/OracleMultipleTableCreationTest.java
+atlasdb-dbkvs-tests/src/test/java/com/palantir/atlasdb/keyvalue/dbkvs/Overflow*
 
 # Emacs temp files
 *~

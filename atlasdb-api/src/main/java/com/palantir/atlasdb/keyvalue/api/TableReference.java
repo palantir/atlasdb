@@ -30,7 +30,7 @@ public final class TableReference {
 
     public static TableReference createFromFullyQualifiedName(String fullTableName) {
         int index = fullTableName.indexOf('.');
-        Preconditions.checkArgument(index > 0, "Table name %s is not a fully qualified table name.");
+        Preconditions.checkArgument(index > 0, "Table name %s is not a fully qualified table name.", fullTableName);
         return create(
                 Namespace.create(fullTableName.substring(0, index), Namespace.UNCHECKED_NAME),
                 fullTableName.substring(index + 1));

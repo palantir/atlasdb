@@ -38,6 +38,8 @@ public class OracleDdlTable implements DbDdlTable {
     private static final String MIN_ORACLE_VERSION = "11.2.0.2.3";
     private static final String ORACLE_NOT_EXISTS_ERROR = "ORA-00942";
     private static final String ORACLE_ALREADY_EXISTS_ERROR = "ORA-00955";
+    private static final String ORACLE_UNIQUE_CONSTRAINT_ERROR =  "ORA-00001";
+
 
     private final TableReference tableRef;
     private final ConnectionSupplier conns;
@@ -102,11 +104,19 @@ public class OracleDdlTable implements DbDdlTable {
     }
 
     private void putTableNameMapping(String fullTableName, String shortTableName) {
-        conns.get().insertOneUnregisteredQuery(
-                "INSERT INTO " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
-                        + " (table_name, short_table_name) VALUES (?, ?)",
-                fullTableName,
-                shortTableName);
+        try {
+            conns.get().insertOneUnregisteredQuery(
+                    "INSERT INTO " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
+                            + " (table_name, short_table_name) VALUES (?, ?)",
+                    fullTableName,
+                    shortTableName);
+        } catch (PalantirSqlException ex) {
+            if (ex.getMessage().contains(ORACLE_UNIQUE_CONSTRAINT_ERROR)) {
+                dropTableInternal(fullTableName, shortTableName);
+            }
+            log.error(ex.getMessage(), ex);
+            throw ex;
+        }
     }
 
     @Override
