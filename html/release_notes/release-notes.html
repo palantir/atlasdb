@@ -157,6 +157,9 @@
 </div>
 <div class="section" id="develop">
 <h2>develop<a class="headerlink" href="#develop" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="v0-22-0">
+<h2>v0.22.0<a class="headerlink" href="#v0-22-0" title="Permalink to this headline">¶</a></h2>
 <table border="1" class="docutils">
 <colgroup>
 <col width="11%" />
@@ -169,14 +172,22 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>The <code class="docutils literal"><span class="pre">clean-cass-locks-state</span></code> CLI would drop the whole _locks table, which is a valid way to clear the schema mutation lock, but this differs from how an actual lockholder clears the _locks table.
-Now the CLI sets the schema mutation lock to a special &#8220;cleared&#8221; value to be more consistent with how real lockholders behave.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1056">Pull Request</a>)</td>
+<td><p class="first">The <code class="docutils literal"><span class="pre">clean-cass-locks-state</span></code> CLI clears the schema mutation lock by setting it to a special &#8220;cleared&#8221; value in the same way that normal lockholders clear the lock.
+Previously the CLI would would drop the whole <code class="docutils literal"><span class="pre">_locks</span></code> table to clear the schema mutation lock.</p>
+<p class="last">See <a class="reference internal" href="../schemas/migrating_schemas.html#schema-mutation-lock"><span class="std std-ref">Schema Mutation Lock (Cassandra only)</span></a> for details on how the schema mutation lock works.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1056">Pull Request</a>)</p>
+</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed an issue where some locks were not being tracked for continuous refreshing due to one of the lock methods not being
-overridden by the <code class="docutils literal"><span class="pre">LockRefreshingLockService</span></code>.
+<td>Fixed an issue where some locks were not being tracked for continuous refreshing due to one of the lock methods not being overridden by the <code class="docutils literal"><span class="pre">LockRefreshingLockService</span></code>.
+This resulted in locks that appeared to be refreshed properly, but then would mysteriously time out at the end of a long-running operation.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1134">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td><p class="first">Sweep no longer immediately falls back to a <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> of 1 after receiving an error.</p>
+<p class="last">See <a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">sweep tuning</span></a> documentation for more information on sweep tuning parameters.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1093">Pull Request</a>)</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -203,11 +214,6 @@ This is relevant if you use multiple namespaces when performing schema migration
 <p class="last">Note that namespace is an application level abstraction defined as part of a AtlasDB schema and is not the same as Cassandra keyspace.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1110">Pull Request</a>)</p>
 </td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Sweep no longer immediately falls back to a <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> of 1 after receiving an error.
-See <a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">sweep tuning</span></a> documentation for more information on sweep tuning parameters.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1093">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
