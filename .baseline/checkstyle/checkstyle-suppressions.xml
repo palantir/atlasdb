@@ -22,10 +22,6 @@
     <suppress files="[/\\].*[/\\]generated_src[/\\]" checks="." />
     <suppress files="[/\\].*[/\\]generated_testSrc[/\\]" checks="." />
 
-    <!-- Copied PG classes -->
-    <suppress files="[/\\].*StackTraceUtils.java" checks="." />
-    <suppress files="[/\\].*ThreadDumps.java" checks="." />
-
     <!-- Temporarily suppress abbreviations. -->
     <suppress files="[/\\](.*KV.*|CQL.*KeyValueServices?|CQLStatementCache|StorageServiceMBean)\.java$" checks="AbbreviationAsWordInName" />
 </suppressions>
