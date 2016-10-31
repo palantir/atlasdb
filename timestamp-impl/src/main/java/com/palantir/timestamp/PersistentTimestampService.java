@@ -30,6 +30,10 @@ public class PersistentTimestampService implements TimestampService {
     private final AvailableTimestamps availableTimestamps;
 
     public PersistentTimestampService(AvailableTimestamps availableTimestamps, ExecutorService executor) {
+        DebugLogger.logger.info(
+                "Creating PersistentTimestampService object on thread {}. This should only happen once.",
+                Thread.currentThread().getName());
+
         this.availableTimestamps = availableTimestamps;
         this.executor = executor;
     }
@@ -38,7 +42,8 @@ public class PersistentTimestampService implements TimestampService {
         PersistentUpperLimit upperLimit = new PersistentUpperLimit(tbs);
         LastReturnedTimestamp lastReturned = new LastReturnedTimestamp(upperLimit.get());
         AvailableTimestamps availableTimestamps = new AvailableTimestamps(lastReturned, upperLimit);
-        ExecutorService executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
+        ExecutorService executor = PTExecutors.newSingleThreadExecutor(
+                PTExecutors.newThreadFactory("Timestamp allocator", Thread.NORM_PRIORITY, true));
 
         return new PersistentTimestampService(availableTimestamps, executor);
     }

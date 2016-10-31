@@ -221,7 +221,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractAtlasDbKeyV
 
     private static int getAmountOfGarbageInMetadataTable(KeyValueService keyValueService, TableReference tableRef) {
         return keyValueService.getAllTimestamps(
-                AtlasDbConstants.METADATA_TABLE,
+                AtlasDbConstants.DEFAULT_METADATA_TABLE,
                 ImmutableSet.of(Cell.create(
                         tableRef.getQualifiedName().getBytes(StandardCharsets.UTF_8),
                         "m".getBytes(StandardCharsets.UTF_8))),

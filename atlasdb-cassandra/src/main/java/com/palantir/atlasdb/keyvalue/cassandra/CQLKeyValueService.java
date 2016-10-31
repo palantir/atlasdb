@@ -313,7 +313,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             return;
         }
 
-        createTables(ImmutableMap.of(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA));
+        createTables(ImmutableMap.of(AtlasDbConstants.DEFAULT_METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA));
     }
 
     private String getLocalDataCenter() {
@@ -1027,7 +1027,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
         CQLKeyValueServices.waitForSchemaVersionsToCoalesce("dropTables(" + tablesToDrop.size() + " tables)", this);
 
-        put(AtlasDbConstants.METADATA_TABLE, Maps.toMap(
+        put(AtlasDbConstants.DEFAULT_METADATA_TABLE, Maps.toMap(
                         Lists.transform(Lists.newArrayList(tablesToDrop), CQLKeyValueServices::getMetadataCell),
                         Functions.constant(PtBytes.EMPTY_BYTE_ARRAY)),
                 System.currentTimeMillis());
@@ -1065,9 +1065,9 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 input -> TableReference.createUnsafe(input.getName())));
 
         // ScrubberStore likes to call createTable before our setup gets called...
-        if (!existingTables.contains(AtlasDbConstants.METADATA_TABLE)) {
+        if (!existingTables.contains(AtlasDbConstants.DEFAULT_METADATA_TABLE)) {
             cqlKeyValueServices.createTableWithSettings(
-                    AtlasDbConstants.METADATA_TABLE,
+                    AtlasDbConstants.DEFAULT_METADATA_TABLE,
                     AtlasDbConstants.EMPTY_TABLE_METADATA,
                     this);
         }
@@ -1109,7 +1109,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
         Cell cell = CQLKeyValueServices.getMetadataCell(tableRef);
-        Value value = get(AtlasDbConstants.METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE)).get(
+        Value value = get(AtlasDbConstants.DEFAULT_METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE)).get(
                 cell);
         if (value == null) {
             return new byte[0];
@@ -1142,7 +1142,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             }
         }
         if (!cellToMetadata.isEmpty()) {
-            put(AtlasDbConstants.METADATA_TABLE, cellToMetadata, System.currentTimeMillis());
+            put(AtlasDbConstants.DEFAULT_METADATA_TABLE, cellToMetadata, System.currentTimeMillis());
             if (possiblyNeedToPerformSettingsChanges) {
                 CQLKeyValueServices.waitForSchemaVersionsToCoalesce(
                         "putMetadataForTables(" + tableNameToMetadata.size() + " tables)", this);
