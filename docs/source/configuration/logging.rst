@@ -26,9 +26,9 @@ To do this, add the following to your logging configuration:
 
     logging:
       loggers:
-        com.palantir.timestamp:
-          level: TRACE
-          additive: false
+        com.palantir.timestamp.DebugLogger:
+          level: INFO
+          additive: true
           appenders:
             - archivedFileCount: 5
               archivedLogFilenamePattern: '{{service_home}}/var/log/timestamps-%d.log.gz'

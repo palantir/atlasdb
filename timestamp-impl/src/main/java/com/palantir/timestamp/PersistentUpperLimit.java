@@ -57,7 +57,7 @@ public class PersistentUpperLimit {
         if (cachedValue < minimum) {
             store(minimum);
         } else {
-            DebugLogger.logger.trace(
+            DebugLogger.logger.info(
                     "Not storing upper limit of {}, as the cached value {} was higher.",
                     minimum,
                     cachedValue);
@@ -72,13 +72,13 @@ public class PersistentUpperLimit {
     }
 
     private synchronized void store(long upperLimit) {
-        DebugLogger.logger.trace("Storing new upper limit of {}.", upperLimit);
+        DebugLogger.logger.info("Storing new upper limit of {}.", upperLimit);
         checkWeHaveNotBeenInterrupted();
         allocationFailures.verifyWeShouldTryToAllocateMoreTimestamps();
         persistNewUpperLimit(upperLimit);
         cachedValue = upperLimit;
         lastIncreasedTime = clock.getTimeMillis();
-        DebugLogger.logger.trace("Stored; upper limit is now {}.", upperLimit);
+        DebugLogger.logger.info("Stored; upper limit is now {}.", upperLimit);
     }
 
     private void checkWeHaveNotBeenInterrupted() {
