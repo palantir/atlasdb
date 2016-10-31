@@ -48,15 +48,15 @@ v0.22.0
          - Change
 
     *    - |improved|
-         - The ``clean-cass-locks-state`` CLI would drop the whole ``_locks`` table, which is a valid way to clear the schema mutation lock, but this differs from how an actual lockholder clears the ``_locks`` table.
-           Now the CLI sets the schema mutation lock to a special "cleared" value to be more consistent with how real lockholders behave.
+         - The ``clean-cass-locks-state`` CLI clears the schema mutation lock by setting it to a special "cleared" value in the same way that normal lockholders clear the lock.
+           Previously the CLI would would drop the whole ``_locks`` table to clear the schema mutation lock.
 
            See :ref:`schema-mutation-lock` for details on how the schema mutation lock works.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1056>`__)
 
     *    - |fixed|
          - Fixed an issue where some locks were not being tracked for continuous refreshing due to one of the lock methods not being overridden by the ``LockRefreshingLockService``.
-           This resulted in locks that appeared to be refreshed properly, but then would mysteriously timeout at the end of a long-running operation.
+           This resulted in locks that appeared to be refreshed properly, but then would mysteriously time out at the end of a long-running operation.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1134>`__)
 
     *    - |improved|
