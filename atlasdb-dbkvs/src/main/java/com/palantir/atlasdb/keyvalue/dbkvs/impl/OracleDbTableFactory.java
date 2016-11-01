@@ -17,7 +17,8 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.TableMappingNotFoundException;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowWriteTable;
@@ -27,15 +28,9 @@ import com.palantir.nexus.db.DBType;
 
 public class OracleDbTableFactory implements DbTableFactory {
     private final OracleDdlConfig config;
-    private final OracleTableNameMapper oracleTableNameMapper;
 
-    private OracleDbTableFactory(OracleDdlConfig config, OracleTableNameMapper oracleTableNameMapper) {
+    public OracleDbTableFactory(OracleDdlConfig config) {
         this.config = config;
-        this.oracleTableNameMapper = oracleTableNameMapper;
-    }
-
-    public static OracleDbTableFactory create(OracleDdlConfig config) {
-        return new OracleDbTableFactory(config, new OracleTableNameMapper());
     }
 
     @Override
@@ -45,7 +40,7 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbDdlTable createDdl(TableReference tableRef, ConnectionSupplier conns) {
-        return new OracleDdlTable(tableRef, conns, config, oracleTableNameMapper);
+        return OracleDdlTable.create(tableRef, conns, config);
     }
 
     @Override
@@ -55,12 +50,15 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns) {
+        OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(conns, config.tablePrefix(),
+                config.overflowTablePrefix(), tableRef);
+
         TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
         DbQueryFactory queryFactory;
-        String shortTableName = getShortTableName(tableRef);
+        String shortTableName = getTableName(oracleTableNameGetter);
         switch (tableSize) {
             case OVERFLOW:
-                String shortOverflowTableName = getShortOverflowTableName(tableRef);
+                String shortOverflowTableName = getOverflowTableName(oracleTableNameGetter);
                 queryFactory = new OracleOverflowQueryFactory(config, shortTableName, shortOverflowTableName);
                 break;
             case RAW:
@@ -72,25 +70,33 @@ public class OracleDbTableFactory implements DbTableFactory {
         return new UnbatchedDbReadTable(conns, queryFactory);
     }
 
+    private String getTableName(OracleTableNameGetter oracleTableNameGetter) {
+        try {
+             return oracleTableNameGetter.getInternalShortTableName();
+        } catch (TableMappingNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String getOverflowTableName(OracleTableNameGetter oracleTableNameGetter) {
+        try {
+            return oracleTableNameGetter.getInternalShortOverflowTableName();
+        } catch (TableMappingNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public DbWriteTable createWrite(TableReference tableRef, ConnectionSupplier conns) {
         TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
         switch (tableSize) {
             case OVERFLOW:
-                return OracleOverflowWriteTable.create(config, tableRef, conns, oracleTableNameMapper);
+                return OracleOverflowWriteTable.create(config, tableRef, conns);
             case RAW:
                 return new SimpleDbWriteTable(tableRef, conns, config);
             default:
                 throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
         }
-    }
-
-    private String getShortTableName(TableReference tableRef) {
-        return oracleTableNameMapper.getShortPrefixedTableName(config.tablePrefix(), tableRef);
-    }
-
-    private String getShortOverflowTableName(TableReference tableRef) {
-        return oracleTableNameMapper.getShortPrefixedTableName(config.overflowTablePrefix(), tableRef);
     }
 
     @Override

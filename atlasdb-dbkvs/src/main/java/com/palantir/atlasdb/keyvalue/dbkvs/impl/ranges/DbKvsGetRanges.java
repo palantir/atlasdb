@@ -45,7 +45,9 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.TableMappingNotFoundException;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
@@ -331,7 +333,13 @@ public class DbKvsGetRanges {
 
     private String getPrefixedTableName(TableReference tableRef) {
         if (config.type().equals(OracleDdlConfig.TYPE)) {
-            return new OracleTableNameMapper().getShortPrefixedTableName(config.tablePrefix(), tableRef);
+            OracleDdlConfig oracleConfig = (OracleDdlConfig) this.config;
+            try {
+                return new OracleTableNameGetter(new ConnectionSupplier(connectionSupplier), oracleConfig.tablePrefix(),
+                        oracleConfig.overflowTablePrefix(), tableRef).getInternalShortTableName();
+            } catch (TableMappingNotFoundException e) {
+                throw new RuntimeException(e);
+            }
         }
         return config.tablePrefix() + DbKvs.internalTableName(tableRef);
     }

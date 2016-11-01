@@ -63,7 +63,7 @@ public abstract class OracleDdlConfig extends DdlConfig {
 
     @Override
     public Supplier<DbTableFactory> tableFactorySupplier() {
-        return () -> OracleDbTableFactory.create(this);
+        return () -> new OracleDbTableFactory(this);
     }
 
     @Value.Default

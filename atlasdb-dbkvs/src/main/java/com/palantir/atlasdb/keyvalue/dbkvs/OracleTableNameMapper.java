@@ -15,68 +15,67 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import java.nio.charset.StandardCharsets;
-
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
-import com.palantir.util.crypto.Sha256Hash;
+import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class OracleTableNameMapper {
     public static final int ORACLE_MAX_TABLE_NAME_LENGTH = 30;
-    public static final int RANDOM_SUFFIX_LENGTH = 5;
-    private static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_MAX_TABLE_NAME_LENGTH - RANDOM_SUFFIX_LENGTH;
+    public static final int SUFFIX_NUMBER_LENGTH = 6;
+    private static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_MAX_TABLE_NAME_LENGTH - SUFFIX_NUMBER_LENGTH;
+
+    private static ConnectionSupplier conns;
+
+    public OracleTableNameMapper(ConnectionSupplier conns) {
+        this.conns = conns;
+    }
 
     public String getShortPrefixedTableName(String tablePrefix, TableReference tableRef) {
         Preconditions.checkState(tablePrefix.length() <= 7, "The tablePrefix can be at most 7 characters long");
+
         String fullTableName = tablePrefix + DbKvs.internalTableName(tableRef);
         if (fullTableName.length() <= ORACLE_MAX_TABLE_NAME_LENGTH) {
             return fullTableName;
         }
 
-        int maxTableNameLength = PREFIXED_TABLE_NAME_LENGTH - tablePrefix.length();
-        return tablePrefix
-                + getShortTableName(DbKvs.internalTableName(tableRef), maxTableNameLength)
-                + getHashSuffix(fullTableName);
-    }
-
-    private String getShortTableName(String tableName, int maximumLength) {
-        int numCharactersToDrop = tableName.length() - maximumLength;
-        String tableNameWithoutLastVowels = removeLastKVowels(tableName, numCharactersToDrop);
-        if (tableNameWithoutLastVowels.length() <= maximumLength) {
-            return tableNameWithoutLastVowels;
+        String truncatedTableName = fullTableName.substring(0, PREFIXED_TABLE_NAME_LENGTH) ;
+        int tableSuffixNumber = getTableNumber(truncatedTableName);
+        if (tableSuffixNumber >= 100_000) {
+            throw new IllegalArgumentException("Cannot create any more tables with name starting with "
+                    + truncatedTableName + ". 100,000 tables have already been created.");
         }
-        return tableNameWithoutLastVowels.substring(0, maximumLength);
+        return truncatedTableName + getTableNumberSuffix(tableSuffixNumber);
     }
 
-    private String removeLastKVowels(String tableName, int numVowelsToDrop) {
-        final int kthLastVowelIndex = findKthLastVowelIndex(tableName, numVowelsToDrop);
-        String head = tableName.substring(0, kthLastVowelIndex);
-        String tail = tableName.substring(kthLastVowelIndex);
-        return head + removeAllLowerCaseVowels(tail);
+    private String getTableNumberSuffix(int tableSuffixNumber) {
+        return "_" + String.format("%05d", tableSuffixNumber);
     }
 
-    private int findKthLastVowelIndex(String tableName, int k) {
-        final String vowels = "aeiou";
-        int vowelsFound = 0;
-        for (int i = tableName.length() - 1; i > 0; i--)
-        {
-            if (vowels.indexOf(tableName.toLowerCase().charAt(i)) >= 0) {
-                vowelsFound++;
-            }
-            if (vowelsFound == k) {
-                return i;
+    private int getTableNumber(String truncatedTableName) {
+        AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
+                "SELECT short_table_name "
+                + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
+                + " WHERE LOWER(table_name) LIKE LOWER('" + truncatedTableName + "_%')"
+                + " ORDER BY short_table_name DESC");
+        if (results.size() == 0) {
+            return 0;
+        }
+        return getTableNumberWhenPrefixedTablesExist(truncatedTableName, results);
+    }
+
+    private int getTableNumberWhenPrefixedTablesExist(String truncatedTableName, AgnosticResultSet results) {
+        for (int i = 0; i < results.size(); i++) {
+            String shortName = results.get(i).getString("short_table_name");
+            try {
+                int nextTableNumber = Integer.valueOf(shortName.substring(truncatedTableName.length() + 1)) + 1;
+                return nextTableNumber;
+            } catch (NumberFormatException e) {
+                //Table in different format - Do nothing;
             }
         }
         return 0;
-    }
-
-    private String removeAllLowerCaseVowels(String tableName) {
-        return tableName.replaceAll("a|e|i|o|u", "");
-    }
-
-    private String getHashSuffix(String fullTableName) {
-        Sha256Hash hash = Sha256Hash.computeHash(fullTableName.getBytes(StandardCharsets.UTF_8));
-        return hash.serializeToHexString().substring(0, 5);
     }
 }

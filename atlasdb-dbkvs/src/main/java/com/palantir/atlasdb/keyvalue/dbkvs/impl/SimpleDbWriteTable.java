@@ -29,7 +29,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.TableMappingNotFoundException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
@@ -133,9 +134,15 @@ public class SimpleDbWriteTable implements DbWriteTable {
     }
 
     private String getPrefixedTableName() {
-        if (!config.type().equals(OracleDdlConfig.TYPE)) {
-            return config.tablePrefix() + DbKvs.internalTableName(tableRef);
+        if (config.type().equals(OracleDdlConfig.TYPE)) {
+            OracleDdlConfig oracleConfig = (OracleDdlConfig) this.config;
+            try {
+                return new OracleTableNameGetter(conns, oracleConfig.tablePrefix(), oracleConfig.overflowTablePrefix(),
+                        tableRef).getInternalShortTableName();
+            } catch (TableMappingNotFoundException e) {
+                throw new RuntimeException(e);
+            }
         }
-        return new OracleTableNameMapper().getShortPrefixedTableName(config.tablePrefix(), tableRef);
+        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
     }
 }
