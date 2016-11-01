@@ -293,7 +293,7 @@ public class CassandraClientPool {
 
         InetSocketAddress randomLivingHost = getRandomHostByActiveConnections(
                 Maps.filterKeys(currentPools, livingHosts::contains));
-        return Optional.of(pools.get(randomLivingHost));
+        return Optional.ofNullable(pools.get(randomLivingHost));
     }
 
     public InetSocketAddress getRandomHostForKey(byte[] key) {
