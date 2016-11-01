@@ -50,19 +50,22 @@ develop
     *    - |deprecated|
          - ``TableReference.createUnsafe`` is now deprecated. ``createWithEmptyNamespace`` or ``createFromFullyQualifiedName`` should be used instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1121>`__)
-           
 
     *    - |improved|
          - Random redirection of queries when retrying a Cassandra operation now retries said queries on distinct
            hosts. Previously, this would independently select hosts randomly, meaning that we might unintentionally
            try the same operation on the same server(s).
-
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
     *    - |new|
          - Added the ability to do custom performance logging for Sweep. This is currently only available for
            applications that call the ``BackgroundSweeperImpl`` constructor directly. Otherwise a
            ``NoOpBackgroundSweeperPerformanceLogger`` is used.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1054>`__)
+
+    *    - |improved|
+         - The fetch timestamp CLI correctly handles ``--file`` inputs containing non-existent directories by creating any missing intermediate directories.
+           Previously, the CLI would throw an exception and fail in such cases.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1151>`__)
 
     *    - |new|
          - The KVS migration command can now be run as an offline cli using the ``--offline`` flag.
