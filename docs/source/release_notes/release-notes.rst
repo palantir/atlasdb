@@ -82,6 +82,10 @@ v0.22.0
            See :ref:`sweep tuning <sweep_tunable_parameters>` documentation for more information on sweep tuning parameters.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1093>`__)
 
+    *    - |fixed|
+         - Fixed an issue where leader election threads were not correctly marked as daemon threads.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1138>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
