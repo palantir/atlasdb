@@ -321,9 +321,6 @@ public class CassandraClientPool {
         }
     }
 
-    /**
-     * May return absent if the mapping of which C* host contains which data is not known yet.
-     */
     public Optional<List<InetSocketAddress>> getHostsForKey(byte[] key) {
         return Optional.ofNullable(tokenMap.get(new LightweightOppToken(key)));
     }

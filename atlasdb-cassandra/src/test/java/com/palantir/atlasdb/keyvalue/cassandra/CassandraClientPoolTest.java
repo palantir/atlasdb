@@ -54,11 +54,12 @@ public class CassandraClientPoolTest {
     public static final String HOSTNAME_1 = "1.0.0.0";
     public static final String HOSTNAME_2 = "2.0.0.0";
     public static final String HOSTNAME_3 = "3.0.0.0";
-    public static final byte[] KEY_1 = { 1, 2, 3 };
-    public static final byte[] KEY_2 = { 1, 3, 5 };
-    public static final byte[] KEY_3 = { 2, 1, 1 };
 
     public static final int FUZZING_NUM_TRIALS = 20;
+
+    private static final byte[] KEY_1 = { 1, 2, 3 };
+    private static final byte[] KEY_2 = { 1, 3, 5 };
+    private static final byte[] KEY_3 = { 2, 1, 1 };
 
     @Test
     public void shouldReturnAddressForSingleHostInPool() throws UnknownHostException {

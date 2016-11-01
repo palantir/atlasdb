@@ -21,6 +21,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Compression;
@@ -29,6 +30,8 @@ import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
 import org.apache.thrift.TException;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -55,7 +58,7 @@ public class CqlExecutor {
                 getQuotedTableName(tableRef),
                 CassandraKeyValueServices.encodeAsHex(row),
                 limit);
-        CqlResult cqlResult = executeQueryOnHost(query, getHostForRow(row));
+        CqlResult cqlResult = executeQueryForRow(query, row);
         return getCells(row, cqlResult);
     }
 
@@ -82,7 +85,7 @@ public class CqlExecutor {
                 CassandraKeyValueServices.encodeAsHex(column),
                 invertedTimestamp,
                 limit);
-        CqlResult cqlResult = executeQueryOnHost(query, getHostForRow(row));
+        CqlResult cqlResult = executeQueryForRow(query, row);
         return getCells(row, cqlResult);
     }
 
@@ -105,23 +108,29 @@ public class CqlExecutor {
                 CassandraKeyValueServices.encodeAsHex(row),
                 CassandraKeyValueServices.encodeAsHex(previousColumn),
                 limit);
-        CqlResult cqlResult = executeQueryOnHost(query, getHostForRow(row));
+        CqlResult cqlResult = executeQueryForRow(query, row);
         return getCells(row, cqlResult);
     }
 
-    private InetSocketAddress getHostForRow(byte[] row) {
-        return clientPool.getRandomHostForKey(row);
-    }
-
-    private CqlResult executeQueryOnHost(String query, InetSocketAddress host) {
+    private CqlResult executeQueryForRow(String query, byte[] row) {
         ByteBuffer queryBytes = ByteBuffer.wrap(query.getBytes(StandardCharsets.UTF_8));
-        return executeQueryOnHost(queryBytes, host);
+        return executeQueryForRow(queryBytes, row);
     }
 
-    private CqlResult executeQueryOnHost(ByteBuffer queryBytes, InetSocketAddress host) {
+    private CqlResult executeQueryForRow(ByteBuffer queryBytes, byte[] row) {
+        InetSocketAddress targetHost = clientPool.getRandomHostForKey(row);
+        List<InetSocketAddress> preferredHosts = clientPool.getHostsForKey(row).orElse(ImmutableList.of());
+        return executeQueryOnHost(queryBytes, targetHost, ImmutableSet.copyOf(preferredHosts));
+    }
+
+    private CqlResult executeQueryOnHost(
+            ByteBuffer queryBytes,
+            InetSocketAddress host,
+            Set<InetSocketAddress> preferredHosts) {
         try {
-            return clientPool.runWithRetryOnHost(host, client ->
-                    client.execute_cql3_query(queryBytes, Compression.NONE, consistency));
+            return clientPool.runWithRetryOnHost(host,
+                    client -> client.execute_cql3_query(queryBytes, Compression.NONE, consistency),
+                    preferredHosts);
         } catch (TException e) {
             throw Throwables.throwUncheckedException(e);
         }
