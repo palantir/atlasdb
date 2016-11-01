@@ -47,7 +47,7 @@ v0.22.0
 
     *    - |improved|
          - We now support Oracle for products with all valid schemas. Oracle table names exceeding 30 characters are now
-           mapped to shorter names by dropping a minimal number of vowels and appending a string hash.
+           mapped to shorter names by truncating and appending a sequence number.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1076>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>

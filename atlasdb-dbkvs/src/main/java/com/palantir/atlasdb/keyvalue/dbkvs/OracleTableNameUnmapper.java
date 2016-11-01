@@ -22,7 +22,6 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 class OracleTableNameUnmapper {
-
     private final ConnectionSupplier conns;
 
     OracleTableNameUnmapper(ConnectionSupplier conns) {

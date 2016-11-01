@@ -24,7 +24,8 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class OracleTableNameMapper {
     public static final int ORACLE_MAX_TABLE_NAME_LENGTH = 30;
-    public static final int SUFFIX_NUMBER_LENGTH = 6;
+    public  static final int SUFFIX_NUMBER_LENGTH = 6;
+    public  static final int TRUNCATED_NAMESPACE_LENGTH = 2;
     private static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_MAX_TABLE_NAME_LENGTH - SUFFIX_NUMBER_LENGTH;
 
     private static ConnectionSupplier conns;
@@ -41,20 +42,25 @@ public class OracleTableNameMapper {
             return fullTableName;
         }
 
-        String truncatedTableName = fullTableName.substring(0, PREFIXED_TABLE_NAME_LENGTH) ;
-        int tableSuffixNumber = getTableNumber(truncatedTableName);
+        String namespaceTruncatedName = tablePrefix + getTruncatedNamespace(tableRef) + tableRef.getTablename();
+        String truncatedTableName = namespaceTruncatedName.substring(0, PREFIXED_TABLE_NAME_LENGTH) ;
+        return truncatedTableName + getTableNumberSuffix(truncatedTableName);
+    }
+
+    private String getTruncatedNamespace(TableReference tableRef) {
+        return tableRef.getNamespace().getName().substring(0, TRUNCATED_NAMESPACE_LENGTH) + "_";
+    }
+
+    private String getTableNumberSuffix(String truncatedTableName) {
+        int tableSuffixNumber = getNextTableNumber(truncatedTableName);
         if (tableSuffixNumber >= 100_000) {
             throw new IllegalArgumentException("Cannot create any more tables with name starting with "
                     + truncatedTableName + ". 100,000 tables have already been created.");
         }
-        return truncatedTableName + getTableNumberSuffix(tableSuffixNumber);
-    }
-
-    private String getTableNumberSuffix(int tableSuffixNumber) {
         return "_" + String.format("%05d", tableSuffixNumber);
     }
 
-    private int getTableNumber(String truncatedTableName) {
+    private int getNextTableNumber(String truncatedTableName) {
         AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
                 "SELECT short_table_name "
                 + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
@@ -70,8 +76,7 @@ public class OracleTableNameMapper {
         for (int i = 0; i < results.size(); i++) {
             String shortName = results.get(i).getString("short_table_name");
             try {
-                int nextTableNumber = Integer.valueOf(shortName.substring(truncatedTableName.length() + 1)) + 1;
-                return nextTableNumber;
+                return Integer.valueOf(shortName.substring(truncatedTableName.length() + 1)) + 1;
             } catch (NumberFormatException e) {
                 //Table in different format - Do nothing;
             }

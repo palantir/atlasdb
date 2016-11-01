@@ -267,17 +267,17 @@ public class DbKvsGetRanges {
         for (byte[] row : rows) {
             if (reverse) {
                 AssertUtils.assertAndLog(startInclusive.length == 0
-                                || UnsignedBytes.lexicographicalComparator().compare(startInclusive, row) >= 0,
+                        || UnsignedBytes.lexicographicalComparator().compare(startInclusive, row) >= 0,
                         "row was out of range");
                 AssertUtils.assertAndLog(endExclusive.length == 0
-                                || UnsignedBytes.lexicographicalComparator().compare(row, endExclusive) > 0,
+                        || UnsignedBytes.lexicographicalComparator().compare(row, endExclusive) > 0,
                         "row was out of range");
             } else {
                 AssertUtils.assertAndLog(startInclusive.length == 0
-                                || UnsignedBytes.lexicographicalComparator().compare(startInclusive, row) <= 0,
+                        || UnsignedBytes.lexicographicalComparator().compare(startInclusive, row) <= 0,
                         "row was out of range");
                 AssertUtils.assertAndLog(endExclusive.length == 0
-                                || UnsignedBytes.lexicographicalComparator().compare(row, endExclusive) < 0,
+                        || UnsignedBytes.lexicographicalComparator().compare(row, endExclusive) < 0,
                         "row was out of range");
             }
         }
