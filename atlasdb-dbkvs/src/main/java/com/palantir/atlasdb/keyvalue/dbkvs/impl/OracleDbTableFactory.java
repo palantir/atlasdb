@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.dbkvs.AbstractTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowQueryFactory;
@@ -32,17 +33,13 @@ import com.palantir.common.base.Throwables;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 
-public class OracleDbTableFactory implements DbTableFactory {
+public class OracleDbTableFactory extends AbstractTableFactory {
     private final Cache<TableReference, TableSize> tableSizeByTableRef = CacheBuilder.newBuilder().build();
     private final OracleDdlConfig config;
 
     public OracleDbTableFactory(OracleDdlConfig config) {
+        super(config);
         this.config = config;
-    }
-
-    @Override
-    public DbMetadataTable createMetadata(TableReference tableRef, ConnectionSupplier conns) {
-        return new SimpleDbMetadataTable(tableRef, conns, config);
     }
 
     @Override
@@ -69,7 +66,7 @@ public class OracleDbTableFactory implements DbTableFactory {
             default:
                 throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
         }
-        return new UnbatchedDbReadTable(conns, queryFactory);
+        return new BatchedDbReadTable(conns, queryFactory, exec, config);
     }
 
     @Override
@@ -110,10 +107,5 @@ public class OracleDbTableFactory implements DbTableFactory {
     @Override
     public DBType getDbType() {
         return DBType.ORACLE;
-    }
-
-    @Override
-    public void close() {
-        // do nothing
     }
 }

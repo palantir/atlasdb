@@ -99,4 +99,11 @@ public abstract class OracleDdlConfig extends DdlConfig {
                 "Oracle 'overflowTablePrefix' cannot be more than 6 characters long.");
 
     }
+
+    @Value.Default
+    @Override
+    public int fetchBatchSize() {
+        // Oracle Arrays can be much larger than Postgres select-where-in way of doing get
+        return 1024;
+    }
 }
