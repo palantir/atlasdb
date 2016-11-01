@@ -524,8 +524,9 @@ public class CassandraClientPool {
      *
      * Using getRandomGoodHostForPredicate is preferred because it takes the loads of the servers into account.
      */
-    private CassandraClientPoolingContainer getRedirectTarget(Set<InetSocketAddress> triedHosts,
-                                                              Set<InetSocketAddress> preferredHosts) {
+    @VisibleForTesting
+    CassandraClientPoolingContainer getRedirectTarget(Set<InetSocketAddress> triedHosts,
+                                                      Set<InetSocketAddress> preferredHosts) {
         Optional<CassandraClientPoolingContainer> hostPoolCandidate
                 = getRandomGoodHostForPredicate(address -> preferredHosts.contains(address)
                 && !triedHosts.contains(address));
