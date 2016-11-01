@@ -71,30 +71,33 @@ public abstract class AbstractTimestampCommand extends SingleBackendCommand {
         }
     }
 
-	private long readTimestampFromFile() {
-        String timestamp;
+    private long readTimestampFromFile() {
+        String timestampString;
         try {
-            timestamp = StringUtils.strip(Iterables.getOnlyElement(Files.readAllLines(file.toPath())));
+            timestampString = StringUtils.strip(Iterables.getOnlyElement(Files.readAllLines(file.toPath())));
         } catch (IOException e) {
             log.error("IOException thrown reading timestamp from file: {}", file.getPath());
             throw Throwables.propagate(e);
         }
-        return Long.parseLong(timestamp);
+        return Long.parseLong(timestampString);
     }
 
-	private void writeTimestampToFile() {
+    private void writeTimestampToFile() {
         Set<String> lines = Sets.newHashSet(Long.toString(timestamp));
         try {
+            if (file.getParentFile() != null && !file.getParentFile().exists()) {
+                file.getParentFile().mkdirs();
+            }
             Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
         } catch (IOException e) {
             log.error("IOException thrown writing timestamp to file: {}", file.getPath());
             Throwables.propagate(e);
         }
-	}
+    }
 
-	protected void writeTimestampToFileIfSpecified() {
-	    if (file != null) {
-	        writeTimestampToFile();
-	    }
-	}
+    protected void writeTimestampToFileIfSpecified() {
+        if (file != null) {
+            writeTimestampToFile();
+        }
+    }
 }
