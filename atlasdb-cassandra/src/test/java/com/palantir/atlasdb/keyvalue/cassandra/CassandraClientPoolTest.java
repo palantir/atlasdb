@@ -34,6 +34,7 @@ import org.apache.cassandra.thrift.Cassandra;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -221,8 +222,7 @@ public class CassandraClientPoolTest {
                         Mockito.<FunctionCheckedException<Cassandra.Client, Object, Exception>>any()))
                         .thenThrow(failureMode.get());
             } catch (Exception e) {
-                // Theoretically the runWithPooledResource *could* throw something we don't want,
-                // which makes javac unhappy.
+                throw Throwables.propagate(e);
             }
         }
         return poolingContainer;
