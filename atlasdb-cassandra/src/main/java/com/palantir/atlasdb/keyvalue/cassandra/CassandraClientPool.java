@@ -325,7 +325,7 @@ public class CassandraClientPool {
      * May return absent if the mapping of which C* host contains which data is not known yet.
      */
     public Optional<List<InetSocketAddress>> getHostsForKey(byte[] key) {
-        return Optional.fromNullable(tokenMap.get(new LightweightOppToken(key)));
+        return Optional.ofNullable(tokenMap.get(new LightweightOppToken(key)));
     }
 
     private static InetSocketAddress getRandomHostByActiveConnections(
@@ -523,32 +523,24 @@ public class CassandraClientPool {
         }
     }
 
-    /**
-     * The semantics of this are as follows:
-     *   (1) If there exists a preferred host that hasn't been tried, try such a host at random.
-     *   (2) If all preferred hosts have been tried, but not all hosts have been tried, then try such a host at random.
-     *   (3) Otherwise, all hosts have been tried at least once - fall back on a random node.
-     *
-     * Using getRandomGoodHostForPredicate is preferred because it takes the loads of the servers into account.
-     */
     @VisibleForTesting
     CassandraClientPoolingContainer getRedirectTarget(Set<InetSocketAddress> triedHosts,
                                                       Set<InetSocketAddress> preferredHosts) {
-        Optional<CassandraClientPoolingContainer> hostPoolCandidate
-                = getRandomGoodHostForPredicate(address -> preferredHosts.contains(address)
-                && !triedHosts.contains(address));
-        if (hostPoolCandidate.isPresent()) {
-            return hostPoolCandidate.get();
-        }
+        return getRandomUntriedPreferredHost(triedHosts, preferredHosts)
+                .orElse(getRandomUntriedHost(triedHosts)
+                        .orElse(getRandomGoodHost()));
+    }
 
-        hostPoolCandidate = getRandomGoodHostForPredicate(address -> !triedHosts.contains(address));
-        if (hostPoolCandidate.isPresent()) {
-            return hostPoolCandidate.get();
-        }
+    @VisibleForTesting
+    Optional<CassandraClientPoolingContainer> getRandomUntriedPreferredHost(Set<InetSocketAddress> triedHosts,
+                                                                            Set<InetSocketAddress> preferredHosts) {
+        return getRandomGoodHostForPredicate(
+                address -> preferredHosts.contains(address) && !triedHosts.contains(address));
+    }
 
-        // This means we've tried every host and failed.
-        // In accordance with original behaviour, just retry in a last-ditch attempt.
-        return getRandomGoodHost();
+    @VisibleForTesting
+    Optional<CassandraClientPoolingContainer> getRandomUntriedHost(Set<InetSocketAddress> triedHosts) {
+        return getRandomGoodHostForPredicate(address -> !triedHosts.contains(address));
     }
 
     public <V, K extends Exception> V run(FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {

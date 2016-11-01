@@ -140,6 +140,54 @@ public class CassandraClientPoolTest {
     }
 
     @Test
+    public void canGetUntriedPreferredHosts() {
+        InetSocketAddress host1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
+        InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host1, host2));
+
+        assertThat(cassandraClientPool.getRandomUntriedPreferredHost(
+                ImmutableSet.of(), ImmutableSet.of(host1)).get().getHost(), is(host1));
+        assertThat(cassandraClientPool.getRandomUntriedPreferredHost(
+                ImmutableSet.of(host1), ImmutableSet.of(host1, host2)).get().getHost(), is(host2));
+        assertThat(cassandraClientPool.getRandomUntriedPreferredHost(
+                ImmutableSet.of(host1, host2), ImmutableSet.of(host1, host2)).isPresent(), is(false));
+    }
+
+    @Test
+    public void getUntriedPreferredHostsReturnsAbsentIfAllPreferredHostsTried() {
+        InetSocketAddress host1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
+        InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host1, host2));
+
+        assertThat(cassandraClientPool.getRandomUntriedPreferredHost(
+                ImmutableSet.of(host1, host2), ImmutableSet.of(host1, host2)).isPresent(), is(false));
+        assertThat(cassandraClientPool.getRandomUntriedPreferredHost(
+                ImmutableSet.of(host1, host2), ImmutableSet.of(host1)).isPresent(), is(false));
+    }
+
+    @Test
+    public void canGetUntriedHosts() {
+        InetSocketAddress host1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
+        InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host1, host2));
+
+        assertThat(cassandraClientPool.getRandomUntriedHost(ImmutableSet.of(host1)).get().getHost(),
+                is(host2));
+        assertThat(cassandraClientPool.getRandomUntriedHost(ImmutableSet.of(host2)).get().getHost(),
+                is(host1));
+    }
+
+    @Test
+    public void getUntriedHostsReturnsAbsentIfAllHostsTried() {
+        InetSocketAddress host1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
+        InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host1, host2));
+
+        assertThat(cassandraClientPool.getRandomUntriedHost(ImmutableSet.of(host1, host2)).isPresent(),
+                is(false));
+    }
+
+    @Test
     public void shouldRedirectToPreferredHostsIfAvailable() {
         InetSocketAddress host1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
         InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
@@ -276,8 +324,6 @@ public class CassandraClientPoolTest {
 
     @Test
     public void shouldFollowHostPreferencesWhenRetrying() {
-        // We want to verify the query touches every host. We try MAX_TRIES_SAME_HOST times on the first host, and
-        // then try to contact the other hosts once each.
         int numHosts = CassandraClientPool.MAX_TRIES_TOTAL - CassandraClientPool.MAX_TRIES_SAME_HOST + 1;
         assumeTrue(numHosts > 1);
         List<InetSocketAddress> hostList = Lists.newArrayList();
@@ -294,10 +340,8 @@ public class CassandraClientPoolTest {
             // expected, keep going
         }
 
-        // Verify we tried host 0 before host 1. This needs to be here in case numHosts == 2
         verifySequenceOfHostAttempts(cassandraClientPool, ImmutableList.of(hostList.get(0), hostList.get(1)));
         for (int i = 2; i < numHosts; i++) {
-            // Verify we tried host 0, then host 1, then host i
             verifySequenceOfHostAttempts(cassandraClientPool, ImmutableList.of(
                     hostList.get(0), hostList.get(1), hostList.get(i)
             ));
@@ -306,7 +350,6 @@ public class CassandraClientPoolTest {
 
     @Test
     public void shouldAttemptNonPreferredHostAfterTryingAllPreferredHosts() {
-        // This test insists on there being a non-hinted server, which shouldFollowHintsWhenRetrying() does not.
         assumeTrue(CassandraClientPool.MAX_TRIES_TOTAL - CassandraClientPool.MAX_TRIES_SAME_HOST >= 2);
         InetSocketAddress host1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
         InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
