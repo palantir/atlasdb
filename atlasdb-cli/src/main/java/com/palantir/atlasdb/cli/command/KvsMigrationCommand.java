@@ -146,7 +146,6 @@ public class KvsMigrationCommand implements Callable<Integer> {
 
     public AtlasDbServices connectFromServices() throws IOException {
         AtlasDbConfig fromConfig = AtlasDbConfigs.load(fromConfigFile, configRoot);
-
         ServicesConfigModule scm = ServicesConfigModule.create(makeOfflineIfNecessary(fromConfig));
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }

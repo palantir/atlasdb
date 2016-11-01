@@ -46,7 +46,7 @@ develop
            If clients are hitting this error, then they should add trace logging for ``com.palantir.timestamp``.
            These logs can also be directed to a separate file, see the :ref:`documentation <logging-configuration>` for more details.
 
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1098>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1149>`__)
 
     *    - |improved|
          - Random redirection of queries when retrying a Cassandra operation now retries said queries on distinct
