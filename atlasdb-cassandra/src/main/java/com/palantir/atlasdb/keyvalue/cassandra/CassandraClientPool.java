@@ -291,9 +291,9 @@ public class CassandraClientPool {
             livingHosts = filteredHosts;
         }
 
-        CassandraClientPoolingContainer poolingContainer
-                = pools.get(getRandomHostByActiveConnections(Maps.filterKeys(currentPools, livingHosts::contains)));
-        return Optional.of(poolingContainer);
+        InetSocketAddress randomLivingHost = getRandomHostByActiveConnections(
+                Maps.filterKeys(currentPools, livingHosts::contains));
+        return Optional.of(pools.get(randomLivingHost));
     }
 
     public InetSocketAddress getRandomHostForKey(byte[] key) {
