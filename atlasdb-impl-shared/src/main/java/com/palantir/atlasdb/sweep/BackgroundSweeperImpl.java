@@ -200,8 +200,12 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
                     results.getCellsExamined(), progress.getFullTableName(),
                     progress.getStartRow() == null ? "0" : PtBytes.encodeHexString(progress.getStartRow()),
                     results.getCellsDeleted(), elapsedMillis, results.getSweptTimestamp());
-            sweepPerfLogger.logSweepResults(results, progress.getFullTableName(),
-                    progress.getStartRow(), elapsedMillis);
+            sweepPerfLogger.logSweepResults(
+                    ImmutableSweepPerformanceResults.builder()
+                            .sweepResults(results)
+                            .tableName(progress.getFullTableName())
+                            .elapsedMillis(elapsedMillis)
+                            .build());
             saveSweepResults(progress, results);
             return true;
         } catch (RuntimeException e) {
@@ -340,8 +344,13 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
             long elapsedMillis = watch.elapsed(TimeUnit.MILLISECONDS);
             log.debug("Finished performing compactInternally on {} in {} ms.",
                     progress.getFullTableName(), elapsedMillis);
-            sweepPerfLogger.logInternalCompaction(progress.getFullTableName(), cellsDeleted,
-                    cellsExamined, elapsedMillis);
+            sweepPerfLogger.logInternalCompaction(
+                    ImmutableSweepCompactionPerformanceResults.builder()
+                            .tableName(progress.getFullTableName())
+                            .cellsDeleted(cellsDeleted)
+                            .cellsExamined(cellsExamined)
+                            .elapsedMillis(elapsedMillis)
+                            .build());
         }
 
         // Truncate instead of delete because the progress table contains only

@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.cache.CacheBuilder;
@@ -46,6 +47,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -158,7 +160,13 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
 
             byte[] nextRow = rowResultTimestamps.size() < rowBatchSize ? null :
                     RangeRequests.getNextStartRow(false, rowResultTimestamps.lastItem().getRowName());
-            return new SweepResults(nextRow, rowResultTimestamps.size(), totalCellsSwept.get(), sweepTs);
+            return ImmutableSweepResults.builder()
+                    .previousStartRow(Optional.fromNullable(startRow))
+                    .nextStartRow(Optional.fromNullable(nextRow))
+                    .cellsExamined(rowResultTimestamps.size())
+                    .cellsDeleted(totalCellsSwept.get())
+                    .sweptTimestamp(sweepTs)
+                    .build();
         }
     }
 

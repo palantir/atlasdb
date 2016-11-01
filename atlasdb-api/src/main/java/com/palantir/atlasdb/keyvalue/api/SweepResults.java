@@ -15,72 +15,29 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
-import java.util.Arrays;
-import java.util.Objects;
-
-import javax.annotation.Nullable;
+import org.immutables.value.Value;
 
 import com.google.common.base.Optional;
-import com.palantir.atlasdb.encoding.PtBytes;
 
-public class SweepResults {
-    private final @Nullable byte[] nextStartRow;
-    private final long cellsExamined;
-    private final long cellsSwept;
-    private final long sweptTimestamp;
+@Value.Immutable
+public abstract class SweepResults {
+
+    public abstract Optional<byte[]> getPreviousStartRow();
+
+    public abstract Optional<byte[]> getNextStartRow();
+
+    public abstract long getCellsExamined();
+
+    public abstract long getCellsDeleted();
+
+    public abstract long getSweptTimestamp();
 
     public static SweepResults createEmptySweepResult(long sweptTimestamp) {
-        return new SweepResults(null, 0, 0, sweptTimestamp);
+        return ImmutableSweepResults.builder()
+                .cellsExamined(0)
+                .cellsDeleted(0)
+                .sweptTimestamp(sweptTimestamp)
+                .build();
     }
 
-    public SweepResults(@Nullable byte[] nextStartRow, long cellsExamined, long cellsSwept, long sweptTimestamp) {
-        this.nextStartRow = nextStartRow;
-        this.cellsExamined = cellsExamined;
-        this.cellsSwept = cellsSwept;
-        this.sweptTimestamp = sweptTimestamp;
-    }
-
-    public Optional<byte[]> getNextStartRow() {
-        return Optional.fromNullable(nextStartRow);
-    }
-
-    public long getCellsExamined() {
-        return cellsExamined;
-    }
-
-    public long getCellsDeleted() {
-        return cellsSwept;
-    }
-
-    public long getSweptTimestamp() {
-        return sweptTimestamp;
-    }
-
-    @Override
-    public String toString() {
-        return "SweepResults [nextStartRow=" + PtBytes.encodeHexString(nextStartRow)
-                + ", cellsExamined=" + cellsExamined
-                + ", cellsSwept=" + cellsSwept
-                + ", sweptTimestamp=" + sweptTimestamp + "]";
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null || getClass() != obj.getClass()) {
-            return false;
-        }
-        SweepResults that = (SweepResults) obj;
-        return cellsExamined == that.cellsExamined
-                && cellsSwept == that.cellsSwept
-                && sweptTimestamp == that.sweptTimestamp
-                && Arrays.equals(nextStartRow, that.nextStartRow);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(Arrays.hashCode(nextStartRow), cellsExamined, cellsSwept, sweptTimestamp);
-    }
 }
