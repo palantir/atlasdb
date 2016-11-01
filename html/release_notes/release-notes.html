@@ -175,6 +175,13 @@ These logs can also be directed to a separate file, see the <a class="reference 
 <p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1098">Pull Request</a>)</p>
 </td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td><p class="first">Random redirection of queries when retrying a Cassandra operation now retries said queries on distinct
+hosts. Previously, this would independently select hosts randomly, meaning that we might unintentionally
+try the same operation on the same server(s).</p>
+<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1139">Pull Request</a>)</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
