@@ -48,6 +48,10 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1098>`__)
 
+    *    - |improved|
+         - Oracle KVS read queries are now parallelized
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1141>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
