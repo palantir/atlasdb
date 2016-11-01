@@ -68,7 +68,9 @@ public class TestTimestampCommand {
     private static AtlasDbServicesFactory moduleFactory;
 
     private static final String TIMESTAMP_FILE_PATH = "test.timestamp";
+    private static final String TIMESTAMP_FILE_PATH_WITH_MISSING_DIR = "missing-dir/test.timestamp";
     private static final File TIMESTAMP_FILE = new File(TIMESTAMP_FILE_PATH);
+    private static final File TIMESTAMP_FILE_WITH_MISSING_DIR = new File(TIMESTAMP_FILE_PATH_WITH_MISSING_DIR);
 
     @BeforeClass
     public static void setup() throws Exception {
@@ -90,13 +92,18 @@ public class TestTimestampCommand {
     @Parameterized.Parameter(value = 1)
     public boolean isToFile;
 
+    @Parameterized.Parameter(value = 2)
+    public boolean isFileWithMissingDir;
+
     @Parameterized.Parameters
     public static Collection<Object[]> parameters() {
         return Arrays.asList(new Object[][] {
-                { true, true },
-                { true, false },
-                { false, true },
-                { false, false }
+                { true, true, true},
+                { true, true, false},
+                { true, false, false},
+                { false, true, true},
+                { false, true, false},
+                { false, false, false }
         });
     }
 
@@ -106,6 +113,10 @@ public class TestTimestampCommand {
     }
 
     private static void cleanUpTimestampFile() {
+        if (TIMESTAMP_FILE_WITH_MISSING_DIR.exists()) {
+            TIMESTAMP_FILE_WITH_MISSING_DIR.delete();
+            TIMESTAMP_FILE_WITH_MISSING_DIR.getParentFile().delete();
+        }
         if (TIMESTAMP_FILE.exists()){
             TIMESTAMP_FILE.delete();
         }
@@ -134,7 +145,7 @@ public class TestTimestampCommand {
         List<String> cliArgs = Lists.newArrayList("timestamp"); //group command
         if (isToFile) {
             cliArgs.add("-f");
-            cliArgs.add(TIMESTAMP_FILE_PATH);
+            cliArgs.add(isFileWithMissingDir ? TIMESTAMP_FILE_PATH_WITH_MISSING_DIR : TIMESTAMP_FILE_PATH);
         }
         cliArgs.add("fetch");
         if (isImmutable) {
@@ -191,8 +202,9 @@ public class TestTimestampCommand {
         DateTime datetime = ISODateTimeFormat.dateTime().parseDateTime(parts[parts.length-1]);
         // get timestamp from file
         if (isToFile) {
-            Preconditions.checkArgument(TIMESTAMP_FILE.exists(), "Timestamp file doesn't exist.");
-            List<String> lines = Files.readAllLines(TIMESTAMP_FILE.toPath(), StandardCharsets.UTF_8);
+            File timestampFile = isFileWithMissingDir ? TIMESTAMP_FILE_WITH_MISSING_DIR : TIMESTAMP_FILE;
+            Preconditions.checkArgument(timestampFile.exists(), "Timestamp file doesn't exist.");
+            List<String> lines = Files.readAllLines(timestampFile.toPath(), StandardCharsets.UTF_8);
             timestamp = Long.parseLong(lines.get(0));
         }
         scanner.close();
