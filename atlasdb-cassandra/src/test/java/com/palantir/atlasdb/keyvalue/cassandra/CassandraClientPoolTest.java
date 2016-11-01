@@ -38,9 +38,12 @@ import org.mockito.Mockito;
 import org.mockito.verification.VerificationMode;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Range;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.common.base.FunctionCheckedException;
 
@@ -51,6 +54,9 @@ public class CassandraClientPoolTest {
     public static final String HOSTNAME_1 = "1.0.0.0";
     public static final String HOSTNAME_2 = "2.0.0.0";
     public static final String HOSTNAME_3 = "3.0.0.0";
+    public static final byte[] KEY_1 = { 1, 2, 3 };
+    public static final byte[] KEY_2 = { 1, 3, 5 };
+    public static final byte[] KEY_3 = { 2, 1, 1 };
 
     public static final int FUZZING_NUM_TRIALS = 20;
 
@@ -192,6 +198,31 @@ public class CassandraClientPoolTest {
         CassandraClientPoolingContainer container =
                 cassandraClientPool.getRedirectTarget(ImmutableSet.of(), ImmutableSet.of(fakePreferred));
         assertThat(container.getHost(), equalTo(host));
+    }
+
+    @Test
+    public void shouldBeAbleToGetHostsForKey() {
+        InetSocketAddress host1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
+        InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host1, host2));
+        List<InetSocketAddress> hostList = Lists.newArrayList(host1);
+        cassandraClientPool.tokenMap = ImmutableRangeMap.of(
+                Range.range(new CassandraClientPool.LightweightOppToken(KEY_1), BoundType.CLOSED,
+                            new CassandraClientPool.LightweightOppToken(KEY_3), BoundType.OPEN),
+                hostList);
+
+        assertThat(cassandraClientPool.getHostsForKey(KEY_1).get(), is(hostList));
+        assertThat(cassandraClientPool.getHostsForKey(KEY_2).get(), is(hostList));
+        assertThat(cassandraClientPool.getHostsForKey(KEY_3).isPresent(), is(false));
+    }
+
+    @Test
+    public void shouldReturnAbsentIfTokenMapNotInitialised() {
+        InetSocketAddress host1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
+        InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host1, host2));
+
+        assertThat(cassandraClientPool.getHostsForKey(KEY_1).isPresent(), is(false));
     }
 
     @Test

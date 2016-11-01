@@ -297,9 +297,9 @@ public class CassandraClientPool {
     }
 
     public InetSocketAddress getRandomHostForKey(byte[] key) {
-        List<InetSocketAddress> hostsForKey = tokenMap.get(new LightweightOppToken(key));
+        Optional<List<InetSocketAddress>> hostsForKey = getHostsForKey(key);
 
-        if (hostsForKey == null) {
+        if (!hostsForKey.isPresent()) {
             log.debug("We attempted to route your query to a cassandra host that already contains the relevant data."
                     + " However, the mapping of which host contains which data is not available yet."
                     + " We will choose a random host instead.");
@@ -307,7 +307,7 @@ public class CassandraClientPool {
         }
 
         Set<InetSocketAddress> liveOwnerHosts = Sets.difference(
-                ImmutableSet.copyOf(hostsForKey),
+                ImmutableSet.copyOf(hostsForKey.get()),
                 blacklistedHosts.keySet());
 
         if (liveOwnerHosts.isEmpty()) {
@@ -319,6 +319,13 @@ public class CassandraClientPool {
         } else {
             return getRandomHostByActiveConnections(Maps.filterKeys(currentPools, liveOwnerHosts::contains));
         }
+    }
+
+    /**
+     * May return absent if the mapping of which C* host contains which data is not known yet.
+     */
+    public Optional<List<InetSocketAddress>> getHostsForKey(byte[] key) {
+        return Optional.fromNullable(tokenMap.get(new LightweightOppToken(key)));
     }
 
     private static InetSocketAddress getRandomHostByActiveConnections(
