@@ -171,7 +171,7 @@ public class CassandraClientPoolTest {
             // expected, keep going
         }
 
-        verifyNumberOfAttemptsOnHost(host, cassandraClientPool, 6);
+        verifyNumberOfAttemptsOnHost(host, cassandraClientPool, CassandraClientPool.MAX_TRIES_TOTAL);
     }
 
     private void verifyNumberOfAttemptsOnHost(InetSocketAddress host,
