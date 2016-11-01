@@ -472,7 +472,15 @@ public class CassandraClientPool {
 
     public <V, K extends Exception> V runWithRetryOnHost(
             InetSocketAddress specifiedHost,
-            FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
+            FunctionCheckedException<Cassandra.Client, V, K> fn
+    ) throws K {
+        return runWithRetryOnHost(specifiedHost, fn, ImmutableSet.of());
+    }
+
+    public <V, K extends Exception> V runWithRetryOnHost(
+            InetSocketAddress specifiedHost,
+            FunctionCheckedException<Cassandra.Client, V, K> fn,
+            Set<InetSocketAddress> preferredHosts) throws K {
         int numTries = 0;
         boolean shouldRetryOnDifferentHost = false;
         Set<InetSocketAddress> triedHosts = Sets.newHashSet();
@@ -483,10 +491,8 @@ public class CassandraClientPool {
             CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
 
             if (blacklistedHosts.containsKey(specifiedHost) || hostPool == null || shouldRetryOnDifferentHost) {
-                log.warn("Randomly redirected a query intended for host {}.", specifiedHost);
-                Optional<CassandraClientPoolingContainer> hostPoolCandidate
-                        = getRandomGoodHostForPredicate(address -> !triedHosts.contains(address));
-                hostPool = hostPoolCandidate.orElseGet(this::getRandomGoodHost);
+                log.warn("Redirecting a query intended for host {}.", specifiedHost);
+                hostPool = getRedirectTarget(triedHosts, preferredHosts);
             }
 
             try {
@@ -508,6 +514,33 @@ public class CassandraClientPool {
                 }
             }
         }
+    }
+
+    /**
+     * The semantics of this are as follows:
+     *   (1) If there exists a preferred host that hasn't been tried, try such a host at random.
+     *   (2) If all preferred hosts have been tried, but not all hosts have been tried, then try such a host at random.
+     *   (3) Otherwise, all hosts have been tried at least once - fall back on a random node.
+     *
+     * Using getRandomGoodHostForPredicate is preferred because it takes the loads of the servers into account.
+     */
+    private CassandraClientPoolingContainer getRedirectTarget(Set<InetSocketAddress> triedHosts,
+                                                              Set<InetSocketAddress> preferredHosts) {
+        Optional<CassandraClientPoolingContainer> hostPoolCandidate
+                = getRandomGoodHostForPredicate(address -> preferredHosts.contains(address)
+                && !triedHosts.contains(address));
+        if (hostPoolCandidate.isPresent()) {
+            return hostPoolCandidate.get();
+        }
+
+        hostPoolCandidate = getRandomGoodHostForPredicate(address -> !triedHosts.contains(address));
+        if (hostPoolCandidate.isPresent()) {
+            return hostPoolCandidate.get();
+        }
+
+        // This means we've tried every host and failed.
+        // In accordance with original behaviour, just retry in a last-ditch attempt.
+        return getRandomGoodHost();
     }
 
     public <V, K extends Exception> V run(FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
