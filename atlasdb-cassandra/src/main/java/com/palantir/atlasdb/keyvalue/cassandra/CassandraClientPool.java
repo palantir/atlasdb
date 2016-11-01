@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -45,7 +46,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -268,9 +268,8 @@ public class CassandraClientPool {
     }
 
     private CassandraClientPoolingContainer getRandomGoodHost() {
-        // Note that this is safe (unless there are 0 hosts in the pool, in which case IllegalStateException is not
-        // unreasonable)
-        return getRandomGoodHostForPredicate(address -> true).get();
+        return getRandomGoodHostForPredicate(address -> true).orElseThrow(
+                () -> new IllegalStateException("No hosts available."));
     }
 
     @VisibleForTesting
@@ -282,7 +281,7 @@ public class CassandraClientPool {
                 .collect(Collectors.toSet());
         if (filteredHosts.isEmpty()) {
             log.error("No hosts match the provided predicate.");
-            return Optional.absent();
+            return Optional.empty();
         }
 
         Set<InetSocketAddress> livingHosts = Sets.difference(filteredHosts, blacklistedHosts.keySet());
@@ -487,13 +486,7 @@ public class CassandraClientPool {
                 log.warn("Randomly redirected a query intended for host {}.", specifiedHost);
                 Optional<CassandraClientPoolingContainer> hostPoolCandidate
                         = getRandomGoodHostForPredicate(address -> !triedHosts.contains(address));
-                if (hostPoolCandidate.isPresent()) {
-                    hostPool = hostPoolCandidate.get();
-                } else {
-                    // This means we've tried every host and failed.
-                    // In accordance with original behaviour, just retry in a last-ditch attempt.
-                    hostPool = getRandomGoodHost();
-                }
+                hostPool = hostPoolCandidate.orElseGet(this::getRandomGoodHost);
             }
 
             try {

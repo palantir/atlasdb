@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -25,6 +26,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -32,7 +34,6 @@ import org.apache.cassandra.thrift.Cassandra;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -136,8 +137,6 @@ public class CassandraClientPoolTest {
 
     @Test
     public void shouldRetryOnSameNodeToFailureAndThenRedirect() {
-        // We want to verify the query touches every host. We try MAX_TRIES_SAME_HOST times on the first host, and
-        // then try to contact the other hosts once each.
         int numHosts = CassandraClientPool.MAX_TRIES_TOTAL - CassandraClientPool.MAX_TRIES_SAME_HOST + 1;
         List<InetSocketAddress> hostList = Lists.newArrayList();
         for (int i = 0; i < numHosts; i++) {
@@ -149,6 +148,7 @@ public class CassandraClientPoolTest {
 
         try {
             cassandraClientPool.runWithRetryOnHost(hostList.get(0), input -> null);
+            fail();
         } catch (Exception e) {
             // expected, keep going
         }
@@ -167,6 +167,7 @@ public class CassandraClientPoolTest {
 
         try {
             cassandraClientPool.runWithRetryOnHost(host, input -> null);
+            fail();
         } catch (Exception e) {
             // expected, keep going
         }
@@ -183,11 +184,11 @@ public class CassandraClientPoolTest {
     }
 
     private CassandraClientPool clientPoolWithServers(ImmutableSet<InetSocketAddress> servers) {
-        return clientPoolWith(servers, ImmutableSet.of(), Optional.absent());
+        return clientPoolWith(servers, ImmutableSet.of(), Optional.empty());
     }
 
     private CassandraClientPool clientPoolWithServersInCurrentPool(ImmutableSet<InetSocketAddress> servers) {
-        return clientPoolWith(ImmutableSet.of(), servers, Optional.absent());
+        return clientPoolWith(ImmutableSet.of(), servers, Optional.empty());
     }
 
     private CassandraClientPool throwingClientPoolWithServersInCurrentPool(ImmutableSet<InetSocketAddress> servers,
@@ -205,21 +206,25 @@ public class CassandraClientPoolTest {
 
         CassandraClientPool cassandraClientPool = new CassandraClientPool(config);
         cassandraClientPool.currentPools = serversInPool.stream()
-                .collect(Collectors.toMap(Function.identity(), address -> {
-                    CassandraClientPoolingContainer poolingContainer = mock(CassandraClientPoolingContainer.class);
-                    when(poolingContainer.getHost()).thenReturn(address);
-                    if (failureMode.isPresent()) {
-                        try {
-                            when(poolingContainer.runWithPooledResource(
-                                    Mockito.<FunctionCheckedException<Cassandra.Client, Object, Exception>>any()))
-                                    .thenThrow(failureMode.get());
-                        } catch (Exception e) {
-                            // Theoretically the runWithPooledResource *could* throw something we don't want,
-                            // which makes javac unhappy.
-                        }
-                    }
-                    return poolingContainer;
-                }));
+                .collect(Collectors.toMap(Function.identity(),
+                        address -> getMockPoolingContainerForHost(address, failureMode)));
         return cassandraClientPool;
+    }
+
+    private CassandraClientPoolingContainer getMockPoolingContainerForHost(InetSocketAddress address,
+                                                                           Optional<Exception> failureMode) {
+        CassandraClientPoolingContainer poolingContainer = mock(CassandraClientPoolingContainer.class);
+        when(poolingContainer.getHost()).thenReturn(address);
+        if (failureMode.isPresent()) {
+            try {
+                when(poolingContainer.runWithPooledResource(
+                        Mockito.<FunctionCheckedException<Cassandra.Client, Object, Exception>>any()))
+                        .thenThrow(failureMode.get());
+            } catch (Exception e) {
+                // Theoretically the runWithPooledResource *could* throw something we don't want,
+                // which makes javac unhappy.
+            }
+        }
+        return poolingContainer;
     }
 }
