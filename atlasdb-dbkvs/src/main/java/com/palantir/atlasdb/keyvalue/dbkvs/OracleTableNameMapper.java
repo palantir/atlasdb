@@ -48,7 +48,11 @@ public class OracleTableNameMapper {
     }
 
     private String getTruncatedNamespace(TableReference tableRef) {
-        return tableRef.getNamespace().getName().substring(0, TRUNCATED_NAMESPACE_LENGTH) + "_";
+        String namespace = tableRef.getNamespace().getName();
+        if (namespace.length() <= TRUNCATED_NAMESPACE_LENGTH) {
+            return namespace;
+        }
+        return namespace.substring(0, TRUNCATED_NAMESPACE_LENGTH) + "_";
     }
 
     private String getTableNumberSuffix(String truncatedTableName) {
@@ -64,7 +68,7 @@ public class OracleTableNameMapper {
         AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
                 "SELECT short_table_name "
                 + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
-                + " WHERE LOWER(table_name) LIKE LOWER('" + truncatedTableName + "_%')"
+                + " WHERE LOWER(short_table_name) LIKE LOWER('" + truncatedTableName + "_%')"
                 + " ORDER BY short_table_name DESC");
         if (results.size() == 0) {
             return 0;
