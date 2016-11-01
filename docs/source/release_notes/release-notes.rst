@@ -55,6 +55,12 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
 
+    *    - |improved|
+         - The fetch timestamp CLI correctly handles ``--file`` inputs containing non-existent directories by creating any missing intermediate directories.
+           Previously, the CLI would throw an exception and fail in such cases.
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1151>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
