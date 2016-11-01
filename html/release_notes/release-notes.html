@@ -204,6 +204,10 @@ This resulted in locks that appeared to be refreshed properly, but then would my
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1134">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Actions performed by the <code class="docutils literal"><span class="pre">Scrubber</span></code> are now logged at debug instead of info.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1137">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><p class="first">Sweep no longer immediately falls back to a <code class="docutils literal"><span class="pre">sweepBatchSize</span></code> of 1 after receiving an error.</p>
 <p class="last">See <a class="reference internal" href="../cluster_management/sweep.html#sweep-tunable-parameters"><span class="std std-ref">sweep tuning</span></a> documentation for more information on sweep tuning parameters.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1093">Pull Request</a>)</p>
