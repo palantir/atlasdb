@@ -213,7 +213,7 @@ never tested to see if it actually works.</p>
 <p>A common pattern in database schemas is to define an index table whose
 values are derived from and kept in sync with values from a base table.
 In standard RDBMS&#8217;s these are user-defined and db-managed, but AtlasDB
-[STRIKEOUT:is not so full-featured] requires you to think more carefully
+<span class="strike">is not so full-featured</span> requires you to think more carefully
 about performance.</p>
 <p>There are two kinds of indices which can be defined in AtlasDB: additive
 and cell-referencing. Both use the dynamic columns layout. For additive
@@ -249,7 +249,7 @@ then the following variant can be used:</p>
 <p>The AtlasDB Developers however strongly recommend against usage of this
 form, since they have not found it to be particularly useful in making
 AtlasDB queries, and thus have never used it themselves, and thus have
-never tested to so if it actually works.</p>
+never tested to see if it actually works.</p>
 <div class="section" id="additive">
 <h3>Additive<a class="headerlink" href="#additive" title="Permalink to this headline">¶</a></h3>
 <p>The components of a cell in an additive index can reference any cells

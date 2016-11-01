@@ -177,9 +177,9 @@ supposed to stop reading. It may continue reading and we want it to
 throw rather than returning the wrong data. Returning data that
 represents a state of the world that isn&#8217;t the snapshot it&#8217;s reading
 would totally break the transactional guarantees we want.</p>
-<p>So we achieve this by writing an empty byte array at the <code class="docutils literal"><span class="pre">-1</span></code>
+<p>We achieve this by writing an empty byte array at the <code class="docutils literal"><span class="pre">-1</span></code>
 timestamp called the sentinel value. Then we delete any data we think
-should be cleaned up. Now if a transaction reads the sentinel value, it
+should be cleaned up. Now, if a transaction reads the sentinel value, it
 knows that it is missing data that it should have read. We throw in this
 case rather than allowing inconsistent reads.</p>
 </div>
