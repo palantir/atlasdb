@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import com.palantir.atlasdb.keyvalue.api.SweepResults;
-
 /**
  * Interface for providing a custom performance logger for background sweep.
  */
@@ -25,10 +23,10 @@ public interface BackgroundSweeperPerformanceLogger {
     /**
      * Log the performance of a single batch run for the background sweeper.
      */
-    void logSweepResults(SweepResults results, String sweptTable, byte[] startRow, long elapsedMillis);
+    void logSweepResults(SweepPerformanceResults results);
 
     /**
      * Log the performance for internal compaction when compacting tables that have just been swept.
      */
-    void logInternalCompaction(String compactedTable, long cellsDeleted, long cellsExamined, long elapsedMillis);
+    void logInternalCompaction(SweepCompactionPerformanceResults results);
 }

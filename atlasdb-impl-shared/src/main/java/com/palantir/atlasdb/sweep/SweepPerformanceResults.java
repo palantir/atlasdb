@@ -15,14 +15,21 @@
  */
 package com.palantir.atlasdb.sweep;
 
-public class NoOpBackgroundSweeperPerformanceLogger implements BackgroundSweeperPerformanceLogger {
-    @Override
-    public void logSweepResults(SweepPerformanceResults results) {
-        // no op
+import org.immutables.value.Value;
+
+import com.palantir.atlasdb.keyvalue.api.SweepResults;
+
+@Value.Immutable
+public abstract class SweepPerformanceResults {
+
+    public abstract SweepResults sweepResults();
+
+    public abstract String tableName();
+
+    public abstract long elapsedMillis();
+
+    public static ImmutableSweepPerformanceResults.Builder builder() {
+        return ImmutableSweepPerformanceResults.builder();
     }
 
-    @Override
-    public void logInternalCompaction(SweepCompactionPerformanceResults results) {
-        // no op
-    }
 }
