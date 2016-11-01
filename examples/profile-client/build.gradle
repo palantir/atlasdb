@@ -5,8 +5,9 @@ schemas = [
 ]
 
 group = 'com.palantir.atlasdb.examples'
+
 dependencies {
-  compile(project(":atlasdb-client"))
-  compile(project(":examples:profile-client-protobufs"))
-  testCompile(project(":atlasdb-impl-shared"))
+  compile project(":atlasdb-client")
+  compile project(":examples:profile-client-protobufs")
+  testCompile project(":atlasdb-impl-shared")
 }

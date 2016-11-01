@@ -49,9 +49,3 @@ ext.libVersions =
     c3p0: '0.9.5.1',
     log4j: '1.2.17'
 ]
-
-configurations.matching({ it.name in ['compile', 'runtime'] }).all {
-    resolutionStrategy {
-        failOnVersionConflict()
-    }
-}
