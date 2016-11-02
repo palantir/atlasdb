@@ -136,16 +136,21 @@ public class CassandraClientPool {
         }
     }
 
+    private enum StartupChecks {
+        RUN,
+        DO_NOT_RUN
+    }
+
     @VisibleForTesting
-    static CassandraClientPool createForTesting(CassandraKeyValueServiceConfig config) {
-        return new CassandraClientPool(config, false);
+    static CassandraClientPool createWithoutChecksForTesting(CassandraKeyValueServiceConfig config) {
+        return new CassandraClientPool(config, StartupChecks.DO_NOT_RUN);
     }
 
     public CassandraClientPool(CassandraKeyValueServiceConfig config) {
-        this(config, true);
+        this(config, StartupChecks.RUN);
     }
 
-    private CassandraClientPool(CassandraKeyValueServiceConfig config, boolean shouldActuallyInteractWithCluster) {
+    private CassandraClientPool(CassandraKeyValueServiceConfig config, StartupChecks startupChecks) {
         this.config = config;
         config.servers().forEach(server ->
                 currentPools.put(server, new CassandraClientPoolingContainer(server, config)));
@@ -164,7 +169,7 @@ public class CassandraClientPool {
         }, config.poolRefreshIntervalSeconds(), config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
 
         // for testability, mock/spy are bad at mockability of things called in constructors
-        if (shouldActuallyInteractWithCluster) {
+        if (startupChecks == StartupChecks.RUN) {
             runOneTimeStartupChecks();
         }
         refreshPool(); // ensure we've initialized before returning

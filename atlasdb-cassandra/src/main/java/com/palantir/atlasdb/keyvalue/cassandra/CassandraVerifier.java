@@ -137,38 +137,6 @@ public final class CassandraVerifier {
         updateExistingKeyspace(clientPool, config);
     }
 
-    private static void updateExistingKeyspace(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config)
-            throws TException {
-        clientPool.run(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
-            @Override
-            public Void apply(Cassandra.Client client) throws TException {
-                KsDef originalKsDef = client.describe_keyspace(config.keyspace());
-                // there was an existing keyspace
-                // check and make sure it's definition is up to date with our config
-                KsDef modifiedKsDef = originalKsDef.deepCopy();
-                CassandraVerifier.checkAndSetReplicationFactor(
-                        client,
-                        modifiedKsDef,
-                        false,
-                        config.replicationFactor(),
-                        config.safetyDisabled());
-
-                if (!modifiedKsDef.equals(originalKsDef)) {
-                    // Can't call system_update_keyspace to update replication factor if CfDefs are set
-                    modifiedKsDef.setCf_defs(ImmutableList.of());
-                    client.system_update_keyspace(modifiedKsDef);
-                    CassandraKeyValueServices.waitForSchemaVersions(
-                            client,
-                            "(updating the existing keyspace)",
-                            config.schemaMutationTimeoutMillis());
-                }
-
-
-                return null;
-            }
-        });
-    }
-
     private static void createKeyspace(CassandraKeyValueServiceConfig config) throws TException {
         // We can't use the pool yet because it does things like setting the connection's keyspace for us
         boolean someHostWasAbleToCreateTheKeyspace = false;
@@ -198,6 +166,37 @@ public final class CassandraVerifier {
         if (!someHostWasAbleToCreateTheKeyspace) {
             throw new TException("No host tried was able to create the keyspace requested.");
         }
+    }
+
+    private static void updateExistingKeyspace(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config)
+            throws TException {
+        clientPool.run(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
+            @Override
+            public Void apply(Cassandra.Client client) throws TException {
+                KsDef originalKsDef = client.describe_keyspace(config.keyspace());
+                // there was an existing keyspace
+                // check and make sure it's definition is up to date with our config
+                KsDef modifiedKsDef = originalKsDef.deepCopy();
+                CassandraVerifier.checkAndSetReplicationFactor(
+                        client,
+                        modifiedKsDef,
+                        false,
+                        config.replicationFactor(),
+                        config.safetyDisabled());
+
+                if (!modifiedKsDef.equals(originalKsDef)) {
+                    // Can't call system_update_keyspace to update replication factor if CfDefs are set
+                    modifiedKsDef.setCf_defs(ImmutableList.of());
+                    client.system_update_keyspace(modifiedKsDef);
+                    CassandraKeyValueServices.waitForSchemaVersions(
+                            client,
+                            "(updating the existing keyspace)",
+                            config.schemaMutationTimeoutMillis());
+                }
+
+                return null;
+            }
+        });
     }
 
     private static void attemptToCreateKeyspaceOnHost(InetSocketAddress host, CassandraKeyValueServiceConfig config)
