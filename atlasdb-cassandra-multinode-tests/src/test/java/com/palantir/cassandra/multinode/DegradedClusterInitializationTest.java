@@ -47,7 +47,7 @@ public class DegradedClusterInitializationTest {
     @AfterClass
     public static void bringClusterBack() throws IOException, InterruptedException {
         startDeadCassandraNode();
-        CONTAINERS.waitForContainersToStart();
+        CONTAINERS.waitUntilAllContainersReady();
     }
 
     @Test

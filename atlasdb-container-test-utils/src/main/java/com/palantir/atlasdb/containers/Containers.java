@@ -77,6 +77,11 @@ public class Containers extends ExternalResource {
         }
     }
 
+    public void waitUntilAllContainersReady() {
+        Set<Container> allContainers = Sets.union(containersToStart, containersStarted);
+        waitUntilContainersReady(allContainers);
+    }
+
     @Override
     protected void before() throws Throwable {
         synchronized (Containers.class) {
@@ -87,17 +92,8 @@ public class Containers extends ExternalResource {
 
             ensureDockerProxyRuleRunning();
 
-            waitForContainersToStart();
+            waitUntilNewContainersReady();
             containersStarted.addAll(containersToStart);
-        }
-    }
-
-    public static void waitForContainersToStart() {
-        for (Container container : Sets.difference(containersToStart, containersStarted)) {
-            Awaitility.await()
-                    .atMost(com.jayway.awaitility.Duration.ONE_MINUTE)
-                    .pollInterval(com.jayway.awaitility.Duration.ONE_SECOND)
-                    .until(() -> container.isReady(dockerComposeRule).succeeded());
         }
     }
 
@@ -139,6 +135,20 @@ public class Containers extends ExternalResource {
         if (!dockerProxyRuleStarted) {
             dockerProxyRuleStarted = true;
             DOCKER_PROXY_RULE.before();
+        }
+    }
+
+    private static void waitUntilNewContainersReady() {
+        Set<Container> newContainers = Sets.difference(containersToStart, containersStarted);
+        waitUntilContainersReady(newContainers);
+    }
+
+    private static void waitUntilContainersReady(Set<Container> containers) {
+        for (Container container : containers) {
+            Awaitility.await()
+                    .atMost(com.jayway.awaitility.Duration.ONE_MINUTE)
+                    .pollInterval(com.jayway.awaitility.Duration.ONE_SECOND)
+                    .until(() -> container.isReady(dockerComposeRule).succeeded());
         }
     }
 
