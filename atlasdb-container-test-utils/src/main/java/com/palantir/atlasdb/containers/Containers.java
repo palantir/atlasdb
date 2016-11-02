@@ -92,6 +92,15 @@ public class Containers extends ExternalResource {
         }
     }
 
+    public static void waitForContainersToStart() {
+        for (Container container : Sets.difference(containersToStart, containersStarted)) {
+            Awaitility.await()
+                    .atMost(com.jayway.awaitility.Duration.ONE_MINUTE)
+                    .pollInterval(com.jayway.awaitility.Duration.ONE_SECOND)
+                    .until(() -> container.isReady(dockerComposeRule).succeeded());
+        }
+    }
+
     public String getLogDirectory() {
         return logDirectory;
     }
@@ -130,15 +139,6 @@ public class Containers extends ExternalResource {
         if (!dockerProxyRuleStarted) {
             dockerProxyRuleStarted = true;
             DOCKER_PROXY_RULE.before();
-        }
-    }
-
-    private static void waitForContainersToStart() {
-        for (Container container : Sets.difference(containersToStart, containersStarted)) {
-            Awaitility.await()
-                    .atMost(com.jayway.awaitility.Duration.ONE_MINUTE)
-                    .pollInterval(com.jayway.awaitility.Duration.ONE_SECOND)
-                    .until(() -> container.isReady(dockerComposeRule).succeeded());
         }
     }
 
