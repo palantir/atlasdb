@@ -77,7 +77,7 @@ public class Containers extends ExternalResource {
         }
     }
 
-    public void waitUntilAllContainersReady() {
+    public static void waitUntilAllContainersReady() {
         Set<Container> allContainers = Sets.union(containersToStart, containersStarted);
         waitUntilContainersReady(allContainers);
     }
