@@ -30,8 +30,40 @@ Changelog
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Added a significant amount of logging aimed at tracking down the ``MultipleRunningTimestampServicesError``.
+           If clients are hitting this error, then they should add trace logging for ``com.palantir.timestamp``.
+           These logs can also be directed to a separate file, see the :ref:`documentation <logging-configuration>` for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1098>`__)
+
+    *    - |deprecated|
+         - ``TableReference.createUnsafe`` is now deprecated. ``createWithEmptyNamespace`` or ``createFromFullyQualifiedName`` should be used instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1121>`__)
+           
+
+    *    - |improved|
+         - Random redirection of queries when retrying a Cassandra operation now retries said queries on distinct
+           hosts. Previously, this would independently select hosts randomly, meaning that we might unintentionally
+           try the same operation on the same server(s).
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
+
+    *    - |new|
+         - The KVS migration command can now be run as an offline cli using the ``--offline`` flag.
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1149>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
 =======
-develop
+v0.22.0
 =======
 
 .. list-table::
@@ -42,8 +74,11 @@ develop
          - Change
 
     *    - |improved|
-         - The ``clean-cass-locks-state`` CLI would drop the whole _locks table, which is a valid way to clear the schema mutation lock, but this differs from how an actual lockholder clears the _locks table.
-           Now the CLI sets the schema mutation lock to a special "cleared" value to be more consistent with how real lockholders behave.
+         - The ``clean-cass-locks-state`` CLI clears the schema mutation lock by setting it to a special "cleared" value in the same way that normal lockholders clear the lock.
+           Previously the CLI would would drop the whole ``_locks`` table to clear the schema mutation lock.
+
+           See :ref:`schema-mutation-lock` for details on how the schema mutation lock works.
+>>>>>>> ecfa66d... Jb/kvs migration can be offline (#1149)
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1056>`__)
     *    - |fixed|
          - Fixed an issue where some locks were not being tracked for continuous refreshing due to one of the lock methods not being
