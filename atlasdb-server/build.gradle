@@ -25,7 +25,6 @@ dependencies {
 
 test {
     maxHeapSize = "512m"
-    dependsOn ':atlasdb-ete-test-utils:buildCassandraImage'
 }
 
 configurations.matching({ it.name in ['compile', 'runtime'] }).all {
