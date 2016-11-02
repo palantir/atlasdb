@@ -205,7 +205,7 @@ public class CassandraClientPoolTest {
         when(config.poolRefreshIntervalSeconds()).thenReturn(POOL_REFRESH_INTERVAL_SECONDS);
         when(config.servers()).thenReturn(servers);
 
-        CassandraClientPool cassandraClientPool = CassandraClientPool.createForTesting(config);
+        CassandraClientPool cassandraClientPool = CassandraClientPool.createWithoutChecksForTesting(config);
 
         cassandraClientPool.currentPools = serversInPool.stream()
                 .collect(Collectors.toMap(Function.identity(),
