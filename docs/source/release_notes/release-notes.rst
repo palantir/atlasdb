@@ -55,7 +55,7 @@ develop
            now prioritise the other Cassandra nodes that own that key first in the retry order, to save on unnecessary
            internode communication.
 
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1139>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1153>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
