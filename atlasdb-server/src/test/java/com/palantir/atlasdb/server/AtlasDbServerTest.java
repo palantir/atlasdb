@@ -30,13 +30,11 @@ import org.junit.runners.Parameterized;
 import com.google.common.base.Optional;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
-import com.palantir.atlasdb.ete.Gradle;
+import com.palantir.atlasdb.containers.CassandraContainer;
+import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.server.config.AtlasDbServerConfiguration;
 import com.palantir.atlasdb.server.config.ClientConfig;
-import com.palantir.atlasdb.testing.DockerProxyRule;
-import com.palantir.docker.compose.DockerComposeRule;
-import com.palantir.docker.compose.logging.FileLogCollector;
 import com.palantir.timestamp.TimestampService;
 
 import feign.FeignException;
@@ -45,32 +43,24 @@ import io.dropwizard.testing.junit.DropwizardAppRule;
 
 @RunWith(Parameterized.class)
 public class AtlasDbServerTest {
-    private static final Gradle GRADLE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
-
-    private static final DockerComposeRule DOCKER_COMPOSE_RULE = DockerComposeRule.builder()
-            .file("docker/services.yml")
-            .logCollector(FileLogCollector.fromPath("logs"))
-            .build();
+    private static final Containers CONTAINERS =
+            new Containers(AtlasDbServerTest.class)
+                    .with(new CassandraContainer());
 
     private static final DropwizardAppRule<AtlasDbServerConfiguration> APP = new DropwizardAppRule<>(
             AtlasDbServer.class,
             ResourceHelpers.resourceFilePath("testServer.yml"));
 
-    private static final DockerProxyRule DOCKER_PROXY_RULE = new DockerProxyRule(
-            DOCKER_COMPOSE_RULE.projectName(),
-            AtlasDbServerTest.class);
-
     @ClassRule
-    public static final RuleChain RULES = RuleChain.outerRule(GRADLE_TASK)
-            .around(DOCKER_COMPOSE_RULE)
-            .around(DOCKER_PROXY_RULE)
+    public static final RuleChain RULES = RuleChain.outerRule(CONTAINERS)
             .around(APP);
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> serverClients() throws Exception {
         return java.util.Arrays.asList(new Object[][] {
-                { "cassandra" },
-                { "postgres" }
+                { "cassandra" }
+                // TODO Re-enable Postgres once we have a Postgres container.
+                // { "postgres" }
         });
     }
 
