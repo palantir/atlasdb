@@ -169,13 +169,16 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td><p class="first">Added a significant amount of logging aimed at tracking down the <code class="docutils literal"><span class="pre">MultipleRunningTimestampServicesError</span></code>.
+<td>Added a significant amount of logging aimed at tracking down the <code class="docutils literal"><span class="pre">MultipleRunningTimestampServicesError</span></code>.
 If clients are hitting this error, then they should add trace logging for <code class="docutils literal"><span class="pre">com.palantir.timestamp</span></code>.
-These logs can also be directed to a separate file, see the <a class="reference internal" href="../configuration/logging.html#logging-configuration"><span class="std std-ref">documentation</span></a> for more details.</p>
-<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1098">Pull Request</a>)</p>
-</td>
+These logs can also be directed to a separate file, see the <a class="reference internal" href="../configuration/logging.html#logging-configuration"><span class="std std-ref">documentation</span></a> for more details.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1098">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<td><code class="docutils literal"><span class="pre">TableReference.createUnsafe</span></code> is now deprecated. <code class="docutils literal"><span class="pre">createWithEmptyNamespace</span></code> or <code class="docutils literal"><span class="pre">createFromFullyQualifiedName</span></code> should be used instead.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1121">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><p class="first">Random redirection of queries when retrying a Cassandra operation now retries said queries on distinct
 hosts. Previously, this would independently select hosts randomly, meaning that we might unintentionally
 try the same operation on the same server(s).</p>
