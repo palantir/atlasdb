@@ -32,6 +32,7 @@ import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.containers.PostgresContainer;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.server.config.AtlasDbServerConfiguration;
 import com.palantir.atlasdb.server.config.ClientConfig;
@@ -45,7 +46,8 @@ import io.dropwizard.testing.junit.DropwizardAppRule;
 public class AtlasDbServerTest {
     private static final Containers CONTAINERS =
             new Containers(AtlasDbServerTest.class)
-                    .with(new CassandraContainer());
+                    .with(new CassandraContainer())
+                    .with(new PostgresContainer());
 
     private static final DropwizardAppRule<AtlasDbServerConfiguration> APP = new DropwizardAppRule<>(
             AtlasDbServer.class,
@@ -58,9 +60,8 @@ public class AtlasDbServerTest {
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> serverClients() throws Exception {
         return java.util.Arrays.asList(new Object[][] {
-                { "cassandra" }
-                // TODO Re-enable Postgres once we have a Postgres container.
-                // { "postgres" }
+                { "cassandra" },
+                { "postgres" }
         });
     }
 
