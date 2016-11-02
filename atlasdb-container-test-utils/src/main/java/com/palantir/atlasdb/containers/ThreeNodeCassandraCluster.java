@@ -112,18 +112,15 @@ public class ThreeNodeCassandraCluster extends Container {
         if (!systemAuthenticationKeyspaceHasReplicationFactorThree(rule)) {
             setReplicationFactorOfSystemAuthenticationKeyspaceToThree(rule);
             runNodetoolRepair(rule);
-            System.out.println("Done");
         }
     }
 
     private void runNodetoolRepair(DockerComposeRule rule) throws IOException, InterruptedException {
-        log.info("Running \"nodetool repair system_auth\"");
-        String output = runNodetoolCommand(rule, "repair system_auth");
+        runNodetoolCommand(rule, "repair system_auth");
     }
 
     private void setReplicationFactorOfSystemAuthenticationKeyspaceToThree(DockerComposeRule rule)
             throws IOException, InterruptedException {
-        log.info("Setting replication factor of system_auth keyspace to 3");
         runCql(rule,
             "ALTER KEYSPACE system_auth " +
             "WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 3};");
@@ -148,7 +145,6 @@ public class ThreeNodeCassandraCluster extends Container {
     }
 
     public static int parseSystemAuthReplicationFromCqlsh(String output) throws IllegalArgumentException {
-
         try {
             for (String line : output.split("\n")) {
                 if (line.contains("system_auth")) {
@@ -195,9 +191,6 @@ public class ThreeNodeCassandraCluster extends Container {
     }
 
     private String runCommandInCliContainer(DockerComposeRule rule, String... arguments) throws IOException, InterruptedException {
-
-        log.info("Running command ");
-        Stream.of(arguments).forEach(arg -> log.info(arg));
         return rule.run(
                 DockerComposeRunOption.options("-T"),
                 CLI_CONTAINER_NAME,
