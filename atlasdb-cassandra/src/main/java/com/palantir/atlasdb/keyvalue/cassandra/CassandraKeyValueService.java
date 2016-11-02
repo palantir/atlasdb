@@ -234,7 +234,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         createTable(AtlasDbConstants.DEFAULT_METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
-        CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(
+        CassandraKeyValueServices.warnUserInInitializationIfClusterAlreadyInInconsistentState(
                 clientPool,
                 configManager.getConfig());
     }
@@ -1446,9 +1446,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
             CassandraKeyValueServices.waitForSchemaVersions(
                     client,
-                    "(all tables in a call to createTables)",
+                    "(a call to createTables, filtered down to create: " + tableNamesToTableMetadata.keySet() + ")",
                     configManager.getConfig().schemaMutationTimeoutMillis());
-
             return null;
         });
     }
