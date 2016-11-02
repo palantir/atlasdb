@@ -9,6 +9,7 @@ dependencies {
     runtime project(':atlasdb-cassandra')
     runtime project(':atlasdb-dbkvs')
 
+    testCompile project(':atlasdb-container-test-utils')
     testCompile project(':atlasdb-docker-test-utils')
     testCompile project(':atlasdb-ete-test-utils')
 
