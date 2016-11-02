@@ -64,6 +64,10 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1149>`__)
 
+    *    - |improved|
+         - Removed spurious error logging during first-time startup against a brand new Cassandra cluster.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1033>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
