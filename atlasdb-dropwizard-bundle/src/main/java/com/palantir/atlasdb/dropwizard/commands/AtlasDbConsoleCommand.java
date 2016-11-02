@@ -70,7 +70,7 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
         // We do this here because there's no flag to connect to an offline
         // cluster in atlasdb-console (since this is passed in through bind)
         if (isCliRunningOffline(namespace)) {
-            cliConfiguration = cliConfiguration.toOfflineConfig()
+            cliConfiguration = cliConfiguration.toOfflineConfig();
         }
 
         List<String> allArgs = ImmutableList.<String>builder()
