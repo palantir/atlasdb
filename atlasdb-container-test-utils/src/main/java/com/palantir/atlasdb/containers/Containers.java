@@ -132,7 +132,7 @@ public class Containers extends ExternalResource {
             Awaitility.await()
                     .atMost(com.jayway.awaitility.Duration.ONE_MINUTE)
                     .pollInterval(com.jayway.awaitility.Duration.ONE_SECOND)
-                    .until(() -> container.isReady().succeeded());
+                    .until(() -> container.isReady(dockerComposeRule).succeeded());
         }
     }
 

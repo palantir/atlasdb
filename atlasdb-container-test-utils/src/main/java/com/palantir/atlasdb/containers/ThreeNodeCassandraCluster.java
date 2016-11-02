@@ -26,6 +26,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 public class ThreeNodeCassandraCluster extends Container {
@@ -60,7 +61,7 @@ public class ThreeNodeCassandraCluster extends Container {
     }
 
     @Override
-    public SuccessOrFailure isReady() {
+    public SuccessOrFailure isReady(DockerComposeRule rule) {
         return SuccessOrFailure.onResultOf(() -> {
             CassandraKeyValueService.create(
                     CassandraKeyValueServiceConfigManager.createSimpleManager(KVS_CONFIG),

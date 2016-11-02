@@ -18,6 +18,7 @@ package com.palantir.atlasdb.containers;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 public class SecondNginxContainer extends Container {
@@ -27,7 +28,7 @@ public class SecondNginxContainer extends Container {
     }
 
     @Override
-    public SuccessOrFailure isReady() {
+    public SuccessOrFailure isReady(DockerComposeRule rule) {
         return SuccessOrFailure.onResultOf(() -> {
             URL url = new URL("http://nginx2");
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
