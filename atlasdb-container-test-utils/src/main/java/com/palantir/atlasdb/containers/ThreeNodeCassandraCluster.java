@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,8 +121,8 @@ public class ThreeNodeCassandraCluster extends Container {
     private void setReplicationFactorOfSystemAuthenticationKeyspaceToThree(DockerComposeRule rule)
             throws IOException, InterruptedException {
         runCql(rule,
-            "ALTER KEYSPACE system_auth " +
-            "WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 3};");
+                "ALTER KEYSPACE system_auth "
+                + "WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 3};");
     }
 
     private boolean systemAuthenticationKeyspaceHasReplicationFactorThree(DockerComposeRule rule)
@@ -148,9 +147,9 @@ public class ThreeNodeCassandraCluster extends Container {
         try {
             for (String line : output.split("\n")) {
                 if (line.contains("system_auth")) {
-                    Matcher m = Pattern.compile("^.*\\{\"replication_factor\":\"(\\d+)\"\\}$").matcher(line);
-                    m.find();
-                    return Integer.valueOf(m.group(1));
+                    Matcher matcher = Pattern.compile("^.*\\{\"replication_factor\":\"(\\d+)\"\\}$").matcher(line);
+                    matcher.find();
+                    return Integer.parseInt(matcher.group(1));
                 }
             }
         } catch (Exception e) {
@@ -162,11 +161,11 @@ public class ThreeNodeCassandraCluster extends Container {
     }
 
     public static int parseNumberOfUpNodesFromNodetoolStatus(String output) {
-        Pattern r = Pattern.compile("^UN.*");
+        Pattern pattern = Pattern.compile("^UN.*");
         int upNodes = 0;
         for (String line : output.split("\n")) {
-            Matcher m = r.matcher(line);
-            if (m.matches()) {
+            Matcher matcher = pattern.matcher(line);
+            if (matcher.matches()) {
                 upNodes++;
             }
         }
@@ -182,7 +181,8 @@ public class ThreeNodeCassandraCluster extends Container {
                 "--execute", cql);
     }
 
-    private String runNodetoolCommand(DockerComposeRule rule, String nodetoolCommand) throws IOException, InterruptedException {
+    private String runNodetoolCommand(DockerComposeRule rule, String nodetoolCommand) throws IOException,
+            InterruptedException {
         return runCommandInCliContainer(rule,
                 "nodetool",
                 "--host", FIRST_CASSANDRA_CONTAINER_NAME,
@@ -190,7 +190,8 @@ public class ThreeNodeCassandraCluster extends Container {
 
     }
 
-    private String runCommandInCliContainer(DockerComposeRule rule, String... arguments) throws IOException, InterruptedException {
+    private String runCommandInCliContainer(DockerComposeRule rule, String... arguments) throws IOException,
+            InterruptedException {
         return rule.run(
                 DockerComposeRunOption.options("-T"),
                 CLI_CONTAINER_NAME,

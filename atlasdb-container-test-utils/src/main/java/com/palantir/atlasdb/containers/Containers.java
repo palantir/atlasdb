@@ -33,7 +33,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Sets;
 import com.jayway.awaitility.Awaitility;
-import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.DockerComposeFiles;
