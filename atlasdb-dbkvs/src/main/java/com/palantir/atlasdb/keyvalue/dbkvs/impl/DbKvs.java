@@ -996,7 +996,7 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     public void checkDatabaseVersion() {
-        runDdl(TableReference.createUnsafe(""), new Function<DbDdlTable, Void>() {
+        runDdl(TableReference.createWithEmptyNamespace(""), new Function<DbDdlTable, Void>() {
             @Override
             public Void apply(DbDdlTable table) {
                 table.checkDatabaseVersion();

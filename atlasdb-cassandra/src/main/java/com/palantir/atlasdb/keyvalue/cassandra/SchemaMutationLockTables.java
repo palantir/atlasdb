@@ -49,7 +49,7 @@ public class SchemaMutationLockTables {
         return client.describe_keyspace(config.keyspace()).getCf_defs().stream()
                 .map(CfDef::getName)
                 .filter(IS_LOCK_TABLE)
-                .map(TableReference::createUnsafe)
+                .map(TableReference::createWithEmptyNamespace)
                 .collect(Collectors.toSet());
     }
 

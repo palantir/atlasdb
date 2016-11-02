@@ -237,7 +237,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                                     " bytes, larger than maximum size of " + maximumBytesPerPartition +
                                     " defined per entire batch, while doing a write to " + tableName +
                                     ". Attempting to batch anyways.";
-                            if (AtlasDbConstants.TABLES_KNOWN_TO_BE_POORLY_DESIGNED.contains(TableReference.createUnsafe(tableName))) {
+                            if (AtlasDbConstants.TABLES_KNOWN_TO_BE_POORLY_DESIGNED.contains(
+                                    TableReference.createWithEmptyNamespace(tableName))) {
                                 log.warn(message);
                             } else {
                                 log.warn(message + " This can potentially cause out-of-memory errors.");
@@ -298,9 +299,13 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         return tableName.replaceFirst("\\.", "__");
     }
 
+    /** @deprecated uses TableReference.createUnsafe, which is itself deprecated.
+     *
+     */
+    @Deprecated
     protected static TableReference fromInternalTableName(String tableName) {
         if (tableName.startsWith("_")) {
-            return TableReference.createUnsafe(tableName);
+            return TableReference.createWithEmptyNamespace(tableName);
         }
         return TableReference.createUnsafe(tableName.replaceFirst("__", "."));
     }
