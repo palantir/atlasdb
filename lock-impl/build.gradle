@@ -1,8 +1,8 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  compile(project(":lock-api"))
-  compile(project(":atlasdb-commons"))
-  compile 'com.palantir.patches.sourceforge:trove3:3.0.3-p5'
-  compile 'joda-time:joda-time:' + libVersions.joda_time
+  compile project(":lock-api")
+  compile project(":atlasdb-commons")
+  compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
+  compile group: 'joda-time', name: 'joda-time'
 }

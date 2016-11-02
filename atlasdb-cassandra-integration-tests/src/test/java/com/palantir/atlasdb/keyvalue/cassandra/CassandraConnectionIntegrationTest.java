@@ -19,45 +19,30 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.cassandra.thrift.InvalidRequestException;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.config.ImmutableLeaderConfig;
-import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.containers.CassandraContainer;
+import com.palantir.atlasdb.containers.Containers;
 
 public class CassandraConnectionIntegrationTest {
+    @ClassRule
+    public static final Containers CONTAINERS = new Containers(CassandraConnectionIntegrationTest.class)
+            .with(new CassandraContainer());
 
     private static final CassandraKeyValueServiceConfig NO_CREDS_CKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig
-            .builder()
-            .addServers(CassandraTestSuite.cassandraThriftAddress)
-            .poolSize(20)
-            .keyspace("atlasdb")
-            .credentials(Optional.absent())
-            .ssl(false)
-            .replicationFactor(1)
-            .mutationBatchCount(10000)
-            .mutationBatchSizeBytes(10000000)
-            .fetchBatchCount(1000)
-            .safetyDisabled(false)
-            .autoRefreshNodes(false)
-            .build();
-
-    private static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
-            .builder()
-            .quorumSize(1)
-            .localServer("localhost")
-            .leaders(Sets.newHashSet("localhost"))
-            .build());
+            .copyOf(CassandraContainer.KVS_CONFIG)
+            .withCredentials(Optional.absent());
 
     @Test
     public void testAuthProvided() {
         CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.cassandraKvsConfig),
-                LEADER_CONFIG).close();
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+                CassandraContainer.LEADER_CONFIG).close();
     }
 
     // Don't worry about failing this test if you're running against a local Cassandra that isn't setup with auth magic
@@ -65,13 +50,14 @@ public class CassandraConnectionIntegrationTest {
     public void testAuthMissing() {
         try {
             CassandraKeyValueService.create(
-                    CassandraKeyValueServiceConfigManager.createSimpleManager(NO_CREDS_CKVS_CONFIG), LEADER_CONFIG);
+                    CassandraKeyValueServiceConfigManager.createSimpleManager(NO_CREDS_CKVS_CONFIG),
+                    CassandraContainer.LEADER_CONFIG);
             fail();
         } catch (RuntimeException e) {
             boolean threwInvalidRequestException = false;
             Throwable cause = e.getCause();
             while (!threwInvalidRequestException && cause != null) {
-                threwInvalidRequestException |= cause instanceof InvalidRequestException;
+                threwInvalidRequestException = cause instanceof InvalidRequestException;
                 cause = cause.getCause();
             }
             assertTrue(threwInvalidRequestException);

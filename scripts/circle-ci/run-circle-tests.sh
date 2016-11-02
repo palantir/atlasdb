@@ -15,8 +15,10 @@ CONTAINER_3=(':atlasdb-timelock-ete:check' ':lock-impl:check' ':atlasdb-dbkvs-te
 
 CONTAINER_4=(':atlasdb-dbkvs:check' ':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-dropwizard-bundle:check')
 
+CONTAINER_5=(':atlasdb-ete-tests:longTest')
+
 # Container 0 - runs tasks not found in the below containers
-CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}")
+CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}")
 
 for task in "${CONTAINER_0_EXCLUDE[@]}"
 do
@@ -24,9 +26,11 @@ do
 done
 
 case $CIRCLE_NODE_INDEX in
-    0) ./gradlew --profile --continue check $CONTAINER_0_EXCLUDE_ARGS ;;
-    1) ./gradlew --profile --continue ${CONTAINER_1[@]} ;;
-    2) ./gradlew --profile --continue ${CONTAINER_2[@]} ;;
-    3) ./gradlew --profile --continue ${CONTAINER_3[@]} && checkDocsBuild ;;
-    4) ./gradlew --profile --continue ${CONTAINER_4[@]} ;;
+    0) ./gradlew --profile --continue -x compileJava -x compileTestJava -x findbugsMain -x findbugsTest -x checkstyleMain -x checkstyleTest check $CONTAINER_0_EXCLUDE_ARGS ;;
+    1) ./gradlew --profile --continue -x compileJava -x compileTestJava -x findbugsMain -x findbugsTest -x checkstyleMain -x checkstyleTest ${CONTAINER_1[@]} ;;
+    2) ./gradlew --profile --continue -x compileJava -x compileTestJava -x findbugsMain -x findbugsTest -x checkstyleMain -x checkstyleTest ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest ;;
+    3) ./gradlew --profile --continue -x compileJava -x compileTestJava -x findbugsMain -x findbugsTest -x checkstyleMain -x checkstyleTest ${CONTAINER_3[@]} ;;
+    4) ./gradlew --profile --continue -x compileJava -x compileTestJava -x findbugsMain -x findbugsTest -x checkstyleMain -x checkstyleTest ${CONTAINER_4[@]} ;;
+    5) ./gradlew --profile --continue -x compileJava -x compileTestJava -x findbugsMain -x findbugsTest -x checkstyleMain -x checkstyleTest ${CONTAINER_5[@]} ;;
+    6) ./gradlew --profile --continue -x compileJava -x compileTestJava findbugsMain findbugsTest checkstyleMain checkstyleTest && checkDocsBuild ;;
 esac

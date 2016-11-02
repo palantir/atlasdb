@@ -9,6 +9,6 @@ repositories {
 
 libsDirName = file('build/artifacts')
 dependencies {
-  compile(project(":atlasdb-api"))
-  compile(project(":lock-api"))
+  compile project(":atlasdb-api")
+  compile project(":lock-api")
 }

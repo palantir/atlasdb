@@ -5,6 +5,8 @@ apply from: "../gradle/shared.gradle"
 dependencies {
   testCompile project(":atlasdb-cassandra")
   testCompile project(":atlasdb-tests-shared")
+  testCompile project(":atlasdb-container-test-utils")
+  testCompile project(":atlasdb-docker-test-utils")
   testCompile project(":atlasdb-ete-test-utils")
 
   testCompile 'org.apache.cassandra:cassandra-all:' + libVersions.cassandra
@@ -12,11 +14,4 @@ dependencies {
 
   testCompile 'org.mockito:mockito-core:' + libVersions.mockito
   testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
-}
-
-test {
-    maxHeapSize = "1024m"
-    exclude '**/*IntegrationTest*'
-    maxParallelForks 2
-    dependsOn ':atlasdb-ete-test-utils:buildCassandraImage'
 }

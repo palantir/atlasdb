@@ -3,7 +3,7 @@ apply plugin: 'org.inferred.processors'
 apply from: "${rootProject.projectDir}/gradle/shared.gradle"
 
 dependencies {
-    compile group: 'com.google.guava', name: 'guava', version: libVersions.guava
+    compile group: 'com.google.guava', name: 'guava'
     compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: libVersions.dockerComposeRule
     compile group: 'net.amygdalum', name: 'xrayinterface', version: '0.3.0'
 

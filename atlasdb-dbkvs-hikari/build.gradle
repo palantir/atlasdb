@@ -4,8 +4,8 @@ apply from: '../gradle/shared.gradle'
 
 dependencies {
   compile project(':commons-db')
-  compile 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
-  compile 'com.codahale.metrics:metrics-core:3.0.2'
+  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+  compile group: 'com.codahale.metrics', name: 'metrics-core'
 
   processor 'org.immutables:value:' + libVersions.immutables
 }

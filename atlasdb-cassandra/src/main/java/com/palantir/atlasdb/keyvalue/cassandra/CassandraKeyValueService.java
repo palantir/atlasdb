@@ -33,6 +33,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra.Client;
@@ -59,7 +61,6 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -108,8 +109,6 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.annotation.Idempotent;
@@ -156,6 +155,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
 
     private final TracingQueryRunner queryRunner;
+    private final CassandraTables cassandraTables;
 
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
@@ -195,6 +195,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
 
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
+        this.cassandraTables = new CassandraTables(clientPool, configManager);
     }
 
     private LockLeader whoIsTheLockCreator() {
@@ -230,7 +231,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         writeConsistency),
                 SchemaMutationLock.DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS);
 
-        createTable(AtlasDbConstants.METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
+        createTable(AtlasDbConstants.DEFAULT_METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
         CassandraKeyValueServices.warnUserInInitializationIfClusterAlreadyInInconsistentState(
@@ -253,7 +254,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     CfDef clientSideCf = getCfForTable(
                             fromInternalTableName(clusterSideCf.getName()),
                             clusterSideMetadata);
-                    if (!CassandraKeyValueServices.isMatchingCf(clientSideCf, clusterSideCf)) {
+                    if (!ColumnFamilyDefinitions.isMatchingCf(clientSideCf, clusterSideCf)) {
                         // mismatch; we have changed how we generate schema since we last persisted
                         log.warn("Upgrading table {} to new internal Cassandra schema", tableRef);
                         tablesToUpgrade.put(tableRef, clusterSideMetadata);
@@ -844,7 +845,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private void putForSingleHostInternal(final InetSocketAddress host,
-            final TableReference tableRef,
+                                          final TableReference tableRef,
                                           final Iterable<Map.Entry<Cell, Value>> values,
                                           final int ttl) throws Exception {
         clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
@@ -1172,78 +1173,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    // update CKVS.isMatchingCf if you update this method
     protected CfDef getCfForTable(TableReference tableRef, byte[] rawMetadata) {
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        Map<String, String> compressionOptions = Maps.newHashMap();
-        CfDef cf = CassandraConstants.getStandardCfDef(config.keyspace(), internalTableName(tableRef));
-
-        boolean negativeLookups = false;
-        double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
-        int explicitCompressionBlockSizeKb = 0;
-        boolean appendHeavyAndReadLight = false;
-        TableMetadataPersistence.CachePriority cachePriority = TableMetadataPersistence.CachePriority.WARM;
-
-        if (!CassandraKeyValueServices.isEmptyOrInvalidMetadata(rawMetadata)) {
-            TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
-            negativeLookups = tableMetadata.hasNegativeLookups();
-            explicitCompressionBlockSizeKb = tableMetadata.getExplicitCompressionBlockSizeKB();
-            appendHeavyAndReadLight = tableMetadata.isAppendHeavyAndReadLight();
-            cachePriority = tableMetadata.getCachePriority();
-        }
-
-        if (explicitCompressionBlockSizeKb != 0) {
-            compressionOptions.put(
-                    CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY,
-                    CassandraConstants.DEFAULT_COMPRESSION_TYPE);
-            compressionOptions.put(
-                    CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY,
-                    Integer.toString(explicitCompressionBlockSizeKb));
-        } else {
-            // We don't really need compression here nor anticipate it will garner us any gains
-            // (which is why we're doing such a small chunk size), but this is how we can get "free" CRC checking.
-            compressionOptions.put(
-                    CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY,
-                    CassandraConstants.DEFAULT_COMPRESSION_TYPE);
-            compressionOptions.put(
-                    CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY,
-                    Integer.toString(AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB));
-        }
-
-        if (negativeLookups) {
-            falsePositiveChance = CassandraConstants.NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE;
-        }
-
-        if (appendHeavyAndReadLight) {
-            cf.setCompaction_strategy(CassandraConstants.SIZE_TIERED_COMPACTION_STRATEGY);
-            // clear out the now nonsensical "keep it at 80MB per sstable" option from LCS
-            cf.setCompaction_strategy_optionsIsSet(false);
-            if (!negativeLookups) {
-                falsePositiveChance = CassandraConstants.DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
-            } else {
-                falsePositiveChance = CassandraConstants.NEGATIVE_LOOKUPS_SIZE_TIERED_BLOOM_FILTER_FP_CHANCE;
-            }
-        }
-
-        switch (cachePriority) {
-            case COLDEST:
-                break;
-            case COLD:
-                break;
-            case WARM:
-                break;
-            case HOT:
-                break;
-            case HOTTEST:
-                cf.setPopulate_io_cache_on_flushIsSet(true);
-                break;
-            default:
-                throw new PalantirRuntimeException("Unknown cache priority: " + cachePriority);
-        }
-
-        cf.setBloom_filter_fp_chance(falsePositiveChance);
-        cf.setCompression_options(compressionOptions);
-        return cf;
+        return ColumnFamilyDefinitions.getCfDef(configManager.getConfig().keyspace(), tableRef, rawMetadata);
     }
 
     //TODO: after cassandra change: handle multiRanges
@@ -1429,16 +1360,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
     }
 
-    private Set<TableReference> getExistingTablesLowerCased(Client client) throws TException {
-        KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
-        Set<TableReference> existingTablesLowerCased = Sets.newHashSet();
-
-        for (CfDef cf : ks.getCf_defs()) {
-            existingTablesLowerCased.add(fromInternalTableName(cf.getName().toLowerCase()));
-        }
-        return existingTablesLowerCased;
-    }
-
     private Map<TableReference, byte[]> filterOutNoOpMetadataChanges(
             final Map<TableReference, byte[]> tableNamesToTableMetadata) {
         Map<TableReference, byte[]> existingTableMetadata = getMetadataForTables();
@@ -1451,7 +1372,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             // if no existing table or if existing table's metadata is different
             if (!Arrays.equals(existingTableMetadata.get(tableReference), newMetadata)) {
                 Set<TableReference> matchingTables = Sets.filter(existingTableMetadata.keySet(), existingTableRef ->
-                        existingTableRef.getTablename().equalsIgnoreCase(tableReference.getTablename()));
+                        existingTableRef.getQualifiedName().equalsIgnoreCase(tableReference.getQualifiedName()));
 
                 // completely new table, not an update
                 if (matchingTables.isEmpty()) {
@@ -1477,8 +1398,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             final Map<TableReference, byte[]> tableNamesToTableMetadata) {
         Map<TableReference, byte[]> filteredTables = Maps.newHashMap();
         try {
-            Set<TableReference> existingTablesLowerCased =
-                    clientPool.runWithRetry((client) -> getExistingTablesLowerCased(client));
+            Set<TableReference> existingTablesLowerCased = cassandraTables.getExistingLowerCased().stream()
+                    .map(AbstractKeyValueService::fromInternalTableName)
+                    .collect(Collectors.toSet());
 
             for (Entry<TableReference, byte[]> tableAndMetadataPair : tableNamesToTableMetadata.entrySet()) {
                 TableReference table = tableAndMetadataPair.getKey();
@@ -1505,7 +1427,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         clientPool.runWithRetry(client -> {
             for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
                 try {
-                    client.system_add_column_family(getCfForTable(tableEntry.getKey(), tableEntry.getValue()));
+                    client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
+                            configManager.getConfig().keyspace(),
+                            tableEntry.getKey(),
+                            tableEntry.getValue()));
                 } catch (UnavailableException e) {
                     throw new PalantirRuntimeException(
                             "Creating tables requires all Cassandra nodes to be up and available.");
@@ -1527,33 +1452,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public Set<TableReference> getAllTableNames() {
-        return Sets.filter(getAllTablenamesWithoutFiltering(), tr -> !hiddenTables.isHidden(tr));
-    }
-
-    private Set<TableReference> getAllTablenamesWithoutFiltering() {
-        final CassandraKeyValueServiceConfig config = configManager.getConfig();
-        try {
-            return clientPool.runWithRetry(new FunctionCheckedException<Client, Set<TableReference>, Exception>() {
-
-                @Override
-                public Set<TableReference> apply(Client client) throws Exception {
-                    return FluentIterable.from(client.describe_keyspace(config.keyspace()).getCf_defs())
-                            .transform(new Function<CfDef, TableReference>() {
-                                @Override
-                                public TableReference apply(CfDef cf) {
-                                    return fromInternalTableName(cf.getName());
-                                }
-                            }).toSet();
-                }
-
-                @Override
-                public String toString() {
-                    return "describe_keyspace(" + config.keyspace() + ")";
-                }
-            });
-        } catch (Exception e) {
-            throw Throwables.throwUncheckedException(e);
-        }
+        return getTableReferencesWithoutFiltering()
+                .filter(tr -> !hiddenTables.isHidden(tr))
+                .collect(Collectors.toSet());
     }
 
     @Override
@@ -1591,13 +1492,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         Map<TableReference, byte[]> tableToMetadataContents = Maps.newHashMap();
 
         // we don't even have a metadata table yet. Return empty map.
-        if (!getAllTablenamesWithoutFiltering().contains(AtlasDbConstants.METADATA_TABLE)) {
+        if (!getAllTableReferencesWithoutFiltering().contains(AtlasDbConstants.DEFAULT_METADATA_TABLE)) {
             log.trace("getMetadata called with no _metadata table present");
             return tableToMetadataContents;
         }
 
         try (ClosableIterator<RowResult<Value>> range =
-                getRange(AtlasDbConstants.METADATA_TABLE, RangeRequest.all(), Long.MAX_VALUE)) {
+                getRange(AtlasDbConstants.DEFAULT_METADATA_TABLE, RangeRequest.all(), Long.MAX_VALUE)) {
             while (range.hasNext()) {
                 RowResult<Value> valueRow = range.next();
                 Iterable<Entry<Cell, Value>> cells = valueRow.getCells();
@@ -1618,6 +1519,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             }
         }
         return tableToMetadataContents;
+    }
+
+    private Set<TableReference> getAllTableReferencesWithoutFiltering() {
+        return getTableReferencesWithoutFiltering()
+                .collect(Collectors.toSet());
+    }
+
+    private Stream<TableReference> getTableReferencesWithoutFiltering() {
+        return cassandraTables.getExisting().stream()
+                .map(AbstractKeyValueService::fromInternalTableName);
     }
 
     private static Cell getMetadataCell(TableReference tableRef) {
@@ -1670,7 +1581,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         // technically we're racing other services from here on, during an update period,
         // but the penalty for not caring is just some superfluous schema mutations and a
         // few dead rows in the metadata table.
-        Map<Cell, Value> persistedMetadata = get(AtlasDbConstants.METADATA_TABLE, requestForLatestDbSideMetadata);
+        Map<Cell, Value> persistedMetadata = get(
+                AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                requestForLatestDbSideMetadata);
         final Map<Cell, byte[]> newMetadata = Maps.newHashMap();
         final Collection<CfDef> updatedCfs = Lists.newArrayList();
         for (Entry<Cell, byte[]> entry : metadataRequestedForUpdate.entrySet()) {
@@ -1710,7 +1623,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         configManager.getConfig().schemaMutationTimeoutMillis());
             }
             // Done with actual schema mutation, push the metadata
-            put(AtlasDbConstants.METADATA_TABLE, newMetadata, System.currentTimeMillis());
+            put(AtlasDbConstants.DEFAULT_METADATA_TABLE, newMetadata, System.currentTimeMillis());
             return null;
         });
     }
@@ -1719,15 +1632,15 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         long ts = System.currentTimeMillis();
 
         Multimap<Cell, Long> oldVersions = getAllTimestamps(
-                AtlasDbConstants.METADATA_TABLE,
+                AtlasDbConstants.DEFAULT_METADATA_TABLE,
                 ImmutableSet.of(getMetadataCell(tableRef)),
                 ts);
 
-        put(AtlasDbConstants.METADATA_TABLE,
+        put(AtlasDbConstants.DEFAULT_METADATA_TABLE,
                 ImmutableMap.of(getMetadataCell(tableRef), meta),
                 ts);
 
-        delete(AtlasDbConstants.METADATA_TABLE, oldVersions);
+        delete(AtlasDbConstants.DEFAULT_METADATA_TABLE, oldVersions);
     }
 
     @Override
@@ -1889,8 +1802,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     public void cleanUpSchemaMutationLockTablesState() throws Exception {
         Set<TableReference> tables = lockTables.getAllLockTables();
-        dropTablesInternal(tables);
-        log.info("Dropped all schema mutation lock tables [{}]", tables.toString());
+        java.util.Optional<TableReference> tableToKeep = tables.stream().findFirst();
+        if (!tableToKeep.isPresent()) {
+            log.info("No lock tables to clean up.");
+            return;
+        }
+        tables.remove(tableToKeep.get());
+        if (tables.size() > 0) {
+            dropTablesInternal(tables);
+            log.info("Dropped tables [{}]", tables.toString());
+        }
+        schemaMutationLock.cleanLockState();
+        log.info("Reset the schema mutation lock in table [{}]", tableToKeep.get().toString());
     }
 
     private <V> Map<InetSocketAddress, Map<Cell, V>> partitionMapByHost(Iterable<Map.Entry<Cell, V>> cells) {

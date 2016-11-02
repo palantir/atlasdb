@@ -18,21 +18,27 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.containers.CassandraContainer;
+import com.palantir.atlasdb.containers.Containers;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class CassandraTimestampIntegrationTest {
-    private CassandraKeyValueService kv;
+    @ClassRule
+    public static final Containers CONTAINERS = new Containers(CassandraTimestampIntegrationTest.class)
+            .with(new CassandraContainer());
+
+    private CassandraKeyValueService kv = CassandraKeyValueService.create(
+            CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+            CassandraContainer.LEADER_CONFIG);
 
     @Before
     public void setUp() {
-        kv = CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.cassandraKvsConfig),
-                CassandraTestSuite.leaderConfig);
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
 

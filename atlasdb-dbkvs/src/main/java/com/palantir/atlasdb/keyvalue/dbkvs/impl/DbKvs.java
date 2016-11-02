@@ -145,7 +145,7 @@ public class DbKvs extends AbstractKeyValueService {
         runInitialization(new Function<DbTableInitializer, Void>() {
             @Override
             public Void apply(@Nonnull DbTableInitializer initializer) {
-                initializer.createMetadataTable(AtlasDbConstants.METADATA_TABLE.getQualifiedName());
+                initializer.createMetadataTable(config.metadataTable().getQualifiedName());
                 return null;
             }
         });
@@ -1022,7 +1022,7 @@ public class DbKvs extends AbstractKeyValueService {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
             /* The metadata table operates only on the fully qualified table reference */
-            return runner.apply(dbTables.createMetadata(tableRef.getQualifiedName(), conns));
+            return runner.apply(dbTables.createMetadata(tableRef, conns));
         } finally {
             conns.close();
         }
@@ -1050,7 +1050,7 @@ public class DbKvs extends AbstractKeyValueService {
     private <T> T runRead(TableReference tableRef, Function<DbReadTable, T> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
-            return runner.apply(dbTables.createRead(internalTableName(tableRef), conns));
+            return runner.apply(dbTables.createRead(tableRef, conns));
         } finally {
             conns.close();
         }
@@ -1059,7 +1059,7 @@ public class DbKvs extends AbstractKeyValueService {
     private <T> T runWrite(TableReference tableRef, Function<DbWriteTable, T> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
-            return runner.apply(dbTables.createWrite(internalTableName(tableRef), conns));
+            return runner.apply(dbTables.createWrite(tableRef, conns));
         } finally {
             conns.close();
         }
@@ -1080,7 +1080,7 @@ public class DbKvs extends AbstractKeyValueService {
             if (!autocommit) {
                 return runWriteFreshConnection(conns, tableRef, runner);
             } else {
-                return runner.apply(dbTables.createWrite(internalTableName(tableRef), conns));
+                return runner.apply(dbTables.createWrite(tableRef, conns));
             }
         } finally {
             conns.close();
@@ -1101,8 +1101,7 @@ public class DbKvs extends AbstractKeyValueService {
         Thread writeThread = new Thread(() -> {
             SqlConnection freshConn = conns.getFresh();
             try {
-                result.set(runner.apply(dbTables.createWrite(
-                        internalTableName(tableRef),
+                result.set(runner.apply(dbTables.createWrite(tableRef,
                         new ConnectionSupplier(Suppliers.ofInstance(freshConn)))));
             } finally {
                 try {

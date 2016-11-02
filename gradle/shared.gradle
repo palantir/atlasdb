@@ -34,15 +34,7 @@ libsDirName = file('build/artifacts')
 
 dependencies {
     checkstyle group: 'com.puppycrawl.tools', name: 'checkstyle', version: libVersions.checkstyle
-    testCompile group: 'junit', name: 'junit', version: libVersions.junit
-}
-
-configurations.matching({ it.name in ['compile', 'runtime'] }).all {
-    resolutionStrategy {
-            force 'net.java.dev.jna:jna:' + libVersions.jna
-            force 'com.google.code.findbugs:jsr305:' + libVersions.jsr305
-            force 'org.slf4j:slf4j-api:' + libVersions.slf4j
-        }
+    testCompile group: 'junit', name: 'junit'
 }
 
 apply from: rootProject.file('gradle/javadoc.gradle'), to: javadoc
@@ -78,7 +70,7 @@ afterEvaluate {
     }
 }
 
-test {
+tasks.withType(Test) {
     testLogging {
         showExceptions true
         exceptionFormat "full"

@@ -1,0 +1,7 @@
+version: '2'
+
+services:
+  cassandra:
+    image: palantirtechnologies/docker-cassandra-atlasdb:latest
+    environment:
+      - LOCAL_JMX=no

@@ -1,0 +1,17 @@
+apply plugin: 'org.inferred.processors'
+
+apply from: "${rootProject.projectDir}/gradle/shared.gradle"
+
+dependencies {
+    compile project(':atlasdb-api')
+    compile project(':atlasdb-cassandra')
+    compile project(':atlasdb-docker-test-utils')
+
+    compile group: 'com.google.guava', name: 'guava'
+    compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: libVersions.dockerComposeRule
+
+    processor group: 'org.immutables', name: 'value', version: libVersions.immutables
+
+    testCompile group: 'org.assertj', name: 'assertj-core', version: libVersions.assertj
+    testCompile group: 'org.mockito', name: 'mockito-core', version: libVersions.mockito
+}

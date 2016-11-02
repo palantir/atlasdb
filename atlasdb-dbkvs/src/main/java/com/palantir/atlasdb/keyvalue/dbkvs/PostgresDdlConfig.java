@@ -21,6 +21,8 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Supplier;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.PostgresDbTableFactory;
 
@@ -34,6 +36,12 @@ public abstract class PostgresDdlConfig extends DdlConfig {
     @Override
     public Supplier<DbTableFactory> tableFactorySupplier() {
         return () -> new PostgresDbTableFactory(this);
+    }
+
+    @Value.Default
+    @Override
+    public TableReference metadataTable() {
+        return AtlasDbConstants.DEFAULT_METADATA_TABLE;
     }
 
     @Override
