@@ -21,7 +21,6 @@ import static org.junit.Assert.assertThat;
 import org.junit.Test;
 
 public class ThreeNodeCassandraClusterTest {
-
     public static final String CORRUPT_STRING = "sodu89sydihusd:KSDNLSA";
 
     @Test

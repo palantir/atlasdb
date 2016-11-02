@@ -34,7 +34,6 @@ import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 
 public class DegradedClusterInitializationTest {
-
     private static final String CASSANDRA_NODE_TO_KILL = ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME;
     private static final int CASSANDRA_PORT = ThreeNodeCassandraCluster.CASSANDRA_PORT;
 
