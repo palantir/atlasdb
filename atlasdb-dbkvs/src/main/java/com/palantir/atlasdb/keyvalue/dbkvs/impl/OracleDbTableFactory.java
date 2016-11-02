@@ -73,7 +73,7 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     private String getTableName(OracleTableNameGetter oracleTableNameGetter) {
         try {
-             return oracleTableNameGetter.getInternalShortTableName();
+            return oracleTableNameGetter.getInternalShortTableName();
         } catch (TableMappingNotFoundException e) {
             throw Throwables.propagate(e);
         }

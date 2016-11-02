@@ -31,7 +31,10 @@ public final class TableSizeCache {
         //Utility class
     }
 
-    public static TableSize getTableSize(final ConnectionSupplier conns, final TableReference tableRef, TableReference metadataTable) {
+    public static TableSize getTableSize(
+            final ConnectionSupplier conns,
+            final TableReference tableRef,
+            TableReference metadataTable) {
         try {
             return tableSizeByTableRef.get(tableRef, () -> {
                 AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(

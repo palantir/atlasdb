@@ -142,7 +142,7 @@ public class SimpleDbWriteTable implements DbWriteTable {
     }
 
     private String getOraclePrefixedTableName() {
-        OracleDdlConfig oracleConfig = (OracleDdlConfig) this.config;
+        OracleDdlConfig oracleConfig = (OracleDdlConfig) config;
         try {
             return new OracleTableNameGetter(conns, oracleConfig.tablePrefix(), oracleConfig.overflowTablePrefix(),
                     tableRef).getInternalShortTableName();

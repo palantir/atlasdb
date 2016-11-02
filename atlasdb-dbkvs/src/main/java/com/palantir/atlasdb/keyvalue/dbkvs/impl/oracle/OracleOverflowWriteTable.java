@@ -54,11 +54,11 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
             OracleDdlConfig config,
             ConnectionSupplier conns,
             OverflowSequenceSupplier sequenceSupplier,
-            OracleTableNameGetter oracleTableNameMapper) {
+            OracleTableNameGetter oracleTableNameGetter) {
         this.config = config;
         this.conns = conns;
         this.overflowSequenceSupplier = sequenceSupplier;
-        this.oracleTableNameGetter = oracleTableNameMapper;
+        this.oracleTableNameGetter = oracleTableNameGetter;
     }
 
     public static OracleOverflowWriteTable create(

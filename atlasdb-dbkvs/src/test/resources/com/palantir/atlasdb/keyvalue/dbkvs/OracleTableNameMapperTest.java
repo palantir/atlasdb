@@ -60,7 +60,8 @@ public class OracleTableNameMapperTest {
 
         TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot create any more tables with name starting with a_te__ThisIsAVeryLongTab");
+        expectedException.expectMessage(
+                "Cannot create any more tables with name starting with a_te__ThisIsAVeryLongTab");
         oracleTableNameMapper.getShortPrefixedTableName(TEST_PREFIX, tableRef);
     }
 

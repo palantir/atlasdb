@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.startsWith;

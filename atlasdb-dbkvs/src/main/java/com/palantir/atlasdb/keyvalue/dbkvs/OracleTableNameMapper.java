@@ -29,7 +29,7 @@ public class OracleTableNameMapper {
     public static final int MAX_NAMESPACE_LENGTH = 2;
     private static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_MAX_TABLE_NAME_LENGTH - SUFFIX_NUMBER_LENGTH;
 
-    private static ConnectionSupplier conns;
+    private final ConnectionSupplier conns;
 
     public OracleTableNameMapper(ConnectionSupplier conns) {
         this.conns = conns;
@@ -43,9 +43,9 @@ public class OracleTableNameMapper {
             return fullTableName;
         }
 
-        tableRef = truncateNamespace(tableRef);
+        TableReference shortenedNamespaceTableRef = truncateNamespace(tableRef);
 
-        String prefixedTableName = tablePrefix + DbKvs.internalTableName(tableRef);
+        String prefixedTableName = tablePrefix + DbKvs.internalTableName(shortenedNamespaceTableRef);
         String truncatedTableName = truncate(prefixedTableName, PREFIXED_TABLE_NAME_LENGTH);
         return truncatedTableName + getTableNumberSuffix(fullTableName, truncatedTableName);
     }
@@ -89,7 +89,7 @@ public class OracleTableNameMapper {
         for (int i = 0; i < results.size(); i++) {
             String shortName = results.get(i).getString("short_table_name");
             try {
-                return Integer.valueOf(shortName.substring(truncatedTableName.length() + 1)) + 1;
+                return Integer.parseInt(shortName.substring(truncatedTableName.length() + 1)) + 1;
             } catch (NumberFormatException e) {
                 //Table in different format - Do nothing;
             }

@@ -34,7 +34,7 @@ import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.util.VersionStrings;
 
-public class OracleDdlTable implements DbDdlTable {
+public final class OracleDdlTable implements DbDdlTable {
     private static final Logger log = LoggerFactory.getLogger(OracleDdlTable.class);
     private static final String MIN_ORACLE_VERSION = "11.2.0.2.3";
     private static final String ORACLE_NOT_EXISTS_ERROR = "ORA-00942";
@@ -108,10 +108,10 @@ public class OracleDdlTable implements DbDdlTable {
         final String shortOverflowTableName = oracleTableNameGetter.generateShortOverflowTableName();
         executeIgnoringError(
                 "CREATE TABLE " + shortOverflowTableName + " ("
-                        + "  id  NUMBER(38) NOT NULL, "
-                        + "  val BLOB NOT NULL,"
-                        + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortOverflowTableName) + " PRIMARY KEY (id)"
-                        + ")",
+                + "  id  NUMBER(38) NOT NULL, "
+                + "  val BLOB NOT NULL,"
+                + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortOverflowTableName) + " PRIMARY KEY (id)"
+                + ")",
                 ORACLE_ALREADY_EXISTS_ERROR);
         putTableNameMapping(oracleTableNameGetter.getPrefixedOverflowTableName(), shortOverflowTableName);
     }
@@ -144,8 +144,8 @@ public class OracleDdlTable implements DbDdlTable {
         }
 
         conns.get().executeUnregisteredQuery(
-                "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
-                tableRef.getQualifiedName());
+                "DELETE FROM " + config.metadataTable().getQualifiedName()
+                + " WHERE table_name = ?", tableRef.getQualifiedName());
     }
 
     private void dropTableInternal(String fullTableName, String shortTableName) {
