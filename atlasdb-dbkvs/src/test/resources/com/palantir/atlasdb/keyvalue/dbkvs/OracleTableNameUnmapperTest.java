@@ -55,14 +55,15 @@ public class OracleTableNameUnmapperTest {
 
         AgnosticResultSet resultSet = mock(AgnosticResultSet.class);
         when(sqlConnection
-                .selectResultSetUnregisteredQuery(startsWith("SELECT short_table_name FROM atlasdb_table_names WHERE table_name = "), anyObject()))
+                .selectResultSetUnregisteredQuery(
+                        startsWith("SELECT short_table_name FROM atlasdb_table_names WHERE table_name"), anyObject()))
                 .thenReturn(resultSet);
         when(resultSet.size()).thenReturn(0);
 
         TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
         expectedException.expect(TableMappingNotFoundException.class);
         expectedException.expectMessage("The table a_test_namespace__ThisIsAVeryLongTableNameThatWillExceed");
-        oracleTableNameUnmapper.getShortPrefixedTableName(TEST_PREFIX, tableRef);
+        oracleTableNameUnmapper.getShortTableNameFromMappingTable(TEST_PREFIX, tableRef);
     }
 
     @Test
@@ -75,7 +76,8 @@ public class OracleTableNameUnmapperTest {
 
         AgnosticResultSet resultSet = mock(AgnosticResultSet.class);
         when(sqlConnection
-                .selectResultSetUnregisteredQuery(anyString(), anyObject()))
+                .selectResultSetUnregisteredQuery(
+                        startsWith("SELECT short_table_name FROM atlasdb_table_names WHERE table_name"), anyObject()))
                 .thenReturn(resultSet);
         when(resultSet.size()).thenReturn(1);
 
@@ -84,7 +86,7 @@ public class OracleTableNameUnmapperTest {
         when(row.getString(eq("short_table_name"))).thenReturn(SHORT_TABLE_NAME);
 
         TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
-        String shortName = oracleTableNameUnmapper.getShortPrefixedTableName(TEST_PREFIX, tableRef);
+        String shortName = oracleTableNameUnmapper.getShortTableNameFromMappingTable(TEST_PREFIX, tableRef);
         assertThat(shortName, is(SHORT_TABLE_NAME));
     }
 }

@@ -36,14 +36,14 @@ import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
 public class SimpleDbWriteTable implements DbWriteTable {
-    protected final TableReference tableRef;
-    protected final ConnectionSupplier conns;
     protected final DdlConfig config;
+    protected final ConnectionSupplier conns;
+    protected final TableReference tableRef;
 
-    public SimpleDbWriteTable(TableReference tableRef, ConnectionSupplier conns, DdlConfig config) {
-        this.tableRef = tableRef;
-        this.conns = conns;
+    public SimpleDbWriteTable(DdlConfig config, ConnectionSupplier conns, TableReference tableRef) {
         this.config = config;
+        this.conns = conns;
+        this.tableRef = tableRef;
     }
 
     @Override
@@ -136,14 +136,18 @@ public class SimpleDbWriteTable implements DbWriteTable {
 
     private String getPrefixedTableName() {
         if (config.type().equals(OracleDdlConfig.TYPE)) {
-            OracleDdlConfig oracleConfig = (OracleDdlConfig) this.config;
-            try {
-                return new OracleTableNameGetter(conns, oracleConfig.tablePrefix(), oracleConfig.overflowTablePrefix(),
-                        tableRef).getInternalShortTableName();
-            } catch (TableMappingNotFoundException e) {
-                throw Throwables.propagate(e);
-            }
+            return getOraclePrefixedTableName();
         }
         return config.tablePrefix() + DbKvs.internalTableName(tableRef);
+    }
+
+    private String getOraclePrefixedTableName() {
+        OracleDdlConfig oracleConfig = (OracleDdlConfig) this.config;
+        try {
+            return new OracleTableNameGetter(conns, oracleConfig.tablePrefix(), oracleConfig.overflowTablePrefix(),
+                    tableRef).getInternalShortTableName();
+        } catch (TableMappingNotFoundException e) {
+            throw Throwables.propagate(e);
+        }
     }
 }

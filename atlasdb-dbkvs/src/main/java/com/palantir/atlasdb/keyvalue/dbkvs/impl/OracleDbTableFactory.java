@@ -92,9 +92,9 @@ public class OracleDbTableFactory implements DbTableFactory {
         TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
         switch (tableSize) {
             case OVERFLOW:
-                return OracleOverflowWriteTable.create(config, tableRef, conns);
+                return OracleOverflowWriteTable.create(config, conns, tableRef);
             case RAW:
-                return new SimpleDbWriteTable(tableRef, conns, config);
+                return new SimpleDbWriteTable(config, conns, tableRef);
             default:
                 throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
         }

@@ -41,26 +41,26 @@ public class OracleDdlTable implements DbDdlTable {
     private static final String ORACLE_ALREADY_EXISTS_ERROR = "ORA-00955";
     private static final String ORACLE_UNIQUE_CONSTRAINT_ERROR =  "ORA-00001";
 
-    private final TableReference tableRef;
-    private final ConnectionSupplier conns;
     private final OracleDdlConfig config;
+    private final ConnectionSupplier conns;
+    private final TableReference tableRef;
     private final OracleTableNameGetter oracleTableNameGetter;
 
     private OracleDdlTable(
-            TableReference tableRef,
-            ConnectionSupplier conns,
             OracleDdlConfig config,
+            ConnectionSupplier conns,
+            TableReference tableRef,
             OracleTableNameGetter oracleTableNameGetter) {
-        this.tableRef = tableRef;
-        this.conns = conns;
         this.config = config;
+        this.conns = conns;
+        this.tableRef = tableRef;
         this.oracleTableNameGetter = oracleTableNameGetter;
     }
 
     public static OracleDdlTable create(TableReference tableRef, ConnectionSupplier conns, OracleDdlConfig config) {
         OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(conns, config.tablePrefix(),
                 config.overflowTablePrefix(), tableRef);
-        return new OracleDdlTable(tableRef, conns, config, oracleTableNameGetter);
+        return new OracleDdlTable(config, conns, tableRef, oracleTableNameGetter);
     }
 
     @Override

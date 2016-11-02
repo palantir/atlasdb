@@ -47,11 +47,11 @@ public class OracleTableNameGetter {
     }
 
     public String getInternalShortTableName() throws TableMappingNotFoundException {
-        return oracleTableNameUnmapper.getShortPrefixedTableName(tablePrefix, tableRef);
+        return oracleTableNameUnmapper.getShortTableNameFromMappingTable(tablePrefix, tableRef);
     }
 
     public String getInternalShortOverflowTableName() throws TableMappingNotFoundException {
-        return oracleTableNameUnmapper.getShortPrefixedTableName(overflowTablePrefix, tableRef);
+        return oracleTableNameUnmapper.getShortTableNameFromMappingTable(overflowTablePrefix, tableRef);
     }
 
     public String getPrefixedTableName() {

@@ -46,19 +46,16 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     private static final Logger log = LoggerFactory.getLogger(OracleOverflowWriteTable.class);
 
     private final OracleDdlConfig config;
-    private final TableReference tableRef;
     private final ConnectionSupplier conns;
     private final OverflowSequenceSupplier overflowSequenceSupplier;
     private final OracleTableNameGetter oracleTableNameGetter;
 
     private OracleOverflowWriteTable(
             OracleDdlConfig config,
-            TableReference tableRef,
             ConnectionSupplier conns,
             OverflowSequenceSupplier sequenceSupplier,
             OracleTableNameGetter oracleTableNameMapper) {
         this.config = config;
-        this.tableRef = tableRef;
         this.conns = conns;
         this.overflowSequenceSupplier = sequenceSupplier;
         this.oracleTableNameGetter = oracleTableNameMapper;
@@ -66,11 +63,12 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
 
     public static OracleOverflowWriteTable create(
             OracleDdlConfig config,
-            TableReference tableRef,
-            ConnectionSupplier conns) {
-        OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(conns, config.tablePrefix(), config.overflowTablePrefix(), tableRef);
+            ConnectionSupplier conns,
+            TableReference tableRef) {
+        OracleTableNameGetter oracleTableNameGetter =
+                new OracleTableNameGetter(conns, config.tablePrefix(), config.overflowTablePrefix(), tableRef);
         OverflowSequenceSupplier sequenceSupplier = OverflowSequenceSupplier.create(conns, config.tablePrefix());
-        return new OracleOverflowWriteTable(config, tableRef, conns, sequenceSupplier, oracleTableNameGetter);
+        return new OracleOverflowWriteTable(config, conns, sequenceSupplier, oracleTableNameGetter);
     }
 
     @Override

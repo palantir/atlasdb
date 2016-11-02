@@ -67,5 +67,4 @@ public class OracleTableNameMapperTest {
     private String getTableNameWithNumber(int tableNum) {
         return String.format("a_te__ThisIsAVeryLongTab_%05d", tableNum);
     }
-
 }

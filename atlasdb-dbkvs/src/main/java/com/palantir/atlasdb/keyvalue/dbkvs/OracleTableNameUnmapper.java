@@ -28,7 +28,7 @@ class OracleTableNameUnmapper {
         this.conns = conns;
     }
 
-    public String getShortPrefixedTableName(String tablePrefix, TableReference tableRef)
+    public String getShortTableNameFromMappingTable(String tablePrefix, TableReference tableRef)
             throws TableMappingNotFoundException {
         String fullTableName = tablePrefix + DbKvs.internalTableName(tableRef);
         AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
