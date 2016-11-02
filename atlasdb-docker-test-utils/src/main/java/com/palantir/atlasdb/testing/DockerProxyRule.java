@@ -52,7 +52,7 @@ public class DockerProxyRule extends ExternalResource {
     }
 
     @Override
-    protected void before() throws Throwable {
+    public void before() throws Throwable {
         try {
             originalProxySelector = ProxySelector.getDefault();
             dockerComposeRule.before();
@@ -70,7 +70,7 @@ public class DockerProxyRule extends ExternalResource {
     }
 
     @Override
-    protected void after() {
+    public void after() {
         ProxySelector.setDefault(originalProxySelector);
         getNameServices().remove(0);
         dockerComposeRule.after();

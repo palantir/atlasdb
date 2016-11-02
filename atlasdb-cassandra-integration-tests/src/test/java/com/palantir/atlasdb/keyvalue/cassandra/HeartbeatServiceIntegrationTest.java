@@ -25,6 +25,7 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.thrift.TException;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -33,12 +34,18 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.config.LockLeader;
+import com.palantir.atlasdb.containers.CassandraContainer;
+import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 
 public class HeartbeatServiceIntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(SchemaMutationLockIntegrationTest.class);
 
     private static final int heartbeatTimePeriodMillis = 100;
+
+    @ClassRule
+    public static final Containers CONTAINERS = new Containers(HeartbeatServiceIntegrationTest.class)
+            .with(new CassandraContainer());
 
     private HeartbeatService heartbeatService;
     private TracingQueryRunner queryRunner;
@@ -55,13 +62,13 @@ public class HeartbeatServiceIntegrationTest {
     @Before
     public void setUp() throws TException {
         CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(
-                CassandraTestSuite.KVS_CONFIG);
+                CassandraContainer.KVS_CONFIG);
         queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
 
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
         clientPool = new CassandraClientPool(simpleManager.getConfig());
         lockTable = new UniqueSchemaMutationLockTable(
-                new SchemaMutationLockTables(clientPool, CassandraTestSuite.KVS_CONFIG),
+                new SchemaMutationLockTables(clientPool, CassandraContainer.KVS_CONFIG),
                 LockLeader.I_AM_THE_LOCK_LEADER);
         heartbeatService = new HeartbeatService(clientPool,
                                                 queryRunner,

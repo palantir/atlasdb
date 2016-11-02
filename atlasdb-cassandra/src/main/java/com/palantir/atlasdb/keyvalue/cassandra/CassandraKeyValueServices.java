@@ -25,7 +25,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.commons.lang3.Validate;
@@ -33,7 +32,6 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -275,73 +273,6 @@ public final class CassandraKeyValueServices {
         Preconditions.checkArgument(ttlSeconds > 0 && ttlSeconds < Integer.MAX_VALUE,
                 "Expiration time must be between 0 and ~68 years");
         return (int) ttlSeconds;
-    }
-
-    // because unfortunately .equals takes into account if fields with defaults are populated or not
-    // also because compression_options after serialization / deserialization comes back as blank
-    // for the ones we set 4K chunk on... ?!
-    public static boolean isMatchingCf(CfDef clientSide, CfDef clusterSide) {
-        String tableName = clientSide.name;
-        if (!Objects.equal(clientSide.compaction_strategy_options, clusterSide.compaction_strategy_options)) {
-            logMismatch("compaction strategy",
-                    tableName,
-                    clientSide.compaction_strategy_options,
-                    clusterSide.compaction_strategy_options);
-            return false;
-        }
-        if (clientSide.gc_grace_seconds != clusterSide.gc_grace_seconds) {
-            logMismatch("gc_grace_seconds period",
-                    tableName,
-                    clientSide.gc_grace_seconds,
-                    clusterSide.gc_grace_seconds);
-            return false;
-        }
-        if (clientSide.bloom_filter_fp_chance != clusterSide.bloom_filter_fp_chance) {
-            logMismatch("bloom filter false positive chance",
-                    tableName,
-                    clientSide.bloom_filter_fp_chance,
-                    clusterSide.bloom_filter_fp_chance);
-            return false;
-        }
-        if (!(clientSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY).equals(
-                clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY)))) {
-            logMismatch("compression chunk length",
-                    tableName,
-                    clientSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY),
-                    clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY));
-            return false;
-        }
-        if (!Objects.equal(clientSide.compaction_strategy, clusterSide.compaction_strategy)) {
-            // consider equal "com.whatever.LevelledCompactionStrategy" and "LevelledCompactionStrategy"
-            if (clientSide.compaction_strategy != null
-                    && clusterSide.compaction_strategy != null
-                    && !(clientSide.compaction_strategy.endsWith(clusterSide.compaction_strategy)
-                    || clusterSide.compaction_strategy.endsWith(clientSide.compaction_strategy))) {
-                logMismatch("compaction strategy",
-                        tableName,
-                        clientSide.compaction_strategy,
-                        clusterSide.compaction_strategy);
-                return false;
-            }
-        }
-        if (clientSide.isSetPopulate_io_cache_on_flush() != clusterSide.isSetPopulate_io_cache_on_flush()) {
-            logMismatch("populate_io_cache_on_flush",
-                    tableName,
-                    clientSide.isSetPopulate_io_cache_on_flush(),
-                    clusterSide.isSetPopulate_io_cache_on_flush());
-            return false;
-        }
-
-        return true;
-    }
-
-    private static void logMismatch(String fieldName, String tableName,
-            Object clientSideVersion, Object clusterSideVersion) {
-        log.info("Found client/server disagreement on {} for table {}. (client = ({}), server = ({}))",
-                fieldName,
-                tableName,
-                clientSideVersion,
-                clusterSideVersion);
     }
 
     public static boolean isEmptyOrInvalidMetadata(byte[] metadata) {

@@ -29,7 +29,7 @@ general:
 
 dependencies:
   pre:
-    - curl -O 'http://ftp.de.debian.org/debian/pool/main/m/moreutils/moreutils_0.59-1_amd64.deb' && ar p moreutils_0.59-1_amd64.deb data.tar.xz | sudo tar xJ --strip-components=3 -C /usr/bin/ ./usr/bin/ts
+    - ./scripts/circle-ci/download-moreutils.sh
     - sudo pip install docker-compose
   override:
     - ./scripts/time-cmd.sh ./gradlew --profile --parallel resolveConfigurations
@@ -47,6 +47,7 @@ test:
     - ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh:
         parallel: true
   post:
+    - ./scripts/time-cmd.sh ./scripts/circle-ci/ensure-repo-clean.sh
     - ./scripts/time-cmd.sh ./gradlew --profile jacocoFullReport -x classes:
         parallel: true
     - bash <(curl -s https://codecov.io/bash):

@@ -31,6 +31,38 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+develop
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Added a significant amount of logging aimed at tracking down the ``MultipleRunningTimestampServicesError``.
+           If clients are hitting this error, then they should add trace logging for ``com.palantir.timestamp``.
+           These logs can also be directed to a separate file, see the :ref:`documentation <logging-configuration>` for more details.
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1098>`__)
+
+    *    - |improved|
+         - Random redirection of queries when retrying a Cassandra operation now retries said queries on distinct
+           hosts. Previously, this would independently select hosts randomly, meaning that we might unintentionally
+           try the same operation on the same server(s).
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
+
+   *    - |improved|
+        - We now support Oracle for products with all valid schemas. Oracle table names exceeding 30 characters are now
+          mapped to shorter names by truncating and appending a sequence number.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/1076>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.22.0
 =======
 
@@ -42,13 +74,54 @@ v0.22.0
          - Change
 
     *    - |improved|
-         - The ``clean-cass-locks-state`` CLI now clears the lock instead of dropping the locks table.
+         - The ``clean-cass-locks-state`` CLI clears the schema mutation lock by setting it to a special "cleared" value in the same way that normal lockholders clear the lock.
+           Previously the CLI would would drop the whole ``_locks`` table to clear the schema mutation lock.
+
+           See :ref:`schema-mutation-lock` for details on how the schema mutation lock works.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1056>`__)
 
+    *    - |fixed|
+         - Fixed an issue where some locks were not being tracked for continuous refreshing due to one of the lock methods not being overridden by the ``LockRefreshingLockService``.
+           This resulted in locks that appeared to be refreshed properly, but then would mysteriously time out at the end of a long-running operation.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1134>`__)
+
     *    - |improved|
-         - We now support Oracle for products with all valid schemas. Oracle table names exceeding 30 characters are now
-           mapped to shorter names by truncating and appending a sequence number.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1076>`__)
+         - Actions performed by the ``Scrubber`` are now logged at debug instead of info.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1137>`__)
+
+    *    - |improved|
+         - Sweep no longer immediately falls back to a ``sweepBatchSize`` of 1 after receiving an error.
+
+           See :ref:`sweep tuning <sweep_tunable_parameters>` documentation for more information on sweep tuning parameters.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1093>`__)
+
+    *    - |fixed|
+         - Fixed an issue where leader election threads were not correctly marked as daemon threads.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1138>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.21.1
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed a regression with Cassandra KVS where you could no longer create a table if it has the same name as another table in a different namespace.
+
+           To illustrate the issue, assume you have namespace ``namespace1`` and the table ``table1``, and you would like to add a column to ``table1`` and `version` the table by using the new namespace ``namespace2``.
+           On disk you already have the Cassandra table ``namespace1__table1``, and now you are trying to create ``namespace2__table1``.
+           Creating ``namespace2__table1`` would fail because Cassandra KVS believes that the table already exists.
+           This is relevant if you use multiple namespaces when performing schema migrations.
+
+           Note that namespace is an application level abstraction defined as part of a AtlasDB schema and is not the same as Cassandra keyspace.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1110>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -73,14 +146,6 @@ v0.21.0
          - If ``hashFirstRowComponent()`` is used in a table or index definition, we no longer throw ``IllegalStateException`` when generating schema code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1091>`__)
 
-    *    - |fixed|
-         - Fixed (and added tests for) a regression where you could no longer have tables
-           with the same table name spanned over multiple namespaces when running on Cassandra.
-	   (`Pull Request <https://github.com/palantir/atlasdb/pull/1110>`__)
-
-    *    - |improved|
-         - Sweep no longer immediately falls back to a batch size of 1 after receiving an error.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1093>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

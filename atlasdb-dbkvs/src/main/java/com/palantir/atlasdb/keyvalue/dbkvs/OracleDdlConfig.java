@@ -75,7 +75,7 @@ public abstract class OracleDdlConfig extends DdlConfig {
     @Value.Default
     @Override
     public TableReference metadataTable() {
-        return AtlasDbConstants.ORACLE_METADATA_TABLE;
+        return AtlasDbConstants.DEFAULT_ORACLE_METADATA_TABLE;
     }
 
     @Override
