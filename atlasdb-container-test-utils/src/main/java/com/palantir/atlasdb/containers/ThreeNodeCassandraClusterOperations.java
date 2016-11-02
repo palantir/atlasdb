@@ -27,10 +27,10 @@ import com.palantir.docker.compose.execution.DockerComposeRunOption;
 public class ThreeNodeCassandraClusterOperations {
     private static final Logger log = LoggerFactory.getLogger(ThreeNodeCassandraClusterOperations.class);
 
-    DockerComposeRule rule;
+    DockerComposeRule dockerComposeRule;
 
-    public ThreeNodeCassandraClusterOperations(DockerComposeRule rule) {
-        this.rule = rule;
+    public ThreeNodeCassandraClusterOperations(DockerComposeRule dockerComposeRule) {
+        this.dockerComposeRule = dockerComposeRule;
     }
 
     public boolean nodetoolShowsThreeCassandraNodesUp() {
@@ -89,7 +89,7 @@ public class ThreeNodeCassandraClusterOperations {
 
     private String runCommandInCliContainer(String... arguments) throws IOException,
             InterruptedException {
-        return rule.run(
+        return dockerComposeRule.run(
                 DockerComposeRunOption.options("-T"),
                 ThreeNodeCassandraCluster.CLI_CONTAINER_NAME,
                 DockerComposeRunArgument.arguments(arguments));
