@@ -17,9 +17,10 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertThat;
 
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -53,9 +54,9 @@ public class OracleTableNameMapperTest {
         TableReference tableRef = TableReference.createFromFullyQualifiedName("ns.test_table");
         String shortPrefixedTableName = oracleTableNameMapper.getShortPrefixedTableName(TEST_PREFIX, tableRef);
 
-        Assert.assertThat(shortPrefixedTableName.length(), lessThan(ORACLE_TABLE_NAME_LENGTH_LIMIT));
+        assertThat(shortPrefixedTableName.length(), lessThan(ORACLE_TABLE_NAME_LENGTH_LIMIT));
         String expectedName = "a_ns__test_table";
-        Assert.assertThat(shortPrefixedTableName, is(expectedName));
+        assertThat(shortPrefixedTableName, is(expectedName));
     }
 
     @Test
@@ -64,21 +65,17 @@ public class OracleTableNameMapperTest {
         TableReference tableRef = TableReference.createFromFullyQualifiedName("ns." + tableName);
         String shortPrefixedTableName = oracleTableNameMapper.getShortPrefixedTableName(TEST_PREFIX, tableRef);
 
-        Assert.assertThat(shortPrefixedTableName.length(), is(ORACLE_TABLE_NAME_LENGTH_LIMIT));
+        assertThat(shortPrefixedTableName.length(), is(ORACLE_TABLE_NAME_LENGTH_LIMIT));
         String expectedName = "a_ns__" + tableName;
-        Assert.assertThat(shortPrefixedTableName, is(expectedName));
+        assertThat(shortPrefixedTableName, is(expectedName));
     }
-
-
 
     @Test
     public void shouldReturnValidTableNameWhenNoTablesExist() throws Exception {
         TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
         String shortPrefixedTableName = oracleTableNameMapper.getShortPrefixedTableName(TEST_PREFIX, tableRef);
 
-        Assert.assertThat(shortPrefixedTableName.length(), is(ORACLE_TABLE_NAME_LENGTH_LIMIT));
-        String expectedName = "a_te_ThisIsAVeryLongTableNameThatWillExceed".substring(0, 24) + "_00000";
-        Assert.assertThat(shortPrefixedTableName, is(expectedName));
+        assertLengthAndValueOfName(shortPrefixedTableName, 0);
     }
 
     @Test
@@ -87,9 +84,7 @@ public class OracleTableNameMapperTest {
         kvs.createTable(tableRef, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         String shortPrefixedTableName = oracleTableNameMapper.getShortPrefixedTableName(TEST_PREFIX, tableRef);
-        String expectedName = "a_te_ThisIsAVeryLongTableNameThatWillExceed".substring(0, 24) + "_00001";
-
-        Assert.assertThat(shortPrefixedTableName, is(expectedName));
+        assertLengthAndValueOfName(shortPrefixedTableName, 1);
     }
 
     @Test
@@ -99,32 +94,46 @@ public class OracleTableNameMapperTest {
         TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "_v3");
 
         String shortPrefixedTableName = oracleTableNameMapper.getShortPrefixedTableName(TEST_PREFIX, tableRef);
-        String expectedName = "a_te_ThisIsAVeryLongTableNameThatWillExceed".substring(0, 24) + "_00002";
-
-        Assert.assertThat(shortPrefixedTableName, is(expectedName));
+        assertLengthAndValueOfName(shortPrefixedTableName, 2);
     }
 
     @Test
     public void shouldReturnLatestTableNameWhenOneTableExistsButOutOfOrder() throws Exception {
-        kvs.createTable(TableReference.createWithEmptyNamespace("te_ThisIsAVeryLongTabl_00199"), AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.createTable(getTableRefWithNumber(199), AtlasDbConstants.GENERIC_TABLE_METADATA);
         TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
 
         String shortPrefixedTableName = oracleTableNameMapper.getShortPrefixedTableName(TEST_PREFIX, tableRef);
-        String expectedName = "a_te_ThisIsAVeryLongTableNameThatWillExceed".substring(0, 24) + "_00200";
-
-        Assert.assertThat(shortPrefixedTableName, is(expectedName));
+        assertLengthAndValueOfName(shortPrefixedTableName, 200);
     }
 
     @Test
     public void shouldReturnLatestTableNameWhenMultipleTablesExistsButOutOfOrder() throws Exception {
-        kvs.createTable(TableReference.createWithEmptyNamespace("te_ThisIsAVeryLongTabl_00000"), AtlasDbConstants.GENERIC_TABLE_METADATA);
-        kvs.createTable(TableReference.createWithEmptyNamespace("te_ThisIsAVeryLongTabl_00076"), AtlasDbConstants.GENERIC_TABLE_METADATA);
-        kvs.createTable(TableReference.createWithEmptyNamespace("te_ThisIsAVeryLongTabl_00199"), AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.createTable(getTableRefWithNumber(0), AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.createTable(getTableRefWithNumber(76), AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.createTable(getTableRefWithNumber(199), AtlasDbConstants.GENERIC_TABLE_METADATA);
         TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
 
         String shortPrefixedTableName = oracleTableNameMapper.getShortPrefixedTableName(TEST_PREFIX, tableRef);
-        String expectedName = "a_te_ThisIsAVeryLongTableNameThatWillExceed".substring(0, 24) + "_00200";
+        assertLengthAndValueOfName(shortPrefixedTableName, 200);
+    }
 
-        Assert.assertThat(shortPrefixedTableName, is(expectedName));
+    private void assertLengthAndValueOfName(String shortPrefixedTableName, int tableNum) {
+        assertThat(shortPrefixedTableName.length(), is(ORACLE_TABLE_NAME_LENGTH_LIMIT));
+        String expectedName = TEST_PREFIX + getTableRefWithNumber(tableNum).getTablename();
+        assertThat(shortPrefixedTableName, is(expectedName));
+    }
+
+    private TableReference getTableRefWithNumber(int tableNum) {
+        return TableReference.createWithEmptyNamespace(String.format("te_ThisIsAVeryLongTabl_%05d", tableNum));
+    }
+
+    @Test
+    public void shouldThrowWhenTableNumberLimitIsReached() throws Exception {
+        kvs.createTable(TableReference.createWithEmptyNamespace("te_ThisIsAVeryLongTabl_99999"), AtlasDbConstants.GENERIC_TABLE_METADATA);
+        TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
+
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(startsWith("Cannot create any more tables with name starting with a_te_ThisIsAVeryLongTabl"));
+        oracleTableNameMapper.getShortPrefixedTableName(TEST_PREFIX, tableRef);
     }
 }

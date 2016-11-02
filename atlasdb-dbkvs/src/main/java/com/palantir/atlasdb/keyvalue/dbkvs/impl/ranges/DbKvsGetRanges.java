@@ -29,6 +29,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Supplier;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -333,15 +334,19 @@ public class DbKvsGetRanges {
 
     private String getPrefixedTableName(TableReference tableRef) {
         if (config.type().equals(OracleDdlConfig.TYPE)) {
-            OracleDdlConfig oracleConfig = (OracleDdlConfig) this.config;
-            try {
-                return new OracleTableNameGetter(new ConnectionSupplier(connectionSupplier), oracleConfig.tablePrefix(),
-                        oracleConfig.overflowTablePrefix(), tableRef).getInternalShortTableName();
-            } catch (TableMappingNotFoundException e) {
-                throw new RuntimeException(e);
-            }
+            return getOraclePrefixedTableName(tableRef);
         }
         return config.tablePrefix() + DbKvs.internalTableName(tableRef);
+    }
+
+    private String getOraclePrefixedTableName(TableReference tableRef) {
+        OracleDdlConfig oracleConfig = (OracleDdlConfig) config;
+        try {
+            return new OracleTableNameGetter(new ConnectionSupplier(connectionSupplier), oracleConfig.tablePrefix(),
+                    oracleConfig.overflowTablePrefix(), tableRef).getInternalShortTableName();
+        } catch (TableMappingNotFoundException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
     private static final String SIMPLE_ROW_SELECT_TEMPLATE =

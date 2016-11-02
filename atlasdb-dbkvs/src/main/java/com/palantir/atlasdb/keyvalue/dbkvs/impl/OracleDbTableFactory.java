@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
@@ -82,7 +83,7 @@ public class OracleDbTableFactory implements DbTableFactory {
         try {
             return oracleTableNameGetter.getInternalShortOverflowTableName();
         } catch (TableMappingNotFoundException e) {
-            throw new RuntimeException(e);
+            throw Throwables.propagate(e);
         }
     }
 

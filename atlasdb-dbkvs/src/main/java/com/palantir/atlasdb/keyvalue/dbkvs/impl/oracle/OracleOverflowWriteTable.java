@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
@@ -234,7 +235,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         try {
             return oracleTableNameGetter.getInternalShortTableName();
         } catch (TableMappingNotFoundException e) {
-            throw new RuntimeException(e);
+            throw Throwables.propagate(e);
         }
     }
 
@@ -242,7 +243,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         try {
             return oracleTableNameGetter.getInternalShortOverflowTableName();
         } catch (TableMappingNotFoundException e) {
-            throw new RuntimeException(e);
+            throw Throwables.propagate(e);
         }
     }
 }

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -134,6 +135,7 @@ public class OracleDdlTable implements DbDdlTable {
         } catch (TableMappingNotFoundException ex) {
             // If table does not exist, do nothing
         }
+
         conns.get().executeUnregisteredQuery(
                 "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
                 tableRef.getQualifiedName());
@@ -198,7 +200,7 @@ public class OracleDdlTable implements DbDdlTable {
                         + " IOT tables to compensate for bloat. You can contact Palantir Support if you'd"
                         + " like more information. Underlying error was: " + e.getMessage());
             } catch (TableMappingNotFoundException e) {
-                throw new RuntimeException(e);
+                throw Throwables.propagate(e);
             }
         }
     }

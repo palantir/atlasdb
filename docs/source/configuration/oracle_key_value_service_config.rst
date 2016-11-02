@@ -119,7 +119,7 @@ The DDL Config Block:
 Connection parameters
 ---------------------
 
-If you would like to customise the JDBC connection parameters, for example if you are experiencing performance issues, then you may supply them under the ``connection`` section of the ``keyValueService`` config.
+If you would like to customize the JDBC connection parameters, for example if you are experiencing performance issues, then you may supply them under the ``connection`` section of the ``keyValueService`` config.
 An example is shown below; for full documentation on which parameters are available, check out `the JDBC docs <https://jdbc.postgresql.org/documentation/head/connect.html>`__.
 
 .. code-block:: yaml

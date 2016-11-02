@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
@@ -140,7 +141,7 @@ public class SimpleDbWriteTable implements DbWriteTable {
                 return new OracleTableNameGetter(conns, oracleConfig.tablePrefix(), oracleConfig.overflowTablePrefix(),
                         tableRef).getInternalShortTableName();
             } catch (TableMappingNotFoundException e) {
-                throw new RuntimeException(e);
+                throw Throwables.propagate(e);
             }
         }
         return config.tablePrefix() + DbKvs.internalTableName(tableRef);

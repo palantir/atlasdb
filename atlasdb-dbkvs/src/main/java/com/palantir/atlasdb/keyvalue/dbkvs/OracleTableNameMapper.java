@@ -24,8 +24,8 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 public class OracleTableNameMapper {
     public static final int ORACLE_MAX_TABLE_NAME_LENGTH = 30;
-    public  static final int SUFFIX_NUMBER_LENGTH = 6;
-    public  static final int TRUNCATED_NAMESPACE_LENGTH = 2;
+    public static final int SUFFIX_NUMBER_LENGTH = 6;
+    public static final int TRUNCATED_NAMESPACE_LENGTH = 2;
     private static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_MAX_TABLE_NAME_LENGTH - SUFFIX_NUMBER_LENGTH;
 
     private static ConnectionSupplier conns;
@@ -44,7 +44,7 @@ public class OracleTableNameMapper {
 
         String namespaceTruncatedName = tablePrefix + getTruncatedNamespace(tableRef) + tableRef.getTablename();
         String truncatedTableName = namespaceTruncatedName.substring(0, PREFIXED_TABLE_NAME_LENGTH) ;
-        return truncatedTableName + getTableNumberSuffix(truncatedTableName);
+        return truncatedTableName + getTableNumberSuffix(fullTableName, truncatedTableName);
     }
 
     private String getTruncatedNamespace(TableReference tableRef) {
@@ -55,11 +55,12 @@ public class OracleTableNameMapper {
         return namespace.substring(0, TRUNCATED_NAMESPACE_LENGTH) + "_";
     }
 
-    private String getTableNumberSuffix(String truncatedTableName) {
+    private String getTableNumberSuffix(String fullTableName, String truncatedTableName) {
         int tableSuffixNumber = getNextTableNumber(truncatedTableName);
         if (tableSuffixNumber >= 100_000) {
-            throw new IllegalArgumentException("Cannot create any more tables with name starting with "
-                    + truncatedTableName + ". 100,000 tables have already been created.");
+            throw new IllegalArgumentException(
+                    "Cannot create any more tables with name starting with " + truncatedTableName
+                    + ". 100,000 tables might have already been created. Please rename the table." + fullTableName);
         }
         return "_" + String.format("%05d", tableSuffixNumber);
     }
@@ -68,7 +69,7 @@ public class OracleTableNameMapper {
         AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
                 "SELECT short_table_name "
                 + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
-                + " WHERE LOWER(short_table_name) LIKE LOWER('" + truncatedTableName + "_%')"
+                + " WHERE LOWER(short_table_name) LIKE LOWER('" + truncatedTableName + "!______%') ESCAPE '!'"
                 + " ORDER BY short_table_name DESC");
         if (results.size() == 0) {
             return 0;
