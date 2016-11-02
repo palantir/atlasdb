@@ -23,10 +23,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.console.AtlasConsoleMain;
 import com.palantir.atlasdb.dropwizard.AtlasDbConfigurationProvider;
 
@@ -72,12 +70,7 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
         // We do this here because there's no flag to connect to an offline
         // cluster in atlasdb-console (since this is passed in through bind)
         if (isCliRunningOffline(namespace)) {
-            cliConfiguration = ImmutableAtlasDbConfig.builder()
-                    .from(cliConfiguration)
-                    .leader(Optional.absent())
-                    .lock(Optional.absent())
-                    .timestamp(Optional.absent())
-                    .build();
+            cliConfiguration = cliConfiguration.toOfflineConfig()
         }
 
         List<String> allArgs = ImmutableList.<String>builder()
