@@ -35,7 +35,6 @@ import com.palantir.docker.compose.connection.DockerPort;
 
 public class DegradedClusterInitializationTest {
     private static final String CASSANDRA_NODE_TO_KILL = ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME;
-    private static final int CASSANDRA_PORT = ThreeNodeCassandraCluster.CASSANDRA_PORT;
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(DegradedClusterInitializationTest.class)
@@ -83,7 +82,9 @@ public class DegradedClusterInitializationTest {
     }
 
     private static void waitUntilCassandraIsListening(Container container) {
-        DockerPort containerPort = new DockerPort(container.getContainerName(), CASSANDRA_PORT, CASSANDRA_PORT);
+        DockerPort containerPort = new DockerPort(container.getContainerName(),
+                CassandraContainer.CASSANDRA_PORT,
+                CassandraContainer.CASSANDRA_PORT);
         Awaitility.await()
                 .atMost(60, TimeUnit.SECONDS)
                 .until(containerPort::isListeningNow);

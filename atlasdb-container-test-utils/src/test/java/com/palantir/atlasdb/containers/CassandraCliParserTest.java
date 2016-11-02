@@ -20,7 +20,7 @@ import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 
-public class ThreeNodeCassandraClusterTest {
+public class CassandraCliParserTest {
     public static final String CORRUPT_STRING = "sodu89sydihusd:KSDNLSA";
 
     @Test
@@ -38,7 +38,7 @@ public class ThreeNodeCassandraClusterTest {
                 + "UN  172.30.0.2  1.87 MB    512          69.6%           "
                 + "  58b310df-5ce2-4565-a479-0ed37e69b04f  rack1";
 
-        assertThat(ThreeNodeCassandraCluster.parseNumberOfUpNodesFromNodetoolStatus(nodetoolStatus), is(3));
+        assertThat(CassandraCliParser.parseNumberOfUpNodesFromNodetoolStatus(nodetoolStatus), is(3));
     }
 
     @Test
@@ -56,12 +56,12 @@ public class ThreeNodeCassandraClusterTest {
                 + "UN  172.30.0.2  1.87 MB    512          69.6%           "
                 + "  58b310df-5ce2-4565-a479-0ed37e69b04f  rack1";
 
-        assertThat(ThreeNodeCassandraCluster.parseNumberOfUpNodesFromNodetoolStatus(nodetoolStatus), is(2));
+        assertThat(CassandraCliParser.parseNumberOfUpNodesFromNodetoolStatus(nodetoolStatus), is(2));
     }
 
     @Test
     public void parsesCorruptResponseFromNodetoolStatusSilently() {
-        assertThat(ThreeNodeCassandraCluster.parseNumberOfUpNodesFromNodetoolStatus(CORRUPT_STRING), is(0));
+        assertThat(CassandraCliParser.parseNumberOfUpNodesFromNodetoolStatus(CORRUPT_STRING), is(0));
     }
 
     @Test
@@ -79,7 +79,7 @@ public class ThreeNodeCassandraClusterTest {
                 + "| {\"replication_factor\":\"3\"}\n"
                 + "\n"
                 + "(3 rows)";
-        assertThat(ThreeNodeCassandraCluster.parseSystemAuthReplicationFromCqlsh(output), is(4));
+        assertThat(CassandraCliParser.parseSystemAuthReplicationFromCqlsh(output), is(4));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -97,7 +97,7 @@ public class ThreeNodeCassandraClusterTest {
                 + "| {\"replication_factor\":\"2\"}\n"
                 + "\n"
                 + "(3 rows)";
-        ThreeNodeCassandraCluster.parseSystemAuthReplicationFromCqlsh(output);
+        CassandraCliParser.parseSystemAuthReplicationFromCqlsh(output);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -115,12 +115,12 @@ public class ThreeNodeCassandraClusterTest {
                 + "| {\"replication_factor\":\"2\"}\n"
                 + "\n"
                 + "(3 rows)";
-        ThreeNodeCassandraCluster.parseSystemAuthReplicationFromCqlsh(output);
+        CassandraCliParser.parseSystemAuthReplicationFromCqlsh(output);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void parsingFailsWhenSystemAuthKeyspaceOutputCorrupt() {
-        ThreeNodeCassandraCluster.parseSystemAuthReplicationFromCqlsh(CORRUPT_STRING);
+        CassandraCliParser.parseSystemAuthReplicationFromCqlsh(CORRUPT_STRING);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -138,6 +138,6 @@ public class ThreeNodeCassandraClusterTest {
                 + "| {\"replication_factor\":\"2\"}\n"
                 + "\n"
                 + "(3 rows)";
-        ThreeNodeCassandraCluster.parseSystemAuthReplicationFromCqlsh(output);
+        CassandraCliParser.parseSystemAuthReplicationFromCqlsh(output);
     }
 }
