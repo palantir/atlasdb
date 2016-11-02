@@ -19,10 +19,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
-import com.google.common.base.Optional;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
-import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
@@ -66,12 +64,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
                     throw new IllegalArgumentException("Required option '-c' is missing");
                 }
                 if (offline) {
-                    config = ImmutableAtlasDbConfig.builder()
-                            .from(config)
-                            .leader(Optional.absent())
-                            .lock(Optional.absent())
-                            .timestamp(Optional.absent())
-                            .build();
+                    config = config.toOfflineConfig();
                 }
             } catch (IOException e) {
                 throw new RuntimeException(String.format("IOException thrown reading configuration file: %s",

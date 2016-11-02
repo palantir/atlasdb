@@ -39,12 +39,12 @@ public class HiddenTablesTest {
 
     @Test public void
     shouldSayAnOldStyleLocksTableIsHidden() {
-        assertThat(hiddenTables.isHidden(TableReference.createUnsafe("_locks")), is(true));
+        assertThat(hiddenTables.isHidden(TableReference.createWithEmptyNamespace("_locks")), is(true));
     }
 
     @Test public void
     shouldSayANewStyleLocksTableIsHidden() {
-        assertThat(hiddenTables.isHidden(TableReference.createUnsafe("_locks_aaaa_123")), is(true));
+        assertThat(hiddenTables.isHidden(TableReference.createWithEmptyNamespace("_locks_aaaa_123")), is(true));
     }
 
     @Test public void

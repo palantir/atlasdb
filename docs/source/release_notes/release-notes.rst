@@ -45,8 +45,12 @@ develop
          - Added a significant amount of logging aimed at tracking down the ``MultipleRunningTimestampServicesError``.
            If clients are hitting this error, then they should add trace logging for ``com.palantir.timestamp``.
            These logs can also be directed to a separate file, see the :ref:`documentation <logging-configuration>` for more details.
-
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1098>`__)
+
+    *    - |deprecated|
+         - ``TableReference.createUnsafe`` is now deprecated. ``createWithEmptyNamespace`` or ``createFromFullyQualifiedName`` should be used instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1121>`__)
+           
 
     *    - |improved|
          - Random redirection of queries when retrying a Cassandra operation now retries said queries on distinct
@@ -54,6 +58,11 @@ develop
            try the same operation on the same server(s).
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
+
+    *    - |new|
+         - The KVS migration command can now be run as an offline cli using the ``--offline`` flag.
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1149>`__)
 
     *    - |improved|
          - Substantially improved performance of the DbKvs implementation of the single-iterator version of getRowsColumnRange.
@@ -199,6 +208,27 @@ v0.20.0
            This is due to Oracle's restriction of not allowing table names with a leading underscore.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
+    *    - |improved|
+         - AtlasDB clients can start even if one Cassandra node is unreachable.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1045>`__).
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.20.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - No longer require the user to disable safety checks just to start up Atlas against a degraded Cassandra cluster.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1045>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -211,7 +241,6 @@ v0.19.0
 
     *    - Type
          - Change
-
     *    - |breaking|
          - Removed KeyValueService ``initializeFromFreshInstance``, ``tearDown``, and ``getRangeWithHistory``.
            It is likely all callers of tearDown just want to call close, and getRangeWithHistory has been replaced with ``getRangeOfTimestamps``.

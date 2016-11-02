@@ -234,7 +234,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         createTable(AtlasDbConstants.DEFAULT_METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
-        CassandraKeyValueServices.failQuickInInitializationIfClusterAlreadyInInconsistentState(
+        CassandraKeyValueServices.warnUserInInitializationIfClusterAlreadyInInconsistentState(
                 clientPool,
                 configManager.getConfig());
     }
@@ -248,12 +248,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     client.describe_keyspace(configManager.getConfig().keyspace()).getCf_defs());
 
             for (CfDef clusterSideCf : knownCfs) {
-                TableReference tableRef = fromInternalTableName(clusterSideCf.getName());
+                TableReference tableRef = tableReferenceFromCfDef(clusterSideCf);
                 if (metadataForTables.containsKey(tableRef)) {
                     byte[] clusterSideMetadata = metadataForTables.get(tableRef);
-                    CfDef clientSideCf = getCfForTable(
-                            fromInternalTableName(clusterSideCf.getName()),
-                            clusterSideMetadata);
+                    CfDef clientSideCf = getCfForTable(tableRef, clusterSideMetadata);
                     if (!ColumnFamilyDefinitions.isMatchingCf(clientSideCf, clusterSideCf)) {
                         // mismatch; we have changed how we generate schema since we last persisted
                         log.warn("Upgrading table {} to new internal Cassandra schema", tableRef);
@@ -1300,9 +1298,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
                     Set<TableReference> existingTables = Sets.newHashSet();
 
-                    for (CfDef cf : ks.getCf_defs()) {
-                        existingTables.add(fromInternalTableName(cf.getName()));
-                    }
+                    existingTables.addAll(ks.getCf_defs().stream()
+                            .map(cf -> tableReferenceFromCfDef(cf))
+                            .collect(Collectors.toList()));
 
                     for (TableReference table : tablesToDrop) {
                         CassandraVerifier.sanityCheckTableName(table);
@@ -1324,6 +1322,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } catch (UnavailableException e) {
             throw new PalantirRuntimeException("Dropping tables requires all Cassandra nodes to be up and available.");
         }
+    }
+
+    private TableReference tableReferenceFromCfDef(CfDef cf) {
+        return fromInternalTableName(cf.getName());
     }
 
     @Override
@@ -1409,7 +1411,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 CassandraVerifier.sanityCheckTableName(table);
 
                 TableReference tableRefLowerCased = TableReference
-                        .createUnsafe(table.getQualifiedName().toLowerCase());
+                        .createLowerCased(table);
                 if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
                     filteredTables.put(table, metadata);
                 } else {
@@ -1444,9 +1446,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
             CassandraKeyValueServices.waitForSchemaVersions(
                     client,
-                    "(all tables in a call to createTables)",
+                    "(a call to createTables, filtered down to create: " + tableNamesToTableMetadata.keySet() + ")",
                     configManager.getConfig().schemaMutationTimeoutMillis());
-
             return null;
         });
     }

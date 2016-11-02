@@ -26,6 +26,7 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -39,6 +40,7 @@ import com.palantir.common.base.Throwables;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
+import io.airlift.airline.OptionType;
 
 @Command(name = "migrate", description = "Migrate your data from one key value service to another.")
 public class KvsMigrationCommand implements Callable<Integer> {
@@ -88,6 +90,12 @@ public class KvsMigrationCommand implements Callable<Integer> {
             description = "Validate migration.")
     private boolean validate = false;
 
+    @Option(name = {"--offline"},
+            title = "OFFLINE",
+            type = OptionType.GLOBAL,
+            description = "run this cli offline")
+    private boolean offline = false;
+
     private static final Namespace CHECKPOINT_NAMESPACE = Namespace.create("kvs_migrate");
 
     @Override
@@ -130,13 +138,23 @@ public class KvsMigrationCommand implements Callable<Integer> {
         return 0;
 	}
 
+	private AtlasDbConfig makeOfflineIfNecessary(AtlasDbConfig atlasDbConfig) {
+        if (offline) {
+            return atlasDbConfig.toOfflineConfig();
+        } else {
+            return atlasDbConfig;
+        }
+    }
+
     public AtlasDbServices connectFromServices() throws IOException {
-        ServicesConfigModule scm = ServicesConfigModule.create(fromConfigFile, configRoot);
+        AtlasDbConfig fromConfig = AtlasDbConfigs.load(fromConfigFile, configRoot);
+        ServicesConfigModule scm = ServicesConfigModule.create(makeOfflineIfNecessary(fromConfig));
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
     public AtlasDbServices connectToServices() throws IOException {
-        ServicesConfigModule scm = ServicesConfigModule.create(toConfigFile, configRoot);
+        AtlasDbConfig toConfig = AtlasDbConfigs.load(toConfigFile, configRoot);
+        ServicesConfigModule scm = ServicesConfigModule.create(makeOfflineIfNecessary(toConfig));
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 

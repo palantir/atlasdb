@@ -156,8 +156,8 @@ public class TableTasksTest {
 
     @Test
     public void shouldAllowSameTablenameDifferentNamespace() {
-        TableReference fooBar = TableReference.createUnsafe("foo.bar");
-        TableReference bazBar = TableReference.createUnsafe("baz.bar");
+        TableReference fooBar = TableReference.createFromFullyQualifiedName("foo.bar");
+        TableReference bazBar = TableReference.createFromFullyQualifiedName("baz.bar");
 
         // try create table in same call
         kvs.createTables(
