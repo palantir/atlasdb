@@ -20,9 +20,7 @@ import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertThat;
 
 import org.junit.After;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -39,9 +37,6 @@ public class OracleTableNameMapperEteTest {
     private static final String TEST_PREFIX = "a_";
     private static final Namespace TEST_NAMESPACE = Namespace.create("test_namespace");
     private static final String LONG_TABLE_NAME = "ThisIsAVeryLongTableNameThatWillExceed";
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @After
     public void tearDown() {
