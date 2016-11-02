@@ -40,6 +40,7 @@ import com.palantir.common.base.Throwables;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
+import io.airlift.airline.OptionType;
 
 @Command(name = "migrate", description = "Migrate your data from one key value service to another.")
 public class KvsMigrationCommand implements Callable<Integer> {
@@ -91,6 +92,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
 
     @Option(name = {"--offline"},
             title = "OFFLINE",
+            type = OptionType.GLOBAL,
             description = "run this cli offline")
     private boolean offline = false;
 
