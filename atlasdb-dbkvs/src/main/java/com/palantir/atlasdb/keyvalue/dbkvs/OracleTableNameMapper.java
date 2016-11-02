@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
@@ -25,7 +26,7 @@ import com.palantir.nexus.db.sql.AgnosticResultSet;
 public class OracleTableNameMapper {
     public static final int ORACLE_MAX_TABLE_NAME_LENGTH = 30;
     public static final int SUFFIX_NUMBER_LENGTH = 6;
-    public static final int TRUNCATED_NAMESPACE_LENGTH = 2;
+    public static final int MAX_NAMESPACE_LENGTH = 2;
     private static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_MAX_TABLE_NAME_LENGTH - SUFFIX_NUMBER_LENGTH;
 
     private static ConnectionSupplier conns;
@@ -38,21 +39,28 @@ public class OracleTableNameMapper {
         Preconditions.checkState(tablePrefix.length() <= 7, "The tablePrefix can be at most 7 characters long");
 
         String fullTableName = tablePrefix + DbKvs.internalTableName(tableRef);
-        if (fullTableName.length() <= ORACLE_MAX_TABLE_NAME_LENGTH) {
+        if (fullTableName.length() <= PREFIXED_TABLE_NAME_LENGTH) {
             return fullTableName;
         }
 
-        String namespaceTruncatedName = tablePrefix + getTruncatedNamespace(tableRef) + tableRef.getTablename();
-        String truncatedTableName = namespaceTruncatedName.substring(0, PREFIXED_TABLE_NAME_LENGTH) ;
+        tableRef = truncateNamespace(tableRef);
+
+        String prefixedTableName = tablePrefix + DbKvs.internalTableName(tableRef);
+        String truncatedTableName = truncate(prefixedTableName, PREFIXED_TABLE_NAME_LENGTH);
         return truncatedTableName + getTableNumberSuffix(fullTableName, truncatedTableName);
     }
 
-    private String getTruncatedNamespace(TableReference tableRef) {
-        String namespace = tableRef.getNamespace().getName();
-        if (namespace.length() <= TRUNCATED_NAMESPACE_LENGTH) {
-            return namespace;
+    private TableReference truncateNamespace(TableReference tableRef) {
+        if (tableRef.getNamespace().isEmptyNamespace()) {
+            return tableRef;
         }
-        return namespace.substring(0, TRUNCATED_NAMESPACE_LENGTH) + "_";
+        String namespace = tableRef.getNamespace().getName();
+        namespace = truncate(namespace, MAX_NAMESPACE_LENGTH);
+        return TableReference.create(Namespace.create(namespace), tableRef.getTablename());
+    }
+
+    private String truncate(String name, int length) {
+        return name.substring(0, Math.min(name.length(), length));
     }
 
     private String getTableNumberSuffix(String fullTableName, String truncatedTableName) {
