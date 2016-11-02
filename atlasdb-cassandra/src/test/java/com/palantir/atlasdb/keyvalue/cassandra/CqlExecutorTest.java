@@ -41,12 +41,14 @@ import com.palantir.common.base.FunctionCheckedException;
 public class CqlExecutorTest {
 
     private static final byte[] KEY_1 = { 0, 0, 0 };
-    private static final byte[] KEY_2 = { 1, 0, 0 };
-    private static final byte[] KEY_3 = { 1, 1, 0 };
+    private static final byte[] KEY_2 = { 1, 1, 0 };
 
     private static final Range<CassandraClientPool.LightweightOppToken> DEFAULT_RANGE =
             Range.range(new CassandraClientPool.LightweightOppToken(KEY_1), BoundType.CLOSED,
-                    new CassandraClientPool.LightweightOppToken(KEY_3), BoundType.OPEN);
+                    new CassandraClientPool.LightweightOppToken(KEY_2), BoundType.OPEN);
+
+    private static final TableReference DEFAULT_TABLE_REFERENCE = TableReference.createWithEmptyNamespace("foo");
+    private static final int DEFAULT_ROW_LIMIT = 5;
 
     @Test
     public void shouldDirectQueriesToServerWithRelevantRowKey() {
@@ -59,7 +61,7 @@ public class CqlExecutorTest {
         cassandraClientPool.tokenMap = ImmutableRangeMap.of(DEFAULT_RANGE, ImmutableList.of(host1));
 
         CqlExecutor cqlExecutor = new CqlExecutor(cassandraClientPool, ConsistencyLevel.QUORUM);
-        cqlExecutor.getColumnsForRow(TableReference.createWithEmptyNamespace("foo"), KEY_2, 5);
+        cqlExecutor.getColumnsForRow(DEFAULT_TABLE_REFERENCE, KEY_1, DEFAULT_ROW_LIMIT);
 
         MockCassandraClientPoolUtils.verifyNumberOfAttemptsOnHost(cassandraClientPool, host1, 1);
     }
@@ -72,7 +74,7 @@ public class CqlExecutorTest {
                 setupMockCassandraClientPoolWithCqlResponses(ImmutableSet.of(host));
 
         CqlExecutor cqlExecutor = new CqlExecutor(cassandraClientPool, ConsistencyLevel.QUORUM);
-        cqlExecutor.getColumnsForRow(TableReference.createWithEmptyNamespace("foo"), KEY_2, 5);
+        cqlExecutor.getColumnsForRow(DEFAULT_TABLE_REFERENCE, KEY_1, DEFAULT_ROW_LIMIT);
     }
 
     @Test
@@ -85,18 +87,11 @@ public class CqlExecutorTest {
         }
         InetSocketAddress nonDataHost = new InetSocketAddress(numHostsWithData);
 
-        List<InetSocketAddress> allHosts = Lists.newArrayList(dataHosts);
-        allHosts.add(nonDataHost);
-
-        CassandraClientPool cassandraClientPool =
-                MockCassandraClientPoolUtils.throwingClientPoolWithServersInCurrentPool(
-                        ImmutableSet.copyOf(allHosts),
-                        new SocketTimeoutException());
-        cassandraClientPool.tokenMap = ImmutableRangeMap.of(DEFAULT_RANGE, ImmutableList.copyOf(dataHosts));
+        CassandraClientPool cassandraClientPool = setupMockCassandraClientPoolForConfig(dataHosts, nonDataHost);
 
         CqlExecutor cqlExecutor = new CqlExecutor(cassandraClientPool, ConsistencyLevel.QUORUM);
         try {
-            cqlExecutor.getColumnsForRow(TableReference.createWithEmptyNamespace("foo"), KEY_2, 5);
+            cqlExecutor.getColumnsForRow(DEFAULT_TABLE_REFERENCE, KEY_1, DEFAULT_ROW_LIMIT);
             fail();
         } catch (Exception exception) {
             // expected
@@ -115,18 +110,11 @@ public class CqlExecutorTest {
         }
         InetSocketAddress nonDataHost = new InetSocketAddress(numHostsWithData);
 
-        List<InetSocketAddress> allHosts = Lists.newArrayList(dataHosts);
-        allHosts.add(nonDataHost);
-
-        CassandraClientPool cassandraClientPool =
-                MockCassandraClientPoolUtils.throwingClientPoolWithServersInCurrentPool(
-                        ImmutableSet.copyOf(allHosts),
-                        new SocketTimeoutException());
-        cassandraClientPool.tokenMap = ImmutableRangeMap.of(DEFAULT_RANGE, ImmutableList.copyOf(dataHosts));
+        CassandraClientPool cassandraClientPool = setupMockCassandraClientPoolForConfig(dataHosts, nonDataHost);
 
         CqlExecutor cqlExecutor = new CqlExecutor(cassandraClientPool, ConsistencyLevel.QUORUM);
         try {
-            cqlExecutor.getColumnsForRow(TableReference.createWithEmptyNamespace("foo"), KEY_2, 5);
+            cqlExecutor.getColumnsForRow(DEFAULT_TABLE_REFERENCE, KEY_1, DEFAULT_ROW_LIMIT);
             fail();
         } catch (Exception exception) {
             // expected
@@ -135,6 +123,20 @@ public class CqlExecutorTest {
         dataHosts.forEach(dataHost ->
                 MockCassandraClientPoolUtils.verifySequenceOfHostAttempts(
                         cassandraClientPool, ImmutableList.of(dataHost, nonDataHost)));
+    }
+
+    private CassandraClientPool setupMockCassandraClientPoolForConfig(
+            List<InetSocketAddress> dataHosts,
+            InetSocketAddress nonDataHost) {
+        List<InetSocketAddress> allHosts = Lists.newArrayList(dataHosts);
+        allHosts.add(nonDataHost);
+
+        CassandraClientPool cassandraClientPool =
+                MockCassandraClientPoolUtils.throwingClientPoolWithServersInCurrentPool(
+                        ImmutableSet.copyOf(allHosts),
+                        new SocketTimeoutException());
+        cassandraClientPool.tokenMap = ImmutableRangeMap.of(DEFAULT_RANGE, ImmutableList.copyOf(dataHosts));
+        return cassandraClientPool;
     }
 
     private CassandraClientPool setupMockCassandraClientPoolWithCqlResponses(ImmutableSet<InetSocketAddress> hosts) {

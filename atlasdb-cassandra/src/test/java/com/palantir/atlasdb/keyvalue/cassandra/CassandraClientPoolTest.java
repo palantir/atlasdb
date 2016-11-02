@@ -103,7 +103,7 @@ public class CassandraClientPoolTest {
 
         Optional<CassandraClientPoolingContainer> container
                 = cassandraClientPool.getRandomGoodHostForPredicate(address -> false);
-        assertThat(container.isPresent(), is(false));
+        assertThat(container, is(Optional.empty()));
     }
 
     @Test
@@ -116,7 +116,6 @@ public class CassandraClientPoolTest {
         for (int i = 0; i < FUZZING_NUM_TRIALS; i++) {
             Optional<CassandraClientPoolingContainer> container
                     = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(host1));
-            assertThat(container.isPresent(), is(true));
             assertThat(container.get().getHost(), equalTo(host1));
         }
     }
@@ -131,7 +130,6 @@ public class CassandraClientPoolTest {
         cassandraClientPool.blacklistedHosts.put(host1, System.currentTimeMillis());
         Optional<CassandraClientPoolingContainer> container
                 = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(host1));
-        assertThat(container.isPresent(), is(true));
         assertThat(container.get().getHost(), equalTo(host1));
     }
 
@@ -147,7 +145,7 @@ public class CassandraClientPoolTest {
         assertThat(cassandraClientPool.getRandomUntriedPreferredHost(
                 ImmutableSet.of(host1), ImmutableSet.of(host1, host2)).get().getHost(), is(host2));
         assertThat(cassandraClientPool.getRandomUntriedPreferredHost(
-                ImmutableSet.of(host1, host2), ImmutableSet.of(host1, host2)).isPresent(), is(false));
+                ImmutableSet.of(host1, host2), ImmutableSet.of(host1, host2)), is(Optional.empty()));
     }
 
     @Test
@@ -158,9 +156,9 @@ public class CassandraClientPoolTest {
                 MockCassandraClientPoolUtils.clientPoolWithServersInCurrentPool(ImmutableSet.of(host1, host2));
 
         assertThat(cassandraClientPool.getRandomUntriedPreferredHost(
-                ImmutableSet.of(host1, host2), ImmutableSet.of(host1, host2)).isPresent(), is(false));
+                ImmutableSet.of(host1, host2), ImmutableSet.of(host1, host2)), is(Optional.empty()));
         assertThat(cassandraClientPool.getRandomUntriedPreferredHost(
-                ImmutableSet.of(host1, host2), ImmutableSet.of(host1)).isPresent(), is(false));
+                ImmutableSet.of(host1, host2), ImmutableSet.of(host1)), is(Optional.empty()));
     }
 
     @Test
@@ -183,8 +181,8 @@ public class CassandraClientPoolTest {
         CassandraClientPool cassandraClientPool =
                 MockCassandraClientPoolUtils.clientPoolWithServersInCurrentPool(ImmutableSet.of(host1, host2));
 
-        assertThat(cassandraClientPool.getRandomUntriedHost(ImmutableSet.of(host1, host2)).isPresent(),
-                is(false));
+        assertThat(cassandraClientPool.getRandomUntriedHost(ImmutableSet.of(host1, host2)),
+                is(Optional.empty()));
     }
 
     @Test
@@ -264,9 +262,9 @@ public class CassandraClientPoolTest {
                             new CassandraClientPool.LightweightOppToken(KEY_3), BoundType.OPEN),
                 hostList);
 
-        assertThat(cassandraClientPool.getHostsForKey(KEY_1).get(), is(hostList));
-        assertThat(cassandraClientPool.getHostsForKey(KEY_2).get(), is(hostList));
-        assertThat(cassandraClientPool.getHostsForKey(KEY_3).isPresent(), is(false));
+        assertThat(cassandraClientPool.getHostsForKey(KEY_1), is(Optional.of(hostList)));
+        assertThat(cassandraClientPool.getHostsForKey(KEY_2), is(Optional.of(hostList)));
+        assertThat(cassandraClientPool.getHostsForKey(KEY_3), is(Optional.empty()));
     }
 
     @Test
@@ -276,7 +274,7 @@ public class CassandraClientPoolTest {
         CassandraClientPool cassandraClientPool =
                 MockCassandraClientPoolUtils.clientPoolWithServersInCurrentPool(ImmutableSet.of(host1, host2));
 
-        assertThat(cassandraClientPool.getHostsForKey(KEY_1).isPresent(), is(false));
+        assertThat(cassandraClientPool.getHostsForKey(KEY_1), is(Optional.empty()));
     }
 
     @Test

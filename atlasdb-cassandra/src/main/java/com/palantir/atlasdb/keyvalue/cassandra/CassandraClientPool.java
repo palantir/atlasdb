@@ -476,8 +476,7 @@ public class CassandraClientPool {
 
     public <V, K extends Exception> V runWithRetryOnHost(
             InetSocketAddress specifiedHost,
-            FunctionCheckedException<Cassandra.Client, V, K> fn
-    ) throws K {
+            FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
         return runWithRetryOnHost(specifiedHost, fn, ImmutableSet.of());
     }
 
@@ -532,7 +531,7 @@ public class CassandraClientPool {
     Optional<CassandraClientPoolingContainer> getRandomUntriedPreferredHost(Set<InetSocketAddress> triedHosts,
                                                                             Set<InetSocketAddress> preferredHosts) {
         return getRandomGoodHostForPredicate(
-                address -> preferredHosts.contains(address) && !triedHosts.contains(address));
+                address -> !triedHosts.contains(address) && preferredHosts.contains(address));
     }
 
     @VisibleForTesting
