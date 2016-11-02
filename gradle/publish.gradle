@@ -23,7 +23,7 @@ publishing {
             artifact(testJar) {
                 classifier 'tests'
             }
-            version project.version.replaceAll(/-\d+.*/, (circleBuildNum ? '.b' + circleBuildNum : '') + '-SNAPSHOT')
+            // version project.version.replaceAll(/-\d+.*/, (circleBuildNum ? '.b' + circleBuildNum : '') + '-SNAPSHOT')
             pom.withXml {
                 def scm = asNode().appendNode('scm')
                 scm.appendNode('url', 'https://github.com/palantir/atlasdb')
@@ -62,9 +62,9 @@ bintrayUpload.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar',
 
 artifactory {
     publish {
-        contextUrl = 'https://oss.jfrog.org/artifactory/'
+        contextUrl = System.env.ARTIFACTORY_URL
         repository {
-            repoKey = 'oss-snapshot-local'
+            repoKey = System.env.ARTIFACTORY_REPO
             username = System.env.ARTIFACTORY_USERNAME
             password = System.env.ARTIFACTORY_PASSWORD
             maven = true
@@ -77,6 +77,6 @@ artifactory {
 }
 
 artifactoryPublish.onlyIf {
-  System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD') && !(project.version ==~ releaseVersionRegex)
+  System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD') && System.getenv('ARTIFACTORY_REPO') && System.getenv('ARTIFACTORY_URL') && !(project.version ==~ releaseVersionRegex)
 }
 artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
