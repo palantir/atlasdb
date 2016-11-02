@@ -55,9 +55,10 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
 
-   *    - |improved|
+    *   - |improved|
         - We now support Oracle for products with all valid schemas. Oracle table names exceeding 30 characters are now
           mapped to shorter names by truncating and appending a sequence number.
+          See :ref:`oracle_table_mapping` for details on how table names are mapped.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/1076>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>

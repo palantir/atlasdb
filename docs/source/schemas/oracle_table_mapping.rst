@@ -1,3 +1,5 @@
+.. _oracle_table_mapping:
+
 ====================
 Oracle Table Mapping
 ====================
