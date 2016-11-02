@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
@@ -40,6 +41,6 @@ class OracleTableNameUnmapper {
                     "The table " + fullTableName + " does not have a mapping."
                     + "This might be because the table does not exist.");
         }
-        return results.get(0).getString("short_table_name");
+        return Iterables.getOnlyElement(results.rows()).getString("short_table_name");
     }
 }

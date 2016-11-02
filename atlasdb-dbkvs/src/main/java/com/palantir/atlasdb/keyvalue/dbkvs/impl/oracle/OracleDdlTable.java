@@ -144,8 +144,8 @@ public final class OracleDdlTable implements DbDdlTable {
         }
 
         conns.get().executeUnregisteredQuery(
-                "DELETE FROM " + config.metadataTable().getQualifiedName()
-                + " WHERE table_name = ?", tableRef.getQualifiedName());
+                "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
+                tableRef.getQualifiedName());
     }
 
     private void dropTableInternal(String fullTableName, String shortTableName) {
@@ -213,7 +213,7 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     private String getPrimaryKeyConstraintName(String tableName) {
-        final String primaryKeyConstraintPrefix = "pk_";
+        String primaryKeyConstraintPrefix = "pk_";
         return primaryKeyConstraintPrefix + tableName.substring(primaryKeyConstraintPrefix.length());
     }
 }
