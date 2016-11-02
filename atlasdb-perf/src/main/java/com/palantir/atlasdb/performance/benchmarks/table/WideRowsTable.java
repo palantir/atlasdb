@@ -20,9 +20,6 @@ import org.openjdk.jmh.annotations.State;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-/**
- * State class for creating a single Atlas table with one wide row.
- */
 @State(Scope.Benchmark)
 public class WideRowsTable extends AbstractWideRowsTable {
     public static final int NUM_ROWS = 10000;
