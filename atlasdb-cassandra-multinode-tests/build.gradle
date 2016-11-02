@@ -13,5 +13,5 @@ dependencies {
     testCompile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
 
     testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
-    testCompile group: 'com.google.code.findbugs', name: 'annotations', version: libVersions.findbugsAnnotations
+    testCompile group: 'com.google.code.findbugs', name: 'annotations'
 }

@@ -8,7 +8,7 @@ dependencies {
 
   testCompile 'org.mockito:mockito-core:' + libVersions.mockito
   testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
-  testCompile 'junit:junit:' + libVersions.junit
+  testCompile group: 'junit', name: 'junit'
 }
 
 test {

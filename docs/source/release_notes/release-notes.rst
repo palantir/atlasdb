@@ -49,6 +49,13 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1098>`__)
 
     *    - |improved|
+         - Random redirection of queries when retrying a Cassandra operation now retries said queries on distinct
+           hosts. Previously, this would independently select hosts randomly, meaning that we might unintentionally
+           try the same operation on the same server(s).
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
+
+    *    - |improved|
          - Substantially improved performance of the DbKvs implementation of the single-iterator version of getRowsColumnRange.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1132>`__)
 
@@ -76,12 +83,19 @@ v0.22.0
          - Fixed an issue where some locks were not being tracked for continuous refreshing due to one of the lock methods not being overridden by the ``LockRefreshingLockService``.
            This resulted in locks that appeared to be refreshed properly, but then would mysteriously time out at the end of a long-running operation.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1134>`__)
+    *    - |improved|
+         - Actions performed by the ``Scrubber`` are now logged at debug instead of info.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1137>`__)
 
     *    - |improved|
          - Sweep no longer immediately falls back to a ``sweepBatchSize`` of 1 after receiving an error.
 
            See :ref:`sweep tuning <sweep_tunable_parameters>` documentation for more information on sweep tuning parameters.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1093>`__)
+
+    *    - |fixed|
+         - Fixed an issue where leader election threads were not correctly marked as daemon threads.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1138>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
