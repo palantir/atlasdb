@@ -55,9 +55,11 @@ develop
     *    - |improved|
          - Random redirection of queries when retrying a Cassandra operation now retries said queries on distinct
            hosts. Previously, this would independently select hosts randomly, meaning that we might unintentionally
-           try the same operation on the same server(s).
+           try the same operation on the same server(s). Furthermore, for queries targeting specific keys, we also
+           now prioritise the other Cassandra nodes that own that key first in the retry order, to save on unnecessary
+           internode communication.
 
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1139>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1153>`__)
 
     *    - |new|
          - The KVS migration command can now be run as an offline cli using the ``--offline`` flag.

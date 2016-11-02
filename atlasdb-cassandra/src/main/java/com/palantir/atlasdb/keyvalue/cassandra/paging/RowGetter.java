@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.paging;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.ColumnParent;
@@ -28,6 +29,8 @@ import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SliceRange;
 import org.apache.cassandra.thrift.UnavailableException;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -59,6 +62,8 @@ public class RowGetter {
     public List<KeySlice> getRows(KeyRange keyRange) throws Exception {
         ColumnParent colFam = new ColumnParent(CassandraKeyValueService.internalTableName(tableRef));
         InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
+        Set<InetSocketAddress> preferredBackupHosts = ImmutableSet.copyOf(
+                clientPool.getHostsForKey(keyRange.getStart_key()).orElse(ImmutableList.of()));
         return clientPool.runWithRetryOnHost(
                 host,
                 new FunctionCheckedException<Cassandra.Client, List<KeySlice>, Exception>() {
@@ -81,7 +86,8 @@ public class RowGetter {
                     public String toString() {
                         return "get_range_slices(" + colFam + ")";
                     }
-                });
+                },
+                preferredBackupHosts);
     }
 
     private SlicePredicate getSlicePredicate() {

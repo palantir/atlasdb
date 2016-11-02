@@ -297,9 +297,9 @@ public class CassandraClientPool {
     }
 
     public InetSocketAddress getRandomHostForKey(byte[] key) {
-        List<InetSocketAddress> hostsForKey = tokenMap.get(new LightweightOppToken(key));
+        Optional<List<InetSocketAddress>> hostsForKey = getHostsForKey(key);
 
-        if (hostsForKey == null) {
+        if (!hostsForKey.isPresent()) {
             log.debug("We attempted to route your query to a cassandra host that already contains the relevant data."
                     + " However, the mapping of which host contains which data is not available yet."
                     + " We will choose a random host instead.");
@@ -307,7 +307,7 @@ public class CassandraClientPool {
         }
 
         Set<InetSocketAddress> liveOwnerHosts = Sets.difference(
-                ImmutableSet.copyOf(hostsForKey),
+                ImmutableSet.copyOf(hostsForKey.get()),
                 blacklistedHosts.keySet());
 
         if (liveOwnerHosts.isEmpty()) {
@@ -319,6 +319,10 @@ public class CassandraClientPool {
         } else {
             return getRandomHostByActiveConnections(Maps.filterKeys(currentPools, liveOwnerHosts::contains));
         }
+    }
+
+    public Optional<List<InetSocketAddress>> getHostsForKey(byte[] key) {
+        return Optional.ofNullable(tokenMap.get(new LightweightOppToken(key)));
     }
 
     private static InetSocketAddress getRandomHostByActiveConnections(
@@ -473,6 +477,13 @@ public class CassandraClientPool {
     public <V, K extends Exception> V runWithRetryOnHost(
             InetSocketAddress specifiedHost,
             FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
+        return runWithRetryOnHost(specifiedHost, fn, ImmutableSet.of());
+    }
+
+    public <V, K extends Exception> V runWithRetryOnHost(
+            InetSocketAddress specifiedHost,
+            FunctionCheckedException<Cassandra.Client, V, K> fn,
+            Set<InetSocketAddress> preferredHosts) throws K {
         int numTries = 0;
         boolean shouldRetryOnDifferentHost = false;
         Set<InetSocketAddress> triedHosts = Sets.newHashSet();
@@ -483,10 +494,8 @@ public class CassandraClientPool {
             CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
 
             if (blacklistedHosts.containsKey(specifiedHost) || hostPool == null || shouldRetryOnDifferentHost) {
-                log.warn("Randomly redirected a query intended for host {}.", specifiedHost);
-                Optional<CassandraClientPoolingContainer> hostPoolCandidate
-                        = getRandomGoodHostForPredicate(address -> !triedHosts.contains(address));
-                hostPool = hostPoolCandidate.orElseGet(this::getRandomGoodHost);
+                log.warn("Redirecting a query intended for host {}.", specifiedHost);
+                hostPool = getRedirectTarget(triedHosts, preferredHosts);
             }
 
             try {
@@ -508,6 +517,26 @@ public class CassandraClientPool {
                 }
             }
         }
+    }
+
+    @VisibleForTesting
+    CassandraClientPoolingContainer getRedirectTarget(Set<InetSocketAddress> triedHosts,
+                                                      Set<InetSocketAddress> preferredHosts) {
+        return getRandomUntriedPreferredHost(triedHosts, preferredHosts)
+                .orElse(getRandomUntriedHost(triedHosts)
+                        .orElse(getRandomGoodHost()));
+    }
+
+    @VisibleForTesting
+    Optional<CassandraClientPoolingContainer> getRandomUntriedPreferredHost(Set<InetSocketAddress> triedHosts,
+                                                                            Set<InetSocketAddress> preferredHosts) {
+        return getRandomGoodHostForPredicate(
+                address -> !triedHosts.contains(address) && preferredHosts.contains(address));
+    }
+
+    @VisibleForTesting
+    Optional<CassandraClientPoolingContainer> getRandomUntriedHost(Set<InetSocketAddress> triedHosts) {
+        return getRandomGoodHostForPredicate(address -> !triedHosts.contains(address));
     }
 
     public <V, K extends Exception> V run(FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
