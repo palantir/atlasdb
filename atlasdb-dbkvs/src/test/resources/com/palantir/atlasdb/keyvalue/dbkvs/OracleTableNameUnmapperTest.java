@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
@@ -53,12 +52,7 @@ public class OracleTableNameUnmapperTest {
         SqlConnection sqlConnection = mock(SqlConnection.class);
         when(connectionSupplier.get()).thenReturn(sqlConnection);
 
-        AgnosticResultSet resultSet = mock(AgnosticResultSet.class);
-        when(sqlConnection
-                .selectResultSetUnregisteredQuery(
-                        startsWith("SELECT short_table_name FROM atlasdb_table_names WHERE table_name"), anyObject()))
-                .thenReturn(resultSet);
-        when(resultSet.size()).thenReturn(0);
+        setupResultSetForSqlConnection(sqlConnection, 0);
 
         TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
         expectedException.expect(TableMappingNotFoundException.class);
@@ -74,12 +68,7 @@ public class OracleTableNameUnmapperTest {
         SqlConnection sqlConnection = mock(SqlConnection.class);
         when(connectionSupplier.get()).thenReturn(sqlConnection);
 
-        AgnosticResultSet resultSet = mock(AgnosticResultSet.class);
-        when(sqlConnection
-                .selectResultSetUnregisteredQuery(
-                        startsWith("SELECT short_table_name FROM atlasdb_table_names WHERE table_name"), anyObject()))
-                .thenReturn(resultSet);
-        when(resultSet.size()).thenReturn(1);
+        AgnosticResultSet resultSet = setupResultSetForSqlConnection(sqlConnection, 1);
 
         AgnosticResultRow row = mock(AgnosticResultRow.class);
         when(resultSet.get(eq(0))).thenReturn(row);
@@ -88,5 +77,15 @@ public class OracleTableNameUnmapperTest {
         TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
         String shortName = oracleTableNameUnmapper.getShortTableNameFromMappingTable(TEST_PREFIX, tableRef);
         assertThat(shortName, is(SHORT_TABLE_NAME));
+    }
+
+    private AgnosticResultSet setupResultSetForSqlConnection(SqlConnection sqlConnection, int resultSize) {
+        AgnosticResultSet resultSet = mock(AgnosticResultSet.class);
+        when(sqlConnection
+                .selectResultSetUnregisteredQuery(
+                        startsWith("SELECT short_table_name FROM atlasdb_table_names WHERE table_name"), anyObject()))
+                .thenReturn(resultSet);
+        when(resultSet.size()).thenReturn(resultSize);
+        return resultSet;
     }
 }

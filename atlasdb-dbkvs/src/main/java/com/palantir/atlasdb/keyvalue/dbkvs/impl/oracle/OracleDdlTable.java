@@ -77,6 +77,18 @@ public class OracleDdlTable implements DbDdlTable {
             needsOverflow = metadata.getColumns().getMaxValueSize() > 2000;
         }
 
+        createTable(needsOverflow);
+        if (needsOverflow && config.overflowMigrationState() != OverflowMigrationState.UNSTARTED) {
+            createOverflowTable();
+        }
+
+        conns.get().insertOneUnregisteredQuery(
+                "INSERT INTO " + config.metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)",
+                tableRef.getQualifiedName(),
+                needsOverflow ? TableSize.OVERFLOW.getId() : TableSize.RAW.getId());
+    }
+
+    private void createTable(boolean needsOverflow) {
         String shortTableName = oracleTableNameGetter.generateShortTableName();
         executeIgnoringError(
                 "CREATE TABLE " + shortTableName + " ("
@@ -90,23 +102,18 @@ public class OracleDdlTable implements DbDdlTable {
                 + ") organization index compress overflow",
                 ORACLE_ALREADY_EXISTS_ERROR);
         putTableNameMapping(oracleTableNameGetter.getPrefixedTableName(), shortTableName);
+    }
 
-        if (needsOverflow && config.overflowMigrationState() != OverflowMigrationState.UNSTARTED) {
-            final String shortOverflowTableName = oracleTableNameGetter.generateShortOverflowTableName();
-            executeIgnoringError(
-                    "CREATE TABLE " + shortOverflowTableName + " ("
-                    + "  id  NUMBER(38) NOT NULL, "
-                    + "  val BLOB NOT NULL,"
-                    + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortOverflowTableName) + " PRIMARY KEY (id)"
-                    + ")",
-                    ORACLE_ALREADY_EXISTS_ERROR);
-            putTableNameMapping(oracleTableNameGetter.getPrefixedOverflowTableName(), shortOverflowTableName);
-        }
-
-        conns.get().insertOneUnregisteredQuery(
-                "INSERT INTO " + config.metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)",
-                tableRef.getQualifiedName(),
-                needsOverflow ? TableSize.OVERFLOW.getId() : TableSize.RAW.getId());
+    private void createOverflowTable() {
+        final String shortOverflowTableName = oracleTableNameGetter.generateShortOverflowTableName();
+        executeIgnoringError(
+                "CREATE TABLE " + shortOverflowTableName + " ("
+                        + "  id  NUMBER(38) NOT NULL, "
+                        + "  val BLOB NOT NULL,"
+                        + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortOverflowTableName) + " PRIMARY KEY (id)"
+                        + ")",
+                ORACLE_ALREADY_EXISTS_ERROR);
+        putTableNameMapping(oracleTableNameGetter.getPrefixedOverflowTableName(), shortOverflowTableName);
     }
 
     private void putTableNameMapping(String fullTableName, String shortTableName) {

@@ -75,7 +75,7 @@ public class OracleDbTableFactory implements DbTableFactory {
         try {
              return oracleTableNameGetter.getInternalShortTableName();
         } catch (TableMappingNotFoundException e) {
-            throw new RuntimeException(e);
+            throw Throwables.propagate(e);
         }
     }
 
