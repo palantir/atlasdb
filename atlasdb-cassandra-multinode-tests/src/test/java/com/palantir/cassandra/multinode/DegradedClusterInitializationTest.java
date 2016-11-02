@@ -65,7 +65,7 @@ public class DegradedClusterInitializationTest {
         killFirstCassandraNode();
 
         // startup checks aren't guaranteed to pass immediately after killing the node, so we wait until
-        // they do. unclear if this is an AtlasDB product problem
+        // they do. unclear if this is an AtlasDB product problem. see #1154
         waitUntilStartupChecksPass();
     }
 
