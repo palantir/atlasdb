@@ -50,8 +50,8 @@ public class DegradedClusterInitializationTest {
         CONTAINERS.waitForContainersToStart();
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void creatingCassandraKvsShouldFail()  {
+    @Test
+    public void canCreateCassandraKvs()  {
         createCassandraKeyValueService();
     }
 
