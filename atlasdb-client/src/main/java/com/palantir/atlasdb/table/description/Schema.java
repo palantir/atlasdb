@@ -67,6 +67,7 @@ public class Schema {
     private final String name;
     private final String packageName;
     private final Namespace namespace;
+    private final TableRenderer.OptionalType optionalType;
 
     private final Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
     private final Map<String, TableDefinition> tempTableDefinitions = Maps.newHashMap();
@@ -78,6 +79,10 @@ public class Schema {
     // for code generation purposes.
     private final ListMultimap<String, String> indexesByTable = ArrayListMultimap.create();
 
+    public static Schema withJavaOptionals(String name, String packageName, Namespace namespace) {
+        return new Schema(name, packageName, namespace, TableRenderer.OptionalType.JAVA);
+    }
+
     public Schema(Namespace namespace) {
         this(null, null, namespace);
     }
@@ -87,9 +92,14 @@ public class Schema {
     }
 
     public Schema(String name, String packageName, Namespace namespace) {
+        this(name, packageName, namespace, TableRenderer.OptionalType.GUAVA);
+    }
+
+    public Schema(String name, String packageName, Namespace namespace, TableRenderer.OptionalType optionalType) {
         this.name = name;
         this.packageName = packageName;
         this.namespace = namespace;
+        this.optionalType = optionalType;
     }
 
     public void addTableDefinition(String tableName, TableDefinition definition) {

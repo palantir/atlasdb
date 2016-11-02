@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.table.description.render;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -117,12 +118,29 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 public class TableRenderer {
+    public enum OptionalType {
+        GUAVA("absent"),
+        JAVA("empty");
+
+        private final String nullMethod;
+
+        OptionalType(String nullMethod) {
+            this.nullMethod = nullMethod;
+        }
+
+        public String nullMethod() {
+            return nullMethod;
+        }
+    }
+
     private final String packageName;
     private final Namespace namespace;
+    private final OptionalType optionalType;
 
     public TableRenderer(String packageName, Namespace namespace) {
         this.packageName = Preconditions.checkNotNull(packageName);
         this.namespace = Preconditions.checkNotNull(namespace);
+        this.optionalType = OptionalType.GUAVA;
     }
 
     public String getClassName(String rawTableName, TableDefinition table) {
@@ -192,7 +210,7 @@ public class TableRenderer {
         @Override
         protected void run() {
             ImportRenderer importRenderer = new ImportRenderer(this,
-                    Arrays.asList(IMPORTS));
+                    getImports());
             if (!isNestedIndex) {
                 line("package ", packageName, ";");
                 line();
@@ -1052,7 +1070,7 @@ public class TableRenderer {
                 line("byte[] bytes = row.persistToBytes();");
                 line("RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);");
                 line("if (rowResult == null) {"); {
-                    line("return Optional.absent();");
+                    line("return Optional.", optionalType.nullMethod(), "();");
                 } line("} else {"); {
                     line("return Optional.of(", RowResult, ".of(rowResult));");
                 } line("}");
@@ -1270,6 +1288,22 @@ public class TableRenderer {
         }
     }
 
+    private List<Class<?>> getImports() {
+        List<Class<?>> classes = Lists.newArrayList();
+        classes.addAll(Arrays.asList(IMPORTS));
+        switch (optionalType) {
+            case GUAVA:
+                classes.add(Optional.class);
+                break;
+            case JAVA:
+                classes.add(java.util.Optional.class);
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown optionalType!");
+        }
+        return classes;
+    }
+
     // ================================================== //
     // Nothing after this point should have side-effects. //
     // ================================================== //
@@ -1363,7 +1397,6 @@ public class TableRenderer {
         Throwables.class,
         ImmutableList.class,
         UnsignedBytes.class,
-        Optional.class,
         Collections2.class,
         Arrays.class,
         Bytes.class,

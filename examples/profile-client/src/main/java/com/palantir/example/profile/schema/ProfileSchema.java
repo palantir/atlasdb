@@ -38,7 +38,7 @@ public class ProfileSchema implements AtlasSchema {
     private static final Schema PROFILE_SCHEMA = generateSchema();
 
     private static Schema generateSchema() {
-        Schema schema = new Schema("Profile",
+        Schema schema = Schema.withJavaOptionals("Profile",
                 ProfileSchema.class.getPackage().getName() + ".generated",
                 Namespace.DEFAULT_NAMESPACE);
 
