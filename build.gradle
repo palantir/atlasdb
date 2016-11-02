@@ -16,6 +16,8 @@ buildscript {
         classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.4.4'
         classpath 'com.palantir:gradle-baseline-java:0.7.1'
         classpath 'com.palantir:jacoco-coverage:0.4.0'
+        classpath 'com.netflix.nebula:nebula-dependency-recommender:3.6.3'
+        classpath 'com.netflix.nebula:nebula-publishing-plugin:4.9.1'
         classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0'
     }
 }
@@ -50,9 +52,24 @@ jacoco {
     toolVersion = libVersions.jacoco
 }
 
+allprojects {
+    apply plugin: 'nebula.dependency-recommender'
+
+    dependencyRecommendations {
+        strategy OverrideTransitives
+        propertiesFile file: project.rootProject.file('versions.props')
+    }
+
+    configurations.all {
+        resolutionStrategy {
+            failOnVersionConflict()
+        }
+    }
+}
+
 subprojects {
-  apply plugin: 'com.palantir.configuration-resolver'
-  task allDeps(type: DependencyReportTask) {}
+    apply plugin: 'com.palantir.configuration-resolver'
+    task allDeps(type: DependencyReportTask) {}
 }
 
 apply from: 'idea.gradle'

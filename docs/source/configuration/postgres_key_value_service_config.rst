@@ -73,5 +73,6 @@ An example is shown below; for full documentation on which parameters are availa
       # as above - skipped for brevity
       connection:
         # as above - skipped for brevity
-        connectionParameters: # JDBC connection parameters
+        connectionParameters: # optional JDBC connection parameters
           defaultRowFetchSize: 100 # Default: unlimited. Adjusts the number of rows fetched in each database request.
+          ssl: true # specify if using postgres with ssl enabled

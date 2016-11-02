@@ -32,9 +32,9 @@ throw rather than returning the wrong data. Returning data that
 represents a state of the world that isn't the snapshot it's reading
 would totally break the transactional guarantees we want.
 
-So we achieve this by writing an empty byte array at the ``-1``
+We achieve this by writing an empty byte array at the ``-1``
 timestamp called the sentinel value. Then we delete any data we think
-should be cleaned up. Now if a transaction reads the sentinel value, it
+should be cleaned up. Now, if a transaction reads the sentinel value, it
 knows that it is missing data that it should have read. We throw in this
 case rather than allowing inconsistent reads.
 

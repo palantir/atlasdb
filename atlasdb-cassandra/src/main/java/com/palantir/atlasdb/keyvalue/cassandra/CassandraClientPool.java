@@ -27,11 +27,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Cassandra;
@@ -88,8 +90,10 @@ public class CassandraClientPool {
      * This is the maximum number of times we'll accept connection failures to one host before blacklisting it. Note
      * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
      */
-    private static final int MAX_TRIES_SAME_HOST = 3;
-    private static final int MAX_TRIES_TOTAL = 6;
+    @VisibleForTesting
+    static final int MAX_TRIES_SAME_HOST = 3;
+    @VisibleForTesting
+    static final int MAX_TRIES_TOTAL = 6;
 
     volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
     Map<InetSocketAddress, Long> blacklistedHosts = Maps.newConcurrentMap();
@@ -264,16 +268,32 @@ public class CassandraClientPool {
     }
 
     private CassandraClientPoolingContainer getRandomGoodHost() {
+        return getRandomGoodHostForPredicate(address -> true).orElseThrow(
+                () -> new IllegalStateException("No hosts available."));
+    }
+
+    @VisibleForTesting
+    Optional<CassandraClientPoolingContainer> getRandomGoodHostForPredicate(Predicate<InetSocketAddress> predicate) {
         Map<InetSocketAddress, CassandraClientPoolingContainer> pools = currentPools;
 
-        Set<InetSocketAddress> livingHosts = Sets.difference(pools.keySet(), blacklistedHosts.keySet());
-        if (livingHosts.isEmpty()) {
-            log.error("There are no known live hosts in the connection pool. We're choosing"
-                    + " one at random in a last-ditch attempt at forward progress.");
-            livingHosts = pools.keySet();
+        Set<InetSocketAddress> filteredHosts = pools.keySet().stream()
+                .filter(predicate)
+                .collect(Collectors.toSet());
+        if (filteredHosts.isEmpty()) {
+            log.error("No hosts match the provided predicate.");
+            return Optional.empty();
         }
 
-        return pools.get(getRandomHostByActiveConnections(Maps.filterKeys(currentPools, livingHosts::contains)));
+        Set<InetSocketAddress> livingHosts = Sets.difference(filteredHosts, blacklistedHosts.keySet());
+        if (livingHosts.isEmpty()) {
+            log.error("There are no known live hosts in the connection pool matching the predicate. We're choosing"
+                    + " one at random in a last-ditch attempt at forward progress.");
+            livingHosts = filteredHosts;
+        }
+
+        InetSocketAddress randomLivingHost = getRandomHostByActiveConnections(
+                Maps.filterKeys(currentPools, livingHosts::contains));
+        return Optional.ofNullable(pools.get(randomLivingHost));
     }
 
     public InetSocketAddress getRandomHostForKey(byte[] key) {
@@ -455,6 +475,7 @@ public class CassandraClientPool {
             FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
         int numTries = 0;
         boolean shouldRetryOnDifferentHost = false;
+        Set<InetSocketAddress> triedHosts = Sets.newHashSet();
         while (true) {
             if (log.isTraceEnabled()) {
                 log.trace("Running function on host {}.", specifiedHost.getHostString());
@@ -463,13 +484,16 @@ public class CassandraClientPool {
 
             if (blacklistedHosts.containsKey(specifiedHost) || hostPool == null || shouldRetryOnDifferentHost) {
                 log.warn("Randomly redirected a query intended for host {}.", specifiedHost);
-                hostPool = getRandomGoodHost();
+                Optional<CassandraClientPoolingContainer> hostPoolCandidate
+                        = getRandomGoodHostForPredicate(address -> !triedHosts.contains(address));
+                hostPool = hostPoolCandidate.orElseGet(this::getRandomGoodHost);
             }
 
             try {
                 return hostPool.runWithPooledResource(fn);
             } catch (Exception e) {
                 numTries++;
+                triedHosts.add(hostPool.getHost());
                 this.<K>handleException(numTries, hostPool.getHost(), e);
                 if (isRetriableWithBackoffException(e)) {
                     log.warn("Retrying with backoff a query intended for host {}.", hostPool.getHost(), e);
