@@ -513,12 +513,6 @@ public abstract class AbstractAtlasDbKeyValueServiceTest {
     }
 
     @Test
-    public void testCanSameTableMultipleTimes() {
-        keyValueService.dropTable(TEST_TABLE);
-        keyValueService.dropTable(TEST_TABLE);
-    }
-
-    @Test
     public void testTableMetadata() {
         assertEquals(AtlasDbConstants.GENERIC_TABLE_METADATA.length, keyValueService.getMetadataForTable(TEST_TABLE).length);
         keyValueService.putMetadataForTable(TEST_TABLE, ArrayUtils.EMPTY_BYTE_ARRAY);
