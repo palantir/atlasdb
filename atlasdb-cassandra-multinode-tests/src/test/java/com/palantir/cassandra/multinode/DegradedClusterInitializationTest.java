@@ -39,8 +39,8 @@ public class DegradedClusterInitializationTest {
             .with(new ThreeNodeCassandraCluster());
 
     @BeforeClass
-    public static void createKvsAndDegradeCluster() throws IOException, InterruptedException {
-        createCassandraKeyValueService();
+    public static void initializeKvsAndDegradeCluster() throws IOException, InterruptedException {
+        createAndDiscardCassandraKvs();
         degradeCassandraCluster();
     }
 
@@ -52,10 +52,10 @@ public class DegradedClusterInitializationTest {
 
     @Test
     public void canCreateCassandraKvs()  {
-        createCassandraKeyValueService();
+        createAndDiscardCassandraKvs();
     }
 
-    private static void createCassandraKeyValueService() {
+    private static void createAndDiscardCassandraKvs() {
         CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(ThreeNodeCassandraCluster.KVS_CONFIG),
                 ThreeNodeCassandraCluster.LEADER_CONFIG);
