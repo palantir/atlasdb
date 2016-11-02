@@ -57,7 +57,19 @@ public final class CassandraKeyValueServices {
         // Utility class
     }
 
-    static void waitForSchemaVersions(Cassandra.Client client, String tableName, int schemaTimeoutMillis)
+    static void waitForSchemaVersions(
+            Cassandra.Client client,
+            String tableName,
+            int schemaTimeoutMillis)
+            throws TException {
+        waitForSchemaVersions(client, tableName, schemaTimeoutMillis, false);
+    }
+
+    static void waitForSchemaVersions(
+            Cassandra.Client client,
+            String tableName,
+            int schemaTimeoutMillis,
+            boolean allowUnresponsiveNode)
             throws TException {
         long start = System.currentTimeMillis();
         long sleepTime = INITIAL_SLEEP_TIME;
@@ -90,7 +102,19 @@ public final class CassandraKeyValueServices {
                 .append(" and examine their logs to determine the issue.")
                 .append(" Fixing the underlying issue and restarting Cassandra")
                 .append(" should resolve the problem. You can quick-check this with 'nodetool describecluster'.");
-        throw new IllegalStateException(sb.toString());
+
+        if (allowUnresponsiveNode
+                && exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(versions)) {
+            log.error(sb.toString());
+        } else {
+            throw new IllegalStateException(sb.toString());
+        }
+    }
+
+    private static boolean exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(Map<String, List<String>> versions) {
+        return versions.entrySet().size() == 2
+                && versions.keySet().contains("UNREACHABLE")
+                && versions.get("UNREACHABLE").size() == 1;
     }
 
     /**
@@ -98,34 +122,23 @@ public final class CassandraKeyValueServices {
      * of failed patch upgrades, the majority of which requires schema mutations; they would find
      * it preferable to stop before starting the actual patch upgrade / setting APPLYING state.
      */
-    static void failQuickInInitializationIfClusterAlreadyInInconsistentState(
+    static void warnUserInInitializationIfClusterAlreadyInInconsistentState(
             CassandraClientPool clientPool,
             CassandraKeyValueServiceConfig config) {
-        if (config.safetyDisabled()) {
-            log.error("Skipped checking the cassandra cluster during initialization, because safety checks are"
-                    + " disabled. Please re-enable safety checks when you are outside of your unusual"
-                    + " migration period.");
-            return;
-        }
         String errorMessage = "While checking the cassandra cluster during initialization, we noticed schema versions"
-                + " could not settle. Failing quickly to avoid getting into harder to fix states (i.e. partially"
-                + " applied patch upgrades, etc). This state is in rare cases the correct one to be in; for"
-                + " instance schema versions will be incapable of settling in a cluster of heterogenous"
-                + " Cassandra 1.2/2.0 nodes. If that is the case, disable safety checks in your Cassandra"
-                + " KVS preferences.";
+                + " could not settle. Be aware that some operations will not work while you are in your current"
+                + " cluster status.";
         try {
             clientPool.run(client -> {
                 waitForSchemaVersions(
                         client,
                         "(none, just an initialization check)",
-                        config.schemaMutationTimeoutMillis());
+                        config.schemaMutationTimeoutMillis(),
+                        true);
                 return null;
             });
         } catch (TException e) {
             throw new RuntimeException(errorMessage, e);
-        } catch (IllegalStateException e) {
-            log.error(errorMessage);
-            throw e;
         }
     }
 

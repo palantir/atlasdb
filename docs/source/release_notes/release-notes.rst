@@ -199,6 +199,27 @@ v0.20.0
            This is due to Oracle's restriction of not allowing table names with a leading underscore.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
+    *    - |improved|
+         - AtlasDB clients can start even if one Cassandra node is unreachable.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1045>`__).
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.20.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - No longer require the user to disable safety checks just to start up Atlas against a degraded Cassandra cluster.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1045>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -211,7 +232,6 @@ v0.19.0
 
     *    - Type
          - Change
-
     *    - |breaking|
          - Removed KeyValueService ``initializeFromFreshInstance``, ``tearDown``, and ``getRangeWithHistory``.
            It is likely all callers of tearDown just want to call close, and getRangeWithHistory has been replaced with ``getRangeOfTimestamps``.
