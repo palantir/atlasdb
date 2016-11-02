@@ -60,7 +60,7 @@ public class DegradedClusterInitializationTest {
     private static void createCassandraKeyValueService() {
         CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(ThreeNodeCassandraCluster.KVS_CONFIG),
-                CassandraContainer.LEADER_CONFIG);
+                ThreeNodeCassandraCluster.LEADER_CONFIG);
     }
 
     private static void degradeCassandraCluster() throws IOException, InterruptedException {
