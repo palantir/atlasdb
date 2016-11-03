@@ -13,22 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.containers;
+package com.palantir.atlasdb.sweep;
 
-import com.palantir.docker.compose.DockerComposeRule;
-import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
-
-public abstract class Container {
-    public abstract String getDockerComposeFile();
-
-    public abstract SuccessOrFailure isReady(DockerComposeRule rule);
-
-    public boolean equals(Object obj) {
-        return obj != null && this.getClass() == obj.getClass();
+public class NoOpBackgroundSweeperPerformanceLogger implements BackgroundSweeperPerformanceLogger {
+    @Override
+    public void logSweepResults(SweepPerformanceResults results) {
+        // no op
     }
 
     @Override
-    public int hashCode() {
-        return this.getClass().getName().hashCode();
+    public void logInternalCompaction(SweepCompactionPerformanceResults results) {
+        // no op
     }
 }

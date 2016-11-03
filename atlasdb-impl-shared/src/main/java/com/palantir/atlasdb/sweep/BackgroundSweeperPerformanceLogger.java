@@ -13,22 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.containers;
+package com.palantir.atlasdb.sweep;
 
-import com.palantir.docker.compose.DockerComposeRule;
-import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
+/**
+ * Interface for providing a custom performance logger for background sweep.
+ */
+public interface BackgroundSweeperPerformanceLogger {
 
-public abstract class Container {
-    public abstract String getDockerComposeFile();
+    /**
+     * Log the performance of a single batch run for the background sweeper.
+     */
+    void logSweepResults(SweepPerformanceResults results);
 
-    public abstract SuccessOrFailure isReady(DockerComposeRule rule);
-
-    public boolean equals(Object obj) {
-        return obj != null && this.getClass() == obj.getClass();
-    }
-
-    @Override
-    public int hashCode() {
-        return this.getClass().getName().hashCode();
-    }
+    /**
+     * Log the performance for internal compaction when compacting tables that have just been swept.
+     */
+    void logInternalCompaction(SweepCompactionPerformanceResults results);
 }

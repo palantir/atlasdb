@@ -13,22 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.containers;
+package com.palantir.atlasdb.sweep;
 
-import com.palantir.docker.compose.DockerComposeRule;
-import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
+import org.immutables.value.Value;
 
-public abstract class Container {
-    public abstract String getDockerComposeFile();
+@Value.Immutable
+public abstract class SweepCompactionPerformanceResults {
 
-    public abstract SuccessOrFailure isReady(DockerComposeRule rule);
+    public abstract String tableName();
 
-    public boolean equals(Object obj) {
-        return obj != null && this.getClass() == obj.getClass();
-    }
+    public abstract long cellsDeleted();
 
-    @Override
-    public int hashCode() {
-        return this.getClass().getName().hashCode();
+    public abstract long cellsExamined();
+
+    public abstract long elapsedMillis();
+
+    public static ImmutableSweepCompactionPerformanceResults.Builder builder() {
+        return ImmutableSweepCompactionPerformanceResults.builder();
     }
 }

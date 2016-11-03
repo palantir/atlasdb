@@ -69,7 +69,7 @@ import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractSweeperTest {
-    protected static final TableReference TABLE_NAME = TableReference.createWithEmptyNamespace("test_table");
+    protected static final TableReference TABLE_NAME = TableReference.createWithEmptyNamespace("test_table_for_atlasdb_sweeper");
     private static final String COL = "c";
     protected static final int DEFAULT_BATCH_SIZE = 1000;
     protected static final int DEFAULT_CELL_BATCH_SIZE = 1_000_000;
@@ -119,7 +119,9 @@ public abstract class AbstractSweeperTest {
         Supplier<Long> sweepNoPause = () -> 0L;
         Supplier<Integer> batchSizeSupplier = () -> batchSize;
         Supplier<Integer> cellBatchSizeSupplier = () -> DEFAULT_CELL_BATCH_SIZE;
-        backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause, batchSizeSupplier, cellBatchSizeSupplier, SweepTableFactory.of());
+        backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause,
+                batchSizeSupplier, cellBatchSizeSupplier, SweepTableFactory.of(),
+                new NoOpBackgroundSweeperPerformanceLogger());
     }
 
     @After

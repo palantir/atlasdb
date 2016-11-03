@@ -22,3 +22,10 @@ services:
     environment:
       - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - LOCAL_JMX=no
+
+  cli:
+    image: palantirtechnologies/docker-cassandra-atlasdb:latest
+    depends_on:
+      - cassandra1
+    entrypoint: [bash, -c, '"$$@"', --]
+    command: exit

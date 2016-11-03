@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableInitializer;
@@ -51,7 +52,20 @@ public class OracleTableInitializer implements DbTableInitializer {
         );
 
         executeIgnoringError(
-                "CREATE SEQUENCE " + config.tablePrefix() + "OVERFLOW_SEQ INCREMENT BY "
+                String.format(
+                        "CREATE TABLE %s ("
+                                + "table_name varchar(2000) NOT NULL,"
+                                + "short_table_name varchar(30) NOT NULL,"
+                                + "CONSTRAINT pk_%s PRIMARY KEY (table_name),"
+                                + "CONSTRAINT unique_%s UNIQUE (short_table_name)"
+                                + ")",
+                        AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE,
+                        AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE,
+                        AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE),
+                ORACLE_ALREADY_EXISTS_ERROR);
+
+        executeIgnoringError(
+                "CREATE SEQUENCE " + config.tablePrefix() + AtlasDbConstants.ORACLE_OVERFLOW_SEQUENCE + " INCREMENT BY "
                         + OverflowSequenceSupplier.OVERFLOW_ID_CACHE_SIZE,
                 ORACLE_ALREADY_EXISTS_ERROR);
     }

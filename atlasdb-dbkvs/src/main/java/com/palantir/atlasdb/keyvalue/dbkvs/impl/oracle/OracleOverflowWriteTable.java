@@ -24,13 +24,17 @@ import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.TableMappingNotFoundException;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
@@ -41,27 +45,30 @@ import com.palantir.nexus.db.sql.SqlConnection;
 public final class OracleOverflowWriteTable implements DbWriteTable {
     private static final Logger log = LoggerFactory.getLogger(OracleOverflowWriteTable.class);
 
-    private final String tableName;
-    private final ConnectionSupplier conns;
     private final OracleDdlConfig config;
+    private final ConnectionSupplier conns;
     private final OverflowSequenceSupplier overflowSequenceSupplier;
+    private final OracleTableNameGetter oracleTableNameGetter;
 
-    private OracleOverflowWriteTable(String tableName,
-            ConnectionSupplier conns,
+    private OracleOverflowWriteTable(
             OracleDdlConfig config,
-            OverflowSequenceSupplier sequenceSupplier) {
-        this.tableName = tableName;
-        this.conns = conns;
+            ConnectionSupplier conns,
+            OverflowSequenceSupplier sequenceSupplier,
+            OracleTableNameGetter oracleTableNameGetter) {
         this.config = config;
+        this.conns = conns;
         this.overflowSequenceSupplier = sequenceSupplier;
+        this.oracleTableNameGetter = oracleTableNameGetter;
     }
 
     public static OracleOverflowWriteTable create(
-            String tableName,
+            OracleDdlConfig config,
             ConnectionSupplier conns,
-            OracleDdlConfig config) {
+            TableReference tableRef) {
+        OracleTableNameGetter oracleTableNameGetter =
+                new OracleTableNameGetter(conns, config.tablePrefix(), config.overflowTablePrefix(), tableRef);
         OverflowSequenceSupplier sequenceSupplier = OverflowSequenceSupplier.create(conns, config.tablePrefix());
-        return new OracleOverflowWriteTable(tableName, conns, config, sequenceSupplier);
+        return new OracleOverflowWriteTable(config, conns, sequenceSupplier, oracleTableNameGetter);
     }
 
     @Override
@@ -111,14 +118,17 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                         + " INSERT INTO " + config.singleOverflowTable() + " (id, val) VALUES (?, ?) ",
                         overflowArgs);
             } else {
-                conns.get().insertManyUnregisteredQuery("/* INSERT_OVERFLOW (" + tableName + ") */"
-                        + " INSERT INTO " + prefixedOverflowTableName() + " (id, val) VALUES (?, ?) ",
+                String shortOverflowTableName = getShortOverflowTableName();
+                conns.get().insertManyUnregisteredQuery(
+                        "/* INSERT_OVERFLOW (" + shortOverflowTableName + ") */"
+                        + " INSERT INTO " + shortOverflowTableName + " (id, val) VALUES (?, ?) ",
                         overflowArgs);
             }
         }
         try {
-            conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + tableName + ") */"
-                    + " INSERT INTO " + prefixedTableName() + " (row_name, col_name, ts, val, overflow) "
+            String shortTableName = getShortTableName();
+            conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + shortTableName + ") */"
+                    + " INSERT INTO " + shortTableName + " (row_name, col_name, ts, val, overflow) "
                     + " VALUES (?, ?, ?, ?, ?) ",
                     args);
         } catch (PalantirSqlException e) {
@@ -141,12 +151,13 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
             }
             while (true) {
                 try {
-                    conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + tableName + ") */"
-                            + " INSERT INTO " + prefixedTableName()
+                    String shortTableName = getShortTableName();
+                    conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + shortTableName + ") */"
+                            + " INSERT INTO " + shortTableName
                             + "   (row_name, col_name, ts, val, overflow)"
                             + " SELECT ?, ?, ?, ?, ? FROM DUAL"
                             + " WHERE NOT EXISTS ("
-                            + "   SELECT * FROM " + prefixedTableName()
+                            + "   SELECT * FROM " + shortTableName
                             + "   WHERE row_name = ?"
                             + "     AND col_name = ?"
                             + "     AND ts = ?)",
@@ -175,11 +186,11 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                 break;
             case IN_PROGRESS:
                 deleteOverflow(config.singleOverflowTable(), args);
-                deleteOverflow(prefixedOverflowTableName(), args);
+                deleteOverflow(getShortOverflowTableName(), args);
                 break;
             case FINISHING: // fall through
             case FINISHED:
-                deleteOverflow(prefixedOverflowTableName(), args);
+                deleteOverflow(getShortOverflowTableName(), args);
                 break;
             default:
                 throw new EnumConstantNotPresentException(
@@ -188,15 +199,15 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         SqlConnection conn = conns.get();
         try {
             log.info("Got connection for delete on table {}: {}, autocommit={}",
-                    tableName,
+                    getShortTableName(),
                     conn.getUnderlyingConnection(),
                     conn.getUnderlyingConnection().getAutoCommit());
         } catch (PalantirSqlException | SQLException e) {
             //
         }
-        conn.updateManyUnregisteredQuery(" /* DELETE_ONE (" + tableName + ") */ "
-                + " DELETE /*+ INDEX(m pk_" + prefixedTableName() + ") */ "
-                + " FROM " + prefixedTableName() + " m "
+        conn.updateManyUnregisteredQuery(" /* DELETE_ONE (" + getShortTableName() + ") */ "
+                + " DELETE /*+ INDEX(m pk_" + getShortTableName() + ") */ "
+                + " FROM " + getShortTableName() + " m "
                 + " WHERE m.row_name = ? "
                 + "  AND m.col_name = ? "
                 + "  AND m.ts = ?",
@@ -204,12 +215,13 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     private void deleteOverflow(String overflowTable, List<Object[]> args) {
-        conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE_OVERFLOW (" + tableName + ") */ "
+        String shortTableName = getShortTableName();
+        conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE_OVERFLOW (" + overflowTable + ") */ "
                 + " DELETE /*+ INDEX(m pk_" + overflowTable + ") */ "
                 + "   FROM " + overflowTable + " m "
-                + "  WHERE m.id IN (SELECT /*+ INDEX(i pk_" + prefixedTableName() + ") */ "
+                + "  WHERE m.id IN (SELECT /*+ INDEX(i pk_" + shortTableName + ") */ "
                 + "                        i.overflow "
-                + "                   FROM " + prefixedTableName() + " i "
+                + "                   FROM " + shortTableName + " i "
                 + "                  WHERE i.row_name = ? "
                 + "                    AND i.col_name = ? "
                 + "                    AND i.ts = ? "
@@ -217,11 +229,19 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                 args);
     }
 
-    private String prefixedTableName() {
-        return config.tablePrefix() + tableName;
+    private String getShortTableName() {
+        try {
+            return oracleTableNameGetter.getInternalShortTableName();
+        } catch (TableMappingNotFoundException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
-    private String prefixedOverflowTableName() {
-        return config.overflowTablePrefix() + tableName;
+    private String getShortOverflowTableName() {
+        try {
+            return oracleTableNameGetter.getInternalShortOverflowTableName();
+        } catch (TableMappingNotFoundException e) {
+            throw Throwables.propagate(e);
+        }
     }
 }
