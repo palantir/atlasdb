@@ -11,3 +11,4 @@ Schemas
    cleanup_tasks
    physical_cleanup
    migrating_schemas
+   oracle_table_mapping
