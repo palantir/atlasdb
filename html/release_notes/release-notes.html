@@ -186,6 +186,12 @@ try the same operation on the same server(s).</p>
 </td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Added the ability to do custom performance logging for Sweep. This is currently only available for
+applications that call the <code class="docutils literal"><span class="pre">BackgroundSweeperImpl</span></code> constructor directly. Otherwise a
+<code class="docutils literal"><span class="pre">NoOpBackgroundSweeperPerformanceLogger</span></code> is used.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1054">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td><p class="first">The KVS migration command can now be run as an offline cli using the <code class="docutils literal"><span class="pre">--offline</span></code> flag.</p>
 <p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1149">Pull Request</a>)</p>
 </td>
