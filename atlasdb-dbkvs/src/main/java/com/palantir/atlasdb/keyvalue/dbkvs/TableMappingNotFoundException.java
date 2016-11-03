@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Palantir Technologies
+ * Copyright 2016 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.nexus.db.sql;
+package com.palantir.atlasdb.keyvalue.dbkvs;
 
-
-import java.util.List;
-
-public interface AgnosticResultSet {
-
-    List<AgnosticResultRow> rows();
-
-    AgnosticResultRow get(int row);
-
-    int size();
-
+public class TableMappingNotFoundException extends Exception {
+    public TableMappingNotFoundException(String msg) {
+        super(msg);
+    }
 }

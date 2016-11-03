@@ -18,12 +18,15 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.TableMappingNotFoundException;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSize;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -31,20 +34,33 @@ import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.util.VersionStrings;
 
-public class OracleDdlTable implements DbDdlTable {
+public final class OracleDdlTable implements DbDdlTable {
     private static final Logger log = LoggerFactory.getLogger(OracleDdlTable.class);
     private static final String MIN_ORACLE_VERSION = "11.2.0.2.3";
+    private static final String ORACLE_NOT_EXISTS_ERROR = "ORA-00942";
+    private static final String ORACLE_ALREADY_EXISTS_ERROR = "ORA-00955";
+    private static final String ORACLE_UNIQUE_CONSTRAINT_ERROR =  "ORA-00001";
 
-    private final TableReference tableRef;
-    private final ConnectionSupplier conns;
     private final OracleDdlConfig config;
+    private final ConnectionSupplier conns;
+    private final TableReference tableRef;
+    private final OracleTableNameGetter oracleTableNameGetter;
 
-    public OracleDdlTable(TableReference tableRef,
-                          ConnectionSupplier conns,
-                          OracleDdlConfig config) {
-        this.tableRef = tableRef;
-        this.conns = conns;
+    private OracleDdlTable(
+            OracleDdlConfig config,
+            ConnectionSupplier conns,
+            TableReference tableRef,
+            OracleTableNameGetter oracleTableNameGetter) {
         this.config = config;
+        this.conns = conns;
+        this.tableRef = tableRef;
+        this.oracleTableNameGetter = oracleTableNameGetter;
+    }
+
+    public static OracleDdlTable create(TableReference tableRef, ConnectionSupplier conns, OracleDdlConfig config) {
+        OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(conns, config.tablePrefix(),
+                config.overflowTablePrefix(), tableRef);
+        return new OracleDdlTable(config, conns, tableRef, oracleTableNameGetter);
     }
 
     @Override
@@ -61,24 +77,9 @@ public class OracleDdlTable implements DbDdlTable {
             needsOverflow = metadata.getColumns().getMaxValueSize() > 2000;
         }
 
-        executeIgnoringError(
-                "CREATE TABLE " + prefixedTableName() + " ("
-                + "  row_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL,"
-                + "  col_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL,"
-                + "  ts         NUMBER(20) NOT NULL,"
-                + "  val        RAW(2000), "
-                + (needsOverflow ? "  overflow   NUMBER(38), " : "")
-                + "  CONSTRAINT pk_" + prefixedTableName() + " PRIMARY KEY (row_name, col_name, ts) "
-                + ") organization index compress overflow",
-                "ORA-00955");
+        createTable(needsOverflow);
         if (needsOverflow && config.overflowMigrationState() != OverflowMigrationState.UNSTARTED) {
-            executeIgnoringError(
-                    "CREATE TABLE " + prefixedOverflowTableName() + " ("
-                    + "  id  NUMBER(38) NOT NULL, "
-                    + "  val BLOB NOT NULL,"
-                    + "  CONSTRAINT pk_" + prefixedOverflowTableName() + " PRIMARY KEY (id)"
-                    + ")",
-                    "ORA-00955");
+            createOverflowTable();
         }
 
         conns.get().insertOneUnregisteredQuery(
@@ -87,19 +88,82 @@ public class OracleDdlTable implements DbDdlTable {
                 needsOverflow ? TableSize.OVERFLOW.getId() : TableSize.RAW.getId());
     }
 
+    private void createTable(boolean needsOverflow) {
+        String shortTableName = oracleTableNameGetter.generateShortTableName();
+        executeIgnoringError(
+                "CREATE TABLE " + shortTableName + " ("
+                + "  row_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL,"
+                + "  col_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL,"
+                + "  ts         NUMBER(20) NOT NULL,"
+                + "  val        RAW(2000), "
+                + (needsOverflow ? "overflow   NUMBER(38), " : "")
+                + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortTableName)
+                + " PRIMARY KEY (row_name, col_name, ts) "
+                + ") organization index compress overflow",
+                ORACLE_ALREADY_EXISTS_ERROR);
+        putTableNameMapping(oracleTableNameGetter.getPrefixedTableName(), shortTableName);
+    }
+
+    private void createOverflowTable() {
+        final String shortOverflowTableName = oracleTableNameGetter.generateShortOverflowTableName();
+        executeIgnoringError(
+                "CREATE TABLE " + shortOverflowTableName + " ("
+                + "  id  NUMBER(38) NOT NULL, "
+                + "  val BLOB NOT NULL,"
+                + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortOverflowTableName) + " PRIMARY KEY (id)"
+                + ")",
+                ORACLE_ALREADY_EXISTS_ERROR);
+        putTableNameMapping(oracleTableNameGetter.getPrefixedOverflowTableName(), shortOverflowTableName);
+    }
+
+    private void putTableNameMapping(String fullTableName, String shortTableName) {
+        try {
+            conns.get().insertOneUnregisteredQuery(
+                    "INSERT INTO " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
+                            + " (table_name, short_table_name) VALUES (?, ?)",
+                    fullTableName,
+                    shortTableName);
+        } catch (PalantirSqlException ex) {
+            if (ex.getMessage().contains(ORACLE_UNIQUE_CONSTRAINT_ERROR)) {
+                dropTableInternal(fullTableName, shortTableName);
+            }
+            log.error(ex.getMessage(), ex);
+            throw ex;
+        }
+    }
+
     @Override
     public void drop() {
-        executeIgnoringError("DROP TABLE " + prefixedTableName() + " PURGE", "ORA-00942");
-        executeIgnoringError("DROP TABLE " + prefixedOverflowTableName() + " PURGE", "ORA-00942");
+        try {
+            dropTableInternal(oracleTableNameGetter.getPrefixedTableName(),
+                    oracleTableNameGetter.getInternalShortTableName());
+            dropTableInternal(oracleTableNameGetter.getPrefixedOverflowTableName(),
+                    oracleTableNameGetter.getInternalShortOverflowTableName());
+        } catch (TableMappingNotFoundException ex) {
+            // If table does not exist, do nothing
+        }
+
         conns.get().executeUnregisteredQuery(
-                "DELETE FROM " + config.metadataTable().getQualifiedName()
-                + " WHERE table_name = ?", tableRef.getQualifiedName());
+                "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
+                tableRef.getQualifiedName());
+    }
+
+    private void dropTableInternal(String fullTableName, String shortTableName) {
+        executeIgnoringError("DROP TABLE " + shortTableName + " PURGE", ORACLE_NOT_EXISTS_ERROR);
+        conns.get().executeUnregisteredQuery(
+                "DELETE FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE table_name = ?", fullTableName);
     }
 
     @Override
     public void truncate() {
-        executeIgnoringError("TRUNCATE TABLE " + prefixedTableName(), "ORA-00942");
-        executeIgnoringError("TRUNCATE TABLE " + prefixedOverflowTableName(), "ORA-00942");
+        try {
+            executeIgnoringError("TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortTableName(),
+                    ORACLE_NOT_EXISTS_ERROR);
+            executeIgnoringError("TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortOverflowTableName(),
+                    ORACLE_NOT_EXISTS_ERROR);
+        } catch (TableMappingNotFoundException e) {
+            // If table does not exist, do nothing
+        }
     }
 
     @Override
@@ -132,7 +196,8 @@ public class OracleDdlTable implements DbDdlTable {
     public void compactInternally() {
         if (config.enableOracleEnterpriseFeatures()) {
             try {
-                conns.get().executeUnregisteredQuery("ALTER TABLE " + prefixedTableName() + " MOVE ONLINE");
+                conns.get().executeUnregisteredQuery(
+                        "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName() + " MOVE ONLINE");
             } catch (PalantirSqlException e) {
                 log.error("Tried to clean up " + tableRef + " bloat after a sweep operation,"
                         + " but underlying Oracle database or configuration does not support this"
@@ -141,15 +206,14 @@ public class OracleDdlTable implements DbDdlTable {
                         + " good practice would be do to occasional offline manual maintenance of rebuilding"
                         + " IOT tables to compensate for bloat. You can contact Palantir Support if you'd"
                         + " like more information. Underlying error was: " + e.getMessage());
+            } catch (TableMappingNotFoundException e) {
+                throw Throwables.propagate(e);
             }
         }
     }
 
-    private String prefixedTableName() {
-        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
-    }
-
-    private String prefixedOverflowTableName() {
-        return config.overflowTablePrefix() + DbKvs.internalTableName(tableRef);
+    private String getPrimaryKeyConstraintName(String tableName) {
+        String primaryKeyConstraintPrefix = "pk_";
+        return primaryKeyConstraintPrefix + tableName.substring(primaryKeyConstraintPrefix.length());
     }
 }

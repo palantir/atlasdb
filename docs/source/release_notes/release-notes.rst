@@ -69,6 +69,12 @@ develop
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1149>`__)
 
+    *   - |improved|
+        - We now support Oracle for products with all valid schemas. Oracle table names exceeding 30 characters are now
+          mapped to shorter names by truncating and appending a sequence number.
+          See :ref:`oracle_table_mapping` for details on how table names are mapped.
+          (`Pull Request <https://github.com/palantir/atlasdb/pull/1076>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -93,6 +99,7 @@ v0.22.0
          - Fixed an issue where some locks were not being tracked for continuous refreshing due to one of the lock methods not being overridden by the ``LockRefreshingLockService``.
            This resulted in locks that appeared to be refreshed properly, but then would mysteriously time out at the end of a long-running operation.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1134>`__)
+
     *    - |improved|
          - Actions performed by the ``Scrubber`` are now logged at debug instead of info.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1137>`__)
