@@ -157,12 +157,15 @@ public final class OracleDdlTable implements DbDdlTable {
     @Override
     public void truncate() {
         try {
-            executeIgnoringError("TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortTableName(),
-                    ORACLE_NOT_EXISTS_ERROR);
-            executeIgnoringError("TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortOverflowTableName(),
-                    ORACLE_NOT_EXISTS_ERROR);
-        } catch (TableMappingNotFoundException e) {
-            // If table does not exist, do nothing
+            conns.get().executeUnregisteredQuery("TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortTableName());
+            executeIgnoringError(
+                    "TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortOverflowTableName(),
+                    "ORA-00942");
+        } catch (TableMappingNotFoundException | RuntimeException e) {
+            throw new IllegalStateException(
+                    String.format(
+                        "Truncate called on a table (%s) that did not exist",
+                        oracleTableNameGetter.getPrefixedTableName()));
         }
     }
 
