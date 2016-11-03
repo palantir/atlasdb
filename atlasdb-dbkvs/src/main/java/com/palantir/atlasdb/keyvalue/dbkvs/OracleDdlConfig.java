@@ -88,15 +88,20 @@ public abstract class OracleDdlConfig extends DdlConfig {
         Preconditions.checkState(tablePrefix() != null, "Oracle 'tablePrefix' cannot be null.");
         Preconditions.checkState(!tablePrefix().isEmpty(), "Oracle 'tablePrefix' must not be an empty string.");
         Preconditions.checkState(!tablePrefix().startsWith("_"), "Oracle 'tablePrefix' cannot begin with underscore.");
+        Preconditions.checkState(tablePrefix().endsWith("_"), "Oracle 'tablePrefix' must end with an underscore.");
         Preconditions.checkState(
                 tablePrefix().length() <= AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH,
-                "Oracle 'tablePrefix' cannot be more than 7 characters long.");
-
+                "Oracle 'tablePrefix' cannot be more than %s characters long.",
+                AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH);
         Preconditions.checkState(
                 !overflowTablePrefix().startsWith("_"),
                 "Oracle 'overflowTablePrefix' cannot begin with underscore.");
-        Preconditions.checkState(overflowTablePrefix().length() <= 6,
-                "Oracle 'overflowTablePrefix' cannot be more than 6 characters long.");
-
+        Preconditions.checkState(
+                overflowTablePrefix().endsWith("_"),
+                "Oracle 'overflowTablePrefix' must end with an underscore.");
+        Preconditions.checkState(
+                overflowTablePrefix().length() <= AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH,
+                "Oracle 'overflowTablePrefix' cannot be more than %s characters long.",
+                AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH);
     }
 }
