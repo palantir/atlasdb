@@ -18,7 +18,9 @@ package com.palantir.atlasdb.server;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
+import java.util.SortedMap;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -28,6 +30,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSortedMap;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.containers.CassandraContainer;
@@ -36,6 +39,13 @@ import com.palantir.atlasdb.containers.PostgresContainer;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.server.config.AtlasDbServerConfiguration;
 import com.palantir.atlasdb.server.config.ClientConfig;
+import com.palantir.lock.AtlasTimestampLockDescriptor;
+import com.palantir.lock.HeldLocksToken;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.LockMode;
+import com.palantir.lock.LockRequest;
+import com.palantir.lock.RemoteLockService;
+import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.timestamp.TimestampService;
 
 import feign.FeignException;
@@ -86,11 +96,40 @@ public class AtlasDbServerTest {
         assertThat(timestamp1).isLessThan(timestamp2);
     }
 
+    @Test
+    public void shouldBeAbleToAcquireLocksFromTheServer() throws InterruptedException {
+        LockDescriptor descriptor = AtlasTimestampLockDescriptor.of(1);
+        SortedMap<LockDescriptor, LockMode> locksToAcquire =
+                ImmutableSortedMap.of(descriptor, LockMode.READ);
+        LockRequest lockRequest = LockRequest.builder(locksToAcquire)
+                .blockForAtMost(SimpleTimeDuration.of(1, TimeUnit.MINUTES))
+                .build();
+
+        RemoteLockService remoteLockService = constructLockServiceClient(client);
+        HeldLocksToken token = remoteLockService.lockAndGetHeldLocks(client, lockRequest);
+        try {
+            assertThat(token.getLockDescriptors()).containsOnly(descriptor);
+        } finally {
+            remoteLockService.unlock(token.getLockRefreshToken());
+        }
+    }
+
     private static TimestampService constructTimestampServiceClient(String client) {
         return AtlasDbHttpClients.createProxy(
                 Optional.absent(),
-                "http://localhost:" + APP.getLocalPort() + "/" + client,
+                getUriForClient(client),
                 TimestampService.class);
+    }
+
+    private static RemoteLockService constructLockServiceClient(String client) {
+        return AtlasDbHttpClients.createProxy(
+                Optional.absent(),
+                getUriForClient(client),
+                RemoteLockService.class);
+    }
+
+    private static String getUriForClient(String client) {
+        return "http://localhost:" + APP.getLocalPort() + "/" + client;
     }
 
     private static void waitForClientStartup(ClientConfig client) {

@@ -45,8 +45,12 @@ public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
     @Override
     public void run(AtlasDbServerConfiguration config, Environment environment) {
         Map<String, ServiceDiscoveringAtlasSupplier> clientToAtlasInstance = getClientToAtlasInstanceMapping(config);
+        LeaderElectionService leader = Leaders.create(
+                environment.jersey()::register,
+                config.cluster().toLeaderConfig());
+
         clientToAtlasInstance.forEach((client, atlasFactory) -> {
-            LockAndTimestampServices services = constructServicesFromAtlasInstance(atlasFactory, config, environment);
+            LockAndTimestampServices services = constructServicesFromAtlasInstance(atlasFactory, leader);
 
             Resource builtResource = Resources.getInstancedResourceAtPath(client, new ClientResource(services));
             environment.jersey().getResourceConfig().registerResources(builtResource);
@@ -66,12 +70,7 @@ public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
 
     private static LockAndTimestampServices constructServicesFromAtlasInstance(
             ServiceDiscoveringAtlasSupplier atlasFactory,
-            AtlasDbServerConfiguration config,
-            Environment environment) {
-        LeaderElectionService leader = Leaders.create(
-                environment.jersey()::register,
-                config.cluster().toLeaderConfig());
-
+            LeaderElectionService leader) {
         return ImmutableLockAndTimestampServices.builder()
                 .lock(AwaitingLeadershipProxy.newProxyInstance(
                         RemoteLockService.class,
