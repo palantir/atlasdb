@@ -89,4 +89,5 @@ public class AtlasDbConstants {
     public static final int DEFAULT_SWEEP_BATCH_SIZE = 1000;
     public static final int DEFAULT_SWEEP_CELL_BATCH_SIZE = 10_000;
     public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;
+    public static final int MAX_TABLE_PREFIX_LENGTH = 7;
 }

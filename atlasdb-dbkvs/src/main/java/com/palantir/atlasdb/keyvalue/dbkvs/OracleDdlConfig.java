@@ -89,7 +89,7 @@ public abstract class OracleDdlConfig extends DdlConfig {
         Preconditions.checkState(!tablePrefix().isEmpty(), "Oracle 'tablePrefix' must not be an empty string.");
         Preconditions.checkState(!tablePrefix().startsWith("_"), "Oracle 'tablePrefix' cannot begin with underscore.");
         Preconditions.checkState(
-                tablePrefix().length() <= 7,
+                tablePrefix().length() <= AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH,
                 "Oracle 'tablePrefix' cannot be more than 7 characters long.");
 
         Preconditions.checkState(
