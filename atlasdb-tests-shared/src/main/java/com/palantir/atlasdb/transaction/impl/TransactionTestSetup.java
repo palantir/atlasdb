@@ -46,7 +46,7 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
 
 public abstract class TransactionTestSetup {
-    protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.table1");
+    protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.atlasdb_transactions_test_table");
 
     protected static LockClient lockClient = null;
     protected static LockServiceImpl lockService = null;
