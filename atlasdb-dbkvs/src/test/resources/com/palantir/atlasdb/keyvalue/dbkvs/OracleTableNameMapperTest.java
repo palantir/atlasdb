@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
@@ -55,7 +56,9 @@ public class OracleTableNameMapperTest {
         when(resultSet.get(eq(0))).thenReturn(row);
 
         when(sqlConnection
-                .selectResultSetUnregisteredQuery(startsWith("SELECT short_table_name FROM atlasdb_table_names")))
+                .selectResultSetUnregisteredQuery(
+                        startsWith("SELECT short_table_name FROM atlasdb_table_names"),
+                        anyObject()))
                 .thenReturn(resultSet);
 
         TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);

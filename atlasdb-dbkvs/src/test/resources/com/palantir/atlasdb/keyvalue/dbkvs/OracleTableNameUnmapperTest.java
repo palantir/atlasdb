@@ -23,10 +23,12 @@ import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
@@ -40,52 +42,46 @@ public class OracleTableNameUnmapperTest {
     private static final Namespace TEST_NAMESPACE = Namespace.create("test_namespace");
     private static final String LONG_TABLE_NAME = "ThisIsAVeryLongTableNameThatWillExceed";
     private static final String SHORT_TABLE_NAME = "testShort";
+    private static final TableReference TABLE_REF = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
+
+    private OracleTableNameUnmapper oracleTableNameUnmapper;
+    private AgnosticResultSet resultSet;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    @Test
-    public void shouldThrowIfTableMappingDoesNotExist() throws TableMappingNotFoundException {
+    @Before
+    public void setup() {
         ConnectionSupplier connectionSupplier = mock(ConnectionSupplier.class);
-        OracleTableNameUnmapper oracleTableNameUnmapper = new OracleTableNameUnmapper(connectionSupplier);
-
+        oracleTableNameUnmapper =  new OracleTableNameUnmapper(connectionSupplier);
         SqlConnection sqlConnection = mock(SqlConnection.class);
         when(connectionSupplier.get()).thenReturn(sqlConnection);
-
-        setupResultSetForSqlConnection(sqlConnection, 0);
-
-        TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
-        expectedException.expect(TableMappingNotFoundException.class);
-        expectedException.expectMessage("The table a_test_namespace__ThisIsAVeryLongTableNameThatWillExceed");
-        oracleTableNameUnmapper.getShortTableNameFromMappingTable(TEST_PREFIX, tableRef);
-    }
-
-    @Test
-    public void shouldReturnIfTableMappingExists() throws TableMappingNotFoundException {
-        ConnectionSupplier connectionSupplier = mock(ConnectionSupplier.class);
-        OracleTableNameUnmapper oracleTableNameUnmapper = new OracleTableNameUnmapper(connectionSupplier);
-
-        SqlConnection sqlConnection = mock(SqlConnection.class);
-        when(connectionSupplier.get()).thenReturn(sqlConnection);
-
-        AgnosticResultSet resultSet = setupResultSetForSqlConnection(sqlConnection, 1);
-
-        AgnosticResultRow row = mock(AgnosticResultRow.class);
-        when(resultSet.get(eq(0))).thenReturn(row);
-        when(row.getString(eq("short_table_name"))).thenReturn(SHORT_TABLE_NAME);
-
-        TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
-        String shortName = oracleTableNameUnmapper.getShortTableNameFromMappingTable(TEST_PREFIX, tableRef);
-        assertThat(shortName, is(SHORT_TABLE_NAME));
-    }
-
-    private AgnosticResultSet setupResultSetForSqlConnection(SqlConnection sqlConnection, int resultSize) {
-        AgnosticResultSet resultSet = mock(AgnosticResultSet.class);
+        resultSet = mock(AgnosticResultSet.class);
         when(sqlConnection
                 .selectResultSetUnregisteredQuery(
                         startsWith("SELECT short_table_name FROM atlasdb_table_names WHERE table_name"), anyObject()))
                 .thenReturn(resultSet);
-        when(resultSet.size()).thenReturn(resultSize);
-        return resultSet;
     }
+
+    @Test
+    public void shouldThrowIfTableMappingDoesNotExist() throws TableMappingNotFoundException {
+        when(resultSet.size()).thenReturn(0);
+
+        expectedException.expect(TableMappingNotFoundException.class);
+        expectedException.expectMessage("The table a_test_namespace__ThisIsAVeryLongTableNameThatWillExceed");
+        oracleTableNameUnmapper.getShortTableNameFromMappingTable(TEST_PREFIX, TABLE_REF);
+    }
+
+    @Test
+    public void shouldReturnIfTableMappingExists() throws TableMappingNotFoundException {
+        when(resultSet.size()).thenReturn(1);
+
+        AgnosticResultRow row = mock(AgnosticResultRow.class);
+        when(row.getString(eq("short_table_name"))).thenReturn(SHORT_TABLE_NAME);
+        when(resultSet.rows()).thenReturn(ImmutableList.of(row));
+
+        String shortName = oracleTableNameUnmapper.getShortTableNameFromMappingTable(TEST_PREFIX, TABLE_REF);
+        assertThat(shortName, is(SHORT_TABLE_NAME));
+    }
+
 }

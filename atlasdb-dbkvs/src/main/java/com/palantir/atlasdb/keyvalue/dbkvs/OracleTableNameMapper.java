@@ -78,8 +78,8 @@ public class OracleTableNameMapper {
         AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
                 "SELECT short_table_name "
                 + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
-                + " WHERE LOWER(short_table_name) LIKE LOWER('" + truncatedTableName + "\\______%') ESCAPE '\\'"
-                + " ORDER BY short_table_name DESC");
+                + "WHERE LOWER(short_table_name) LIKE LOWER(? || '\\______%') ESCAPE '\\'"
+                + " ORDER BY short_table_name DESC", truncatedTableName);
         return getTableNumberFromTableNames(truncatedTableName, results);
     }
 
