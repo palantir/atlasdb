@@ -55,33 +55,31 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
             checkLogIfNeeded(seq);
         } catch (Exception e) {
             logger.error("log read failed for request: " + seq, e);
-            return new PaxosPromise(pid); // nack
+            return PaxosPromise.reject(pid); // nack
         }
 
         for (;;) {
             PaxosAcceptorState oldState = state.get(seq);
 
-            // nack
             if (oldState != null && pid.compareTo(oldState.lastPromisedId) < 0) {
-                return new PaxosPromise(oldState.lastPromisedId);
+                return PaxosPromise.reject(oldState.lastPromisedId);
             }
 
             // allow for the same propose to be repeated and return the same result.
             if (oldState != null && pid.compareTo(oldState.lastPromisedId) == 0) {
-                return new PaxosPromise(
+                return PaxosPromise.accept(
                         oldState.lastPromisedId,
                         oldState.lastAcceptedId,
                         oldState.lastAcceptedValue);
             }
 
-            // ack
             PaxosAcceptorState newState = oldState != null
                     ? oldState.withPromise(pid)
                     : PaxosAcceptorState.newState(pid);
             if ((oldState == null && state.putIfAbsent(seq, newState) == null)
                     || (oldState != null && state.replace(seq, oldState, newState))) {
                 log.writeRound(seq, newState);
-                return new PaxosPromise(
+                return PaxosPromise.accept(
                         newState.lastPromisedId,
                         newState.lastAcceptedId,
                         newState.lastAcceptedValue);
