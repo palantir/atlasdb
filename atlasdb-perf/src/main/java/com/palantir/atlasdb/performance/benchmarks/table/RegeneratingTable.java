@@ -45,6 +45,8 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 public abstract class RegeneratingTable<T> {
 
     private static final int BATCH_SIZE = 250;
+    public static final int SWEEP_DUPLICATES = 10;
+    private static final int SWEEP_BATCH_SIZE = 10;
 
     protected Random random = new Random(Tables.RANDOM_SEED);
 
@@ -171,16 +173,24 @@ public abstract class RegeneratingTable<T> {
         }
     }
 
+    @State(Scope.Benchmark)
     public static class SweepRegeneratingTable extends RegeneratingTable<Set<Cell>> {
+
         @Override
         public void setupTableData() {
             getKvs().truncateTable(getTableRef());
-            Map<Cell, byte[]> batch = Tables.generateRandomBatch(random, 1);
-            for (int i = 0; i < 100; i++) {
-                getTransactionManager().runTaskThrowOnConflict(txn -> {
-                    txn.put(getTableRef(), batch);
-                    return null;
-                });
+            populateTable(1, 1, SWEEP_DUPLICATES);
+        }
+
+        protected void populateTable(int numberOfBatches, int batchSize, int numberOfDuplicates) {
+            for (int i = 0; i < numberOfBatches; i++) {
+                Map<Cell, byte[]> batch = Tables.generateRandomBatch(random, batchSize);
+                for (int j = 0; j < numberOfDuplicates; j++) {
+                    getTransactionManager().runTaskThrowOnConflict(txn -> {
+                        txn.put(getTableRef(), batch);
+                        return null;
+                    });
+                }
             }
         }
 
@@ -199,4 +209,23 @@ public abstract class RegeneratingTable<T> {
         }
     }
 
+    @State(Scope.Benchmark)
+    public static class SweepBatchUniformMultipleRegeneratingTable extends SweepRegeneratingTable {
+
+        @Override
+        public void setupTableData() {
+            getKvs().truncateTable(getTableRef());
+            populateTable(1, SWEEP_BATCH_SIZE, SWEEP_DUPLICATES);
+        }
+    }
+
+    @State(Scope.Benchmark)
+    public static class SweepBatchNonUniformMultipleSeparateRegeneratingTable extends SweepRegeneratingTable {
+
+        @Override
+        public void setupTableData() {
+            getKvs().truncateTable(getTableRef());
+            populateTable(SWEEP_BATCH_SIZE, 1, SWEEP_DUPLICATES);
+        }
+    }
 }
