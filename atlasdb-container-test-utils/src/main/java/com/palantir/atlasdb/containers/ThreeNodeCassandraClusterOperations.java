@@ -26,6 +26,8 @@ import com.palantir.docker.compose.execution.DockerComposeRunOption;
 
 public class ThreeNodeCassandraClusterOperations {
     private static final Logger log = LoggerFactory.getLogger(ThreeNodeCassandraClusterOperations.class);
+    private static final int NODETOOL_STATUS_TIMEOUT_SECONDS = 10;
+    private static final int NODETOOL_REPAIR_TIMEOUT_SECONDS = 999;
 
     DockerComposeRule dockerComposeRule;
 
@@ -35,7 +37,7 @@ public class ThreeNodeCassandraClusterOperations {
 
     public boolean nodetoolShowsThreeCassandraNodesUp() {
         try {
-            String output = runNodetoolCommand("status");
+            String output = runNodetoolCommand("status", NODETOOL_STATUS_TIMEOUT_SECONDS);
             int numberNodesUp = CassandraCliParser.parseNumberOfUpNodesFromNodetoolStatus(output);
             return numberNodesUp == 3;
         } catch (Exception e) {
@@ -53,7 +55,7 @@ public class ThreeNodeCassandraClusterOperations {
     }
 
     private void runNodetoolRepair() throws IOException, InterruptedException {
-        runNodetoolCommand("repair system_auth");
+        runNodetoolCommand("repair system_auth", NODETOOL_REPAIR_TIMEOUT_SECONDS);
     }
 
     private void setReplicationFactorOfSystemAuthenticationKeyspaceToThree()
@@ -78,9 +80,11 @@ public class ThreeNodeCassandraClusterOperations {
                 "--execute", cql);
     }
 
-    private String runNodetoolCommand(String nodetoolCommand) throws IOException,
+    private String runNodetoolCommand(String nodetoolCommand, int timeoutSeconds) throws IOException,
             InterruptedException {
         return runCommandInCliContainer(
+                "timeout",
+                Integer.toString(timeoutSeconds),
                 "nodetool",
                 "--host", ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME,
                 nodetoolCommand);

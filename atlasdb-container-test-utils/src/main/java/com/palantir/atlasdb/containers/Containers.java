@@ -33,6 +33,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Sets;
 import com.jayway.awaitility.Awaitility;
+import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.DockerComposeFiles;
@@ -136,8 +137,8 @@ public class Containers extends ExternalResource {
     private static void waitForContainersToStart() {
         for (Container container : Sets.difference(containersToStart, containersStarted)) {
             Awaitility.await()
-                    .atMost(com.jayway.awaitility.Duration.ONE_MINUTE)
-                    .pollInterval(com.jayway.awaitility.Duration.ONE_SECOND)
+                    .atMost(Duration.TWO_MINUTES)
+                    .pollInterval(Duration.ONE_SECOND)
                     .until(() -> container.isReady(dockerComposeRule).succeeded());
         }
     }
