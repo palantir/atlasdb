@@ -56,8 +56,8 @@ develop
          - Random redirection of queries when retrying a Cassandra operation now retries said queries on distinct
            hosts. Previously, this would independently select hosts randomly, meaning that we might unintentionally
            try the same operation on the same server(s).
-
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
+
     *    - |new|
          - Added the ability to do custom performance logging for Sweep. This is currently only available for
            applications that call the ``BackgroundSweeperImpl`` constructor directly. Otherwise a
@@ -66,7 +66,6 @@ develop
 
     *    - |new|
          - The KVS migration command can now be run as an offline cli using the ``--offline`` flag.
-
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1149>`__)
 
     *   - |improved|
@@ -74,6 +73,13 @@ develop
           mapped to shorter names by truncating and appending a sequence number.
           See :ref:`oracle_table_mapping` for details on how table names are mapped.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/1076>`__)
+
+    *    - |improved|
+         - Additional debugging available for those receiving 'name must be no longer than 1500 bytes' errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
+
+    *    - |breaking|
+         - Cell.validateNameValid is now private; consider Cell.isNameValid instead
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -99,11 +105,6 @@ v0.22.0
          - Fixed an issue where some locks were not being tracked for continuous refreshing due to one of the lock methods not being overridden by the ``LockRefreshingLockService``.
            This resulted in locks that appeared to be refreshed properly, but then would mysteriously time out at the end of a long-running operation.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1134>`__)
-    *    - |improved|
-         - Additional debugging available for those receiving 'name must be no longer than 1500 bytes' errors.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
-    *    - |breaking|
-         - Cell.validateNameValid is now private
 
     *    - |improved|
          - Actions performed by the ``Scrubber`` are now logged at debug instead of info.
