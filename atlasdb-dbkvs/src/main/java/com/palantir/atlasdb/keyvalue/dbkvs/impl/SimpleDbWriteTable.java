@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
@@ -29,9 +28,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
-import com.palantir.atlasdb.keyvalue.dbkvs.TableMappingNotFoundException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
@@ -39,11 +35,13 @@ public class SimpleDbWriteTable implements DbWriteTable {
     protected final DdlConfig config;
     protected final ConnectionSupplier conns;
     protected final TableReference tableRef;
+    private final PrefixedTableNames prefixedTableNames;
 
     public SimpleDbWriteTable(DdlConfig config, ConnectionSupplier conns, TableReference tableRef) {
         this.config = config;
         this.conns = conns;
         this.tableRef = tableRef;
+        this.prefixedTableNames = new PrefixedTableNames(config, conns);
     }
 
     @Override
@@ -70,7 +68,7 @@ public class SimpleDbWriteTable implements DbWriteTable {
 
     private void put(List<Object[]> args) {
         try {
-            String prefixedTableName = getPrefixedTableName();
+            String prefixedTableName = prefixedTableNames.get(tableRef);
             conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + prefixedTableName + ") */"
                     + " INSERT INTO " + prefixedTableName + " (row_name, col_name, ts, val) "
                     + " VALUES (?, ?, ?, ?) ",
@@ -95,7 +93,7 @@ public class SimpleDbWriteTable implements DbWriteTable {
             }
             while (true) {
                 try {
-                    String prefixedTableName = getPrefixedTableName();
+                    String prefixedTableName = prefixedTableNames.get(tableRef);
                     conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + prefixedTableName + ") */"
                             + " INSERT INTO " + prefixedTableName + " (row_name, col_name, ts, val) "
                             + " SELECT ?, ?, ?, ? FROM DUAL"
@@ -124,7 +122,7 @@ public class SimpleDbWriteTable implements DbWriteTable {
             args.add(new Object[] {cell.getRowName(), cell.getColumnName(), entry.getValue()});
         }
 
-        String prefixedTableName = getPrefixedTableName();
+        String prefixedTableName = prefixedTableNames.get(tableRef);
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE (" + prefixedTableName + ") */ "
                 + " DELETE /*+ INDEX(m pk_" + prefixedTableName + ") */ "
                 + " FROM " + prefixedTableName + " m "
@@ -132,22 +130,5 @@ public class SimpleDbWriteTable implements DbWriteTable {
                 + "  AND m.col_name = ? "
                 + "  AND m.ts = ?",
                 args);
-    }
-
-    private String getPrefixedTableName() {
-        if (config.type().equals(OracleDdlConfig.TYPE)) {
-            return getOraclePrefixedTableName();
-        }
-        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
-    }
-
-    private String getOraclePrefixedTableName() {
-        OracleDdlConfig oracleConfig = (OracleDdlConfig) config;
-        try {
-            return new OracleTableNameGetter(conns, oracleConfig.tablePrefix(), oracleConfig.overflowTablePrefix(),
-                    tableRef).getInternalShortTableName();
-        } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
-        }
     }
 }

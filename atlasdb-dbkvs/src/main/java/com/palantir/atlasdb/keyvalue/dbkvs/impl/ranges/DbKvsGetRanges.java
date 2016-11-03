@@ -29,7 +29,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Supplier;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -45,11 +44,9 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
-import com.palantir.atlasdb.keyvalue.dbkvs.TableMappingNotFoundException;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.PrefixedTableNames;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.common.collect.IterableView;
@@ -333,20 +330,7 @@ public class DbKvsGetRanges {
     }
 
     private String getPrefixedTableName(TableReference tableRef) {
-        if (config.type().equals(OracleDdlConfig.TYPE)) {
-            return getOraclePrefixedTableName(tableRef);
-        }
-        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
-    }
-
-    private String getOraclePrefixedTableName(TableReference tableRef) {
-        OracleDdlConfig oracleConfig = (OracleDdlConfig) config;
-        try {
-            return new OracleTableNameGetter(new ConnectionSupplier(connectionSupplier), oracleConfig.tablePrefix(),
-                    oracleConfig.overflowTablePrefix(), tableRef).getInternalShortTableName();
-        } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
-        }
+        return new PrefixedTableNames(config, new ConnectionSupplier(connectionSupplier)).get(tableRef);
     }
 
     private static final String SIMPLE_ROW_SELECT_TEMPLATE =
