@@ -25,11 +25,13 @@ import org.junit.Test;
 
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.docker.compose.connection.Container;
+import com.palantir.docker.compose.connection.DockerPort;
 
 public class DegradedClusterInitializationTest {
     private static final String CASSANDRA_NODE_TO_KILL = ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME;
@@ -47,7 +49,6 @@ public class DegradedClusterInitializationTest {
     @AfterClass
     public static void bringClusterBack() throws IOException, InterruptedException {
         startDeadCassandraNode();
-        CONTAINERS.waitUntilAllContainersReady();
     }
 
     @Test
@@ -77,6 +78,16 @@ public class DegradedClusterInitializationTest {
     private static void startDeadCassandraNode() throws IOException, InterruptedException {
         Container container = CONTAINERS.getContainer(CASSANDRA_NODE_TO_KILL);
         container.start();
+        waitUntilCassandraIsListening(container);
+    }
+
+    private static void waitUntilCassandraIsListening(Container container) {
+        DockerPort containerPort = new DockerPort(container.getContainerName(),
+                CassandraContainer.CASSANDRA_PORT,
+                CassandraContainer.CASSANDRA_PORT);
+        Awaitility.await()
+                .atMost(60, TimeUnit.SECONDS)
+                .until(containerPort::isListeningNow);
     }
 
     private static void waitUntilStartupChecksPass() {
