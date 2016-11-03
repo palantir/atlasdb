@@ -1,6 +1,6 @@
-=============
-Performance
-=============
+===================
+Performance Testing
+===================
 
 .. toctree::
    :maxdepth: 1
@@ -8,3 +8,4 @@ Performance
 
    understanding
    benchmarking
+   writing
