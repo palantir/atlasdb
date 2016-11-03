@@ -17,6 +17,9 @@ package com.palantir.atlasdb.containers;
 
 import java.net.InetSocketAddress;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -26,18 +29,26 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 public class ThreeNodeCassandraCluster extends Container {
+    private static final Logger log = LoggerFactory.getLogger(ThreeNodeCassandraCluster.class);
+
+    public static final String CLI_CONTAINER_NAME = "cli";
+    public static final String FIRST_CASSANDRA_CONTAINER_NAME = "cassandra1";
+    public static final String SECOND_CASSANDRA_CONTAINER_NAME = "cassandra2";
+    public static final String THIRD_CASSANDRA_CONTAINER_NAME = "cassandra3";
+
     public static final CassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(new InetSocketAddress("cassandra1", 9160))
-            .addServers(new InetSocketAddress("cassandra2", 9160))
-            .addServers(new InetSocketAddress("cassandra3", 9160))
+            .addServers(new InetSocketAddress(FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_PORT))
+            .addServers(new InetSocketAddress(SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_PORT))
+            .addServers(new InetSocketAddress(THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_PORT))
             .poolSize(20)
             .keyspace("atlasdb")
             .credentials(ImmutableCassandraCredentialsConfig.builder()
-                    .username("cassandra")
-                    .password("cassandra")
+                    .username(CassandraContainer.USERNAME)
+                    .password(CassandraContainer.PASSWORD)
                     .build())
             .replicationFactor(3)
             .mutationBatchCount(10000)
@@ -60,12 +71,33 @@ public class ThreeNodeCassandraCluster extends Container {
     }
 
     @Override
-    public SuccessOrFailure isReady() {
+    public SuccessOrFailure isReady(DockerComposeRule rule) {
         return SuccessOrFailure.onResultOf(() -> {
-            CassandraKeyValueService.create(
-                    CassandraKeyValueServiceConfigManager.createSimpleManager(KVS_CONFIG),
-                    LEADER_CONFIG);
-            return true;
+
+            try {
+                ThreeNodeCassandraClusterOperations cassandraOperations =
+                        new ThreeNodeCassandraClusterOperations(rule);
+
+                if (!cassandraOperations.nodetoolShowsThreeCassandraNodesUp()) {
+                    return false;
+                }
+
+                // slightly hijacking the isReady function here - using it
+                // to actually modify the cluster
+                cassandraOperations.replicateSystemAuthenticationDataOnAllNodes();
+
+                return canCreateCassandraKeyValueService();
+            } catch (Exception e) {
+                log.info("Exception while checking if the Cassandra cluster was ready: " + e);
+                return false;
+            }
         });
+    }
+
+    private static boolean canCreateCassandraKeyValueService() {
+        CassandraKeyValueService.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(KVS_CONFIG),
+                LEADER_CONFIG);
+        return true;
     }
 }

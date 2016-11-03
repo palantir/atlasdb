@@ -15,12 +15,13 @@
  */
 package com.palantir.atlasdb.containers;
 
+import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 public abstract class Container {
     public abstract String getDockerComposeFile();
 
-    public abstract SuccessOrFailure isReady();
+    public abstract SuccessOrFailure isReady(DockerComposeRule rule);
 
     public boolean equals(Object obj) {
         return obj != null && this.getClass() == obj.getClass();
