@@ -117,8 +117,8 @@ v0.22.0
          - Fixed an issue where some locks were not being tracked for continuous refreshing due to one of the lock methods not being overridden by the ``LockRefreshingLockService``.
            This resulted in locks that appeared to be refreshed properly, but then would mysteriously time out at the end of a long-running operation.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1134>`__)
-    *    - |improved|
-         - all KVSs now as a guarantee throw a RuntimeException on attempts to truncate a non-existing table
+    *    - |breaking|
+         - All KVSs now as a guarantee throw a RuntimeException on attempts to truncate a non-existing table
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1114>`__)
 
     *    - |improved|

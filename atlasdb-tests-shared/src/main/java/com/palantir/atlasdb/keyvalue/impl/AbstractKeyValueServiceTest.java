@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import static java.util.Collections.emptyMap;
 
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertArrayEquals;
@@ -972,7 +973,6 @@ public abstract class AbstractKeyValueServiceTest {
         assertThat(values, is(emptyMap()));
     }
 
-
     @Test
     public void shouldAllowSameTablenameDifferentNamespace() {
         TableReference fooBar = TableReference.createUnsafe("foo.bar");
@@ -988,9 +988,8 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.createTable(fooBar, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(bazBar, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
-        // test table actually created
-        keyValueService.getRange(fooBar, RangeRequest.all(), 0L);
-        keyValueService.getRange(bazBar, RangeRequest.all(), 0L);
+        // test tables actually created
+        assertThat(keyValueService.getAllTableNames(), hasItems(fooBar, bazBar));
 
         // clean up
         keyValueService.dropTables(ImmutableSet.of(fooBar, bazBar));
@@ -1028,7 +1027,6 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
-
 
     private byte[] dynamicColumn(long columnId) {
         return PtBytes.toBytes(columnId);
