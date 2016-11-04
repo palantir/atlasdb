@@ -73,6 +73,10 @@ develop
          - Removed spurious error logging during first-time startup against a brand new Cassandra cluster.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1033>`__)
 
+    *    - |improved|
+         - Improved the reliability of starting up against a degraded Cassandra cluster.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1033>`__)
+
     *   - |improved|
         - We now support Oracle for products with all valid schemas. Oracle table names exceeding 30 characters are now
           mapped to shorter names by truncating and appending a sequence number.
