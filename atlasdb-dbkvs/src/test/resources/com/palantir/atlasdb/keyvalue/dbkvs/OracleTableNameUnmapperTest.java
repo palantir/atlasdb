@@ -20,6 +20,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.startsWith;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -78,10 +79,9 @@ public class OracleTableNameUnmapperTest {
 
         AgnosticResultRow row = mock(AgnosticResultRow.class);
         when(row.getString(eq("short_table_name"))).thenReturn(SHORT_TABLE_NAME);
-        when(resultSet.rows()).thenReturn(ImmutableList.of(row));
+        doReturn(ImmutableList.of(row)).when(resultSet).rows();
 
         String shortName = oracleTableNameUnmapper.getShortTableNameFromMappingTable(TEST_PREFIX, TABLE_REF);
         assertThat(shortName, is(SHORT_TABLE_NAME));
     }
-
 }
