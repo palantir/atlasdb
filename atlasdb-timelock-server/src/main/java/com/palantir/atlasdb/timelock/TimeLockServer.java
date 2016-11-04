@@ -19,6 +19,8 @@ import java.util.Optional;
 
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
+import com.palantir.lock.LockService;
+import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting.ssl.SslConfiguration;
 import com.palantir.timestamp.TimestampService;
 
@@ -64,6 +66,8 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
         TimestampService timestampService = new TimestampResource(DistributedValues.getTimestamp(localNode));
         environment.jersey().register(timestampService);
 
+        LockService lockService = LockServiceImpl.create();
+        environment.jersey().register(lockService);
     }
 
     private Transport createTransport(Optional<SslConfiguration> optionalSecurity) {
