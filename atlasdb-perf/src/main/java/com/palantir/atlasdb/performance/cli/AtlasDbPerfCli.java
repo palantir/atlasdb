@@ -127,6 +127,7 @@ public class AtlasDbPerfCli {
                 .measurementIterations(1)
                 .mode(Mode.SampleTime)
                 .timeUnit(TimeUnit.MICROSECONDS)
+                .shouldFailOnError(true)
                 .param(BenchmarkParam.URI.getKey(),
                         uris.stream()
                                 .map(DockerizedDatabaseUri::toString)
