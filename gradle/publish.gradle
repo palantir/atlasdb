@@ -23,7 +23,6 @@ publishing {
             artifact(testJar) {
                 classifier 'tests'
             }
-            // version project.version.replaceAll(/-\d+.*/, (circleBuildNum ? '.b' + circleBuildNum : '') + '-SNAPSHOT')
             pom.withXml {
                 def scm = asNode().appendNode('scm')
                 scm.appendNode('url', 'https://github.com/palantir/atlasdb')
