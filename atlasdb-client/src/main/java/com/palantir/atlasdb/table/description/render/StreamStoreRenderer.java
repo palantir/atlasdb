@@ -129,7 +129,7 @@ public class StreamStoreRenderer {
         return new Renderer() {
             @Override
             protected void run() {
-                ImportRenderer importRenderer = new ImportRenderer(this,
+                ImportRenderer importRenderer = ImportRenderer.fromClasses(this,
                         Arrays.asList(IMPORTS));
                 line("package ", packageName, ";");
                 line();

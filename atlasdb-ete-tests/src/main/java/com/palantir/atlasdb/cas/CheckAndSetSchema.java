@@ -32,7 +32,7 @@ public class CheckAndSetSchema implements AtlasSchema {
         Schema schema = new Schema(
                 CheckAndSetSchema.class.getSimpleName(),
                 CheckAndSetSchema.class.getPackage().getName() + ".generated",
-                Namespace.DEFAULT_NAMESPACE);
+                Namespace.DEFAULT_NAMESPACE, false);
 
         schema.addTableDefinition(CAS_TABLE, new TableDefinition() {{
             rowName();

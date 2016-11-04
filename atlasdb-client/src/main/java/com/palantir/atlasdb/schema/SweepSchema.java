@@ -39,7 +39,8 @@ public enum SweepSchema implements AtlasSchema {
     private static Schema generateSchema() {
         Schema schema = new Schema("Sweep",
                 SweepSchema.class.getPackage().getName() + ".generated",
-                NAMESPACE);
+                NAMESPACE,
+                false);
 
         // This table tracks progress on a sweep job of a single table.
         schema.addTableDefinition("progress", new TableDefinition() {{

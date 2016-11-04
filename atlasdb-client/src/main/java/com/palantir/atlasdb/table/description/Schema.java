@@ -67,6 +67,11 @@ public class Schema {
     private final String name;
     private final String packageName;
     private final Namespace namespace;
+    /**
+     * Indicates whether the generated code uses the Java8 Optional class (if true) or the Guava Optional class (if
+     * false).
+     */
+    private final boolean useJava8Optionals;
 
     private final Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
     private final Map<String, TableDefinition> tempTableDefinitions = Maps.newHashMap();
@@ -79,17 +84,18 @@ public class Schema {
     private final ListMultimap<String, String> indexesByTable = ArrayListMultimap.create();
 
     public Schema(Namespace namespace) {
-        this(null, null, namespace);
+        this(null, null, namespace, false);
     }
 
     public Schema() {
-        this(null, null, Namespace.DEFAULT_NAMESPACE);
+        this(null, null, Namespace.DEFAULT_NAMESPACE, false);
     }
 
-    public Schema(String name, String packageName, Namespace namespace) {
+    public Schema(String name, String packageName, Namespace namespace, boolean useJava8Optionals) {
         this.name = name;
         this.packageName = packageName;
         this.namespace = namespace;
+        this.useJava8Optionals = useJava8Optionals;
     }
 
     public void addTableDefinition(String tableName, TableDefinition definition) {
@@ -264,7 +270,7 @@ public class Schema {
         Preconditions.checkNotNull(name, "schema name not set");
         Preconditions.checkNotNull(packageName, "package name not set");
 
-        TableRenderer tableRenderer = new TableRenderer(packageName, namespace);
+        TableRenderer tableRenderer = new TableRenderer(packageName, namespace, useJava8Optionals);
         for (Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
             String rawTableName = entry.getKey();
             TableDefinition table = entry.getValue();
