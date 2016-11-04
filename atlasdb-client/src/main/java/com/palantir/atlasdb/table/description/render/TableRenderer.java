@@ -32,6 +32,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
+import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -120,9 +121,16 @@ public class TableRenderer {
     private final String packageName;
     private final Namespace namespace;
 
-    public TableRenderer(String packageName, Namespace namespace) {
+    /**
+     * Indicates whether the generated code uses the Java8 Optional class (if true) or the Guava Optional class (if
+     * false).
+     */
+    private final boolean useJava8Optionals;
+
+    public TableRenderer(String packageName, Namespace namespace, boolean useJava8Optionals) {
         this.packageName = Preconditions.checkNotNull(packageName);
         this.namespace = Preconditions.checkNotNull(namespace);
+        this.useJava8Optionals = useJava8Optionals;
     }
 
     public String getClassName(String rawTableName, TableDefinition table) {
@@ -191,8 +199,7 @@ public class TableRenderer {
 
         @Override
         protected void run() {
-            ImportRenderer importRenderer = new ImportRenderer(this,
-                    Arrays.asList(IMPORTS));
+            ImportRenderer importRenderer = ImportRenderer.fromCanonicalNames(this, getImports());
             if (!isNestedIndex) {
                 line("package ", packageName, ";");
                 line();
@@ -1043,20 +1050,36 @@ public class TableRenderer {
 
         private void renderNamedGetRow() {
             line("@Override");
-            line("public Optional<", RowResult, "> getRow(", Row, " row) {"); {
+            line("public ", getOptionalTypeForClass(), " getRow(", Row, " row) {"); {
                 line("return getRow(row, allColumns);");
             } line("}");
             line();
             line("@Override");
-            line("public Optional<", RowResult, "> getRow(", Row, " row, ColumnSelection columns) {"); {
+            line("public ", getOptionalTypeForClass(), " getRow(", Row, " row, ColumnSelection columns) {"); {
                 line("byte[] bytes = row.persistToBytes();");
                 line("RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);");
                 line("if (rowResult == null) {"); {
-                    line("return Optional.absent();");
+                    renderOptionalReturnValue(null);
                 } line("} else {"); {
-                    line("return Optional.of(", RowResult, ".of(rowResult));");
+                    renderOptionalReturnValue("rowResult");
                 } line("}");
             } line("}");
+        }
+
+        private String getOptionalTypeForClass() {
+            return "Optional<" + RowResult + ">";
+        }
+
+        private void renderOptionalReturnValue(@Nullable String value) {
+            if (value != null) {
+                line("return Optional.of(", RowResult, ".of(rowResult));");
+            } else {
+                if (useJava8Optionals) {
+                    line("return Optional.empty();");
+                } else {
+                    line("return Optional.absent();");
+                }
+            }
         }
 
         private void renderNamedGetRows() {
@@ -1296,89 +1319,96 @@ public class TableRenderer {
         });
     }
 
-    private static final Class<?>[] IMPORTS = {
-        Set.class,
-        List.class,
-        Map.class,
-        SortedMap.class,
-        Callable.class,
-        ExecutorService.class,
-        Multimap.class,
-        Multimaps.class,
-        Collection.class,
-        Function.class,
-        Persistable.class,
-        Hydrator.class,
-        Transaction.class,
-        NamedColumnValue.class,
-        ColumnValue.class,
-        BatchingVisitable.class,
-        RangeRequest.class,
-        Prefix.class,
-        BatchingVisitables.class,
-        BatchingVisitableView.class,
-        IterableView.class,
-        ColumnValues.class,
-        RowResult.class,
-        Persistables.class,
-        AsyncProxy.class,
-        Maps.class,
-        Lists.class,
-        ImmutableMap.class,
-        ImmutableSet.class,
-        Sets.class,
-        HashSet.class,
-        HashMultimap.class,
-        ArrayListMultimap.class,
-        ImmutableMultimap.class,
-        Cell.class,
-        Cells.class,
-        EncodingUtils.class,
-        PtBytes.class,
-        MoreObjects.class,
-        Objects.class,
-        ComparisonChain.class,
-        Sha256Hash.class,
-        EnumSet.class,
-        Descending.class,
-        AbortingVisitor.class,
-        AbortingVisitors.class,
-        AssertUtils.class,
-        AtlasDbConstraintCheckingMode.class,
-        ConstraintCheckingTransaction.class,
-        AtlasDbDynamicMutableExpiringTable.class,
-        AtlasDbDynamicMutablePersistentTable.class,
-        AtlasDbNamedPersistentSet.class,
-        AtlasDbNamedExpiringSet.class,
-        AtlasDbMutablePersistentTable.class,
-        AtlasDbMutableExpiringTable.class,
-        AtlasDbNamedMutableTable.class,
-        ColumnSelection.class,
-        Joiner.class,
-        Entry.class,
-        Iterator.class,
-        Iterables.class,
-        Supplier.class,
-        InvalidProtocolBufferException.class,
-        Throwables.class,
-        ImmutableList.class,
-        UnsignedBytes.class,
-        Optional.class,
-        Collections2.class,
-        Arrays.class,
-        Bytes.class,
-        TypedRowResult.class,
-        TimeUnit.class,
-        CompressionUtils.class,
-        Compression.class,
-        Namespace.class,
-        Hashing.class,
-        ValueType.class,
-        Generated.class,
-        TableReference.class,
-        BatchColumnRangeSelection.class,
-        ColumnRangeSelections.class,
-        ColumnRangeSelection.class,
-        Iterators.class,
-    };
+    private List<String> getImports() {
+        List<String> imports = Lists.newArrayList();
+        if (useJava8Optionals) {
+            imports.add("java.util.Optional");
+        } else {
+            imports.add(Optional.class.getCanonicalName());
+        }
+        imports.addAll(
+        Arrays.asList(Set.class.getCanonicalName(),
+                List.class.getCanonicalName(),
+                Map.class.getCanonicalName(),
+                SortedMap.class.getCanonicalName(),
+                Callable.class.getCanonicalName(),
+                ExecutorService.class.getCanonicalName(),
+                Multimap.class.getCanonicalName(),
+                Multimaps.class.getCanonicalName(),
+                Collection.class.getCanonicalName(),
+                Function.class.getCanonicalName(),
+                Persistable.class.getCanonicalName(),
+                Hydrator.class.getCanonicalName(),
+                Transaction.class.getCanonicalName(),
+                NamedColumnValue.class.getCanonicalName(),
+                ColumnValue.class.getCanonicalName(),
+                BatchingVisitable.class.getCanonicalName(),
+                RangeRequest.class.getCanonicalName(),
+                Prefix.class.getCanonicalName(),
+                BatchingVisitables.class.getCanonicalName(),
+                BatchingVisitableView.class.getCanonicalName(),
+                IterableView.class.getCanonicalName(),
+                ColumnValues.class.getCanonicalName(),
+                RowResult.class.getCanonicalName(),
+                Persistables.class.getCanonicalName(),
+                AsyncProxy.class.getCanonicalName(),
+                Maps.class.getCanonicalName(),
+                Lists.class.getCanonicalName(),
+                ImmutableMap.class.getCanonicalName(),
+                ImmutableSet.class.getCanonicalName(),
+                Sets.class.getCanonicalName(),
+                HashSet.class.getCanonicalName(),
+                HashMultimap.class.getCanonicalName(),
+                ArrayListMultimap.class.getCanonicalName(),
+                ImmutableMultimap.class.getCanonicalName(),
+                Cell.class.getCanonicalName(),
+                Cells.class.getCanonicalName(),
+                EncodingUtils.class.getCanonicalName(),
+                PtBytes.class.getCanonicalName(),
+                MoreObjects.class.getCanonicalName(),
+                Objects.class.getCanonicalName(),
+                ComparisonChain.class.getCanonicalName(),
+                Sha256Hash.class.getCanonicalName(),
+                EnumSet.class.getCanonicalName(),
+                Descending.class.getCanonicalName(),
+                AbortingVisitor.class.getCanonicalName(),
+                AbortingVisitors.class.getCanonicalName(),
+                AssertUtils.class.getCanonicalName(),
+                AtlasDbConstraintCheckingMode.class.getCanonicalName(),
+                ConstraintCheckingTransaction.class.getCanonicalName(),
+                AtlasDbDynamicMutableExpiringTable.class.getCanonicalName(),
+                AtlasDbDynamicMutablePersistentTable.class.getCanonicalName(),
+                AtlasDbNamedPersistentSet.class.getCanonicalName(),
+                AtlasDbNamedExpiringSet.class.getCanonicalName(),
+                AtlasDbMutablePersistentTable.class.getCanonicalName(),
+                AtlasDbMutableExpiringTable.class.getCanonicalName(),
+                AtlasDbNamedMutableTable.class.getCanonicalName(),
+                ColumnSelection.class.getCanonicalName(),
+                Joiner.class.getCanonicalName(),
+                Entry.class.getCanonicalName(),
+                Iterator.class.getCanonicalName(),
+                Iterables.class.getCanonicalName(),
+                Supplier.class.getCanonicalName(),
+                InvalidProtocolBufferException.class.getCanonicalName(),
+                Throwables.class.getCanonicalName(),
+                ImmutableList.class.getCanonicalName(),
+                UnsignedBytes.class.getCanonicalName(),
+                Collections2.class.getCanonicalName(),
+                Arrays.class.getCanonicalName(),
+                Bytes.class.getCanonicalName(),
+                TypedRowResult.class.getCanonicalName(),
+                TimeUnit.class.getCanonicalName(),
+                CompressionUtils.class.getCanonicalName(),
+                Compression.class.getCanonicalName(),
+                Namespace.class.getCanonicalName(),
+                Hashing.class.getCanonicalName(),
+                ValueType.class.getCanonicalName(),
+                Generated.class.getCanonicalName(),
+                TableReference.class.getCanonicalName(),
+                BatchColumnRangeSelection.class.getCanonicalName(),
+                ColumnRangeSelections.class.getCanonicalName(),
+                ColumnRangeSelection.class.getCanonicalName(),
+                Iterators.class.getCanonicalName()));
+        return imports;
+    }
 }

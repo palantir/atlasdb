@@ -22,11 +22,28 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 
 public class ImportRenderer extends Renderer {
-    private final Collection<Class<?>> imports;
+    private final SortedSet<String> importsByCanonicalName;
 
-    public ImportRenderer(Renderer parent, Collection<Class<?>> imports) {
+    private ImportRenderer(Renderer parent, Collection<String> imports) {
         super(parent);
-        this.imports = imports;
+
+        ImmutableSortedSet.Builder<String> sortedImports = ImmutableSortedSet.naturalOrder();
+        for (String clazz : imports) {
+            sortedImports.add(clazz);
+        }
+        importsByCanonicalName = sortedImports.build();
+    }
+
+    public static ImportRenderer fromCanonicalNames(Renderer parent, Collection<String> imports) {
+        return new ImportRenderer(parent, imports);
+    }
+
+    public static ImportRenderer fromClasses(Renderer parent, Collection<Class<?>> imports) {
+        ImmutableSortedSet.Builder<String> sortedImports = ImmutableSortedSet.naturalOrder();
+        for (Class<?> clazz : imports) {
+            sortedImports.add(clazz.getCanonicalName());
+        }
+        return new ImportRenderer(parent, sortedImports.build());
     }
 
     @Override
@@ -36,7 +53,7 @@ public class ImportRenderer extends Renderer {
 
     void renderImports() {
         for (String prefix : ImmutableList.of("java.", "javax.", "org.", "com.")) {
-            for (String importClass : importsSortedByFullName()) {
+            for (String importClass : importsByCanonicalName) {
                 if (importClass.startsWith(prefix)) {
                     line("import ", importClass, ";");
                 }
@@ -48,26 +65,10 @@ public class ImportRenderer extends Renderer {
     void renderImportJavaDoc() {
         line("/**");
         line(" * This exists to avoid unused import warnings");
-        for (String className : importsSortedBySimpleName()) {
-            line(" * {@link ", className, "}", "");
+        for (String className : importsByCanonicalName) {
+            String simpleClassName = className.substring(className.lastIndexOf('.') + 1);
+            line(" * {@link ", simpleClassName, "}", "");
         }
         line(" */");
     }
-
-    private SortedSet<String> importsSortedByFullName() {
-        ImmutableSortedSet.Builder<String> sortedImports = ImmutableSortedSet.naturalOrder();
-        for (Class<?> clazz : imports) {
-            sortedImports.add(clazz.getCanonicalName());
-        }
-        return sortedImports.build();
-    }
-
-    private SortedSet<String> importsSortedBySimpleName() {
-        ImmutableSortedSet.Builder<String> sortedImports = ImmutableSortedSet.naturalOrder();
-        for (Class<?> clazz : imports) {
-            sortedImports.add(clazz.getSimpleName());
-        }
-        return sortedImports.build();
-    }
-
 }
