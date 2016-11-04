@@ -29,7 +29,9 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.FileUtils;
 import org.joda.time.format.ISODateTimeFormat;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -84,8 +86,28 @@ public class TestTimestampCommand {
     }
 
     @Before
-    public void setup() {
+    public void setup() throws IOException{
         cliArgs = Lists.newArrayList("timestamp");
+        cleanup();
+    }
+
+    @After
+    public void cleanup() throws IOException {
+        Files.deleteIfExists(new File("test.timestamp").toPath());
+        deleteDirectoryIfExists("existing-dir");
+        deleteDirectoryIfExists("missing-dir");
+        deleteDirectoryIfExists("readonly-dir");
+    }
+
+    private void deleteDirectoryIfExists(String directory) throws IOException {
+        File dir = new File(directory);
+        if (!dir.exists()) {
+            return;
+        }
+        if (!dir.canWrite()) {
+            assertThat(dir.setWritable(true)).isTrue();
+        }
+        FileUtils.deleteDirectory(dir);
     }
 
     @Parameterized.Parameter(value = 0)
@@ -144,28 +166,20 @@ public class TestTimestampCommand {
     @Test
     public void testWithFile() throws Exception {
         String inputFileString = "test.timestamp";
-        File inputFile = new File(inputFileString);
         runAndVerifyCliForFile(inputFileString);
-        Files.delete(inputFile.toPath());
     }
 
 
     @Test
     public void testWithFileWithDir() throws Exception {
         String inputFileString = "existing-dir/test.timestamp";
-        File inputFile = new File(inputFileString);
         runAndVerifyCliForFile(inputFileString);
-        Files.deleteIfExists(inputFile.toPath());
-        Files.deleteIfExists(inputFile.getParentFile().toPath());
     }
 
     @Test
     public void testWithFileWithMissingDir() throws Exception {
         String inputFileString = "missing-dir/test.timestamp";
-        File inputFile = new File(inputFileString);
         runAndVerifyCliForFile(inputFileString);
-        Files.deleteIfExists(inputFile.toPath());
-        Files.deleteIfExists(inputFile.getParentFile().toPath());
     }
 
     @Test
@@ -178,8 +192,6 @@ public class TestTimestampCommand {
         assertThatThrownBy(() -> runAndVerifyCliForFile(inputFileString))
                 .isInstanceOf(RuntimeException.class)
                 .hasCauseExactlyInstanceOf(AccessDeniedException.class);
-        assertThat(readOnlyDir.setWritable(true)).isTrue();
-        Files.deleteIfExists(readOnlyDir.toPath());
     }
 
     private void runAndVerifyCliForFile(String inputFileString) throws Exception {
@@ -219,7 +231,8 @@ public class TestTimestampCommand {
 
             long immutableTs = tss.getFreshTimestamp();
             LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.WRITE))
-                    .withLockedInVersionId(immutableTs).doNotBlock()
+                    .withLockedInVersionId(immutableTs)
+                    .doNotBlock()
                     .build();
             LockRefreshToken token = rls.lock(client.getClientId(), request);
             long lastFreshTs = tss.getFreshTimestamps(1000).getUpperBound();
