@@ -67,11 +67,8 @@ public class Schema {
     private final String name;
     private final String packageName;
     private final Namespace namespace;
-    /**
-     * Indicates whether the generated code uses the Java8 Optional class (if true) or the Guava Optional class (if
-     * false).
-     */
-    private final boolean useJava8Optionals;
+    private final OptionalType optionalType;
+
 
     private final Multimap<String, Supplier<OnCleanupTask>> cleanupTasks = ArrayListMultimap.create();
     private final Map<String, TableDefinition> tempTableDefinitions = Maps.newHashMap();
@@ -83,19 +80,26 @@ public class Schema {
     // for code generation purposes.
     private final ListMultimap<String, String> indexesByTable = ArrayListMultimap.create();
 
+    /** Creates a new schema, using Guava Optionals. */
     public Schema(Namespace namespace) {
-        this(null, null, namespace, false);
+        this(null, null, namespace);
     }
 
+    /** Creates a new schema, using Guava Optionals. */
     public Schema() {
-        this(null, null, Namespace.DEFAULT_NAMESPACE, false);
+        this(null, null, Namespace.DEFAULT_NAMESPACE);
     }
 
-    public Schema(String name, String packageName, Namespace namespace, boolean useJava8Optionals) {
+    /** Creates a new schema, using Guava Optionals. */
+    public Schema(String name, String packageName, Namespace namespace) {
+        this(name, packageName, namespace, OptionalType.GUAVA);
+    }
+
+    public Schema(String name, String packageName, Namespace namespace, OptionalType optionalType) {
         this.name = name;
         this.packageName = packageName;
         this.namespace = namespace;
-        this.useJava8Optionals = useJava8Optionals;
+        this.optionalType = optionalType;
     }
 
     public void addTableDefinition(String tableName, TableDefinition definition) {
@@ -270,7 +274,7 @@ public class Schema {
         Preconditions.checkNotNull(name, "schema name not set");
         Preconditions.checkNotNull(packageName, "package name not set");
 
-        TableRenderer tableRenderer = new TableRenderer(packageName, namespace, useJava8Optionals);
+        TableRenderer tableRenderer = new TableRenderer(packageName, namespace, optionalType);
         for (Entry<String, TableDefinition> entry : tableDefinitions.entrySet()) {
             String rawTableName = entry.getKey();
             TableDefinition table = entry.getValue();

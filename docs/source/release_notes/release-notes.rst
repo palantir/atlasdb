@@ -42,8 +42,7 @@ develop
          - Change
 
     *    - |improved|
-         - Add support for generating schemas with Java8 Optionals instead of Guava Optionals. Note that this change
-           changes one of the `Schema` constructors.
+         - Add support for generating schemas with Java8 Optionals instead of Guava Optionals.
 
     *    - |improved|
          - Added a significant amount of logging aimed at tracking down the ``MultipleRunningTimestampServicesError``.
