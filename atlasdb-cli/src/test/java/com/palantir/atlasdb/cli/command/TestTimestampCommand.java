@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.cli.command;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -25,15 +28,13 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
-import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
-import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
@@ -66,14 +67,10 @@ public class TestTimestampCommand {
 
     private static LockDescriptor lock;
     private static AtlasDbServicesFactory moduleFactory;
-
-    private static final String TIMESTAMP_FILE_PATH = "test.timestamp";
-    private static final String TIMESTAMP_FILE_PATH_WITH_MISSING_DIR = "missing-dir/test.timestamp";
-    private static final File TIMESTAMP_FILE = new File(TIMESTAMP_FILE_PATH);
-    private static final File TIMESTAMP_FILE_WITH_MISSING_DIR = new File(TIMESTAMP_FILE_PATH_WITH_MISSING_DIR);
+    private static List<String> cliArgs;
 
     @BeforeClass
-    public static void setup() throws Exception {
+    public static void oneTimeSetup() throws Exception {
         lock = StringLockDescriptor.of("lock");
         moduleFactory = new AtlasDbServicesFactory() {
             @Override
@@ -83,47 +80,28 @@ public class TestTimestampCommand {
                         .build();
             }
         };
-        cleanUpTimestampFile();
+    }
+
+    @Before
+    public void setup() {
+        cliArgs = Lists.newArrayList("timestamp");
     }
 
     @Parameterized.Parameter(value = 0)
     public boolean isImmutable;
 
-    @Parameterized.Parameter(value = 1)
-    public boolean isToFile;
-
-    @Parameterized.Parameter(value = 2)
-    public boolean isFileWithMissingDir;
-
     @Parameterized.Parameters
     public static Collection<Object[]> parameters() {
-        return Arrays.asList(new Object[][] {
-                { true, true, true},
-                { true, true, false},
-                { true, false, false},
-                { false, true, true},
-                { false, true, false},
-                { false, false, false }
-        });
-    }
-
-    @After
-    public void cleanUp() {
-        cleanUpTimestampFile();
-    }
-
-    private static void cleanUpTimestampFile() {
-        if (TIMESTAMP_FILE_WITH_MISSING_DIR.exists()) {
-            TIMESTAMP_FILE_WITH_MISSING_DIR.delete();
-            TIMESTAMP_FILE_WITH_MISSING_DIR.getParentFile().delete();
-        }
-        if (TIMESTAMP_FILE.exists()){
-            TIMESTAMP_FILE.delete();
-        }
+        return Arrays.asList(new Object[][] {{ false }, { true }});
     }
 
     private SingleBackendCliTestRunner makeRunner(String... args) {
         return new InMemoryTestRunner(FetchTimestamp.class, args);
+    }
+
+    private interface Verifier {
+        void verify(SingleBackendCliTestRunner runner, TimestampService tss, long immutableTs, long prePunch,
+                long postPunch, long lastFreshTs, boolean shouldTestImmutable) throws Exception;
     }
 
     /*
@@ -132,95 +110,174 @@ public class TestTimestampCommand {
      * state of locks held by the lock service. isImmutable designates whether or not we
      * provided the argument to fetch the immutable timestamp rather than a fresh one.
      *
-     * Also make sure that the wallclock times associated with those timestamps are correct
+     * Also make sure that the wall clock times associated with those timestamps are correct
      * according to the current state of the _punch table.  We always provide the argument
      * to output this and thus always check it.
      *
      * Additionally, check that the formatting of commands that are writing the timestamps
-     * to a file for the purposes of scripting these commands is also correct.  isToFile
-     * designates whether or not we provided the argument to write to a file rather than just stdout
+     * to a file for the purposes of scripting these commands is also correct.
      */
     @Test
-    public void genericTest() throws Exception {
-        List<String> cliArgs = Lists.newArrayList("timestamp"); //group command
-        if (isToFile) {
-            cliArgs.add("-f");
-            cliArgs.add(isFileWithMissingDir ? TIMESTAMP_FILE_PATH_WITH_MISSING_DIR : TIMESTAMP_FILE_PATH);
-        }
+    public void testWithoutFile() throws Exception {
         cliArgs.add("fetch");
         if (isImmutable) {
             cliArgs.add("-i");
         }
-        cliArgs.add("-d"); //always test datetime
+        cliArgs.add("-d");
 
+        runAndVerifyCli((runner, tss, immutableTs, prePunch, postPunch, lastFreshTs, shouldTestImmutable) -> {
+            Scanner scanner = new Scanner(runner.run(true, false));
+            long timestamp = getTimestampFromStdout(scanner);
+            scanner.nextLine();
+            long wallClockTimestamp = getWallClockTimestamp(scanner);
+            scanner.close();
+            if (shouldTestImmutable && isImmutable) {
+                verifyImmutableTs(timestamp, immutableTs, prePunch, postPunch, lastFreshTs, tss.getFreshTimestamp(),
+                        wallClockTimestamp);
+            } else {
+                verifyFreshTs(timestamp, prePunch, postPunch, lastFreshTs, tss.getFreshTimestamp(), wallClockTimestamp);
+            }
+        });
+    }
+
+    @Test
+    public void testWithFile() throws Exception {
+        String inputFileString = "test.timestamp";
+        File inputFile = new File(inputFileString);
+        runAndVerifyCliForFile(inputFileString);
+        Files.delete(inputFile.toPath());
+    }
+
+
+    @Test
+    public void testWithFileWithDir() throws Exception {
+        String inputFileString = "existing-dir/test.timestamp";
+        File inputFile = new File(inputFileString);
+        runAndVerifyCliForFile(inputFileString);
+        Files.deleteIfExists(inputFile.toPath());
+        Files.deleteIfExists(inputFile.getParentFile().toPath());
+    }
+
+    @Test
+    public void testWithFileWithMissingDir() throws Exception {
+        String inputFileString = "missing-dir/test.timestamp";
+        File inputFile = new File(inputFileString);
+        runAndVerifyCliForFile(inputFileString);
+        Files.deleteIfExists(inputFile.toPath());
+        Files.deleteIfExists(inputFile.getParentFile().toPath());
+    }
+
+    @Test
+    public void testWithFileWithInvalidMissingDir() throws Exception {
+        String inputFileString = "readonly-dir/missing-dir/test.timestamp";
+        File inputFile = new File(inputFileString);
+        File readOnlyDir = inputFile.getParentFile().getParentFile();
+        Files.createDirectory(readOnlyDir.toPath());
+        assertThat(readOnlyDir.setReadOnly()).isTrue();
+        assertThatThrownBy(() -> runAndVerifyCliForFile(inputFileString))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("AccessDeniedException");
+        assertThat(readOnlyDir.setWritable(true)).isTrue();
+        Files.deleteIfExists(readOnlyDir.toPath());
+    }
+
+    private void runAndVerifyCliForFile(String inputFileString) throws Exception {
+        cliArgs.add("-f");
+        cliArgs.add(inputFileString);
+        cliArgs.add("fetch");
+        if (isImmutable) {
+            cliArgs.add("-i");
+        }
+        cliArgs.add("-d");
+        runAndVerifyCli((runner, tss, immutableTs, prePunch, postPunch, lastFreshTs, shouldTestImmutable) -> {
+            Scanner scanner = new Scanner(runner.run(true, false));
+            long timestamp = getTimestampFromFile(inputFileString);
+            scanner.nextLine();
+            long wallClockTimestamp = getWallClockTimestamp(scanner);
+            scanner.close();
+            if (shouldTestImmutable && isImmutable) {
+                verifyImmutableTs(timestamp, immutableTs, prePunch, postPunch, lastFreshTs, tss.getFreshTimestamp(),
+                        wallClockTimestamp);
+            } else {
+                verifyFreshTs(timestamp, prePunch, postPunch, lastFreshTs, tss.getFreshTimestamp(), wallClockTimestamp);
+            }
+        });
+    }
+
+    private void runAndVerifyCli(Verifier verifier) throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner(cliArgs.toArray(new String[0]))) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
             RemoteLockService rls = services.getLockService();
             TimestampService tss = services.getTimestampService();
             LockClient client = services.getTestLockClient();
 
-            // this is a really hacky way of forcing a punch to test the datetime output
             Clock clock = GlobalClock.create(rls);
             long prePunch = clock.getTimeMillis();
-            Uninterruptibles.sleepUninterruptibly(2, TimeUnit.MILLISECONDS);
-            long punchTs = tss.getFreshTimestamps(1000).getUpperBound();
-            PuncherStore puncherStore = KeyValueServicePuncherStore.create(services.getKeyValueService());
-            Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(AtlasDbConstants.DEFAULT_TRANSACTION_READ_TIMEOUT));
-            puncher.punch(punchTs);
-            Uninterruptibles.sleepUninterruptibly(2, TimeUnit.MILLISECONDS);
+            punch(services, tss, clock);
             long postPunch = clock.getTimeMillis();
 
             long immutableTs = tss.getFreshTimestamp();
-            LockRequest request = LockRequest.builder(ImmutableSortedMap.of(
-                    lock, LockMode.WRITE))
-                    .withLockedInVersionId(immutableTs).doNotBlock().build();
+            LockRequest request = LockRequest.builder(ImmutableSortedMap.of(lock, LockMode.WRITE))
+                    .withLockedInVersionId(immutableTs).doNotBlock()
+                    .build();
             LockRefreshToken token = rls.lock(client.getClientId(), request);
             long lastFreshTs = tss.getFreshTimestamps(1000).getUpperBound();
-            runAndVerify(runner, tss, isImmutable, immutableTs, lastFreshTs, prePunch, postPunch);
+
+            verifier.verify(runner, tss, immutableTs, prePunch, postPunch, lastFreshTs, true);
 
             rls.unlock(token);
             lastFreshTs = tss.getFreshTimestamps(1000).getUpperBound();
+
             // there are no locks so we now expect immutable to just be a fresh
             runner.freshCommand();
-            runAndVerify(runner, tss, false, lastFreshTs, lastFreshTs, prePunch, postPunch);
+            verifier.verify(runner, tss, immutableTs, prePunch, postPunch, lastFreshTs, false);
         }
     }
 
-    private void runAndVerify(SingleBackendCliTestRunner runner, TimestampService tss,
-            boolean immutable, long immutableTs, long lastFreshTs,
-            long prePunch, long postPunch) throws IOException {
-        // run the stuff
-        Scanner scanner = new Scanner(runner.run(true, false));
-        // get timestamp from stdout
-        String line = scanner.findInLine(".*timestamp\\sis\\:\\s(\\d+.*)");
-        scanner.nextLine();
+    private void punch(TestAtlasDbServices services, TimestampService tss, Clock clock) {
+        // this is a really hacky way of forcing a punch to test the datetime output
+        Uninterruptibles.sleepUninterruptibly(2, TimeUnit.MILLISECONDS);
+        long punchTs = tss.getFreshTimestamps(1000).getUpperBound();
+        PuncherStore puncherStore = KeyValueServicePuncherStore.create(services.getKeyValueService());
+        Puncher puncher = SimplePuncher.create(puncherStore, clock,
+                Suppliers.ofInstance(AtlasDbConstants.DEFAULT_TRANSACTION_READ_TIMEOUT));
+        puncher.punch(punchTs);
+        Uninterruptibles.sleepUninterruptibly(2, TimeUnit.MILLISECONDS);
+    }
+
+    private long getWallClockTimestamp(Scanner scanner) {
+        String line = scanner.findInLine(".*Wall\\sclock\\sdatetime.*\\s(\\d+.*)");
         String[] parts = line.split(" ");
-        long timestamp = Long.parseLong(parts[parts.length-1]);
-        // get datetime from stdout
-        line = scanner.findInLine(".*Wall\\sclock\\sdatetime.*\\s(\\d+.*)");
-        parts = line.split(" ");
-        DateTime datetime = ISODateTimeFormat.dateTime().parseDateTime(parts[parts.length-1]);
-        // get timestamp from file
-        if (isToFile) {
-            File timestampFile = isFileWithMissingDir ? TIMESTAMP_FILE_WITH_MISSING_DIR : TIMESTAMP_FILE;
-            Preconditions.checkArgument(timestampFile.exists(), "Timestamp file doesn't exist.");
-            List<String> lines = Files.readAllLines(timestampFile.toPath(), StandardCharsets.UTF_8);
-            timestamp = Long.parseLong(lines.get(0));
-        }
-        scanner.close();
-
-        // verify correctness
-        Preconditions.checkArgument(datetime.isAfter(prePunch));
-        Preconditions.checkArgument(datetime.isBefore(postPunch));
-        if (immutable) {
-            Preconditions.checkArgument(timestamp == immutableTs);
-            Preconditions.checkArgument(timestamp < lastFreshTs);
-            Preconditions.checkArgument(timestamp < tss.getFreshTimestamp());
-        } else {
-            Preconditions.checkArgument(timestamp > immutableTs);
-            Preconditions.checkArgument(timestamp > lastFreshTs);
-            Preconditions.checkArgument(timestamp < tss.getFreshTimestamp());
-        }
+        return ISODateTimeFormat.dateTime().parseDateTime(parts[parts.length-1]).getMillis();
     }
 
+    private long getTimestampFromStdout(Scanner scanner) {
+        String line = scanner.findInLine(".*timestamp\\sis\\:\\s(\\d+.*)");
+        String[] parts = line.split(" ");
+        return Long.parseLong(parts[parts.length-1]);
+    }
+
+    private long getTimestampFromFile(String fileString) throws IOException {
+        File file = new File(fileString);
+        assertThat(file).exists();
+        List<String> lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
+        return Long.parseLong(lines.get(0));
+    }
+
+    private void verifyFreshTs(long timestamp, long prePunch, long postPunch, long lastFreshTs, long newFreshTs,
+            long wallClockTimestamp) {
+        assertThat(wallClockTimestamp).isGreaterThan(prePunch);
+        assertThat(wallClockTimestamp).isLessThan(postPunch);
+        assertThat(timestamp).isGreaterThan(lastFreshTs);
+        assertThat(timestamp).isLessThan(newFreshTs);
+    }
+
+    private void verifyImmutableTs(long timestamp, long immutableTs, long prePunch, long postPunch, long lastFreshTs,
+            long newFreshTs, long wallClockTimestamp) {
+        assertThat(wallClockTimestamp).isGreaterThan(prePunch);
+        assertThat(wallClockTimestamp).isLessThan(postPunch);
+        assertThat(timestamp).isEqualTo(immutableTs);
+        assertThat(timestamp).isLessThan(lastFreshTs);
+        assertThat(timestamp).isLessThan(newFreshTs);
+    }
 }

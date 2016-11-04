@@ -86,7 +86,7 @@ public abstract class AbstractTimestampCommand extends SingleBackendCommand {
         Set<String> lines = Sets.newHashSet(Long.toString(timestamp));
         try {
             if (file.getParentFile() != null && !file.getParentFile().exists()) {
-                file.getParentFile().mkdirs();
+                Files.createDirectories(file.getParentFile().toPath());
             }
             Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
         } catch (IOException e) {
