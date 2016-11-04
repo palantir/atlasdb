@@ -16,22 +16,28 @@
 package com.palantir.atlasdb.sweep;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
-import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
@@ -40,8 +46,8 @@ import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -50,14 +56,16 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
-import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.sweep.sweepers.ConservativeSweeper;
+import com.palantir.atlasdb.sweep.sweepers.NothingSweeper;
+import com.palantir.atlasdb.sweep.sweepers.Sweeper;
+import com.palantir.atlasdb.sweep.sweepers.ThoroughSweeper;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableFromIterable;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.base.ClosableIterators;
 
 /**
  * Sweeps one individual table.
@@ -172,14 +180,6 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
                         immutableTimestampSupplier);
             default:
                 throw new IllegalArgumentException("Unknown sweep strategy: " + sweepStrategy);
-        }
-    }
-    @Override
-    public long getSweepTimestamp(SweepStrategy sweepStrategy) {
-        if (sweepStrategy == SweepStrategy.CONSERVATIVE) {
-            return Math.min(unreadableTimestampSupplier.get(), immutableTimestampSupplier.get());
-        } else {
-            return immutableTimestampSupplier.get();
         }
     }
 

@@ -6,6 +6,7 @@ ext.libVersions = [
     jmock:   '2.8.2',
     trove:   '3.0.3-p5',
     mockito: '1.10.17',
+    assertj: '3.5.2',
     dropwizard:   '0.8.2',
     commons_lang: '2.6',
     joda_time: '2.7',

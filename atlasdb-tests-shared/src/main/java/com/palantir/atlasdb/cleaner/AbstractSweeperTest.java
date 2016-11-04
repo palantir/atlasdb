@@ -46,6 +46,7 @@ import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRow
 import com.palantir.atlasdb.schema.generated.SweepProgressTable;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
+import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
 import com.palantir.atlasdb.table.description.Schemas;
@@ -545,7 +546,7 @@ public abstract class AbstractSweeperTest {
 
     private SweepResults sweep(long ts, int batchSize) {
         sweepTimestamp.set(ts);
-        return sweepRunner.run(tableReference, batchSize, DEFAULT_CELL_BATCH_SIZE, new byte[0]);
+        return sweepRunner.run(TABLE_NAME, batchSize, DEFAULT_CELL_BATCH_SIZE, new byte[0]);
     }
 
     private SweepResults partialSweep(long ts, int batchSize) {
