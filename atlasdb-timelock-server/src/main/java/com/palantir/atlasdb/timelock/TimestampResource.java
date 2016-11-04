@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import javax.ws.rs.QueryParam;
-
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.timestamp.TimestampRange;
