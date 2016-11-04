@@ -125,7 +125,7 @@ public class TableRenderer {
     public TableRenderer(String packageName, Namespace namespace, OptionalType optionalType) {
         this.packageName = Preconditions.checkNotNull(packageName);
         this.namespace = Preconditions.checkNotNull(namespace);
-        this.optionalType = optionalType;
+        this.optionalType = Preconditions.checkNotNull(optionalType, "Must specify optionalType");
     }
 
     public String getClassName(String rawTableName, TableDefinition table) {
