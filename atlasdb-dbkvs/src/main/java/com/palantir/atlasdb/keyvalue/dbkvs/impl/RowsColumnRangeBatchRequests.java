@@ -29,16 +29,21 @@ public final class RowsColumnRangeBatchRequests {
 
     public static List<byte[]> getAllRowsInOrder(RowsColumnRangeBatchRequest batch) {
         List<byte[]> allRows = new ArrayList<>(batch.getRowsToLoadFully().size() + 2);
-        if (batch.hasPartialFirstRow()) {
-            allRows.add(batch.getPartialFirstRow().getKey());
+        if (batch.getPartialFirstRow().isPresent()) {
+            allRows.add(batch.getPartialFirstRow().get().getKey());
         }
         allRows.addAll(batch.getRowsToLoadFully());
-        if (batch.hasPartialLastRow()) {
-            allRows.add(batch.getPartialLastRow().getKey());
+        if (batch.getPartialLastRow().isPresent()) {
+            allRows.add(batch.getPartialLastRow().get().getKey());
         }
         return allRows;
     }
 
+    /**
+     * Partitions the given {@link RowsColumnRangeBatchRequest} into multiple, preserving the ordering of rows. Each
+     * partitioned {@link RowsColumnRangeBatchRequest} will have exactly {@code partitionSize} rows in total, except
+     * possibly for the last one, which may have fewer rows (but not more). No row will be split across partitions.
+     */
     public static List<RowsColumnRangeBatchRequest> partition(RowsColumnRangeBatchRequest batch, int partitionSize) {
         if (getAllRowsInOrder(batch).size() <= partitionSize) {
             return ImmutableList.of(batch);
@@ -48,19 +53,19 @@ public final class RowsColumnRangeBatchRequests {
         List<RowsColumnRangeBatchRequest> partitions = new ArrayList<>(partitionedRows.size());
         for (int partitionNumber = 0; partitionNumber < partitionedRows.size(); partitionNumber++) {
             List<byte[]> allRowsInPartition = partitionedRows.get(partitionNumber);
-            boolean partitionHasPartialFirstRow = partitionNumber == 0 && batch.hasPartialFirstRow();
+            boolean partitionHasPartialFirstRow = partitionNumber == 0 && batch.getPartialFirstRow().isPresent();
             boolean partitionHasPartialLastRow =
-                    partitionNumber == partitionedRows.size() - 1 && batch.hasPartialLastRow();
+                    partitionNumber == partitionedRows.size() - 1 && batch.getPartialLastRow().isPresent();
 
-            RowsColumnRangeBatchRequest.Builder partition = new RowsColumnRangeBatchRequest.Builder();
+            ImmutableRowsColumnRangeBatchRequest.Builder partition = ImmutableRowsColumnRangeBatchRequest.builder();
             if (partitionHasPartialFirstRow) {
                 partition = partition.partialFirstRow(batch.getPartialFirstRow());
             }
             List<byte[]> rowsToFullyLoad =
                     getRowsToFullyLoad(allRowsInPartition, partitionHasPartialFirstRow, partitionHasPartialLastRow);
             if (!rowsToFullyLoad.isEmpty()) {
-                partition = partition.columnRangeSelectionForFullRows(batch.getColumnRangeSelection())
-                                     .fullRows(rowsToFullyLoad);
+                partition = partition.columnRangeSelection(batch.getColumnRangeSelection())
+                        .rowsToLoadFully(rowsToFullyLoad);
             }
             if (partitionHasPartialLastRow) {
                 partition = partition.partialLastRow(batch.getPartialLastRow());

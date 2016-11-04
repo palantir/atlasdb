@@ -18,12 +18,13 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
+import org.immutables.value.Value;
+
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 
@@ -34,90 +35,19 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
  * forth. Hence, a single batch consists of some contiguous group of rows to fully load, plus optionally a first row
  * that has a different starting column and optionally a last row where we load a number of columns less than the total.
  */
-public final class RowsColumnRangeBatchRequest {
-    private final Optional<Map.Entry<byte[], BatchColumnRangeSelection>> partialFirstRow;
-    private final ImmutableList<byte[]> rowsToLoadFully;
-    private final ColumnRangeSelection columnRangeSelection;
-    private final Optional<Map.Entry<byte[], BatchColumnRangeSelection>> partialLastRow;
+@Value.Immutable
+public abstract class RowsColumnRangeBatchRequest {
+    public abstract Optional<Map.Entry<byte[], BatchColumnRangeSelection>> getPartialFirstRow();
+    public abstract List<byte[]> getRowsToLoadFully();
+    /**
+     * Can only be null if {@link #getRowsToLoadFully()} is empty.
+     */
+    @Nullable public abstract ColumnRangeSelection getColumnRangeSelection();
+    public abstract Optional<Map.Entry<byte[], BatchColumnRangeSelection>> getPartialLastRow();
 
-    private RowsColumnRangeBatchRequest(Optional<Entry<byte[], BatchColumnRangeSelection>> partialFirstRow,
-            ImmutableList<byte[]> rowsToLoadFully,
-            ColumnRangeSelection columnRangeSelection,
-            Optional<Entry<byte[], BatchColumnRangeSelection>> partialLastRow) {
-        this.partialFirstRow = partialFirstRow;
-        this.rowsToLoadFully = rowsToLoadFully;
-        this.columnRangeSelection = columnRangeSelection;
-        this.partialLastRow = partialLastRow;
-    }
-
-    public boolean hasPartialFirstRow() {
-        return partialFirstRow.isPresent();
-    }
-
-    public Map.Entry<byte[], BatchColumnRangeSelection> getPartialFirstRow() {
-        return partialFirstRow.get();
-    }
-
-    public List<byte[]> getRowsToLoadFully() {
-        return rowsToLoadFully;
-    }
-
-    public ColumnRangeSelection getColumnRangeSelection() {
-        return columnRangeSelection;
-    }
-
-    public boolean hasPartialLastRow() {
-        return partialLastRow.isPresent();
-    }
-
-    public Map.Entry<byte[], BatchColumnRangeSelection> getPartialLastRow() {
-        return partialLastRow.get();
-    }
-
-    public static class Builder {
-        private Optional<Map.Entry<byte[], BatchColumnRangeSelection>> partialFirstRow = Optional.empty();
-        private final ImmutableList.Builder<byte[]> rowsToLoadFully = ImmutableList.builder();
-        private ColumnRangeSelection columnRangeSelection;
-        private Optional<Map.Entry<byte[], BatchColumnRangeSelection>> partialLastRow = Optional.empty();
-
-        public Builder partialFirstRow(byte[] row, BatchColumnRangeSelection columnRange) {
-            return partialFirstRow(Maps.immutableEntry(row, columnRange));
-        }
-
-        public Builder partialFirstRow(Map.Entry<byte[], BatchColumnRangeSelection> row) {
-            this.partialFirstRow = Optional.of(row);
-            return this;
-        }
-
-        public Builder columnRangeSelectionForFullRows(ColumnRangeSelection columnRange) {
-            this.columnRangeSelection = columnRange;
-            return this;
-        }
-
-        public Builder fullRow(byte[] row) {
-            this.rowsToLoadFully.add(row);
-            return this;
-        }
-
-        public Builder fullRows(Iterable<byte[]> rows) {
-            this.rowsToLoadFully.addAll(rows);
-            return this;
-        }
-
-        public Builder partialLastRow(byte[] row, BatchColumnRangeSelection batchColumnRange) {
-            return partialLastRow(Maps.immutableEntry(row, batchColumnRange));
-        }
-
-        public Builder partialLastRow(Map.Entry<byte[], BatchColumnRangeSelection> row) {
-            this.partialLastRow = Optional.of(row);
-            return this;
-        }
-
-        public RowsColumnRangeBatchRequest build() {
-            ImmutableList<byte[]> rows = rowsToLoadFully.build();
-            Preconditions.checkState(columnRangeSelection != null || rows.isEmpty(),
-                                     "Must specify a column range selection when loading full rows.");
-            return new RowsColumnRangeBatchRequest(partialFirstRow, rows, columnRangeSelection, partialLastRow);
-        }
+    @Value.Check
+    protected void check() {
+        Preconditions.checkState(getColumnRangeSelection() != null || getRowsToLoadFully().isEmpty(),
+                "Must specify a column range selection when loading full rows.");
     }
 }
