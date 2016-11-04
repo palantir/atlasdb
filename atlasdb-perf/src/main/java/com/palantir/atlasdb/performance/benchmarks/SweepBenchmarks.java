@@ -33,14 +33,14 @@ public class SweepBenchmarks {
     private static final int BATCH_SIZE = 10;
     private static final long DELETED_COUNT = RegeneratingTable.SWEEP_DUPLICATES - 1L;
 
-    private Object runSingleSweep(RegeneratingTable table, int batchSize){
+    private Object runSingleSweep(RegeneratingTable table, int batchSize) {
         SweepTaskRunner sweepTaskRunner = table.getSweepTaskRunner();
         SweepResults sweepResults = sweepTaskRunner.run(table.getTableRef(), batchSize, null);
         assertThat(sweepResults.getCellsDeleted(), is(DELETED_COUNT * batchSize));
         return sweepResults;
     }
 
-    private Object runMultiSweep(RegeneratingTable table){
+    private Object runMultiSweep(RegeneratingTable table) {
         SweepTaskRunner sweepTaskRunner = table.getSweepTaskRunner();
         SweepResults sweepResults = null;
         byte[] nextStartRow = null;
