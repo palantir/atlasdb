@@ -55,7 +55,7 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
             checkLogIfNeeded(seq);
         } catch (Exception e) {
             logger.error("log read failed for request: " + seq, e);
-            return PaxosPromise.reject(pid); // nack
+            return PaxosPromise.reject(pid);
         }
 
         for (;;) {

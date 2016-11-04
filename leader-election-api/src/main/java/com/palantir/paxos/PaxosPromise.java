@@ -40,7 +40,8 @@ public class PaxosPromise implements Comparable<PaxosPromise>, PaxosResponse {
     @Nullable final PaxosProposalId lastAcceptedId;
     @Nullable final PaxosValue lastAcceptedValue;
 
-    public static PaxosPromise accept(PaxosProposalId promisedId,
+    public static PaxosPromise accept(
+            PaxosProposalId promisedId,
             PaxosProposalId lastAcceptedId,
             PaxosValue val) {
         return new PaxosPromise(promisedId, lastAcceptedId, val);
@@ -51,7 +52,8 @@ public class PaxosPromise implements Comparable<PaxosPromise>, PaxosResponse {
     }
 
     @JsonCreator
-    public static PaxosPromise create(@JsonProperty("successful") boolean ack,
+    public static PaxosPromise create(
+            @JsonProperty("successful") boolean ack,
             @JsonProperty("promisedId") PaxosProposalId promisedId,
             @JsonProperty("lastAcceptedId") PaxosProposalId lastAcceptedId,
             @JsonProperty("lastAcceptedValue") PaxosValue val) {
