@@ -69,7 +69,6 @@ develop
 
     *    - |new|
          - The KVS migration command can now be run as an offline cli using the ``--offline`` flag.
-
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1149>`__)
 
     *   - |improved|
