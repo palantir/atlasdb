@@ -20,7 +20,7 @@ import java.util.List;
 
 public interface AgnosticResultSet {
 
-    List<AgnosticResultRow> rows();
+    List<? extends AgnosticResultRow> rows();
 
     AgnosticResultRow get(int row);
 
