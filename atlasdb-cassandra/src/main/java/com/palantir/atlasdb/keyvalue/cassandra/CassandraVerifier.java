@@ -25,6 +25,7 @@ import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KsDef;
+import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TokenRange;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
@@ -137,12 +138,26 @@ public final class CassandraVerifier {
         updateExistingKeyspace(clientPool, config);
     }
 
+    // swallows the expected TException subtype NotFoundException, throws connection problem related ones
+    private static boolean keyspaceAlreadyExists(InetSocketAddress host, CassandraKeyValueServiceConfig config)
+            throws TException {
+        try {
+            Client client = CassandraClientFactory.getClientInternal(host, config);
+            client.describe_keyspace(config.keyspace());
+        } catch (NotFoundException e) {
+            return false;
+        }
+        return true;
+    }
+
     private static void createKeyspace(CassandraKeyValueServiceConfig config) throws TException {
         // We can't use the pool yet because it does things like setting the connection's keyspace for us
         boolean someHostWasAbleToCreateTheKeyspace = false;
         for (InetSocketAddress host : config.servers()) { // try until we find a server that works
             try {
-                attemptToCreateKeyspaceOnHost(host, config);
+                if (!keyspaceAlreadyExists(host, config)) {
+                    attemptToCreateKeyspaceOnHost(host, config);
+                }
 
                 // if we got this far, we're done, no need to continue on other hosts
                 someHostWasAbleToCreateTheKeyspace = true;
@@ -170,7 +185,7 @@ public final class CassandraVerifier {
 
     private static void updateExistingKeyspace(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config)
             throws TException {
-        clientPool.run(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
+        clientPool.runWithRetry(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
             @Override
             public Void apply(Cassandra.Client client) throws TException {
                 KsDef originalKsDef = client.describe_keyspace(config.keyspace());
