@@ -33,63 +33,57 @@ public class SweepBenchmarks {
     private static final int BATCH_SIZE = 10;
     private static final long DELETED_COUNT = RegeneratingTable.SWEEP_DUPLICATES - 1L;
 
+    private Object runSingleSweep(RegeneratingTable table, int batchSize){
+        SweepTaskRunner sweepTaskRunner = table.getSweepTaskRunner();
+        SweepResults sweepResults = sweepTaskRunner.run(table.getTableRef(), batchSize, null);
+        assertThat(sweepResults.getCellsDeleted(), is(DELETED_COUNT * batchSize));
+        return sweepResults;
+    }
+
+    private Object runMultiSweep(RegeneratingTable table){
+        SweepTaskRunner sweepTaskRunner = table.getSweepTaskRunner();
+        SweepResults sweepResults = null;
+        byte[] nextStartRow = null;
+        for (int i = 0; i < BATCH_SIZE; i++) {
+            sweepResults = sweepTaskRunner.run(table.getTableRef(), 1, nextStartRow);
+            nextStartRow = sweepResults.getNextStartRow().get();
+            assertThat(sweepResults.getCellsDeleted(), is(DELETED_COUNT));
+        }
+        return sweepResults;
+    }
+
     @Benchmark
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object singleSweepRun(RegeneratingTable.SweepRegeneratingTable table) {
-        SweepTaskRunner sweepTaskRunner = table.getSweepTaskRunner();
-        SweepResults sweepResults = sweepTaskRunner.run(table.getTableRef(), 1, null);
-        assertThat(sweepResults.getCellsDeleted(), is(DELETED_COUNT));
-        return sweepResults;
+        return runSingleSweep(table, 1);
     }
 
     @Benchmark
     @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object batchedUniformSingleSweepRun(RegeneratingTable.SweepBatchUniformMultipleRegeneratingTable table) {
-        SweepTaskRunner sweepTaskRunner = table.getSweepTaskRunner();
-        SweepResults sweepResults = sweepTaskRunner.run(table.getTableRef(), BATCH_SIZE, null);
-        assertThat(sweepResults.getCellsDeleted(), is(DELETED_COUNT * BATCH_SIZE));
-        return sweepResults;
+        return runSingleSweep(table, BATCH_SIZE);
     }
 
     @Benchmark
-    @Warmup(time = 6, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 30, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 8, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 40, timeUnit = TimeUnit.SECONDS)
     public Object batchedSingleSweepRun(RegeneratingTable.SweepBatchNonUniformMultipleSeparateRegeneratingTable table) {
-        SweepTaskRunner sweepTaskRunner = table.getSweepTaskRunner();
-        SweepResults sweepResults = sweepTaskRunner.run(table.getTableRef(), BATCH_SIZE, null);
-        assertThat(sweepResults.getCellsDeleted(), is(DELETED_COUNT * BATCH_SIZE));
-        return sweepResults;
+        return runSingleSweep(table, BATCH_SIZE);
     }
 
     @Benchmark
     @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public Object multipleUniformSweepRun(RegeneratingTable.SweepBatchUniformMultipleRegeneratingTable table) {
-        SweepTaskRunner sweepTaskRunner = table.getSweepTaskRunner();
-        SweepResults sweepResults = null;
-        byte[] nextStartRow = null;
-        for (int i = 0; i < BATCH_SIZE; i++) {
-            sweepResults = sweepTaskRunner.run(table.getTableRef(), 1, nextStartRow);
-            nextStartRow = sweepResults.getNextStartRow().get();
-            assertThat(sweepResults.getCellsDeleted(), is(DELETED_COUNT));
-        }
-        return sweepResults;
+        return runMultiSweep(table);
     }
 
     @Benchmark
     @Warmup(time = 8, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 40, timeUnit = TimeUnit.SECONDS)
     public Object multipleSweepRun(RegeneratingTable.SweepBatchNonUniformMultipleSeparateRegeneratingTable table) {
-        SweepTaskRunner sweepTaskRunner = table.getSweepTaskRunner();
-        SweepResults sweepResults = null;
-        byte[] nextStartRow = null;
-        for (int i = 0; i < BATCH_SIZE; i++) {
-            sweepResults = sweepTaskRunner.run(table.getTableRef(), 1, nextStartRow);
-            nextStartRow = sweepResults.getNextStartRow().get();
-            assertThat(sweepResults.getCellsDeleted(), is(DELETED_COUNT));
-        }
-        return sweepResults;
+        return runMultiSweep(table);
     }
 }
