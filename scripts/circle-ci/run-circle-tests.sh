@@ -13,7 +13,7 @@ CONTAINER_2=(':atlasdb-ete-tests:check')
 
 CONTAINER_3=(':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-tests-shared:check' ':atlasdb-ete-test-utils:check' ':atlasdb-cassandra:check' ':atlasdb-api:check')
 
-CONTAINER_4=(':atlasdb-dbkvs:check' ':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-dropwizard-bundle:check')
+CONTAINER_4=(':atlasdb-dbkvs:check' ':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-dropwizard-bundle:check' 'atlasdb-perf:check')
 
 CONTAINER_5=(':atlasdb-ete-tests:longTest')
 
