@@ -39,36 +39,26 @@ import com.palantir.atlasdb.performance.benchmarks.table.WideRowsTable;
 
 @State(Scope.Benchmark)
 public class KvsGetRowsColumnRangeBenchmarks {
+    // This is an exact multiple of WideRowsTable.NUM_COLS_PER_ROW, so we never load partial rows
+    private static final int ALIGNED_BATCH_HINT = 10000;
+    // This is not an exact multiple of WideRowsTable.NUM_COLS_PER_ROW, so that we load partial rows for some batches
+    private static final int UNALIGNED_BATCH_HINT = 10017;
 
     @Benchmark
     @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsAligned(WideRowsTable table) {
-        List<byte[]> rows =
-                IntStream.rangeClosed(0, WideRowsTable.NUM_ROWS - 1)
-                        .mapToObj(WideRowsTable::getRow)
-                        .collect(Collectors.toList());
-        RowColumnRangeIterator rowsColumnRange =
-                table.getKvs().getRowsColumnRange(
-                        table.getTableRef(),
-                        rows,
-                        new ColumnRangeSelection(null, null),
-                        10000,
-                        Long.MAX_VALUE);
-        int expectedNumCells = WideRowsTable.NUM_ROWS * WideRowsTable.NUM_COLS_PER_ROW;
-        List<Map.Entry<Cell, Value>> loadedCells = new ArrayList<>(expectedNumCells);
-        while (rowsColumnRange.hasNext()) {
-            loadedCells.add(rowsColumnRange.next());
-        }
-        Preconditions.checkState(loadedCells.size() == expectedNumCells,
-                "Should be %s cells, but were: %s", expectedNumCells, loadedCells.size());
-        return loadedCells;
+        return getAllColumnsWithBatchHint(table, ALIGNED_BATCH_HINT);
     }
 
     @Benchmark
     @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsUnaligned(WideRowsTable table) {
+        return getAllColumnsWithBatchHint(table, UNALIGNED_BATCH_HINT);
+    }
+
+    private static List<Map.Entry<Cell, Value>> getAllColumnsWithBatchHint(WideRowsTable table, int cellBatchHint) {
         List<byte[]> rows =
                 IntStream.rangeClosed(0, WideRowsTable.NUM_ROWS - 1)
                         .mapToObj(WideRowsTable::getRow)
@@ -78,7 +68,7 @@ public class KvsGetRowsColumnRangeBenchmarks {
                         table.getTableRef(),
                         rows,
                         new ColumnRangeSelection(null, null),
-                        10017,
+                        cellBatchHint,
                         Long.MAX_VALUE);
         int expectedNumCells = WideRowsTable.NUM_ROWS * WideRowsTable.NUM_COLS_PER_ROW;
         List<Map.Entry<Cell, Value>> loadedCells = new ArrayList<>(expectedNumCells);

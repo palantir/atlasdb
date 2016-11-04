@@ -151,6 +151,7 @@ public class DbKvs extends AbstractKeyValueService {
             }
         });
     }
+    @Override
     public void close() {
         super.close();
         dbTables.close();
@@ -667,8 +668,8 @@ public class DbKvs extends AbstractKeyValueService {
             private RowsColumnRangeBatchRequest getBatchColumnRangeSelectionsByRow(
                     Map<Sha256Hash, Integer> columnCountsByRowHashInBatch,
                     Map<Sha256Hash, Integer> totalColumnCountsByRowHash) {
-                RowsColumnRangeBatchRequest.Builder rowsColumnRangeBatch =
-                        new RowsColumnRangeBatchRequest.Builder().columnRangeSelectionForFullRows(columnRangeSelection);
+                ImmutableRowsColumnRangeBatchRequest.Builder rowsColumnRangeBatch =
+                        ImmutableRowsColumnRangeBatchRequest.builder().columnRangeSelection(columnRangeSelection);
                 Iterator<Map.Entry<Sha256Hash, Integer>> entries = columnCountsByRowHashInBatch.entrySet().iterator();
                 while (entries.hasNext()) {
                     Map.Entry<Sha256Hash, Integer> entry = entries.next();
@@ -682,17 +683,17 @@ public class DbKvs extends AbstractKeyValueService {
                                         startCol,
                                         columnRangeSelection.getEndCol(),
                                         entry.getValue());
-                        rowsColumnRangeBatch.partialFirstRow(row, columnRange);
+                        rowsColumnRangeBatch.partialFirstRow(Maps.immutableEntry(row, columnRange));
                         continue;
                     }
                     boolean isFullyLoadedRow = totalColumnCountsByRowHash.get(rowHash).equals(entry.getValue());
                     if (isFullyLoadedRow) {
-                        rowsColumnRangeBatch.fullRow(row);
+                        rowsColumnRangeBatch.addRowsToLoadFully(row);
                     } else {
                         Preconditions.checkArgument(!entries.hasNext(), "Only the last row should be partial.");
                         BatchColumnRangeSelection columnRange =
                                 BatchColumnRangeSelection.create(columnRangeSelection, entry.getValue());
-                        rowsColumnRangeBatch.partialLastRow(row, columnRange);
+                        rowsColumnRangeBatch.partialLastRow(Maps.immutableEntry(row, columnRange));
                     }
                 }
                 return rowsColumnRangeBatch.build();
