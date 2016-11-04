@@ -56,6 +56,7 @@ import io.airlift.airline.SingleCommand;
  *
  * @author mwakerman, bullman
  */
+
 @Command(name = "atlasdb-perf", description = "The AtlasDB performance benchmark CLI.")
 public class AtlasDbPerfCli {
     @Inject
