@@ -42,6 +42,10 @@ develop
          - Change
 
     *    - |improved|
+         - Add support for generating schemas with Java8 Optionals instead of Guava Optionals. Note that this change
+           changes one of the `Schema` constructors.
+
+    *    - |improved|
          - Added a significant amount of logging aimed at tracking down the ``MultipleRunningTimestampServicesError``.
            If clients are hitting this error, then they should add trace logging for ``com.palantir.timestamp``.
            These logs can also be directed to a separate file, see the :ref:`documentation <logging-configuration>` for more details.
