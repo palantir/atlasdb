@@ -30,7 +30,7 @@ public class StreamTestSchema implements AtlasSchema {
     private static Schema generateSchema() {
         Schema schema = new Schema("StreamTest",
                 StreamTest.class.getPackage().getName() + ".generated",
-                Namespace.DEFAULT_NAMESPACE, false);
+                Namespace.DEFAULT_NAMESPACE);
 
         // test defaults
         schema.addStreamStoreDefinition(new StreamStoreDefinitionBuilder("stream_test", "stream_test", ValueType.VAR_LONG).build());

@@ -28,6 +28,7 @@ import org.junit.Test;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.IndexMetadata;
+import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 
@@ -37,9 +38,9 @@ public class TableRendererTest {
     private static SortedSet<IndexMetadata> NO_INDICES = new TreeSet<>();
 
     @Test
-    public void testRenderRespectsOptionalsConfiguration() {
-        TableRenderer guavaOptionalRenderer = new TableRenderer("package", Namespace.DEFAULT_NAMESPACE, false);
-        assertThat(guavaOptionalRenderer.render("table", getSimpleTableDefinition(TABLE_REF), NO_INDICES),
+    public void testCanRenderGuavaOptionals() {
+        TableRenderer renderer = new TableRenderer("package", Namespace.DEFAULT_NAMESPACE, OptionalType.GUAVA);
+        assertThat(renderer.render("table", getSimpleTableDefinition(TABLE_REF), NO_INDICES),
                 allOf(
                         containsString("import com.google.common.base.Optional"),
                         not(containsString("import java.util.Optional")),
@@ -47,9 +48,12 @@ public class TableRendererTest {
                         containsString("Optional<TestTableRowResult> getRow("),
                         containsString("Optional.absent"),
                         not(containsString("Optional.empty"))));
+    }
 
-        TableRenderer java8OptionalRenderer = new TableRenderer("package", Namespace.DEFAULT_NAMESPACE, true);
-        assertThat(java8OptionalRenderer.render("table", getSimpleTableDefinition(TABLE_REF), NO_INDICES),
+    @Test
+    public void testCanRenderJava8Optionals() {
+        TableRenderer renderer = new TableRenderer("package", Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
+        assertThat(renderer.render("table", getSimpleTableDefinition(TABLE_REF), NO_INDICES),
                 allOf(
                         not(containsString("import com.google.common.base.Optional")),
                         containsString("import java.util.Optional"),

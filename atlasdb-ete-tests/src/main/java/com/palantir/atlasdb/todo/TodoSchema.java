@@ -34,7 +34,7 @@ public class TodoSchema implements AtlasSchema {
         Schema schema = new Schema(
                 TodoSchema.class.getSimpleName(),
                 TodoSchema.class.getPackage().getName() + ".generated",
-                Namespace.DEFAULT_NAMESPACE, false);
+                Namespace.DEFAULT_NAMESPACE);
 
         schema.addTableDefinition(TODO_TABLE, new TableDefinition() {{
             rowName();

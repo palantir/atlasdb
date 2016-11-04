@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.table.description;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.AllOf.allOf;
 import static org.junit.Assert.assertThat;
 
@@ -39,26 +40,37 @@ public class SchemaTest {
     private static TableReference TABLE_REF = TableReference.createWithEmptyNamespace("TestTable");
 
     @Test
-    public void testRenderRespectsOptionalsConfiguration() throws IOException {
-        Schema guavaOptionalSchema = new Schema("Table", "package", Namespace.DEFAULT_NAMESPACE, false);
-        guavaOptionalSchema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
-        File guavaOptionalRenderFolder = testFolder.newFolder();
-        guavaOptionalSchema.renderTables(guavaOptionalRenderFolder);
-        assertThat(readFileIntoString(guavaOptionalRenderFolder, "package/TestTableTable.java"),
+    public void testRendersGuavaOptionalsByDefault() throws IOException {
+        Schema schema = new Schema("Table", "package", Namespace.DEFAULT_NAMESPACE);
+        schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
+        schema.renderTables(testFolder.getRoot());
+        assertThat(readFileIntoString(testFolder.getRoot(), "package/TestTableTable.java"),
                 allOf(
                         containsString("import com.google.common.base.Optional"),
                         containsString("{@link Optional}"),
                         containsString("Optional.absent")));
+    }
 
-        Schema java8OptionalSchema = new Schema("Table", "package", Namespace.DEFAULT_NAMESPACE, true);
-        java8OptionalSchema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
-        File java8OptionalRenderFolder = testFolder.newFolder();
-        java8OptionalSchema.renderTables(java8OptionalRenderFolder);
-        assertThat(readFileIntoString(java8OptionalRenderFolder, "package/TestTableTable.java"),
+    @Test
+    public void testRendersGuavaOptionalsWhenRequested() throws IOException {
+        Schema schema = new Schema("Table", "package", Namespace.DEFAULT_NAMESPACE, OptionalType.GUAVA);
+        schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
+        schema.renderTables(testFolder.getRoot());
+        assertThat(readFileIntoString(testFolder.getRoot(), "package/TestTableTable.java"),
                 allOf(
-                        containsString("import java.util.Optional"),
-                        containsString("{@link Optional}"),
-                        containsString("Optional.empty")));
+                        containsString("import com.google.common.base.Optional"),
+                        not(containsString("import java.util.Optional"))));
+    }
+
+    @Test
+    public void testRenderJava8OptionalsWhenRequested() throws IOException {
+        Schema schema = new Schema("Table", "package", Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
+        schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
+        schema.renderTables(testFolder.getRoot());
+        assertThat(readFileIntoString(testFolder.getRoot(), "package/TestTableTable.java"),
+                allOf(
+                        not(containsString("import com.google.common.base.Optional")),
+                        containsString("import java.util.Optional")));
     }
 
     private String readFileIntoString(File baseDir, String path) throws IOException {
