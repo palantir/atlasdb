@@ -1,0 +1,7 @@
+clients:
+  - test
+
+cluster:
+  localServer: localhost:8700
+  servers:
+    - localhost:8700

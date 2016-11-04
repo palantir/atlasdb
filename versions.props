@@ -12,6 +12,7 @@ com.palantir.remoting:* = 0.13.0
 commons-cli:commons-cli = 1.2
 commons-codec:commons-codec = 1.10
 commons-io:commons-io = 2.1
+io.atomix:* = 1.0.0-rc9
 io.dropwizard.metrics:metrics-* = 3.1.1
 io.dropwizard:* = 0.8.2
 javax.validation:validation-api = 1.1.0.Final

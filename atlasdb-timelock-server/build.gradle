@@ -1,0 +1,15 @@
+apply from: "../gradle/shared.gradle"
+
+apply plugin: 'org.inferred.processors'
+
+dependencies {
+    compile project(":timestamp-api")
+
+    compile group: 'com.palantir.remoting', name: 'ssl-config'
+    compile group: 'io.atomix', name: 'atomix-all'
+    compile group: 'io.dropwizard', name: 'dropwizard-core'
+
+    processor group: 'org.immutables', name: 'value'
+
+    testCompile group: 'org.assertj', name: 'assertj-core'
+}
