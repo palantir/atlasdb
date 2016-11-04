@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
@@ -176,7 +177,7 @@ public class TestTimestampCommand {
         assertThat(readOnlyDir.setReadOnly()).isTrue();
         assertThatThrownBy(() -> runAndVerifyCliForFile(inputFileString))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("AccessDeniedException");
+                .hasCauseExactlyInstanceOf(AccessDeniedException.class);
         assertThat(readOnlyDir.setWritable(true)).isTrue();
         Files.deleteIfExists(readOnlyDir.toPath());
     }
