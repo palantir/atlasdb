@@ -17,6 +17,8 @@ package com.palantir.atlasdb.timelock;
 
 import java.util.Optional;
 
+import org.glassfish.jersey.server.model.Resource;
+
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.lock.LockService;
@@ -63,11 +65,16 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
         LeaderFilter leaderFilter = new LeaderFilter(localMember.id(), leaderId);
         environment.jersey().register(leaderFilter);
 
-        TimestampService timestampService = new TimestampResource(DistributedValues.getTimestamp(localNode));
-        environment.jersey().register(timestampService);
+        for (String client : configuration.clients()) {
+            TimestampService timestampService = new TimestampResource(
+                    DistributedValues.getTimestampForClient(localNode, client));
+            LockService lockService = LockServiceImpl.create();
 
-        LockService lockService = LockServiceImpl.create();
-        environment.jersey().register(lockService);
+            Resource builtResource = Resources.getInstancedResourceAtPath(
+                    client,
+                    new TimeLockResource(lockService, timestampService));
+            environment.jersey().getResourceConfig().registerResources(builtResource);
+        }
     }
 
     private Transport createTransport(Optional<SslConfiguration> optionalSecurity) {

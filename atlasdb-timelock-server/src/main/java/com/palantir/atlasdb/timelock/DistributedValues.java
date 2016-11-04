@@ -31,8 +31,8 @@ public final class DistributedValues {
         return Futures.getUnchecked(replica.<String>getValue("atlasdb/leader"));
     }
 
-    public static DistributedLong getTimestamp(AtomixReplica replica) {
-        return Futures.getUnchecked(replica.getLong("atlasdb/timestamp"));
+    public static DistributedLong getTimestampForClient(AtomixReplica replica, String client) {
+        return Futures.getUnchecked(replica.getLong("atlasdb/timestamp/" + client));
     }
 
     public static DistributedGroup getTimeLockGroup(AtomixReplica replica) {
