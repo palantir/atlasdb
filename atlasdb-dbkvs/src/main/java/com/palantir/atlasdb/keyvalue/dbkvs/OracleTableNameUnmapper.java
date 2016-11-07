@@ -32,9 +32,6 @@ class OracleTableNameUnmapper {
     public String getShortTableNameFromMappingTable(String tablePrefix, TableReference tableRef)
             throws TableMappingNotFoundException {
         String fullTableName = tablePrefix + DbKvs.internalTableName(tableRef);
-        if (tableRef.getNamespace().getName().equals("met")) {
-            return fullTableName;
-        }
 
         AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
                 "SELECT short_table_name "

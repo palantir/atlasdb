@@ -58,8 +58,7 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     public static OracleDdlTable create(TableReference tableRef, ConnectionSupplier conns, OracleDdlConfig config) {
-        OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(conns, config.tablePrefix(),
-                config.overflowTablePrefix(), tableRef);
+        OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(config, conns, tableRef);
         return new OracleDdlTable(config, conns, tableRef, oracleTableNameGetter);
     }
 
@@ -117,7 +116,7 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     private void putTableNameMapping(String fullTableName, String shortTableName) {
-        if (!tableRef.getNamespace().getName().equals("met")) {
+        if (config.useTableMapping()) {
             try {
                 conns.get().insertOneUnregisteredQuery(
                         "INSERT INTO " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
@@ -152,7 +151,7 @@ public final class OracleDdlTable implements DbDdlTable {
 
     private void dropTableInternal(String fullTableName, String shortTableName) {
         executeIgnoringError("DROP TABLE " + shortTableName + " PURGE", ORACLE_NOT_EXISTS_ERROR);
-        if (!tableRef.getNamespace().getName().equals("met")) {
+        if (config.useTableMapping()) {
             conns.get().executeUnregisteredQuery(
                     "DELETE FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE table_name = ?",
                     fullTableName);
