@@ -179,11 +179,10 @@ These logs can also be directed to a separate file, see the <a class="reference 
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1121">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td><p class="first">Random redirection of queries when retrying a Cassandra operation now retries said queries on distinct
+<td>Random redirection of queries when retrying a Cassandra operation now retries said queries on distinct
 hosts. Previously, this would independently select hosts randomly, meaning that we might unintentionally
-try the same operation on the same server(s).</p>
-<p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1139">Pull Request</a>)</p>
-</td>
+try the same operation on the same server(s).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1139">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Added the ability to do custom performance logging for Sweep. This is currently only available for
@@ -201,6 +200,11 @@ applications that call the <code class="docutils literal"><span class="pre">Back
 mapped to shorter names by truncating and appending a sequence number.
 See <a class="reference internal" href="../schemas/oracle_table_mapping.html#oracle-table-mapping"><span class="std std-ref">Oracle Table Mapping</span></a> for details on how table names are mapped.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1076">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<td>We no longer publish snapshots to oss.jfrog.org, they are instead published to an internal repository.  We can reenable external snapshots
+if it is required by a product.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1164">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
