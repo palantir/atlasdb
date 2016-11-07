@@ -1045,12 +1045,12 @@ public class TableRenderer {
 
         private void renderNamedGetRow() {
             line("@Override");
-            line("public ", getOptionalTypeForClass(), " getRow(", Row, " row) {"); {
+            line("public ", "Optional<", RowResult, ">", " getRow(", Row, " row) {"); {
                 line("return getRow(row, allColumns);");
             } line("}");
             line();
             line("@Override");
-            line("public ", getOptionalTypeForClass(), " getRow(", Row, " row, ColumnSelection columns) {"); {
+            line("public ", "Optional<", RowResult, ">", " getRow(", Row, " row, ColumnSelection columns) {"); {
                 line("byte[] bytes = row.persistToBytes();");
                 line("RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);");
                 line("if (rowResult == null) {"); {
@@ -1059,10 +1059,6 @@ public class TableRenderer {
                     renderOptionalReturnValue("rowResult");
                 } line("}");
             } line("}");
-        }
-
-        private String getOptionalTypeForClass() {
-            return "Optional<" + RowResult + ">";
         }
 
         private void renderOptionalReturnValue(@Nullable String value) {
@@ -1312,7 +1308,7 @@ public class TableRenderer {
 
     private static List<Class<?>> getImports(OptionalType optionalType) {
         List<Class<?>> classes = Lists.newArrayList();
-        classes.addAll(Arrays.asList(IMPORTS_SANS_OPTIONAL));
+        classes.addAll(Arrays.asList(IMPORTS_WITHOUT_OPTIONAL));
         switch (optionalType) {
             case GUAVA:
                 classes.add(com.google.common.base.Optional.class);
@@ -1326,7 +1322,7 @@ public class TableRenderer {
         return classes;
     }
 
-    private static final Class<?>[] IMPORTS_SANS_OPTIONAL = {
+    private static final Class<?>[] IMPORTS_WITHOUT_OPTIONAL = {
         Set.class,
         List.class,
         Map.class,

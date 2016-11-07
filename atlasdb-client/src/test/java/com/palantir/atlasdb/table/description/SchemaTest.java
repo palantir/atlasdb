@@ -37,14 +37,16 @@ public class SchemaTest {
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder();
 
-    private static TableReference TABLE_REF = TableReference.createWithEmptyNamespace("TestTable");
+    private static String TEST_PACKAGE = "package";
+    private static String TEST_TABLE_NAME = "TestTable";
+    private static TableReference TABLE_REF = TableReference.createWithEmptyNamespace(TEST_TABLE_NAME);
 
     @Test
     public void testRendersGuavaOptionalsByDefault() throws IOException {
-        Schema schema = new Schema("Table", "package", Namespace.DEFAULT_NAMESPACE);
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
         schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
         schema.renderTables(testFolder.getRoot());
-        assertThat(readFileIntoString(testFolder.getRoot(), "package/TestTableTable.java"),
+        assertThat(readFileIntoString(testFolder.getRoot(), "package/" + TEST_TABLE_NAME + "Table.java"),
                 allOf(
                         containsString("import com.google.common.base.Optional"),
                         containsString("{@link Optional}"),
@@ -53,10 +55,10 @@ public class SchemaTest {
 
     @Test
     public void testRendersGuavaOptionalsWhenRequested() throws IOException {
-        Schema schema = new Schema("Table", "package", Namespace.DEFAULT_NAMESPACE, OptionalType.GUAVA);
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE, OptionalType.GUAVA);
         schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
         schema.renderTables(testFolder.getRoot());
-        assertThat(readFileIntoString(testFolder.getRoot(), "package/TestTableTable.java"),
+        assertThat(readFileIntoString(testFolder.getRoot(), "package/" + TEST_TABLE_NAME + "Table.java"),
                 allOf(
                         containsString("import com.google.common.base.Optional"),
                         not(containsString("import java.util.Optional"))));
@@ -64,10 +66,10 @@ public class SchemaTest {
 
     @Test
     public void testRenderJava8OptionalsWhenRequested() throws IOException {
-        Schema schema = new Schema("Table", "package", Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
+        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
         schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
         schema.renderTables(testFolder.getRoot());
-        assertThat(readFileIntoString(testFolder.getRoot(), "package/TestTableTable.java"),
+        assertThat(readFileIntoString(testFolder.getRoot(), "package/" + TEST_TABLE_NAME + "Table.java"),
                 allOf(
                         not(containsString("import com.google.common.base.Optional")),
                         containsString("import java.util.Optional")));
