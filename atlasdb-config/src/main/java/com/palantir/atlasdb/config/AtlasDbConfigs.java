@@ -30,12 +30,14 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
+import com.palantir.config.crypto.DecryptingVariableSubstitutor;
+import com.palantir.config.crypto.jackson.JsonNodeStringReplacer;
+import com.palantir.config.crypto.jackson.JsonNodeVisitors;
 import com.palantir.remoting.ssl.SslConfiguration;
 
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 
 public final class AtlasDbConfigs {
-
     public static final String ATLASDB_CONFIG_OBJECT_PATH = "/atlasdb";
 
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
@@ -83,7 +85,13 @@ public final class AtlasDbConfigs {
             throw new IllegalArgumentException("Could not find " + configRoot + " in input");
         }
 
-        return OBJECT_MAPPER.treeToValue(configNode, AtlasDbConfig.class);
+        return OBJECT_MAPPER.treeToValue(decryptConfigValues(configNode), AtlasDbConfig.class);
+    }
+
+    private static JsonNode decryptConfigValues(JsonNode configNode) {
+        return JsonNodeVisitors.dispatch(
+                OBJECT_MAPPER.valueToTree(configNode),
+                new JsonNodeStringReplacer(new DecryptingVariableSubstitutor()));
     }
 
     private static JsonNode findRoot(JsonNode node, @Nullable String configRoot) {
