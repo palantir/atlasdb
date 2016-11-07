@@ -79,6 +79,7 @@ public abstract class OracleDdlConfig extends DdlConfig {
     }
 
     @Value.Default
+    @JsonIgnore
     public boolean useTableMapping() {
         return true;
     }
