@@ -34,6 +34,12 @@ Changelog
 develop
 =======
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+======
+0.23.0
+======
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -50,14 +56,14 @@ develop
     *    - |deprecated|
          - ``TableReference.createUnsafe`` is now deprecated. ``createWithEmptyNamespace`` or ``createFromFullyQualifiedName`` should be used instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1121>`__)
-           
 
-    *    - |improved|
+    *    - |fixed|
          - Random redirection of queries when retrying a Cassandra operation now retries said queries on distinct
            hosts. Previously, this would independently select hosts randomly, meaning that we might unintentionally
            try the same operation on the same server(s).
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
+
     *    - |new|
          - Added the ability to do custom performance logging for Sweep. This is currently only available for
            applications that call the ``BackgroundSweeperImpl`` constructor directly. Otherwise a
@@ -74,6 +80,14 @@ develop
           mapped to shorter names by truncating and appending a sequence number.
           See :ref:`oracle_table_mapping` for details on how table names are mapped.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/1076>`__)
+
+    *    - |improved|
+         - AtlasDB clients can start even if one Cassandra node is unreachable.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1045>`__).
+
+    *    - |improved|
+         - Actions performed by the ``Scrubber`` are now logged at debug instead of info.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1137>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -101,18 +115,10 @@ v0.22.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1134>`__)
 
     *    - |improved|
-         - Actions performed by the ``Scrubber`` are now logged at debug instead of info.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1137>`__)
-
-    *    - |improved|
          - Sweep no longer immediately falls back to a ``sweepBatchSize`` of 1 after receiving an error.
 
            See :ref:`sweep tuning <sweep_tunable_parameters>` documentation for more information on sweep tuning parameters.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1093>`__)
-
-    *    - |fixed|
-         - Fixed an issue where leader election threads were not correctly marked as daemon threads.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1138>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -215,27 +221,6 @@ v0.20.0
          - The ``metadataTableName`` for Oracle is now ``atlasdb_metadata`` instead of ``_metadata``.
            This is due to Oracle's restriction of not allowing table names with a leading underscore.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
-
-    *    - |improved|
-         - AtlasDB clients can start even if one Cassandra node is unreachable.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1045>`__).
-
-.. <<<<------------------------------------------------------------------------------------------------------------->>>>
-
-=======
-v0.20.0
-=======
-
-.. list-table::
-    :widths: 5 40
-    :header-rows: 1
-
-    *    - Type
-         - Change
-
-    *    - |improved|
-         - No longer require the user to disable safety checks just to start up Atlas against a degraded Cassandra cluster.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1045>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
