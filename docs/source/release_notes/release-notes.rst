@@ -41,23 +41,20 @@ Changelog
     *    - Type
          - Change
 
-    *    - |new|
-         - Added the ability to do custom performance logging for Sweep. This is currently only available for
-           applications that call the ``BackgroundSweeperImpl`` constructor directly. Otherwise a
-           ``NoOpBackgroundSweeperPerformanceLogger`` is used.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1054>`__)
-
-    *    - |new|
-         - The KVS migration command can now be run as an offline cli using the ``--offline`` flag.
+    *    - |fixed|
+         - The KVS migration command now supports the ``--offline`` flag and can be run as an offline CLI.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1149>`__)
 
     *    - |deprecated|
-         - ``TableReference.createUnsafe`` is now deprecated. ``createWithEmptyNamespace`` or ``createFromFullyQualifiedName`` should be used instead.
+         - ``TableReference.createUnsafe`` is now deprecated.
+           ``createWithEmptyNamespace`` or ``createFromFullyQualifiedName`` should be used instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1121>`__)
 
-    *    - |improved|
-         - We now support Oracle for products with all valid schemas. Oracle table names exceeding 30 characters are now
-           mapped to shorter names by truncating and appending a sequence number.
+    *    - |new|
+         - We now provide Oracle support (beta) for all valid schemas.
+           Oracle table names exceeding 30 characters are now mapped to shorter names by truncating and appending a sequence number.
+           Support for Oracle is currently in beta and services wishing to deploy against Oracle should contact the AtlasDB team.
+
            See :ref:`oracle_table_mapping` for details on how table names are mapped.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1076>`__)
 
@@ -68,22 +65,17 @@ Changelog
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1098>`__)
 
     *    - |improved|
-         - Random redirection of queries when retrying a Cassandra operation now retries said queries on distinct
-           hosts. Previously, this would independently select hosts randomly, meaning that we might unintentionally
-           try the same operation on the same server(s).
+         - Retrying a Cassandra operation now retries against distinct hosts.
+           Previously, this would independently select hosts randomly, meaning that we might unintentionally try the same operation on the same servers.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
 
-    *    - |improved|
-         - AtlasDB clients can start even if one Cassandra node is unreachable.
+    *    - |fixed|
+         - AtlasDB clients can start when one of three Cassandra nodes is unreachable.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1045>`__).
 
     *    - |improved|
-         - Actions performed by the ``Scrubber`` are now logged at debug instead of info.
+         - Actions performed by the ``Scrubber`` are now logged at DEBUG instead of INFO due to being unnecessarily verbose.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1137>`__)
-
-    *    - |improved|
-         - Update teh Cassandra partitioner for compatibility with newer versions of Cassandra.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1122>`__)
 
     *    - |fixed|
          - Fixed an issue where leader election threads were not correctly marked as daemon threads.
