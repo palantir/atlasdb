@@ -117,18 +117,20 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     private void putTableNameMapping(String fullTableName, String shortTableName) {
-        try {
-            conns.get().insertOneUnregisteredQuery(
-                    "INSERT INTO " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
-                            + " (table_name, short_table_name) VALUES (?, ?)",
-                    fullTableName,
-                    shortTableName);
-        } catch (PalantirSqlException ex) {
-            if (ex.getMessage().contains(ORACLE_UNIQUE_CONSTRAINT_ERROR)) {
-                dropTableInternal(fullTableName, shortTableName);
+        if (!tableRef.getNamespace().getName().equals("met")) {
+            try {
+                conns.get().insertOneUnregisteredQuery(
+                        "INSERT INTO " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
+                                + " (table_name, short_table_name) VALUES (?, ?)",
+                        fullTableName,
+                        shortTableName);
+            } catch (PalantirSqlException ex) {
+                if (ex.getMessage().contains(ORACLE_UNIQUE_CONSTRAINT_ERROR)) {
+                    dropTableInternal(fullTableName, shortTableName);
+                }
+                log.error(ex.getMessage(), ex);
+                throw ex;
             }
-            log.error(ex.getMessage(), ex);
-            throw ex;
         }
     }
 
@@ -150,8 +152,11 @@ public final class OracleDdlTable implements DbDdlTable {
 
     private void dropTableInternal(String fullTableName, String shortTableName) {
         executeIgnoringError("DROP TABLE " + shortTableName + " PURGE", ORACLE_NOT_EXISTS_ERROR);
-        conns.get().executeUnregisteredQuery(
-                "DELETE FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE table_name = ?", fullTableName);
+        if (!tableRef.getNamespace().getName().equals("met")) {
+            conns.get().executeUnregisteredQuery(
+                    "DELETE FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE table_name = ?",
+                    fullTableName);
+        }
     }
 
     @Override
