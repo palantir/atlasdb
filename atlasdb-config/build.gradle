@@ -13,9 +13,10 @@ dependencies {
     // versions below 8.10.0 have a bug where POST requests must have a body
     compile group: 'com.netflix.feign', name: 'feign-okhttp'
     compile group: 'javax.validation', name: 'validation-api'
+    compile group: 'com.palantir.config.crypto', name: 'encrypted-config-value-module'
 
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:' + libVersions.jackson
+    compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
     compile 'io.dropwizard:dropwizard-jackson:' + libVersions.dropwizard
     compile group: 'com.google.code.findbugs', name: 'annotations'
 
