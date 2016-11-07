@@ -40,7 +40,7 @@ public class OracleTableNameMapper {
                 "The tablePrefix can be at most %s characters long", AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH);
 
         String fullTableName = tablePrefix + DbKvs.internalTableName(tableRef);
-        if (tableRef.getNamespace().getName().equals("met") || fullTableName.length() <= PREFIXED_TABLE_NAME_LENGTH) {
+        if (fullTableName.length() <= PREFIXED_TABLE_NAME_LENGTH) {
             return fullTableName;
         }
 
