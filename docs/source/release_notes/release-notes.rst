@@ -46,8 +46,10 @@ Changelog
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1149>`__)
 
     *    - |deprecated|
-         - ``TableReference.createUnsafe`` is now deprecated.
+         - ``TableReference.createUnsafe`` is now deprecated to prevent mishandling of table names.
            ``createWithEmptyNamespace`` or ``createFromFullyQualifiedName`` should be used instead.
+
+           Schema generated code still contains use of ``TableReference.createUnsafe`` and is being tracked for removal on `#1172 <https://github.com/palantir/atlasdb/issues/1172>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1121>`__)
 
     *    - |new|
@@ -72,14 +74,6 @@ Changelog
     *    - |fixed|
          - AtlasDB clients can start when one of three Cassandra nodes is unreachable.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1045>`__).
-
-    *    - |improved|
-         - Actions performed by the ``Scrubber`` are now logged at DEBUG instead of INFO due to being unnecessarily verbose.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1137>`__)
-
-    *    - |fixed|
-         - Fixed an issue where leader election threads were not correctly marked as daemon threads.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1138>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
