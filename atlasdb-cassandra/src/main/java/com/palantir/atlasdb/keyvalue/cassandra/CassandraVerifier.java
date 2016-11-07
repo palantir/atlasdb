@@ -138,18 +138,6 @@ public final class CassandraVerifier {
         updateExistingKeyspace(clientPool, config);
     }
 
-    // swallows the expected TException subtype NotFoundException, throws connection problem related ones
-    private static boolean keyspaceAlreadyExists(InetSocketAddress host, CassandraKeyValueServiceConfig config)
-            throws TException {
-        try {
-            Client client = CassandraClientFactory.getClientInternal(host, config);
-            client.describe_keyspace(config.keyspace());
-        } catch (NotFoundException e) {
-            return false;
-        }
-        return true;
-    }
-
     private static void createKeyspace(CassandraKeyValueServiceConfig config) throws TException {
         // We can't use the pool yet because it does things like setting the connection's keyspace for us
         boolean someHostWasAbleToCreateTheKeyspace = false;
@@ -183,6 +171,18 @@ public final class CassandraVerifier {
         }
     }
 
+    // swallows the expected TException subtype NotFoundException, throws connection problem related ones
+    private static boolean keyspaceAlreadyExists(InetSocketAddress host, CassandraKeyValueServiceConfig config)
+            throws TException {
+        try {
+            Client client = CassandraClientFactory.getClientInternal(host, config);
+            client.describe_keyspace(config.keyspace());
+            return true;
+        } catch (NotFoundException e) {
+            return false;
+        }
+    }
+
     private static void updateExistingKeyspace(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config)
             throws TException {
         clientPool.runWithRetry(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
@@ -192,7 +192,7 @@ public final class CassandraVerifier {
                 // there was an existing keyspace
                 // check and make sure it's definition is up to date with our config
                 KsDef modifiedKsDef = originalKsDef.deepCopy();
-                CassandraVerifier.checkAndSetReplicationFactor(
+                checkAndSetReplicationFactor(
                         client,
                         modifiedKsDef,
                         false,
@@ -219,7 +219,7 @@ public final class CassandraVerifier {
         Client client = CassandraClientFactory.getClientInternal(host, config);
         KsDef ks = new KsDef(config.keyspace(), CassandraConstants.NETWORK_STRATEGY,
                 ImmutableList.of());
-        CassandraVerifier.checkAndSetReplicationFactor(
+        checkAndSetReplicationFactor(
                 client,
                 ks,
                 true,
@@ -253,7 +253,7 @@ public final class CassandraVerifier {
             int desiredRf,
             boolean safetyDisabled) throws TException {
         if (freshInstance) {
-            Set<String> dcs = CassandraVerifier.sanityCheckDatacenters(client, desiredRf, safetyDisabled);
+            Set<String> dcs = sanityCheckDatacenters(client, desiredRf, safetyDisabled);
             // If RF exceeds # hosts, then Cassandra will reject writes
             ks.setStrategy_options(Maps2.createConstantValueMap(dcs, String.valueOf(desiredRf)));
             return;
@@ -272,7 +272,7 @@ public final class CassandraVerifier {
                 logErrorOrThrow(errorMessage, safetyDisabled);
             }
             // Automatically convert RF=1 to look like network partitioner.
-            dcs = CassandraVerifier.sanityCheckDatacenters(client, desiredRf, safetyDisabled);
+            dcs = sanityCheckDatacenters(client, desiredRf, safetyDisabled);
             if (dcs.size() > 1) {
                 logErrorOrThrow(errorMessage, safetyDisabled);
             }
@@ -281,7 +281,7 @@ public final class CassandraVerifier {
                 ks.setStrategy_options(ImmutableMap.of(dcs.iterator().next(), "1"));
             }
         } else {
-            dcs = CassandraVerifier.sanityCheckDatacenters(client, desiredRf, safetyDisabled);
+            dcs = sanityCheckDatacenters(client, desiredRf, safetyDisabled);
         }
 
         Map<String, String> strategyOptions = Maps.newHashMap(ks.getStrategy_options());
