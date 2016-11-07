@@ -66,7 +66,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
             ConnectionSupplier conns,
             TableReference tableRef) {
         OracleTableNameGetter oracleTableNameGetter =
-                new OracleTableNameGetter(conns, config.tablePrefix(), config.overflowTablePrefix(), tableRef);
+                new OracleTableNameGetter(config, conns, tableRef);
         OverflowSequenceSupplier sequenceSupplier = OverflowSequenceSupplier.create(conns, config.tablePrefix());
         return new OracleOverflowWriteTable(config, conns, sequenceSupplier, oracleTableNameGetter);
     }

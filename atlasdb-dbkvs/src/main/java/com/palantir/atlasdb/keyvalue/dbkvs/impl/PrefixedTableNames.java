@@ -41,11 +41,7 @@ public class PrefixedTableNames {
     private String getOraclePrefixedTableName(TableReference tableRef) {
         OracleDdlConfig oracleConfig = (OracleDdlConfig) config;
         try {
-            OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(
-                    conns,
-                    oracleConfig.tablePrefix(),
-                    oracleConfig.overflowTablePrefix(),
-                    tableRef);
+            OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(oracleConfig, conns, tableRef);
             return oracleTableNameGetter.getInternalShortTableName();
         } catch (TableMappingNotFoundException e) {
             throw Throwables.propagate(e);

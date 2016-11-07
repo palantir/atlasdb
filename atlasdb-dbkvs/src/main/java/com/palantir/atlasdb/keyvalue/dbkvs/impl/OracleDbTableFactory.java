@@ -51,9 +51,7 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns) {
-        OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(conns, config.tablePrefix(),
-                config.overflowTablePrefix(), tableRef);
-
+        OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(config, conns, tableRef);
         TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
         DbQueryFactory queryFactory;
         String shortTableName = getTableName(oracleTableNameGetter);
