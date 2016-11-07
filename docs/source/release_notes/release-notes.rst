@@ -46,6 +46,10 @@ develop
            Previously, the CLI would throw an exception and fail in such cases.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1151>`__)
 
+    *    - |fixed|
+         - The migration CLI will now decrypt encrypted values and will now use the dropwizard config as the new configuration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1171>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -96,8 +100,6 @@ v0.23.0
     *    - |fixed|
          - AtlasDB clients can start when a single Cassandra node is unreachable.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1045>`__).
-
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1149>`__)
 
     *    - |improved|
          - Removed spurious error logging during first-time startup against a brand new Cassandra cluster.
