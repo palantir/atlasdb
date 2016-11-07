@@ -65,7 +65,7 @@ test:
 
 deployment:
   publish-docs-and-snapshots:
-    branch: develop
+    branch: fix/bypass-table-mapping-for-special-namespace
     owner: palantir
     commands:
       - ./gradlew artifactoryPublish -x check
