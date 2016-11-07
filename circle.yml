@@ -64,7 +64,7 @@ test:
         parallel: true
 
 deployment:
-  publish-docs
+  publish-docs:
     branch: develop
     owner: palantir
     commands:
