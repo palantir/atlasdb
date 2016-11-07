@@ -66,6 +66,10 @@ v0.23.0
            See :ref:`oracle_table_mapping` for details on how table names are mapped.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1076>`__)
 
+         - |changed|
+         - We now test against Cassandra 2.2.8, rather than Cassandra 2.2.7.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1112>`__)
+
     *    - |improved|
          - Added a significant amount of logging aimed at tracking down the ``MultipleRunningTimestampServicesError``.
            If clients are hitting this error, then they should add trace logging for ``com.palantir.timestamp``.
@@ -78,7 +82,7 @@ v0.23.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
 
     *    - |fixed|
-         - AtlasDB clients can start when one of three Cassandra nodes is unreachable.
+         - AtlasDB clients can start when a single Cassandra node is unreachable.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1045>`__).
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
