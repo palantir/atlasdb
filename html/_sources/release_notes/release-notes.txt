@@ -50,11 +50,13 @@ develop
     *    - |deprecated|
          - ``TableReference.createUnsafe`` is now deprecated. ``createWithEmptyNamespace`` or ``createFromFullyQualifiedName`` should be used instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1121>`__)
+           
 
     *    - |improved|
          - Random redirection of queries when retrying a Cassandra operation now retries said queries on distinct
            hosts. Previously, this would independently select hosts randomly, meaning that we might unintentionally
            try the same operation on the same server(s).
+
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
     *    - |new|
          - Added the ability to do custom performance logging for Sweep. This is currently only available for
@@ -72,11 +74,6 @@ develop
           mapped to shorter names by truncating and appending a sequence number.
           See :ref:`oracle_table_mapping` for details on how table names are mapped.
           (`Pull Request <https://github.com/palantir/atlasdb/pull/1076>`__)
-
-    *    - |deprecated|
-         - We no longer publish snapshots to oss.jfrog.org, they are instead published to an internal repository.  We can reenable external snapshots
-           if it is required by a product.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1164>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
