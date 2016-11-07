@@ -16,9 +16,11 @@
 package com.palantir.atlasdb.timelock;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import org.glassfish.jersey.server.model.Resource;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.lock.LockService;
@@ -33,18 +35,21 @@ import io.atomix.copycat.server.storage.Storage;
 import io.atomix.copycat.server.storage.StorageLevel;
 import io.atomix.group.DistributedGroup;
 import io.atomix.group.LocalMember;
+import io.atomix.variables.DistributedLong;
 import io.atomix.variables.DistributedValue;
 import io.dropwizard.Application;
 import io.dropwizard.setup.Environment;
 
 public class TimeLockServer extends Application<TimeLockServerConfiguration> {
+    private AtomixReplica localNode;
+
     public static void main(String[] args) throws Exception {
         new TimeLockServer().run(args);
     }
 
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
-        AtomixReplica localNode = AtomixReplica.builder(configuration.cluster().localServer())
+        localNode = AtomixReplica.builder(configuration.cluster().localServer())
                 .withStorage(Storage.builder()
                         .withDirectory("var/data/atomix")
                         .withStorageLevel(StorageLevel.DISK)
@@ -58,26 +63,39 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
         LocalMember localMember = Futures.getUnchecked(timeLockGroup.join());
 
         DistributedValue<String> leaderId = DistributedValues.getLeaderId(localNode);
-        timeLockGroup.election().onElection(term -> {
-            Futures.getUnchecked(leaderId.set(term.leader().id()));
-        });
-
-        LeaderFilter leaderFilter = new LeaderFilter(localMember.id(), leaderId);
-        environment.jersey().register(leaderFilter);
+        timeLockGroup.election().onElection(term -> Futures.getUnchecked(leaderId.set(term.leader().id())));
 
         for (String client : configuration.clients()) {
-            TimestampService timestampService = new TimestampResource(
-                    DistributedValues.getTimestampForClient(localNode, client));
-            LockService lockService = LockServiceImpl.create();
-
+            DistributedLong timestamp = DistributedValues.getTimestampForClient(localNode, client);
             Resource builtResource = Resources.getInstancedResourceAtPath(
                     client,
-                    new TimeLockResource(lockService, timestampService));
+                    new TimeLockResource(
+                            createInvalidatingLockService(localMember, leaderId),
+                            createInvalidatingTimestampService(localMember, leaderId, timestamp)));
             environment.jersey().getResourceConfig().registerResources(builtResource);
         }
     }
 
-    private Transport createTransport(Optional<SslConfiguration> optionalSecurity) {
+    private static TimestampService createInvalidatingTimestampService(
+            LocalMember localMember,
+            DistributedValue<String> leaderId,
+            DistributedLong timestamp) {
+        Supplier<TimestampService> timestampSupplier = () -> new TimestampResource(timestamp);
+        return InvalidatingLeaderProxy.create(localMember.id(), leaderId, timestampSupplier, TimestampService.class);
+    }
+
+    private static LockService createInvalidatingLockService(
+            LocalMember localMember,
+            DistributedValue<String> leaderId) {
+        return InvalidatingLeaderProxy.create(localMember.id(), leaderId, LockServiceImpl::create, LockService.class);
+    }
+
+    @VisibleForTesting
+    AtomixReplica getLocalNode() {
+        return localNode;
+    }
+
+    private static Transport createTransport(Optional<SslConfiguration> optionalSecurity) {
         NettyTransport.Builder transport = NettyTransport.builder();
 
         if (!optionalSecurity.isPresent()) {

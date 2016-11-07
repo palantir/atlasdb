@@ -12,5 +12,8 @@ dependencies {
 
     processor group: 'org.immutables', name: 'value'
 
+    testCompile project(':atlasdb-config')
+
+    testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
     testCompile group: 'org.assertj', name: 'assertj-core'
 }
