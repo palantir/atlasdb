@@ -66,7 +66,7 @@ v0.23.0
            See :ref:`oracle_table_mapping` for details on how table names are mapped.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1076>`__)
 
-         - |changed|
+    *    - |changed|
          - We now test against Cassandra 2.2.8, rather than Cassandra 2.2.7.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1112>`__)
 
