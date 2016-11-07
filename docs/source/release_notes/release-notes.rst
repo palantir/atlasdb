@@ -45,6 +45,10 @@ develop
          - We now test against Cassandra 2.2.8, rather than Cassandra 2.2.7.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1112>`__)
 
+    *    - |fixed|
+         - The migration CLI will now decrypt encrypted values and will now use the dropwizard config as the new configuration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1171>`__)
+
     *    - |improved|
          - Added a significant amount of logging aimed at tracking down the ``MultipleRunningTimestampServicesError``.
            If clients are hitting this error, then they should add trace logging for ``com.palantir.timestamp``.
@@ -60,6 +64,7 @@ develop
            hosts. Previously, this would independently select hosts randomly, meaning that we might unintentionally
            try the same operation on the same server(s).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
+
     *    - |new|
          - Added the ability to do custom performance logging for Sweep. This is currently only available for
            applications that call the ``BackgroundSweeperImpl`` constructor directly. Otherwise a
@@ -68,14 +73,13 @@ develop
 
     *    - |new|
          - The KVS migration command can now be run as an offline cli using the ``--offline`` flag.
-
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1149>`__)
 
-    *   - |improved|
-        - We now support Oracle for products with all valid schemas. Oracle table names exceeding 30 characters are now
-          mapped to shorter names by truncating and appending a sequence number.
-          See :ref:`oracle_table_mapping` for details on how table names are mapped.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/1076>`__)
+    *    - |improved|
+         - We now support Oracle for products with all valid schemas. Oracle table names exceeding 30 characters are now
+           mapped to shorter names by truncating and appending a sequence number.
+           See :ref:`oracle_table_mapping` for details on how table names are mapped.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1076>`__)
 
     *    - |deprecated|
          - We no longer publish snapshots to oss.jfrog.org, they are instead published to an internal repository.  We can reenable external snapshots
