@@ -29,6 +29,7 @@ import feign.Contract;
 import feign.Feign;
 import feign.codec.Decoder;
 import feign.codec.Encoder;
+import feign.codec.ErrorDecoder;
 import feign.jackson.JacksonDecoder;
 import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
@@ -39,6 +40,7 @@ public final class AtlasDbHttpClients {
     private static final Contract contract = new JAXRSContract();
     private static final Encoder encoder = new JacksonEncoder(mapper);
     private static final Decoder decoder = new TextDelegateDecoder(new JacksonDecoder(mapper));
+    private static final ErrorDecoder errorDecoder = new AtlasDbErrorDecoder();
 
     private AtlasDbHttpClients() {
         // Utility class
@@ -53,6 +55,7 @@ public final class AtlasDbHttpClients {
                 .contract(contract)
                 .encoder(encoder)
                 .decoder(decoder)
+                .errorDecoder(errorDecoder)
                 .client(newOkHttpClient(sslSocketFactory))
                 .target(type, uri);
     }
@@ -85,6 +88,7 @@ public final class AtlasDbHttpClients {
                 .contract(contract)
                 .encoder(encoder)
                 .decoder(decoder)
+                .errorDecoder(errorDecoder)
                 .client(client)
                 .retryer(failoverFeignTarget)
                 .target(failoverFeignTarget);
