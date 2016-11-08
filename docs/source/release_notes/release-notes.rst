@@ -85,6 +85,14 @@ v0.23.0
          - AtlasDB clients can start when a single Cassandra node is unreachable.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1045>`__).
 
+    *    - |improved|
+         - Removed spurious error logging during first-time startup against a brand new Cassandra cluster.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1033>`__)
+
+    *    - |improved|
+         - Improved the reliability of starting up against a degraded Cassandra cluster.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1033>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

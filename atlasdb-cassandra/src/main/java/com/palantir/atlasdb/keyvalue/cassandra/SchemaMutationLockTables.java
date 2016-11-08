@@ -54,7 +54,7 @@ public class SchemaMutationLockTables {
     }
 
     public TableReference createLockTable() throws TException {
-        return clientPool.run(this::createLockTable);
+        return clientPool.runWithRetry(this::createLockTable);
     }
 
     private TableReference createLockTable(Cassandra.Client client) throws TException {
