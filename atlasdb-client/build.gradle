@@ -17,7 +17,9 @@ dependencies {
   compile project(":atlasdb-commons")
   compile project(":atlasdb-api")
   compile project(":atlasdb-client-protobufs")
-  compile group: 'com.googlecode.json-simple', name: 'json-simple'
+  compile (group: 'com.googlecode.json-simple', name: 'json-simple') {
+    exclude(group: 'junit')
+  }
   compile group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang
   compile group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
   compile group: "com.googlecode.protobuf-java-format", name: "protobuf-java-format", version: "1.2"

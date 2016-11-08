@@ -1,7 +1,9 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-    compile project(':atlasdb-cli')
+    compile project(':atlasdb-cli') {
+      exclude(module: 'libthrift')
+    }
     compile project(':atlasdb-config')
     compile project(':atlasdb-console')
 
