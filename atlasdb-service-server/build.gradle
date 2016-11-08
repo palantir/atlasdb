@@ -14,5 +14,5 @@ dependencies {
 
     compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
 
-    testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
+    testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
 }

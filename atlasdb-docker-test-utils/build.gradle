@@ -9,6 +9,6 @@ dependencies {
 
     processor group: 'org.immutables', name: 'value', version: libVersions.immutables
 
-    testCompile group: 'org.assertj', name: 'assertj-core', version: libVersions.assertj
-    testCompile group: 'org.mockito', name: 'mockito-core', version: libVersions.mockito
+    testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'org.mockito', name: 'mockito-core'
 }
