@@ -9,7 +9,7 @@ dependencies {
   compile project(':timestamp-impl')
 
   compile ('org.apache.cassandra:cassandra-all:' + libVersions.cassandra) {
-    exclude(module: 'junit')
+    exclude module: 'junit'
   }
   compile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
   compile group: 'com.google.guava', name: 'guava'
