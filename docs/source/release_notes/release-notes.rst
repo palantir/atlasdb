@@ -96,8 +96,12 @@ v0.23.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1033>`__)
 
     *    - |breaking|
-         - All KVSs now as a guarantee throw a RuntimeException on attempts to truncate a non-existing table
+         - All KVSs now as a guarantee throw a RuntimeException on attempts to truncate a non-existing table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1114>`__)
+
+    *    - |fixed|
+         - No longer publish a spurious junit dependency in atlasdb-client compile.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1176>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
