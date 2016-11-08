@@ -8,10 +8,11 @@ dependencies {
   compile project(":commons-api")
   compile project(':timestamp-impl')
 
-  compile 'org.apache.cassandra:cassandra-all:' + libVersions.cassandra
+  compile ('org.apache.cassandra:cassandra-all:' + libVersions.cassandra) {
+    exclude module: 'junit'
+  }
   compile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
   compile group: 'com.google.guava', name: 'guava'
-  compile group: 'junit', name: 'junit'
 
   compile 'org.apache.commons:commons-pool2:2.4.2'
 

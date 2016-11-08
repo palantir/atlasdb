@@ -9,7 +9,9 @@ dependencies {
     compile project(':lock-impl')
 
     compile group: 'com.netflix.feign', name: 'feign-jackson'
-    compile group: 'com.netflix.feign', name: 'feign-jaxrs'
+    compile (group: 'com.netflix.feign', name: 'feign-jaxrs') {
+        exclude module: 'jsr311-api'
+    }
     // versions below 8.10.0 have a bug where POST requests must have a body
     compile group: 'com.netflix.feign', name: 'feign-okhttp'
     compile group: 'javax.validation', name: 'validation-api'
