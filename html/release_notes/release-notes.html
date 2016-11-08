@@ -96,6 +96,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../configuration/index.html">Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../services/index.html">Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../performance/index.html">Performance Testing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../miscellaneous/index.html">Miscellaneous</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../troubleshooting/index.html">Troubleshooting</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Releases</a><ul class="current">
@@ -238,8 +239,12 @@ Previously, this would independently select hosts randomly, meaning that we migh
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1033">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
-<td>All KVSs now as a guarantee throw a RuntimeException on attempts to truncate a non-existing table
+<td>All KVSs now as a guarantee throw a RuntimeException on attempts to truncate a non-existing table.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1114">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>No longer publish a spurious junit dependency in atlasdb-client compile.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1176">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
