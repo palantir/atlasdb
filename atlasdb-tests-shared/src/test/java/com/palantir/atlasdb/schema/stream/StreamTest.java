@@ -71,6 +71,13 @@ public class StreamTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void testRender() throws IOException {
+        File testDir = new File("renderStreamTest");
+        StreamTestSchema.getSchema().renderTables(testDir);
+        FileUtils.deleteDirectory(testDir);
+    }
+
+    @Test
     public void testAddDelete() throws Exception {
         final byte[] data = PtBytes.toBytes("streamed");
         final long streamId = txManager.runTaskWithRetry(new TransactionTask<Long, Exception>() {
