@@ -86,7 +86,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     @Override
     public synchronized long getUpperLimit() {
-        DebugLogger.logger.info("[GET] Getting upper limit");
+        DebugLogger.logger.debug("[GET] Getting upper limit");
         return clientPool.runWithRetry(new FunctionCheckedException<Client, Long, RuntimeException>() {
             @Override
             public Long apply(Client client) {
@@ -116,7 +116,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
 
     @Override
     public synchronized void storeUpperLimit(final long limit) {
-        DebugLogger.logger.info("[PUT] Storing upper limit of {}.", limit);
+        DebugLogger.logger.debug("[PUT] Storing upper limit of {}.", limit);
         clientPool.runWithRetry(new FunctionCheckedException<Client, Void, RuntimeException>() {
             @Override
             public Void apply(Client client) {
