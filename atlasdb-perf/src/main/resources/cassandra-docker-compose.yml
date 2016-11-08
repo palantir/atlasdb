@@ -10,3 +10,5 @@ services:
       - "7199:7199"
     environment:
       - LOCAL_JMX=no
+      - MAX_HEAP_SIZE="2G"
+      - HEAP_NEWSIZE="400M"
