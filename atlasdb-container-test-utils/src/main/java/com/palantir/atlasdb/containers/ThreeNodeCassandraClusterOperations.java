@@ -66,7 +66,8 @@ public class ThreeNodeCassandraClusterOperations {
 
     private boolean systemAuthenticationKeyspaceHasReplicationFactorThree()
             throws IOException, InterruptedException {
-        String output = runCql("SELECT * FROM system.schema_keyspaces;");
+//        String output = runCql("SELECT * FROM system.schema_keyspaces;"); // 2.2.8
+        String output = runCql("SELECT * FROM system_schema.keyspaces;"); // 3.7
         int replicationFactor = CassandraCliParser.parseSystemAuthReplicationFromCqlsh(output);
         return replicationFactor == 3;
     }
