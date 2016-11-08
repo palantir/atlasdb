@@ -108,7 +108,11 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     public void dropTables(Set<TableReference> tableRefs) {
         Set<TableReference> tableNames = Sets.newHashSetWithExpectedSize(tableRefs.size());
         for (TableReference tableRef : tableRefs) {
-            tableNames.add(tableMapper.getMappedTableName(tableRef));
+            try {
+                tableNames.add(tableMapper.getMappedTableName(tableRef));
+            } catch (IllegalArgumentException e) {
+                // Table does not exist - do nothing.
+            }
             delegate().dropTables(tableNames);
         }
         delegate().dropTables(tableNames);
