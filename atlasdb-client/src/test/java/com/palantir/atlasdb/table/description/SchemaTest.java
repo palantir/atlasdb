@@ -15,9 +15,9 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.core.AllOf.allOf;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
@@ -37,16 +37,17 @@ public class SchemaTest {
     @Rule
     public TemporaryFolder testFolder = new TemporaryFolder();
 
-    private static String TEST_PACKAGE = "package";
-    private static String TEST_TABLE_NAME = "TestTable";
-    private static TableReference TABLE_REF = TableReference.createWithEmptyNamespace(TEST_TABLE_NAME);
+    private static final String TEST_PACKAGE = "package";
+    private static final String TEST_TABLE_NAME = "TestTable";
+    private static final String TEST_PATH = TEST_PACKAGE + "/" + TEST_TABLE_NAME + "Table.java";
+    private static final TableReference TABLE_REF = TableReference.createWithEmptyNamespace(TEST_TABLE_NAME);
 
     @Test
     public void testRendersGuavaOptionalsByDefault() throws IOException {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
         schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
         schema.renderTables(testFolder.getRoot());
-        assertThat(readFileIntoString(testFolder.getRoot(), "package/" + TEST_TABLE_NAME + "Table.java"),
+        assertThat(readFileIntoString(testFolder.getRoot(), TEST_PATH),
                 allOf(
                         containsString("import com.google.common.base.Optional"),
                         containsString("{@link Optional}"),
@@ -58,7 +59,7 @@ public class SchemaTest {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE, OptionalType.GUAVA);
         schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
         schema.renderTables(testFolder.getRoot());
-        assertThat(readFileIntoString(testFolder.getRoot(), "package/" + TEST_TABLE_NAME + "Table.java"),
+        assertThat(readFileIntoString(testFolder.getRoot(), TEST_PATH),
                 allOf(
                         containsString("import com.google.common.base.Optional"),
                         not(containsString("import java.util.Optional"))));
@@ -69,7 +70,7 @@ public class SchemaTest {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
         schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
         schema.renderTables(testFolder.getRoot());
-        assertThat(readFileIntoString(testFolder.getRoot(), "package/" + TEST_TABLE_NAME + "Table.java"),
+        assertThat(readFileIntoString(testFolder.getRoot(), TEST_PATH),
                 allOf(
                         not(containsString("import com.google.common.base.Optional")),
                         containsString("import java.util.Optional")));
