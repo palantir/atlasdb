@@ -68,30 +68,14 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     @Override
     public void continueOrPropagate(RetryableException ex) {
-        boolean isFastFailoverException;
-        if (ex.retryAfter() == null) {
-            // This is the case where we have failed due to networking or other IOException error.
-            isFastFailoverException = false;
-        } else {
-            // This is the case where the server has returned a 503.
-            // This is done when we want to do fast failover because we aren't the leader or we are shutting down.
-            isFastFailoverException = true;
-        }
         synchronized (this) {
             // Only fail over if this failure was to the current server.
             // This means that no one on another thread has failed us over already.
             if (mostRecentServerIndex.get() != null && mostRecentServerIndex.get() == failoverCount.get()) {
                 long failures = failuresSinceLastSwitch.incrementAndGet();
-                if (isFastFailoverException || failures >= failuresBeforeSwitching) {
-                    if (isFastFailoverException) {
-                        // We did talk to a node successfully. It was shutting down but nodes are available
-                        // so we shoudln't keep making the backoff higher.
-                        numSwitches.set(0);
-                        startTimeOfFastFailover.compareAndSet(0, System.currentTimeMillis());
-                    } else {
-                        numSwitches.incrementAndGet();
-                        startTimeOfFastFailover.set(0);
-                    }
+                if (failures >= failuresBeforeSwitching) {
+                    numSwitches.incrementAndGet();
+                    startTimeOfFastFailover.set(0);
                     failuresSinceLastSwitch.set(0);
                     failoverCount.incrementAndGet();
                 }
@@ -99,9 +83,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         }
 
         checkAndHandleFailure(ex);
-        if (!isFastFailoverException) {
-            pauseForBackOff();
-        }
+        pauseForBackOff();
     }
 
     private void checkAndHandleFailure(RetryableException ex) {
