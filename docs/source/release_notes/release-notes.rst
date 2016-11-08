@@ -34,6 +34,18 @@ Changelog
 develop
 =======
 
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - The fetch timestamp CLI correctly handles ``--file`` inputs containing non-existent directories by creating any missing intermediate directories.
+           Previously, the CLI would throw an exception and fail in such cases.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1151>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
