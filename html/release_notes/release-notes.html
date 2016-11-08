@@ -157,6 +157,24 @@
 </div>
 <div class="section" id="develop">
 <h2>develop<a class="headerlink" href="#develop" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The fetch timestamp CLI correctly handles <code class="docutils literal"><span class="pre">--file</span></code> inputs containing non-existent directories by creating any missing intermediate directories.
+Previously, the CLI would throw an exception and fail in such cases.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1151">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="section" id="v0-23-0">
 <h2>v0.23.0<a class="headerlink" href="#v0-23-0" title="Permalink to this headline">¶</a></h2>
