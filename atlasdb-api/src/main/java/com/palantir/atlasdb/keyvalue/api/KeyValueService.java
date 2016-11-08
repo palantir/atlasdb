@@ -326,6 +326,7 @@ public interface KeyValueService extends AutoCloseable {
      * @param tableRef the name of the table to truncate.
      *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
+     * @throws (? extends RuntimeException) if the table does not exist
      */
     @POST
     @Path("truncate-table")
@@ -336,11 +337,12 @@ public interface KeyValueService extends AutoCloseable {
     /**
      * Truncate tables in the key-value store.
      * <p>
-     * This can be slightly faster than truncating a single table.
+     * This can be slightly faster than repeatedly truncating individual tables.
      *
      * @param tableRefs the name of the tables to truncate.
      *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
+     * @throws (? extends RuntimeException) if the table does not exist
      */
     @POST
     @Path("truncate-tables")

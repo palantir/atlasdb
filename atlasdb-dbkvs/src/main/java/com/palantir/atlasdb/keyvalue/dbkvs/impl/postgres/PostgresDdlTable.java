@@ -86,7 +86,7 @@ public class PostgresDdlTable implements DbDdlTable {
 
     @Override
     public void truncate() {
-        executeIgnoringError("TRUNCATE TABLE " + prefixedTableName(), "does not exist");
+        conns.get().executeUnregisteredQuery("TRUNCATE TABLE " + prefixedTableName());
     }
 
     @Override
