@@ -89,7 +89,7 @@ v0.23.0
 
     *    - |improved|
          - Added a significant amount of logging aimed at tracking down the ``MultipleRunningTimestampServicesError``.
-           If clients are hitting this error, then they should add trace logging for ``com.palantir.timestamp``.
+           If clients are hitting this error, then they should add TRACE logging for ``com.palantir.timestamp``.
            These logs can also be directed to a separate file, see the :ref:`documentation <logging-configuration>` for more details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1098>`__)
 
