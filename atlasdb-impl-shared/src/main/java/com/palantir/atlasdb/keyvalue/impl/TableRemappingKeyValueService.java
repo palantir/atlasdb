@@ -167,7 +167,11 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
 
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
-        return delegate().getMetadataForTable(tableMapper.getMappedTableName(tableRef));
+        try {
+            return delegate().getMetadataForTable(tableMapper.getMappedTableName(tableRef));
+        } catch (IllegalArgumentException e) { // table does not exist.
+            return new byte[0];
+        }
     }
 
     @Override
