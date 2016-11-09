@@ -57,8 +57,9 @@ public abstract class AbstractTableMappingService implements TableMappingService
             return tableMap.get().get(tableRef);
         } else {
             updateTableMap();
-            if (tableMap.get().containsKey(tableRef)) {
-                return tableMap.get().get(tableRef);
+            TableReference shortTableName = tableMap.get().get(tableRef);
+            if (shortTableName != null) {
+                return shortTableName;
             }
             throw new TableMappingNotFoundException("Unable to resolve full name for table reference " + tableRef);
         }
