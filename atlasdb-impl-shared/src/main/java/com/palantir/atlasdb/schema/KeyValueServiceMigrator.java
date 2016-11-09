@@ -207,14 +207,25 @@ public class KeyValueServiceMigrator {
                                GeneralTaskCheckpointer checkpointer) {
         for (TableReference table : tables) {
             KvsRangeMigrator rangeMigrator =
-                    new KvsRangeMigratorBuilder().srcTable(table).readBatchSize(getBatchSize(table)).readTxManager(
-                            readTxManager).txManager(txManager).writeKvs(writeKvs).migrationTimestamp(
-                            migrationTimestamp).checkpointer(checkpointer).build();
+                    new KvsRangeMigratorBuilder()
+                            .srcTable(table)
+                            .readBatchSize(getBatchSize(table))
+                            .readTxManager(readTxManager)
+                            .txManager(txManager)
+                            .writeKvs(writeKvs)
+                            .migrationTimestamp(migrationTimestamp)
+                            .checkpointer(checkpointer)
+                            .build();
             TableMigratorBuilder builder =
-                    new TableMigratorBuilder().srcTable(table).partitions(PARTITIONS).partitioners(
-                            getPartitioners(fromKvs, table)).readBatchSize(
-                            getBatchSize(table)).executor(executor).checkpointer(checkpointer).progress(
-                            taskProgress).rangeMigrator(rangeMigrator);
+                    new TableMigratorBuilder()
+                            .srcTable(table)
+                            .partitions(PARTITIONS)
+                            .partitioners(getPartitioners(fromKvs, table))
+                            .readBatchSize(getBatchSize(table))
+                            .executor(executor)
+                            .checkpointer(checkpointer)
+                            .progress(taskProgress)
+                            .rangeMigrator(rangeMigrator);
             TableMigrator migrator = builder.build();
             migrator.migrate();
         }

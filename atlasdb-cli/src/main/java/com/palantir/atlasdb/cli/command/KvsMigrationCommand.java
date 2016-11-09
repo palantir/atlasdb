@@ -29,8 +29,10 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
 import com.palantir.atlasdb.schema.KeyValueServiceValidator;
+import com.palantir.atlasdb.schema.KvsMigrationMessageProcessorLoggingImpl;
 import com.palantir.atlasdb.schema.TaskProgress;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
@@ -139,9 +141,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
                     threads,
                     batchSize,
                     ImmutableMap.of(),
-                    (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) -> {
-                        log.info(level.toString() + ": " + message);
-                    },
+                    new KvsMigrationMessageProcessorLoggingImpl(log),
                     ImmutableSet.of());
             validator.validate(true);
         }
@@ -189,9 +189,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
                 threads,
                 batchSize,
                 ImmutableMap.of(),
-                (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) -> {
-                    log.info(level.toString() + ": " + message);
-                },
+                new KvsMigrationMessageProcessorLoggingImpl(log),
                 new TaskProgress() {
                     @Override
                     public void beginTask(String message, int tasks) {
