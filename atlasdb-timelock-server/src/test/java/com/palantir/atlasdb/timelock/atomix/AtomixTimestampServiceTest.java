@@ -17,6 +17,7 @@ package com.palantir.atlasdb.timelock.atomix;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assume.assumeTrue;
 
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -25,6 +26,7 @@ import org.junit.Test;
 
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.timelock.TimeLockServerTest;
+import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
 import io.atomix.AtomixReplica;
@@ -75,6 +77,13 @@ public class AtomixTimestampServiceTest {
     }
 
     @Test
+    public void canRequestTimestampRange() {
+        int numTimestamps = 5;
+        TimestampRange range = timestampService.getFreshTimestamps(numTimestamps);
+        assertThat(range.getLowerBound() + numTimestamps - 1).isEqualTo(range.getUpperBound());
+    }
+
+    @Test
     public void shouldThrowIfRequestingNegativeNumbersOfTimestamps() {
         assertThatThrownBy(() -> timestampService.getFreshTimestamps(-1)).isInstanceOf(IllegalArgumentException.class);
     }
@@ -82,6 +91,13 @@ public class AtomixTimestampServiceTest {
     @Test
     public void shouldThrowIfRequestingZeroTimestamps() {
         assertThatThrownBy(() -> timestampService.getFreshTimestamps(0)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void shouldThrowIfRequestingTooManyTimestamps() {
+        assumeTrue(AtomixTimestampService.MAX_GRANT_SIZE != Integer.MAX_VALUE);
+        assertThatThrownBy(() -> timestampService.getFreshTimestamps(Integer.MAX_VALUE))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @AfterClass

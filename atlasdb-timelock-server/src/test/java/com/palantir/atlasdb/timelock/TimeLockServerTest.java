@@ -19,10 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLSocketFactory;
@@ -32,7 +30,6 @@ import org.junit.Test;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.atomix.DistributedValues;
@@ -43,7 +40,6 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
 import io.atomix.AtomixReplica;
@@ -94,15 +90,6 @@ public class TimeLockServerTest {
     }
 
     @Test
-    public void timestampServiceShouldIssueTimestampRanges() {
-        TimestampService timestampService = getTimestampService(TEST_NAMESPACE_1);
-
-        int numTimestamps = 1000;
-        TimestampRange range = timestampService.getFreshTimestamps(numTimestamps);
-        assertThat(range.getLowerBound() + numTimestamps - 1).isEqualTo(range.getUpperBound());
-    }
-
-    @Test
     public void timestampServiceShouldRespectDistinctNamespacesWhenIssuingTimestamps() {
         TimestampService timestampService1 = getTimestampService(TEST_NAMESPACE_1);
         TimestampService timestampService2 = getTimestampService(TEST_NAMESPACE_2);
@@ -138,25 +125,17 @@ public class TimeLockServerTest {
     public void timestampServiceShouldIssueTimestampsAgainAfterRegainingLeadership() {
         String leader = getLeaderId();
         TimestampService timestampService = getTimestampService(TEST_NAMESPACE_1);
-        List<Long> timestampList = Lists.newArrayList();
         try {
-            int numIterations = 10;
-            for (int i = 0; i < numIterations; i++) {
-                timestampList.add(timestampService.getFreshTimestamp());
-                setLeaderId(null);
-                assertThatThrownBy(timestampService::getFreshTimestamp)
-                        .hasMessageContaining(SERVICE_NOT_AVAILABLE_CODE);
-                setLeaderId(leader);
-            }
+            long ts1 = timestampService.getFreshTimestamp();
+            setLeaderId(null);
+            assertThatThrownBy(timestampService::getFreshTimestamp)
+                    .hasMessageContaining(SERVICE_NOT_AVAILABLE_CODE);
+            setLeaderId(leader);
+            long ts2 = timestampService.getFreshTimestamp();
+            assertThat(ts1).isLessThan(ts2);
         } finally {
             setLeaderId(leader);
         }
-        assertIncreasing(timestampList);
-    }
-
-    private void assertIncreasing(List<Long> timestampList) {
-        IntStream.range(1, timestampList.size())
-                .forEach(index -> assertThat(timestampList.get(index - 1)).isLessThan(timestampList.get(index)));
     }
 
     @Nullable
