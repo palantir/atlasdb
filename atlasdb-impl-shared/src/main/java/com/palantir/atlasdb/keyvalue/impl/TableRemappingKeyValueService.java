@@ -201,7 +201,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         try {
             return delegate().getMetadataForTable(tableMapper.getMappedTableName(tableRef));
         } catch (TableMappingNotFoundException e) { // table does not exist.
-            return new byte[0];
+            return AtlasDbConstants.EMPTY_TABLE_METADATA;
         }
     }
 
