@@ -17,7 +17,6 @@ package com.palantir.atlasdb.timelock.atomix;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assume.assumeTrue;
 
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -25,7 +24,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.util.concurrent.Futures;
-import com.palantir.atlasdb.timelock.TimeLockServerTest;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
@@ -39,32 +37,32 @@ import io.atomix.copycat.server.storage.StorageLevel;
 import io.atomix.variables.DistributedLong;
 
 public class AtomixTimestampServiceTest {
-
     private static final Address LOCAL_ADDRESS = new Address("localhost", 8700);
-    private static final String TEST_KEY = TimeLockServerTest.class.getName();
+    private static final String TIMESTAMP_KEY = "timestamp";
 
-    private static AtomixReplica replica;
-    private static Transport transport;
+    private static final Transport transport = new LocalTransport(new LocalServerRegistry());;
+    private static final AtomixReplica replica = AtomixReplica.builder(LOCAL_ADDRESS)
+            .withStorage(Storage.builder()
+                    .withStorageLevel(StorageLevel.MEMORY)
+                    .build())
+            .withTransport(transport)
+            .build();
 
     private TimestampService timestampService;
 
     @BeforeClass
-    public static void setUpClass() {
-        transport = new LocalTransport(new LocalServerRegistry());
-        replica = AtomixReplica.builder(LOCAL_ADDRESS)
-                .withStorage(Storage.builder()
-                        .withDirectory("var/data/atomix")
-                        .withStorageLevel(StorageLevel.DISK)
-                        .build())
-                .withTransport(transport)
-                .build();
+    public static void startAtomix() {
         replica.bootstrap().join();
     }
 
+    @AfterClass
+    public static void stopAtomix() {
+        replica.leave();
+    }
+
     @Before
-    public void setUp() {
-        DistributedLong distributedLong = Futures.getUnchecked(replica.getLong(TEST_KEY));
-        distributedLong.set(0L);
+    public void setupTimestampService() {
+        DistributedLong distributedLong = Futures.getUnchecked(replica.getLong(TIMESTAMP_KEY));
         timestampService = new AtomixTimestampService(distributedLong);
     }
 
@@ -78,31 +76,31 @@ public class AtomixTimestampServiceTest {
 
     @Test
     public void canRequestTimestampRange() {
-        int numTimestamps = 5;
-        TimestampRange range = timestampService.getFreshTimestamps(numTimestamps);
-        assertThat(range.getLowerBound() + numTimestamps - 1).isEqualTo(range.getUpperBound());
+        int expectedNumTimestamps = 5;
+        TimestampRange range = timestampService.getFreshTimestamps(expectedNumTimestamps);
+
+        long actualNumTimestamps = range.getUpperBound() - range.getLowerBound() + 1;
+        assertThat(actualNumTimestamps)
+                .withFailMessage("Expected %d timestamps, got %d timestamps. (The returned range was: %d-%d)",
+                        expectedNumTimestamps, actualNumTimestamps, range.getLowerBound(), range.getUpperBound())
+                .isEqualTo(expectedNumTimestamps);
     }
 
     @Test
     public void shouldThrowIfRequestingNegativeNumbersOfTimestamps() {
-        assertThatThrownBy(() -> timestampService.getFreshTimestamps(-1)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> timestampService.getFreshTimestamps(-1))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void shouldThrowIfRequestingZeroTimestamps() {
-        assertThatThrownBy(() -> timestampService.getFreshTimestamps(0)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> timestampService.getFreshTimestamps(0))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void shouldThrowIfRequestingTooManyTimestamps() {
-        assumeTrue(AtomixTimestampService.MAX_GRANT_SIZE != Integer.MAX_VALUE);
         assertThatThrownBy(() -> timestampService.getFreshTimestamps(Integer.MAX_VALUE))
                 .isInstanceOf(IllegalArgumentException.class);
     }
-
-    @AfterClass
-    public static void tearDownClass() {
-        transport.close();
-    }
-
 }

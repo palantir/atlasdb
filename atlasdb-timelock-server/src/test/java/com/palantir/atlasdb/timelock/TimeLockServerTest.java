@@ -25,6 +25,7 @@ import java.util.SortedMap;
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLSocketFactory;
 
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -42,60 +43,73 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.timestamp.TimestampService;
 
-import io.atomix.AtomixReplica;
+import io.atomix.Atomix;
+import io.atomix.AtomixClient;
+import io.atomix.catalyst.transport.Address;
 import io.atomix.variables.DistributedValue;
 import io.dropwizard.testing.ResourceHelpers;
 import io.dropwizard.testing.junit.DropwizardAppRule;
 
 public class TimeLockServerTest {
-    private static final String NAMESPACE_FORMAT = "http://localhost:%d/%s";
-    private static final String INTERNAL_SERVER_ERROR_CODE = "500";
+    private static final String NOT_FOUND_CODE = "404";
     private static final String SERVICE_NOT_AVAILABLE_CODE = "503";
 
-    private static final String TEST_NAMESPACE_1 = "test";
-    private static final String TEST_NAMESPACE_2 = "test2";
-    private static final String NONEXISTENT_NAMESPACE = "not-a-service";
+    private static final String CLIENT_1 = "test";
+    private static final String CLIENT_2 = "test2";
+    private static final String NONEXISTENT_CLIENT = "nonexistent-client";
+    private static final String INVALID_CLIENT = "invalid-client-with-symbol-$";
 
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
+    private static final String LOCK_CLIENT_NAME = "lock-client-name";
     private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP = ImmutableSortedMap.of(
             StringLockDescriptor.of("lock1"), LockMode.WRITE);
+
+    private static Atomix atomixClient;
 
     @ClassRule
     public static final DropwizardAppRule<TimeLockServerConfiguration> APP = new DropwizardAppRule<>(
             TimeLockServer.class,
             ResourceHelpers.resourceFilePath("testServer.yml"));
 
+    @BeforeClass
+    public static void setupAtomixClient() {
+        atomixClient = AtomixClient.builder()
+                .build()
+                .connect(new Address("localhost", 8700))
+                .join();
+    }
+
     @Test
     public void lockServiceShouldBeInvalidatedOnNewLeader() throws InterruptedException {
-        RemoteLockService lockService = AtlasDbHttpClients.createProxy(
-                NO_SSL,
-                getPathForNamespace(TEST_NAMESPACE_1),
-                RemoteLockService.class);
+        RemoteLockService lockService = getLockService(CLIENT_1);
 
-        LockRefreshToken token = lockService.lock("test", LockRequest.builder(LOCK_MAP)
+        LockRefreshToken token = lockService.lock(LOCK_CLIENT_NAME, LockRequest.builder(LOCK_MAP)
                 .doNotBlock()
                 .build());
 
         assertThat(token).isNotNull();
 
         String serverLeaderId = getLeaderId();
-        setLeaderId(null);
+        try {
+            setLeaderId(null);
+            assertThatThrownBy(lockService::currentTimeMillis).hasMessageContaining(SERVICE_NOT_AVAILABLE_CODE);
 
-        assertThatThrownBy(lockService::currentTimeMillis).hasMessageContaining(SERVICE_NOT_AVAILABLE_CODE);
-
-        setLeaderId(serverLeaderId);
-        Set<LockRefreshToken> refreshedLocks = lockService.refreshLockRefreshTokens(Collections.singleton(token));
-
-        assertThat(refreshedLocks).isEmpty();
+            setLeaderId(serverLeaderId);
+            Set<LockRefreshToken> refreshedLocks = lockService.refreshLockRefreshTokens(Collections.singleton(token));
+            assertThat(refreshedLocks).isEmpty();
+        } finally {
+            setLeaderId(serverLeaderId);
+        }
     }
 
     @Test
-    public void timestampServiceShouldRespectDistinctNamespacesWhenIssuingTimestamps() {
-        TimestampService timestampService1 = getTimestampService(TEST_NAMESPACE_1);
-        TimestampService timestampService2 = getTimestampService(TEST_NAMESPACE_2);
+    public void timestampServiceShouldRespectDistinctClientsWhenIssuingTimestamps() {
+        TimestampService timestampService1 = getTimestampService(CLIENT_1);
+        TimestampService timestampService2 = getTimestampService(CLIENT_2);
 
         long firstServiceFirstTimestamp = timestampService1.getFreshTimestamp();
         long secondServiceFirstTimestamp = timestampService2.getFreshTimestamp();
+
         long firstServiceSecondTimestamp = timestampService1.getFreshTimestamp();
         long secondServiceSecondTimestamp = timestampService2.getFreshTimestamp();
 
@@ -104,18 +118,27 @@ public class TimeLockServerTest {
     }
 
     @Test
-    public void timestampServiceShouldThrowIfQueryingNonexistentNamespace() {
-        TimestampService nonexistent = getTimestampService(NONEXISTENT_NAMESPACE);
-        assertThatThrownBy(nonexistent::getFreshTimestamp).hasMessageContaining(INTERNAL_SERVER_ERROR_CODE);
+    public void timestampServiceShouldThrowIfQueryingNonexistentClient() {
+        TimestampService nonexistent = getTimestampService(NONEXISTENT_CLIENT);
+        assertThatThrownBy(nonexistent::getFreshTimestamp)
+                .hasMessageContaining(NOT_FOUND_CODE);
+    }
+
+    @Test
+    public void timestampServiceShouldThrowIfQueryingInvalidClient() {
+        TimestampService nonexistent = getTimestampService(INVALID_CLIENT);
+        assertThatThrownBy(nonexistent::getFreshTimestamp)
+                .hasMessageContaining(NOT_FOUND_CODE);
     }
 
     @Test
     public void timestampServiceShouldNotIssueTimestampsIfNotLeader() {
         String leader = getLeaderId();
-        TimestampService timestampService = getTimestampService(TEST_NAMESPACE_1);
+        TimestampService timestampService = getTimestampService(CLIENT_1);
         try {
             setLeaderId(null);
-            assertThatThrownBy(timestampService::getFreshTimestamp).hasMessageContaining(SERVICE_NOT_AVAILABLE_CODE);
+            assertThatThrownBy(timestampService::getFreshTimestamp)
+                    .hasMessageContaining(SERVICE_NOT_AVAILABLE_CODE);
         } finally {
             setLeaderId(leader);
         }
@@ -124,14 +147,17 @@ public class TimeLockServerTest {
     @Test
     public void timestampServiceShouldIssueTimestampsAgainAfterRegainingLeadership() {
         String leader = getLeaderId();
-        TimestampService timestampService = getTimestampService(TEST_NAMESPACE_1);
+        TimestampService timestampService = getTimestampService(CLIENT_1);
         try {
             long ts1 = timestampService.getFreshTimestamp();
+
             setLeaderId(null);
             assertThatThrownBy(timestampService::getFreshTimestamp)
                     .hasMessageContaining(SERVICE_NOT_AVAILABLE_CODE);
+
             setLeaderId(leader);
             long ts2 = timestampService.getFreshTimestamp();
+
             assertThat(ts1).isLessThan(ts2);
         } finally {
             setLeaderId(leader);
@@ -140,25 +166,26 @@ public class TimeLockServerTest {
 
     @Nullable
     private String getLeaderId() {
-        AtomixReplica localNode = APP.<TimeLockServer>getApplication().getLocalNode();
-        DistributedValue<String> currentLeaderId = DistributedValues.getLeaderId(localNode);
+        DistributedValue<String> currentLeaderId = DistributedValues.getLeaderId(atomixClient);
         return Futures.getUnchecked(currentLeaderId.get());
     }
 
     private void setLeaderId(@Nullable String leaderId) {
-        AtomixReplica localNode = APP.<TimeLockServer>getApplication().getLocalNode();
-        DistributedValue<String> currentLeaderId = DistributedValues.getLeaderId(localNode);
+        DistributedValue<String> currentLeaderId = DistributedValues.getLeaderId(atomixClient);
         Futures.getUnchecked(currentLeaderId.set(leaderId));
     }
 
-    private TimestampService getTimestampService(String namespace) {
+    private static RemoteLockService getLockService(String client) {
         return AtlasDbHttpClients.createProxy(
                 NO_SSL,
-                getPathForNamespace(namespace),
-                TimestampService.class);
+                String.format("http://localhost:%d/%s", APP.getLocalPort(), client),
+                RemoteLockService.class);
     }
 
-    private String getPathForNamespace(String namespace) {
-        return String.format(NAMESPACE_FORMAT, APP.getLocalPort(), namespace);
+    private static TimestampService getTimestampService(String client) {
+        return AtlasDbHttpClients.createProxy(
+                NO_SSL,
+                String.format("http://localhost:%d/%s", APP.getLocalPort(), client),
+                TimestampService.class);
     }
 }
