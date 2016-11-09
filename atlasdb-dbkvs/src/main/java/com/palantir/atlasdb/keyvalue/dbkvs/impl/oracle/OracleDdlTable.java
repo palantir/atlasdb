@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSize;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSizeCache;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.exception.PalantirSqlException;
@@ -162,14 +163,29 @@ public final class OracleDdlTable implements DbDdlTable {
     public void truncate() {
         try {
             conns.get().executeUnregisteredQuery("TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortTableName());
-            executeIgnoringError(
-                    "TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortOverflowTableName(),
-                    "ORA-00942");
         } catch (TableMappingNotFoundException | RuntimeException e) {
             throw new IllegalStateException(
                     String.format(
                         "Truncate called on a table (%s) that did not exist",
                         oracleTableNameGetter.getPrefixedTableName()));
+        }
+        truncateOverflowTableIfItExists();
+    }
+
+    private void truncateOverflowTableIfItExists() {
+        TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
+        if (tableSize.equals(TableSize.OVERFLOW)) {
+            try {
+                conns.get().executeUnregisteredQuery(
+                        "TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortOverflowTableName());
+            } catch (TableMappingNotFoundException | RuntimeException e) {
+                throw new IllegalStateException(
+                        String.format(
+                                "Truncate called on a table (%s) that was supposed to have an overflow table (%s),"
+                                + " but that overflow table appears to not exist",
+                                oracleTableNameGetter.getPrefixedTableName(),
+                                oracleTableNameGetter.getPrefixedOverflowTableName()));
+            }
         }
     }
 
