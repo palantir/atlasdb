@@ -1,3 +1,6 @@
+atomix:
+  storageLevel: memory
+
 cluster:
   localServer: localhost:8700
   servers:

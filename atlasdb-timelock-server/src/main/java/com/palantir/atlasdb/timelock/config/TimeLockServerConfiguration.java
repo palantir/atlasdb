@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.config;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 
 import io.dropwizard.Configuration;
@@ -25,14 +26,21 @@ import io.dropwizard.Configuration;
 public class TimeLockServerConfiguration extends Configuration {
     private final ClusterConfiguration cluster;
     private final Set<String> clients;
+    private final AtomixConfiguration atomix;
 
     public TimeLockServerConfiguration(
+            @JsonProperty(value = "atomix", required = false) AtomixConfiguration atomix,
             @JsonProperty(value = "cluster", required = true) ClusterConfiguration cluster,
             @JsonProperty(value = "clients", required = true) Set<String> clients) {
         Preconditions.checkState(!clients.isEmpty(), "'clients' should have at least one entry");
 
+        this.atomix = MoreObjects.firstNonNull(atomix, AtomixConfiguration.DEFAULT);
         this.cluster = cluster;
         this.clients = clients;
+    }
+
+    public AtomixConfiguration atomix() {
+        return atomix;
     }
 
     public ClusterConfiguration cluster() {

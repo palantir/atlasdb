@@ -40,7 +40,7 @@ public class AtomixTimestampServiceTest {
     private static final Address LOCAL_ADDRESS = new Address("localhost", 8700);
     private static final String TIMESTAMP_KEY = "timestamp";
 
-    private static final Transport transport = new LocalTransport(new LocalServerRegistry());;
+    private static final Transport transport = new LocalTransport(new LocalServerRegistry());
     private static final AtomixReplica replica = AtomixReplica.builder(LOCAL_ADDRESS)
             .withStorage(Storage.builder()
                     .withStorageLevel(StorageLevel.MEMORY)

@@ -32,7 +32,6 @@ import io.atomix.AtomixReplica;
 import io.atomix.catalyst.transport.Transport;
 import io.atomix.catalyst.transport.netty.NettyTransport;
 import io.atomix.copycat.server.storage.Storage;
-import io.atomix.copycat.server.storage.StorageLevel;
 import io.atomix.group.DistributedGroup;
 import io.atomix.group.LocalMember;
 import io.atomix.variables.DistributedLong;
@@ -49,8 +48,8 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
         AtomixReplica localNode = AtomixReplica.builder(configuration.cluster().localServer())
                 .withStorage(Storage.builder()
-                        .withDirectory("var/data/atomix")
-                        .withStorageLevel(StorageLevel.DISK)
+                        .withDirectory(configuration.atomix().storageDirectory())
+                        .withStorageLevel(configuration.atomix().storageLevel())
                         .build())
                 .withTransport(createTransport(configuration.cluster().security()))
                 .build();
