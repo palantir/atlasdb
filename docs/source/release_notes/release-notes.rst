@@ -50,6 +50,10 @@ develop
          - The ``TableMappingService`` now throws ``TableMappingNotFoundException`` when trying to retrieve a short table name for a non-existing table.
            ``TableRemappingKeyValueService`` does not throw a RuntimeException when performing ``getMetaData`` and ``dropTable`` operations on a non-existing table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1186>`__)
+    
+    *    - |fixed|
+         - The migration CLI will now decrypt encrypted values and will now use the dropwizard config as the new configuration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1171>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -64,8 +68,13 @@ v0.23.0
     *    - Type
          - Change
 
+    *    - |breaking|
+         - All KVSs now as a guarantee throw a RuntimeException on attempts to truncate a non-existing table, so services should check the existence of a table before attempting to truncate.
+           Previously we would only throw exceptions for the Cassandra KVS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1114>`__)
+
     *    - |fixed|
-         - The KVS migration command now supports the ``--offline`` flag and can be run as an offline CLI.
+         - The KVS :ref:`migration <clis-migrate>` command now supports the ``--offline`` flag and can be run as an offline CLI.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1149>`__)
 
     *    - |deprecated|
@@ -89,7 +98,7 @@ v0.23.0
 
     *    - |improved|
          - Added a significant amount of logging aimed at tracking down the ``MultipleRunningTimestampServicesError``.
-           If clients are hitting this error, then they should add trace logging for ``com.palantir.timestamp``.
+           If clients are hitting this error, then they should add TRACE logging for ``com.palantir.timestamp``.
            These logs can also be directed to a separate file, see the :ref:`documentation <logging-configuration>` for more details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1098>`__)
 
@@ -102,8 +111,6 @@ v0.23.0
          - AtlasDB clients can start when a single Cassandra node is unreachable.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1045>`__).
 
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1149>`__)
-
     *    - |improved|
          - Removed spurious error logging during first-time startup against a brand new Cassandra cluster.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1033>`__)
@@ -111,10 +118,6 @@ v0.23.0
     *    - |improved|
          - Improved the reliability of starting up against a degraded Cassandra cluster.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1033>`__)
-
-    *    - |breaking|
-         - All KVSs now as a guarantee throw a RuntimeException on attempts to truncate a non-existing table.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1114>`__)
 
     *    - |fixed|
          - No longer publish a spurious junit dependency in atlasdb-client compile.

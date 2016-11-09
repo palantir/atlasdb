@@ -29,8 +29,8 @@ dependencies {
     exclude module: 'jsr311-api'
   }
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-  compile 'com.fasterxml.jackson.core:jackson-core:' + libVersions.jackson
-  compile 'com.fasterxml.jackson.datatype:jackson-datatype-guava:' + libVersions.jackson
+  compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
+  compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
   testCompile group: 'junit', name: 'junit'
   testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
   testCompile group: 'org.hamcrest', name: 'hamcrest-core'

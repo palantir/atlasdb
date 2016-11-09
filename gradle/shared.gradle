@@ -80,3 +80,7 @@ tasks.withType(Test) {
         events "started", "passed", "skipped", "failed"
     }
 }
+
+task allCompileDeps(type: DependencyReportTask) {
+    configurations = [project.configurations.getByName("compile")]
+}
