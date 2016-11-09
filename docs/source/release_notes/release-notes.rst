@@ -50,7 +50,7 @@ develop
          - The ``TableMappingService`` now throws ``TableMappingNotFoundException`` when trying to retrieve a short table name for a non-existing table.
            ``TableRemappingKeyValueService`` does not throw a RuntimeException when performing ``getMetaData`` and ``dropTable`` operations on a non-existing table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1186>`__)
-    
+
     *    - |fixed|
          - The migration CLI will now decrypt encrypted values and will now use the dropwizard config as the new configuration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1171>`__)

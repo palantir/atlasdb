@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -72,7 +71,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
                     tableMapper.getMappedTableName(tableRef),
                     cells);
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -104,7 +103,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         try {
             delegate().delete(tableMapper.getMappedTableName(tableRef), keys);
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -145,7 +144,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         try {
             return delegate().get(tableMapper.getMappedTableName(tableRef), timestampByCell);
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -161,7 +160,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         try {
             return delegate().getAllTimestamps(tableMapper.getMappedTableName(tableRef), keys, timestamp);
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -181,7 +180,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
                     rangeRequests,
                     timestamp);
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -193,7 +192,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
                     tableMapper.getMappedTableName(tableRef),
                     timestampByCell);
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -224,7 +223,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         try {
             return delegate().getRange(tableMapper.getMappedTableName(tableRef), rangeRequest, timestamp);
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -238,7 +237,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
                     rangeRequest,
                     timestamp);
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -254,7 +253,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
                     columnSelection,
                     timestamp);
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -270,7 +269,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
                     columnRangeSelection,
                     timestamp);
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -287,7 +286,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
                                                  cellBatchHint,
                                                  timestamp);
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -297,7 +296,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         try {
             delegate().multiPut(tableMapper.mapToShortTableNames(valuesByTable), timestamp);
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -306,7 +305,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         try {
             delegate().put(tableMapper.getMappedTableName(tableRef), values, timestamp);
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -315,7 +314,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         try {
             delegate().putMetadataForTable(tableMapper.getMappedTableName(tableRef), metadata);
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -329,7 +328,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
                         tableMapper.getMappedTableName(tableEntry.getKey()),
                         tableEntry.getValue());
             } catch (TableMappingNotFoundException e) {
-                throw Throwables.propagate(e);
+                throw new IllegalArgumentException(e);
             }
         }
         delegate().putMetadataForTables(tableNameToMetadata);
@@ -341,7 +340,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         try {
             delegate().putUnlessExists(tableMapper.getMappedTableName(tableRef), values);
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -350,7 +349,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         try {
             delegate().putWithTimestamps(tableMapper.getMappedTableName(tableRef), values);
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -364,7 +363,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         try {
             delegate().truncateTable(tableMapper.getMappedTableName(tableRef));
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -375,7 +374,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
             try {
                 tablesToTruncate.add(tableMapper.getMappedTableName(tableRef));
             } catch (TableMappingNotFoundException e) {
-                throw Throwables.propagate(e);
+                throw new IllegalArgumentException(e);
             }
         }
         delegate().truncateTables(tablesToTruncate);
@@ -386,7 +385,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         try {
             delegate().compactInternally(tableMapper.getMappedTableName(tableRef));
         } catch (TableMappingNotFoundException e) {
-            throw Throwables.propagate(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
