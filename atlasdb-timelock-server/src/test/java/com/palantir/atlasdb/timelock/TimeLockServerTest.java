@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
 
@@ -30,6 +31,7 @@ import org.junit.Test;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.atomix.DistributedValues;
@@ -43,7 +45,6 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
-import feign.FeignException;
 import io.atomix.AtomixReplica;
 import io.atomix.variables.DistributedValue;
 import io.dropwizard.testing.ResourceHelpers;
@@ -51,6 +52,9 @@ import io.dropwizard.testing.junit.DropwizardAppRule;
 
 public class TimeLockServerTest {
     private static final String NAMESPACE_FORMAT = "http://localhost:%d/%s";
+    private static final String SERVICE_NOT_AVAILABLE_CODE = "503";
+    private static final String INTERNAL_SERVER_ERROR_CODE = "500";
+
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
     private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP = ImmutableSortedMap.of(
             StringLockDescriptor.of("lock1"), LockMode.WRITE);
@@ -76,7 +80,7 @@ public class TimeLockServerTest {
         String serverLeaderId = getLeaderId();
         setLeaderId(null);
 
-        assertThatThrownBy(lockService::currentTimeMillis).hasMessageContaining("503");
+        assertThatThrownBy(lockService::currentTimeMillis).hasMessageContaining(SERVICE_NOT_AVAILABLE_CODE);
 
         setLeaderId(serverLeaderId);
         Set<LockRefreshToken> refreshedLocks = lockService.refreshLockRefreshTokens(Collections.singleton(token));
@@ -85,7 +89,7 @@ public class TimeLockServerTest {
     }
 
     @Test
-    public void shouldIssueIncreasingTimestamps() {
+    public void timestampServiceShouldIssueIncreasingTimestamps() {
         TimestampService timestampService = getTimestampService("test");
 
         long ts1 = timestampService.getFreshTimestamp();
@@ -94,7 +98,14 @@ public class TimeLockServerTest {
     }
 
     @Test
-    public void shouldIssueTimestampRanges() {
+    public void timestampServiceShouldThrowIfRequestingNegativeNumberOfTimestamps() {
+        TimestampService timestampService = getTimestampService("test");
+        assertThatThrownBy(() -> timestampService.getFreshTimestamps(-1))
+                .hasMessageContaining(INTERNAL_SERVER_ERROR_CODE);
+    }
+
+    @Test
+    public void timestampServiceShouldIssueTimestampRanges() {
         TimestampService timestampService = getTimestampService("test");
 
         int numTimestamps = 1000;
@@ -103,7 +114,7 @@ public class TimeLockServerTest {
     }
 
     @Test
-    public void shouldRespectDistinctNamespacesWhenIssuingTimestamps() {
+    public void timestampServiceShouldRespectDistinctNamespacesWhenIssuingTimestamps() {
         TimestampService timestampService1 = getTimestampService("test");
         TimestampService timestampService2 = getTimestampService("test2");
 
@@ -116,10 +127,42 @@ public class TimeLockServerTest {
         assertThat(secondServiceFirstTimestamp + 1).isEqualTo(secondServiceSecondTimestamp);
     }
 
-    @Test(expected = FeignException.class)
-    public void shouldThrowIfQueryingNonexistentNamespace() {
+    @Test
+    public void timestampServiceShouldThrowIfQueryingNonexistentNamespace() {
         TimestampService nonexistent = getTimestampService("not-a-service");
-        nonexistent.getFreshTimestamp();
+        assertThatThrownBy(nonexistent::getFreshTimestamp).hasMessageContaining(INTERNAL_SERVER_ERROR_CODE);
+    }
+
+    @Test
+    public void timestampServiceShouldNotIssueTimestampsIfNotLeader() {
+        String leader = getLeaderId();
+        TimestampService timestampService = getTimestampService("test");
+        try {
+            setLeaderId(null);
+            assertThatThrownBy(timestampService::getFreshTimestamp).hasMessageContaining(SERVICE_NOT_AVAILABLE_CODE);
+        } finally {
+            setLeaderId(leader);
+        }
+    }
+
+    @Test
+    public void timestampServiceShouldIssueTimestampsAgainIfLeader() {
+        String leader = getLeaderId();
+        TimestampService timestampService = getTimestampService("test");
+        List<Long> timestampList = Lists.newArrayList();
+        try {
+            int numIterations = 10;
+            for (int i = 0; i < numIterations; i++) {
+                timestampList.add(timestampService.getFreshTimestamp());
+                setLeaderId(null);
+                assertThatThrownBy(timestampService::getFreshTimestamp)
+                        .hasMessageContaining(SERVICE_NOT_AVAILABLE_CODE);
+                setLeaderId(leader);
+            }
+        } finally {
+            setLeaderId(leader);
+        }
+        assertThat(timestampList).isSorted();
     }
 
     @Nullable
