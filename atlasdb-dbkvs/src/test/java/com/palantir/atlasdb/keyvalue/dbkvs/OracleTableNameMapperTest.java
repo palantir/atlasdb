@@ -55,7 +55,8 @@ public class OracleTableNameMapperTest {
         resultSet = mock(AgnosticResultSet.class);
         when(sqlConnection
                 .selectResultSetUnregisteredQuery(
-                        startsWith("SELECT short_table_name FROM atlasdb_table_names WHERE LOWER(short_table_name)"), anyObject()))
+                        startsWith("SELECT short_table_name FROM atlasdb_table_names WHERE LOWER(short_table_name)"),
+                        anyObject()))
                 .thenReturn(resultSet);
     }
 
