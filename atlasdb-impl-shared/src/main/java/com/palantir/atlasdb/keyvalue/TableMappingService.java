@@ -19,12 +19,13 @@ import java.util.Map;
 import java.util.Set;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-
+import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 
 public interface TableMappingService {
     TableReference addTable(TableReference tableRef);
     void removeTable(TableReference tableRef);
-    TableReference getMappedTableName(TableReference tableRef);
-    <T> Map<TableReference, T> mapToShortTableNames(Map<TableReference, T> tableMap);
+    TableReference getMappedTableName(TableReference tableRef) throws TableMappingNotFoundException;
+    <T> Map<TableReference, T> mapToShortTableNames(Map<TableReference, T> tableMap)
+            throws TableMappingNotFoundException;
     Set<TableReference> mapToFullTableNames(Set<TableReference> tableNames);
 }

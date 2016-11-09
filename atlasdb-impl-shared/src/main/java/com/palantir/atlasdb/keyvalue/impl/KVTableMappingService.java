@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.google.common.base.Throwables;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
@@ -103,9 +104,17 @@ public class KVTableMappingService extends AbstractTableMappingService {
         try {
             kv.putUnlessExists(AtlasDbConstants.NAMESPACE_TABLE, ImmutableMap.of(key, value));
         } catch (KeyAlreadyExistsException e) {
-            return getMappedTableName(tableRef);
+            return getAlreadyExistingMappedTableName(tableRef);
         }
         return TableReference.createWithEmptyNamespace(shortName);
+    }
+
+    private TableReference getAlreadyExistingMappedTableName(TableReference tableRef) {
+        try {
+            return getMappedTableName(tableRef);
+        } catch (TableMappingNotFoundException ex) {
+            throw Throwables.propagate(ex);
+        }
     }
 
     @Override
