@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock.atomix;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.timestamp.TimestampRange;
@@ -26,7 +27,8 @@ public class AtomixTimestampService implements TimestampService {
     /**
      * Maximum number of timestamps that may be granted at once.
      */
-    private static final long MAX_GRANT_SIZE = 10_000;
+    @VisibleForTesting
+    static final long MAX_GRANT_SIZE = 10_000;
 
     private final DistributedLong timestamp;
 
