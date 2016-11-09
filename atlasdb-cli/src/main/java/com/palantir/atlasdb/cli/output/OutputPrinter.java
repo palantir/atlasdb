@@ -27,11 +27,11 @@ public class OutputPrinter {
 
     public void info(String message, Object... args) {
         logger.info(message, args);
-        System.out.println(MessageFormatter.format(message, args));
+        System.out.println(MessageFormatter.arrayFormat(message, args).getMessage());
     }
 
     public void error(String message, Object... args) {
         logger.error(message, args);
-        System.err.println(MessageFormatter.format(message, args));
+        System.err.println(MessageFormatter.arrayFormat(message, args));
     }
 }
