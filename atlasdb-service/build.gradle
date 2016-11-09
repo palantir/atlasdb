@@ -6,5 +6,5 @@ dependencies {
     compile project(':atlasdb-config')
     compile 'javax.inject:javax.inject:1'
 
-    testCompile group: 'org.mockito', name: 'mockito-core', version: libVersions.mockito
+    testCompile group: 'org.mockito', name: 'mockito-core'
 }

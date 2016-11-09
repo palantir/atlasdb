@@ -7,6 +7,6 @@ dependencies {
   compile group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang
   compile group: "commons-io", name: "commons-io"
 
-  testCompile group: 'org.mockito', name: 'mockito-core', version: libVersions.mockito
-  testCompile group: 'org.assertj', name: 'assertj-core', version: libVersions.assertj
+  testCompile group: 'org.mockito', name: 'mockito-core'
+  testCompile group: 'org.assertj', name: 'assertj-core'
 }

@@ -19,12 +19,12 @@ dependencies {
 
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
     compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
-    compile 'io.dropwizard:dropwizard-jackson:' + libVersions.dropwizard
+    compile group: 'io.dropwizard', name: 'dropwizard-jackson'
     compile group: 'com.google.code.findbugs', name: 'annotations'
 
     processor 'org.immutables:value:' + libVersions.immutables
     processor 'com.google.auto.service:auto-service:1.0-rc2'
 
     testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
-    testCompile 'org.mockito:mockito-core:' + libVersions.mockito
+    testCompile group: 'org.mockito', name: 'mockito-core'
 }
