@@ -181,7 +181,9 @@ public final class OracleDdlTable implements DbDdlTable {
             } catch (TableMappingNotFoundException | RuntimeException e) {
                 throw new IllegalStateException(
                         String.format(
-                                "Truncate called on a table (%s) that did not exist",
+                                "Truncate called on a table (%s) that was supposed to have an overflow table (%s),"
+                                + " but that overflow table appears to not exist",
+                                oracleTableNameGetter.getPrefixedTableName(),
                                 oracleTableNameGetter.getPrefixedOverflowTableName()));
             }
         }
