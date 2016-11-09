@@ -37,8 +37,8 @@ public class KvsDeleteBenchmarks {
     }
 
     @Benchmark
-    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object singleDelete(RegeneratingTable.KvsRowRegeneratingTable table) {
         return doDelete(table);
     }

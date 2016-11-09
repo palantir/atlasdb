@@ -39,8 +39,8 @@ public class TransactionDeleteBenchmarks {
     }
 
     @Benchmark
-    @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 4, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 20, timeUnit = TimeUnit.SECONDS)
     public Object singleDelete(RegeneratingTable.TransactionRowRegeneratingTable table) {
         return doDelete(table);
     }

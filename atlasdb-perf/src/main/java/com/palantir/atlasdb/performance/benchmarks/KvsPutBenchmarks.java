@@ -45,8 +45,8 @@ public class KvsPutBenchmarks {
     private static final int BATCH_SIZE = 250;
 
     @Benchmark
-    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object singleRandomPut(EmptyTables tables) {
         Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
         tables.getKvs().put(tables.getFirstTableRef(), batch, DUMMY_TIMESTAMP);
@@ -54,8 +54,8 @@ public class KvsPutBenchmarks {
     }
 
     @Benchmark
-    @Warmup(iterations = 1, time = 2, timeUnit = TimeUnit.SECONDS)
-    @Measurement(iterations = 1, time = 10, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 25, timeUnit = TimeUnit.SECONDS)
     public Object batchRandomPut(EmptyTables tables) {
         Map<Cell, byte[]> batch = tables.generateBatchToInsert(BATCH_SIZE);
         tables.getKvs().put(tables.getFirstTableRef(), batch, DUMMY_TIMESTAMP);
@@ -63,8 +63,8 @@ public class KvsPutBenchmarks {
     }
 
     @Benchmark
-    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 3, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 15, timeUnit = TimeUnit.SECONDS)
     public Object batchRandomMultiPut(EmptyTables tables) {
         Map<TableReference, Map<Cell, byte[]>> multiPutMap = Maps.newHashMap();
         multiPutMap.put(tables.getFirstTableRef(), tables.generateBatchToInsert(BATCH_SIZE));
@@ -74,8 +74,8 @@ public class KvsPutBenchmarks {
     }
 
     @Benchmark
-    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Map<Cell, byte[]> putUnlessExistsAndExists(EmptyTables tables) {
         Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
         tables.getKvs().putUnlessExists(tables.getFirstTableRef(), batch);
@@ -89,8 +89,8 @@ public class KvsPutBenchmarks {
     }
 
     @Benchmark
-    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Map<Cell, byte[]> putUnlessExistsDoesNotExist(EmptyTables tables) {
         Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
         tables.getKvs().putUnlessExists(tables.getFirstTableRef(), batch);

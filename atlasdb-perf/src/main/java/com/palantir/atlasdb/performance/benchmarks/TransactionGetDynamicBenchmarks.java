@@ -47,8 +47,8 @@ import com.palantir.atlasdb.performance.benchmarks.table.WideRowTable;
 public class TransactionGetDynamicBenchmarks {
 
     @Benchmark
-    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 45, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 10, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 50, timeUnit = TimeUnit.SECONDS)
     public Object getAllColumnsExplicitly(WideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> result = txn.get(table.getTableRef(), table.getAllCells());
@@ -74,8 +74,8 @@ public class TransactionGetDynamicBenchmarks {
     }
 
     @Benchmark
-    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object getFirstColumnExplicitly(WideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             Map<Cell, byte[]> result = txn.get(table.getTableRef(), table.getFirstCellAsSet());
@@ -88,8 +88,8 @@ public class TransactionGetDynamicBenchmarks {
     }
 
     @Benchmark
-    @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Object getFirstColumnExplicitlyGetRows(WideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(table.getTableRef(),
