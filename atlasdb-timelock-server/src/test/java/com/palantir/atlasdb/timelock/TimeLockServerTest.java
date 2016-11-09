@@ -40,13 +40,17 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.timestamp.TimestampRange;
+import com.palantir.timestamp.TimestampService;
 
+import feign.FeignException;
 import io.atomix.AtomixReplica;
 import io.atomix.variables.DistributedValue;
 import io.dropwizard.testing.ResourceHelpers;
 import io.dropwizard.testing.junit.DropwizardAppRule;
 
 public class TimeLockServerTest {
+    private static final String NAMESPACE_FORMAT = "http://localhost:%d/%s";
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
     private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP = ImmutableSortedMap.of(
             StringLockDescriptor.of("lock1"), LockMode.WRITE);
@@ -64,8 +68,8 @@ public class TimeLockServerTest {
                 RemoteLockService.class);
 
         LockRefreshToken token = lockService.lock("test", LockRequest.builder(LOCK_MAP)
-                        .doNotBlock()
-                        .build());
+                .doNotBlock()
+                .build());
 
         assertThat(token).isNotNull();
 
@@ -80,6 +84,44 @@ public class TimeLockServerTest {
         assertThat(refreshedLocks).isEmpty();
     }
 
+    @Test
+    public void shouldIssueIncreasingTimestamps() {
+        TimestampService timestampService = getTimestampService("test");
+
+        long ts1 = timestampService.getFreshTimestamp();
+        long ts2 = timestampService.getFreshTimestamp();
+        assertThat(ts1).isLessThan(ts2);
+    }
+
+    @Test
+    public void shouldIssueTimestampRanges() {
+        TimestampService timestampService = getTimestampService("test");
+
+        int numTimestamps = 1000;
+        TimestampRange range = timestampService.getFreshTimestamps(numTimestamps);
+        assertThat(range.getLowerBound() + numTimestamps - 1).isEqualTo(range.getUpperBound());
+    }
+
+    @Test
+    public void shouldRespectDistinctNamespacesWhenIssuingTimestamps() {
+        TimestampService timestampService1 = getTimestampService("test");
+        TimestampService timestampService2 = getTimestampService("test2");
+
+        long firstServiceFirstTimestamp = timestampService1.getFreshTimestamp();
+        long secondServiceFirstTimestamp = timestampService2.getFreshTimestamp();
+        long firstServiceSecondTimestamp = timestampService1.getFreshTimestamp();
+        long secondServiceSecondTimestamp = timestampService2.getFreshTimestamp();
+
+        assertThat(firstServiceFirstTimestamp + 1).isEqualTo(firstServiceSecondTimestamp);
+        assertThat(secondServiceFirstTimestamp + 1).isEqualTo(secondServiceSecondTimestamp);
+    }
+
+    @Test(expected = FeignException.class)
+    public void shouldThrowIfQueryingNonexistentNamespace() {
+        TimestampService nonexistent = getTimestampService("not-a-service");
+        nonexistent.getFreshTimestamp();
+    }
+
     @Nullable
     private String getLeaderId() {
         AtomixReplica localNode = APP.<TimeLockServer>getApplication().getLocalNode();
@@ -91,5 +133,16 @@ public class TimeLockServerTest {
         AtomixReplica localNode = APP.<TimeLockServer>getApplication().getLocalNode();
         DistributedValue<String> currentLeaderId = DistributedValues.getLeaderId(localNode);
         Futures.getUnchecked(currentLeaderId.set(leaderId));
+    }
+
+    private TimestampService getTimestampService(String namespace) {
+        return AtlasDbHttpClients.createProxy(
+                NO_SSL,
+                getPathForNamespace(namespace),
+                TimestampService.class);
+    }
+
+    private String getPathForNamespace(String namespace) {
+        return String.format(NAMESPACE_FORMAT, APP.getLocalPort(), namespace);
     }
 }
