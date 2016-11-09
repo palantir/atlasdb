@@ -38,7 +38,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -63,6 +65,8 @@ import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
 public class StreamTest extends AtlasDbTestCase {
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Before
     public void createSchema() {
@@ -72,9 +76,7 @@ public class StreamTest extends AtlasDbTestCase {
 
     @Test
     public void testRender() throws IOException {
-        File testDir = new File("renderStreamTest");
-        StreamTestSchema.getSchema().renderTables(testDir);
-        FileUtils.deleteDirectory(testDir);
+        StreamTestSchema.getSchema().renderTables(temporaryFolder.getRoot());
     }
 
     @Test
