@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock;
+package com.palantir.atlasdb.timelock.atomix;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -28,27 +28,31 @@ import javax.ws.rs.ServiceUnavailableException;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.util.concurrent.Futures;
 
+import io.atomix.group.LocalMember;
 import io.atomix.variables.DistributedValue;
 
 public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler {
-    private final String localId;
+    private final LocalMember localMember;
     private final DistributedValue<String> leaderId;
     private final AtomicReference<T> delegateRef = new AtomicReference<>();
     private final Supplier<T> delegateSupplier;
 
-    private InvalidatingLeaderProxy(String localId, DistributedValue<String> leaderId, Supplier<T> delegateSupplier) {
-        this.localId = localId;
+    private InvalidatingLeaderProxy(
+            LocalMember localMember,
+            DistributedValue<String> leaderId,
+            Supplier<T> delegateSupplier) {
+        this.localMember = localMember;
         this.leaderId = leaderId;
         this.delegateSupplier = delegateSupplier;
     }
 
     public static <T> T create(
-            String localId,
+            LocalMember localMember,
             DistributedValue<String> leaderId,
             Supplier<T> delegateSupplier,
             Class<T> interfaceClass) {
         InvalidatingLeaderProxy<T> proxy = new InvalidatingLeaderProxy<>(
-                localId,
+                localMember,
                 leaderId,
                 delegateSupplier);
 
@@ -60,7 +64,7 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        if (Objects.equals(localId, Futures.getUnchecked(leaderId.get()))) {
+        if (Objects.equals(localMember.id(), Futures.getUnchecked(leaderId.get()))) {
             Object delegate = delegateRef.get();
             while (delegate == null) {
                 delegateRef.compareAndSet(null, delegateSupplier.get());
@@ -69,7 +73,7 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
             return method.invoke(delegate, args);
         } else {
             clearDelegate();
-            throw new ServiceUnavailableException("This node is not the leader");
+            throw new ServiceUnavailableException("This node is not the leader", 0L);
         }
     }
 

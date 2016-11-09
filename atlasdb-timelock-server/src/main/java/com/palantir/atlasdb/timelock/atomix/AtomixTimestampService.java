@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock;
+package com.palantir.atlasdb.timelock.atomix;
 
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Futures;
@@ -22,7 +22,7 @@ import com.palantir.timestamp.TimestampService;
 
 import io.atomix.variables.DistributedLong;
 
-public class TimestampResource implements TimestampService {
+public class AtomixTimestampService implements TimestampService {
     /**
      * Maximum number of timestamps that may be granted at once.
      */
@@ -30,7 +30,7 @@ public class TimestampResource implements TimestampService {
 
     private final DistributedLong timestamp;
 
-    public TimestampResource(DistributedLong timestamp) {
+    public AtomixTimestampService(DistributedLong timestamp) {
         this.timestamp = timestamp;
     }
 

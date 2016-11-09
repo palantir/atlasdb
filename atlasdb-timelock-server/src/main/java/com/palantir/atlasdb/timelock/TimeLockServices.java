@@ -15,29 +15,20 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.Map;
-
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
+import org.immutables.value.Value;
 
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampService;
 
-@Path("/{client: [a-zA-Z0-9_-]+}")
-public class TimeLockResource {
-    private final Map<String, TimeLockServices> clientToServices;
-
-    public TimeLockResource(Map<String, TimeLockServices> clientToServices) {
-        this.clientToServices = clientToServices;
+@Value.Immutable
+public interface TimeLockServices {
+    static TimeLockServices create(TimestampService timeService, LockService lockService) {
+        return ImmutableTimeLockServices.builder()
+                .timeService(timeService)
+                .lockService(lockService)
+                .build();
     }
 
-    @Path("/lock")
-    public LockService getLockService(@PathParam("client") String client) {
-        return clientToServices.get(client).getLockService();
-    }
-
-    @Path("/timestamp")
-    public TimestampService getTimeService(@PathParam("client") String client) {
-        return clientToServices.get(client).getTimeService();
-    }
+    TimestampService getTimeService();
+    LockService getLockService();
 }

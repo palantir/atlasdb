@@ -15,18 +15,19 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import org.glassfish.jersey.server.model.Resource;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.timelock.atomix.AtomixTimestampService;
+import com.palantir.atlasdb.timelock.atomix.DistributedValues;
+import com.palantir.atlasdb.timelock.atomix.InvalidatingLeaderProxy;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
-import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting.ssl.SslConfiguration;
-import com.palantir.timestamp.TimestampService;
 
 import io.atomix.AtomixReplica;
 import io.atomix.catalyst.transport.Transport;
@@ -65,29 +66,23 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
         DistributedValue<String> leaderId = DistributedValues.getLeaderId(localNode);
         timeLockGroup.election().onElection(term -> Futures.getUnchecked(leaderId.set(term.leader().id())));
 
+        Map<String, TimeLockServices> clientToServices = new HashMap<>();
         for (String client : configuration.clients()) {
             DistributedLong timestamp = DistributedValues.getTimestampForClient(localNode, client);
-            Resource builtResource = Resources.getInstancedResourceAtPath(
-                    client,
-                    new TimeLockResource(
-                            createInvalidatingLockService(localMember, leaderId),
-                            createInvalidatingTimestampService(localMember, leaderId, timestamp)));
-            environment.jersey().getResourceConfig().registerResources(builtResource);
+            clientToServices.put(client, createInvalidatingTimeLockServices(localMember, leaderId, timestamp));
         }
+
+        environment.jersey().register(new TimeLockResource(clientToServices));
     }
 
-    private static TimestampService createInvalidatingTimestampService(
+    private static TimeLockServices createInvalidatingTimeLockServices(
             LocalMember localMember,
             DistributedValue<String> leaderId,
             DistributedLong timestamp) {
-        Supplier<TimestampService> timestampSupplier = () -> new TimestampResource(timestamp);
-        return InvalidatingLeaderProxy.create(localMember.id(), leaderId, timestampSupplier, TimestampService.class);
-    }
-
-    private static LockService createInvalidatingLockService(
-            LocalMember localMember,
-            DistributedValue<String> leaderId) {
-        return InvalidatingLeaderProxy.create(localMember.id(), leaderId, LockServiceImpl::create, LockService.class);
+        Supplier<TimeLockServices> timeLockSupplier = () -> TimeLockServices.create(
+                new AtomixTimestampService(timestamp),
+                LockServiceImpl.create());
+        return InvalidatingLeaderProxy.create(localMember, leaderId, timeLockSupplier, TimeLockServices.class);
     }
 
     @VisibleForTesting
