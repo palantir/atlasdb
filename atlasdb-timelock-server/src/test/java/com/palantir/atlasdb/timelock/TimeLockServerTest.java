@@ -94,22 +94,6 @@ public class TimeLockServerTest {
     }
 
     @Test
-    public void timestampServiceShouldIssueIncreasingTimestamps() {
-        TimestampService timestampService = getTimestampService(TEST_NAMESPACE_1);
-
-        long ts1 = timestampService.getFreshTimestamp();
-        long ts2 = timestampService.getFreshTimestamp();
-        assertThat(ts1).isLessThan(ts2);
-    }
-
-    @Test
-    public void timestampServiceShouldThrowIfRequestingNegativeNumberOfTimestamps() {
-        TimestampService timestampService = getTimestampService(TEST_NAMESPACE_1);
-        assertThatThrownBy(() -> timestampService.getFreshTimestamps(-1))
-                .hasMessageContaining(INTERNAL_SERVER_ERROR_CODE);
-    }
-
-    @Test
     public void timestampServiceShouldIssueTimestampRanges() {
         TimestampService timestampService = getTimestampService(TEST_NAMESPACE_1);
 
