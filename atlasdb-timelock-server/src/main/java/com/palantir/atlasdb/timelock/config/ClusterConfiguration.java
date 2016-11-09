@@ -43,6 +43,6 @@ public abstract class ClusterConfiguration {
     @Value.Check
     protected void check() {
         Preconditions.checkArgument(servers().contains(localServer()),
-                "The localServer '%s' must included in the server entries %s.", localServer(), servers());
+                "The localServer '%s' must be included in the server entries %s.", localServer(), servers());
     }
 }
