@@ -159,8 +159,8 @@
 <span id="leader-config"></span><h1>Leader Configuration<a class="headerlink" href="#leader-configuration" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
-<p>The leader block is where you specify configurations related to leadership election.
-It&#8217;s good practice to always specify a leader configuration, even in the single client case.
+<p>The leader block is where you specify configurations related to leadership election of your AtlasDB clients.
+It&#8217;s good practice to always specify a leader configuration, even if there is a single AtlasDB client in your cluster.
 If no leader configuration is specified, then AtlasDB clients will create an embedded timestamp and lock service.</p>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
@@ -183,8 +183,8 @@ Failure to do so can lead to data corruption.</p>
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td>quorumSize</td>
-<td>Number of hosts that form a majority.
-This number must be greater than half of the total number of hosts.</td>
+<td>Number of AtlasDB clients in your cluster that form a majority.
+This number must be greater than half of the total number of clients.</td>
 </tr>
 <tr class="row-odd"><td>leaders</td>
 <td>A list of all hosts.
@@ -235,7 +235,8 @@ This defaults to the first host in the sorted leaders list, so it should be cons
 </div>
 <div class="section" id="leader-configuration-examples">
 <span id="leader-config-examples"></span><h2>Leader Configuration Examples<a class="headerlink" href="#leader-configuration-examples" title="Permalink to this headline">¶</a></h2>
-<p>Some example leader block configurations are listed below.</p>
+<p>Some example leader block configurations are listed below.
+The use of <cite>cluster</cite> and <cite>nodes</cite> are in reference to AtlasDB clients and are unrelated to your <code class="docutils literal"><span class="pre">keyValueService</span></code> config block.</p>
 <div class="contents local topic" id="contents">
 <ul class="simple">
 <li><a class="reference internal" href="#multiple-atlasdb-clients" id="id1">Multiple AtlasDB Clients</a></li>
