@@ -46,6 +46,11 @@ develop
            Previously, the CLI would throw an exception and fail in such cases.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1151>`__)
 
+    *    - |fixed|
+         - The ``TableMappingService`` now throws ``TableMappingNotFoundException`` when trying to retrieve a short table name for a non-existing table.
+           ``TableRemappingKeyValueService`` does not throw a RuntimeException when performing ``getMetaData`` and ``dropTable`` operations on a non-existing table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1186>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
