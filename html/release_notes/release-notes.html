@@ -194,18 +194,23 @@ Previously, the CLI would throw an exception and fail in such cases.
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>The KVS migration command now supports the <code class="docutils literal"><span class="pre">--offline</span></code> flag and can be run as an offline CLI.
+<tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<td>All KVSs now as a guarantee throw a RuntimeException on attempts to truncate a non-existing table, so services should check the existence of a table before attempting to truncate.
+Previously we would only throw exceptions for the Cassandra KVS.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1114">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The KVS <a class="reference internal" href="../cluster_management/clis.html#clis-migrate"><span class="std std-ref">migration</span></a> command now supports the <code class="docutils literal"><span class="pre">--offline</span></code> flag and can be run as an offline CLI.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1149">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
 <td><p class="first"><code class="docutils literal"><span class="pre">TableReference.createUnsafe</span></code> is now deprecated to prevent mishandling of table names.
 <code class="docutils literal"><span class="pre">createWithEmptyNamespace</span></code> or <code class="docutils literal"><span class="pre">createFromFullyQualifiedName</span></code> should be used instead.</p>
 <p class="last">Schema generated code still contains use of <code class="docutils literal"><span class="pre">TableReference.createUnsafe</span></code> and is being tracked for removal on <a class="reference external" href="https://github.com/palantir/atlasdb/issues/1172">#1172</a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1121">Pull Request</a>)</p>
 </td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td><p class="first">We now provide Oracle support (beta) for all valid schemas.
 Oracle table names exceeding 30 characters are now mapped to shorter names by truncating and appending a sequence number.
 Support for Oracle is currently in beta and services wishing to deploy against Oracle should contact the AtlasDB team.</p>
@@ -213,36 +218,32 @@ Support for Oracle is currently in beta and services wishing to deploy against O
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1076">Pull Request</a>)</p>
 </td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td>We now test against Cassandra 2.2.8, rather than Cassandra 2.2.7.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1112">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Added a significant amount of logging aimed at tracking down the <code class="docutils literal"><span class="pre">MultipleRunningTimestampServicesError</span></code>.
-If clients are hitting this error, then they should add trace logging for <code class="docutils literal"><span class="pre">com.palantir.timestamp</span></code>.
+If clients are hitting this error, then they should add TRACE logging for <code class="docutils literal"><span class="pre">com.palantir.timestamp</span></code>.
 These logs can also be directed to a separate file, see the <a class="reference internal" href="../configuration/logging.html#logging-configuration"><span class="std std-ref">documentation</span></a> for more details.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1098">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Retrying a Cassandra operation now retries against distinct hosts.
 Previously, this would independently select hosts randomly, meaning that we might unintentionally try the same operation on the same servers.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1139">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>AtlasDB clients can start when a single Cassandra node is unreachable.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1045">Pull Request</a>).</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Removed spurious error logging during first-time startup against a brand new Cassandra cluster.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1033">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Improved the reliability of starting up against a degraded Cassandra cluster.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1033">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
-<td>All KVSs now as a guarantee throw a RuntimeException on attempts to truncate a non-existing table.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1114">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>No longer publish a spurious junit dependency in atlasdb-client compile.
