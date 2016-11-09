@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.timelock.atomix.AtomixTimestampService;
 import com.palantir.atlasdb.timelock.atomix.DistributedValues;
@@ -42,15 +41,13 @@ import io.dropwizard.Application;
 import io.dropwizard.setup.Environment;
 
 public class TimeLockServer extends Application<TimeLockServerConfiguration> {
-    private AtomixReplica localNode;
-
     public static void main(String[] args) throws Exception {
         new TimeLockServer().run(args);
     }
 
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
-        localNode = AtomixReplica.builder(configuration.cluster().localServer())
+        AtomixReplica localNode = AtomixReplica.builder(configuration.cluster().localServer())
                 .withStorage(Storage.builder()
                         .withDirectory("var/data/atomix")
                         .withStorageLevel(StorageLevel.DISK)
@@ -83,11 +80,6 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
                 new AtomixTimestampService(timestamp),
                 LockServiceImpl.create());
         return InvalidatingLeaderProxy.create(localMember, leaderId, timeLockSupplier, TimeLockServices.class);
-    }
-
-    @VisibleForTesting
-    AtomixReplica getLocalNode() {
-        return localNode;
     }
 
     private static Transport createTransport(Optional<SslConfiguration> optionalSecurity) {
