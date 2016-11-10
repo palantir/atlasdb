@@ -636,7 +636,7 @@ public final class TwoColumnsTable implements
             FooToIdCondIdxTable.FooToIdCondIdxColumn indexCol = FooToIdCondIdxTable.FooToIdCondIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete(TableReference.createUnsafe("default.foo_to_id_cond_idx"), indexCells);
+        t.delete(TableReference.createFromFullyQualifiedName("default.foo_to_id_cond_idx"), indexCells);
     }
 
     private void deleteFooToIdIdxRaw(Map<Cell, byte[]> results) {
@@ -650,7 +650,7 @@ public final class TwoColumnsTable implements
             FooToIdIdxTable.FooToIdIdxColumn indexCol = FooToIdIdxTable.FooToIdIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete(TableReference.createUnsafe("default.foo_to_id_idx"), indexCells);
+        t.delete(TableReference.createFromFullyQualifiedName("default.foo_to_id_idx"), indexCells);
     }
 
     public void deleteBar(TwoColumnsRow row) {
@@ -847,7 +847,7 @@ public final class TwoColumnsTable implements
                 }
             }
         }
-        t.delete(TableReference.createUnsafe("default.foo_to_id_cond_idx"), indexCells.build());
+        t.delete(TableReference.createFromFullyQualifiedName("default.foo_to_id_cond_idx"), indexCells.build());
     }
 
     private void deleteFooToIdIdx(Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> result) {
@@ -864,7 +864,7 @@ public final class TwoColumnsTable implements
                 }
             }
         }
-        t.delete(TableReference.createUnsafe("default.foo_to_id_idx"), indexCells.build());
+        t.delete(TableReference.createFromFullyQualifiedName("default.foo_to_id_idx"), indexCells.build());
     }
 
     public BatchingVisitableView<TwoColumnsRowResult> getAllRowsUnordered() {
@@ -2295,5 +2295,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "66SlMxZFOkyB9LuOCDm9hQ==";
+    static String __CLASS_HASH = "SaNexyfTlh87cDvhCY6Rgg==";
 }
