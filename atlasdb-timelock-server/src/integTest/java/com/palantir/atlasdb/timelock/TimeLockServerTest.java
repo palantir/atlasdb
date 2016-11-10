@@ -69,7 +69,7 @@ public class TimeLockServerTest {
     @ClassRule
     public static final DropwizardAppRule<TimeLockServerConfiguration> APP = new DropwizardAppRule<>(
             TimeLockServer.class,
-            ResourceHelpers.resourceFilePath("testServer.yml"));
+            ResourceHelpers.resourceFilePath("singleTestServer.yml"));
 
     @BeforeClass
     public static void setupAtomixClient() {
