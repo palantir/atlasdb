@@ -29,7 +29,6 @@ import com.palantir.timestamp.TimestampService;
 
 import io.atomix.AtomixReplica;
 import io.atomix.catalyst.transport.Address;
-import io.atomix.catalyst.transport.Transport;
 import io.atomix.catalyst.transport.local.LocalServerRegistry;
 import io.atomix.catalyst.transport.local.LocalTransport;
 import io.atomix.copycat.server.storage.Storage;
@@ -40,29 +39,28 @@ public class AtomixTimestampServiceTest {
     private static final Address LOCAL_ADDRESS = new Address("localhost", 8700);
     private static final String TIMESTAMP_KEY = "timestamp";
 
-    private static final Transport transport = new LocalTransport(new LocalServerRegistry());
-    private static final AtomixReplica replica = AtomixReplica.builder(LOCAL_ADDRESS)
+    private static final AtomixReplica ATOMIX_REPLICA = AtomixReplica.builder(LOCAL_ADDRESS)
             .withStorage(Storage.builder()
                     .withStorageLevel(StorageLevel.MEMORY)
                     .build())
-            .withTransport(transport)
+            .withTransport(new LocalTransport(new LocalServerRegistry()))
             .build();
 
     private TimestampService timestampService;
 
     @BeforeClass
     public static void startAtomix() {
-        replica.bootstrap().join();
+        ATOMIX_REPLICA.bootstrap().join();
     }
 
     @AfterClass
     public static void stopAtomix() {
-        replica.leave();
+        ATOMIX_REPLICA.leave();
     }
 
     @Before
     public void setupTimestampService() {
-        DistributedLong distributedLong = Futures.getUnchecked(replica.getLong(TIMESTAMP_KEY));
+        DistributedLong distributedLong = Futures.getUnchecked(ATOMIX_REPLICA.getLong(TIMESTAMP_KEY));
         timestampService = new AtomixTimestampService(distributedLong);
     }
 
