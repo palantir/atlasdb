@@ -31,9 +31,10 @@ public final class CassandraCliParser {
         try {
             for (String line : output.split("\n")) {
                 if (line.contains("system_auth")) {
-                    Matcher matcher = Pattern.compile("^.*\\{\"replication_factor\":\"(\\d+)\"\\}$").matcher(line);
+                    String replicationRegex = "^.*('|\")replication_factor('|\"):( '|\")(\\d+)('|\")\\}$";
+                    Matcher matcher = Pattern.compile(replicationRegex).matcher(line);
                     matcher.find();
-                    return Integer.parseInt(matcher.group(1));
+                    return Integer.parseInt(matcher.group(4));
                 }
             }
         } catch (Exception e) {

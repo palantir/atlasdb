@@ -65,7 +65,7 @@ public class CassandraCliParserTest {
     }
 
     @Test
-    public void parsesReplicationFactorOfSystemAuthKeyspace() {
+    public void parsesReplicationFactorOfSystemAuthKeyspace_2_2() {
         String output = "\n"
                 + " keyspace_name      | durable_writes | strategy_class                              "
                 + "| strategy_options\n"
@@ -79,6 +79,22 @@ public class CassandraCliParserTest {
                 + "| {\"replication_factor\":\"3\"}\n"
                 + "\n"
                 + "(3 rows)";
+        assertThat(CassandraCliParser.parseSystemAuthReplicationFromCqlsh(output), is(4));
+    }
+
+    @Test
+    @SuppressWarnings("checkstyle:LineLength")
+    public void parsesReplicationFactorOfSystemAuthKeyspace_3_7() {
+        String output = "\n"
+                + " keyspace_name      | durable_writes | replication\n"
+                + "--------------------+----------------+-------------------------------------------------------------------------------------\n"
+                + "             system |           True |                             {'class': 'org.apache.cassandra.locator.LocalStrategy'}\n"
+                + "        system_auth |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '4'}\n"
+                + " system_distributed |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '3'}\n"
+                + "      system_schema |           True |                             {'class': 'org.apache.cassandra.locator.LocalStrategy'}\n"
+                + "      system_traces |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '2'}\n"
+                + "\n"
+                + "(5 rows)";
         assertThat(CassandraCliParser.parseSystemAuthReplicationFromCqlsh(output), is(4));
     }
 
