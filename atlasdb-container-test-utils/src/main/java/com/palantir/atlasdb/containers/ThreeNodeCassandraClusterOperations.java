@@ -51,6 +51,9 @@ public class ThreeNodeCassandraClusterOperations {
         if (!systemAuthenticationKeyspaceHasReplicationFactorThree()) {
             setReplicationFactorOfSystemAuthenticationKeyspaceToThree();
             runNodetoolRepair();
+            if (!systemAuthenticationKeyspaceHasReplicationFactorThree()) {
+                throw new IllegalStateException("Replication factor is still not 3!");
+            }
         }
     }
 
