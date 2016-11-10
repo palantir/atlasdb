@@ -54,7 +54,7 @@ public class InvalidatingLeaderProxyTest {
     private static LocalMember localMember;
     private static DistributedValue<String> leaderId;
 
-    private StringContainer stringContainer;
+    private AtomicString atomicString;
 
     @BeforeClass
     public static void startAtomix() {
@@ -74,24 +74,24 @@ public class InvalidatingLeaderProxyTest {
 
     @Before
     public void setUp() {
-        stringContainer = InvalidatingLeaderProxy.create(
+        atomicString = InvalidatingLeaderProxy.create(
                 localMember,
                 leaderId,
-                StringContainerImpl::new,
-                StringContainer.class);
+                SimpleAtomicString::new,
+                AtomicString.class);
     }
 
     @Test
     public void shouldCallDelegateIfLeader() {
-        assertCanReadAndWriteValue(stringContainer);
+        assertCanReadAndWriteValue(atomicString);
     }
 
     @Test
     public void shouldBeUnableToCallDelegateIfNotLeader() {
-        String oldLeader = Futures.getUnchecked(leaderId.get());
+        String oldLeader = getLeader();
         try {
             setLeader(null);
-            assertThatThrownBy(stringContainer::get).isInstanceOf(ServiceUnavailableException.class);
+            assertThatThrownBy(atomicString::get).isInstanceOf(ServiceUnavailableException.class);
         } finally {
             setLeader(oldLeader);
         }
@@ -99,34 +99,38 @@ public class InvalidatingLeaderProxyTest {
 
     @Test
     public void shouldBeAbleToCallDelegateAgainOnRegainingLeadership() {
-        String oldLeader = Futures.getUnchecked(leaderId.get());
+        String oldLeader = getLeader();
         try {
-            assertCanReadAndWriteValue(stringContainer);
+            assertCanReadAndWriteValue(atomicString);
             setLeader(null);
-            assertThatThrownBy(stringContainer::get).isInstanceOf(ServiceUnavailableException.class);
+            assertThatThrownBy(atomicString::get).isInstanceOf(ServiceUnavailableException.class);
             setLeader(oldLeader);
-            assertCanReadAndWriteValue(stringContainer);
+            assertCanReadAndWriteValue(atomicString);
         } finally {
             setLeader(oldLeader);
         }
     }
 
-    private void setLeader(String leader) {
+    private static String getLeader() {
+        return Futures.getUnchecked(leaderId.get());
+    }
+
+    private static void setLeader(String leader) {
         Futures.getUnchecked(leaderId.set(leader));
     }
 
-    private void assertCanReadAndWriteValue(StringContainer container) {
+    private void assertCanReadAndWriteValue(AtomicString container) {
         container.set(TEST_VALUE);
         assertThat(container.get()).isEqualTo(TEST_VALUE);
     }
 
-    private interface StringContainer {
+    private interface AtomicString {
         String get();
         void set(String string);
     }
 
-    private static class StringContainerImpl implements StringContainer {
-        private String string;
+    private static class SimpleAtomicString implements AtomicString {
+        private String string = "";
 
         @Override
         public String get() {
