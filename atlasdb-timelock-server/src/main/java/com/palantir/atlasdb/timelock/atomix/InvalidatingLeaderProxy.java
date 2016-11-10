@@ -64,7 +64,7 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        if (Objects.equals(localMember.id(), Futures.getUnchecked(leaderId.get()))) {
+        if (isLeader()) {
             Object delegate = delegateRef.get();
             while (delegate == null) {
                 delegateRef.compareAndSet(null, delegateSupplier.get());
@@ -75,6 +75,10 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
             clearDelegate();
             throw new ServiceUnavailableException("This node is not the leader", 0L);
         }
+    }
+
+    private boolean isLeader() {
+        return Objects.equals(localMember.id(), Futures.getUnchecked(leaderId.get()));
     }
 
     private void clearDelegate() throws IOException {
