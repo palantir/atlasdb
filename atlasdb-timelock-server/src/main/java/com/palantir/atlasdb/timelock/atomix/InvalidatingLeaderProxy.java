@@ -73,12 +73,22 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
             return method.invoke(delegate, args);
         } else {
             clearDelegate();
-            throw new ServiceUnavailableException("This node is not the leader", 0L);
+            throw new ServiceUnavailableException(
+                    String.format("This node (%s) is not the leader (%s)", getLocalId(), getLeaderId()),
+                    0L);
         }
     }
 
     private boolean isLeader() {
-        return Objects.equals(localMember.id(), Futures.getUnchecked(leaderId.get()));
+        return Objects.equals(getLocalId(), getLeaderId());
+    }
+
+    private String getLocalId() {
+        return localMember.id();
+    }
+
+    private String getLeaderId() {
+        return Futures.getUnchecked(leaderId.get());
     }
 
     private void clearDelegate() throws IOException {
