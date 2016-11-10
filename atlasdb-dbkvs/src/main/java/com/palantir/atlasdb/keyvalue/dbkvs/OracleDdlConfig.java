@@ -110,4 +110,11 @@ public abstract class OracleDdlConfig extends DdlConfig {
                 "Oracle 'overflowTablePrefix' cannot be more than %s characters long.",
                 AtlasDbConstants.MAX_OVERFLOW_TABLE_PREFIX_LENGTH);
     }
+
+    @Value.Default
+    @Override
+    public int fetchBatchSize() {
+        // Oracle arrays can be much larger than Postgres select-where-in way of supplying parameters to a get query
+        return 1024;
+    }
 }

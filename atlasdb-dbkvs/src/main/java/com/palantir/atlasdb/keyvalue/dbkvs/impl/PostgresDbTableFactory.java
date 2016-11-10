@@ -15,44 +15,21 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.dbkvs.AbstractTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresTableInitializer;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.nexus.db.DBType;
 
-public class PostgresDbTableFactory implements DbTableFactory {
+public class PostgresDbTableFactory extends AbstractTableFactory {
 
     private final PostgresDdlConfig config;
-    private final ExecutorService exec;
 
     public PostgresDbTableFactory(PostgresDdlConfig config) {
+        super(config);
         this.config = config;
-        int poolSize = config.poolSize();
-        this.exec = newFixedThreadPool(poolSize);
-    }
-
-    private static ThreadPoolExecutor newFixedThreadPool(int maxPoolSize) {
-        ThreadPoolExecutor pool = PTExecutors.newThreadPoolExecutor(maxPoolSize, maxPoolSize,
-                15L, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<Runnable>(),
-                new NamedThreadFactory("Atlas postgres reader", true /* daemon */));
-
-        pool.allowCoreThreadTimeOut(false);
-        return pool;
-    }
-
-    @Override
-    public DbMetadataTable createMetadata(TableReference tableRef, ConnectionSupplier conns) {
-        return new SimpleDbMetadataTable(tableRef, conns, config);
     }
 
     @Override

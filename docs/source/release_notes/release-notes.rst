@@ -55,6 +55,10 @@ develop
          - The migration CLI will now decrypt encrypted values and will now use the dropwizard config as the new configuration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1171>`__)
 
+    *    - |improved|
+         - Oracle KVS read queries are now parallelized
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1141>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

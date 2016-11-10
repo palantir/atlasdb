@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.dbkvs.AbstractTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
@@ -27,16 +28,12 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleTableInitializer;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.nexus.db.DBType;
 
-public class OracleDbTableFactory implements DbTableFactory {
+public class OracleDbTableFactory extends AbstractTableFactory {
     private final OracleDdlConfig config;
 
     public OracleDbTableFactory(OracleDdlConfig config) {
+        super(config);
         this.config = config;
-    }
-
-    @Override
-    public DbMetadataTable createMetadata(TableReference tableRef, ConnectionSupplier conns) {
-        return new SimpleDbMetadataTable(tableRef, conns, config);
     }
 
     @Override
@@ -66,7 +63,7 @@ public class OracleDbTableFactory implements DbTableFactory {
             default:
                 throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
         }
-        return new UnbatchedDbReadTable(conns, queryFactory);
+        return new BatchedDbReadTable(conns, queryFactory, exec, config);
     }
 
     private String getTableName(OracleTableNameGetter oracleTableNameGetter) {
@@ -101,10 +98,5 @@ public class OracleDbTableFactory implements DbTableFactory {
     @Override
     public DBType getDbType() {
         return DBType.ORACLE;
-    }
-
-    @Override
-    public void close() {
-        // do nothing
     }
 }
