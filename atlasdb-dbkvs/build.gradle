@@ -6,6 +6,7 @@ dependencies {
   compile project(":atlasdb-api")
   compile project(":atlasdb-client")
   compile project(":atlasdb-dbkvs-hikari")
+  compile project(":atlasdb-impl-shared")
   compile project(':timestamp-impl')
   compile project(':commons-db')
   compile project(':commons-api')
