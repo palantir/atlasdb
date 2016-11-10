@@ -55,6 +55,10 @@ develop
          - The migration CLI will now decrypt encrypted values and will now use the dropwizard config as the new configuration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1171>`__)
 
+    *    - |improved|
+         - Remove usage of ``createUnsafe`` in generated Schema code. You can regenerate your schema to get rid of the deprecation warnings.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1194>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
