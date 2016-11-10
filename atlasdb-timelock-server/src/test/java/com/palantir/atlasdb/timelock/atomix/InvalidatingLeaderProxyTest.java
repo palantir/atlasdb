@@ -29,7 +29,6 @@ import com.google.common.util.concurrent.Futures;
 
 import io.atomix.AtomixReplica;
 import io.atomix.catalyst.transport.Address;
-import io.atomix.catalyst.transport.Transport;
 import io.atomix.catalyst.transport.local.LocalServerRegistry;
 import io.atomix.catalyst.transport.local.LocalTransport;
 import io.atomix.copycat.server.storage.Storage;
@@ -41,12 +40,11 @@ import io.atomix.variables.DistributedValue;
 public class InvalidatingLeaderProxyTest {
     private static final Address LOCAL_ADDRESS = new Address("localhost", 8700);
 
-    private static final Transport transport = new LocalTransport(new LocalServerRegistry());
-    private static final AtomixReplica replica = AtomixReplica.builder(LOCAL_ADDRESS)
+    private static final AtomixReplica ATOMIX_REPLICA = AtomixReplica.builder(LOCAL_ADDRESS)
             .withStorage(Storage.builder()
                     .withStorageLevel(StorageLevel.MEMORY)
                     .build())
-            .withTransport(transport)
+            .withTransport(new LocalTransport(new LocalServerRegistry()))
             .build();
 
     private static final String GROUP_KEY = "groupKey";
@@ -60,9 +58,9 @@ public class InvalidatingLeaderProxyTest {
 
     @BeforeClass
     public static void startAtomix() {
-        replica.bootstrap().join();
-        leaderId = Futures.getUnchecked(replica.<String>getValue(LEADER_KEY));
-        DistributedGroup distributedGroup = Futures.getUnchecked(replica.getGroup(GROUP_KEY));
+        ATOMIX_REPLICA.bootstrap().join();
+        leaderId = Futures.getUnchecked(ATOMIX_REPLICA.<String>getValue(LEADER_KEY));
+        DistributedGroup distributedGroup = Futures.getUnchecked(ATOMIX_REPLICA.getGroup(GROUP_KEY));
         distributedGroup.election().onElection(
                 term -> Futures.getUnchecked(leaderId.set(term.leader().id()))
         );
@@ -71,7 +69,7 @@ public class InvalidatingLeaderProxyTest {
 
     @AfterClass
     public static void stopAtomix() {
-        replica.leave();
+        ATOMIX_REPLICA.leave();
     }
 
     @Before
