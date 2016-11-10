@@ -31,13 +31,20 @@ import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.docker.compose.connection.Container;
+import com.palantir.docker.compose.connection.DockerMachine;
 import com.palantir.docker.compose.connection.DockerPort;
 
 public class DegradedClusterInitializationTest {
     private static final String CASSANDRA_NODE_TO_KILL = ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME;
 
+    private static String cassandraVersion = "3.7";
+
+    private static DockerMachine dockerMachine = DockerMachine.localMachine()
+            .withAdditionalEnvironmentVariable("CASSANDRA_VERSION", cassandraVersion)
+            .build();
+
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(DegradedClusterInitializationTest.class)
+    public static final Containers CONTAINERS = new Containers(CassandraSchemaLockTest.class, dockerMachine)
             .with(new ThreeNodeCassandraCluster());
 
     @BeforeClass

@@ -48,14 +48,21 @@ import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.docker.compose.connection.DockerMachine;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CassandraSchemaLockTest {
     private static final int THREAD_COUNT = 4;
 
+    private static String cassandraVersion = "3.7";
+
+    private static DockerMachine dockerMachine = DockerMachine.localMachine()
+            .withAdditionalEnvironmentVariable("CASSANDRA_VERSION", cassandraVersion)
+            .build();
+
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraSchemaLockTest.class)
+    public static final Containers CONTAINERS = new Containers(CassandraSchemaLockTest.class, dockerMachine)
             .with(new ThreeNodeCassandraCluster());
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);

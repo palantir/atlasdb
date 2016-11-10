@@ -38,6 +38,7 @@ import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.DockerComposeFiles;
 import com.palantir.docker.compose.configuration.ProjectName;
+import com.palantir.docker.compose.connection.DockerMachine;
 import com.palantir.docker.compose.logging.LogCollector;
 import com.palantir.docker.compose.logging.LogDirectory;
 
@@ -58,11 +59,17 @@ public class Containers extends ExternalResource {
     private static volatile boolean dockerProxyRuleStarted;
 
     private final String logDirectory;
+    private final DockerMachine dockerMachine;
 
     public Containers(Class<?> classToSaveLogsFor) {
-        logDirectory = LogDirectory.circleAwareLogDirectory(Paths.get(
+        this(classToSaveLogsFor, DockerMachine.localMachine().build());
+    }
+
+    public Containers(Class<?> classToSaveLogsFor, DockerMachine dockerMachine) {
+        this.logDirectory = LogDirectory.circleAwareLogDirectory(Paths.get(
                 "atlasdbcontainers",
                 classToSaveLogsFor.getSimpleName()).toString());
+        this.dockerMachine = dockerMachine;
     }
 
     public Containers with(Container container) {
@@ -112,6 +119,7 @@ public class Containers extends ExternalResource {
 
         dockerComposeRule = DockerComposeRule.builder()
                 .files(DockerComposeFiles.from(containerDockerComposeFiles.toArray(new String[0])))
+                .machine(dockerMachine)
                 .projectName(PROJECT_NAME)
                 .logCollector(currentLogCollector)
                 .build();
