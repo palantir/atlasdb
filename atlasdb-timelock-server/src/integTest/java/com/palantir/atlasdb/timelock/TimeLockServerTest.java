@@ -80,6 +80,19 @@ public class TimeLockServerTest {
     }
 
     @Test
+    public void lockServiceShouldAllowUsToTakeOutLocks() throws InterruptedException {
+        RemoteLockService lockService = getLockService(CLIENT_1);
+
+        LockRefreshToken token = lockService.lock(LOCK_CLIENT_NAME, LockRequest.builder(LOCK_MAP)
+                .doNotBlock()
+                .build());
+
+        assertThat(token).isNotNull();
+
+        lockService.unlock(token);
+    }
+
+    @Test
     public void lockServiceShouldBeInvalidatedOnNewLeader() throws InterruptedException {
         RemoteLockService lockService = getLockService(CLIENT_1);
 
@@ -100,6 +113,16 @@ public class TimeLockServerTest {
         } finally {
             setLeaderId(serverLeaderId);
         }
+    }
+
+    @Test
+    public void timestampServiceShouldGiveUsIncrementalTimestamps() {
+        TimestampService timestampService = getTimestampService(CLIENT_1);
+
+        long timestamp1 = timestampService.getFreshTimestamp();
+        long timestamp2 = timestampService.getFreshTimestamp();
+
+        assertThat(timestamp1).isLessThan(timestamp2);
     }
 
     @Test
