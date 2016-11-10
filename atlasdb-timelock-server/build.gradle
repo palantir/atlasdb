@@ -2,6 +2,11 @@ apply from: "../gradle/shared.gradle"
 
 apply plugin: 'com.palantir.java-distribution'
 apply plugin: 'org.inferred.processors'
+apply plugin: 'org.unbroken-dome.test-sets'
+
+testSets {
+    integTest
+}
 
 dependencies {
     compile project(":timestamp-api")
@@ -15,8 +20,10 @@ dependencies {
 
     testCompile project(':atlasdb-config')
 
-    testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
     testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'org.mockito', name: 'mockito-core'
+
+    integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing'
 }
 
 distribution {
