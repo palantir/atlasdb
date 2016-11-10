@@ -22,33 +22,29 @@ import org.junit.Test;
 import io.atomix.catalyst.transport.Address;
 
 public class ClusterConfigurationTest {
-
     private static final Address ADDRESS_1 = new Address("localhost:1");
     private static final Address ADDRESS_2 = new Address("localhost:2");
 
     @Test
     public void shouldThrowIfLocalServerNotSpecified() {
-        assertThatThrownBy(
-                () -> ImmutableClusterConfiguration.builder().build()
-        ).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(ImmutableClusterConfiguration.builder()::build)
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void shouldThrowIfNoServersSpecified() {
-        assertThatThrownBy(
-                () -> ImmutableClusterConfiguration.builder()
-                        .localServer(ADDRESS_1)
-                        .build()
-        ).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(ImmutableClusterConfiguration.builder()
+                .localServer(ADDRESS_1)
+                ::build)
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void shouldThrowIfLocalServerNotInServers() {
-        assertThatThrownBy(
-                () -> ImmutableClusterConfiguration.builder()
-                        .localServer(ADDRESS_1)
-                        .addServers(ADDRESS_2)
-                        .build()
-        ).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(ImmutableClusterConfiguration.builder()
+                .localServer(ADDRESS_1)
+                .addServers(ADDRESS_2)
+                ::build)
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }
