@@ -9,6 +9,14 @@ dependencies {
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
   testCompile group: 'junit', name: 'junit'
+
+  runtime 'com.palantir.atlasdb:dbkvs-oracle-driver:0.3.0'
+}
+
+repositories {
+    maven {
+        url 'https://artifactory.palantir.build/artifactory/all-jar'
+    }
 }
 
 test {
