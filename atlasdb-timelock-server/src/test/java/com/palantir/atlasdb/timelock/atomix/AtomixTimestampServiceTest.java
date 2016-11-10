@@ -23,7 +23,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.google.common.util.concurrent.Futures;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
@@ -37,7 +36,7 @@ import io.atomix.variables.DistributedLong;
 
 public class AtomixTimestampServiceTest {
     private static final Address LOCAL_ADDRESS = new Address("localhost", 8700);
-    private static final String TIMESTAMP_KEY = "timestamp";
+    private static final String CLIENT_KEY = "client";
 
     private static final AtomixReplica ATOMIX_REPLICA = AtomixReplica.builder(LOCAL_ADDRESS)
             .withStorage(Storage.builder()
@@ -60,7 +59,7 @@ public class AtomixTimestampServiceTest {
 
     @Before
     public void setupTimestampService() {
-        DistributedLong distributedLong = Futures.getUnchecked(ATOMIX_REPLICA.getLong(TIMESTAMP_KEY));
+        DistributedLong distributedLong = DistributedValues.getTimestampForClient(ATOMIX_REPLICA, CLIENT_KEY);
         timestampService = new AtomixTimestampService(distributedLong);
     }
 
