@@ -175,6 +175,11 @@ Previously, the CLI would throw an exception and fail in such cases.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1151">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The <code class="docutils literal"><span class="pre">TableMappingService</span></code> now throws <code class="docutils literal"><span class="pre">TableMappingNotFoundException</span></code> when trying to retrieve a short table name for a non-existing table.
+<code class="docutils literal"><span class="pre">TableRemappingKeyValueService</span></code> does not throw a RuntimeException when performing <code class="docutils literal"><span class="pre">getMetaData</span></code> and <code class="docutils literal"><span class="pre">dropTable</span></code> operations on a non-existing table.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1186">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The migration CLI will now decrypt encrypted values and will now use the dropwizard config as the new configuration.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1171">Pull Request</a>)</td>
 </tr>
