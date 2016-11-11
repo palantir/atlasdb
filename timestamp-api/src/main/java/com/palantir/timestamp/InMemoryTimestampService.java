@@ -40,4 +40,9 @@ public class InMemoryTimestampService implements TimestampService {
         long topValue = counter.addAndGet(timestampsToGet);
         return TimestampRange.createInclusiveRange(topValue - timestampsToGet + 1, topValue);
     }
+
+    @Override
+    public void fastForwardTimestamp(long newMinimumTimestamp) {
+        counter.set(newMinimumTimestamp);
+    }
 }

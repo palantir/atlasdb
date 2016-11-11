@@ -55,6 +55,11 @@ public class TimestampRemotingTest {
         public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
             throw new NotCurrentLeaderException("not the leader");
         }
+
+        @Override
+        public void fastForwardTimestamp(long newMinimumTimestamp) {
+            throw new NotCurrentLeaderException("not the leader");
+        }
     }, new NotCurrentLeaderExceptionMapper());
 
     @Test
