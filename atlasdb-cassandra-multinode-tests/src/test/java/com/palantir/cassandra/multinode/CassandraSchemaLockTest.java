@@ -16,6 +16,7 @@
 package com.palantir.cassandra.multinode;
 
 import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -36,6 +37,7 @@ import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.google.common.base.Optional;
@@ -47,10 +49,20 @@ import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.docker.compose.connection.DockerMachine;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public abstract class CassandraSchemaLockTest {
+public class CassandraSchemaLockTest {
+
+    private static String cassandraVersion = System.getenv("CASSANDRA_VERSION");
+
+    private static DockerMachine dockerMachine = DockerMachine.localMachine().build();
+
+    @ClassRule
+    public static final Containers CONTAINERS = new Containers(CassandraSchemaLockTest.class, dockerMachine)
+            .with(new ThreeNodeCassandraCluster(cassandraVersion));
+
     private static final int THREAD_COUNT = 4;
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
@@ -77,11 +89,13 @@ public abstract class CassandraSchemaLockTest {
             assertTrue(executorService.awaitTermination(4, TimeUnit.MINUTES));
         }
 
-        assertThat(new File(getContainers().getLogDirectory()),
+        CassandraKeyValueService kvs =
+                CassandraKeyValueService.create(configManager, Optional.absent());
+        assertThat(kvs.getAllTableNames(), hasItem(table1));
+
+        assertThat(new File(CONTAINERS.getLogDirectory()),
                 containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())));
     }
-
-    protected abstract Containers getContainers();
 
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
     private void async(Callable callable) {
