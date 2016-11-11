@@ -24,7 +24,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.palantir.timestamp.TimestampRange;
-import com.palantir.timestamp.TimestampService;
 
 import io.atomix.AtomixReplica;
 import io.atomix.catalyst.transport.Address;
@@ -45,7 +44,7 @@ public class AtomixTimestampServiceTest {
             .withTransport(new LocalTransport(new LocalServerRegistry()))
             .build();
 
-    private TimestampService timestampService;
+    private AtomixTimestampService timestampService;
 
     @BeforeClass
     public static void startAtomix() {
@@ -99,5 +98,42 @@ public class AtomixTimestampServiceTest {
     public void shouldThrowIfRequestingTooManyTimestamps() {
         assertThatThrownBy(() -> timestampService.getFreshTimestamps(Integer.MAX_VALUE))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void shouldDoNothingIfFastForwardingToThePast() {
+        long currentTimestamp = timestampService.getFreshTimestamp();
+        timestampService.fastForwardTimestamp(Integer.MIN_VALUE);
+        long nextTimestamp = timestampService.getFreshTimestamp();
+        assertThat(currentTimestamp).isLessThan(nextTimestamp);
+    }
+
+    @Test
+    public void shouldOnlyReturnTimestampsAfterNewMinimumAfterFastForward() {
+        long delta = 10000L;
+
+        long currentTimestamp = timestampService.getFreshTimestamp();
+        timestampService.fastForwardTimestamp(currentTimestamp + delta);
+        long nextTimestamp = timestampService.getFreshTimestamp();
+        assertThat(nextTimestamp - currentTimestamp).isGreaterThan(delta);
+    }
+
+    @Test
+    public void shouldThrowIfTryingToUpdateTimestampToThePast() {
+        long currentTimestamp = timestampService.getFreshTimestamp();
+        assertThatThrownBy(() -> timestampService.attemptTimestampUpdate(Integer.MIN_VALUE, currentTimestamp))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void shouldNotTryToUpdateTimestampWithIncorrectCurrentValue() {
+        long currentTimestamp = timestampService.getFreshTimestamp();
+        assertThat(timestampService.attemptTimestampUpdate(currentTimestamp, currentTimestamp - 1)).isEqualTo(false);
+    }
+
+    @Test
+    public void shouldUpdateTimestampWithCorrectCurrentValue() {
+        long currentTimestamp = timestampService.getFreshTimestamp();
+        assertThat(timestampService.attemptTimestampUpdate(currentTimestamp + 1, currentTimestamp)).isEqualTo(true);
     }
 }
