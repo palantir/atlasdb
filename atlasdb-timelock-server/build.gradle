@@ -12,7 +12,8 @@ dependencies {
     compile project(":timestamp-api")
     compile project(":lock-impl")
 
-    compile group: 'com.palantir.remoting', name: 'ssl-config'
+    compile group: 'com.palantir.remoting1', name: 'jersey-servers'
+    compile group: 'com.palantir.remoting1', name: 'ssl-config'
     compile group: 'io.atomix', name: 'atomix-all'
     compile group: 'io.dropwizard', name: 'dropwizard-core'
 

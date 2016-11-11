@@ -21,7 +21,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.remoting.ssl.SslConfiguration;
+import com.palantir.remoting1.config.ssl.SslConfiguration;
 
 import io.atomix.copycat.server.storage.StorageLevel;
 
