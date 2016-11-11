@@ -7,9 +7,9 @@ DOCS_REPO="docs/"
 
 FILES_CHANGED=$(git diff --name-only origin/develop...HEAD)
 
-for word in $FILES_CHANGED
+for file in $FILES_CHANGED
 do
-    if [[ $word != ${DOCS_REPO}* ]]; then
+    if [[ $file != ${DOCS_REPO}* ]]; then
         exit 1;
     fi
 done

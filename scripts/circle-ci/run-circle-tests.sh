@@ -28,11 +28,10 @@ do
 done
 
 # Short circuit the build if it's docs only
-./scripts/circle-ci/check-only-docs-changes.sh
-if [ $? -eq 0 ]; then
+if ./scripts/circle-ci/check-only-docs-changes.sh; then
     if [ $CIRCLE_NODE_INDEX -eq 0 ]; then
         checkDocsBuild
-        exit
+        exit $?
     fi
     exit 0
 fi
