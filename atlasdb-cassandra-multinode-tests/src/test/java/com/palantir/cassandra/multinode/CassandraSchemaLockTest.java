@@ -36,7 +36,6 @@ import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
-import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.google.common.base.Optional;
@@ -48,22 +47,11 @@ import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import com.palantir.docker.compose.connection.DockerMachine;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class CassandraSchemaLockTest {
+public abstract class CassandraSchemaLockTest {
     private static final int THREAD_COUNT = 4;
-
-    private static String cassandraVersion = "3.7";
-
-    private static DockerMachine dockerMachine = DockerMachine.localMachine()
-            .withAdditionalEnvironmentVariable("CASSANDRA_VERSION", cassandraVersion)
-            .build();
-
-    @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraSchemaLockTest.class, dockerMachine)
-            .with(new ThreeNodeCassandraCluster());
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
 
@@ -89,9 +77,11 @@ public class CassandraSchemaLockTest {
             assertTrue(executorService.awaitTermination(4, TimeUnit.MINUTES));
         }
 
-        assertThat(new File(CONTAINERS.getLogDirectory()),
+        assertThat(new File(getContainers().getLogDirectory()),
                 containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())));
     }
+
+    protected abstract Containers getContainers();
 
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
     private void async(Callable callable) {

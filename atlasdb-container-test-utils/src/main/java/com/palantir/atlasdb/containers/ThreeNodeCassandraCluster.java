@@ -65,6 +65,16 @@ public class ThreeNodeCassandraCluster extends Container {
             .leaders(ImmutableSet.of("localhost"))
             .build());
 
+    private final String cassandraVersion;
+
+    public ThreeNodeCassandraCluster() {
+        this.cassandraVersion = "2.2.8";
+    }
+
+    public ThreeNodeCassandraCluster(String cassandraVersion) {
+        this.cassandraVersion = cassandraVersion;
+    }
+
     @Override
     public String getDockerComposeFile() {
         return "/docker-compose-cassandra-three-node.yml";
@@ -84,7 +94,7 @@ public class ThreeNodeCassandraCluster extends Container {
 
                 // slightly hijacking the isReady function here - using it
                 // to actually modify the cluster
-                cassandraOperations.replicateSystemAuthenticationDataOnAllNodes();
+                cassandraOperations.replicateSystemAuthenticationDataOnAllNodes(cassandraVersion);
 
                 return canCreateCassandraKeyValueService();
             } catch (Exception e) {

@@ -46,12 +46,12 @@ public class ThreeNodeCassandraClusterOperations {
         }
     }
 
-    public void replicateSystemAuthenticationDataOnAllNodes()
+    public void replicateSystemAuthenticationDataOnAllNodes(String cassandraVersion)
             throws IOException, InterruptedException {
-        if (!systemAuthenticationKeyspaceHasReplicationFactorThree()) {
+        if (!systemAuthenticationKeyspaceHasReplicationFactorThree(cassandraVersion)) {
             setReplicationFactorOfSystemAuthenticationKeyspaceToThree();
             runNodetoolRepair();
-            if (!systemAuthenticationKeyspaceHasReplicationFactorThree()) {
+            if (!systemAuthenticationKeyspaceHasReplicationFactorThree(cassandraVersion)) {
                 throw new IllegalStateException("Replication factor is still not 3!");
             }
         }
@@ -67,17 +67,20 @@ public class ThreeNodeCassandraClusterOperations {
                 + "WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 3};");
     }
 
-    private boolean systemAuthenticationKeyspaceHasReplicationFactorThree()
+    private boolean systemAuthenticationKeyspaceHasReplicationFactorThree(String cassandraVersion)
             throws IOException, InterruptedException {
-        String getAllKeyspaces = getCqlQueryForCurrentlyRunningCassandra();
+        String getAllKeyspaces = getCqlQueryForCurrentlyRunningCassandra(cassandraVersion);
         String output = runCql(getAllKeyspaces);
         int replicationFactor = CassandraCliParser.parseSystemAuthReplicationFromCqlsh(output);
         return replicationFactor == 3;
     }
 
-    private String getCqlQueryForCurrentlyRunningCassandra() {
-        //        String output = runCql("SELECT * FROM system.schema_keyspaces;"); // 2.2.8
-        return "SELECT * FROM system_schema.keyspaces;"; // 3.7
+    private String getCqlQueryForCurrentlyRunningCassandra(String cassandraVersion) {
+        if (cassandraVersion.equals("3.7")) {
+            return "SELECT * FROM system_schema.keyspaces;"; // 3.7
+        } else {
+            return "SELECT * FROM system.schema_keyspaces;"; // 2.2.8
+        }
     }
 
     private String runCql(String cql) throws IOException, InterruptedException {

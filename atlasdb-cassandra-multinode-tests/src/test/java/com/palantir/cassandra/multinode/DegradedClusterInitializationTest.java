@@ -37,15 +37,15 @@ import com.palantir.docker.compose.connection.DockerPort;
 public class DegradedClusterInitializationTest {
     private static final String CASSANDRA_NODE_TO_KILL = ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME;
 
-    private static String cassandraVersion = "3.7";
+    private static String cassandraVersion = "2.2.8";
 
     private static DockerMachine dockerMachine = DockerMachine.localMachine()
             .withAdditionalEnvironmentVariable("CASSANDRA_VERSION", cassandraVersion)
             .build();
 
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraSchemaLockTest.class, dockerMachine)
-            .with(new ThreeNodeCassandraCluster());
+    public static final Containers CONTAINERS = new Containers(DegradedClusterInitializationTest.class, dockerMachine)
+            .with(new ThreeNodeCassandraCluster(cassandraVersion));
 
     @BeforeClass
     public static void initializeKvsAndDegradeCluster() throws IOException, InterruptedException {
