@@ -173,12 +173,14 @@ public class KvsMigrationCommand implements Callable<Integer> {
     private KeyValueServiceMigrator getMigrator(AtlasDbServices fromServices, AtlasDbServices toServices)
             throws IOException {
         //TODO: this timestamp will have to be stored for online migration
-        Supplier<Long> migrationTimestampSupplier = Suppliers.ofInstance(toServices
+        Supplier<Long> migrationTimestampSupplier = Suppliers.ofInstance(fromServices
                 .getTimestampService()
                 .getFreshTimestamp());
-        toServices.getTransactionService().putUnlessExists(migrationTimestampSupplier.get(), toServices
-                .getTimestampService()
-                .getFreshTimestamp());
+
+        long migrationCommitTimestamp = fromServices.getTimestampService().getFreshTimestamp();
+        toServices.getTransactionService().putUnlessExists(migrationTimestampSupplier.get(), migrationCommitTimestamp);
+        toServices.getTimestampService().fastForwardTimestamp(migrationCommitTimestamp + 1);
+
         return new KeyValueServiceMigrator(
                 CHECKPOINT_NAMESPACE,
                 fromServices.getTransactionManager(),
