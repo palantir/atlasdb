@@ -51,7 +51,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1171>`__)
 
     *    - |improved|
-         - CLIs now output to standard out and standard error as well as the longs while running.  This should
+         - CLIs now output to standard out and standard error as well as the logs while running.  This should
            greatly improve usability for service admins using the CLIs.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1177>`__)
 

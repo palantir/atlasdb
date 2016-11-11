@@ -32,6 +32,6 @@ public class OutputPrinter {
 
     public void error(String message, Object... args) {
         logger.error(message, args);
-        System.err.println(MessageFormatter.arrayFormat(message, args));
+        System.err.println(MessageFormatter.arrayFormat(message, args).getMessage());
     }
 }
