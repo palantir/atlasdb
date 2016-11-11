@@ -24,9 +24,9 @@ import com.google.common.base.Preconditions;
 import io.dropwizard.Configuration;
 
 public class TimeLockServerConfiguration extends Configuration {
+    private final AtomixConfiguration atomix;
     private final ClusterConfiguration cluster;
     private final Set<String> clients;
-    private final AtomixConfiguration atomix;
 
     public TimeLockServerConfiguration(
             @JsonProperty(value = "atomix", required = false) AtomixConfiguration atomix,

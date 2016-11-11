@@ -51,7 +51,7 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
                         .withDirectory(configuration.atomix().storageDirectory())
                         .withStorageLevel(configuration.atomix().storageLevel())
                         .build())
-                .withTransport(createTransport(configuration.cluster().security()))
+                .withTransport(createTransport(configuration.atomix().security()))
                 .build();
 
         localNode.bootstrap(configuration.cluster().servers()).join();
