@@ -126,9 +126,10 @@ public class AtomixTimestampServiceTest {
     }
 
     @Test
-    public void shouldNotTryToUpdateTimestampWithIncorrectCurrentValue() {
+    public void shouldNotUpdateTimestampWithIncorrectCurrentValue() {
         long currentTimestamp = timestampService.getFreshTimestamp();
-        assertThat(timestampService.attemptTimestampUpdate(currentTimestamp, currentTimestamp - 1)).isEqualTo(false);
+        assertThat(timestampService.attemptTimestampUpdate(currentTimestamp + 5, currentTimestamp + 1))
+                .isEqualTo(false);
     }
 
     @Test
