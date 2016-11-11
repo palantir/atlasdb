@@ -15,10 +15,13 @@
  */
 package com.palantir.atlasdb.timelock.config;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.remoting.ssl.SslConfiguration;
 
 import io.atomix.copycat.server.storage.StorageLevel;
 
@@ -27,6 +30,8 @@ import io.atomix.copycat.server.storage.StorageLevel;
 @Value.Immutable
 public abstract class AtomixConfiguration {
     public static final AtomixConfiguration DEFAULT = ImmutableAtomixConfiguration.builder().build();
+
+    public abstract Optional<SslConfiguration> security();
 
     @Value.Default
     public StorageLevel storageLevel() {

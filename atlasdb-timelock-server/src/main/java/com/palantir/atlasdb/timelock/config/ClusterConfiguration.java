@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.config;
 
-import java.util.Optional;
 import java.util.Set;
 
 import javax.validation.constraints.Size;
@@ -25,7 +24,6 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
-import com.palantir.remoting.ssl.SslConfiguration;
 
 import io.atomix.catalyst.transport.Address;
 
@@ -37,8 +35,6 @@ public abstract class ClusterConfiguration {
 
     @Size(min = 1)
     public abstract Set<Address> servers();
-
-    public abstract Optional<SslConfiguration> security();
 
     @Value.Check
     protected void check() {
