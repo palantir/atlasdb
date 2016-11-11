@@ -27,10 +27,14 @@ do
     CONTAINER_0_EXCLUDE_ARGS="$CONTAINER_0_EXCLUDE_ARGS -x $task"
 done
 
+# Short circuit the build if it's docs only
 check-only-docs-changes.sh
-if [ $? ] && [ $CIRCLE_NODE_INDEX -eq 0 ];then
-    checkDocsBuild
-    exit
+if [ $? ]; then
+    if [ $CIRCLE_NODE_INDEX -eq 0 ]; then
+        checkDocsBuild
+        exit
+    fi
+    exit 0
 fi
 
 case $CIRCLE_NODE_INDEX in
