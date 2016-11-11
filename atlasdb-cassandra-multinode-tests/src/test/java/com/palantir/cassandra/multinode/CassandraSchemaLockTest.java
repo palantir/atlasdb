@@ -49,7 +49,6 @@ import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import com.palantir.docker.compose.connection.DockerMachine;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -57,10 +56,8 @@ public class CassandraSchemaLockTest {
 
     private static String cassandraVersion = System.getenv("CASSANDRA_VERSION");
 
-    private static DockerMachine dockerMachine = DockerMachine.localMachine().build();
-
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraSchemaLockTest.class, dockerMachine)
+    public static final Containers CONTAINERS = new Containers(CassandraSchemaLockTest.class)
             .with(new ThreeNodeCassandraCluster(cassandraVersion));
 
     private static final int THREAD_COUNT = 4;

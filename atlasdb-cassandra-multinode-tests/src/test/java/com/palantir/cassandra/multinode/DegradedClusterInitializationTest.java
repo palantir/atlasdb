@@ -31,7 +31,6 @@ import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.docker.compose.connection.Container;
-import com.palantir.docker.compose.connection.DockerMachine;
 import com.palantir.docker.compose.connection.DockerPort;
 
 public class DegradedClusterInitializationTest {
@@ -39,10 +38,8 @@ public class DegradedClusterInitializationTest {
 
     private static String cassandraVersion = System.getenv("CASSANDRA_VERSION");
 
-    private static DockerMachine dockerMachine = DockerMachine.localMachine().build();
-
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(DegradedClusterInitializationTest.class, dockerMachine)
+    public static final Containers CONTAINERS = new Containers(DegradedClusterInitializationTest.class)
             .with(new ThreeNodeCassandraCluster(cassandraVersion));
 
     @BeforeClass
