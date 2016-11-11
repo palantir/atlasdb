@@ -5,8 +5,6 @@ set -x
 
 DOCS_REPO="docs/"
 
-cd $(dirname $0)
-
 FILES_CHANGED=$(git log --name-only --pretty=format: origin/develop..HEAD)
 
 for word in $FILES_CHANGED
