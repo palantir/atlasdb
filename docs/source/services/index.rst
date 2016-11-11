@@ -10,5 +10,5 @@ each of the services as well as the guarentees they uphold.
    :maxdepth: 2
    :titlesonly:
 
-   key_value_stores/index
+   key_value_services/index
    lock_service/index

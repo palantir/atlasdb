@@ -1,8 +1,8 @@
 .. _oracle-configuration:
 
-======================================
-Oracle Key Value Service Configuration
-======================================
+====================================
+DB KVS (Oracle - beta) Configuration
+====================================
 
 Enabling Oracle for your Application
 ====================================
