@@ -1,8 +1,8 @@
 .. _cassandra-configuration:
 
-=========================================
-Cassandra Key Value Service Configuration
-=========================================
+===========================
+Cassandra KVS Configuration
+===========================
 
 Enabling Cassandra for your Application
 =======================================
