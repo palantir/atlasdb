@@ -120,7 +120,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 clearDelegate();
             } else {
                 leadershipTokenRef.set(leadershipToken);
-                leaderLog.warn("Gained leadership for {}", leadershipToken);
+                leaderLog.info("Gained leadership for {}", leadershipToken);
             }
         } catch (InterruptedException e) {
             log.warn("attempt to gain leadership interrupted", e);
