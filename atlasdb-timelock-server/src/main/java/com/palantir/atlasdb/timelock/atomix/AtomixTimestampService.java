@@ -54,4 +54,25 @@ public class AtomixTimestampService implements TimestampService {
                 lastTimestampHandedOut + 1,
                 lastTimestampHandedOut + numTimestampsRequested);
     }
+
+    public void fastForwardTimestamp(long targetTimestamp) {
+        while (true) {
+            long currentTimestamp = Futures.getUnchecked(timestamp.get());
+            if (currentTimestamp >= targetTimestamp) {
+                return;
+            }
+            if (attemptTimestampUpdate(targetTimestamp, currentTimestamp)) {
+                return;
+            }
+        }
+    }
+
+    @VisibleForTesting
+    boolean attemptTimestampUpdate(long targetTimestamp, long currentTimestamp) {
+        Preconditions.checkArgument(targetTimestamp > currentTimestamp,
+                "Timestamps should not be rolled back. Tried to set the timestamp from %d to %d",
+                currentTimestamp,
+                targetTimestamp);
+        return Futures.getUnchecked(timestamp.compareAndSet(currentTimestamp, targetTimestamp));
+    }
 }
