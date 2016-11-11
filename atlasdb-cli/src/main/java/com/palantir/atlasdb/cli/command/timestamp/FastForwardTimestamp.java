@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.timestamp.FastForwardingTimestampService;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 

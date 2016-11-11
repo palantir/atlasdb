@@ -23,7 +23,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.PTExecutors;
 
 @ThreadSafe
-public class PersistentTimestampService implements TimestampService {
+public class PersistentTimestampService implements FastForwardingTimestampService {
     private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
 
     private final ExecutorService executor;
@@ -77,6 +77,7 @@ public class PersistentTimestampService implements TimestampService {
      *
      * @param newMinimumTimestamp
      */
+    @Override
     public void fastForwardTimestamp(long newMinimumTimestamp) {
         availableTimestamps.fastForwardTo(newMinimumTimestamp);
     }
@@ -90,12 +91,7 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     private void asynchronouslyRefreshBuffer() {
-        executor.submit(new Runnable() {
-            @Override
-            public void run() {
-                availableTimestamps.refreshBuffer();
-            }
-        });
+        executor.submit(availableTimestamps::refreshBuffer);
     }
 
 }
