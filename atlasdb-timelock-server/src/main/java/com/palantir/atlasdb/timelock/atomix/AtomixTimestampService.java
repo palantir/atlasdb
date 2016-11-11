@@ -18,12 +18,12 @@ package com.palantir.atlasdb.timelock.atomix;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Futures;
+import com.palantir.timestamp.FastForwardingTimestampService;
 import com.palantir.timestamp.TimestampRange;
-import com.palantir.timestamp.TimestampService;
 
 import io.atomix.variables.DistributedLong;
 
-public class AtomixTimestampService implements TimestampService {
+public class AtomixTimestampService implements FastForwardingTimestampService {
     /**
      * Maximum number of timestamps that may be granted at once.
      */
@@ -55,6 +55,7 @@ public class AtomixTimestampService implements TimestampService {
                 lastTimestampHandedOut + numTimestampsRequested);
     }
 
+    @Override
     public void fastForwardTimestamp(long targetTimestamp) {
         while (true) {
             long currentTimestamp = Futures.getUnchecked(timestamp.get());
