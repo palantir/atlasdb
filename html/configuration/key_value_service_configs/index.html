@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Lock Service &mdash; AtlasDB develop documentation</title>
+  <title>Key Value Service Configurations &mdash; AtlasDB develop documentation</title>
   
 
   
@@ -38,9 +38,9 @@
               href="../../genindex.html"/>
         <link rel="search" title="Search" href="../../search.html"/>
     <link rel="top" title="AtlasDB develop documentation" href="../../index.html"/>
-        <link rel="up" title="Services" href="../index.html"/>
-        <link rel="next" title="Overview" href="overview.html"/>
-        <link rel="prev" title="Key Value Services" href="../key_value_services/index.html"/> 
+        <link rel="up" title="Configuration" href="../index.html"/>
+        <link rel="next" title="Cassandra KVS Configuration" href="cassandra_key_value_service_config.html"/>
+        <link rel="prev" title="Configuration" href="../index.html"/> 
 
   
   <script src="../../_static/js/modernizr.min.js"></script>
@@ -93,18 +93,21 @@
 <li class="toctree-l1"><a class="reference internal" href="../../overview/index.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../schemas/index.html">Schemas</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../transactions/index.html">Transactions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../configuration/index.html">Configuration</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Configuration</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Key Value Service Configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cassandra_key_value_service_config.html">Cassandra KVS Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="postgres_key_value_service_config.html">DB KVS (Postgres) Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="oracle_key_value_service_config.html">DB KVS (Oracle - beta) Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../cassandra_config.html">Cassandra Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../enabling_cassandra_tracing.html">Enabling Cassandra Tracing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../leader_config.html">Leader Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../logging.html">Logging Configuration</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../cluster_management/index.html">Cluster Management</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Services</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="../key_value_services/index.html">Key Value Services</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Lock Service</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="overview.html">Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="leader_election.html">Palantir Leader Election</a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../../services/index.html">Services</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../performance/index.html">Performance Testing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../miscellaneous/index.html">Miscellaneous</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../troubleshooting/index.html">Troubleshooting</a></li>
@@ -139,13 +142,13 @@
   <ul class="wy-breadcrumbs">
     <li><a href="../../index.html">Docs</a> &raquo;</li>
       
-          <li><a href="../index.html">Services</a> &raquo;</li>
+          <li><a href="../index.html">Configuration</a> &raquo;</li>
       
-    <li>Lock Service</li>
+    <li>Key Value Service Configurations</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/services/lock_service/index.rst" class="fa fa-github"> Edit on GitHub</a>
+            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/configuration/key_value_service_configs/index.rst" class="fa fa-github"> Edit on GitHub</a>
           
         
       </li>
@@ -155,17 +158,14 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="lock-service">
-<h1>Lock Service<a class="headerlink" href="#lock-service" title="Permalink to this headline">¶</a></h1>
-<p>The AtlasDB Lock Service exposes an API to lock clients for acquiring read and read/write locks on data in AtlasDB.
-The Lock Service also supports clustering. When multiple lock services are clustered, they will collaborate to elect a leader
-via the Paxos algorithm.</p>
-<p>A description of Paxos can be found on <a class="reference external" href="https://github.com/palantir/atlasdb/issues/449">Wikipedia</a></p>
+  <div class="section" id="key-value-service-configurations">
+<span id="key-value-service-configs"></span><h1>Key Value Service Configurations<a class="headerlink" href="#key-value-service-configurations" title="Permalink to this headline">¶</a></h1>
+<p>The configurations for supported key value services can be found below.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="leader_election.html">Palantir Leader Election</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cassandra_key_value_service_config.html">Cassandra KVS Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="postgres_key_value_service_config.html">DB KVS (Postgres) Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="oracle_key_value_service_config.html">DB KVS (Oracle - beta) Configuration</a></li>
 </ul>
 </div>
 </div>
@@ -177,10 +177,10 @@ via the Paxos algorithm.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="overview.html" class="btn btn-neutral float-right" title="Overview" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="cassandra_key_value_service_config.html" class="btn btn-neutral float-right" title="Cassandra KVS Configuration" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="../key_value_services/index.html" class="btn btn-neutral" title="Key Value Services" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="../index.html" class="btn btn-neutral" title="Configuration" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

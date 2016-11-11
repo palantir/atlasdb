@@ -8,11 +8,9 @@ Configuration
    :maxdepth: 1
    :titlesonly:
 
+   key_value_service_configs/index
    cassandra_config
    enabling_cassandra_tracing
-   cassandra_KVS_configuration
-   oracle_key_value_service_config
-   postgres_key_value_service_config
    leader_config
    logging
 

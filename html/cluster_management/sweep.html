@@ -248,7 +248,7 @@ You may set them as part of your <a class="reference internal" href="../configur
 <td>5000 ms</td>
 <td>Wait time between row batches. Set this if you want to use less shared DB resources, for example if you run sweep during user-facing hours.</td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> (Cassandra KVS only, see <a class="reference internal" href="../configuration/cassandra_KVS_configuration.html#cassandra-configuration"><span class="std std-ref">Cassandra KVS config</span></a>)</td>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> (Cassandra KVS only, see <a class="reference internal" href="../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-configuration"><span class="std std-ref">Cassandra KVS config</span></a>)</td>
 <td>Only specified in config</td>
 <td>Fetch all columns</td>
 <td>Specify a limit on the maximum number of columns to fetch in a single database query. Set this to a number fewer than your number of columns if your Cassandra OOMs when attempting to run sweep with even a small row batch size. This parameter should be used when tuning Sweep for cells with many historical versions.</td>

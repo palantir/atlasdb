@@ -380,7 +380,7 @@ This fixes the issue where running the CLIs would cause a <code class="docutils 
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td><p class="first">Oracle is supported via DBKVS if you have runtime dependency on an Oracle driver that resolves the JsonType &#8220;jdbcHandler&#8221;.
 Due to an Oracle limitation, all table names in the schema must be less than 30 characters long.</p>
-<p class="last">See <a class="reference internal" href="../configuration/oracle_key_value_service_config.html#oracle-configuration"><span class="std std-ref">Oracle KVS Configuration</span></a> for details on how to configure your service to use Oracle.
+<p class="last">See <a class="reference internal" href="../configuration/key_value_service_configs/oracle_key_value_service_config.html#oracle-configuration"><span class="std std-ref">Oracle KVS Configuration</span></a> for details on how to configure your service to use Oracle.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/985">Pull Request</a>)</p>
 </td>
 </tr>
@@ -495,7 +495,7 @@ Historical versions of the metadata entry before the most recent one are <strong
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Users of DBKVS can now set arbitrary connection parameters.
 This is useful if, for example, you wish to boost performance by adjusting the default batch size for fetching rows from the underlying database.
-See the <a class="reference internal" href="../configuration/postgres_key_value_service_config.html#postgres-configuration"><span class="std std-ref">documentation</span></a> for how to set these parameters, and <a class="reference external" href="https://jdbc.postgresql.org/documentation/head/connect.html">the JDBC docs</a> for a full list.
+See the <a class="reference internal" href="../configuration/key_value_service_configs/postgres_key_value_service_config.html#postgres-configuration"><span class="std std-ref">documentation</span></a> for how to set these parameters, and <a class="reference external" href="https://jdbc.postgresql.org/documentation/head/connect.html">the JDBC docs</a> for a full list.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1001">Pull Request</a>)</td>
 </tr>
 </tbody>
@@ -554,7 +554,7 @@ apply configurations to the embedded LockServer instance running in the product.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/984">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td><a class="reference internal" href="../configuration/cassandra_KVS_configuration.html#cassandra-sweep-config"><span class="std std-ref">Column paging Sweep</span></a> (in beta) correctly handles cases where table names have both upper and lowercase characters and cases where sweep is run multiple times on the same table.
+<td><a class="reference internal" href="../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-sweep-config"><span class="std std-ref">Column paging Sweep</span></a> (in beta) correctly handles cases where table names have both upper and lowercase characters and cases where sweep is run multiple times on the same table.
 If you are using the regular implementation of Sweep (i.e. you do not specify <code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> in your AtlasDB config), then you are not affected.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/951">Pull Request</a>)</td>
 </tr>
@@ -590,7 +590,7 @@ No operations can be performed using the TransactionManager once it is closed.
 </td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
-<td><p class="first"><a class="reference internal" href="../schemas/physical_cleanup.html#physical-cleanup-sweep"><span class="std std-ref">AtlasDB Sweep</span></a> now uses <a class="reference internal" href="../configuration/cassandra_KVS_configuration.html#cassandra-sweep-config"><span class="std std-ref">column paging</span></a> via the <code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> parameter to better handle sweeping cells with many historical versions.</p>
+<td><p class="first"><a class="reference internal" href="../schemas/physical_cleanup.html#physical-cleanup-sweep"><span class="std std-ref">AtlasDB Sweep</span></a> now uses <a class="reference internal" href="../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-sweep-config"><span class="std std-ref">column paging</span></a> via the <code class="docutils literal"><span class="pre">timestampsGetterBatchSize</span></code> parameter to better handle sweeping cells with many historical versions.</p>
 <p class="last">By paging over historical versions of cells during sweeping, we can avoid out of memory exceptions in Cassandra when we have particularly large cells or many historical versions of cells.
 This feature is only implemented for Cassandra KVS and is disabled by default; please reach out to the AtlasDB dev team if you would like to enable it.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/834">Pull Request</a>)</p>
@@ -689,7 +689,7 @@ Removed the advice to restart the client, as it will not help in this scenario.
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Connections to Cassandra can be established over arbitrary ports.
-Previously AtlasDB clients would assume the default Cassandra port of 9160 despite what is specified in the <a class="reference internal" href="../configuration/cassandra_KVS_configuration.html#cassandra-kvs-config"><span class="std std-ref">Cassandra keyValueService configuration</span></a>.
+Previously AtlasDB clients would assume the default Cassandra port of 9160 despite what is specified in the <a class="reference internal" href="../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-kvs-config"><span class="std std-ref">Cassandra keyValueService configuration</span></a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/771">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
@@ -989,7 +989,7 @@ You will need to regenerate your schema code in order to see this fix.
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB can now be backed by Postgres via DB KVS. This is a very early release for this feature, so please contact us if you
-plan on using it. Please see <a class="reference internal" href="../configuration/postgres_key_value_service_config.html#postgres-configuration"><span class="std std-ref">the documentation</span></a> for more details.</td>
+plan on using it. Please see <a class="reference internal" href="../configuration/key_value_service_configs/postgres_key_value_service_config.html#postgres-configuration"><span class="std std-ref">the documentation</span></a> for more details.</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The In Memory Key Value Service now makes defensive copies of any data stored or retrieved. This may lead to a slight performance degradation to users of In Memory Key Value Service.
