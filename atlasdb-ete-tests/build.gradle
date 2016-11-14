@@ -53,6 +53,16 @@ test {
     exclude '**/*EteTest.class'
 }
 
+longTest.doFirst {
+    println "Using cassandra version $cassVer"
+    environment "CASSANDRA_VERSION", "$cassVer"
+}
+
+test.doFirst {
+    println "Using cassandra version $cassVer"
+    environment "CASSANDRA_VERSION", "$cassVer"
+}
+
 distribution {
     serviceName 'atlasdb-ete'
     mainClass 'com.palantir.atlasdb.AtlasDbEteServer'
