@@ -36,11 +36,9 @@ import com.palantir.docker.compose.connection.DockerPort;
 public class DegradedClusterInitializationTest {
     private static final String CASSANDRA_NODE_TO_KILL = ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME;
 
-    private static String cassandraVersion = System.getenv("CASSANDRA_VERSION");
-
     @ClassRule
     public static final Containers CONTAINERS = new Containers(DegradedClusterInitializationTest.class)
-            .with(new ThreeNodeCassandraCluster(cassandraVersion));
+            .with(new ThreeNodeCassandraCluster());
 
     @BeforeClass
     public static void initializeKvsAndDegradeCluster() throws IOException, InterruptedException {

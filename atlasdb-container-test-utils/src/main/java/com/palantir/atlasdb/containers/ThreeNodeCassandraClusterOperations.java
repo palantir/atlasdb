@@ -29,10 +29,12 @@ public class ThreeNodeCassandraClusterOperations {
     private static final int NODETOOL_STATUS_TIMEOUT_SECONDS = 10;
     private static final int NODETOOL_REPAIR_TIMEOUT_SECONDS = 999;
 
-    DockerComposeRule dockerComposeRule;
+    private DockerComposeRule dockerComposeRule;
+    private String cassandraVersion;
 
-    public ThreeNodeCassandraClusterOperations(DockerComposeRule dockerComposeRule) {
+    public ThreeNodeCassandraClusterOperations(DockerComposeRule dockerComposeRule, String cassandraVersion) {
         this.dockerComposeRule = dockerComposeRule;
+        this.cassandraVersion = cassandraVersion;
     }
 
     public boolean nodetoolShowsThreeCassandraNodesUp() {
@@ -46,12 +48,12 @@ public class ThreeNodeCassandraClusterOperations {
         }
     }
 
-    public void replicateSystemAuthenticationDataOnAllNodes(String cassandraVersion)
+    public void replicateSystemAuthenticationDataOnAllNodes()
             throws IOException, InterruptedException {
-        if (!systemAuthenticationKeyspaceHasReplicationFactorThree(cassandraVersion)) {
+        if (!systemAuthenticationKeyspaceHasReplicationFactorThree()) {
             setReplicationFactorOfSystemAuthenticationKeyspaceToThree();
             runNodetoolRepair();
-            if (!systemAuthenticationKeyspaceHasReplicationFactorThree(cassandraVersion)) {
+            if (!systemAuthenticationKeyspaceHasReplicationFactorThree()) {
                 throw new IllegalStateException("Replication factor is still not 3!");
             }
         }
@@ -67,15 +69,15 @@ public class ThreeNodeCassandraClusterOperations {
                 + "WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 3};");
     }
 
-    private boolean systemAuthenticationKeyspaceHasReplicationFactorThree(String cassandraVersion)
+    private boolean systemAuthenticationKeyspaceHasReplicationFactorThree()
             throws IOException, InterruptedException {
-        String getAllKeyspaces = getCqlQueryForCurrentlyRunningCassandra(cassandraVersion);
+        String getAllKeyspaces = getCqlQueryForCurrentlyRunningCassandra();
         String output = runCql(getAllKeyspaces);
         int replicationFactor = CassandraCliParser.parseSystemAuthReplicationFromCqlsh(output);
         return replicationFactor == 3;
     }
 
-    private String getCqlQueryForCurrentlyRunningCassandra(String cassandraVersion) {
+    private String getCqlQueryForCurrentlyRunningCassandra() {
         if (cassandraVersion.equals("3.7")) {
             return "SELECT * FROM system_schema.keyspaces;"; // 3.7
         } else {

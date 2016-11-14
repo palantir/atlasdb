@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -68,11 +69,10 @@ public class ThreeNodeCassandraCluster extends Container {
     private final String cassandraVersion;
 
     public ThreeNodeCassandraCluster() {
-        this.cassandraVersion = "2.2.8";
-    }
-
-    public ThreeNodeCassandraCluster(String cassandraVersion) {
-        this.cassandraVersion = cassandraVersion;
+        String customCassandraVersion = System.getenv("CASSANDRA_VERSION");
+        this.cassandraVersion = (Strings.isNullOrEmpty(customCassandraVersion))
+                ? "2.2.8"
+                : customCassandraVersion;
     }
 
     @Override
@@ -86,7 +86,7 @@ public class ThreeNodeCassandraCluster extends Container {
 
             try {
                 ThreeNodeCassandraClusterOperations cassandraOperations =
-                        new ThreeNodeCassandraClusterOperations(rule);
+                        new ThreeNodeCassandraClusterOperations(rule, cassandraVersion);
 
                 if (!cassandraOperations.nodetoolShowsThreeCassandraNodesUp()) {
                     return false;
@@ -94,7 +94,7 @@ public class ThreeNodeCassandraCluster extends Container {
 
                 // slightly hijacking the isReady function here - using it
                 // to actually modify the cluster
-                cassandraOperations.replicateSystemAuthenticationDataOnAllNodes(cassandraVersion);
+                cassandraOperations.replicateSystemAuthenticationDataOnAllNodes();
 
                 return canCreateCassandraKeyValueService();
             } catch (Exception e) {

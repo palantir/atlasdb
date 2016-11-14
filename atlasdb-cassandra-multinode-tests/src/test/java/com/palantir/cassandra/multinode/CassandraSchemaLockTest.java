@@ -53,14 +53,11 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CassandraSchemaLockTest {
-
-    private static String cassandraVersion = System.getenv("CASSANDRA_VERSION");
+    private static final int THREAD_COUNT = 4;
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraSchemaLockTest.class)
-            .with(new ThreeNodeCassandraCluster(cassandraVersion));
-
-    private static final int THREAD_COUNT = 4;
+            .with(new ThreeNodeCassandraCluster());
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
 
