@@ -13,7 +13,7 @@ dependencies {
           exclude group: 'com.google.dagger', module: 'dagger'
       }
   }
-  processor group: 'org.immutables', name: 'value', version: libVersions.immutables
+  processor group: 'org.immutables', name: 'value'
 
   shadow project(':atlasdb-service')
 }

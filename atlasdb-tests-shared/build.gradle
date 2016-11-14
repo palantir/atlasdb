@@ -10,7 +10,9 @@ dependencies {
   testCompile project(":atlasdb-config")
 
   compile group: 'com.netflix.feign', name: 'feign-jackson'
-  compile group: 'com.netflix.feign', name: 'feign-jaxrs'
+  compile (group: 'com.netflix.feign', name: 'feign-jaxrs') {
+    exclude module: 'jsr311-api'
+  }
 
   compile group: 'junit', name: 'junit'
   compile group: 'org.hamcrest', name: 'hamcrest-core'

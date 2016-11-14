@@ -99,10 +99,10 @@ public class DegradedClusterInitializationTest {
     private static boolean startupChecksPass() {
         CassandraKeyValueServiceConfigManager manager = CassandraKeyValueServiceConfigManager.createSimpleManager(
                 ThreeNodeCassandraCluster.KVS_CONFIG);
-        CassandraClientPool pool = new CassandraClientPool(manager.getConfig());
         try {
-            pool.runOneTimeStartupChecks();
-        } catch (RuntimeException e) {
+            // startup checks are done implicitly in the constructor
+            new CassandraClientPool(manager.getConfig());
+        } catch (Exception e) {
             return false;
         }
         return true;

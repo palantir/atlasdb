@@ -34,10 +34,10 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
-import com.palantir.atlasdb.keyvalue.dbkvs.TableMappingNotFoundException;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
+import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.palantir.nexus.db.sql.SqlConnection;
@@ -66,7 +66,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
             ConnectionSupplier conns,
             TableReference tableRef) {
         OracleTableNameGetter oracleTableNameGetter =
-                new OracleTableNameGetter(conns, config.tablePrefix(), config.overflowTablePrefix(), tableRef);
+                new OracleTableNameGetter(config, conns, tableRef);
         OverflowSequenceSupplier sequenceSupplier = OverflowSequenceSupplier.create(conns, config.tablePrefix());
         return new OracleOverflowWriteTable(config, conns, sequenceSupplier, oracleTableNameGetter);
     }

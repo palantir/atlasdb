@@ -19,12 +19,12 @@ import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
-import com.palantir.atlasdb.keyvalue.dbkvs.TableMappingNotFoundException;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleRawQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleTableInitializer;
+import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.nexus.db.DBType;
 
 public class OracleDbTableFactory implements DbTableFactory {
@@ -51,9 +51,7 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns) {
-        OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(conns, config.tablePrefix(),
-                config.overflowTablePrefix(), tableRef);
-
+        OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(config, conns, tableRef);
         TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
         DbQueryFactory queryFactory;
         String shortTableName = getTableName(oracleTableNameGetter);

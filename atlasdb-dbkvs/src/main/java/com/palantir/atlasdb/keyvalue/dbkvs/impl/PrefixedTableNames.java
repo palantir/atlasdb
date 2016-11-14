@@ -20,7 +20,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
-import com.palantir.atlasdb.keyvalue.dbkvs.TableMappingNotFoundException;
+import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 
 public class PrefixedTableNames {
     private DdlConfig config;
@@ -41,11 +41,7 @@ public class PrefixedTableNames {
     private String getOraclePrefixedTableName(TableReference tableRef) {
         OracleDdlConfig oracleConfig = (OracleDdlConfig) config;
         try {
-            OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(
-                    conns,
-                    oracleConfig.tablePrefix(),
-                    oracleConfig.overflowTablePrefix(),
-                    tableRef);
+            OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(oracleConfig, conns, tableRef);
             return oracleTableNameGetter.getInternalShortTableName();
         } catch (TableMappingNotFoundException e) {
             throw Throwables.propagate(e);

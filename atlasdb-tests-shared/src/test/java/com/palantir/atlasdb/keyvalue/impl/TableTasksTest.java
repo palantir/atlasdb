@@ -30,7 +30,6 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -152,24 +151,5 @@ public class TableTasksTest {
         Assert.assertEquals(commonRows, rowsCompletelyInCommon.get());
         Assert.assertEquals(partialRows, rowsPartiallyInCommon.get());
         Assert.assertEquals(keys1.keySet().size(), rowsVisited.get());
-    }
-
-    @Test
-    public void shouldAllowSameTablenameDifferentNamespace() {
-        TableReference fooBar = TableReference.createFromFullyQualifiedName("foo.bar");
-        TableReference bazBar = TableReference.createFromFullyQualifiedName("baz.bar");
-
-        // try create table in same call
-        kvs.createTables(
-                ImmutableMap.of(
-                        fooBar, AtlasDbConstants.GENERIC_TABLE_METADATA,
-                        bazBar, AtlasDbConstants.GENERIC_TABLE_METADATA));
-
-        // try create table spanned over different calls
-        kvs.createTable(fooBar, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        kvs.createTable(bazBar, AtlasDbConstants.GENERIC_TABLE_METADATA);
-
-        // Simultaneously clean up this test and ensure that tables actually were created
-        kvs.dropTables(ImmutableSet.of(fooBar, bazBar));
     }
 }

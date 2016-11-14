@@ -211,8 +211,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     + " an existing correctness bug with semi-complex column selections");
         }
 
-        clientPool.runOneTimeStartupChecks();
-
         boolean supportsCas = !configManager.getConfig().scyllaDb()
                 && clientPool.runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
 

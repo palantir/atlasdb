@@ -69,7 +69,7 @@ import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractSweeperTest {
-    protected static final TableReference TABLE_NAME = TableReference.createWithEmptyNamespace("test_table_for_atlasdb_sweeper");
+    protected static final TableReference TABLE_NAME = TableReference.createFromFullyQualifiedName("test_table.xyz_atlasdb_sweeper_test");
     private static final String COL = "c";
     protected static final int DEFAULT_BATCH_SIZE = 1000;
     protected static final int DEFAULT_CELL_BATCH_SIZE = 1_000_000;

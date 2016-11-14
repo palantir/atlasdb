@@ -41,7 +41,7 @@ public class AvailableTimestamps {
                 MAX_TIMESTAMPS_TO_HAND_OUT, numberToHandOut);
 
         long targetTimestamp = lastHandedOut() + numberToHandOut;
-        DebugLogger.logger.info("Handing out {} timestamps, taking us to {}.", numberToHandOut, targetTimestamp);
+        DebugLogger.logger.trace("Handing out {} timestamps, taking us to {}.", numberToHandOut, targetTimestamp);
         return handOutTimestamp(targetTimestamp);
     }
 
@@ -50,13 +50,13 @@ public class AvailableTimestamps {
         long buffer = currentUpperLimit - lastHandedOut();
 
         if (buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, MINUTES)) {
-            DebugLogger.logger.info(
+            DebugLogger.logger.trace(
                     "refreshBuffer: refreshing and allocating timestamps. Buffer {}, Current upper limit {}.",
                     buffer,
                     currentUpperLimit);
             allocateEnoughTimestampsToHandOut(lastHandedOut() + ALLOCATION_BUFFER_SIZE);
         } else {
-            DebugLogger.logger.info("refreshBuffer: refreshing, but not allocating");
+            DebugLogger.logger.trace("refreshBuffer: refreshing, but not allocating");
         }
     }
 
@@ -84,9 +84,11 @@ public class AvailableTimestamps {
     }
 
     private void allocateEnoughTimestampsToHandOut(long timestamp) {
-        DebugLogger.logger.info("Increasing limit to at least {}.", timestamp);
+        DebugLogger.logger.trace("Increasing limit to at least {}.", timestamp);
         upperLimit.increaseToAtLeast(timestamp);
-        DebugLogger.logger.info("Increased to at least {}. Limit is now {}.", timestamp, getUpperLimit());
+        if (DebugLogger.logger.isTraceEnabled()) {
+            DebugLogger.logger.trace("Increased to at least {}. Limit is now {}.", timestamp, getUpperLimit());
+        }
     }
 
     public long getUpperLimit() {

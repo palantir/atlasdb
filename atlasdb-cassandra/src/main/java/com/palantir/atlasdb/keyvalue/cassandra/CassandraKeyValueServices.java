@@ -125,7 +125,7 @@ public final class CassandraKeyValueServices {
     static void warnUserInInitializationIfClusterAlreadyInInconsistentState(
             CassandraClientPool clientPool,
             CassandraKeyValueServiceConfig config) {
-        String errorMessage = "While checking the cassandra cluster during initialization, we noticed schema versions"
+        String warnMessage = "While checking the cassandra cluster during initialization, we noticed schema versions"
                 + " could not settle. Be aware that some operations will not work while you are in your current"
                 + " cluster status.";
         try {
@@ -137,8 +137,8 @@ public final class CassandraKeyValueServices {
                         true);
                 return null;
             });
-        } catch (TException e) {
-            throw new RuntimeException(errorMessage, e);
+        } catch (Exception e) {
+            log.warn("Failed to retrieve current Cassandra cluster schema status.", e);
         }
     }
 
