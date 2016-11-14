@@ -46,6 +46,10 @@ develop
            potentially long pauses that could previously occur when closing a ``Cleaner``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1232>`__)
 
+    *    - |improved|
+         - Oracle perf improvement; table names now cached, resulting in fewer round trips to the database.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1215>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
