@@ -15,7 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import java.sql.SQLException;
 import java.util.concurrent.ExecutionException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -27,15 +31,19 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
+import com.palantir.nexus.db.sql.SqlConnection;
 
 class OracleTableNameUnmapper {
+    private static final Logger log = LoggerFactory.getLogger(OracleTableNameUnmapper.class);
+
     private final ConnectionSupplier conns;
 
     private LoadingCache<String, String> unmappingCache = CacheBuilder.newBuilder().build(
             new CacheLoader<String, String>() {
                 @Override
                 public String load(String fullTableName) throws Exception {
-                    AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
+                    SqlConnection conn = conns.getFresh();
+                    AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
                             "SELECT short_table_name "
                                     + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
                                     + " WHERE table_name = ?", fullTableName);
@@ -44,7 +52,15 @@ class OracleTableNameUnmapper {
                                 "The table " + fullTableName + " does not have a mapping."
                                         + "This might be because the table does not exist.");
                     }
-                    return Iterables.getOnlyElement(results.rows()).getString("short_table_name");
+                    String mappedName = Iterables.getOnlyElement(results.rows()).getString("short_table_name");
+
+                    try {
+                        conn.getUnderlyingConnection().close();
+                    } catch (SQLException e) {
+                        log.error("Couldn't cleanup SQL connection while performing table name unmapping.", e);
+                    }
+
+                    return mappedName;
                 }
             }
     );
