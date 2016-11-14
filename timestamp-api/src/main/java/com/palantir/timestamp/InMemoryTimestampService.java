@@ -43,14 +43,12 @@ public class InMemoryTimestampService implements TimestampService, TimestampAdmi
 
     @Override
     public void fastForwardTimestamp(long newMinimumTimestamp) {
-        while (true) {
-            long currentValue = counter.get();
-            if (currentValue > newMinimumTimestamp) {
-                return;
-            }
+        long currentValue = counter.get();
+        while (currentValue < newMinimumTimestamp) {
             if (counter.compareAndSet(currentValue, newMinimumTimestamp)) {
                 return;
             }
+            currentValue = counter.get();
         }
     }
 }
