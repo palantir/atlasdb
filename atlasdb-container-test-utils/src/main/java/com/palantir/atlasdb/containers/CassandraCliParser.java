@@ -21,20 +21,12 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
 public final class CassandraCliParser {
     private static final Logger log = LoggerFactory.getLogger(CassandraCliParser.class);
 
-    private static final String REPLICATION_REGEX_2_X = "^.*\"replication_factor\":\"(\\d+)\"\\}$";
-    private static final String REPLICATION_REGEX_3_X = "^.*'replication_factor': '(\\d+)'\\}$";
+    private final CassandraVersion cassandraVersion;
 
-    private final String cassandraVersion;
-
-    public CassandraCliParser(String cassandraVersion) {
-        Preconditions.checkArgument(isSupported(cassandraVersion),
-                "Unsupported Cassandra version {} passed to CassandraCliParser",
-                cassandraVersion);
+    public CassandraCliParser(CassandraVersion cassandraVersion) {
         this.cassandraVersion = cassandraVersion;
     }
 
@@ -42,7 +34,7 @@ public final class CassandraCliParser {
         try {
             for (String line : output.split("\n")) {
                 if (line.contains("system_auth")) {
-                    String replicationRegex = getReplicationRegex();
+                    String replicationRegex = cassandraVersion.replicationFactorRegex();
                     Matcher matcher = Pattern.compile(replicationRegex).matcher(line);
                     matcher.find();
                     return Integer.parseInt(matcher.group(1));
@@ -66,13 +58,5 @@ public final class CassandraCliParser {
             }
         }
         return upNodes;
-    }
-
-    private static boolean isSupported(String cassandraVersion) {
-        return cassandraVersion.startsWith("2.2.") || cassandraVersion.startsWith("3.");
-    }
-
-    private String getReplicationRegex() {
-        return cassandraVersion.startsWith("2.2.") ? REPLICATION_REGEX_2_X : REPLICATION_REGEX_3_X;
     }
 }

@@ -27,17 +27,17 @@ public class CassandraCliParserTest {
 
     @Before
     public void setUp() throws Exception {
-        parser = new CassandraCliParser("2.2.8");
+        parser = new CassandraCliParser(CassandraVersion.from("2.2.8"));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void cannotCreateUnsupportedParser() {
-        new CassandraCliParser("1.2.19");
+        new CassandraCliParser(CassandraVersion.from("1.2.19"));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void cannotCreateFutureParser() {
-        new CassandraCliParser("4.0");
+        new CassandraCliParser(CassandraVersion.from("4.0"));
     }
 
     @Test
@@ -102,7 +102,7 @@ public class CassandraCliParserTest {
     @Test
     @SuppressWarnings("checkstyle:LineLength")
     public void parsesReplicationFactorOfSystemAuthKeyspace_3_7() {
-        CassandraCliParser parserThreeSeven = new CassandraCliParser("3.7");
+        CassandraCliParser parserThreeSeven = new CassandraCliParser(CassandraVersion.from("3.7"));
 
         String output = "\n"
                 + " keyspace_name      | durable_writes | replication\n"

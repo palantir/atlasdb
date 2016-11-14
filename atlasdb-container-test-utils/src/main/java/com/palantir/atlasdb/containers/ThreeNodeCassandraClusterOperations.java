@@ -28,15 +28,14 @@ public class ThreeNodeCassandraClusterOperations {
     private static final Logger log = LoggerFactory.getLogger(ThreeNodeCassandraClusterOperations.class);
     private static final int NODETOOL_STATUS_TIMEOUT_SECONDS = 10;
     private static final int NODETOOL_REPAIR_TIMEOUT_SECONDS = 999;
+    private static final CassandraVersion CASSANDRA_VERSION = CassandraVersion.fromEnvironment();
 
     private final DockerComposeRule dockerComposeRule;
     private final CassandraCliParser cassandraCliParser;
-    private final String cassandraVersion;
 
-    public ThreeNodeCassandraClusterOperations(DockerComposeRule dockerComposeRule, String cassandraVersion) {
+    public ThreeNodeCassandraClusterOperations(DockerComposeRule dockerComposeRule) {
         this.dockerComposeRule = dockerComposeRule;
-        this.cassandraVersion = cassandraVersion;
-        this.cassandraCliParser = new CassandraCliParser(cassandraVersion);
+        this.cassandraCliParser = new CassandraCliParser(CASSANDRA_VERSION);
     }
 
     public boolean nodetoolShowsThreeCassandraNodesUp() {
@@ -70,18 +69,10 @@ public class ThreeNodeCassandraClusterOperations {
 
     private boolean systemAuthenticationKeyspaceHasReplicationFactorThree()
             throws IOException, InterruptedException {
-        String getAllKeyspaces = getCqlQueryForCurrentlyRunningCassandra();
+        String getAllKeyspaces = CASSANDRA_VERSION.getAllKeyspacesCql();
         String output = runCql(getAllKeyspaces);
         int replicationFactor = cassandraCliParser.parseSystemAuthReplicationFromCqlsh(output);
         return replicationFactor == 3;
-    }
-
-    private String getCqlQueryForCurrentlyRunningCassandra() {
-        if (cassandraVersion.startsWith("2.2.")) {
-            return "SELECT * FROM system.schema_keyspaces;";
-        } else {
-            return "SELECT * FROM system_schema.keyspaces;";
-        }
     }
 
     private String runCql(String cql) throws IOException, InterruptedException {

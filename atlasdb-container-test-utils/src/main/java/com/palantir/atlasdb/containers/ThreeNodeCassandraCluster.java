@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -66,10 +65,6 @@ public class ThreeNodeCassandraCluster extends Container {
             .leaders(ImmutableSet.of("localhost"))
             .build());
 
-    private static final String CASSANDRA_VERSION = Strings.isNullOrEmpty(System.getenv("CASSANDRA_VERSION"))
-            ? "2.2.8"
-            : System.getenv("CASSANDRA_VERSION");
-
     @Override
     public String getDockerComposeFile() {
         return "/docker-compose-cassandra-three-node.yml";
@@ -81,7 +76,7 @@ public class ThreeNodeCassandraCluster extends Container {
 
             try {
                 ThreeNodeCassandraClusterOperations cassandraOperations =
-                        new ThreeNodeCassandraClusterOperations(rule, CASSANDRA_VERSION);
+                        new ThreeNodeCassandraClusterOperations(rule);
 
                 if (!cassandraOperations.nodetoolShowsThreeCassandraNodesUp()) {
                     return false;
