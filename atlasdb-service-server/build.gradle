@@ -12,7 +12,7 @@ dependencies {
     runtime project(':atlasdb-rocksdb')
     runtime project(':atlasdb-cassandra')
 
-    compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
+    compile group: 'io.dropwizard', name: 'dropwizard-core'
 
     testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
 }
