@@ -5,7 +5,7 @@ dependencies {
     compile project(':atlasdb-config')
     compile project(':atlasdb-console')
 
-    compile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.dropwizard
+    compile group: 'io.dropwizard', name: 'dropwizard-core'
 
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile group: 'org.mockito', name: 'mockito-core'
