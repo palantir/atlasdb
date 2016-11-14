@@ -29,9 +29,9 @@ public class ThreeNodeCassandraClusterOperations {
     private static final int NODETOOL_STATUS_TIMEOUT_SECONDS = 10;
     private static final int NODETOOL_REPAIR_TIMEOUT_SECONDS = 999;
 
-    private DockerComposeRule dockerComposeRule;
-    private CassandraCliParser cassandraCliParser;
-    private String cassandraVersion;
+    private final DockerComposeRule dockerComposeRule;
+    private final CassandraCliParser cassandraCliParser;
+    private final String cassandraVersion;
 
     public ThreeNodeCassandraClusterOperations(DockerComposeRule dockerComposeRule, String cassandraVersion) {
         this.dockerComposeRule = dockerComposeRule;
@@ -55,9 +55,6 @@ public class ThreeNodeCassandraClusterOperations {
         if (!systemAuthenticationKeyspaceHasReplicationFactorThree()) {
             setReplicationFactorOfSystemAuthenticationKeyspaceToThree();
             runNodetoolRepair();
-            if (!systemAuthenticationKeyspaceHasReplicationFactorThree()) {
-                throw new IllegalStateException("Replication factor is still not 3!");
-            }
         }
     }
 
@@ -80,10 +77,10 @@ public class ThreeNodeCassandraClusterOperations {
     }
 
     private String getCqlQueryForCurrentlyRunningCassandra() {
-        if (cassandraVersion.equals("3.7")) {
-            return "SELECT * FROM system_schema.keyspaces;"; // 3.7
+        if (cassandraVersion.startsWith("2.2.")) {
+            return "SELECT * FROM system.schema_keyspaces;";
         } else {
-            return "SELECT * FROM system.schema_keyspaces;"; // 2.2.8
+            return "SELECT * FROM system_schema.keyspaces;";
         }
     }
 

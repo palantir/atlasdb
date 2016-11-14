@@ -30,12 +30,12 @@ public class CassandraCliParserTest {
         parser = new CassandraCliParser("2.2.8");
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void cannotCreateUnsupportedParser() {
         new CassandraCliParser("1.2.19");
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void cannotCreateFutureParser() {
         new CassandraCliParser("4.0");
     }

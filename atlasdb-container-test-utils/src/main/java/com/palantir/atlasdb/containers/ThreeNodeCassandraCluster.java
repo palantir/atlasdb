@@ -66,14 +66,9 @@ public class ThreeNodeCassandraCluster extends Container {
             .leaders(ImmutableSet.of("localhost"))
             .build());
 
-    private final String cassandraVersion;
-
-    public ThreeNodeCassandraCluster() {
-        String customCassandraVersion = System.getenv("CASSANDRA_VERSION");
-        this.cassandraVersion = (Strings.isNullOrEmpty(customCassandraVersion))
-                ? "2.2.8"
-                : customCassandraVersion;
-    }
+    private static final String CASSANDRA_VERSION = Strings.isNullOrEmpty(System.getenv("CASSANDRA_VERSION"))
+            ? "2.2.8"
+            : System.getenv("CASSANDRA_VERSION");
 
     @Override
     public String getDockerComposeFile() {
@@ -86,7 +81,7 @@ public class ThreeNodeCassandraCluster extends Container {
 
             try {
                 ThreeNodeCassandraClusterOperations cassandraOperations =
-                        new ThreeNodeCassandraClusterOperations(rule, cassandraVersion);
+                        new ThreeNodeCassandraClusterOperations(rule, CASSANDRA_VERSION);
 
                 if (!cassandraOperations.nodetoolShowsThreeCassandraNodesUp()) {
                     return false;

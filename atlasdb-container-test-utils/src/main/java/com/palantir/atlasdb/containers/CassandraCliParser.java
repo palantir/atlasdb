@@ -32,14 +32,10 @@ public final class CassandraCliParser {
     private final String cassandraVersion;
 
     public CassandraCliParser(String cassandraVersion) {
-        Preconditions.checkState(isSupported(cassandraVersion),
+        Preconditions.checkArgument(isSupported(cassandraVersion),
                 "Unsupported Cassandra version {} passed to CassandraCliParser",
                 cassandraVersion);
         this.cassandraVersion = cassandraVersion;
-    }
-
-    private static boolean isSupported(String cassandraVersion) {
-        return cassandraVersion.startsWith("2.2.") || cassandraVersion.startsWith("3.");
     }
 
     public int parseSystemAuthReplicationFromCqlsh(String output) throws IllegalArgumentException {
@@ -60,10 +56,6 @@ public final class CassandraCliParser {
         throw new IllegalArgumentException("Cannot determine replication factor of system_auth keyspace");
     }
 
-    private String getReplicationRegex() {
-        return cassandraVersion.startsWith("2.2.") ? REPLICATION_REGEX_2_X : REPLICATION_REGEX_3_X;
-    }
-
     public int parseNumberOfUpNodesFromNodetoolStatus(String output) {
         Pattern pattern = Pattern.compile("^UN.*");
         int upNodes = 0;
@@ -74,5 +66,13 @@ public final class CassandraCliParser {
             }
         }
         return upNodes;
+    }
+
+    private static boolean isSupported(String cassandraVersion) {
+        return cassandraVersion.startsWith("2.2.") || cassandraVersion.startsWith("3.");
+    }
+
+    private String getReplicationRegex() {
+        return cassandraVersion.startsWith("2.2.") ? REPLICATION_REGEX_2_X : REPLICATION_REGEX_3_X;
     }
 }
