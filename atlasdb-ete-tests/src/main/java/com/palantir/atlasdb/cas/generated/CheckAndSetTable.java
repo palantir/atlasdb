@@ -87,7 +87,6 @@ import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
-
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class CheckAndSetTable implements
         AtlasDbMutablePersistentTable<CheckAndSetTable.CheckAndSetRow,
@@ -721,5 +720,5 @@ public final class CheckAndSetTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "o6/5VA+m38fkwWMYIm6gwA==";
+    static String __CLASS_HASH = "nif4nqf05DpeC2y82Mt0RQ==";
 }

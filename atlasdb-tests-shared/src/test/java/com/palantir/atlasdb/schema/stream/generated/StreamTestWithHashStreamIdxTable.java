@@ -87,7 +87,6 @@ import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
-
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class StreamTestWithHashStreamIdxTable implements
         AtlasDbDynamicMutablePersistentTable<StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow,
@@ -777,5 +776,5 @@ public final class StreamTestWithHashStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "euto3oudaEGNSXLNu1ThdQ==";
+    static String __CLASS_HASH = "wnEqk85aDGl0eFqytICjAw==";
 }

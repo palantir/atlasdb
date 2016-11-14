@@ -87,7 +87,6 @@ import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
-
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class UserPhotosStreamMetadataTable implements
         AtlasDbMutablePersistentTable<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow,
@@ -745,5 +744,5 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "4VKjdhLeIPKT+YIwbE0new==";
+    static String __CLASS_HASH = "igxrg4rlhcLyTtcUZ6Y1qA==";
 }

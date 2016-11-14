@@ -87,7 +87,6 @@ import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
-
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class UserProfileTable implements
         AtlasDbMutablePersistentTable<UserProfileTable.UserProfileRow,
@@ -3390,5 +3389,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "0fD/YtpGOVfqOmMTWU/u4A==";
+    static String __CLASS_HASH = "mCC6sbEfqafsOhECnKXMlw==";
 }

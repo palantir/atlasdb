@@ -87,7 +87,6 @@ import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
-
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class TwoColumnsTable implements
         AtlasDbMutablePersistentTable<TwoColumnsTable.TwoColumnsRow,
@@ -2295,5 +2294,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "SaNexyfTlh87cDvhCY6Rgg==";
+    static String __CLASS_HASH = "RR7SFVKw6eErUKrzc2+6+w==";
 }

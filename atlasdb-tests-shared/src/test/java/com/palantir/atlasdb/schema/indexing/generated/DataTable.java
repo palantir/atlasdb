@@ -87,7 +87,6 @@ import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
-
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class DataTable implements
         AtlasDbMutablePersistentTable<DataTable.DataRow,
@@ -3640,5 +3639,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "WLmGZy7Hi34Zal4NWcdnlw==";
+    static String __CLASS_HASH = "toGc5GYIT3miRIkUMjF0Ag==";
 }
