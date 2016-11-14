@@ -20,7 +20,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
 
 @Path("/timestamp")
-public interface AdministrativeTimestampService {
+public interface TimestampAdministrationService {
     /**
      * Fast forwards the timestamp to the specified one so that no one can be served fresh timestamps prior
      * to it from now on.
