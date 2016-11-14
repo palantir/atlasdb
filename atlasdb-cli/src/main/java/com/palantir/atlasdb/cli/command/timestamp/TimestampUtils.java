@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.cli.command.timestamp;
 
-import com.palantir.timestamp.AdministrativeTimestampService;
+import com.palantir.timestamp.TimestampAdministrationService;
 import com.palantir.timestamp.TimestampService;
 
 public final class TimestampUtils {
@@ -24,11 +24,11 @@ public final class TimestampUtils {
     }
 
     public static void fastForwardTimestamp(TimestampService timestampService, long timestamp) {
-        if (!(timestampService instanceof AdministrativeTimestampService)) {
+        if (!(timestampService instanceof TimestampAdministrationService)) {
             throw new IllegalStateException("Timestamp service does not have administrative capabilities!");
         }
-        AdministrativeTimestampService administrativeTimestampService
-                = (AdministrativeTimestampService) timestampService;
-        administrativeTimestampService.fastForwardTimestamp(timestamp);
+        TimestampAdministrationService timestampAdministrationService
+                = (TimestampAdministrationService) timestampService;
+        timestampAdministrationService.fastForwardTimestamp(timestamp);
     }
 }
