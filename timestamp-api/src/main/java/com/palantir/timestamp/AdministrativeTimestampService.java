@@ -15,7 +15,12 @@
  */
 package com.palantir.timestamp;
 
-public interface FastForwardingTimestampService extends TimestampService {
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.QueryParam;
+
+@Path("/timestamp")
+public interface AdministrativeTimestampService {
     /**
      * Fast forwards the timestamp to the specified one so that no one can be served fresh timestamps prior
      * to it from now on.
@@ -25,5 +30,7 @@ public interface FastForwardingTimestampService extends TimestampService {
      *
      * @param newMinimumTimestamp
      */
-    void fastForwardTimestamp(long newMinimumTimestamp);
+    @POST
+    @Path("/fast-forward")
+    void fastForwardTimestamp(@QueryParam("newMinimum") long newMinimumTimestamp);
 }
