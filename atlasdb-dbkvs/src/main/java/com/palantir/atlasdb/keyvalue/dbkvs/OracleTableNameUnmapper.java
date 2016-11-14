@@ -59,7 +59,7 @@ class OracleTableNameUnmapper {
         try {
             return unmappingCache.get(fullTableName);
         } catch (ExecutionException e) {
-            throw new TableMappingNotFoundException(e);
+            throw new TableMappingNotFoundException(e.getCause());
         }
     }
 
