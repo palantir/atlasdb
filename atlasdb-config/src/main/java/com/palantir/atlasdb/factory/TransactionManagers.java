@@ -34,6 +34,7 @@ import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
@@ -231,6 +232,8 @@ public final class TransactionManagers {
             return createRawLeaderServices(config.leader().get(), env, lock, time);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(config);
+        } else if (config.timelock().isPresent()) {
+            return createRawRemoteServicesFromTimelockBlock(config);
         } else {
             return createRawEmbeddedServices(env, lock, time);
         }
@@ -255,8 +258,18 @@ public final class TransactionManagers {
     }
 
     private static LockAndTimestampServices createRawRemoteServices(AtlasDbConfig config) {
-        RemoteLockService lockService = new ServiceCreator<>(RemoteLockService.class).apply(config.lock().get());
-        TimestampService timeService = new ServiceCreator<>(TimestampService.class).apply(config.timestamp().get());
+        return getLockAndTimestampServices(config.lock().get(), config.timestamp().get());
+    }
+
+    private static LockAndTimestampServices createRawRemoteServicesFromTimelockBlock(AtlasDbConfig config) {
+        ServerListConfig serverListConfig = config.timelock().transform(TimeLockClientConfig::serverListConfig).get();
+        return getLockAndTimestampServices(serverListConfig, serverListConfig);
+    }
+
+    private static LockAndTimestampServices getLockAndTimestampServices(ServerListConfig lockServers,
+            ServerListConfig timestampServers) {
+        RemoteLockService lockService = new ServiceCreator<>(RemoteLockService.class).apply(lockServers);
+        TimestampService timeService = new ServiceCreator<>(TimestampService.class).apply(timestampServers);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
