@@ -41,6 +41,10 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - AtlasDB now supports Cassandra 3.7 as well as Cassandra 2.2.8.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1206>`__)
+
     *    - |fixed|
          - We now test against Cassandra 2.2.8, rather than Cassandra 2.2.7.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1112>`__)
