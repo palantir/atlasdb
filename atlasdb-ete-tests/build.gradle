@@ -26,7 +26,7 @@ dependencies {
 
     compile group: 'org.apache.thrift', name: 'libthrift'
 
-    processor 'org.immutables:value:' + libVersions.immutables
+    processor group: 'org.immutables', name: 'value'
 
     testCompile project(':atlasdb-ete-test-utils')
     testCompile project(':atlasdb-docker-test-utils')

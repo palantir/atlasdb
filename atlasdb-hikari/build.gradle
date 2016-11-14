@@ -7,6 +7,6 @@ dependencies {
 
   compile(group: 'com.zaxxer', name: 'HikariCP', version: libVersions.hikariCP)
 
-  processor "org.immutables:value:" + libVersions.immutables
+  processor group: 'org.immutables', name: 'value'
   processor "com.google.auto.service:auto-service:1.0-rc2"
 }
