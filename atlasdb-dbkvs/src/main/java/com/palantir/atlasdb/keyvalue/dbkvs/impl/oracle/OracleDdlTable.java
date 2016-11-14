@@ -156,6 +156,7 @@ public final class OracleDdlTable implements DbDdlTable {
             conns.get().executeUnregisteredQuery(
                     "DELETE FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE table_name = ?",
                     fullTableName);
+            oracleTableNameGetter.clearCacheForTable(fullTableName);
         }
     }
 

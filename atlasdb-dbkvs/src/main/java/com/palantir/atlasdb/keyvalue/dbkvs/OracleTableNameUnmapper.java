@@ -62,4 +62,8 @@ class OracleTableNameUnmapper {
             throw new TableMappingNotFoundException(e);
         }
     }
+
+    public void clearCacheForTable(String fullTableName) {
+        unmappingCache.invalidate(fullTableName);
+    }
 }
