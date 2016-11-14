@@ -16,7 +16,7 @@ fi
 for file in $FILES_CHANGED
 do
     if [[ $file != ${DOCS_REPO}* ]]; then
-        echo "None docs changes detected in $file" >&2
+        echo "No docs changes detected in $file" >&2
         exit 1;
     fi
 done
