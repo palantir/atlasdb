@@ -284,7 +284,7 @@ public final class TransactionManagers {
      * Utility method for transforming an optional {@link SslConfiguration} into an optional {@link SSLSocketFactory}.
      */
     public static Optional<SSLSocketFactory> createSslSocketFactory(Optional<SslConfiguration> sslConfiguration) {
-        return sslConfiguration.transform(config -> SslSocketFactories.createSslSocketFactory(config));
+        return sslConfiguration.transform(SslSocketFactories::createSslSocketFactory);
     }
 
     private static <T> T createService(
