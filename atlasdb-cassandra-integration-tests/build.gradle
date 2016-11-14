@@ -15,21 +15,8 @@ dependencies {
   testCompile 'org.mockito:mockito-core:' + libVersions.mockito
   testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
 
-  def cassVer;
-
-  gradle.taskGraph.whenReady { taskGraph ->
-    if (taskGraph.hasTask(testV3)) {
-      cassVer = "3.7"
-    } else {
-      cassVer = "2.2.8"
-    }
-  }
-
   test.doFirst {
     println "Using cassandra version $cassVer"
     environment "CASSANDRA_VERSION", "$cassVer"
-  }
-
-  task testV3(dependsOn: test) {
   }
 }
