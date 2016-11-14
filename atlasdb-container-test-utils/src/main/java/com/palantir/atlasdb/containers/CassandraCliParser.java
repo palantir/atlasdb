@@ -21,20 +21,35 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 public final class CassandraCliParser {
     private static final Logger log = LoggerFactory.getLogger(CassandraCliParser.class);
 
-    private CassandraCliParser() {
+    private static final String REPLICATION_REGEX_2_X = "^.*\"replication_factor\":\"(\\d+)\"\\}$";
+    private static final String REPLICATION_REGEX_3_X = "^.*'replication_factor': '(\\d+)'\\}$";
+
+    private final String cassandraVersion;
+
+    public CassandraCliParser(String cassandraVersion) {
+        Preconditions.checkState(isSupported(cassandraVersion),
+                "Unsupported Cassandra version {} passed to CassandraCliParser",
+                cassandraVersion);
+        this.cassandraVersion = cassandraVersion;
     }
 
-    public static int parseSystemAuthReplicationFromCqlsh(String output) throws IllegalArgumentException {
+    private static boolean isSupported(String cassandraVersion) {
+        return cassandraVersion.startsWith("2.2.") || cassandraVersion.startsWith("3.");
+    }
+
+    public int parseSystemAuthReplicationFromCqlsh(String output) throws IllegalArgumentException {
         try {
             for (String line : output.split("\n")) {
                 if (line.contains("system_auth")) {
-                    String replicationRegex = "^.*('|\")replication_factor('|\"):( '|\")(\\d+)('|\")\\}$";
+                    String replicationRegex = getReplicationRegex();
                     Matcher matcher = Pattern.compile(replicationRegex).matcher(line);
                     matcher.find();
-                    return Integer.parseInt(matcher.group(4));
+                    return Integer.parseInt(matcher.group(1));
                 }
             }
         } catch (Exception e) {
@@ -45,7 +60,11 @@ public final class CassandraCliParser {
         throw new IllegalArgumentException("Cannot determine replication factor of system_auth keyspace");
     }
 
-    public static int parseNumberOfUpNodesFromNodetoolStatus(String output) {
+    private String getReplicationRegex() {
+        return cassandraVersion.startsWith("2.2.") ? REPLICATION_REGEX_2_X : REPLICATION_REGEX_3_X;
+    }
+
+    public int parseNumberOfUpNodesFromNodetoolStatus(String output) {
         Pattern pattern = Pattern.compile("^UN.*");
         int upNodes = 0;
         for (String line : output.split("\n")) {

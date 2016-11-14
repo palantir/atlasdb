@@ -30,17 +30,19 @@ public class ThreeNodeCassandraClusterOperations {
     private static final int NODETOOL_REPAIR_TIMEOUT_SECONDS = 999;
 
     private DockerComposeRule dockerComposeRule;
+    private CassandraCliParser cassandraCliParser;
     private String cassandraVersion;
 
     public ThreeNodeCassandraClusterOperations(DockerComposeRule dockerComposeRule, String cassandraVersion) {
         this.dockerComposeRule = dockerComposeRule;
         this.cassandraVersion = cassandraVersion;
+        this.cassandraCliParser = new CassandraCliParser(cassandraVersion);
     }
 
     public boolean nodetoolShowsThreeCassandraNodesUp() {
         try {
             String output = runNodetoolCommand("status", NODETOOL_STATUS_TIMEOUT_SECONDS);
-            int numberNodesUp = CassandraCliParser.parseNumberOfUpNodesFromNodetoolStatus(output);
+            int numberNodesUp = cassandraCliParser.parseNumberOfUpNodesFromNodetoolStatus(output);
             return numberNodesUp == 3;
         } catch (Exception e) {
             log.warn("Failed while running nodetool status: " + e);
@@ -73,7 +75,7 @@ public class ThreeNodeCassandraClusterOperations {
             throws IOException, InterruptedException {
         String getAllKeyspaces = getCqlQueryForCurrentlyRunningCassandra();
         String output = runCql(getAllKeyspaces);
-        int replicationFactor = CassandraCliParser.parseSystemAuthReplicationFromCqlsh(output);
+        int replicationFactor = cassandraCliParser.parseSystemAuthReplicationFromCqlsh(output);
         return replicationFactor == 3;
     }
 

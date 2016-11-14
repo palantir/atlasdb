@@ -18,10 +18,27 @@ package com.palantir.atlasdb.containers;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import org.junit.Before;
 import org.junit.Test;
 
 public class CassandraCliParserTest {
-    public static final String CORRUPT_STRING = "sodu89sydihusd:KSDNLSA";
+    private static final String CORRUPT_STRING = "sodu89sydihusd:KSDNLSA";
+    private CassandraCliParser parser;
+
+    @Before
+    public void setUp() throws Exception {
+        parser = new CassandraCliParser("2.2.8");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void cannotCreateUnsupportedParser() {
+        new CassandraCliParser("1.2.19");
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void cannotCreateFutureParser() {
+        new CassandraCliParser("4.0");
+    }
 
     @Test
     public void canParseThreeUpNodesFromNodetoolStatus() {
@@ -38,7 +55,7 @@ public class CassandraCliParserTest {
                 + "UN  172.30.0.2  1.87 MB    512          69.6%           "
                 + "  58b310df-5ce2-4565-a479-0ed37e69b04f  rack1";
 
-        assertThat(CassandraCliParser.parseNumberOfUpNodesFromNodetoolStatus(nodetoolStatus), is(3));
+        assertThat(parser.parseNumberOfUpNodesFromNodetoolStatus(nodetoolStatus), is(3));
     }
 
     @Test
@@ -56,12 +73,12 @@ public class CassandraCliParserTest {
                 + "UN  172.30.0.2  1.87 MB    512          69.6%           "
                 + "  58b310df-5ce2-4565-a479-0ed37e69b04f  rack1";
 
-        assertThat(CassandraCliParser.parseNumberOfUpNodesFromNodetoolStatus(nodetoolStatus), is(2));
+        assertThat(parser.parseNumberOfUpNodesFromNodetoolStatus(nodetoolStatus), is(2));
     }
 
     @Test
     public void parsesCorruptResponseFromNodetoolStatusSilently() {
-        assertThat(CassandraCliParser.parseNumberOfUpNodesFromNodetoolStatus(CORRUPT_STRING), is(0));
+        assertThat(parser.parseNumberOfUpNodesFromNodetoolStatus(CORRUPT_STRING), is(0));
     }
 
     @Test
@@ -79,12 +96,14 @@ public class CassandraCliParserTest {
                 + "| {\"replication_factor\":\"3\"}\n"
                 + "\n"
                 + "(3 rows)";
-        assertThat(CassandraCliParser.parseSystemAuthReplicationFromCqlsh(output), is(4));
+        assertThat(parser.parseSystemAuthReplicationFromCqlsh(output), is(4));
     }
 
     @Test
     @SuppressWarnings("checkstyle:LineLength")
     public void parsesReplicationFactorOfSystemAuthKeyspace_3_7() {
+        CassandraCliParser parserThreeSeven = new CassandraCliParser("3.7");
+
         String output = "\n"
                 + " keyspace_name      | durable_writes | replication\n"
                 + "--------------------+----------------+-------------------------------------------------------------------------------------\n"
@@ -95,7 +114,7 @@ public class CassandraCliParserTest {
                 + "      system_traces |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '2'}\n"
                 + "\n"
                 + "(5 rows)";
-        assertThat(CassandraCliParser.parseSystemAuthReplicationFromCqlsh(output), is(4));
+        assertThat(parserThreeSeven.parseSystemAuthReplicationFromCqlsh(output), is(4));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -113,7 +132,7 @@ public class CassandraCliParserTest {
                 + "| {\"replication_factor\":\"2\"}\n"
                 + "\n"
                 + "(3 rows)";
-        CassandraCliParser.parseSystemAuthReplicationFromCqlsh(output);
+        parser.parseSystemAuthReplicationFromCqlsh(output);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -131,12 +150,12 @@ public class CassandraCliParserTest {
                 + "| {\"replication_factor\":\"2\"}\n"
                 + "\n"
                 + "(3 rows)";
-        CassandraCliParser.parseSystemAuthReplicationFromCqlsh(output);
+        parser.parseSystemAuthReplicationFromCqlsh(output);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void parsingFailsWhenSystemAuthKeyspaceOutputCorrupt() {
-        CassandraCliParser.parseSystemAuthReplicationFromCqlsh(CORRUPT_STRING);
+        parser.parseSystemAuthReplicationFromCqlsh(CORRUPT_STRING);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -154,6 +173,6 @@ public class CassandraCliParserTest {
                 + "| {\"replication_factor\":\"2\"}\n"
                 + "\n"
                 + "(3 rows)";
-        CassandraCliParser.parseSystemAuthReplicationFromCqlsh(output);
+        parser.parseSystemAuthReplicationFromCqlsh(output);
     }
 }
