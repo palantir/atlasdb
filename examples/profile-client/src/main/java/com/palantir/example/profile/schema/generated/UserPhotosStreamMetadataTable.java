@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -744,5 +743,5 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "igxrg4rlhcLyTtcUZ6Y1qA==";
+    static String __CLASS_HASH = "gDn9bIqWsbm3u8PlbY7obQ==";
 }

@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -3389,5 +3388,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "mCC6sbEfqafsOhECnKXMlw==";
+    static String __CLASS_HASH = "BAWiFRjPo3iiz4ifhWSE8g==";
 }

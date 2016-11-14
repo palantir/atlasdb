@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -744,5 +743,5 @@ public final class StreamTestStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "3G/U8mXtsSUoJMp4qrMC9A==";
+    static String __CLASS_HASH = "jp+VE/Vn2d/3IzCP3P5OVA==";
 }

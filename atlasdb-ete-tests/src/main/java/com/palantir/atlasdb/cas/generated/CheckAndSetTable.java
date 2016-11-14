@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -720,5 +719,5 @@ public final class CheckAndSetTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "nif4nqf05DpeC2y82Mt0RQ==";
+    static String __CLASS_HASH = "Liq886F85D4YKwyuaXZmRg==";
 }

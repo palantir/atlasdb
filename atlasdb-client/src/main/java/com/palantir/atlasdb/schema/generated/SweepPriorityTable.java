@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -1276,5 +1275,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Gu3zkeyG4q8NkrtQYaIvNQ==";
+    static String __CLASS_HASH = "vCEOH0g8QatgT/jpEZEk5w==";
 }

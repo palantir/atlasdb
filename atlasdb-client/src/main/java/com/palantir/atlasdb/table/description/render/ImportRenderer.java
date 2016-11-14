@@ -36,12 +36,16 @@ public class ImportRenderer extends Renderer {
 
     void renderImports() {
         for (String prefix : ImmutableList.of("java.", "javax.", "org.", "com.")) {
+            boolean atLeastOneImportWithCurrentPrefix = false;
             for (String importClass : importsSortedByFullName()) {
                 if (importClass.startsWith(prefix)) {
+                    atLeastOneImportWithCurrentPrefix = true;
                     line("import ", importClass, ";");
                 }
             }
-            line();
+            if (atLeastOneImportWithCurrentPrefix) {
+                line();
+            }
         }
     }
 

@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -3639,5 +3638,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "toGc5GYIT3miRIkUMjF0Ag==";
+    static String __CLASS_HASH = "6v6D3OWztYAGUBd3y4QSBw==";
 }
