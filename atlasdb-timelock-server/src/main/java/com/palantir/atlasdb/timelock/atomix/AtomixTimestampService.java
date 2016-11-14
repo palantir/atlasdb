@@ -58,14 +58,12 @@ public class AtomixTimestampService implements TimestampService, TimestampAdmini
 
     @Override
     public void fastForwardTimestamp(long targetTimestamp) {
-        while (true) {
-            long currentTimestamp = Futures.getUnchecked(timestamp.get());
-            if (currentTimestamp >= targetTimestamp) {
-                return;
-            }
+        long currentTimestamp = Futures.getUnchecked(timestamp.get());
+        while (currentTimestamp < targetTimestamp) {
             if (attemptTimestampUpdate(targetTimestamp, currentTimestamp)) {
                 return;
             }
+            currentTimestamp = Futures.getUnchecked(timestamp.get());
         }
     }
 
