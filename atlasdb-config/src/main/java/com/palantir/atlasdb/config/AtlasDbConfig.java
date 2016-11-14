@@ -167,6 +167,13 @@ public abstract class AtlasDbConfig {
         if (leader().isPresent()) {
             Preconditions.checkState(!lock().isPresent() && !timestamp().isPresent(),
                     "If the leader block is present, then the lock and timestamp server blocks must both be absent.");
+            Preconditions.checkState(!timelock().isPresent(),
+                    "If the leader block is present, then the timelock block must be absent.");
+        }
+
+        if (timelock().isPresent()) {
+            Preconditions.checkState(!lock().isPresent() && !timestamp().isPresent(),
+                    "If the timelock block is present, then the lock and timestamp blocks must both be absent.");
         }
 
         Preconditions.checkState(lock().isPresent() == timestamp().isPresent(),
