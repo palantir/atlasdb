@@ -16,12 +16,16 @@
 package com.palantir.atlasdb.table.description.render;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.SortedSet;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
 
 public class ImportRenderer extends Renderer {
+    private static final List<String> IMPORT_PREFIXES = ImmutableList.of("java.", "javax.", "org.", "com.");
     private final Collection<Class<?>> imports;
 
     public ImportRenderer(Renderer parent, Collection<Class<?>> imports) {
@@ -35,18 +39,20 @@ public class ImportRenderer extends Renderer {
     }
 
     void renderImports() {
-        for (String prefix : ImmutableList.of("java.", "javax.", "org.", "com.")) {
-            boolean atLeastOneImportWithCurrentPrefix = false;
-            for (String importClass : importsSortedByFullName()) {
-                if (importClass.startsWith(prefix)) {
-                    atLeastOneImportWithCurrentPrefix = true;
-                    line("import ", importClass, ";");
-                }
-            }
-            if (atLeastOneImportWithCurrentPrefix) {
+        for (String prefix : IMPORT_PREFIXES) {
+            boolean anyImportsRendered = renderImportsWithPrefix(prefix);
+            if (anyImportsRendered && !prefix.equals(Iterables.getLast(IMPORT_PREFIXES))) {
                 line();
             }
         }
+    }
+
+    private boolean renderImportsWithPrefix(String prefix) {
+        List<String> importClasses = importsSortedByFullName().stream()
+                .filter(name -> name.startsWith(prefix))
+                .collect(Collectors.toList());
+        importClasses.forEach(importClass -> line("import ", importClass, ";"));
+        return !importClasses.isEmpty();
     }
 
     void renderImportJavaDoc() {

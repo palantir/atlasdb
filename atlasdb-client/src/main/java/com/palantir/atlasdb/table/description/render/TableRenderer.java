@@ -199,6 +199,7 @@ public class TableRenderer {
                 line("package ", packageName, ";");
                 line();
                 importRenderer.renderImports();
+                line();
             }
             line("@Generated(\"",  TableRenderer.class.getName(), "\")");
             line("public ", isNestedIndex ? "static " : "", "final class ", Table, " implements");
