@@ -38,6 +38,8 @@ public abstract class AtlasDbConfig {
 
     public abstract Optional<ServerListConfig> timestamp();
 
+    public abstract Optional<TimeLockClientConfig> timelock();
+
     /**
      * The transaction read timeout is the maximum amount of
      * time a read only transaction can safely run. Read only
