@@ -13,7 +13,7 @@ dependencies {
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
   compile group: 'javax.validation', name: 'validation-api'
 
-  compile 'com.palantir.remoting:ssl-config:' + libVersions.http_remoting
+  compile group: 'com.palantir.remoting', name: 'ssl-config'
 
   testCompile group: 'junit', name: 'junit'
 
