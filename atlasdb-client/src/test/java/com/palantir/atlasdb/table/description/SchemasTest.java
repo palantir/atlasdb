@@ -51,14 +51,14 @@ public class SchemasTest {
     }
 
     @Test
-    public void testGetFullTableName() {
+    public void testGetFullTableReferenceString() {
         MatcherAssert.assertThat(
                 Schemas.getTableReferenceString(TABLE_NAME, NAMESPACE),
                 Matchers.equalTo("TableReference.createFromFullyQualifiedName(\"" + NAMESPACE.getName() + "." + TABLE_NAME + "\")"));
     }
 
     @Test
-    public void testGetFullTableNameLegacy() {
+    public void testGetFullTableReferenceStringLegacy() {
         MatcherAssert.assertThat(
                 Schemas.getTableReferenceString(TABLE_NAME, Namespace.create("met")),
                 Matchers.equalTo("TableReference.createWithEmptyNamespace(\"" + TABLE_NAME + "\")")
@@ -66,7 +66,7 @@ public class SchemasTest {
     }
 
     @Test
-    public void testGetFullTableNameEmptyNamespace() {
+    public void testGetFullTableReferenceStringEmptyNamespace() {
         MatcherAssert.assertThat(
                 Schemas.getTableReferenceString(TABLE_NAME, Namespace.EMPTY_NAMESPACE),
                 Matchers.equalTo("TableReference.createWithEmptyNamespace(\"" + TABLE_NAME + "\")")
