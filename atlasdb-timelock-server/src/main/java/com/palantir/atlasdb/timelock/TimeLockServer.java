@@ -70,12 +70,7 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
         for (String client : configuration.clients()) {
             DistributedLong timestamp = DistributedValues.getTimestampForClient(localNode, client);
             clientToTimelockServices.put(client, createInvalidatingTimeLockServices(localMember, leaderId, timestamp));
-            clientToTimestampAdministrationServices.put(client,
-                    InvalidatingLeaderProxy.create(
-                            localMember,
-                            leaderId,
-                            () -> new AtomixTimestampAdministrationService(timestamp),
-                            TimestampAdministrationService.class));
+            clientToTimestampAdministrationServices.put(client, new AtomixTimestampAdministrationService(timestamp));
         }
 
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
