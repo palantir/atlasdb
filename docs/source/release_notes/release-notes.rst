@@ -60,6 +60,10 @@ develop
            greatly improve usability for service admins using the CLIs.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1177>`__)
 
+    *    - |improved|
+         - ``atlasdb-cassandra`` now depends on ``cassandra-thrift`` instead of ``cassandra-all``. This reduces our dependency footprint.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1222>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
