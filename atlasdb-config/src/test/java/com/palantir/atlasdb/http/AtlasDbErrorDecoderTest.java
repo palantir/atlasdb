@@ -54,8 +54,7 @@ public class AtlasDbErrorDecoderTest {
 
     @Test
     public void shouldCreateNewRetryableExceptionWithNullRetryAfterWhen503AndNotRetryableException() {
-        Response response = createResponse(STATUS_503);
-        makeDefaultDecoderReplyWhenReceivingResponse(response, NON_RETRYABLE_EXCEPTION);
+        Response response = makeDefaultDecoderReplyWhenReceivingResponse(STATUS_503, NON_RETRYABLE_EXCEPTION);
 
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
 
@@ -64,8 +63,7 @@ public class AtlasDbErrorDecoderTest {
 
     @Test
     public void shouldDelegateToDefaultDecoderWhen503AndRetryableException() {
-        Response response = createResponse(STATUS_503);
-        makeDefaultDecoderReplyWhenReceivingResponse(response, RETRYABLE_EXCEPTION);
+        Response response = makeDefaultDecoderReplyWhenReceivingResponse(STATUS_503, RETRYABLE_EXCEPTION);
 
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
 
@@ -74,8 +72,7 @@ public class AtlasDbErrorDecoderTest {
 
     @Test
     public void shouldDelegateToDefaultDecoderWhenNeither503NorRetryableException() {
-        Response response = createResponse(STATUS_NOT_503);
-        makeDefaultDecoderReplyWhenReceivingResponse(response, NON_RETRYABLE_EXCEPTION);
+        Response response = makeDefaultDecoderReplyWhenReceivingResponse(STATUS_NOT_503, NON_RETRYABLE_EXCEPTION);
 
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
 
@@ -84,17 +81,18 @@ public class AtlasDbErrorDecoderTest {
 
     @Test
     public void shouldDelegateToDefaultDecoderWhenNot503AndRetryableException() {
-        Response response = createResponse(STATUS_NOT_503);
-        makeDefaultDecoderReplyWhenReceivingResponse(response, RETRYABLE_EXCEPTION);
+        Response response = makeDefaultDecoderReplyWhenReceivingResponse(STATUS_NOT_503, RETRYABLE_EXCEPTION);
 
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
 
         assertThat(exception, is(sameInstance(RETRYABLE_EXCEPTION)));
     }
 
-    private void makeDefaultDecoderReplyWhenReceivingResponse(Response response, Exception exception) {
+    private Response makeDefaultDecoderReplyWhenReceivingResponse(int status, Exception exception) {
+        Response response = createResponse(status);
         when(defaultDecoder.decode(EMPTY_METHOD_KEY, response))
                 .thenReturn(exception);
+        return response;
     }
 
     private static Response createResponse(int status) {
