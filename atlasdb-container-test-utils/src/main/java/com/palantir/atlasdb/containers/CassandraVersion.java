@@ -15,25 +15,27 @@
  */
 package com.palantir.atlasdb.containers;
 
+import java.util.regex.Pattern;
+
 import com.google.common.base.Strings;
 
 public enum CassandraVersion {
     VERSION_2_2_X(
-            "^.*\"replication_factor\":\"(\\d+)\"\\}$",
+            Pattern.compile("^.*\"replication_factor\":\"(\\d+)\"\\}$"),
             "SELECT * FROM system.schema_keyspaces;"),
     VERSION_3_X(
-            "^.*'replication_factor': '(\\d+)'\\}$",
+            Pattern.compile("^.*'replication_factor': '(\\d+)'\\}$"),
             "SELECT * FROM system_schema.keyspaces;");
 
-    private final String replicationFactorRegex;
+    private final Pattern replicationFactorRegex;
     private final String getAllKeyspacesCql;
 
-    CassandraVersion(String replicationFactorRegex, String getAllKeyspacesCql) {
+    CassandraVersion(Pattern replicationFactorRegex, String getAllKeyspacesCql) {
         this.replicationFactorRegex = replicationFactorRegex;
         this.getAllKeyspacesCql = getAllKeyspacesCql;
     }
 
-    public String replicationFactorRegex() {
+    public Pattern replicationFactorRegex() {
         return replicationFactorRegex;
     }
 
