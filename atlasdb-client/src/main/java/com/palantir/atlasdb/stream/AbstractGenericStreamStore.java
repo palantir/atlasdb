@@ -34,6 +34,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -67,13 +68,8 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
 
     @Override
     public final InputStream loadStream(Transaction transaction, final ID id) {
-        try {
-            return getStream(transaction, id, getMetadata(transaction, id));
-        } catch (FileNotFoundException e) {
-            String message = String.format("Error opening temp file for stream %s", id);
-            log.error(message, e);
-            throw Throwables.rewrapAndThrowUncheckedException("Could not open temp file to create stream.", e);
-        }
+        StreamMetadata metadata = getMetadata(transaction, id);
+        return getStream(transaction, id, metadata);
     }
 
     @Override
@@ -82,18 +78,22 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         Map<ID, StreamMetadata> idsToMetadata = getMetadata(transaction, ids);
         for (Map.Entry<ID, StreamMetadata> entry : idsToMetadata.entrySet()) {
             ID id = entry.getKey();
-            try {
-                ret.put(id, getStream(transaction, id, entry.getValue()));
-            } catch (FileNotFoundException e) {
-                String message = String.format("Error opening temp file for stream %s", id);
-                log.error(message, e);
-                throw Throwables.rewrapAndThrowUncheckedException("Could not open temp file to create stream.", e);
-            }
+            ret.put(id, getStream(transaction, id, entry.getValue()));
         }
         return ret;
     }
 
-    private InputStream getStream(Transaction transaction, ID id, StreamMetadata metadata)
+    private InputStream getStream(Transaction transaction, ID id, StreamMetadata metadata) {
+        try {
+            return tryGetStream(transaction, id, metadata);
+        } catch (FileNotFoundException e) {
+            String message = String.format("Error opening temp file for stream %s", id);
+            log.error(message, e);
+            throw Throwables.rewrapAndThrowUncheckedException("Could not open temp file to create stream.", e);
+        }
+    }
+
+    private InputStream tryGetStream(Transaction transaction, ID id, StreamMetadata metadata)
             throws FileNotFoundException {
         checkStreamStored(id, metadata);
         if (metadata.getLength() == 0) {
