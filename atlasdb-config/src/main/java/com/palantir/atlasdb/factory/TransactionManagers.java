@@ -17,11 +17,13 @@ package com.palantir.atlasdb.factory;
 
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import org.immutables.value.Value;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
@@ -32,6 +34,7 @@ import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
@@ -262,8 +265,19 @@ public final class TransactionManagers {
     }
 
     private static LockAndTimestampServices createRawRemoteServicesFromTimelockBlock(AtlasDbConfig config) {
-        ServerListConfig serverListConfig = config.timelock().transform(TimeLockClientConfig::serverListConfig).get();
-        return getLockAndTimestampServices(serverListConfig, serverListConfig);
+        ServerListConfig namespacedConfig = getNamespacedConfig(config.timelock().get());
+        return getLockAndTimestampServices(namespacedConfig, namespacedConfig);
+    }
+
+    @VisibleForTesting
+    static ServerListConfig getNamespacedConfig(TimeLockClientConfig config) {
+        return ImmutableServerListConfig.copyOf(config.serverListConfig())
+                .withServers(
+                        config.serverListConfig()
+                                .servers()
+                                .stream()
+                                .map(server -> server + "/" + config.client())
+                                .collect(Collectors.toSet()));
     }
 
     private static LockAndTimestampServices getLockAndTimestampServices(ServerListConfig lockServers,

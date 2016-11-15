@@ -26,6 +26,7 @@ import com.palantir.atlasdb.cli.command.SweepCommand;
 import com.palantir.atlasdb.cli.command.timestamp.CleanTransactionRange;
 import com.palantir.atlasdb.cli.command.timestamp.FastForwardTimestamp;
 import com.palantir.atlasdb.cli.command.timestamp.FetchTimestamp;
+import com.palantir.atlasdb.cli.command.timestamp.TimestampMigrationCommand;
 
 import io.airlift.airline.Cli;
 import io.airlift.airline.Help;
@@ -50,7 +51,8 @@ public class AtlasCli {
                 .withCommands(
                         FetchTimestamp.class,
                         CleanTransactionRange.class,
-                        FastForwardTimestamp.class);
+                        FastForwardTimestamp.class,
+                        TimestampMigrationCommand.class);
 
         return builder.build();
     }
