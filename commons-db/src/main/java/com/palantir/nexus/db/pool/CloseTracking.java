@@ -78,7 +78,9 @@ public class CloseTracking {
 
         public synchronized void check() {
             if (!closed) {
-                log.error(typeName + " never closed!", createTrace);
+                String errorMessage = typeName + " never closed!";
+                log.error(errorMessage, createTrace);
+                assert false : errorMessage + "\n" + createTrace.getStackTrace();
             }
         }
     }
