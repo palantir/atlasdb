@@ -38,10 +38,10 @@ fi
 
 case $CIRCLE_NODE_INDEX in
     0) ./gradlew $TEST_CONTAINER_ARGS check $CONTAINER_0_EXCLUDE_ARGS ;;
-    1) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_1[@]} ;;
-    2) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest ;;
+    1) CASSANDRA_VERSION=2.2.8 ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_1[@]} ;;
+    2) CASSANDRA_VERSION=2.2.8 ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest ;;
     3) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_3[@]} ;;
-    4) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_4[@]} ;;
-    5) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_5[@]} ;;
+    4) CASSANDRA_VERSION=2.2.8 ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_4[@]} ;;
+    5) CASSANDRA_VERSION=2.2.8 ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_5[@]} ;;
     6) ./gradlew --profile --continue -x compileJava -x compileTestJava findbugsMain findbugsTest checkstyleMain checkstyleTest && checkDocsBuild ;;
 esac
