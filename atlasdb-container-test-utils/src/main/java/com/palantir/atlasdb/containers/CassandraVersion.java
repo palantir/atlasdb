@@ -19,44 +19,27 @@ import java.util.regex.Pattern;
 
 import com.google.common.base.Strings;
 
-public enum CassandraVersion {
-    VERSION_2_2_X(
-            Pattern.compile("^.*\"replication_factor\":\"(\\d+)\"\\}$"),
-            "SELECT * FROM system.schema_keyspaces;"),
-    VERSION_3_X(
-            Pattern.compile("^.*'replication_factor': '(\\d+)'\\}$"),
-            "SELECT * FROM system_schema.keyspaces;");
-
-    private final Pattern replicationFactorRegex;
-    private final String getAllKeyspacesCql;
-
-    CassandraVersion(Pattern replicationFactorRegex, String getAllKeyspacesCql) {
-        this.replicationFactorRegex = replicationFactorRegex;
-        this.getAllKeyspacesCql = getAllKeyspacesCql;
-    }
-
-    public Pattern replicationFactorRegex() {
-        return replicationFactorRegex;
-    }
-
-    public String getAllKeyspacesCql() {
-        return getAllKeyspacesCql;
-    }
-
-    public static CassandraVersion fromEnvironment() {
+public interface CassandraVersion {
+    static CassandraVersion fromEnvironment() {
         String version = System.getenv("CASSANDRA_VERSION");
         return Strings.isNullOrEmpty(version)
-                ? VERSION_2_2_X
+                ? new Cassandra22XVersion("2.2.8")
                 : from(version);
     }
 
-    public static CassandraVersion from(String version) {
+    static CassandraVersion from(String version) {
         if (version.startsWith("2.2.")) {
-            return VERSION_2_2_X;
+            return new Cassandra22XVersion(version);
         } else if (version.startsWith("3.")) {
-            return VERSION_3_X;
+            return new Cassandra3XVersion(version);
         } else {
             throw new IllegalArgumentException(String.format("Cassandra version %s not supported", version));
         }
     }
+
+    Pattern replicationFactorRegex();
+
+    String getAllKeyspacesCql();
+
+    String exactVersion();
 }
