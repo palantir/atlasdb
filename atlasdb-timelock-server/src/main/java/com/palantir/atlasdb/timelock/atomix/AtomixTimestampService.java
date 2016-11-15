@@ -18,13 +18,12 @@ package com.palantir.atlasdb.timelock.atomix;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Futures;
-import com.palantir.timestamp.TimestampAdministrationService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
 import io.atomix.variables.DistributedLong;
 
-public class AtomixTimestampService implements TimestampService, TimestampAdministrationService {
+public class AtomixTimestampService implements TimestampService {
     /**
      * Maximum number of timestamps that may be granted at once.
      */
@@ -51,28 +50,14 @@ public class AtomixTimestampService implements TimestampService, TimestampAdmini
 
         long lastTimestampHandedOut = Futures.getUnchecked(timestamp.getAndAdd(numTimestampsRequested));
 
+        if (lastTimestampHandedOut < 0) {
+            timestamp.getAndAdd(-numTimestampsRequested);
+            throw new IllegalStateException("This timestamp service has been invalidated!");
+        }
         return TimestampRange.createInclusiveRange(
                 lastTimestampHandedOut + 1,
                 lastTimestampHandedOut + numTimestampsRequested);
     }
 
-    @Override
-    public void fastForwardTimestamp(long targetTimestamp) {
-        long currentTimestamp = Futures.getUnchecked(timestamp.get());
-        while (currentTimestamp < targetTimestamp) {
-            if (attemptTimestampUpdate(targetTimestamp, currentTimestamp)) {
-                return;
-            }
-            currentTimestamp = Futures.getUnchecked(timestamp.get());
-        }
-    }
 
-    @VisibleForTesting
-    boolean attemptTimestampUpdate(long targetTimestamp, long currentTimestamp) {
-        Preconditions.checkArgument(targetTimestamp > currentTimestamp,
-                "Timestamps should not be rolled back. Tried to set the timestamp from %d to %d",
-                currentTimestamp,
-                targetTimestamp);
-        return Futures.getUnchecked(timestamp.compareAndSet(currentTimestamp, targetTimestamp));
-    }
 }
