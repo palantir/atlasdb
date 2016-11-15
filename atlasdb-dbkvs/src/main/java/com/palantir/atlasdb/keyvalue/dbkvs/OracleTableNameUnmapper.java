@@ -42,25 +42,29 @@ class OracleTableNameUnmapper {
             new CacheLoader<String, String>() {
                 @Override
                 public String load(String fullTableName) throws Exception {
-                    SqlConnection conn = conns.getFresh();
-                    AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                            "SELECT short_table_name "
-                                    + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
-                                    + " WHERE table_name = ?", fullTableName);
-                    if (results.size() == 0) {
-                        throw new TableMappingNotFoundException(
-                                "The table " + fullTableName + " does not have a mapping."
-                                        + "This might be because the table does not exist.");
-                    }
-                    String mappedName = Iterables.getOnlyElement(results.rows()).getString("short_table_name");
-
+                    SqlConnection conn = null;
                     try {
-                        conn.getUnderlyingConnection().close();
-                    } catch (SQLException e) {
-                        log.error("Couldn't cleanup SQL connection while performing table name unmapping.", e);
-                    }
+                        conn = conns.getFresh();
+                        AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
+                                "SELECT short_table_name "
+                                        + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
+                                        + " WHERE table_name = ?", fullTableName);
+                        if (results.size() == 0) {
+                            throw new TableMappingNotFoundException(
+                                    "The table " + fullTableName + " does not have a mapping."
+                                            + "This might be because the table does not exist.");
+                        }
 
-                    return mappedName;
+                        return Iterables.getOnlyElement(results.rows()).getString("short_table_name");
+                    } finally {
+                        if (conn != null) {
+                            try {
+                                conn.getUnderlyingConnection().close();
+                            } catch (SQLException e) {
+                                log.error("Couldn't cleanup SQL connection while performing table name unmapping.", e);
+                            }
+                        }
+                    }
                 }
             }
     );
