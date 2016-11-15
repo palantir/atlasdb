@@ -70,7 +70,8 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         try {
             return getStream(transaction, id, getMetadata(transaction, id));
         } catch (FileNotFoundException e) {
-            log.error("Error opening temp file for stream " + id, e);
+            String message = String.format("Error opening temp file for stream %s", id);
+            log.error(message, e);
             throw Throwables.rewrapAndThrowUncheckedException("Could not open temp file to create stream.", e);
         }
     }
@@ -84,7 +85,8 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
             try {
                 ret.put(id, getStream(transaction, id, entry.getValue()));
             } catch (FileNotFoundException e) {
-                log.error("Error opening temp file for stream " + id, e);
+                String message = String.format("Error opening temp file for stream %s", id);
+                log.error(message, e);
                 throw Throwables.rewrapAndThrowUncheckedException("Could not open temp file to create stream.", e);
             }
         }
@@ -119,17 +121,18 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
             writeStreamToFile(transaction, id, metadata, file);
             return file;
         } catch (IOException e) {
-            log.error("Could not create temp file for stream id " + id, e);
+            String message = String.format("Could not create temp file for stream id %s", id);
+            log.error(message, e);
             throw Throwables.rewrapAndThrowUncheckedException("Could not create file to create stream.", e);
         }
     }
 
     private void checkStreamStored(ID id, StreamMetadata metadata) {
         if (metadata == null) {
-            log.error("Error loading stream " + id + " because it was never stored.");
+            log.error("Error loading stream {} because it was never stored.", id);
             throw new IllegalArgumentException("Unable to load stream " + id + " because it was never stored.");
         } else if (metadata.getStatus() != Status.STORED) {
-            log.error("Error loading stream " + id + " because it has status " + metadata.getStatus());
+            log.error("Error loading stream {} because it has status {}", id, metadata.getStatus());
             throw new IllegalArgumentException("Could not get stream because it was not fully stored.");
         }
     }
@@ -140,7 +143,8 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         try {
             tryWriteStreamToFile(transaction, id, metadata, fos);
         } catch (IOException e) {
-            log.error("Could not finish streaming blocks to file for stream " + id, e);
+            String message = String.format("Could not finish streaming blocks to file for stream %s", id);
+            log.error(message, e);
             throw Throwables.rewrapAndThrowUncheckedException("Error writing blocks while opening a stream.", e);
         } finally {
             try {
@@ -164,9 +168,9 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
 
     protected abstract void loadSingleBlockToOutputStream(Transaction tx, ID streamId, long blockId, OutputStream os);
 
+    protected abstract Map<ID, StreamMetadata> getMetadata(Transaction tx, Set<ID> streamIds);
+
     private StreamMetadata getMetadata(Transaction transaction, ID id) {
         return Iterables.getOnlyElement(getMetadata(transaction, Sets.newHashSet(id)).entrySet()).getValue();
     }
-
-    protected abstract Map<ID, StreamMetadata> getMetadata(Transaction tx, Set<ID> streamIds);
 }
