@@ -34,7 +34,7 @@ dependencies:
   override:
     - ./scripts/time-cmd.sh ./gradlew --profile --parallel resolveConfigurations
     - sudo pip install sphinx sphinx_rtd_theme
-    - scripts/circle-ci/pr_changelog_status_check.sh
+    - scripts/circle-ci/pr-changelog-status-check.sh
 
 test:
   pre:

@@ -22,16 +22,12 @@ import java.sql.SQLException;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.google.auto.service.AutoService;
-
-import io.dropwizard.jackson.Discoverable;
 
 /**
  * JdbcHandler allows Oracle dependent logic to be injected into the SQL
  * dependent classes that support both Legacy DB and AtlasDB's Dbkvs
  */
-@AutoService(Discoverable.class)
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 public interface JdbcHandler {
     interface BlobHandler {
         void freeTemporary() throws SQLException;
