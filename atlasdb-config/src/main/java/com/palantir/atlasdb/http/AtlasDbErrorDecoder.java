@@ -28,7 +28,7 @@ public class AtlasDbErrorDecoder implements ErrorDecoder {
     }
 
     @VisibleForTesting
-    public AtlasDbErrorDecoder(ErrorDecoder errorDecoder) {
+    AtlasDbErrorDecoder(ErrorDecoder errorDecoder) {
         defaultErrorDecoder = errorDecoder;
     }
 
