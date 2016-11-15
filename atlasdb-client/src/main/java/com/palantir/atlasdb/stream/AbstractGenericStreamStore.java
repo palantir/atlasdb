@@ -86,8 +86,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         try {
             return tryGetStream(transaction, id, metadata);
         } catch (FileNotFoundException e) {
-            String message = String.format("Error opening temp file for stream %s", id);
-            log.error(message, e);
+            log.error("Error opening temp file for stream {}", id, e);
             throw Throwables.rewrapAndThrowUncheckedException("Could not open temp file to create stream.", e);
         }
     }
@@ -120,8 +119,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
             writeStreamToFile(transaction, id, metadata, file);
             return file;
         } catch (IOException e) {
-            String message = String.format("Could not create temp file for stream id %s", id);
-            log.error(message, e);
+            log.error("Could not create temp file for stream id {}", id, e);
             throw Throwables.rewrapAndThrowUncheckedException("Could not create file to create stream.", e);
         }
     }
@@ -142,8 +140,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         try {
             tryWriteStreamToFile(transaction, id, metadata, fos);
         } catch (IOException e) {
-            String message = String.format("Could not finish streaming blocks to file for stream %s", id);
-            log.error(message, e);
+            log.error("Could not finish streaming blocks to file for stream {}", id, e);
             throw Throwables.rewrapAndThrowUncheckedException("Error writing blocks while opening a stream.", e);
         } finally {
             try {
