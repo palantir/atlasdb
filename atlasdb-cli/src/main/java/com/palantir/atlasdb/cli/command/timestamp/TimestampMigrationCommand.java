@@ -41,7 +41,7 @@ import io.airlift.airline.OptionType;
 
 @Command(name = "migrate",
         description = "Migrates the current timestamp from an internal Timestamp Service to a Timelock Server,"
-                + "or from one Timelock Server to an internal Timestamp Service.")
+                + "or from a Timelock Server to an internal Timestamp Service.")
 public class TimestampMigrationCommand extends AbstractTimestampCommand {
     private static final Logger log = LoggerFactory.getLogger(TimestampMigrationCommand.class);
 
@@ -69,7 +69,7 @@ public class TimestampMigrationCommand extends AbstractTimestampCommand {
         }
 
         try {
-            setSourceAndDestinationServices(services);
+            constructServices(services);
         } catch (IllegalStateException exception) {
             log.error("The internal timestamp service must be persistent to use the Timestamp Migration CLI.");
             return 1;
@@ -108,15 +108,14 @@ public class TimestampMigrationCommand extends AbstractTimestampCommand {
     public TimestampService getInternalTimestampService(AtlasDbConfig config) {
         ServicesConfigModule scm = ServicesConfigModule.create(
                 ImmutableAtlasDbConfig.copyOf(config)
-                .withTimelock(Optional.absent())
-        );
+                .withTimelock(Optional.absent()));
         return DaggerAtlasDbServices.builder()
                 .servicesConfigModule(scm)
                 .build()
                 .getTimestampService();
     }
 
-    private void setSourceAndDestinationServices(AtlasDbServices services) {
+    private void constructServices(AtlasDbServices services) {
         TimestampService internalTimestampService = getInternalTimestampService(services.getAtlasDbConfig());
         if (!(internalTimestampService instanceof PersistentTimestampService)) {
             throw new IllegalStateException("Migration requires the internal timestamp service to be persistent.");
