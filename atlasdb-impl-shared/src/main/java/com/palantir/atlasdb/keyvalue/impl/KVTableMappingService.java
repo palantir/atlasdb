@@ -103,9 +103,17 @@ public class KVTableMappingService extends AbstractTableMappingService {
         try {
             kv.putUnlessExists(AtlasDbConstants.NAMESPACE_TABLE, ImmutableMap.of(key, value));
         } catch (KeyAlreadyExistsException e) {
-            return getMappedTableName(tableRef);
+            return getAlreadyExistingMappedTableName(tableRef);
         }
         return TableReference.createWithEmptyNamespace(shortName);
+    }
+
+    private TableReference getAlreadyExistingMappedTableName(TableReference tableRef) {
+        try {
+            return getMappedTableName(tableRef);
+        } catch (TableMappingNotFoundException ex) {
+            throw new IllegalArgumentException(ex);
+        }
     }
 
     @Override

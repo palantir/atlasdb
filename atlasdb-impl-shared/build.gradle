@@ -21,9 +21,9 @@ dependencies {
 
   compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
 
-  processor 'org.immutables:value:' + libVersions.immutables
+  processor group: 'org.immutables', name: 'value'
   processor 'com.google.auto.service:auto-service:1.0-rc2'
 
-  testCompile group: 'org.assertj', name: 'assertj-core', version: libVersions.assertj
-  testCompile group: 'org.mockito', name: 'mockito-core', version: libVersions.mockito
+  testCompile group: 'org.assertj', name: 'assertj-core'
+  testCompile group: 'org.mockito', name: 'mockito-core'
 }

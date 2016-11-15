@@ -18,7 +18,7 @@ dependencies {
     compile project(':atlasdb-hikari')
     compile project(':atlasdb-rocksdb')
 
-    compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
+    compile group: 'io.dropwizard', name: 'dropwizard-core'
 
     runtime project(':atlasdb-dbkvs')
 
@@ -26,12 +26,12 @@ dependencies {
 
     compile group: 'org.apache.thrift', name: 'libthrift'
 
-    processor 'org.immutables:value:' + libVersions.immutables
+    processor group: 'org.immutables', name: 'value'
 
     testCompile project(':atlasdb-ete-test-utils')
     testCompile project(':atlasdb-docker-test-utils')
 
-    testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
+    testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
     testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
 }
 

@@ -20,6 +20,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
+import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 
 class OracleTableNameUnmapper {

@@ -1,8 +1,8 @@
 .. _postgres-configuration:
 
-========================================
-Postgres Key Value Service Configuration
-========================================
+===============================
+DB KVS (Postgres) Configuration
+===============================
 
 Enabling Postgres for your Application
 ======================================

@@ -536,7 +536,7 @@ public interface KeyValueService extends AutoCloseable {
      * a Quorum of hosts. However this call MUST be implemented by talking to ALL the nodes where a
      * value could be stored.
      *
-     * @param tableRef the name of the table to delete values from.
+     * @param tableRef the name of the table to retrieve timestamps from.
      * @param cells set containg cells to retrieve timestamps for.
      * @param timestamp maximum timestamp to get (exclusive)
      * @return multimap of timestamps by cell

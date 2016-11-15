@@ -39,15 +39,12 @@ public class OracleTableNameMapper {
         Preconditions.checkState(tablePrefix.length() <= AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH,
                 "The tablePrefix can be at most %s characters long", AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH);
 
-        String fullTableName = tablePrefix + DbKvs.internalTableName(tableRef);
-        if (fullTableName.length() <= PREFIXED_TABLE_NAME_LENGTH) {
-            return fullTableName;
-        }
-
         TableReference shortenedNamespaceTableRef = truncateNamespace(tableRef);
 
         String prefixedTableName = tablePrefix + DbKvs.internalTableName(shortenedNamespaceTableRef);
         String truncatedTableName = truncate(prefixedTableName, PREFIXED_TABLE_NAME_LENGTH);
+
+        String fullTableName = tablePrefix + DbKvs.internalTableName(tableRef);
         return truncatedTableName + getTableNumberSuffix(fullTableName, truncatedTableName);
     }
 
