@@ -57,7 +57,7 @@ public class OracleTableNameUnmapperTest {
         ConnectionSupplier connectionSupplier = mock(ConnectionSupplier.class);
         oracleTableNameUnmapper =  new OracleTableNameUnmapper(connectionSupplier);
         SqlConnection sqlConnection = mock(SqlConnection.class);
-        when(connectionSupplier.get()).thenReturn(sqlConnection);
+        when(connectionSupplier.getFresh()).thenReturn(sqlConnection);
         resultSet = mock(AgnosticResultSet.class);
         when(sqlConnection
                 .selectResultSetUnregisteredQuery(
