@@ -56,6 +56,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1171>`__)
 
     *    - |improved|
+         - CLIs now output to standard out and standard error as well as the logs while running.  This should
+           greatly improve usability for service admins using the CLIs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1177>`__)
+
+    *    - |improved|
          - Better support for AtlasDB clients running behind load balancers. In particular, if an AtlasDB client falls down and its load balancer responds with "503: Service Unavailable", the request will be attempted on other clients rather than aborting.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1175>`__)
 
