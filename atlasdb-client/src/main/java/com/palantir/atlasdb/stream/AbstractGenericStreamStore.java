@@ -66,9 +66,9 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     protected abstract long getInMemoryThreshold();
 
     @Override
-    public final InputStream loadStream(Transaction t, final ID id) {
+    public final InputStream loadStream(Transaction transaction, final ID id) {
         try {
-            return getStream(t, id, getMetadata(t, id));
+            return getStream(transaction, id, getMetadata(transaction, id));
         } catch (FileNotFoundException e) {
             log.error("Error opening temp file for stream " + id, e);
             throw Throwables.rewrapAndThrowUncheckedException("Could not open temp file to create stream.", e);
@@ -76,13 +76,13 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     }
 
     @Override
-    public final Map<ID, InputStream> loadStreams(Transaction t, Set<ID> ids) {
+    public final Map<ID, InputStream> loadStreams(Transaction transaction, Set<ID> ids) {
         Map<ID, InputStream> ret = Maps.newHashMap();
-        Map<ID, StreamMetadata> idsToMetadata = getMetadata(t, ids);
+        Map<ID, StreamMetadata> idsToMetadata = getMetadata(transaction, ids);
         for (Map.Entry<ID, StreamMetadata> entry : idsToMetadata.entrySet()) {
             ID id = entry.getKey();
             try {
-                ret.put(id, getStream(t, id, entry.getValue()));
+                ret.put(id, getStream(transaction, id, entry.getValue()));
             } catch (FileNotFoundException e) {
                 log.error("Error opening temp file for stream " + id, e);
                 throw Throwables.rewrapAndThrowUncheckedException("Could not open temp file to create stream.", e);
@@ -91,32 +91,32 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         return ret;
     }
 
-    private InputStream getStream(Transaction t, ID id, StreamMetadata metadata)
+    private InputStream getStream(Transaction transaction, ID id, StreamMetadata metadata)
             throws FileNotFoundException {
         checkStreamStored(id, metadata);
         if (metadata.getLength() == 0) {
             return new ByteArrayInputStream(new byte[0]);
         } else if (metadata.getLength() <= Math.min(getInMemoryThreshold(), BLOCK_SIZE_IN_BYTES)) {
             ByteArrayIOStream ios = new ByteArrayIOStream(Ints.saturatedCast(metadata.getLength()));
-            loadSingleBlockToOutputStream(t, id, 0, ios);
+            loadSingleBlockToOutputStream(transaction, id, 0, ios);
             return ios.getInputStream();
         } else {
-            File file = loadToNewTempFile(t, id, metadata);
+            File file = loadToNewTempFile(transaction, id, metadata);
             return new DeleteOnCloseFileInputStream(file);
         }
     }
 
     @Override
-    public final File loadStreamAsFile(Transaction t, ID id) {
-        StreamMetadata metadata = getMetadata(t, id);
+    public final File loadStreamAsFile(Transaction transaction, ID id) {
+        StreamMetadata metadata = getMetadata(transaction, id);
         checkStreamStored(id, metadata);
-        return loadToNewTempFile(t, id, metadata);
+        return loadToNewTempFile(transaction, id, metadata);
     }
 
-    private File loadToNewTempFile(Transaction t, ID id, StreamMetadata metadata) {
+    private File loadToNewTempFile(Transaction transaction, ID id, StreamMetadata metadata) {
         try {
             File file = createTempFile(id);
-            writeStreamToFile(t, id, metadata, file);
+            writeStreamToFile(transaction, id, metadata, file);
             return file;
         } catch (IOException e) {
             log.error("Could not create temp file for stream id " + id, e);
@@ -134,33 +134,39 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         }
     }
 
-    private void writeStreamToFile(Transaction t, ID id, StreamMetadata metadata, File file) throws FileNotFoundException {
+    private void writeStreamToFile(Transaction transaction, ID id, StreamMetadata metadata, File file)
+            throws FileNotFoundException {
         FileOutputStream fos = new FileOutputStream(file);
         try {
-            tryWriteStreamToFile(t, id, metadata, fos);
+            tryWriteStreamToFile(transaction, id, metadata, fos);
         } catch (IOException e) {
             log.error("Could not finish streaming blocks to file for stream " + id, e);
             throw Throwables.rewrapAndThrowUncheckedException("Error writing blocks while opening a stream.", e);
         } finally {
-            try { fos.close(); } catch (IOException e) {}
+            try {
+                fos.close();
+            } catch (IOException e) {
+                // Do nothing
+            }
         }
     }
 
-    private void tryWriteStreamToFile(Transaction t, ID id, StreamMetadata metadata, FileOutputStream fos) throws IOException {
+    private void tryWriteStreamToFile(Transaction transaction, ID id, StreamMetadata metadata, FileOutputStream fos)
+            throws IOException {
         long numBlocks = getNumberOfBlocksFromMetadata(metadata);
         for (long i = 0; i < numBlocks; i++) {
-            loadSingleBlockToOutputStream(t, id, i, fos);
+            loadSingleBlockToOutputStream(transaction, id, i, fos);
         }
         fos.close();
     }
 
-    private StreamMetadata getMetadata(Transaction t, ID id) {
-        return Iterables.getOnlyElement(getMetadata(t, Sets.newHashSet(id)).entrySet()).getValue();
-    }
-
     protected abstract File createTempFile(ID id) throws IOException;
 
-    protected abstract void loadSingleBlockToOutputStream(Transaction t, ID streamId, long blockId, OutputStream os);
+    protected abstract void loadSingleBlockToOutputStream(Transaction tx, ID streamId, long blockId, OutputStream os);
 
-    protected abstract Map<ID, StreamMetadata> getMetadata(Transaction t, Set<ID> streamIds);
+    private StreamMetadata getMetadata(Transaction transaction, ID id) {
+        return Iterables.getOnlyElement(getMetadata(transaction, Sets.newHashSet(id)).entrySet()).getValue();
+    }
+
+    protected abstract Map<ID, StreamMetadata> getMetadata(Transaction tx, Set<ID> streamIds);
 }
