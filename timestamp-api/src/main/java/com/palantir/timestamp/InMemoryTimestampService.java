@@ -38,6 +38,10 @@ public class InMemoryTimestampService implements TimestampService, TimestampAdmi
             throw new IllegalArgumentException("Argument must be positive: " + timestampsToGet);
         }
         long topValue = counter.addAndGet(timestampsToGet);
+        if (topValue < 0) {
+            counter.set(Long.MIN_VALUE);
+            throw new IllegalStateException("This timestamp service has been invalidated!");
+        }
         return TimestampRange.createInclusiveRange(topValue - timestampsToGet + 1, topValue);
     }
 
@@ -50,5 +54,10 @@ public class InMemoryTimestampService implements TimestampService, TimestampAdmi
             }
             currentValue = counter.get();
         }
+    }
+
+    @Override
+    public void invalidateTimestamps() {
+        counter.set(Long.MIN_VALUE);
     }
 }

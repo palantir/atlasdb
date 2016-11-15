@@ -71,6 +71,11 @@ public class PersistentUpperLimit {
         return timeSinceIncrease < durationInMillis;
     }
 
+    public void invalidateTimestamps() {
+        cachedValue = Long.MIN_VALUE;
+        tbs.storeUpperLimit(Long.MIN_VALUE);
+    }
+
     private synchronized void store(long upperLimit) {
         DebugLogger.logger.trace("Storing new upper limit of {}.", upperLimit);
         checkWeHaveNotBeenInterrupted();

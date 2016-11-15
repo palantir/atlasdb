@@ -82,6 +82,11 @@ public class PersistentTimestampService implements TimestampService, TimestampAd
         availableTimestamps.fastForwardTo(newMinimumTimestamp);
     }
 
+    @Override
+    public void invalidateTimestamps() {
+        availableTimestamps.invalidateTimestamps();
+    }
+
     private int cleanUpTimestampRequest(int numTimestampsRequested) {
         Preconditions.checkArgument(numTimestampsRequested > 0,
                 "Number of timestamps requested must be greater than zero, was %s",

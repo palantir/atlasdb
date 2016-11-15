@@ -18,6 +18,7 @@ package com.palantir.timestamp;
 import static java.util.concurrent.TimeUnit.MINUTES;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 public class AvailableTimestamps {
     static final long ALLOCATION_BUFFER_SIZE = 1000 * 1000;
@@ -39,6 +40,9 @@ public class AvailableTimestamps {
                 numberToHandOut <= MAX_TIMESTAMPS_TO_HAND_OUT,
                 "Can only hand out %s timestamps at a time, but %s were requested",
                 MAX_TIMESTAMPS_TO_HAND_OUT, numberToHandOut);
+        checkState(
+                upperLimit.get() >= 0,
+                "This timestamp service has been invalidated!");
 
         long targetTimestamp = lastHandedOut() + numberToHandOut;
         DebugLogger.logger.trace("Handing out {} timestamps, taking us to {}.", numberToHandOut, targetTimestamp);
@@ -48,6 +52,10 @@ public class AvailableTimestamps {
     public synchronized void refreshBuffer() {
         long currentUpperLimit = upperLimit.get();
         long buffer = currentUpperLimit - lastHandedOut();
+
+        checkState(
+                currentUpperLimit >= 0,
+                "This timestamp service has been invalidated!");
 
         if (buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, MINUTES)) {
             DebugLogger.logger.trace(
@@ -61,8 +69,16 @@ public class AvailableTimestamps {
     }
 
     public synchronized void fastForwardTo(long newMinimum) {
+        checkState(
+                upperLimit.get() >= 0,
+                "This timestamp service has been invalidated!");
+
         lastReturnedTimestamp.increaseToAtLeast(newMinimum);
         upperLimit.increaseToAtLeast(newMinimum + ALLOCATION_BUFFER_SIZE);
+    }
+
+    public synchronized void invalidateTimestamps() {
+        upperLimit.invalidateTimestamps();
     }
 
     private long lastHandedOut() {
