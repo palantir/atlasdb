@@ -36,10 +36,7 @@ public class AtlasDbErrorDecoder implements ErrorDecoder {
     public Exception decode(String methodKey, Response response) {
         Exception exception = defaultErrorDecoder.decode(methodKey, response);
         if (response503ButExceptionIsNotRetryable(response, exception)) {
-            return new RetryableException(
-                    exception.getMessage(),
-                    exception,
-                    null);
+            return new RetryableException(exception.getMessage(), exception, null);
         }
         return exception;
     }
