@@ -55,6 +55,10 @@ develop
          - The migration CLI will now decrypt encrypted values and will now use the dropwizard config as the new configuration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1171>`__)
 
+    *    - |breaking|
+         - Oracle table names for short table names less than 30 characters are no longer left untouched but shortened to the format ``prefix_2-letter-namespace__table-name_hash``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1187>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
