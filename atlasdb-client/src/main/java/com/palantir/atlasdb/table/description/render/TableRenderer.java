@@ -852,7 +852,7 @@ public class TableRenderer {
                         } line("}");
                     } line("}");
                 } line("}");
-                line("t.delete(TableReference.createUnsafe(\"", Schemas.getFullTableName(index.getIndexName(), namespace), "\"), indexCells.build());");
+                line("t.delete(", Schemas.getTableReferenceString(index.getIndexName(), namespace), ", indexCells.build());");
             } line("}");
         }
 
@@ -926,7 +926,7 @@ public class TableRenderer {
                         line("}");
                     }
                 }  line("}");
-                line("t.delete(TableReference.createUnsafe(\"", Schemas.getFullTableName(index.getIndexName(), namespace), "\"), indexCells);");
+                line("t.delete(", Schemas.getTableReferenceString(index.getIndexName(), namespace), ", indexCells);");
             } line("}");
         }
 
