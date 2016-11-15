@@ -69,10 +69,6 @@ public class AvailableTimestamps {
     }
 
     public synchronized void fastForwardTo(long newMinimum) {
-        checkState(
-                upperLimit.get() >= 0,
-                "This timestamp service has been invalidated!");
-
         lastReturnedTimestamp.increaseToAtLeast(newMinimum);
         upperLimit.increaseToAtLeast(newMinimum + ALLOCATION_BUFFER_SIZE);
     }

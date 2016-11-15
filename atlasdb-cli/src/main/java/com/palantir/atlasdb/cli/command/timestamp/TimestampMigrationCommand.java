@@ -24,10 +24,13 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.atlasdb.services.DaggerAtlasDbServices;
+import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.timestamp.TimestampAdministrationService;
 import com.palantir.timestamp.TimestampService;
 
@@ -35,7 +38,7 @@ import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
 
-@Command(name = "timestamp-migration",
+@Command(name = "migration",
         description = "Migrates the current timestamp from an internal Timestamp Service to a Timelock Server,"
                 + "or from one Timelock Server to an internal Timestamp Service.")
 public class TimestampMigrationCommand extends AbstractTimestampCommand {
@@ -48,7 +51,6 @@ public class TimestampMigrationCommand extends AbstractTimestampCommand {
     private boolean reverse;
 
     private TimestampService sourceService;
-    private TimestampService destinationService;
 
     private TimestampAdministrationService sourceAdministrationService;
     private TimestampAdministrationService destinationAdministrationService;
@@ -88,8 +90,19 @@ public class TimestampMigrationCommand extends AbstractTimestampCommand {
         return 0;
     }
 
+    public TimestampService getInternalTimestampService(AtlasDbConfig config) {
+        ServicesConfigModule scm = ServicesConfigModule.create(
+                ImmutableAtlasDbConfig.copyOf(config)
+                .withTimelock(Optional.absent())
+        );
+        return DaggerAtlasDbServices.builder()
+                .servicesConfigModule(scm)
+                .build()
+                .getTimestampService();
+    }
+
     private void setSourceAndDestinationServices(AtlasDbServices services) {
-        TimestampService internalService = services.getTimestampService();
+        TimestampService internalService = getInternalTimestampService(services.getAtlasDbConfig());
         if (!(internalService instanceof TimestampAdministrationService)) {
             throw new IllegalStateException("Internal timestamp service does not have administrative capabilities!");
         }
@@ -103,12 +116,10 @@ public class TimestampMigrationCommand extends AbstractTimestampCommand {
         if (reverse) {
             sourceService = remoteService;
             sourceAdministrationService = remoteAdministrationService;
-            destinationService = internalService;
             destinationAdministrationService = internalAdministrationService;
         } else {
             sourceService = internalService;
             sourceAdministrationService = internalAdministrationService;
-            destinationService = remoteService;
             destinationAdministrationService = remoteAdministrationService;
         }
     }
