@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -83,6 +84,12 @@ public class PersistentTimestampServiceTest {
         when(availableTimestamps.handOut(1)).thenReturn(SINGLE_TIMESTAMP_RANGE);
 
         assertThat(timestampService.getFreshTimestamp(), is(TIMESTAMP));
+    }
+
+    @Test
+    public void passesInvalidationRequestToAvailableTimestamps() {
+        timestampService.invalidateTimestamps();
+        verify(availableTimestamps, times(1)).invalidateTimestamps();
     }
 
     private void waitForExecutorToFinish() throws InterruptedException {

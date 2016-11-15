@@ -71,9 +71,8 @@ public class PersistentUpperLimit {
         return timeSinceIncrease < durationInMillis;
     }
 
-    public void invalidateTimestamps() {
-        cachedValue = Long.MIN_VALUE;
-        tbs.storeUpperLimit(Long.MIN_VALUE);
+    public synchronized void invalidateTimestamps() {
+        store(Long.MIN_VALUE);
     }
 
     private synchronized void store(long upperLimit) {

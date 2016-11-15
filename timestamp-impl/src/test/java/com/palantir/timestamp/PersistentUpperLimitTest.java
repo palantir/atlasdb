@@ -20,6 +20,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -178,12 +179,31 @@ public class PersistentUpperLimitTest {
             Thread.currentThread().interrupt();
             upperLimit.increaseToAtLeast(INITIAL_UPPER_LIMIT + 10);
         } catch (Exception e) {
-            // Ingnore expected exception
+            // Ignore expected exception
         } finally {
             // Clear the interrupt
             Thread.interrupted();
         }
 
+        verify(boundStore, never()).storeUpperLimit(anyLong());
+    }
+
+    @Test
+    public void shouldSetUpperBoundToLongMinValueWhenInvalidatingTimestamps() {
+        upperLimit.invalidateTimestamps();
+        verify(boundStore, times(1)).storeUpperLimit(eq(Long.MIN_VALUE));
+    }
+
+    @Test
+    public void shouldNotModifyUpperBoundIfInterruptedWhileInvalidatingTimestamps() {
+        try {
+            Thread.currentThread().interrupt();
+            upperLimit.invalidateTimestamps();
+        } catch (Exception e) {
+            // expected
+        } finally {
+            Thread.interrupted();
+        }
         verify(boundStore, never()).storeUpperLimit(anyLong());
     }
 

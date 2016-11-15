@@ -25,6 +25,7 @@ import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.longThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -62,8 +63,8 @@ public class AvailableTimestampsTest {
         assertThat(availableTimestamps.handOut(10).size(), is(10L));
     }
 
-    @Test public void
-    shouldRefreshTheBufferIfHalfOfItIsUsedUp() {
+    @Test
+    public void shouldRefreshTheBufferIfHalfOfItIsUsedUp() {
         availableTimestamps.handOut(INITIAL_REMAINING_TIMESTAMPS - 10);
         availableTimestamps.refreshBuffer();
 
@@ -72,8 +73,8 @@ public class AvailableTimestampsTest {
         );
     }
 
-    @Test public void
-    shouldRefreshTheBufferIfNoIncreaseHasHappenedWithin1Minute() {
+    @Test
+    public void shouldRefreshTheBufferIfNoIncreaseHasHappenedWithin1Minute() {
         when(persistentUpperLimit.hasIncreasedWithin(1, MINUTES)).thenReturn(false);
 
         availableTimestamps.refreshBuffer();
@@ -83,8 +84,8 @@ public class AvailableTimestampsTest {
         );
     }
 
-    @Test public void
-    shouldNotRefreshTheBufferIfMoreThanHalfIsLeftAndWeHaveUpdatedRecently() {
+    @Test
+    public void shouldNotRefreshTheBufferIfMoreThanHalfIsLeftAndWeHaveUpdatedRecently() {
         when(persistentUpperLimit.hasIncreasedWithin(1, MINUTES)).thenReturn(true);
         when(persistentUpperLimit.get()).thenReturn(2 * UPPER_LIMIT);
 
@@ -93,8 +94,8 @@ public class AvailableTimestampsTest {
         verify(persistentUpperLimit, never()).increaseToAtLeast(anyLong());
     }
 
-    @Test public void
-    shouldIncreaseUpperLimitIfNecessaryToHandOutNewTimestamps() {
+    @Test
+    public void shouldIncreaseUpperLimitIfNecessaryToHandOutNewTimestamps() {
         assertThat(
                 availableTimestamps.handOut(INITIAL_REMAINING_TIMESTAMPS + 10).getUpperBound(),
                 is(UPPER_LIMIT + 10));
@@ -102,27 +103,34 @@ public class AvailableTimestampsTest {
         verify(persistentUpperLimit).increaseToAtLeast(UPPER_LIMIT + 10);
     }
 
-    @Test public void
-    shouldNotHandOutMoreThanTenThousandTimestampsAtATime() {
+    @Test
+    public void shouldNotHandOutMoreThanTenThousandTimestampsAtATime() {
         exception.expect(IllegalArgumentException.class);
         exception.expectMessage("Can only hand out 10000 timestamps at a time");
         exception.expectMessage("20000");
 
-        availableTimestamps.handOut(20*1000);
+        availableTimestamps.handOut(20 * 1000);
     }
 
-    @Test public void
-    shouldHandOutExactlyTenThousandTimestamps() {
+    @Test
+    public void shouldHandOutExactlyTenThousandTimestamps() {
         availableTimestamps.handOut(10*1000);
     }
 
-    @Test public void
-    canFastForwardToANewMinimumTimestamp() {
+    @Test
+    public void canFastForwardToANewMinimumTimestamp() {
         long newMinimum = 2 * UPPER_LIMIT;
         availableTimestamps.fastForwardTo(newMinimum);
 
         assertThat(lastReturnedTimestamp.get(), is(newMinimum));
         verify(persistentUpperLimit).increaseToAtLeast(longGreaterThan(newMinimum));
+    }
+
+    @Test
+    public void passesInvalidationRequestToUpperLimit() {
+        availableTimestamps.invalidateTimestamps();
+
+        verify(persistentUpperLimit, times(1)).invalidateTimestamps();
     }
 
     private long longGreaterThan(long n) {
