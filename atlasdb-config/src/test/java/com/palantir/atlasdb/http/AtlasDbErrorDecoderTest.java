@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertNull;
@@ -58,14 +57,9 @@ public class AtlasDbErrorDecoderTest {
         Response response = createResponse(STATUS_503);
         makeDefaultDecoderReplyWhenReceivingResponse(response, NON_RETRYABLE_EXCEPTION);
 
-        AtlasDbErrorDecoder decoder = new AtlasDbErrorDecoder(defaultDecoder);
-        Exception exception = decoder.decode(EMPTY_METHOD_KEY, response);
+        Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
 
-        assertThat(exception, is(instanceOf(RetryableException.class)));
-        if (exception instanceof RetryableException) {
-            RetryableException retryableException = (RetryableException) exception;
-            assertNull(retryableException.retryAfter());
-        }
+        assertNull(((RetryableException) exception).retryAfter());
     }
 
     @Test
@@ -73,8 +67,7 @@ public class AtlasDbErrorDecoderTest {
         Response response = createResponse(STATUS_503);
         makeDefaultDecoderReplyWhenReceivingResponse(response, RETRYABLE_EXCEPTION);
 
-        AtlasDbErrorDecoder decoder = new AtlasDbErrorDecoder(defaultDecoder);
-        Exception exception = decoder.decode(EMPTY_METHOD_KEY, response);
+        Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
 
         assertThat(exception, is(sameInstance(RETRYABLE_EXCEPTION)));
     }
@@ -84,8 +77,7 @@ public class AtlasDbErrorDecoderTest {
         Response response = createResponse(STATUS_NOT_503);
         makeDefaultDecoderReplyWhenReceivingResponse(response, NON_RETRYABLE_EXCEPTION);
 
-        AtlasDbErrorDecoder decoder = new AtlasDbErrorDecoder(defaultDecoder);
-        Exception exception = decoder.decode(EMPTY_METHOD_KEY, response);
+        Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
 
         assertThat(exception, is(sameInstance(NON_RETRYABLE_EXCEPTION)));
     }
@@ -95,8 +87,7 @@ public class AtlasDbErrorDecoderTest {
         Response response = createResponse(STATUS_NOT_503);
         makeDefaultDecoderReplyWhenReceivingResponse(response, RETRYABLE_EXCEPTION);
 
-        AtlasDbErrorDecoder decoder = new AtlasDbErrorDecoder(defaultDecoder);
-        Exception exception = decoder.decode(EMPTY_METHOD_KEY, response);
+        Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
 
         assertThat(exception, is(sameInstance(RETRYABLE_EXCEPTION)));
     }
@@ -112,5 +103,4 @@ public class AtlasDbErrorDecoderTest {
         byte[] emptyBody = new byte[0];
         return Response.create(status, emptyReason, emptyHeaders, emptyBody);
     }
-
 }

@@ -47,9 +47,6 @@ public class AtlasDbHttpClientsTest {
     private static final MappingBuilder ENDPOINT_MAPPING = get(urlEqualTo(TEST_ENDPOINT));
     private static final int AVAILABLE_PORT = 8080;
     private static final int UNAVAILABLE_PORT = 8081;
-    private static final String AVAILABLE_URL = getUriForPort(AVAILABLE_PORT);
-    private static final String UNAVAILABLE_URL = getUriForPort(UNAVAILABLE_PORT);
-    public static final ImmutableSet<String> BOTH_URIS = ImmutableSet.of(UNAVAILABLE_URL, AVAILABLE_URL);
     private static final int TEST_NUMBER = 12;
 
     @Rule
@@ -80,7 +77,7 @@ public class AtlasDbHttpClientsTest {
 
         TestResource client = AtlasDbHttpClients.createProxyWithFailover(
                 NO_SSL,
-                BOTH_URIS,
+                bothUris(),
                 TestResource.class);
 
         int response = client.getTestNumber();
@@ -92,5 +89,11 @@ public class AtlasDbHttpClientsTest {
         return String.format("http://%s:%s",
                 WireMockConfiguration.DEFAULT_BIND_ADDRESS,
                 port);
+    }
+
+    public static final ImmutableSet<String> bothUris() {
+        String availableUri = getUriForPort(AVAILABLE_PORT);
+        String unavailableUri = getUriForPort(UNAVAILABLE_PORT);
+        return ImmutableSet.of(unavailableUri, availableUri);
     }
 }
