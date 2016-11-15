@@ -28,6 +28,7 @@ import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.timestamp.TimestampAdministrationService;
 import com.palantir.timestamp.TimestampService;
 
 import io.airlift.airline.Command;
@@ -49,6 +50,9 @@ public class TimestampMigrationCommand extends AbstractTimestampCommand {
     private TimestampService sourceService;
     private TimestampService destinationService;
 
+    private TimestampAdministrationService sourceAdministrationService;
+    private TimestampAdministrationService destinationAdministrationService;
+
     @Override
     protected boolean requireTimestamp() {
         return false;
@@ -61,16 +65,24 @@ public class TimestampMigrationCommand extends AbstractTimestampCommand {
             return 1;
         }
 
-        setSourceAndDestinationServices(services);
-        long timestamp = sourceService.getFreshTimestamp();
         try {
-            TimestampUtils.fastForwardTimestamp(destinationService, timestamp);
+            setSourceAndDestinationServices(services);
         } catch (IllegalStateException exception) {
-            log.error("Attempted to fast forward a timestamp service which doesn't bear administrative capabilities.");
+            log.error("The destination service isn't an administrative service.");
             return 1;
         }
 
-        // TODO How to invalidate the old table?
+        long timestamp;
+        try {
+            timestamp = sourceService.getFreshTimestamp();
+        } catch (IllegalStateException exception) {
+            log.error("The source timestamp service has been invalidated!");
+            return 1;
+        }
+
+        destinationAdministrationService.fastForwardTimestamp(timestamp);
+
+        sourceAdministrationService.invalidateTimestamps();
 
         log.info("Timestamp migration cli complete.");
         return 0;
@@ -78,14 +90,26 @@ public class TimestampMigrationCommand extends AbstractTimestampCommand {
 
     private void setSourceAndDestinationServices(AtlasDbServices services) {
         TimestampService internalService = services.getTimestampService();
+        if (!(internalService instanceof TimestampAdministrationService)) {
+            throw new IllegalStateException("Internal timestamp service does not have administrative capabilities!");
+        }
+        TimestampAdministrationService internalAdministrationService = (TimestampAdministrationService) internalService;
+
         TimestampService remoteService = getTimelockProxy(services.getAtlasDbConfig(), TimestampService.class);
+
+        TimestampAdministrationService remoteAdministrationService
+                = getTimelockProxy(services.getAtlasDbConfig(), TimestampAdministrationService.class);
 
         if (reverse) {
             sourceService = remoteService;
+            sourceAdministrationService = remoteAdministrationService;
             destinationService = internalService;
+            destinationAdministrationService = internalAdministrationService;
         } else {
             sourceService = internalService;
+            sourceAdministrationService = internalAdministrationService;
             destinationService = remoteService;
+            destinationAdministrationService = remoteAdministrationService;
         }
     }
 
