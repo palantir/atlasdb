@@ -1028,6 +1028,11 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
+    @Test
+    public void compactingShouldNotFail() {
+        keyValueService.compactInternally(TEST_TABLE);
+    }
+
     private byte[] dynamicColumn(long columnId) {
         return PtBytes.toBytes(columnId);
     }

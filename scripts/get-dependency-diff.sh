@@ -26,7 +26,7 @@ generate_dependency_files() {
 }
 
 print_header() {
-    printf "\033[1;97m$1\033[0m\n"
+    printf "\033[1;97m@@$1@@\033[0m\n"
 }
 
 prepare_diff() {

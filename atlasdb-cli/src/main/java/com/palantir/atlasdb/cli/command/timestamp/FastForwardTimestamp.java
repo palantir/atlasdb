@@ -15,9 +15,9 @@
  */
 package com.palantir.atlasdb.cli.command.timestamp;
 
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
@@ -28,7 +28,7 @@ import io.airlift.airline.Command;
         + " service to the specified timestamp.  Is used in the restore process to ensure that all future timestamps used are"
         + " explicity greater than any that may have been used to write data to the KVS before backing up the underlying storage.")
 public class FastForwardTimestamp extends AbstractTimestampCommand {
-    private static final Logger log = LoggerFactory.getLogger(FastForwardTimestamp.class);
+    private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(FastForwardTimestamp.class));
 
     @Override
     public boolean isOnlineRunSupported() {
@@ -44,14 +44,14 @@ public class FastForwardTimestamp extends AbstractTimestampCommand {
     protected int executeTimestampCommand(AtlasDbServices services) {
         TimestampService ts = services.getTimestampService();
         if (!(ts instanceof PersistentTimestampService)) {
-            log.error("Timestamp service must be of type {}, but yours is {}.  Exiting.",
+            printer.error("Timestamp service must be of type {}, but yours is {}.  Exiting.",
                     PersistentTimestampService.class.toString(), ts.getClass().toString());
             return 1;
         }
         PersistentTimestampService pts = (PersistentTimestampService) ts;
 
         pts.fastForwardTimestamp(timestamp);
-        log.info("Timestamp succesfully fast-forwarded to {}", timestamp);
+        printer.info("Timestamp succesfully fast-forwarded to {}", timestamp);
         return 0;
     }
 }

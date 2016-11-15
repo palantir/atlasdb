@@ -15,10 +15,13 @@
  */
 package com.palantir.atlasdb.cli.command;
 
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
@@ -27,6 +30,7 @@ import io.airlift.airline.Command;
 @Command(name = "clean-cass-locks-state", description = "Clean up and get the schema mutation "
         + "locks for the CassandraKVS into a good state")
 public class CleanCassLocksStateCommand extends AbstractCommand {
+    private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(CleanCassLocksStateCommand.class));
 
     @Override
     public Integer call() throws Exception {
@@ -38,6 +42,7 @@ public class CleanCassLocksStateCommand extends AbstractCommand {
                 Optional.absent());
 
         ckvs.cleanUpSchemaMutationLockTablesState();
+        printer.info("Schema mutation lock cli completed successfully.");
         return 0;
     }
 

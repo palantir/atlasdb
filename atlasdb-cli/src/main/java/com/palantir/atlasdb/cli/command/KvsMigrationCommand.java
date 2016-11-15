@@ -19,13 +19,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -43,7 +43,7 @@ import io.airlift.airline.OptionType;
 
 @Command(name = "migrate", description = "Migrate your data from one key value service to another.")
 public class KvsMigrationCommand implements Callable<Integer> {
-    private static final Logger log = LoggerFactory.getLogger(KvsMigrationCommand.class);
+    private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(KvsMigrationCommand.class));
 
     @Option(name = {"-fc", "--fromConfig"},
             title = "CONFIG PATH",
@@ -106,7 +106,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         if (inlineConfig == null && toConfigFile == null) {
-            log.error("Argument -mc/--migrateConfig is required when not running as a dropwizard CLI");
+            printer.error("Argument -mc/--migrateConfig is required when not running as a dropwizard CLI");
             return 1;
         }
 
@@ -117,7 +117,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
 
     public int execute(AtlasDbServices fromServices, AtlasDbServices toServices) {
         if (!setup && !migrate && !validate) {
-            log.error("At least one of --setup, --migrate, or --validate should be specified.");
+            printer.error("At least one of --setup, --migrate, or --validate should be specified.");
             return 1;
         }
         KeyValueServiceMigrator migrator;
@@ -140,7 +140,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
                     batchSize,
                     ImmutableMap.of(),
                     (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) -> {
-                        log.info(level.toString() + ": " + message);
+                        printer.info(level.toString() + ": " + message);
                     },
                     ImmutableSet.of());
             validator.validate(true);
@@ -190,12 +190,12 @@ public class KvsMigrationCommand implements Callable<Integer> {
                 batchSize,
                 ImmutableMap.of(),
                 (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) -> {
-                    log.info(level.toString() + ": " + message);
+                    printer.info(level.toString() + ": " + message);
                 },
                 new TaskProgress() {
                     @Override
                     public void beginTask(String message, int tasks) {
-                        log.info(message);
+                        printer.info(message);
                     }
 
                     @Override

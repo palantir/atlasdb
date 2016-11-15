@@ -15,11 +15,11 @@
  */
 package com.palantir.atlasdb.cli.command.timestamp;
 
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -36,7 +36,7 @@ import io.airlift.airline.Command;
         + "commit timestamp greater than the timestamp provided.")
 public class CleanTransactionRange extends AbstractTimestampCommand {
 
-    private static final Logger log = LoggerFactory.getLogger(CleanTransactionRange.class);
+    private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(CleanTransactionRange.class));
 
     @Override
     public boolean isOnlineRunSupported() {
@@ -71,7 +71,7 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
                 value = row.getOnlyColumnValue();
             } catch (IllegalStateException e){
                 //this should never happen
-                log.error("Found a row in the transactions table that didn't have 1 and only 1 column value: start={}", startTs);
+                printer.error("Found a row in the transactions table that didn't have 1 and only 1 column value: start={}", startTs);
                 continue;
             }
 
@@ -80,7 +80,7 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
                 continue; // this is a valid transaction
             }
 
-            log.info("Found and cleaning possibly inconsistent transaction: [start={}, commit={}]", startTs, commitTs);
+            printer.info("Found and cleaning possibly inconsistent transaction: [start={}, commit={}]", startTs, commitTs);
 
             Cell key = Cell.create(rowName, TransactionConstants.COMMIT_TS_COLUMN);
             toDelete.put(key, value.getTimestamp());  //value.getTimestamp() should always be 0L
@@ -88,9 +88,9 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
 
         if (!toDelete.isEmpty()) {
             kvs.delete(TransactionConstants.TRANSACTION_TABLE, toDelete);
-            log.info("Delete completed.");
+            printer.info("Delete completed.");
         } else {
-            log.info("Found no transactions after the given timestamp to delete.");
+            printer.info("Found no transactions after the given timestamp to delete.");
         }
 
         return 0;
