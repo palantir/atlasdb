@@ -58,7 +58,7 @@ v0.24.0
          - Change
 
     *    - |breaking|
-         - All Oracle table names will be truncated and be of the form: ``<prefix>_<2-letter-namespace>__<table-name-hash>``.
+         - All Oracle table names will be truncated and be of the form: ``<prefix>_<2-letter-namespace>__<table-name>_<5-digit-int>``.
            Previously we only truncated names that exceeded the character limit for Oracle table names.
            This should improve legibility as all table names for a particular application will have identical formatting.
 
