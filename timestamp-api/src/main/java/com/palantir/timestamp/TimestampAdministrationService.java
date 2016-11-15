@@ -33,4 +33,12 @@ public interface TimestampAdministrationService {
     @POST
     @Path("/fast-forward")
     void fastForwardTimestamp(@QueryParam("newMinimum") long newMinimumTimestamp);
+
+    /**
+     * Invalidates all future timestamps administered by the corresponding TimestampService.
+     * Timestamps are "invalid" in that they will be negative.
+     */
+    @POST
+    @Path("/invalidate")
+    void invalidateTimestamps();
 }
