@@ -34,6 +34,19 @@ Changelog
 develop
 =======
 
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Better support for AtlasDB clients running behind load balancers. In particular, if an AtlasDB client falls down and its load balancer responds with "503: Service Unavailable", the request will be attempted on other clients rather than aborting.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1175>`__)
+
+.
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
