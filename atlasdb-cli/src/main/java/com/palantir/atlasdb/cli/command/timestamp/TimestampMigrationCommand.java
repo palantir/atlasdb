@@ -31,6 +31,7 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
+import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampAdministrationService;
 import com.palantir.timestamp.TimestampService;
 
@@ -38,7 +39,7 @@ import io.airlift.airline.Command;
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
 
-@Command(name = "migration",
+@Command(name = "migrate",
         description = "Migrates the current timestamp from an internal Timestamp Service to a Timelock Server,"
                 + "or from one Timelock Server to an internal Timestamp Service.")
 public class TimestampMigrationCommand extends AbstractTimestampCommand {
@@ -50,10 +51,10 @@ public class TimestampMigrationCommand extends AbstractTimestampCommand {
                     + "instead of from the internal service to a timelock server.")
     private boolean reverse;
 
-    private TimestampService sourceService;
+    private PersistentTimestampService internalService;
 
-    private TimestampAdministrationService sourceAdministrationService;
-    private TimestampAdministrationService destinationAdministrationService;
+    private TimestampService remoteTimestampService;
+    private TimestampAdministrationService remoteAdministrationService;
 
     @Override
     protected boolean requireTimestamp() {
@@ -63,31 +64,45 @@ public class TimestampMigrationCommand extends AbstractTimestampCommand {
     @Override
     protected int executeTimestampCommand(AtlasDbServices services) {
         if (!timelockBlockPresent(services.getAtlasDbConfig())) {
-            log.error("Remote Migration CLI must be run with details of a timelock configuration.");
+            log.error("Timestamp Migration CLI must be run with details of a timelock configuration.");
             return 1;
         }
 
         try {
             setSourceAndDestinationServices(services);
         } catch (IllegalStateException exception) {
-            log.error("The destination service isn't an administrative service.");
+            log.error("The internal timestamp service must be persistent to use the Timestamp Migration CLI.");
             return 1;
         }
 
-        long timestamp;
+        long targetTimestamp;
         try {
-            timestamp = sourceService.getFreshTimestamp();
+            targetTimestamp = getTimestampToFastForwardTo();
         } catch (IllegalStateException exception) {
             log.error("The source timestamp service has been invalidated!");
             return 1;
         }
 
-        destinationAdministrationService.fastForwardTimestamp(timestamp);
-
-        sourceAdministrationService.invalidateTimestamps();
-
-        log.info("Timestamp migration cli complete.");
+        migrateTimestamp(targetTimestamp);
+        log.info("Timestamp migration CLI complete.");
         return 0;
+    }
+
+    private long getTimestampToFastForwardTo() {
+        if (reverse) {
+            return remoteTimestampService.getFreshTimestamp();
+        }
+        return internalService.getFreshTimestamp();
+    }
+
+    private void migrateTimestamp(long targetTimestamp) {
+        if (reverse) {
+            internalService.fastForwardTimestamp(targetTimestamp);
+            remoteAdministrationService.invalidateTimestamps();
+        } else {
+            remoteAdministrationService.fastForwardTimestamp(targetTimestamp);
+            internalService.invalidateTimestamps();
+        }
     }
 
     public TimestampService getInternalTimestampService(AtlasDbConfig config) {
@@ -102,26 +117,15 @@ public class TimestampMigrationCommand extends AbstractTimestampCommand {
     }
 
     private void setSourceAndDestinationServices(AtlasDbServices services) {
-        TimestampService internalService = getInternalTimestampService(services.getAtlasDbConfig());
-        if (!(internalService instanceof TimestampAdministrationService)) {
-            throw new IllegalStateException("Internal timestamp service does not have administrative capabilities!");
+        TimestampService internalTimestampService = getInternalTimestampService(services.getAtlasDbConfig());
+        if (!(internalTimestampService instanceof PersistentTimestampService)) {
+            throw new IllegalStateException("Migration requires the internal timestamp service to be persistent.");
         }
-        TimestampAdministrationService internalAdministrationService = (TimestampAdministrationService) internalService;
+        internalService = (PersistentTimestampService) internalTimestampService;
 
-        TimestampService remoteService = getTimelockProxy(services.getAtlasDbConfig(), TimestampService.class);
-
-        TimestampAdministrationService remoteAdministrationService
-                = getTimelockProxy(services.getAtlasDbConfig(), TimestampAdministrationService.class);
-
-        if (reverse) {
-            sourceService = remoteService;
-            sourceAdministrationService = remoteAdministrationService;
-            destinationAdministrationService = internalAdministrationService;
-        } else {
-            sourceService = internalService;
-            sourceAdministrationService = internalAdministrationService;
-            destinationAdministrationService = remoteAdministrationService;
-        }
+        remoteTimestampService = getTimelockProxy(services.getAtlasDbConfig(), TimestampService.class);
+        remoteAdministrationService = getTimelockProxy(services.getAtlasDbConfig(),
+                TimestampAdministrationService.class);
     }
 
     private boolean timelockBlockPresent(AtlasDbConfig config) {
