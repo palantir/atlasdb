@@ -17,10 +17,10 @@ package com.palantir.atlasdb.cli.command.timestamp;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
+import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.services.AtlasDbServices;
 
 import io.airlift.airline.Command;
@@ -30,7 +30,7 @@ import io.airlift.airline.OptionType;
 @Command(name = "fetch", description = "Fetches a timestamp. By default"
         + " this will be a fresh timestamp unless otherwise specified.")
 public class FetchTimestamp extends AbstractTimestampCommand {
-    private static final Logger log = LoggerFactory.getLogger(FetchTimestamp.class);
+    private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(FetchTimestamp.class));
 
     @Option(name = {"-i", "--immutable"},
             type = OptionType.COMMAND,
@@ -66,7 +66,7 @@ public class FetchTimestamp extends AbstractTimestampCommand {
             timestamp = services.getTimestampService().getFreshTimestamp();
             name = FRESH_STRING;
         }
-        log.info("The {} timestamp is: {}", name, timestamp);
+        printer.info("The {} timestamp is: {}", name, timestamp);
         writeTimestampToFileIfSpecified();
 
         if (dateTime) {
@@ -74,10 +74,10 @@ public class FetchTimestamp extends AbstractTimestampCommand {
                     services.getKeyValueService(), timestamp);
             DateTime dt = new DateTime(timeMillis);
             String stringTime = ISODateTimeFormat.dateTime().print(dt);
-            log.info("Wall clock datetime of {} timestamp is: {}", name, stringTime);
+            printer.info("Wall clock datetime of {} timestamp is: {}", name, stringTime);
         }
 
-        log.info("Timestamp command completed succesfully.");
+        printer.info("Timestamp command completed succesfully.");
         return 0;
     }
 }

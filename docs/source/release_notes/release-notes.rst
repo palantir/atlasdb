@@ -55,6 +55,11 @@ develop
          - The migration CLI will now decrypt encrypted values and will now use the dropwizard config as the new configuration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1171>`__)
 
+    *    - |improved|
+         - CLIs now output to standard out and standard error as well as the logs while running.  This should
+           greatly improve usability for service admins using the CLIs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1177>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
