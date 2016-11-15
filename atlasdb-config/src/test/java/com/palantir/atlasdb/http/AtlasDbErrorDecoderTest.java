@@ -55,43 +55,34 @@ public class AtlasDbErrorDecoderTest {
     @Test
     public void shouldCreateNewRetryableExceptionWithNullRetryAfterWhen503AndNotRetryableException() {
         Response response = makeDefaultDecoderReplyWhenReceivingResponse(STATUS_503, NON_RETRYABLE_EXCEPTION);
-
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
-
         assertNull(((RetryableException) exception).retryAfter());
     }
 
     @Test
     public void shouldDelegateToDefaultDecoderWhen503AndRetryableException() {
         Response response = makeDefaultDecoderReplyWhenReceivingResponse(STATUS_503, RETRYABLE_EXCEPTION);
-
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
-
         assertThat(exception, is(sameInstance(RETRYABLE_EXCEPTION)));
     }
 
     @Test
     public void shouldDelegateToDefaultDecoderWhenNeither503NorRetryableException() {
         Response response = makeDefaultDecoderReplyWhenReceivingResponse(STATUS_NOT_503, NON_RETRYABLE_EXCEPTION);
-
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
-
         assertThat(exception, is(sameInstance(NON_RETRYABLE_EXCEPTION)));
     }
 
     @Test
     public void shouldDelegateToDefaultDecoderWhenNot503AndRetryableException() {
         Response response = makeDefaultDecoderReplyWhenReceivingResponse(STATUS_NOT_503, RETRYABLE_EXCEPTION);
-
         Exception exception = atlasDbDecoder.decode(EMPTY_METHOD_KEY, response);
-
         assertThat(exception, is(sameInstance(RETRYABLE_EXCEPTION)));
     }
 
     private Response makeDefaultDecoderReplyWhenReceivingResponse(int status, Exception exception) {
         Response response = createResponse(status);
-        when(defaultDecoder.decode(EMPTY_METHOD_KEY, response))
-                .thenReturn(exception);
+        when(defaultDecoder.decode(EMPTY_METHOD_KEY, response)).thenReturn(exception);
         return response;
     }
 
