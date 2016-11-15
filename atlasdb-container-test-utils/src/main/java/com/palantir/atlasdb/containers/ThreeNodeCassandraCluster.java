@@ -35,6 +35,8 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 public class ThreeNodeCassandraCluster extends Container {
     private static final Logger log = LoggerFactory.getLogger(ThreeNodeCassandraCluster.class);
 
+    private static final CassandraVersion CASSANDRA_VERSION = CassandraVersion.fromEnvironment();
+
     public static final String CLI_CONTAINER_NAME = "cli";
     public static final String FIRST_CASSANDRA_CONTAINER_NAME = "cassandra1";
     public static final String SECOND_CASSANDRA_CONTAINER_NAME = "cassandra2";
@@ -76,7 +78,7 @@ public class ThreeNodeCassandraCluster extends Container {
 
             try {
                 ThreeNodeCassandraClusterOperations cassandraOperations =
-                        new ThreeNodeCassandraClusterOperations(rule);
+                        new ThreeNodeCassandraClusterOperations(rule, CASSANDRA_VERSION);
 
                 if (!cassandraOperations.nodetoolShowsThreeCassandraNodesUp()) {
                     return false;
