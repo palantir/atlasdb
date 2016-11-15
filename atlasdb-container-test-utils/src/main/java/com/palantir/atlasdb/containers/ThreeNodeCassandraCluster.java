@@ -16,11 +16,13 @@
 package com.palantir.atlasdb.containers;
 
 import java.net.InetSocketAddress;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -70,6 +72,11 @@ public class ThreeNodeCassandraCluster extends Container {
     @Override
     public String getDockerComposeFile() {
         return "/docker-compose-cassandra-three-node.yml";
+    }
+
+    @Override
+    public Map<String, String> getEnvironment() {
+        return ImmutableMap.of("CASSANDRA_VERSION", CASSANDRA_VERSION.exactVersion());
     }
 
     @Override
