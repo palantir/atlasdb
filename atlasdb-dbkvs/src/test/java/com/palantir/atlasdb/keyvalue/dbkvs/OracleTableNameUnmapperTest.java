@@ -24,6 +24,8 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.sql.Connection;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -57,7 +59,10 @@ public class OracleTableNameUnmapperTest {
         ConnectionSupplier connectionSupplier = mock(ConnectionSupplier.class);
         oracleTableNameUnmapper =  new OracleTableNameUnmapper(connectionSupplier);
         SqlConnection sqlConnection = mock(SqlConnection.class);
-        when(connectionSupplier.get()).thenReturn(sqlConnection);
+        Connection connection = mock(Connection.class);
+        when(sqlConnection.getUnderlyingConnection()).thenReturn(connection);
+        when(connectionSupplier.getFresh()).thenReturn(sqlConnection);
+
         resultSet = mock(AgnosticResultSet.class);
         when(sqlConnection
                 .selectResultSetUnregisteredQuery(
