@@ -185,9 +185,10 @@ For more information, check out <a class="reference internal" href="sweep/sweep-
 </div>
 <div class="section" id="migrate">
 <span id="clis-migrate"></span><h3>migrate<a class="headerlink" href="#migrate" title="Permalink to this headline">¶</a></h3>
-<p>This cli can help you migrate your AtlasDB client product from one KVS to another.
+<p>This CLI can help you migrate your AtlasDB client product from one KVS to another.
 You will need to supply two different KVS configurations to the script.
-In the general case you first call <code class="docutils literal"><span class="pre">–-setup</span></code>, then <code class="docutils literal"><span class="pre">-–migrate</span></code>, then <code class="docutils literal"><span class="pre">-–validate</span></code> each time supplying the old and new configurations.
+In the general case you first call <code class="docutils literal"><span class="pre">–-setup</span></code>, then <code class="docutils literal"><span class="pre">-–migrate</span></code>, then <code class="docutils literal"><span class="pre">-–validate</span></code> each time supplying the old and new configurations.</p>
+<p>We currently only support doing KVS migrations offline, so you must shut down your AtlasDB backed service to perform the migration.
 For more information run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">migrate</span></code> for more information.</p>
 <div class="highlight-bash"><div class="highlight"><pre><span></span>./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
 ./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml --migrate
