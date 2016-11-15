@@ -48,6 +48,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
 
     private final ConnectionManager connManager;
     private final TableReference timestampTable;
+    private static final String ORACLE_ALREADY_EXISTS_ERROR = "ORA-00955";
 
     @GuardedBy("this") // lazy init to avoid db connections in constructors
     private DBType dbType;
@@ -197,8 +198,20 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
 
     private void createTimestampTable(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement()) {
-            statement.execute(String.format("CREATE TABLE IF NOT EXISTS %s ( last_allocated int8 NOT NULL )",
-                    timestampTable.getQualifiedName()));
+            if (getDbType(connection).equals(DBType.ORACLE)) {
+                try {
+                    statement.execute(String.format("CREATE TABLE %s ( last_allocated NUMBER(38) NOT NULL )",
+                            timestampTable.getQualifiedName()));
+                } catch (PalantirSqlException e) {
+                    if (!e.getMessage().contains(ORACLE_ALREADY_EXISTS_ERROR)) {
+                        log.error(e.getMessage(), e);
+                        throw e;
+                    }
+                }
+            } else {
+                statement.execute(String.format("CREATE TABLE IF NOT EXISTS %s ( last_allocated int8 NOT NULL )",
+                        timestampTable.getQualifiedName()));
+            }
         }
     }
 
