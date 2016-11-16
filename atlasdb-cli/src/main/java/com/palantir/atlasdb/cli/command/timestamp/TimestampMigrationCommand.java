@@ -60,26 +60,10 @@ public class TimestampMigrationCommand extends AbstractTimestampCommand {
             return 1;
         }
 
-        long targetTimestamp;
-        try {
-            targetTimestamp = getTimestampToFastForwardTo();
-        } catch (IllegalStateException exception) {
-            log.error("The source timestamp service has been invalidated!");
-            return 1;
-        }
-
-        migrateTimestamp(targetTimestamp);
+        TimestampMigrator migrator = new TimestampMigrator(sourceServicesProvider, destinationServicesProvider);
+        migrator.migrateTimestamps();
         log.info("Timestamp migration CLI complete.");
         return 0;
-    }
-
-    private long getTimestampToFastForwardTo() {
-        return destinationServicesProvider.timestampService().getFreshTimestamp();
-    }
-
-    private void migrateTimestamp(long targetTimestamp) {
-        destinationServicesProvider.timestampAdministrationService().fastForwardTimestamp(targetTimestamp);
-        sourceServicesProvider.timestampAdministrationService().invalidateTimestamps();
     }
 
     private void constructServices(AtlasDbServices services) {

@@ -27,20 +27,12 @@ import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
-import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampAdministrationService;
 import com.palantir.timestamp.TimestampService;
 
 public final class TimestampServicesProviders {
     private TimestampServicesProviders() {
         // utility class
-    }
-
-    public static TimestampServicesProvider createFromPersistentTimestampService(PersistentTimestampService service) {
-        return ImmutableTimestampServicesProvider.builder()
-                .timestampService(service)
-                .timestampAdministrationService(service)
-                .build();
     }
 
     public static TimestampServicesProvider createInternalProviderFromAtlasDbConfig(AtlasDbConfig config) {
@@ -51,11 +43,17 @@ public final class TimestampServicesProviders {
                 .servicesConfigModule(scm)
                 .build()
                 .getTimestampService();
-        if (!(service instanceof PersistentTimestampService)) {
-            throw new IllegalStateException("Migration requires the internal timestamp service to be persistent.");
+        return createFromSingleService(service);
+    }
+
+    public static TimestampServicesProvider createFromSingleService(TimestampService service) {
+        if (!(service instanceof TimestampAdministrationService)) {
+            throw new IllegalStateException("Timestamp service must also have administrative capabilities.");
         }
-        PersistentTimestampService persistentTimestampService = (PersistentTimestampService) service;
-        return TimestampServicesProviders.createFromPersistentTimestampService(persistentTimestampService);
+        return ImmutableTimestampServicesProvider.builder()
+                .timestampService(service)
+                .timestampAdministrationService((TimestampAdministrationService) service)
+                .build();
     }
 
     public static TimestampServicesProvider createFromTimelockConfiguration(TimeLockClientConfig config) {

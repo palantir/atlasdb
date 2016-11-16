@@ -29,6 +29,9 @@ public class InMemoryTimestampService implements TimestampService, TimestampAdmi
 
     @Override
     public long getFreshTimestamp() {
+        if (counter.get() < 0) {
+            throw new IllegalStateException("This timestamp service has been invalidated!");
+        }
         return counter.incrementAndGet();
     }
 
