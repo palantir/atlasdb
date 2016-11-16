@@ -39,6 +39,9 @@ public class AtlasDbErrorDecoderTest {
 
     private static final Exception NON_RETRYABLE_EXCEPTION = new Exception();
     private static final Exception RETRYABLE_EXCEPTION = new RetryableException("MyException", new Date());
+    private static final Map<String, Collection<String>> EMPTY_HEADERS = new HashMap<>();
+    private static final String EMPTY_REASON = "";
+    private static final byte[] EMPTY_BODY = new byte[0];
 
     private static final int STATUS_503 = 503;
     private static final int STATUS_NOT_503 = 511;
@@ -87,9 +90,6 @@ public class AtlasDbErrorDecoderTest {
     }
 
     private static Response createResponse(int status) {
-        Map<String, Collection<String>> emptyHeaders = new HashMap<>();
-        String emptyReason = "";
-        byte[] emptyBody = new byte[0];
-        return Response.create(status, emptyReason, emptyHeaders, emptyBody);
+        return Response.create(status, EMPTY_REASON, EMPTY_HEADERS, EMPTY_BODY);
     }
 }
