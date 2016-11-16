@@ -91,6 +91,10 @@ v0.24.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1177>`__)
 
     *    - |improved|
+         - Better support for AtlasDB clients running behind load balancers. In particular, if an AtlasDB client falls down and its load balancer responds with "503: Service Unavailable", the request will be attempted on other clients rather than aborting.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1175>`__)
+
+    *    - |improved|
          - Remove usage of ``createUnsafe`` in generated Schema code. You can regenerate your schema to get rid of the deprecation warnings.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1194>`__)
 
