@@ -19,7 +19,6 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -33,7 +32,6 @@ import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 public class CassandraContainer extends Container {
-    private static final CassandraVersion CASSANDRA_VERSION = CassandraVersion.fromEnvironment();
 
     public static final int CASSANDRA_PORT = 9160;
     public static final String USERNAME = "cassandra";
@@ -68,7 +66,7 @@ public class CassandraContainer extends Container {
 
     @Override
     public Map<String, String> getEnvironment() {
-        return ImmutableMap.of("CASSANDRA_VERSION", CASSANDRA_VERSION.exactVersion());
+        return CassandraVersion.getEnvironment();
     }
 
     @Override

@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -76,7 +75,7 @@ public class ThreeNodeCassandraCluster extends Container {
 
     @Override
     public Map<String, String> getEnvironment() {
-        return ImmutableMap.of("CASSANDRA_VERSION", CASSANDRA_VERSION.exactVersion());
+        return CassandraVersion.getEnvironment();
     }
 
     @Override

@@ -15,31 +15,42 @@
  */
 package com.palantir.atlasdb.containers;
 
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 
 public interface CassandraVersion {
+    String CASSANDRA_VERSION = "CASSANDRA_VERSION";
+    String DEFAULT_VERSION = "2.2.8";
+
     static CassandraVersion fromEnvironment() {
-        String version = System.getenv("CASSANDRA_VERSION");
+        String version = System.getenv(CASSANDRA_VERSION);
         return Strings.isNullOrEmpty(version)
-                ? new Cassandra22XVersion("2.2.8")
+                ? new Cassandra22XVersion()
                 : from(version);
     }
 
     static CassandraVersion from(String version) {
         if (version.startsWith("2.2.")) {
-            return new Cassandra22XVersion(version);
+            return new Cassandra22XVersion();
         } else if (version.startsWith("3.")) {
-            return new Cassandra3XVersion(version);
+            return new Cassandra3XVersion();
         } else {
             throw new IllegalArgumentException(String.format("Cassandra version %s not supported", version));
         }
     }
 
+    static Map<String, String> getEnvironment() {
+        String version = System.getenv(CASSANDRA_VERSION);
+        if (Strings.isNullOrEmpty(version)) {
+            version = DEFAULT_VERSION;
+        }
+        return ImmutableMap.of(CASSANDRA_VERSION, version);
+    }
+
     Pattern replicationFactorRegex();
 
     String getAllKeyspacesCql();
-
-    String exactVersion();
 }

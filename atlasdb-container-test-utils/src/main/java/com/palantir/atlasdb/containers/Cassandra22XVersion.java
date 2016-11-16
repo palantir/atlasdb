@@ -21,12 +21,6 @@ public class Cassandra22XVersion implements CassandraVersion {
     private static final Pattern REPLICATION_REGEX = Pattern.compile("^.*\"replication_factor\":\"(\\d+)\"\\}$");
     private static final String ALL_KEYSPACES_CQL = "SELECT * FROM system.schema_keyspaces;";
 
-    private final String exactVersion;
-
-    public Cassandra22XVersion(String exactVersion) {
-        this.exactVersion = exactVersion;
-    }
-
     @Override
     public Pattern replicationFactorRegex() {
         return REPLICATION_REGEX;
@@ -37,8 +31,4 @@ public class Cassandra22XVersion implements CassandraVersion {
         return ALL_KEYSPACES_CQL;
     }
 
-    @Override
-    public String exactVersion() {
-        return exactVersion;
-    }
 }

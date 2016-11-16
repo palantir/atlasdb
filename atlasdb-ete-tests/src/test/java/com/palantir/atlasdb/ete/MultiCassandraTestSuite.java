@@ -17,7 +17,6 @@ package com.palantir.atlasdb.ete;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.ClassRule;
@@ -27,7 +26,6 @@ import org.junit.runners.Suite;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.containers.CassandraVersion;
 import com.palantir.docker.compose.connection.Container;
@@ -49,7 +47,7 @@ public class MultiCassandraTestSuite extends EteSetup {
             MultiCassandraTestSuite.class,
             "docker-compose.multiple-cassandra.yml",
             CLIENTS,
-            getEnvironment());
+            CassandraVersion.getEnvironment());
 
     public static void killCassandraContainer(String containerName) {
         Container container = EteSetup.getContainer(containerName);
@@ -68,11 +66,6 @@ public class MultiCassandraTestSuite extends EteSetup {
             throw Throwables.propagate(e);
         }
         waitForCassandraContainer(container);
-    }
-
-    private static Map<String, String> getEnvironment() {
-        CassandraVersion version = CassandraVersion.fromEnvironment();
-        return ImmutableMap.of("CASSANDRA_VERSION", version.exactVersion());
     }
 
     private static void waitForCassandraContainer(Container container) {
