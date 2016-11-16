@@ -99,6 +99,11 @@ v0.24.0
            This reduces our dependency footprint.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1222>`__)
 
+    *    - |new|
+         - Add support for generating schemas with Java8 Optionals instead of Guava Optionals.
+           To use Java8 optionals, supply ``OptionalType.JAVA8`` as an additional constructor argument when creating your ``Schema`` object.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1162>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -139,9 +144,6 @@ v0.23.0
     *    - |changed|
          - We now test against Cassandra 2.2.8, rather than Cassandra 2.2.7.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1112>`__)
-
-    *    - |improved|
-         - Add support for generating schemas with Java8 Optionals instead of Guava Optionals.
 
     *    - |improved|
          - Added a significant amount of logging aimed at tracking down the ``MultipleRunningTimestampServicesError``.
