@@ -66,7 +66,12 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
         Map<String, TimeLockServices> clientToServices = new HashMap<>();
         for (String client : configuration.clients()) {
             DistributedLong timestamp = DistributedValues.getTimestampForClient(localNode, client);
-            clientToServices.put(client, createInvalidatingTimeLockServices(localMember, leaderId, timestamp));
+            TimeLockServices timeLockServices = createInvalidatingTimeLockServices(
+                    localMember,
+                    leaderId,
+                    timeLockGroup,
+                    timestamp);
+            clientToServices.put(client, timeLockServices);
         }
 
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
@@ -76,11 +81,17 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
     private static TimeLockServices createInvalidatingTimeLockServices(
             LocalMember localMember,
             DistributedValue<String> leaderId,
+            DistributedGroup timeLockGroup,
             DistributedLong timestamp) {
         Supplier<TimeLockServices> timeLockSupplier = () -> TimeLockServices.create(
                 new AtomixTimestampService(timestamp),
                 LockServiceImpl.create());
-        return InvalidatingLeaderProxy.create(localMember, leaderId, timeLockSupplier, TimeLockServices.class);
+        return InvalidatingLeaderProxy.create(
+                localMember,
+                leaderId,
+                timeLockGroup.election(),
+                timeLockSupplier,
+                TimeLockServices.class);
     }
 
     private static Transport createTransport(Optional<SslConfiguration> optionalSecurity) {

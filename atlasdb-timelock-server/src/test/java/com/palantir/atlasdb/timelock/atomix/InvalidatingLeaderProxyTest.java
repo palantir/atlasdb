@@ -30,7 +30,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import io.atomix.catalyst.concurrent.Futures;
+import io.atomix.group.GroupMember;
 import io.atomix.group.LocalMember;
+import io.atomix.group.election.internal.GroupElection;
+import io.atomix.group.internal.MembershipGroup;
 import io.atomix.variables.DistributedValue;
 
 public class InvalidatingLeaderProxyTest {
@@ -40,9 +43,11 @@ public class InvalidatingLeaderProxyTest {
     private static final DistributedValue<String> LEADER_ID = mock(DistributedValue.class);
     private static final LocalMember LOCAL_MEMBER = mock(LocalMember.class);
 
+    private final GroupElection election = new GroupElection(mock(MembershipGroup.class));
     private final AtomicString atomicString = InvalidatingLeaderProxy.create(
             LOCAL_MEMBER,
             LEADER_ID,
+            election,
             SimpleAtomicString::new,
             AtomicString.class);
 
@@ -80,14 +85,41 @@ public class InvalidatingLeaderProxyTest {
         assertThatThrownBy(atomicString::get).isInstanceOf(ServiceUnavailableException.class);
     }
 
+    @Test
+    public void shouldResetDelegateOnLeaderChange() {
+        setLeader(LOCAL_MEMBER_ID);
+        atomicString.set(TEST_VALUE);
+
+        setLeader(null);
+        assertThatThrownBy(atomicString::get).isInstanceOf(ServiceUnavailableException.class);
+
+        setLeader(LOCAL_MEMBER_ID);
+        assertThat(atomicString.get()).isNotEqualTo(TEST_VALUE);
+    }
+
+    @Test
+    public void shouldResetDelegateWhenTermChanges() {
+        setLeader(LOCAL_MEMBER_ID);
+        atomicString.set(TEST_VALUE);
+
+        setLeader(LOCAL_MEMBER_ID);
+        assertThat(atomicString.get()).isNotEqualTo(TEST_VALUE);
+    }
+
     private void assertCanReadAndWriteValue(AtomicString container) {
         setLeader(LOCAL_MEMBER_ID);
         container.set(TEST_VALUE);
         assertThat(container.get()).isEqualTo(TEST_VALUE);
     }
 
-    private static void setLeader(@Nullable String leader) {
+    private void setLeader(@Nullable String leader) {
         when(LEADER_ID.get()).thenReturn(CompletableFuture.completedFuture(leader));
+
+        GroupMember member = mock(GroupMember.class);
+        when(member.id()).thenReturn(leader);
+
+        election.onTerm(election.term().term() + 1);
+        election.onElection(member);
     }
 
     private interface AtomicString {
