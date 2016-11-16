@@ -169,31 +169,65 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-24-0">
+<h2>v0.24.0<a class="headerlink" href="#v0-24-0" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<td><p class="first">All Oracle table names will be truncated and be of the form: <code class="docutils literal"><span class="pre">&lt;prefix&gt;_&lt;2-letter-namespace&gt;__&lt;table-name&gt;_&lt;5-digit-int&gt;</span></code>.
+Previously we only truncated names that exceeded the character limit for Oracle table names.
+This should improve legibility as all table names for a particular application will have identical formatting.</p>
+<p class="last">Oracle is in beta, and thus we have not built a migration path from old table names to new table names.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1187">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The fetch timestamp CLI correctly handles <code class="docutils literal"><span class="pre">--file</span></code> inputs containing non-existent directories by creating any missing intermediate directories.
 Previously, the CLI would throw an exception and fail in such cases.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1151">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>The <code class="docutils literal"><span class="pre">TableMappingService</span></code> now throws <code class="docutils literal"><span class="pre">TableMappingNotFoundException</span></code> when trying to retrieve a short table name for a non-existing table.
-<code class="docutils literal"><span class="pre">TableRemappingKeyValueService</span></code> does not throw a RuntimeException when performing <code class="docutils literal"><span class="pre">getMetaData</span></code> and <code class="docutils literal"><span class="pre">dropTable</span></code> operations on a non-existing table.
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>When using DBKVS with Oracle, <code class="docutils literal"><span class="pre">TableRemappingKeyValueService</span></code> does not throw a RuntimeException when performing <code class="docutils literal"><span class="pre">getMetaData</span></code> and <code class="docutils literal"><span class="pre">dropTable</span></code> operations on a non-existent table.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1186">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>The migration CLI will now decrypt encrypted values and will now use the dropwizard config as the new configuration.
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The KVS migration CLI will now decrypt encrypted values in your KVS configuration.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1171">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td><p class="first">If using the Dropwizard command to run a KVS migration, the Dropwizard config will be used as the <code class="docutils literal"><span class="pre">--migrateConfig</span></code> config if none is specified.
+Running the KVS migration command as a deployable CLI still requires <code class="docutils literal"><span class="pre">--migrateConfig</span></code>.</p>
+<p class="last">See the <a class="reference internal" href="../cluster_management/clis.html#clis-migrate"><span class="std std-ref">documentation</span></a> for details on how to use the KVS migration command.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1171">Pull Request</a>)</p>
+</td>
+</tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>CLIs now output to standard out, standard error, and the service logs, rather than only printing to the service logs.
+This should greatly improve usability for service admins using the CLIs.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1177">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Remove usage of <code class="docutils literal"><span class="pre">createUnsafe</span></code> in generated Schema code. You can regenerate your schema to get rid of the deprecation warnings.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1194">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>CLIs now output to standard out and standard error as well as the logs while running.  This should
-greatly improve usability for service admins using the CLIs.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1177">Pull Request</a>)</td>
-</tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td><code class="docutils literal"><span class="pre">atlasdb-cassandra</span></code> now depends on <code class="docutils literal"><span class="pre">cassandra-thrift</span></code> instead of <code class="docutils literal"><span class="pre">cassandra-all</span></code>. This reduces our dependency footprint.
+<td><code class="docutils literal"><span class="pre">atlasdb-cassandra</span></code> now depends on <code class="docutils literal"><span class="pre">cassandra-thrift</span></code> instead of <code class="docutils literal"><span class="pre">cassandra-all</span></code>.
+This reduces our dependency footprint.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1222">Pull Request</a>)</td>
 </tr>
 </tbody>
