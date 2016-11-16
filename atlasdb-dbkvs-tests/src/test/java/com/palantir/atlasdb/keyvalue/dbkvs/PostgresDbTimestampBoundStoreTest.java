@@ -15,36 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.PostgresDbTimestampBoundStore;
+import com.palantir.timestamp.TimestampBoundStore;
 
-public class PostgresDbTimestampBoundStoreTest {
-    private ConnectionManagerAwareDbKvs kvs;
-    private PostgresDbTimestampBoundStore store;
+public class PostgresDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
 
-    @Before
-    public void setUp() throws Exception {
-        kvs = ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
-        store = PostgresDbTimestampBoundStore.create(kvs.getConnectionManager());
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        kvs.close();
-    }
-
-    @Test
-    public void testTimestampBoundStore() {
-        long upperLimit1 = store.getUpperLimit();
-        long upperLimit2 = store.getUpperLimit();
-        Assert.assertEquals(upperLimit1, upperLimit2);
-        store.storeUpperLimit(upperLimit2 + 1);
-        long upperLimit3 = store.getUpperLimit();
-        Assert.assertEquals(upperLimit3, upperLimit2 + 1);
+    @Override
+    protected TimestampBoundStore getTimestampBoundStore() {
+        ConnectionManagerAwareDbKvs kvs = ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
+        return PostgresDbTimestampBoundStore.create(kvs.getConnectionManager());
     }
 }
