@@ -230,6 +230,11 @@ This should greatly improve usability for service admins using the CLIs.
 This reduces our dependency footprint.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1222">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Add support for generating schemas with Java8 Optionals instead of Guava Optionals.
+To use Java8 optionals, supply <code class="docutils literal"><span class="pre">OptionalType.JAVA8</span></code> as an additional constructor argument when creating your <code class="docutils literal"><span class="pre">Schema</span></code> object.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1162">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -275,32 +280,29 @@ Support for Oracle is currently in beta and services wishing to deploy against O
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1112">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Add support for generating schemas with Java8 Optionals instead of Guava Optionals.</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Added a significant amount of logging aimed at tracking down the <code class="docutils literal"><span class="pre">MultipleRunningTimestampServicesError</span></code>.
 If clients are hitting this error, then they should add TRACE logging for <code class="docutils literal"><span class="pre">com.palantir.timestamp</span></code>.
 These logs can also be directed to a separate file, see the <a class="reference internal" href="../configuration/logging.html#logging-configuration"><span class="std std-ref">documentation</span></a> for more details.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1098">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Retrying a Cassandra operation now retries against distinct hosts.
 Previously, this would independently select hosts randomly, meaning that we might unintentionally try the same operation on the same servers.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1139">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>AtlasDB clients can start when a single Cassandra node is unreachable.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1045">Pull Request</a>).</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Removed spurious error logging during first-time startup against a brand new Cassandra cluster.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1033">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Improved the reliability of starting up against a degraded Cassandra cluster.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1033">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>No longer publish a spurious junit dependency in atlasdb-client compile.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1176">Pull Request</a>)</td>
 </tr>
