@@ -15,25 +15,12 @@
  */
 package com.palantir.atlasdb.cli.command.timestamp;
 
-import java.util.stream.Collectors;
-
-import javax.net.ssl.SSLSocketFactory;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Optional;
 import com.palantir.atlasdb.config.AtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
-import com.palantir.atlasdb.factory.TransactionManagers;
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.services.AtlasDbServices;
-import com.palantir.atlasdb.services.DaggerAtlasDbServices;
-import com.palantir.atlasdb.services.ServicesConfigModule;
-import com.palantir.timestamp.PersistentTimestampService;
-import com.palantir.timestamp.TimestampAdministrationService;
-import com.palantir.timestamp.TimestampService;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
@@ -51,10 +38,8 @@ public class TimestampMigrationCommand extends AbstractTimestampCommand {
                     + "instead of from the internal service to a timelock server.")
     private boolean reverse;
 
-    private PersistentTimestampService internalService;
-
-    private TimestampService remoteTimestampService;
-    private TimestampAdministrationService remoteAdministrationService;
+    private TimestampServicesProvider sourceServicesProvider;
+    private TimestampServicesProvider destinationServicesProvider;
 
     @Override
     protected boolean requireTimestamp() {
@@ -63,7 +48,7 @@ public class TimestampMigrationCommand extends AbstractTimestampCommand {
 
     @Override
     protected int executeTimestampCommand(AtlasDbServices services) {
-        if (!timelockBlockPresent(services.getAtlasDbConfig())) {
+        if (!isConfigurationValid(services.getAtlasDbConfig())) {
             log.error("Timestamp Migration CLI must be run with details of a timelock configuration.");
             return 1;
         }
@@ -89,66 +74,42 @@ public class TimestampMigrationCommand extends AbstractTimestampCommand {
     }
 
     private long getTimestampToFastForwardTo() {
-        if (reverse) {
-            return remoteTimestampService.getFreshTimestamp();
-        }
-        return internalService.getFreshTimestamp();
+        return destinationServicesProvider.timestampService().getFreshTimestamp();
     }
 
     private void migrateTimestamp(long targetTimestamp) {
-        if (reverse) {
-            internalService.fastForwardTimestamp(targetTimestamp);
-            remoteAdministrationService.invalidateTimestamps();
-        } else {
-            remoteAdministrationService.fastForwardTimestamp(targetTimestamp);
-            internalService.invalidateTimestamps();
-        }
-    }
-
-    public TimestampService getInternalTimestampService(AtlasDbConfig config) {
-        ServicesConfigModule scm = ServicesConfigModule.create(
-                ImmutableAtlasDbConfig.copyOf(config)
-                .withTimelock(Optional.absent()));
-        return DaggerAtlasDbServices.builder()
-                .servicesConfigModule(scm)
-                .build()
-                .getTimestampService();
+        destinationServicesProvider.timestampAdministrationService().fastForwardTimestamp(targetTimestamp);
+        sourceServicesProvider.timestampAdministrationService().invalidateTimestamps();
     }
 
     private void constructServices(AtlasDbServices services) {
-        TimestampService internalTimestampService = getInternalTimestampService(services.getAtlasDbConfig());
-        if (!(internalTimestampService instanceof PersistentTimestampService)) {
-            throw new IllegalStateException("Migration requires the internal timestamp service to be persistent.");
+        TimestampServicesProvider localServicesProvider = getLocalServicesProvider(services);
+        TimestampServicesProvider remoteServicesProvider = getRemoteServicesProvider(services);
+
+        if (reverse) {
+            sourceServicesProvider = remoteServicesProvider;
+            destinationServicesProvider = localServicesProvider;
+        } else {
+            sourceServicesProvider = localServicesProvider;
+            destinationServicesProvider = remoteServicesProvider;
         }
-        internalService = (PersistentTimestampService) internalTimestampService;
-
-        remoteTimestampService = getTimelockProxy(services.getAtlasDbConfig(), TimestampService.class);
-        remoteAdministrationService = getTimelockProxy(services.getAtlasDbConfig(),
-                TimestampAdministrationService.class);
     }
 
-    private boolean timelockBlockPresent(AtlasDbConfig config) {
+    private TimestampServicesProvider getLocalServicesProvider(AtlasDbServices services) {
+        return TimestampServicesProviders.createInternalProviderFromAtlasDbConfig(services.getAtlasDbConfig());
+    }
+
+    private TimestampServicesProvider getRemoteServicesProvider(AtlasDbServices services) {
+        TimeLockClientConfig timeLockClientConfig = services.getAtlasDbConfig().timelock().get();
+        return TimestampServicesProviders.createFromTimelockConfiguration(timeLockClientConfig);
+    }
+
+    private boolean isConfigurationValid(AtlasDbConfig config) {
         return config.timelock().isPresent();
-    }
-
-    private <T> T getTimelockProxy(AtlasDbConfig config, Class<T> clazz) {
-        TimeLockClientConfig timeLockClientConfig = config.timelock().get();
-        return AtlasDbHttpClients.createProxyWithFailover(
-                createSslSocketFactoryFromClientConfig(timeLockClientConfig),
-                timeLockClientConfig.serverListConfig()
-                        .servers()
-                        .stream()
-                        .map(server -> server + "/" + timeLockClientConfig.client())
-                        .collect(Collectors.toList()),
-                clazz);
     }
 
     @Override
     public boolean isOnlineRunSupported() {
         return false;
-    }
-
-    private static Optional<SSLSocketFactory> createSslSocketFactoryFromClientConfig(TimeLockClientConfig config) {
-        return TransactionManagers.createSslSocketFactory(config.serverListConfig().sslConfiguration());
     }
 }
