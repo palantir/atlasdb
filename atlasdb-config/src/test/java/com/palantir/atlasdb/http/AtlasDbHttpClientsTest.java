@@ -51,8 +51,8 @@ public class AtlasDbHttpClientsTest {
     private static final int UNAVAILABLE_PORT = 8081;
     private static final int TEST_NUMBER = 12;
     public static final Set<String> BOTH_URIS = ImmutableSet.of(
-            getUriForPort(AVAILABLE_PORT),
-            getUriForPort(UNAVAILABLE_PORT));
+            getUriForPort(UNAVAILABLE_PORT),
+            getUriForPort(AVAILABLE_PORT));
 
     @Rule
     public WireMockRule availableServer = new WireMockRule(AVAILABLE_PORT);
@@ -77,7 +77,6 @@ public class AtlasDbHttpClientsTest {
         unavailableServer.stubFor(ENDPOINT_MAPPING.willReturn(aResponse().withStatus(503)));
 
         TestResource client = AtlasDbHttpClients.createProxyWithFailover(NO_SSL, BOTH_URIS, TestResource.class);
-
         int response = client.getTestNumber();
 
         assertThat(response, equalTo(TEST_NUMBER));
