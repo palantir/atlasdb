@@ -18,11 +18,11 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
+import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.OracleDbTimestampBoundStore;
+import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.PostgresDbTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.nexus.db.DBType;
@@ -52,10 +52,8 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
                 "DbAtlasDbFactory expects a raw kvs of type ConnectionManagerAwareDbKvs, found %s", rawKvs.getClass());
         ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
         if (dbkvs.getConnectionManager().getDbType().equals(DBType.ORACLE)) {
-            return PersistentTimestampService.create(InDbTimestampBoundStore.create(dbkvs.getConnectionManager(),
-                    AtlasDbConstants.ORACLE_TIMESTAMP_TABLE));
+            return PersistentTimestampService.create(OracleDbTimestampBoundStore.create(dbkvs.getConnectionManager()));
         }
-        return PersistentTimestampService.create(
-                InDbTimestampBoundStore.create(dbkvs.getConnectionManager(), AtlasDbConstants.TIMESTAMP_TABLE));
+        return PersistentTimestampService.create(PostgresDbTimestampBoundStore.create(dbkvs.getConnectionManager()));
     }
 }

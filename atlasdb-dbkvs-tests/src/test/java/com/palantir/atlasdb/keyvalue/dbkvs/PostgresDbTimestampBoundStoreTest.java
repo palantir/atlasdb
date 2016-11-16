@@ -20,18 +20,17 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
+import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.PostgresDbTimestampBoundStore;
 
-public class InDbTimestampBoundStoreTest {
+public class PostgresDbTimestampBoundStoreTest {
     private ConnectionManagerAwareDbKvs kvs;
-    private InDbTimestampBoundStore store;
+    private PostgresDbTimestampBoundStore store;
 
     @Before
     public void setUp() throws Exception {
         kvs = ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
-        store = InDbTimestampBoundStore.create(kvs.getConnectionManager(), AtlasDbConstants.TIMESTAMP_TABLE);
+        store = PostgresDbTimestampBoundStore.create(kvs.getConnectionManager());
     }
 
     @After
