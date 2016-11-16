@@ -18,17 +18,12 @@ package com.palantir.atlasdb.containers;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-import org.junit.Before;
 import org.junit.Test;
 
 public class CassandraCliParserTest {
     private static final String CORRUPT_STRING = "sodu89sydihusd:KSDNLSA";
-    private CassandraCliParser parser;
 
-    @Before
-    public void setUp() throws Exception {
-        parser = new CassandraCliParser(CassandraVersion.from("2.2.8"));
-    }
+    private final CassandraCliParser parser = new CassandraCliParser(CassandraVersion.from("2.2.8"));
 
     @Test(expected = IllegalArgumentException.class)
     public void cannotCreateUnsupportedParser() {
