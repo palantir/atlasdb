@@ -28,8 +28,9 @@ dependencies {
 
     processor group: 'org.immutables', name: 'value'
 
-    testCompile project(':atlasdb-ete-test-utils')
+    testCompile project(':atlasdb-container-test-utils')
     testCompile project(':atlasdb-docker-test-utils')
+    testCompile project(':atlasdb-ete-test-utils')
 
     testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
     testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule

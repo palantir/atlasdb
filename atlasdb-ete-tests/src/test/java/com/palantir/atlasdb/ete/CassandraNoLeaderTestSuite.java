@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.ete;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
@@ -23,6 +24,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.containers.CassandraVersion;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -36,5 +39,11 @@ public class CassandraNoLeaderTestSuite extends EteSetup {
     public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
             CassandraNoLeaderTestSuite.class,
             "docker-compose.no-leader.cassandra.yml",
-            CLIENTS);
+            CLIENTS,
+            getEnvironment());
+
+    private static Map<String, String> getEnvironment() {
+        CassandraVersion version = CassandraVersion.fromEnvironment();
+        return ImmutableMap.of("CASSANDRA_VERSION", version.exactVersion());
+    }
 }
