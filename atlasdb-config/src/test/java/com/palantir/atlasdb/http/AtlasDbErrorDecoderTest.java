@@ -39,6 +39,7 @@ public class AtlasDbErrorDecoderTest {
 
     private static final Exception NON_RETRYABLE_EXCEPTION = new Exception();
     private static final Exception RETRYABLE_EXCEPTION = new RetryableException("MyException", new Date());
+
     private static final Map<String, Collection<String>> EMPTY_HEADERS = new HashMap<>();
     private static final String EMPTY_REASON = "";
     private static final byte[] EMPTY_BODY = new byte[0];

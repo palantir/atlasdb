@@ -24,6 +24,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+import java.util.Set;
+
 import javax.net.ssl.SSLSocketFactory;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -82,7 +84,7 @@ public class AtlasDbHttpClientsTest {
         return String.format("http://%s:%s", WireMockConfiguration.DEFAULT_BIND_ADDRESS, port);
     }
 
-    public static final ImmutableSet<String> bothUris() {
+    public static final Set<String> bothUris() {
         String availableUri = getUriForPort(AVAILABLE_PORT);
         String unavailableUri = getUriForPort(UNAVAILABLE_PORT);
         return ImmutableSet.of(unavailableUri, availableUri);
