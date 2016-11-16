@@ -37,6 +37,7 @@ ext.libVersions =
     hikariCP: '2.4.7',
     checkstyle: '6.18',
     findbugsAnnotations: '2.0.3',
+    wiremock: '1.57',
 
     // Danger, Will Robinson!
     //
