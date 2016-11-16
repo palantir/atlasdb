@@ -91,6 +91,10 @@ v0.24.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1177>`__)
 
     *    - |improved|
+         - Remove usage of ``createUnsafe`` in generated Schema code. You can regenerate your schema to get rid of the deprecation warnings.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1194>`__)
+
+    *    - |improved|
          - ``atlasdb-cassandra`` now depends on ``cassandra-thrift`` instead of ``cassandra-all``.
            This reduces our dependency footprint.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1222>`__)
