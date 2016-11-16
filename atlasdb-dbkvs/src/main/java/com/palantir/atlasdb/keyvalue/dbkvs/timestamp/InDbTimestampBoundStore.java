@@ -199,18 +199,22 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     private void createTimestampTable(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement()) {
             if (getDbType(connection).equals(DBType.ORACLE)) {
-                try {
-                    statement.execute(String.format("CREATE TABLE %s ( last_allocated NUMBER(38) NOT NULL )",
-                            timestampTable.getQualifiedName()));
-                } catch (PalantirSqlException e) {
-                    if (!e.getMessage().contains(ORACLE_ALREADY_EXISTS_ERROR)) {
-                        log.error(e.getMessage(), e);
-                        throw e;
-                    }
-                }
+                createTimestampTableIgnoringAlreadyExistsError(statement);
             } else {
                 statement.execute(String.format("CREATE TABLE IF NOT EXISTS %s ( last_allocated int8 NOT NULL )",
                         timestampTable.getQualifiedName()));
+            }
+        }
+    }
+
+    private void createTimestampTableIgnoringAlreadyExistsError(Statement statement) throws SQLException {
+        try {
+            statement.execute(String.format("CREATE TABLE %s ( last_allocated NUMBER(38) NOT NULL )",
+                    timestampTable.getQualifiedName()));
+        } catch (PalantirSqlException e) {
+            if (!e.getMessage().contains(ORACLE_ALREADY_EXISTS_ERROR)) {
+                log.error("Error occurred creating the Oracle timestamp table", e);
+                throw e;
             }
         }
     }
