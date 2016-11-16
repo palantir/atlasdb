@@ -50,6 +50,9 @@ public class AtlasDbHttpClientsTest {
     private static final int AVAILABLE_PORT = 8080;
     private static final int UNAVAILABLE_PORT = 8081;
     private static final int TEST_NUMBER = 12;
+    public static final Set<String> BOTH_URIS = ImmutableSet.of(
+            getUriForPort(AVAILABLE_PORT),
+            getUriForPort(UNAVAILABLE_PORT));
 
     @Rule
     public WireMockRule availableServer = new WireMockRule(AVAILABLE_PORT);
@@ -73,7 +76,7 @@ public class AtlasDbHttpClientsTest {
     @Test public void ifOneServerReponds503WithNoRetryHeaderTheRequestIsReRouted() {
         unavailableServer.stubFor(ENDPOINT_MAPPING.willReturn(aResponse().withStatus(503)));
 
-        TestResource client = AtlasDbHttpClients.createProxyWithFailover(NO_SSL, bothUris(), TestResource.class);
+        TestResource client = AtlasDbHttpClients.createProxyWithFailover(NO_SSL, BOTH_URIS, TestResource.class);
 
         int response = client.getTestNumber();
 
@@ -82,11 +85,5 @@ public class AtlasDbHttpClientsTest {
     }
     private static String getUriForPort(int port) {
         return String.format("http://%s:%s", WireMockConfiguration.DEFAULT_BIND_ADDRESS, port);
-    }
-
-    public static final Set<String> bothUris() {
-        String availableUri = getUriForPort(AVAILABLE_PORT);
-        String unavailableUri = getUriForPort(UNAVAILABLE_PORT);
-        return ImmutableSet.of(unavailableUri, availableUri);
     }
 }
