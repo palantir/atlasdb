@@ -57,7 +57,7 @@ develop
 
     *    - |fixed|
          - The timestamp bound store now works with Oracle as a relational backing store.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/?>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1224>`__)
 
     *    - |improved|
          - CLIs now output to standard out and standard error as well as the logs while running.  This should

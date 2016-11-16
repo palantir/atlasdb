@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.nexus.db.DBType;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
@@ -50,6 +51,10 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
         Preconditions.checkArgument(rawKvs instanceof ConnectionManagerAwareDbKvs,
                 "DbAtlasDbFactory expects a raw kvs of type ConnectionManagerAwareDbKvs, found %s", rawKvs.getClass());
         ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
+        if (dbkvs.getConnectionManager().getDbType().equals(DBType.ORACLE)) {
+            return PersistentTimestampService.create(InDbTimestampBoundStore.create(dbkvs.getConnectionManager(),
+                    AtlasDbConstants.ORACLE_TIMESTAMP_TABLE));
+        }
         return PersistentTimestampService.create(
                 InDbTimestampBoundStore.create(dbkvs.getConnectionManager(), AtlasDbConstants.TIMESTAMP_TABLE));
     }
