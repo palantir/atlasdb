@@ -86,7 +86,6 @@ import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
-
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class CheckAndSetTable implements
         AtlasDbMutablePersistentTable<CheckAndSetTable.CheckAndSetRow,
@@ -99,6 +98,7 @@ public final class CheckAndSetTable implements
     private final List<CheckAndSetTrigger> triggers;
     private final static String rawTableName = "check_and_set";
     private final TableReference tableRef;
+    private final static ColumnSelection allColumns = getColumnSelection(CheckAndSetNamedColumn.values());
 
     static CheckAndSetTable of(Transaction t, Namespace namespace) {
         return new CheckAndSetTable(t, namespace, ImmutableList.<CheckAndSetTrigger>of());
@@ -473,7 +473,7 @@ public final class CheckAndSetTable implements
 
     @Override
     public Optional<CheckAndSetRowResult> getRow(CheckAndSetRow row) {
-        return getRow(row, ColumnSelection.all());
+        return getRow(row, allColumns);
     }
 
     @Override
@@ -489,7 +489,7 @@ public final class CheckAndSetTable implements
 
     @Override
     public List<CheckAndSetRowResult> getRows(Iterable<CheckAndSetRow> rows) {
-        return getRows(rows, ColumnSelection.all());
+        return getRows(rows, allColumns);
     }
 
     @Override
@@ -504,7 +504,7 @@ public final class CheckAndSetTable implements
 
     @Override
     public List<CheckAndSetRowResult> getAsyncRows(Iterable<CheckAndSetRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, ColumnSelection.all(), exec);
+        return getAsyncRows(rows, allColumns, exec);
     }
 
     @Override
@@ -521,7 +521,7 @@ public final class CheckAndSetTable implements
 
     @Override
     public List<CheckAndSetNamedColumnValue<?>> getRowColumns(CheckAndSetRow row) {
-        return getRowColumns(row, ColumnSelection.all());
+        return getRowColumns(row, allColumns);
     }
 
     @Override
@@ -541,7 +541,7 @@ public final class CheckAndSetTable implements
 
     @Override
     public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getRowsMultimap(Iterable<CheckAndSetRow> rows) {
-        return getRowsMultimapInternal(rows, ColumnSelection.all());
+        return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
@@ -551,7 +551,7 @@ public final class CheckAndSetTable implements
 
     @Override
     public Multimap<CheckAndSetRow, CheckAndSetNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<CheckAndSetRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, ColumnSelection.all(), exec);
+        return getAsyncRowsMultimap(rows, allColumns, exec);
     }
 
     @Override
@@ -607,7 +607,7 @@ public final class CheckAndSetTable implements
     }
 
     public BatchingVisitableView<CheckAndSetRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(ColumnSelection.all());
+        return getAllRowsUnordered(allColumns);
     }
 
     public BatchingVisitableView<CheckAndSetRowResult> getAllRowsUnordered(ColumnSelection columns) {
@@ -649,6 +649,7 @@ public final class CheckAndSetTable implements
      * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
+     * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
@@ -708,7 +709,6 @@ public final class CheckAndSetTable implements
      * {@link Set}
      * {@link Sets}
      * {@link Sha256Hash}
-     * {@link BatchColumnRangeSelection}
      * {@link SortedMap}
      * {@link Supplier}
      * {@link TableReference}
@@ -719,5 +719,5 @@ public final class CheckAndSetTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "HklbNe2v4n9Wiz5FF2Fvpg==";
+    static String __CLASS_HASH = "Liq886F85D4YKwyuaXZmRg==";
 }

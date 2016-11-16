@@ -56,6 +56,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1171>`__)
 
     *    - |improved|
+         - Remove usage of ``createUnsafe`` in generated Schema code. You can regenerate your schema to get rid of the deprecation warnings.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1194>`__)
+
+    *    - |improved|
          - CLIs now output to standard out and standard error as well as the logs while running.  This should
            greatly improve usability for service admins using the CLIs.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1177>`__)
@@ -63,6 +67,10 @@ develop
     *    - |improved|
          - Better support for AtlasDB clients running behind load balancers. In particular, if an AtlasDB client falls down and its load balancer responds with "503: Service Unavailable", the request will be attempted on other clients rather than aborting.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1175>`__)
+
+    *    - |improved|
+         - ``atlasdb-cassandra`` now depends on ``cassandra-thrift`` instead of ``cassandra-all``. This reduces our dependency footprint.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1222>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

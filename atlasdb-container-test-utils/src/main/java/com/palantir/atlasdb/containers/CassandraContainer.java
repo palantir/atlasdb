@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraJmxCompactionConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -48,6 +49,10 @@ public class CassandraContainer extends Container {
             .fetchBatchCount(1000)
             .safetyDisabled(false)
             .autoRefreshNodes(false)
+            .jmx(ImmutableCassandraJmxCompactionConfig.builder()
+                    .username(USERNAME)
+                    .password(PASSWORD)
+                    .build())
             .build();
 
     public static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig

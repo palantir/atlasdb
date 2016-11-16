@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -86,7 +85,6 @@ import com.palantir.common.persist.Persistables;
 import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
-
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class UserProfileTable implements
@@ -924,7 +922,7 @@ public final class UserProfileTable implements
             UserBirthdaysIdxTable.UserBirthdaysIdxColumn indexCol = UserBirthdaysIdxTable.UserBirthdaysIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete(TableReference.createUnsafe("default.user_birthdays_idx"), indexCells);
+        t.delete(TableReference.createFromFullyQualifiedName("default.user_birthdays_idx"), indexCells);
     }
 
     public void deleteCreate(UserProfileRow row) {
@@ -950,7 +948,7 @@ public final class UserProfileTable implements
             CreatedIdxTable.CreatedIdxColumn indexCol = CreatedIdxTable.CreatedIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete(TableReference.createUnsafe("default.created_idx"), indexCells);
+        t.delete(TableReference.createFromFullyQualifiedName("default.created_idx"), indexCells);
     }
 
     public void deleteJson(UserProfileRow row) {
@@ -978,7 +976,7 @@ public final class UserProfileTable implements
                 indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
             }
         }
-        t.delete(TableReference.createUnsafe("default.cookies_idx"), indexCells);
+        t.delete(TableReference.createFromFullyQualifiedName("default.cookies_idx"), indexCells);
     }
 
     public void deletePhotoStreamId(UserProfileRow row) {
@@ -1179,7 +1177,7 @@ public final class UserProfileTable implements
                 }
             }
         }
-        t.delete(TableReference.createUnsafe("default.cookies_idx"), indexCells.build());
+        t.delete(TableReference.createFromFullyQualifiedName("default.cookies_idx"), indexCells.build());
     }
 
     private void deleteCreatedIdx(Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> result) {
@@ -1196,7 +1194,7 @@ public final class UserProfileTable implements
                 }
             }
         }
-        t.delete(TableReference.createUnsafe("default.created_idx"), indexCells.build());
+        t.delete(TableReference.createFromFullyQualifiedName("default.created_idx"), indexCells.build());
     }
 
     private void deleteUserBirthdaysIdx(Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> result) {
@@ -1213,7 +1211,7 @@ public final class UserProfileTable implements
                 }
             }
         }
-        t.delete(TableReference.createUnsafe("default.user_birthdays_idx"), indexCells.build());
+        t.delete(TableReference.createFromFullyQualifiedName("default.user_birthdays_idx"), indexCells.build());
     }
 
     public BatchingVisitableView<UserProfileRowResult> getAllRowsUnordered() {
@@ -3390,5 +3388,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6nUrbB15W+u4whfMweG6ew==";
+    static String __CLASS_HASH = "BAWiFRjPo3iiz4ifhWSE8g==";
 }
