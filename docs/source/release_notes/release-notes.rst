@@ -41,27 +41,53 @@ develop
     *    - Type
          - Change
 
-    *    - |improved|
+    *    -
+         -
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.24.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |breaking|
+         - All Oracle table names will be truncated and be of the form: ``<prefix>_<2-letter-namespace>__<table-name>_<5-digit-int>``.
+           Previously we only truncated names that exceeded the character limit for Oracle table names.
+           This should improve legibility as all table names for a particular application will have identical formatting.
+
+           Oracle is in beta, and thus we have not built a migration path from old table names to new table names.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1187>`__)
+
+    *    - |fixed|
          - The fetch timestamp CLI correctly handles ``--file`` inputs containing non-existent directories by creating any missing intermediate directories.
            Previously, the CLI would throw an exception and fail in such cases.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1151>`__)
 
     *    - |fixed|
-         - The ``TableMappingService`` now throws ``TableMappingNotFoundException`` when trying to retrieve a short table name for a non-existing table.
-           ``TableRemappingKeyValueService`` does not throw a RuntimeException when performing ``getMetaData`` and ``dropTable`` operations on a non-existing table.
+         - When using DBKVS with Oracle, ``TableRemappingKeyValueService`` does not throw a RuntimeException when performing ``getMetaData`` and ``dropTable`` operations on a non-existent table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1186>`__)
 
     *    - |fixed|
-         - The migration CLI will now decrypt encrypted values and will now use the dropwizard config as the new configuration.
+         - The KVS migration CLI will now decrypt encrypted values in your KVS configuration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1171>`__)
 
     *    - |improved|
-         - Remove usage of ``createUnsafe`` in generated Schema code. You can regenerate your schema to get rid of the deprecation warnings.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1194>`__)
+         - If using the Dropwizard command to run a KVS migration, the Dropwizard config will be used as the ``--migrateConfig`` config if none is specified.
+           Running the KVS migration command as a deployable CLI still requires ``--migrateConfig``.
+
+           See the :ref:`documentation <clis-migrate>` for details on how to use the KVS migration command.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1171>`__)
 
     *    - |improved|
-         - CLIs now output to standard out and standard error as well as the logs while running.  This should
-           greatly improve usability for service admins using the CLIs.
+         - CLIs now output to standard out, standard error, and the service logs, rather than only printing to the service logs.
+           This should greatly improve usability for service admins using the CLIs.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1177>`__)
 
     *    - |improved|
@@ -70,6 +96,14 @@ develop
 
     *    - |improved|
          - ``atlasdb-cassandra`` now depends on ``cassandra-thrift`` instead of ``cassandra-all``. This reduces our dependency footprint.
+
+    *    - |improved|
+         - Remove usage of ``createUnsafe`` in generated Schema code. You can regenerate your schema to get rid of the deprecation warnings.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1194>`__)
+
+    *    - |improved|
+         - ``atlasdb-cassandra`` now depends on ``cassandra-thrift`` instead of ``cassandra-all``.
+           This reduces our dependency footprint.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1222>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
