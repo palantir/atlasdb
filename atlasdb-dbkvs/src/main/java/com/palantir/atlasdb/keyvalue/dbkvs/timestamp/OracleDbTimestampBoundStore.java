@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.pool.ConnectionManager;
 
 public final class OracleDbTimestampBoundStore extends AbstractDbTimestampBoundStore {
@@ -57,7 +56,7 @@ public final class OracleDbTimestampBoundStore extends AbstractDbTimestampBoundS
         try {
             statement.execute(String.format("CREATE TABLE %s ( last_allocated NUMBER(38) NOT NULL )",
                     timestampTable.getQualifiedName()));
-        } catch (PalantirSqlException e) {
+        } catch (SQLException e) {
             if (!e.getMessage().contains(ORACLE_ALREADY_EXISTS_ERROR)) {
                 log.error("Error occurred creating the Oracle timestamp table", e);
                 throw e;
