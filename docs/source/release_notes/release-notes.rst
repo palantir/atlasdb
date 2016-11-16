@@ -71,7 +71,7 @@ v0.24.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1151>`__)
 
     *    - |fixed|
-         - ``TableRemappingKeyValueService`` does not throw a RuntimeException when performing ``getMetaData`` and ``dropTable`` operations on a non-existent table.
+         - When using DBKVS with Oracle, ``TableRemappingKeyValueService`` does not throw a RuntimeException when performing ``getMetaData`` and ``dropTable`` operations on a non-existent table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1186>`__)
 
     *    - |fixed|
