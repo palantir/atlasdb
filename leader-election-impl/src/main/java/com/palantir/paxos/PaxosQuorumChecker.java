@@ -157,7 +157,7 @@ public final class PaxosQuorumChecker {
 
             if (onlyLogOnQuorumFailure && acksRecieved < quorumSize) {
                 for (Pair<String, Throwable> p : toLog) {
-                    log.warn(p.lhSide, p.rhSide);
+                    log.warn("Pair lhSide: {}, Pair rhSide: {}", p.lhSide, p.rhSide);
                 }
             }
         }

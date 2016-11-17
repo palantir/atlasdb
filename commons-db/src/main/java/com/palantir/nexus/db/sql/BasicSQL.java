@@ -518,11 +518,16 @@ public abstract class BasicSQL {
         if (startTime > 0) {
             msg += "Elapsed time: " + (System.currentTimeMillis() - startTime); //$NON-NLS-1$
         }
-        msg += "\nError message: " + cause.getMessage(); //$NON-NLS-1$
-        msg += "Error code: " + cause.getErrorCode(); //$NON-NLS-1$
-        msg += "Error state: " + cause.getSQLState(); //$NON-NLS-1$
-        msg += "Error cause: " + cause.getNextException(); //$NON-NLS-1$
-        SqlLoggers.CANCEL_LOGGER.info(msg, new Exception("Just for a stack trace"));
+        msg += "\nError message: {}";
+        msg += "Error code: {}";
+        msg += "Error state: {}";
+        msg += "Error cause: {}";
+        SqlLoggers.CANCEL_LOGGER.info(msg,
+                cause.getMessage(),  //$NON-NLS-1$
+                cause.getErrorCode(),  //$NON-NLS-1$
+                cause.getSQLState(),  //$NON-NLS-1$
+                cause.getNextException(),  //$NON-NLS-1$
+                new Exception("Just for a stack trace"));
         Thread.currentThread().interrupt();
         throw new PalantirInterruptedException("SQL call interrupted", cause); //$NON-NLS-1$
     }
@@ -534,7 +539,7 @@ public abstract class BasicSQL {
     protected PreparedStatement execute(final Connection c, final FinalSQLString sql,
             final Object vs[], final AutoClose autoClose) throws PalantirSqlException {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
-            SqlLoggers.LOGGER.trace(sql.getQuery());
+            SqlLoggers.LOGGER.trace("SQL execution query: {}", sql.getQuery());
         }
         return BasicSQLUtils.runUninterruptably (new Callable<PreparedStatement>() {
             @Override
@@ -553,7 +558,7 @@ public abstract class BasicSQL {
     protected boolean selectExistsInternal(final Connection c,
             final FinalSQLString sql, Object... vs) throws PalantirSqlException {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
-            SqlLoggers.LOGGER.trace(sql.getQuery());
+            SqlLoggers.LOGGER.trace("SQL internal exists check query: {}", sql.getQuery());
         }
         return wrapPreparedStatement(c, sql, vs, new PreparedStatementVisitor<Boolean>() {
             @Override
@@ -573,7 +578,7 @@ public abstract class BasicSQL {
     protected int selectIntegerInternal(final Connection c,
             final FinalSQLString sql, Object... vs) throws PalantirSqlException {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
-            SqlLoggers.LOGGER.trace(sql.getQuery());
+            SqlLoggers.LOGGER.trace("SQL select integer internal query: {}", sql.getQuery());
         }
         return wrapPreparedStatement(c, sql, vs, new PreparedStatementVisitor<Integer>() {
             @Override
@@ -600,7 +605,7 @@ public abstract class BasicSQL {
     protected Long selectLongInternal(final Connection c, final FinalSQLString sql, Object vs[], final Long defaultVal,
             final boolean useBrokenBehaviorWithNullAndZero) throws PalantirSqlException, PalantirInterruptedException {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
-            SqlLoggers.LOGGER.trace(sql.getQuery());
+            SqlLoggers.LOGGER.trace("SQL select long internal query: {}", sql.getQuery());
         }
         return wrapPreparedStatement(c, sql, vs, new PreparedStatementVisitor<Long>() {
             @Override
@@ -645,7 +650,7 @@ public abstract class BasicSQL {
                                                                           final DBType dbType)
             throws PalantirSqlException, PalantirInterruptedException {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
-            SqlLoggers.LOGGER.trace(sql.getQuery());
+            SqlLoggers.LOGGER.trace("SQL light result set selection query: {}". sql.getQuery());
         }
 
         final ResourceCreationLocation alrsCreationException = new ResourceCreationLocation("This is where the AgnosticLightResultSet wrapper was created"); //$NON-NLS-1$
@@ -698,7 +703,7 @@ public abstract class BasicSQL {
             final FinalSQLString sql, Object[] vs, final DBType dbType)
     throws PalantirSqlException, PalantirInterruptedException {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
-            SqlLoggers.LOGGER.trace(sql.getQuery());
+            SqlLoggers.LOGGER.trace("SQL result set query: {}", sql.getQuery());
         }
         return wrapPreparedStatement(c, sql, vs, new PreparedStatementVisitor<AgnosticResultSet>() {
             @Override
@@ -731,7 +736,7 @@ public abstract class BasicSQL {
     PreparedStatement updateInternal(final Connection c, final FinalSQLString sql, final Object vs[],
             final AutoClose autoClose) throws PalantirSqlException {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
-            SqlLoggers.LOGGER.trace(sql.getQuery());
+            SqlLoggers.LOGGER.trace("SQL update interval query: {}", sql.getQuery());
         }
         return BasicSQLUtils.runUninterruptably (new Callable<PreparedStatement>() {
             @Override
@@ -750,7 +755,7 @@ public abstract class BasicSQL {
     protected void updateMany(final Connection c, final FinalSQLString sql, final Object vs[][])
     throws PalantirSqlException {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
-            SqlLoggers.LOGGER.trace(sql.getQuery());
+            SqlLoggers.LOGGER.trace("SQL update many query: {}", sql.getQuery());
         }
         BasicSQLUtils.runUninterruptably (new Callable<Void>() {
             @Override
@@ -793,7 +798,7 @@ public abstract class BasicSQL {
     protected int insertOneCountRowsInternal(final Connection c,
             final FinalSQLString sql, final Object... vs) throws PalantirSqlException {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
-            SqlLoggers.LOGGER.trace(sql.getQuery());
+            SqlLoggers.LOGGER.trace("SQL insert one count rows internal query: {}", sql.getQuery());
         }
         return BasicSQLUtils.runUninterruptably (new Callable<Integer>() {
             @Override
@@ -811,7 +816,7 @@ public abstract class BasicSQL {
 
     public boolean insertMany(final Connection c, final FinalSQLString sql, final Object vs[][]) throws PalantirSqlException {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
-            SqlLoggers.LOGGER.trace(sql.getQuery());
+            SqlLoggers.LOGGER.trace("SQL insert many query: {}", sql.getQuery());
         }
         return BasicSQLUtils.runUninterruptably (new Callable<Boolean>() {
             @Override
