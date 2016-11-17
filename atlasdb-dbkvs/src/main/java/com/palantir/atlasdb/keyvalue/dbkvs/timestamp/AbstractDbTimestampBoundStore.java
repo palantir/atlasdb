@@ -36,6 +36,7 @@ import com.palantir.timestamp.TimestampBoundStore;
 
 abstract class AbstractDbTimestampBoundStore implements TimestampBoundStore {
     ConnectionManager connManager;
+    private final String tablePrefix;
     TableReference timestampTable;
 
     @GuardedBy("this") // lazy init to avoid db connections in constructors
@@ -46,9 +47,11 @@ abstract class AbstractDbTimestampBoundStore implements TimestampBoundStore {
 
     abstract void createTimestampTable(Connection connection) throws SQLException;
 
-
-    protected AbstractDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable) {
+    protected AbstractDbTimestampBoundStore(ConnectionManager connManager,
+            String tablePrefix,
+            TableReference timestampTable) {
         this.connManager = Preconditions.checkNotNull(connManager, "connectionManager is required");
+        this.tablePrefix = tablePrefix;
         this.timestampTable = Preconditions.checkNotNull(timestampTable, "timestampTable is required");
     }
 
@@ -141,7 +144,7 @@ abstract class AbstractDbTimestampBoundStore implements TimestampBoundStore {
     }
 
     private Long readLimit(Connection connection) throws SQLException {
-        String sql = "SELECT last_allocated FROM " + timestampTable.getQualifiedName() + " FOR UPDATE";
+        String sql = "SELECT last_allocated FROM " + prefixedTimestampTableName() + " FOR UPDATE";
         QueryRunner run = new QueryRunner();
         return run.query(connection, sql, rs -> {
             if (rs.next()) {
@@ -153,7 +156,7 @@ abstract class AbstractDbTimestampBoundStore implements TimestampBoundStore {
     }
 
     private void writeLimit(Connection connection, long limit) throws SQLException {
-        String updateTs = "UPDATE " + timestampTable.getQualifiedName() + " SET last_allocated = ?";
+        String updateTs = "UPDATE " + prefixedTimestampTableName() + " SET last_allocated = ?";
         try (PreparedStatement statement = connection.prepareStatement(updateTs)) {
             statement.setLong(1, limit);
             statement.executeUpdate();
@@ -163,7 +166,7 @@ abstract class AbstractDbTimestampBoundStore implements TimestampBoundStore {
     private void createLimit(Connection connection, long limit) throws SQLException {
         QueryRunner run = new QueryRunner();
         run.update(connection,
-                String.format("INSERT INTO %s (last_allocated) VALUES (?)", timestampTable.getQualifiedName()),
+                String.format("INSERT INTO %s (last_allocated) VALUES (?)", prefixedTimestampTableName()),
                 limit);
     }
 
@@ -172,5 +175,9 @@ abstract class AbstractDbTimestampBoundStore implements TimestampBoundStore {
             dbType = ConnectionDbTypes.getDbType(connection);
         }
         return dbType;
+    }
+
+    protected String prefixedTimestampTableName() {
+        return tablePrefix + timestampTable.getQualifiedName();
     }
 }

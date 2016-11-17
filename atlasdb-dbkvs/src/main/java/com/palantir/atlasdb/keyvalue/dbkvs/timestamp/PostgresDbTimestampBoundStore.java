@@ -26,23 +26,28 @@ import com.palantir.nexus.db.pool.ConnectionManager;
 // TODO: switch to using ptdatabase sql running, which more gracefully
 // supports multiple db types.
 public final class PostgresDbTimestampBoundStore extends AbstractDbTimestampBoundStore {
-    public static PostgresDbTimestampBoundStore create(ConnectionManager connManager) {
+
+    public static PostgresDbTimestampBoundStore create(ConnectionManager connManager, String tablePrefix) {
         PostgresDbTimestampBoundStore postgresDbTimestampBoundStore = new PostgresDbTimestampBoundStore(
                 connManager,
+                tablePrefix,
                 AtlasDbConstants.TIMESTAMP_TABLE);
         postgresDbTimestampBoundStore.init();
         return postgresDbTimestampBoundStore;
     }
 
-    private PostgresDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable) {
-        super(connManager, timestampTable);
+    private PostgresDbTimestampBoundStore(
+            ConnectionManager connManager,
+            String tablePrefix,
+            TableReference timestampTable) {
+        super(connManager, tablePrefix, timestampTable);
     }
 
     @Override
     protected void createTimestampTable(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement()) {
             statement.execute(String.format("CREATE TABLE IF NOT EXISTS %s ( last_allocated int8 NOT NULL )",
-                    timestampTable.getQualifiedName()));
+                    prefixedTimestampTableName()));
         }
     }
 }

@@ -29,7 +29,6 @@ import com.palantir.nexus.db.pool.ConnectionManager;
 
 public final class OracleDbTimestampBoundStore extends AbstractDbTimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(OracleDbTimestampBoundStore.class);
-    private final String tablePrefix;
 
     public static OracleDbTimestampBoundStore create(ConnectionManager connManager, String tablePrefix) {
         OracleDbTimestampBoundStore oracleDbTimestampBoundStore = new OracleDbTimestampBoundStore(
@@ -42,9 +41,9 @@ public final class OracleDbTimestampBoundStore extends AbstractDbTimestampBoundS
 
     private OracleDbTimestampBoundStore(
             ConnectionManager connManager,
-            String tablePrefix, TableReference timestampTable) {
-        super(connManager, timestampTable);
-        this.tablePrefix = tablePrefix;
+            String tablePrefix,
+            TableReference timestampTable) {
+        super(connManager, tablePrefix, timestampTable);
     }
 
     @Override
@@ -64,9 +63,5 @@ public final class OracleDbTimestampBoundStore extends AbstractDbTimestampBoundS
                 throw e;
             }
         }
-    }
-
-    private String prefixedTimestampTableName() {
-        return tablePrefix + timestampTable.getQualifiedName();
     }
 }

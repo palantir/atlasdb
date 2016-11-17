@@ -33,6 +33,8 @@ public class PostgresDbTimestampBoundStoreTest extends AbstractDbTimestampBoundS
     @Override
     protected TimestampBoundStore getTimestampBoundStore() {
         kvs = ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
-        return PostgresDbTimestampBoundStore.create(kvs.getConnectionManager());
+        return PostgresDbTimestampBoundStore.create(
+                kvs.getConnectionManager(),
+                DbkvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
     }
 }
