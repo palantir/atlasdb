@@ -63,8 +63,8 @@ public class SecureRandomPool {
                 pool.add(random);
             }
         } catch (NoSuchAlgorithmException e) {
-            String msg = "Error getting SecureRandom using " + algorithm + " algorithm.";
-            log.error(msg, e);
+            String msg = "Error getting SecureRandom using {} algorithm.";
+            log.error(msg, algorithm, e);
             throw new RuntimeException(msg, e);
         }
     }
@@ -94,7 +94,7 @@ public class SecureRandomPool {
             seedSource.setSeed(seedBytes);
             return seedSource;
         } catch (NoSuchAlgorithmException e) {
-            log.error("Error getting SecureRandom using " + algorithm + " algorithm for seed source.", e);
+            log.error("Error getting SecureRandom using {} algorithm for seed source.", algorithm, e);
             return seed;
         }
     }

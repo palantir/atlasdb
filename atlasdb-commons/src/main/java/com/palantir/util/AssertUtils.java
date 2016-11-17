@@ -65,7 +65,7 @@ public class AssertUtils {
 
     public static void assertAndLogWithException(boolean cheapTest, String msg, Throwable t) {
         if (!cheapTest) {
-            LoggerFactory.getLogger(AssertUtils.class).error(msg, t);
+            LoggerFactory.getLogger(AssertUtils.class).error("Assertion {} with exception {}", msg, t);
             assert false : msg;
         }
     }
