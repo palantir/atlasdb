@@ -1,3 +1,4 @@
+apply plugin: 'findbugs'
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
@@ -35,6 +36,7 @@ libsDirName = file('build/artifacts')
 dependencies {
     checkstyle group: 'com.puppycrawl.tools', name: 'checkstyle', version: libVersions.checkstyle
     testCompile group: 'junit', name: 'junit'
+    findbugsPlugins group: 'jp.skypencil.findbugs.slf4j', name: 'bug-pattern', ext: 'jar'
 }
 
 apply from: rootProject.file('gradle/javadoc.gradle'), to: javadoc
@@ -78,6 +80,13 @@ tasks.withType(Test) {
         showStackTraces true
 
         events "started", "passed", "skipped", "failed"
+    }
+}
+
+tasks.withType(FindBugs) {
+    reports {
+        xml.enabled = false
+        html.enabled = true
     }
 }
 

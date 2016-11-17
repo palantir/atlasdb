@@ -30,7 +30,7 @@ com.github.tomakehurst:wiremock = 1.57
 org.ow2.asm:asm = 5.0.4
 org.slf4j:* = 1.7.5
 org.yaml:snakeyaml = 1.12
-
+jp.skypencil.findbugs.slf4j:* = 1.2.4
 // versions below 8.10.0 have a bug where POST requests must have a body
 com.netflix.feign:* = 8.6.1
 com.netflix.feign:feign-okhttp = 8.10.1
