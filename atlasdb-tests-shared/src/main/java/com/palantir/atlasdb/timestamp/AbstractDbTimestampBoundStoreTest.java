@@ -13,18 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs;
+package com.palantir.atlasdb.timestamp;
 
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public abstract class AbstractDbTimestampBoundStoreTest {
-    protected ConnectionManagerAwareDbKvs kvs;
     protected TimestampBoundStore store;
 
     @Before
@@ -33,11 +30,6 @@ public abstract class AbstractDbTimestampBoundStoreTest {
     }
 
     protected abstract TimestampBoundStore getTimestampBoundStore();
-
-    @After
-    public void tearDown() throws Exception {
-        kvs.close();
-    }
 
     @Test
     public void testTimestampBoundStore() {
