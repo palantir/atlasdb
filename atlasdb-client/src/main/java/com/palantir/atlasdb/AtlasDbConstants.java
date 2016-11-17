@@ -27,7 +27,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class AtlasDbConstants {
-    public static final Logger PERF_LOG = LoggerFactory.getLogger("dualschema.perf");
+    private static final Logger PERF_LOG = LoggerFactory.getLogger("dualschema.perf");
 
     public static final TableReference PUNCH_TABLE = TableReference.createWithEmptyNamespace("_punch");
     public static final TableReference SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub");

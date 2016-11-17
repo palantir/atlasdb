@@ -27,7 +27,7 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.Throwables;
 
 public abstract class AbstractTransactionManager implements TransactionManager {
-    public static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
+    private static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
 
     private volatile boolean closed = false;
 
@@ -45,9 +45,9 @@ public abstract class AbstractTransactionManager implements TransactionManager {
                 }
                 failureCount++;
                 if (shouldStopRetrying(failureCount)) {
-                    String msg = "Failing after " + failureCount + " tries";
-                    log.warn(msg, e);
-                    throw Throwables.rewrap(msg, e);
+                    String msg = "Failing after {} tries";
+                    log.warn(msg, failureCount, e);
+                    throw Throwables.rewrap(msg + failureCount, e);
                 }
                 log.info("retrying transaction", e);
             } catch (RuntimeException e) {

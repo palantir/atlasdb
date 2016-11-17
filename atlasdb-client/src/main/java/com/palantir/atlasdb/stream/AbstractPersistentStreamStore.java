@@ -23,6 +23,9 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
@@ -45,6 +48,7 @@ import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
 public abstract class AbstractPersistentStreamStore extends AbstractGenericStreamStore<Long> implements PersistentStreamStore {
+    private final Logger log = LoggerFactory.getLogger(AbstractPersistentStreamStore.class);
     protected AbstractPersistentStreamStore(TransactionManager txManager) {
         super(txManager);
     }
@@ -161,7 +165,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
                 .setHash(com.google.protobuf.ByteString.EMPTY)
                 .build();
             storeMetadataAndIndex(id, metadata);
-            log.error("Could not store stream " + id + ". Failed after " + length + " bytes.", e);
+            log.error("Could not store stream {}. Failed after {} bytes.", id, length, e);
             throw Throwables.rewrapAndThrowUncheckedException("Failed to store stream.", e);
         }
 

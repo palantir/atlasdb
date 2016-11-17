@@ -266,10 +266,10 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
             if (!allTableNames.contains(SWEEP_PRIORITY_TABLE)
                     || !allTableNames.contains(TransactionConstants.TRANSACTION_TABLE)) {
                 // ignore problems when sweep or transaction tables don't exist
-                log.warn("Ignoring failed sweep stats flush due to {}", e.getMessage(), e);
+                log.warn("Ignoring failed sweep stats flush due to ", e);
             }
-            log.error("Unable to flush sweep stats for writes {} and clears {}: {}",
-                    writes, clears, e.getMessage(), e);
+            log.error("Unable to flush sweep stats for writes {} and clears {}: ",
+                    writes, clears, e);
             throw e;
         }
     }
