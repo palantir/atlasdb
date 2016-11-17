@@ -258,11 +258,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 } else if (!hiddenTables.isHidden(tableRef)) {
                     // Possible to get here from a race condition with another service starting up
                     // and performing schema upgrades concurrent with us doing this check
-                    log.error("Found a table " + tableRef.getQualifiedName() + " that did not have persisted"
+                    log.error("Found a table {} that did not have persisted"
                             + " AtlasDB metadata. If you recently did a Palantir update, try waiting until"
                             + " schema upgrades are completed on all backend CLIs/services etc and restarting"
                             + " this service. If this error re-occurs on subsequent attempted startups, please"
-                            + " contact Palantir support.");
+                            + " contact Palantir support.", tableRef.getQualifiedName());
                 }
             }
 
@@ -380,10 +380,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         }));
             }
             if (rowCount > fetchBatchCount) {
-                log.warn("Rebatched in getRows a call to " + tableRef.getQualifiedName()
-                        + " that attempted to multiget " + rowCount
-                        + " rows; this may indicate overly-large batching on a higher level.\n"
-                        + CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
+                log.warn("Rebatched in getRows a call to {} that attempted to multiget {} rows; "
+                        + "this may indicate overly-large batching on a higher level.\n {}",
+                        tableRef.getQualifiedName(),
+                        rowCount,
+                        CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
             }
             return ImmutableMap.copyOf(result);
         } catch (Exception e) {
@@ -1080,8 +1081,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 });
             } catch (TException e) {
                 log.error("Cluster was unavailable while we attempted a truncate for table "
-                        + tableRef.getQualifiedName() + "; we will try "
-                        + (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries) + " additional time(s).", e);
+                        + "{}; we will try {} additional time(s).",
+                        tableRef.getQualifiedName(),
+                        CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries, e);
                 if (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries == 0) {
                     throw e;
                 }
@@ -1381,13 +1383,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     if (Arrays.equals(
                             existingTableMetadata.get(Iterables.getOnlyElement(matchingTables)), newMetadata)) {
                         log.debug("Case-insensitive matched table already existed with same metadata,"
-                                + " skipping update to " + tableReference);
+                                + " skipping update to {}", tableReference);
                     } else { // existing table has different metadata, so we should perform an update
                         tableMetadataUpdates.put(tableReference, newMetadata);
                     }
                 }
             } else {
-                log.debug("Table already existed with same metadata, skipping update to " + tableReference);
+                log.debug("Table already existed with same metadata, skipping update to {}", tableReference);
             }
         }
 
@@ -1468,10 +1470,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 .findFirst();
 
         if (!match.isPresent()) {
-            log.debug("Couldn't find table metadata for " + tableRef);
+            log.debug("Couldn't find table metadata for {}", tableRef);
             return AtlasDbConstants.EMPTY_TABLE_METADATA;
         } else {
-            log.debug("Found table metadata for " + tableRef + " at matching name " + match.get().getKey());
+            log.debug("Found table metadata for {} at matching name {}", tableRef, match.get().getKey());
             return match.get().getValue();
         }
     }
@@ -1732,7 +1734,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             compactionManager.get().performTombstoneCompaction(timeoutInSeconds, keyspace, tableRef);
         } catch (TimeoutException e) {
             log.error("Compaction for {}.{} could not finish in {} seconds.", keyspace, tableRef, timeoutInSeconds, e);
-            log.error(compactionManager.get().getCompactionStatus());
+            log.error("Compaction status: {}", compactionManager.get().getCompactionStatus());
         } catch (InterruptedException e) {
             log.error("Compaction for {}.{} was interrupted.", keyspace, tableRef);
         } finally {

@@ -112,10 +112,9 @@ public final class CassandraVerifier {
     }
 
     static void logErrorOrThrow(String errorMessage, boolean safetyDisabled) {
-        String safetyMessage = " This would have normally resulted in Palantir exiting,"
-                + " however safety checks have been disabled.";
         if (safetyDisabled) {
-            log.error(errorMessage + safetyMessage);
+            log.error("{} This would have normally resulted in Palantir exiting however "
+                    + "safety checks have been disabled.", errorMessage);
         } else {
             throw new IllegalStateException(errorMessage);
         }
@@ -313,7 +312,7 @@ public final class CassandraVerifier {
             underlyingCassandraClusterSupportsCASOperations = client -> {
                 try {
                     CassandraApiVersion serverVersion = new CassandraApiVersion(client.describe_version());
-                    log.debug("Connected cassandra thrift version is: " + serverVersion);
+                    log.debug("Connected cassandra thrift version is: {}", serverVersion);
                     return serverVersion.supportsCheckAndSet();
                 } catch (TException ex) {
                     throw new UnsupportedOperationException("Couldn't determine underlying cassandra version;"

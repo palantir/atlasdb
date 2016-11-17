@@ -152,7 +152,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     + " service.";
             MultipleRunningTimestampServiceError err = new MultipleRunningTimestampServiceError(msg);
             logError(msg, err);
-            DebugLogger.logger.error("Thread dump: " + ThreadDumps.programmaticThreadDump());
+            DebugLogger.logger.error("Thread dump: {}", ThreadDumps.programmaticThreadDump());
             throw err;
         } else {
             DebugLogger.logger.info("[CAS] Setting cached limit to {}.", newVal);
@@ -161,8 +161,8 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     }
 
     private void logError(String msg, Throwable cause) {
-        log.error(msg, cause);
-        DebugLogger.logger.error(msg, cause);
+        log.error("Error: {}", msg, cause);
+        DebugLogger.logger.error("Error: {}", msg, cause);
     }
 
     private String getCurrentTimestampValues(CASResult result) {
