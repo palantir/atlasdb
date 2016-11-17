@@ -6,6 +6,21 @@ apply plugin: 'application'
 mainClassName = 'com.palantir.atlasdb.cli.AtlasCli'
 applicationName = 'atlasdb'
 
+apply plugin: 'org.unbroken-dome.test-sets'
+
+testSets {
+    integTest
+}
+
+configurations.integTestRuntime {
+    // Datastax Driver and recent Atomix are incompatible on this one, so forcing new version.
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        if (details.requested.group == "io.netty" && details.requested.name == "netty-handler") {
+            details.useVersion("4.0.33.Final")
+        }
+    }
+}
+
 dependencies {
     compile project(':atlasdb-cassandra')
     compile project(path: ':atlasdb-dagger', configuration: 'shadow')
@@ -16,5 +31,9 @@ dependencies {
     processor group: 'org.immutables', name: 'value'
 
     testCompile project(':atlasdb-rocksdb')
-    testCompile group: 'org.assertj', name: 'assertj-core', version: libVersions.assertj
+    testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'org.mockito', name: 'mockito-core'
+
+    integTestCompile(project(':atlasdb-timelock-server'))
+    integTestCompile(group: 'io.dropwizard', name: 'dropwizard-testing')
 }

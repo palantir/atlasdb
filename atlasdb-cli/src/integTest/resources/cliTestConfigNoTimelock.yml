@@ -9,8 +9,3 @@ server:
 atlasdb:
   keyValueService:
     type: memory
-  timelock:
-    client: test
-    serverListConfig:
-      servers:
-        - http://localhost:8080
