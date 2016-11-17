@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import org.apache.commons.lang3.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
@@ -33,6 +35,7 @@ import com.palantir.lock.LockRequest;
 public abstract class AbstractLockAwareTransactionManager
         extends AbstractTransactionManager
         implements LockAwareTransactionManager {
+    private static final Logger log = LoggerFactory.getLogger(AbstractLockAwareTransactionManager.class);
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,

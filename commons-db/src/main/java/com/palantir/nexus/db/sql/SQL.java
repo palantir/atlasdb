@@ -50,7 +50,7 @@ import com.palantir.util.streams.PTStreams;
  * All the methods deprecated in this class have alternatives in {@link PalantirSqlConnection}
  */
 public abstract class SQL extends BasicSQL {
-    static final Logger sqlExceptionlog = LoggerFactory.getLogger("sqlException." + SQL.class.getName()); //$NON-NLS-1$
+    private static final Logger sqlExceptionlog = LoggerFactory.getLogger("sqlException." + SQL.class.getName()); //$NON-NLS-1$
 
     /** key for the sql query to list tables with a given column. */
     static final String LIST_TABLES_WITH_COLUMN = "SQL_LIST_TABLES_WITH_COLUMN"; //$NON-NLS-1$

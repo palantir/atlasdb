@@ -514,15 +514,20 @@ public abstract class BasicSQL {
             throw PalantirSqlException.create(cause);
         }
         String msg = "We got an execution exception that was an interrupt, most likely from someone " + //$NON-NLS-1$
-                "incorrectly ignoring an interrupt. "; //$NON-NLS-1$
+                "incorrectly ignoring an interrupt. Elaped time: {} \nError message: {} "
+                + "Error code: {} "
+                + "Error state: {} "
+                + "Error cause: {}";
+        String elapsedTime = "N/A";
         if (startTime > 0) {
-            msg += "Elapsed time: " + (System.currentTimeMillis() - startTime); //$NON-NLS-1$
+           elapsedTime = String.valueOf(System.currentTimeMillis() - startTime); //$NON-NLS-1$
         }
         msg += "\nError message: {}";
         msg += "Error code: {}";
         msg += "Error state: {}";
         msg += "Error cause: {}";
         SqlLoggers.CANCEL_LOGGER.info(msg,
+                elapsedTime,
                 cause.getMessage(),  //$NON-NLS-1$
                 cause.getErrorCode(),  //$NON-NLS-1$
                 cause.getSQLState(),  //$NON-NLS-1$
@@ -589,7 +594,8 @@ public abstract class BasicSQL {
                         if (ResultSets.next(rs)) {
                             int ret = ResultSets.getInt(rs, 1);
                             if (ResultSets.next(rs)) {
-                                SqlLoggers.LOGGER.error("In selectInteger more than one row was returned for query: " + sql); //$NON-NLS-1$
+                                SqlLoggers.LOGGER.error("In selectInteger more than one row was returned for query: {}",
+                                        sql); //$NON-NLS-1$
                                 assert false : "Found more than one row in SQL#selectInteger"; //$NON-NLS-1$
                             }
                             return ret;
@@ -620,15 +626,18 @@ public abstract class BasicSQL {
                             }
 
                             if (ResultSets.next(rs)) {
-                                SqlLoggers.LOGGER.error("In selectLong more than one row was returned for query: " + sql); //$NON-NLS-1$
+                                SqlLoggers.LOGGER.error("In selectLong more than one row was returned for query: {}",
+                                        sql); //$NON-NLS-1$
                                 assert false : "Found more than one row in SQL#selectLong"; //$NON-NLS-1$
                             }
 
                             if (ret != null) {
                                 return ret;
                             } else if (useBrokenBehaviorWithNullAndZero) {
-                                SqlLoggers.LOGGER.error("In selectLong null was returned in the one row for this query: " + sql); //$NON-NLS-1$
-                                assert false : "If this case is hit, it is a programming error.  You should use a default value."; //$NON-NLS-1$
+                                SqlLoggers.LOGGER.error("In selectLong null was returned in the one row for this "
+                                        + "query: {}," + sql); //$NON-NLS-1$
+                                assert false : "If this case is hit, it is a programming error.  "
+                                        + "You should use a default value."; //$NON-NLS-1$
                                 return 0L;
                             }
                         }
@@ -650,7 +659,7 @@ public abstract class BasicSQL {
                                                                           final DBType dbType)
             throws PalantirSqlException, PalantirInterruptedException {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
-            SqlLoggers.LOGGER.trace("SQL light result set selection query: {}". sql.getQuery());
+            SqlLoggers.LOGGER.trace("SQL light result set selection query: {}", sql.getQuery());
         }
 
         final ResourceCreationLocation alrsCreationException = new ResourceCreationLocation("This is where the AgnosticLightResultSet wrapper was created"); //$NON-NLS-1$

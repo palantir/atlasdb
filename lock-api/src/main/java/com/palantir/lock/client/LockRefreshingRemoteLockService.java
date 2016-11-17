@@ -54,11 +54,11 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
                     long elapsed = System.currentTimeMillis() - startTime;
 
                     if (elapsed > LockRequest.DEFAULT_LOCK_TIMEOUT.toMillis()/2) {
-                        log.error("Refreshing locks took " + elapsed + " milliseconds" +
-                                " for tokens: " + ret.toRefresh);
+                        log.error("Refreshing locks took {} milliseconds" +
+                                " for tokens: {}", elapsed,  ret.toRefresh);
                     } else if (elapsed > ret.refreshFrequencyMillis) {
-                        log.warn("Refreshing locks took " + elapsed + " milliseconds" +
-                                " for tokens: " + ret.toRefresh);
+                        log.warn("Refreshing locks took {} milliseconds" +
+                                " for tokens: {}", elapsed, ret.toRefresh);
                     }
                 }
             }
@@ -110,7 +110,7 @@ public class LockRefreshingRemoteLockService extends ForwardingRemoteLockService
         for (LockRefreshToken token : refreshCopy) {
             if (!refreshedTokens.contains(token)
                     && toRefresh.contains(token)) {
-                log.error("failed to refresh lock: " + token);
+                log.error("failed to refresh lock: {}", token);
                 toRefresh.remove(token);
             }
         }
