@@ -20,15 +20,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.List;
 
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
-import com.palantir.atlasdb.services.LockAndTimestampModule;
 import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.services.test.DaggerTestAtlasDbServices;
+import com.palantir.atlasdb.timelock.TimeLockServer;
+import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 
 import io.airlift.airline.Command;
 
@@ -41,6 +43,12 @@ public class TimestampMigrationCommandTest {
     private static final String DEFAULT_CONFIG = "src/test/resources/cli_test_config.yml";
     private static final String[] DEFAULT_CLI_ARGS = getCommandForConfigPath(DEFAULT_CONFIG);
 
+    @ClassRule
+    public static final DropwizardAppRule<TimeLockServerConfiguration> APP = new DropwizardAppRule<>(
+            TimeLockServer.class,
+            ResourceHelpers.resourceFilePath("singleTestServer.yml"));
+
+
     @BeforeClass
     public static void setup() throws Exception {
         moduleFactory = new AtlasDbServicesFactory() {
@@ -48,7 +56,6 @@ public class TimestampMigrationCommandTest {
             public AtlasDbServices connect(ServicesConfigModule servicesConfigModule) {
                 return DaggerTestAtlasDbServices.builder()
                         .servicesConfigModule(servicesConfigModule)
-                        .lockAndTimestampModule(new LockAndTimestampModule()) // TODO Jkong to fill this in
                         .build();
             }
         };

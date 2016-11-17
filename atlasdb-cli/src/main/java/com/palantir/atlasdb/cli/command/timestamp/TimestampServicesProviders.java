@@ -15,11 +15,13 @@
  */
 package com.palantir.atlasdb.cli.command.timestamp;
 
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
@@ -31,11 +33,22 @@ import com.palantir.timestamp.TimestampAdministrationService;
 import com.palantir.timestamp.TimestampService;
 
 public final class TimestampServicesProviders {
+    private static final Map<AtlasDbConfig, TimestampServicesProvider> PROVIDER_MAP = Maps.newHashMap();
+
     private TimestampServicesProviders() {
         // utility class
     }
 
-    public static TimestampServicesProvider createInternalProviderFromAtlasDbConfig(AtlasDbConfig config) {
+    public static synchronized TimestampServicesProvider getInternalProviderFromAtlasDbConfig(AtlasDbConfig config) {
+        TimestampServicesProvider provider = PROVIDER_MAP.get(config);
+        if (provider == null) {
+            provider = createInternalProviderFromAtlasDbConfig(config);
+            PROVIDER_MAP.put(config, provider);
+        }
+        return provider;
+    }
+
+    private static TimestampServicesProvider createInternalProviderFromAtlasDbConfig(AtlasDbConfig config) {
         ServicesConfigModule scm = ServicesConfigModule.create(
                 ImmutableAtlasDbConfig.copyOf(config)
                         .withTimelock(Optional.absent()));

@@ -45,14 +45,14 @@ public class TimestampServicesProvidersTest {
     @Test
     public void createsInternalTimestampService() throws IOException {
         AtlasDbConfig config = AtlasDbConfigs.load(new File("src/test/resources/cli_test_config.yml"));
-        TimestampServicesProvider provider = TimestampServicesProviders.createInternalProviderFromAtlasDbConfig(config);
+        TimestampServicesProvider provider = TimestampServicesProviders.getInternalProviderFromAtlasDbConfig(config);
         assertThat(provider.timestampService()).isNotNull();
     }
 
     @Test
     public void createsInternalTimestampServiceEvenWithTimelockBlockPresent() throws IOException {
         AtlasDbConfig config = AtlasDbConfigs.load(new File("src/test/resources/cli_test_config_timelock.yml"));
-        TimestampServicesProvider provider = TimestampServicesProviders.createInternalProviderFromAtlasDbConfig(config);
+        TimestampServicesProvider provider = TimestampServicesProviders.getInternalProviderFromAtlasDbConfig(config);
         assertThat(provider.timestampService() instanceof InMemoryTimestampService).isTrue();
     }
 

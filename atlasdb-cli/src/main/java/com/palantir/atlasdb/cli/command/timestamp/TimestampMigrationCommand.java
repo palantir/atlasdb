@@ -79,11 +79,11 @@ public class TimestampMigrationCommand extends AbstractTimestampCommand {
         }
     }
 
-    private TimestampServicesProvider getLocalServicesProvider(AtlasDbServices services) {
-        return TimestampServicesProviders.createInternalProviderFromAtlasDbConfig(services.getAtlasDbConfig());
+    private static TimestampServicesProvider getLocalServicesProvider(AtlasDbServices services) {
+        return TimestampServicesProviders.getInternalProviderFromAtlasDbConfig(services.getAtlasDbConfig());
     }
 
-    private TimestampServicesProvider getRemoteServicesProvider(AtlasDbServices services) {
+    private static TimestampServicesProvider getRemoteServicesProvider(AtlasDbServices services) {
         TimeLockClientConfig timeLockClientConfig = services.getAtlasDbConfig().timelock().get();
         return TimestampServicesProviders.createFromTimelockConfiguration(timeLockClientConfig);
     }
