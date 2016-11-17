@@ -84,9 +84,9 @@ public class StreamingTable {
                 getTransactionManager(),
                 tableFactory
         );
-        byte[] data = new byte[6_000_000];
+        byte[] data = "bytes".getBytes(); //new byte[6_000_000];
 
-        random.nextBytes(data);
+//        random.nextBytes(data);
 
         InputStream inputStream = new ByteArrayInputStream(data);
         long streamId = streamTestStreamStore.storeStream(inputStream).getLhSide();

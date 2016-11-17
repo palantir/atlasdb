@@ -15,6 +15,13 @@
  */
 package com.palantir.atlasdb.performance.benchmarks;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.startsWith;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -34,11 +41,19 @@ public class StreamStoreBenchmarks {
     @Benchmark
     @Warmup(time = 10, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 50, timeUnit = TimeUnit.SECONDS)
-    public Object loadStream(StreamingTable table) {
+    public Object loadStream(StreamingTable table) throws IOException {
         TransactionManager transactionManager = table.getTransactionManager();
         StreamTestTableFactory tables = StreamTestTableFactory.of();
         ValueStreamStore store = ValueStreamStore.of(transactionManager, tables);
 
-        return transactionManager.runTaskThrowOnConflict(txn -> store.loadStream(txn, 1L));
+        InputStream inputStream = transactionManager.runTaskThrowOnConflict(txn -> store.loadStream(txn, 1L));
+
+        InputStreamReader reader = new InputStreamReader(inputStream);
+        BufferedReader bufferedReader = new BufferedReader(reader);
+        String line = bufferedReader.readLine();
+
+        assertThat(line, startsWith("bytes"));
+
+        return inputStream;
     }
 }
