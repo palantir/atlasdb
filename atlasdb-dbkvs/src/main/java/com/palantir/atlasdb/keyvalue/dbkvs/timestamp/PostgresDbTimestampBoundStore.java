@@ -22,7 +22,6 @@ import java.sql.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.nexus.db.pool.ConnectionManager;
@@ -41,8 +40,7 @@ public final class PostgresDbTimestampBoundStore extends AbstractDbTimestampBoun
     }
 
     private PostgresDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable) {
-        this.connManager = Preconditions.checkNotNull(connManager, "connectionManager is required");
-        this.timestampTable = Preconditions.checkNotNull(timestampTable, "timestampTable is required");
+        super(connManager, timestampTable);
     }
 
     @Override

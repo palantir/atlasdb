@@ -23,6 +23,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
@@ -38,9 +39,6 @@ import com.palantir.util.VersionStrings;
 public final class OracleDdlTable implements DbDdlTable {
     private static final Logger log = LoggerFactory.getLogger(OracleDdlTable.class);
     private static final String MIN_ORACLE_VERSION = "11.2.0.2.3";
-    private static final String ORACLE_NOT_EXISTS_ERROR = "ORA-00942";
-    private static final String ORACLE_ALREADY_EXISTS_ERROR = "ORA-00955";
-    private static final String ORACLE_UNIQUE_CONSTRAINT_ERROR =  "ORA-00001";
 
     private final OracleDdlConfig config;
     private final ConnectionSupplier conns;
@@ -100,7 +98,7 @@ public final class OracleDdlTable implements DbDdlTable {
                 + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortTableName)
                 + " PRIMARY KEY (row_name, col_name, ts) "
                 + ") organization index compress overflow",
-                ORACLE_ALREADY_EXISTS_ERROR);
+                OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
         putTableNameMapping(oracleTableNameGetter.getPrefixedTableName(), shortTableName);
     }
 
@@ -112,7 +110,7 @@ public final class OracleDdlTable implements DbDdlTable {
                 + "  val BLOB NOT NULL,"
                 + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortOverflowTableName) + " PRIMARY KEY (id)"
                 + ")",
-                ORACLE_ALREADY_EXISTS_ERROR);
+                OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
         putTableNameMapping(oracleTableNameGetter.getPrefixedOverflowTableName(), shortOverflowTableName);
     }
 
@@ -125,7 +123,7 @@ public final class OracleDdlTable implements DbDdlTable {
                         fullTableName,
                         shortTableName);
             } catch (PalantirSqlException ex) {
-                if (ex.getMessage().contains(ORACLE_UNIQUE_CONSTRAINT_ERROR)) {
+                if (ex.getMessage().contains(OracleErrorConstants.ORACLE_UNIQUE_CONSTRAINT_ERROR)) {
                     dropTableInternal(fullTableName, shortTableName);
                 }
                 log.error(ex.getMessage(), ex);
@@ -151,7 +149,7 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     private void dropTableInternal(String fullTableName, String shortTableName) {
-        executeIgnoringError("DROP TABLE " + shortTableName + " PURGE", ORACLE_NOT_EXISTS_ERROR);
+        executeIgnoringError("DROP TABLE " + shortTableName + " PURGE", OracleErrorConstants.ORACLE_NOT_EXISTS_ERROR);
         if (config.useTableMapping()) {
             conns.get().executeUnregisteredQuery(
                     "DELETE FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE table_name = ?",

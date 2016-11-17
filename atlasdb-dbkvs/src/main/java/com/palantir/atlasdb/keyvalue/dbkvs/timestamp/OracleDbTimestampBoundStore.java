@@ -22,15 +22,13 @@ import java.sql.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.nexus.db.pool.ConnectionManager;
 
 public final class OracleDbTimestampBoundStore extends AbstractDbTimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(OracleDbTimestampBoundStore.class);
-
-    private static final String ORACLE_ALREADY_EXISTS_ERROR = "ORA-00955";
 
     public static OracleDbTimestampBoundStore create(ConnectionManager connManager) {
         OracleDbTimestampBoundStore oracleDbTimestampBoundStore = new OracleDbTimestampBoundStore(
@@ -41,8 +39,7 @@ public final class OracleDbTimestampBoundStore extends AbstractDbTimestampBoundS
     }
 
     private OracleDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable) {
-        this.connManager = Preconditions.checkNotNull(connManager, "connectionManager is required");
-        this.timestampTable = Preconditions.checkNotNull(timestampTable, "timestampTable is required");
+        super(connManager, timestampTable);
     }
 
     @Override
@@ -57,7 +54,7 @@ public final class OracleDbTimestampBoundStore extends AbstractDbTimestampBoundS
             statement.execute(String.format("CREATE TABLE %s ( last_allocated NUMBER(38) NOT NULL )",
                     timestampTable.getQualifiedName()));
         } catch (SQLException e) {
-            if (!e.getMessage().contains(ORACLE_ALREADY_EXISTS_ERROR)) {
+            if (!e.getMessage().contains(OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR)) {
                 log.error("Error occurred creating the Oracle timestamp table", e);
                 throw e;
             }

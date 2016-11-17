@@ -24,6 +24,7 @@ import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.commons.dbutils.QueryRunner;
 
+import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.PalantirSqlException;
@@ -44,6 +45,12 @@ abstract class AbstractDbTimestampBoundStore implements TimestampBoundStore {
     private Long currentLimit = null;
 
     abstract void createTimestampTable(Connection connection) throws SQLException;
+
+
+    protected AbstractDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable) {
+        this.connManager = Preconditions.checkNotNull(connManager, "connectionManager is required");
+        this.timestampTable = Preconditions.checkNotNull(timestampTable, "timestampTable is required");
+    }
 
     protected void init() {
         try {
