@@ -77,8 +77,8 @@ public class ServiceDiscoveringAtlasSupplier {
                         + "You do have a leader config, but we're printing thread dumps from both fetches of the "
                         + "timestamp service, in case this second service was created in error.");
             }
-            DebugLogger.logger.error("First thread dump: " + timestampServiceCreationInfo);
-            DebugLogger.logger.error("Second thread dump: " + threadDump);
+            DebugLogger.logger.error("First thread dump: {}", timestampServiceCreationInfo);
+            DebugLogger.logger.error("Second thread dump: {}", threadDump);
         }
 
         return timestampService.get();
