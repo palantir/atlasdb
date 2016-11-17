@@ -24,6 +24,9 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.palantir.atlasdb.performance.benchmarks.table.StreamingTable;
+import com.palantir.atlasdb.performance.schema.generated.StreamTestTableFactory;
+import com.palantir.atlasdb.performance.schema.generated.ValueStreamStore;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 @State(Scope.Benchmark)
 public class StreamStoreBenchmarks {
@@ -32,7 +35,10 @@ public class StreamStoreBenchmarks {
     @Warmup(time = 10, timeUnit = TimeUnit.SECONDS)
     @Measurement(time = 50, timeUnit = TimeUnit.SECONDS)
     public Object loadStream(StreamingTable table) {
-        // TODO how do you make a table stream?
-        return null;
+        TransactionManager transactionManager = table.getTransactionManager();
+        StreamTestTableFactory tables = StreamTestTableFactory.of();
+        ValueStreamStore store = ValueStreamStore.of(transactionManager, tables);
+
+        return transactionManager.runTaskThrowOnConflict(txn -> store.loadStream(txn, 1L));
     }
 }
