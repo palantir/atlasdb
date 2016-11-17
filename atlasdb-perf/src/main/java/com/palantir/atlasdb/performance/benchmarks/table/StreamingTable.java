@@ -28,14 +28,16 @@ import org.openjdk.jmh.annotations.TearDown;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
-import com.palantir.atlasdb.performance.benchmarks.Benchmarks;
+import com.palantir.atlasdb.performance.schema.StreamTestSchema;
 import com.palantir.atlasdb.performance.schema.generated.KeyValueTable;
 import com.palantir.atlasdb.performance.schema.generated.StreamTestTableFactory;
 import com.palantir.atlasdb.performance.schema.generated.ValueStreamStore;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.table.api.ColumnValue;
+import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.persist.Persistable;
@@ -56,7 +58,9 @@ public class StreamingTable {
     }
 
     public TableReference getTableRef() {
-        return Tables.TABLE_REF;
+        Namespace namespace = Namespace.create("default", Namespace.UNCHECKED_NAME);
+        String tableName = "blobs";
+        return TableReference.create(namespace, tableName);
     }
 
     @TearDown(Level.Trial)
@@ -69,7 +73,7 @@ public class StreamingTable {
         this.connector = conn;
         services = conn.connect();
         if (!services.getKeyValueService().getAllTableNames().contains(getTableRef())) {
-            Benchmarks.createTableWithStreaming(getKvs(), getTableRef(), Tables.ROW_COMPONENT, Tables.COLUMN_NAME);
+            Schemas.createTablesAndIndexes(StreamTestSchema.getSchema(), getKvs());
             setupData();
         }
     }
