@@ -15,21 +15,35 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.Random;
+
 import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
 import com.palantir.atlasdb.performance.benchmarks.Benchmarks;
+import com.palantir.atlasdb.performance.schema.generated.KeyValueTable;
+import com.palantir.atlasdb.performance.schema.generated.StreamTestTableFactory;
+import com.palantir.atlasdb.performance.schema.generated.ValueStreamStore;
 import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.atlasdb.table.api.ColumnValue;
+import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.common.persist.Persistable;
 
 @State(Scope.Benchmark)
 public class StreamingTable {
+    private Random random = new Random(Tables.RANDOM_SEED);
+
     private AtlasDbServicesConnector connector;
     private AtlasDbServices services;
 
@@ -61,6 +75,27 @@ public class StreamingTable {
     }
 
     private void setupData() {
-        // TODO store a large amount of data so we can stream it
+        StreamTestTableFactory tableFactory = StreamTestTableFactory.of();
+        ValueStreamStore streamTestStreamStore = ValueStreamStore.of(
+                getTransactionManager(),
+                tableFactory
+        );
+        byte[] data = new byte[6_000_000];
+
+        random.nextBytes(data);
+
+        InputStream inputStream = new ByteArrayInputStream(data);
+        long streamId = streamTestStreamStore.storeStream(inputStream).getLhSide();
+
+        getTransactionManager().runTaskThrowOnConflict(txn -> {
+            KeyValueTable table = tableFactory.getKeyValueTable(txn);
+            KeyValueTable.KeyValueRow row = KeyValueTable.KeyValueRow.of("row");
+            KeyValueTable.StreamId id = KeyValueTable.StreamId.of(streamId);
+            Multimap<Persistable, ColumnValue<?>> rows = ImmutableMultimap.of(row, id);
+
+            txn.put(table.getTableRef(), ColumnValues.toCellValues(rows));
+            return null;
+        });
+
     }
 }
