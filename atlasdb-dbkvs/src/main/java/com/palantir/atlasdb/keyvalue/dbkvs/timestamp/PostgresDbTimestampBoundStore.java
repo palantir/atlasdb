@@ -19,9 +19,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.nexus.db.pool.ConnectionManager;
@@ -29,8 +26,6 @@ import com.palantir.nexus.db.pool.ConnectionManager;
 // TODO: switch to using ptdatabase sql running, which more gracefully
 // supports multiple db types.
 public final class PostgresDbTimestampBoundStore extends AbstractDbTimestampBoundStore {
-    private static final Logger log = LoggerFactory.getLogger(PostgresDbTimestampBoundStore.class);
-
     public static PostgresDbTimestampBoundStore create(ConnectionManager connManager) {
         PostgresDbTimestampBoundStore postgresDbTimestampBoundStore = new PostgresDbTimestampBoundStore(
                 connManager,

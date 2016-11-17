@@ -29,17 +29,22 @@ import com.palantir.nexus.db.pool.ConnectionManager;
 
 public final class OracleDbTimestampBoundStore extends AbstractDbTimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(OracleDbTimestampBoundStore.class);
+    private final String tablePrefix;
 
-    public static OracleDbTimestampBoundStore create(ConnectionManager connManager) {
+    public static OracleDbTimestampBoundStore create(ConnectionManager connManager, String tablePrefix) {
         OracleDbTimestampBoundStore oracleDbTimestampBoundStore = new OracleDbTimestampBoundStore(
                 connManager,
-                AtlasDbConstants.ORACLE_TIMESTAMP_TABLE);
+                tablePrefix,
+                AtlasDbConstants.TIMESTAMP_TABLE);
         oracleDbTimestampBoundStore.init();
         return oracleDbTimestampBoundStore;
     }
 
-    private OracleDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable) {
+    private OracleDbTimestampBoundStore(
+            ConnectionManager connManager,
+            String tablePrefix, TableReference timestampTable) {
         super(connManager, timestampTable);
+        this.tablePrefix = tablePrefix;
     }
 
     @Override
@@ -52,12 +57,16 @@ public final class OracleDbTimestampBoundStore extends AbstractDbTimestampBoundS
     private void createTimestampTableIgnoringAlreadyExistsError(Statement statement) throws SQLException {
         try {
             statement.execute(String.format("CREATE TABLE %s ( last_allocated NUMBER(38) NOT NULL )",
-                    timestampTable.getQualifiedName()));
+                    prefixedTimestampTableName()));
         } catch (SQLException e) {
             if (!e.getMessage().contains(OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR)) {
                 log.error("Error occurred creating the Oracle timestamp table", e);
                 throw e;
             }
         }
+    }
+
+    private String prefixedTimestampTableName() {
+        return tablePrefix + timestampTable.getQualifiedName();
     }
 }
