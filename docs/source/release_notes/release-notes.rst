@@ -45,6 +45,10 @@ develop
          - Substantially improved performance of the DbKvs implementation of the single-iterator version of getRowsColumnRange.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1132>`__)
 
+    *    - |improved|
+         - Transaction perf improvement; commit timestamp lookups are now cached across transactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1238>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
