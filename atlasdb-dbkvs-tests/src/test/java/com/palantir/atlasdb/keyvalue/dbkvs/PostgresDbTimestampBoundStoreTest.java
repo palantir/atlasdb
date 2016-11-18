@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.jdbc;
+package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.junit.After;
 
-import com.palantir.atlasdb.keyvalue.jdbc.JdbcKeyValueService;
-import com.palantir.atlasdb.keyvalue.jdbc.JdbcTimestampBoundStore;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
+import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.PostgresDbTimestampBoundStore;
 import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTest;
 import com.palantir.timestamp.TimestampBoundStore;
 
-public class JdbcTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
-    private JdbcKeyValueService kvs;
+public class PostgresDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
+    ConnectionManagerAwareDbKvs kvs;
 
     @After
     public void tearDown() throws Exception {
@@ -32,7 +32,9 @@ public class JdbcTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTe
 
     @Override
     protected TimestampBoundStore createTimestampBoundStore() {
-        kvs = JdbcTests.createEmptyKvs();
-        return JdbcTimestampBoundStore.create(kvs);
+        kvs = ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
+        return PostgresDbTimestampBoundStore.create(
+                kvs.getConnectionManager(),
+                DbkvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
     }
 }
