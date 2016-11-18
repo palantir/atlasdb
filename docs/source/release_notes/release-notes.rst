@@ -58,6 +58,10 @@ develop
          - Certain Oracle KVS calls no longer attempt to leak connections created internally.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1215>`__)
 
+    *    - |improved|
+         - Transaction perf improvement; commit timestamp lookups are now cached across transactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1238>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
