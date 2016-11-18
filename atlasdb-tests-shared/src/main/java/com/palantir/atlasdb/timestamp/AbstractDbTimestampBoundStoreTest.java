@@ -26,10 +26,10 @@ public abstract class AbstractDbTimestampBoundStoreTest {
 
     @Before
     public void setUp() throws Exception {
-        store = getTimestampBoundStore();
+        store = createTimestampBoundStore();
     }
 
-    protected abstract TimestampBoundStore getTimestampBoundStore();
+    protected abstract TimestampBoundStore createTimestampBoundStore();
 
     @Test
     public void testTimestampBoundStore() {

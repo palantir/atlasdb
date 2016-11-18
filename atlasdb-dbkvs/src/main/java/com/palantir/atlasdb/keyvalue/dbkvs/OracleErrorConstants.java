@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 public final class OracleErrorConstants {
-
     private OracleErrorConstants() {
         //utility class
     }

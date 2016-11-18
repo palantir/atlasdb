@@ -31,7 +31,7 @@ public class JdbcTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTe
     }
 
     @Override
-    protected TimestampBoundStore getTimestampBoundStore() {
+    protected TimestampBoundStore createTimestampBoundStore() {
         kvs = JdbcTests.createEmptyKvs();
         return JdbcTimestampBoundStore.create(kvs);
     }
