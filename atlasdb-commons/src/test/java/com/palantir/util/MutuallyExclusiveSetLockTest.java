@@ -64,8 +64,7 @@ public class MutuallyExclusiveSetLockTest {
         } finally {
             mutuallyExclusiveSetLock.unlock(lockOnObjects);
         }
-        Thread.sleep(100);
-        Assert.assertFalse(thread.isAlive());
+        thread.join(10 * 1000);
 //        assertFalse(mutuallyExclusiveSetLock.syncMap.get("dog").isLocked());
 //        assertEquals(0, mutuallyExclusiveSetLock.threadSet.size());
     }
@@ -79,7 +78,7 @@ public class MutuallyExclusiveSetLockTest {
             thread = createThread(mutuallyExclusiveSetLock, Arrays.asList("heyo"));
             thread.setDaemon(true);
             thread.start();
-            thread.join(60 * 1000);
+            thread.join(10 * 1000);
         } finally {
             mutuallyExclusiveSetLock.unlock(lockOnObjects);
         }
