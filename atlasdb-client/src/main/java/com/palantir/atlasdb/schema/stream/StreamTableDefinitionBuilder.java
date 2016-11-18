@@ -32,6 +32,7 @@ public class StreamTableDefinitionBuilder {
     private ExpirationStrategy expirationStrategy = ExpirationStrategy.NEVER;
     private boolean hashFirstRowComponent = false;
     private boolean appendHeavyAndReadLight = false;
+    private boolean clientSideCompression = false;
     private boolean dbSideCompressionForBlocks = false;
 
     public StreamTableDefinitionBuilder(StreamTableType type, String prefix, ValueType idType) {
@@ -40,7 +41,8 @@ public class StreamTableDefinitionBuilder {
         this.idType = idType;
     }
 
-    public StreamTableDefinitionBuilder(StreamTableType type, String prefix, ValueType idType, ExpirationStrategy expirationStrategy, boolean hashFirstRowComponent, boolean appendHeavyAndReadLight, boolean dbSideCompressionForBlocks) {
+    public StreamTableDefinitionBuilder(StreamTableType type, String prefix, ValueType idType, ExpirationStrategy expirationStrategy,
+            boolean hashFirstRowComponent, boolean appendHeavyAndReadLight, boolean clientSideCompression, boolean dbSideCompressionForBlocks) {
         this.streamTableType = type;
         this.prefix = prefix;
         this.idType = idType;
@@ -48,6 +50,7 @@ public class StreamTableDefinitionBuilder {
         this.expirationStrategy = expirationStrategy;
         this.hashFirstRowComponent = hashFirstRowComponent;
         this.appendHeavyAndReadLight = appendHeavyAndReadLight;
+        this.clientSideCompression = clientSideCompression;
         this.dbSideCompressionForBlocks = dbSideCompressionForBlocks;
     }
 
@@ -66,12 +69,21 @@ public class StreamTableDefinitionBuilder {
         return this;
     }
 
+    public StreamTableDefinitionBuilder compressStreamInClient() {
+        clientSideCompression = true;
+        return this;
+    }
+
     public StreamTableDefinitionBuilder compressBlocksInDb() {
         dbSideCompressionForBlocks = true;
         return this;
     }
 
     public TableDefinition build() {
+        if (clientSideCompression && dbSideCompressionForBlocks) {
+            throw new IllegalStateException("Cannot use both client side and DB compression");
+        }
+
         switch(streamTableType) {
 
         case HASH:

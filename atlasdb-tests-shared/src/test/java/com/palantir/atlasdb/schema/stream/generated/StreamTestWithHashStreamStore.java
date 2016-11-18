@@ -24,6 +24,7 @@ import javax.annotation.Generated;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -52,9 +53,12 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.compression.LZ4CompressingInputStream;
+import com.palantir.common.compression.LZ4DecompressingInputStream;
 import com.palantir.common.io.ConcatenatedInputStream;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.ByteArrayIOStream;
+import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.file.DeleteOnCloseFileInputStream;
 import com.palantir.util.file.TempFileUtils;
@@ -176,6 +180,183 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
     private byte[] getBlock(Transaction t, StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow row) {
         StreamTestWithHashStreamValueTable valueTable = tables.getStreamTestWithHashStreamValueTable(t);
         return valueTable.getValues(ImmutableSet.of(row)).get(row);
+    }
+
+    @Override
+    public Pair<Long, Sha256Hash> storeStream(InputStream stream) {
+        long id = storeEmptyMetadata();
+        MessageDigest digest = Sha256Hash.getMessageDigest();
+        InputStream compressedStream;
+        try {
+            compressedStream = new LZ4CompressingInputStream(new DigestInputStream(stream, digest));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        StreamMetadata metadata = storeBlocksAndGetFinalMetadata(null, id, compressedStream, false);
+        ByteString hashByteString = ByteString.copyFrom(digest.digest());
+        StreamMetadata correctedMetadata = StreamMetadata.newBuilder(metadata)
+                .setHash(hashByteString)
+                .build();
+        storeMetadataAndIndex(id, correctedMetadata);
+        return Pair.create(id, new Sha256Hash(correctedMetadata.getHash().toByteArray()));
+    }
+
+    @Override
+    public Map<Long, Sha256Hash> storeStreams(final Transaction t, final Map<Long, InputStream> streams) {
+        if (streams.isEmpty()) {
+            return ImmutableMap.of();
+        }
+
+        Map<Long, StreamMetadata> idsToEmptyMetadata = Maps.transformValues(streams, Functions.constant(getEmptyMetadata()));
+        putMetadataAndHashIndexTask(t, idsToEmptyMetadata);
+
+        Map<Long, StreamMetadata> idsToMetadata = Maps.transformEntries(streams, (id, stream) -> {
+            MessageDigest digest = Sha256Hash.getMessageDigest();
+            InputStream compressedStream;
+            try {
+                compressedStream = new LZ4CompressingInputStream(new DigestInputStream(stream, digest));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            StreamMetadata metadata = storeBlocksAndGetFinalMetadata(t, id, compressedStream, false);
+            ByteString hashByteString = ByteString.copyFrom(digest.digest());
+            return StreamMetadata.newBuilder(metadata)
+                    .setHash(hashByteString)
+                    .build();
+        });
+        putMetadataAndHashIndexTask(t, idsToMetadata);
+
+        Map<Long, Sha256Hash> hashes = Maps.transformValues(idsToMetadata,
+                metadata -> new Sha256Hash(metadata.getHash().toByteArray()));
+        return hashes;
+    }
+
+    @Override
+    public InputStream loadStream(Transaction t, final Long id) {
+        try {
+            return new LZ4DecompressingInputStream(super.loadStream(t, id));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public Map<Long, InputStream> loadStreams(Transaction t, Set<Long> ids) {
+        Map<Long, InputStream> compressedStreams = super.loadStreams(t, ids);
+        return Maps.transformValues(compressedStreams, stream -> {
+            try {
+                return new LZ4DecompressingInputStream(stream);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Override
+    public File loadStreamAsFile(Transaction transaction, Long id) {
+        StreamMetadata metadata = getMetadata(transaction, id);
+        checkStreamStored(id, metadata);
+        return loadToNewTempFileDecompressed(transaction, id, metadata);
+    }
+
+    private File loadToNewTempFileDecompressed(Transaction transaction, Long id, StreamMetadata metadata) {
+        try {
+            File file = createTempFile(id);
+            writeDecompressedStreamToFile(transaction, id, metadata, file);
+            return file;
+        } catch (IOException e) {
+            log.error("Could not create temp file for stream id " + id, e);
+            throw Throwables.rewrapAndThrowUncheckedException("Could not create file to create stream.", e);
+        }
+    }
+
+    private void writeDecompressedStreamToFile(Transaction transaction, Long id, StreamMetadata metadata, File file) throws FileNotFoundException {
+        FileOutputStream fos = new FileOutputStream(file);
+        try {
+            tryWriteDecompressedStreamToFile(transaction, id, metadata, fos);
+        } catch (IOException e) {
+            log.error("Could not finish streaming blocks to file for stream " + id, e);
+            throw Throwables.rewrapAndThrowUncheckedException("Error writing blocks while opening a stream.", e);
+        } finally {
+            try {
+                fos.close();
+            } catch (IOException e) {
+                // Do nothing
+            }
+        }
+    }
+
+    private void tryWriteDecompressedStreamToFile(Transaction transaction, Long id, StreamMetadata metadata, FileOutputStream fos) throws IOException {
+        long numBlocks = getNumberOfBlocksFromMetadata(metadata);
+        InputStream blockStream = new StreamBlockInputStream(numBlocks, id, transaction);
+        InputStream decompressingStream = new LZ4DecompressingInputStream(blockStream);
+        byte[] buffer = new byte[BLOCK_SIZE_IN_BYTES];
+        int length;
+        while ((length = decompressingStream.read(buffer)) > 0) {
+            fos.write(buffer, 0, length);
+        }
+        decompressingStream.close();
+        fos.close();
+    }
+
+    private class StreamBlockInputStream extends InputStream {
+        private byte[] blockBytes;
+        private long numBlocks;
+        private int currentBlock;
+        private int position;
+        private final Long streamId;
+        private final Transaction transaction;
+
+        public StreamBlockInputStream(long numBlocks, Long streamId, Transaction transaction) {
+            this.blockBytes = new byte[0];
+            this.numBlocks = numBlocks;
+            this.currentBlock = 0;
+            this.position = 0;
+            this.streamId = streamId;
+            this.transaction = transaction;
+        }
+
+        @Override
+        public int read() throws IOException {
+            if ((position == blockBytes.length) && !refill()) {
+                return -1;
+            }
+            return blockBytes[position++] & 0xff;
+        }
+
+        @Override
+        public int read(byte b[], int off, int len) throws IOException {
+            if (b == null) {
+                throw new NullPointerException();
+            } else if (off < 0 || len < 0 || len > b.length - off) {
+                throw new IndexOutOfBoundsException();
+            } else if (len == 0) {
+                return 0;
+            }
+
+            int bytesRead = 0;
+            while (bytesRead < len) {
+                int remainingBuffer = blockBytes.length - position;
+                int bytesToRead = Math.min(len - bytesRead, remainingBuffer);
+                System.arraycopy(blockBytes, position, b, off + bytesRead, bytesToRead);
+                position += bytesToRead;
+                bytesRead += bytesToRead;
+                if ((position == blockBytes.length) && !refill()) {
+                    break;
+                }
+            }
+            return bytesRead > 0 ? bytesRead : -1;
+        }
+
+        private boolean refill() {
+            if (currentBlock == numBlocks) {
+                return false;
+            }
+            blockBytes = getBlock(transaction, StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow.of(streamId, currentBlock));
+            position = 0;
+            currentBlock++;
+            return true;
+        }
     }
 
     @Override
@@ -378,6 +559,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
      * {@link File}
      * {@link FileNotFoundException}
      * {@link FileOutputStream}
+     * {@link Functions}
      * {@link Generated}
      * {@link HashMultimap}
      * {@link IOException}
@@ -385,6 +567,8 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
      * {@link ImmutableSet}
      * {@link InputStream}
      * {@link Ints}
+     * {@link LZ4CompressingInputStream}
+     * {@link LZ4DecompressingInputStream}
      * {@link List}
      * {@link Lists}
      * {@link Logger}
@@ -395,6 +579,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
      * {@link Multimap}
      * {@link Multimaps}
      * {@link OutputStream}
+     * {@link Pair}
      * {@link PersistentStreamStore}
      * {@link Preconditions}
      * {@link Set}

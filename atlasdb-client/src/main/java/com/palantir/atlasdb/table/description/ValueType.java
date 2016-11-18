@@ -911,7 +911,76 @@ public enum ValueType {
         public Class<?> getTypeClass() {
             return UUID.class;
         }
+    },
+    /**
+     * {@link #BLOB} that is automatically compressed. This value type DOES NOT support range scans.
+     */
+    LZ4_COMPRESSED_BLOB {
 
+        @Override
+        public Object convertToJava(byte[] value, int offset) {
+            return null;
+        }
+
+        @Override
+        public Pair<String, Integer> convertToJson(byte[] value, int offset) {
+            return null;
+        }
+
+        @Override
+        public Pair<String, Integer> convertToString(byte[] value, int offset) {
+            return null;
+        }
+
+        @Override
+        public byte[] convertFromString(String strValue) {
+            return null;
+        }
+
+        @Override
+        public byte[] convertFromJava(Object value) {
+            return null;
+        }
+
+        @Override
+        public byte[] convertFromJson(String jsonValue) {
+            return null;
+        }
+
+        @Override
+        public int sizeOf(Object value) {
+            return 0;
+        }
+
+        @Override
+        public String getJavaClassName() {
+            return null;
+        }
+
+        @Override
+        public String getPersistCode(String variableName) {
+            return null;
+        }
+
+        @Override
+        public String getHydrateCode(String inputName, String indexName) {
+            return null;
+        }
+
+        @Override
+        public String getFlippedHydrateCode(String inputName, String indexName) {
+            return null;
+        }
+
+        @Override
+        public String getHydrateSizeCode(String variableName) {
+            return null;
+        }
+
+        @Override
+        public Class<?> getTypeClass() {
+            return null;
+        }
     }
     ;
 

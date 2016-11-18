@@ -32,15 +32,17 @@ public class StreamStoreDefinition {
     private final Map<String, TableDefinition> streamStoreTables;
     private final String shortName, longName;
     private final ValueType idType;
+    private final boolean clientSideCompression;
 
     private int inMemoryThreshold;
 
-    StreamStoreDefinition(Map<String, TableDefinition> streamStoreTables, String shortName, String longName, ValueType idType, int inMemoryThreshold) {
+    StreamStoreDefinition(Map<String, TableDefinition> streamStoreTables, String shortName, String longName, ValueType idType, int inMemoryThreshold, boolean compressStreamInClient) {
         this.streamStoreTables = streamStoreTables;
         this.shortName = shortName;
         this.longName = longName;
         this.idType = idType;
         this.inMemoryThreshold = inMemoryThreshold;
+        this.clientSideCompression = compressStreamInClient;
     }
 
     public Map<String, TableDefinition> getTables() {
@@ -48,7 +50,7 @@ public class StreamStoreDefinition {
     }
 
     public StreamStoreRenderer getRenderer(String packageName, String name) {
-        return new StreamStoreRenderer(Renderers.CamelCase(longName), idType, packageName, name, inMemoryThreshold);
+        return new StreamStoreRenderer(Renderers.CamelCase(longName), idType, packageName, name, inMemoryThreshold, clientSideCompression);
     }
 
     public Multimap<String, Supplier<OnCleanupTask>> getCleanupTasks(String packageName, String name, StreamStoreRenderer renderer, Namespace namespace) {
