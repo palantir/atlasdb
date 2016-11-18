@@ -41,8 +41,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - ``SweepStatsKeyValueService`` will no longer flush a final batch of statistics during shutdown. This avoids
+           potentially long pauses that could previously occur when closing a ``Cleaner``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1232>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
