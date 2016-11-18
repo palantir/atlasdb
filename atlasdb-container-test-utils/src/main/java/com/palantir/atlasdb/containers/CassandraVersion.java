@@ -44,10 +44,12 @@ public interface CassandraVersion {
 
     static Map<String, String> getEnvironment() {
         String version = System.getenv(CASSANDRA_VERSION);
-        if (Strings.isNullOrEmpty(version)) {
-            version = DEFAULT_VERSION;
+        if (!Strings.isNullOrEmpty(version)) {
+            // Don't want to pass back the environment, because it's already set (docker-compose-rule bug #131)
+            return ImmutableMap.of();
         }
-        return ImmutableMap.of(CASSANDRA_VERSION, version);
+
+        return ImmutableMap.of(CASSANDRA_VERSION, DEFAULT_VERSION);
     }
 
     Pattern replicationFactorRegex();
