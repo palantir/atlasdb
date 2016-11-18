@@ -41,6 +41,10 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - AtlasDB now supports Cassandra 3.7 as well as Cassandra 2.2.8.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1206>`__)
+
     *    - |improved|
          - ``SweepStatsKeyValueService`` will no longer flush a final batch of statistics during shutdown. This avoids
            potentially long pauses that could previously occur when closing a ``Cleaner``.

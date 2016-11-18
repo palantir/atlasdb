@@ -169,16 +169,20 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>AtlasDB now supports Cassandra 3.7 as well as Cassandra 2.2.8.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1206">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">SweepStatsKeyValueService</span></code> will no longer flush a final batch of statistics during shutdown. This avoids
 potentially long pauses that could previously occur when closing a <code class="docutils literal"><span class="pre">Cleaner</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1232">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Oracle perf improvement; table names now cached, resulting in fewer round trips to the database.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1215">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Certain Oracle KVS calls no longer attempt to leak connections created internally.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1215">Pull Request</a>)</td>
 </tr>
