@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.containers;
 
 import java.net.InetSocketAddress;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,8 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 public class ThreeNodeCassandraCluster extends Container {
     private static final Logger log = LoggerFactory.getLogger(ThreeNodeCassandraCluster.class);
+
+    private static final CassandraVersion CASSANDRA_VERSION = CassandraVersion.fromEnvironment();
 
     public static final String CLI_CONTAINER_NAME = "cli";
     public static final String FIRST_CASSANDRA_CONTAINER_NAME = "cassandra1";
@@ -71,12 +74,17 @@ public class ThreeNodeCassandraCluster extends Container {
     }
 
     @Override
+    public Map<String, String> getEnvironment() {
+        return CassandraVersion.getEnvironment();
+    }
+
+    @Override
     public SuccessOrFailure isReady(DockerComposeRule rule) {
         return SuccessOrFailure.onResultOf(() -> {
 
             try {
                 ThreeNodeCassandraClusterOperations cassandraOperations =
-                        new ThreeNodeCassandraClusterOperations(rule);
+                        new ThreeNodeCassandraClusterOperations(rule, CASSANDRA_VERSION);
 
                 if (!cassandraOperations.nodetoolShowsThreeCassandraNodesUp()) {
                     return false;

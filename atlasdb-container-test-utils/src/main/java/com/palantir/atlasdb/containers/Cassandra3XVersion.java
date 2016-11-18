@@ -15,27 +15,20 @@
  */
 package com.palantir.atlasdb.containers;
 
-import java.util.Map;
+import java.util.regex.Pattern;
 
-import com.google.common.collect.ImmutableMap;
-import com.palantir.docker.compose.DockerComposeRule;
-import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
+public class Cassandra3XVersion implements CassandraVersion {
+    private static final Pattern REPLICATION_REGEX = Pattern.compile("^.*'replication_factor': '(\\d+)'\\}$");
+    private static final String ALL_KEYSPACES_CQL = "SELECT * FROM system_schema.keyspaces;";
 
-public abstract class Container {
-    public abstract String getDockerComposeFile();
-
-    public abstract SuccessOrFailure isReady(DockerComposeRule rule);
-
-    public Map<String, String> getEnvironment() {
-        return ImmutableMap.of();
-    }
-
-    public boolean equals(Object obj) {
-        return obj != null && this.getClass() == obj.getClass();
+    @Override
+    public Pattern replicationFactorRegex() {
+        return REPLICATION_REGEX;
     }
 
     @Override
-    public int hashCode() {
-        return this.getClass().getName().hashCode();
+    public String getAllKeyspacesCql() {
+        return ALL_KEYSPACES_CQL;
     }
+
 }
