@@ -110,7 +110,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    AtlasDbConstraintCheckingMode constraintCheckingMode,
                                    Long transactionTimeoutMillis,
                                    TransactionReadSentinelBehavior readSentinelBehavior,
-                                   boolean allowHiddenTableAccess) {
+                                   boolean allowHiddenTableAccess,
+                                   TimestampCache timestampCache) {
         super(keyValueService,
               lockService,
               timestampService,
@@ -124,7 +125,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               constraintCheckingMode,
               transactionTimeoutMillis,
               readSentinelBehavior,
-              allowHiddenTableAccess);
+              allowHiddenTableAccess,
+              timestampCache);
     }
 
     @Override
@@ -716,7 +718,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 transactionReadTimeoutMillis,
                 getReadSentinelBehavior(),
-                allowHiddenTableAccess) {
+                allowHiddenTableAccess,
+                timestampCache) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,
