@@ -98,6 +98,8 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 
 public class SnapshotTransactionTest extends AtlasDbTestCase {
+    protected final TimestampCache timestampCache = new TimestampCache();
+
     private class UnstableKeyValueService extends ForwardingKeyValueService {
         private final KeyValueService delegate;
         private final Random random;
@@ -271,7 +273,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 transactionTs,
                 ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                TransactionReadSentinelBehavior.THROW_EXCEPTION);
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                timestampCache);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -325,7 +328,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 transactionTs,
                 ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                TransactionReadSentinelBehavior.THROW_EXCEPTION);
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                timestampCache);
         snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
         snapshot.commit();
 
