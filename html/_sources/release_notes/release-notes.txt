@@ -99,6 +99,10 @@ v0.24.0
            See the :ref:`documentation <clis-migrate>` for details on how to use the KVS migration command.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1171>`__)
 
+    *    - |fixed|
+         - The timestamp bound store now works with Oracle as a relational backing store.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1224>`__)
+
     *    - |improved|
          - CLIs now output to standard out, standard error, and the service logs, rather than only printing to the service logs.
            This should greatly improve usability for service admins using the CLIs.

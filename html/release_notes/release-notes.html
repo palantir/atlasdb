@@ -230,25 +230,29 @@ Running the KVS migration command as a deployable CLI still requires <code class
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1171">Pull Request</a>)</p>
 </td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The timestamp bound store now works with Oracle as a relational backing store.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1224">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>CLIs now output to standard out, standard error, and the service logs, rather than only printing to the service logs.
 This should greatly improve usability for service admins using the CLIs.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1177">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Better support for AtlasDB clients running behind load balancers. In particular, if an AtlasDB client falls down and its load balancer responds with &#8220;503: Service Unavailable&#8221;, the request will be attempted on other clients rather than aborting.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1175">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Remove usage of <code class="docutils literal"><span class="pre">createUnsafe</span></code> in generated Schema code. You can regenerate your schema to get rid of the deprecation warnings.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1194">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">atlasdb-cassandra</span></code> now depends on <code class="docutils literal"><span class="pre">cassandra-thrift</span></code> instead of <code class="docutils literal"><span class="pre">cassandra-all</span></code>.
 This reduces our dependency footprint.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1222">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Add support for generating schemas with Java8 Optionals instead of Guava Optionals.
 To use Java8 optionals, supply <code class="docutils literal"><span class="pre">OptionalType.JAVA8</span></code> as an additional constructor argument when creating your <code class="docutils literal"><span class="pre">Schema</span></code> object.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1162">Pull Request</a>)</td>
