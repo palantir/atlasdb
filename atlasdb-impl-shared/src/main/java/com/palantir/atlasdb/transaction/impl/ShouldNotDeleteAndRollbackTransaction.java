@@ -30,14 +30,16 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                                long startTimeStamp,
                                AtlasDbConstraintCheckingMode constraintCheckingMode,
                                TransactionReadSentinelBehavior readSentinelBehavior,
-                               boolean allowHiddenTableAccess) {
+                               boolean allowHiddenTableAccess,
+                               TimestampCache timestampCache) {
         super(keyValueService,
               transactionService,
               null,
               startTimeStamp,
               constraintCheckingMode,
               readSentinelBehavior,
-              allowHiddenTableAccess);
+              allowHiddenTableAccess,
+              timestampCache);
     }
 
     @Override
