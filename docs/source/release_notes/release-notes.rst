@@ -50,6 +50,10 @@ develop
            that need to be created when a large number of transactions begin.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1294>`__)
 
+    *    - |improved|
+         - Transaction perf improvement; commit timestamp lookups are now cached across transactions.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1238>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
