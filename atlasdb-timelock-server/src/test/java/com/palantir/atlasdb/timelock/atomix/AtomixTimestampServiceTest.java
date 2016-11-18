@@ -97,7 +97,7 @@ public class AtomixTimestampServiceTest {
 
     @Test
     public void shouldThrowIfRequestingTooManyTimestamps() {
-        assertThatThrownBy(() -> timestampService.getFreshTimestamps(Integer.MAX_VALUE))
+        assertThatThrownBy(() -> timestampService.getFreshTimestamps(AtomixTimestampService.MAX_GRANT_SIZE + 1))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

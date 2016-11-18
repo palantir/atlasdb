@@ -28,7 +28,7 @@ public class AtomixTimestampService implements TimestampService {
      * Maximum number of timestamps that may be granted at once.
      */
     @VisibleForTesting
-    static final long MAX_GRANT_SIZE = 10_000;
+    static final int MAX_GRANT_SIZE = 10_000;
 
     private final DistributedLong timestamp;
 
