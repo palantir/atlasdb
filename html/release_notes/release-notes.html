@@ -169,8 +169,10 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>&nbsp;</td>
-<td>&nbsp;</td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td><code class="docutils literal"><span class="pre">SweepStatsKeyValueService</span></code> will no longer flush a final batch of statistics during shutdown. This avoids
+potentially long pauses that could previously occur when closing a <code class="docutils literal"><span class="pre">Cleaner</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1232">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
