@@ -276,7 +276,7 @@ public final class TransactionManagers {
                         config.serverListConfig()
                                 .servers()
                                 .stream()
-                                .map(server -> server + "/" + config.client())
+                                .map(server -> server.replaceAll("/$", "") + "/" + config.client())
                                 .collect(Collectors.toSet()));
     }
 

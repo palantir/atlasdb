@@ -21,19 +21,19 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
-import com.palantir.timestamp.TimestampAdministrationService;
+import com.palantir.timestamp.TimestampAdminService;
 
 @Path("/{client: [a-zA-Z0-9_-]+}")
-public class TimestampAdministrationResource {
-    private final Map<String, TimestampAdministrationService> clientToServices;
+public class TimestampAdminResource {
+    private final Map<String, TimestampAdminService> clientToServices;
 
-    public TimestampAdministrationResource(Map<String, TimestampAdministrationService> clientToServices) {
+    public TimestampAdminResource(Map<String, TimestampAdminService> clientToServices) {
         this.clientToServices = clientToServices;
     }
 
-    @Path("/timestamp-administration")
-    public TimestampAdministrationService getTimestampAdministrationService(@PathParam("client") String client) {
-        TimestampAdministrationService service = clientToServices.get(client);
+    @Path("/timestamp-admin")
+    public TimestampAdminService getTimestampAdminService(@PathParam("client") String client) {
+        TimestampAdminService service = clientToServices.get(client);
         if (service == null) {
             throw new NotFoundException("Client doesn't exist");
         }

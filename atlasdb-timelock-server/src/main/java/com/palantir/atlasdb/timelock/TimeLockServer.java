@@ -21,7 +21,7 @@ import java.util.function.Supplier;
 
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
-import com.palantir.atlasdb.timelock.atomix.AtomixTimestampAdministrationService;
+import com.palantir.atlasdb.timelock.atomix.AtomixTimestampAdminService;
 import com.palantir.atlasdb.timelock.atomix.AtomixTimestampService;
 import com.palantir.atlasdb.timelock.atomix.DistributedValues;
 import com.palantir.atlasdb.timelock.atomix.InvalidatingLeaderProxy;
@@ -29,7 +29,7 @@ import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting1.config.ssl.SslConfiguration;
 import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
-import com.palantir.timestamp.TimestampAdministrationService;
+import com.palantir.timestamp.TimestampAdminService;
 
 import io.atomix.AtomixReplica;
 import io.atomix.catalyst.transport.Transport;
@@ -66,16 +66,16 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
         timeLockGroup.election().onElection(term -> Futures.getUnchecked(leaderId.set(term.leader().id())));
 
         Map<String, TimeLockServices> clientToTimelockServices = Maps.newHashMap();
-        Map<String, TimestampAdministrationService> clientToTimestampAdministrationServices = Maps.newHashMap();
+        Map<String, TimestampAdminService> clientToTimestampAdministrationServices = Maps.newHashMap();
         for (String client : configuration.clients()) {
             DistributedLong timestamp = DistributedValues.getTimestampForClient(localNode, client);
             clientToTimelockServices.put(client, createInvalidatingTimeLockServices(localMember, leaderId, timestamp));
-            clientToTimestampAdministrationServices.put(client, new AtomixTimestampAdministrationService(timestamp));
+            clientToTimestampAdministrationServices.put(client, new AtomixTimestampAdminService(timestamp));
         }
 
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
         environment.jersey().register(new TimeLockResource(clientToTimelockServices));
-        environment.jersey().register(new TimestampAdministrationResource(clientToTimestampAdministrationServices));
+        environment.jersey().register(new TimestampAdminResource(clientToTimestampAdministrationServices));
     }
 
     private static TimeLockServices createInvalidatingTimeLockServices(

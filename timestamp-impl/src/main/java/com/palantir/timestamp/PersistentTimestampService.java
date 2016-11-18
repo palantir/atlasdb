@@ -23,7 +23,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.PTExecutors;
 
 @ThreadSafe
-public class PersistentTimestampService implements TimestampService, TimestampAdministrationService {
+public class PersistentTimestampService implements TimestampService, TimestampAdminService {
     private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
 
     private final ExecutorService executor;

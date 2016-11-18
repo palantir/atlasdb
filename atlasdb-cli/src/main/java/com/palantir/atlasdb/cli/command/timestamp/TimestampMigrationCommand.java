@@ -36,7 +36,7 @@ public class TimestampMigrationCommand extends AbstractTimestampCommand {
             type = OptionType.COMMAND,
             description = "Performs migration from the Timelock Server to an internal Timestamp Service,"
                     + "instead of from the internal service to a timelock server.")
-    private boolean reverse;
+    private boolean reverse = false;
 
     private TimestampServicesProvider sourceServicesProvider;
     private TimestampServicesProvider destinationServicesProvider;

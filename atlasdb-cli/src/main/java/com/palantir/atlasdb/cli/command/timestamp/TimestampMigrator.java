@@ -30,8 +30,8 @@ public class TimestampMigrator {
     }
 
     private void migrateSpecificTimestamp(long targetTimestamp) {
-        destination.timestampAdministrationService().fastForwardTimestamp(targetTimestamp);
-        source.timestampAdministrationService().invalidateTimestamps();
+        destination.timestampAdminService().fastForwardTimestamp(targetTimestamp);
+        source.timestampAdminService().invalidateTimestamps();
     }
 
 }

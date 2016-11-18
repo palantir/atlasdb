@@ -23,10 +23,10 @@ import java.io.IOException;
 import java.util.List;
 
 import org.junit.After;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ObjectArrays;
 import com.palantir.atlasdb.cli.runner.InMemoryTestRunner;
@@ -45,58 +45,49 @@ import io.dropwizard.testing.ResourceHelpers;
 import io.dropwizard.testing.junit.DropwizardAppRule;
 
 public class TimestampMigrationCommandTest {
-    private static AtlasDbServicesFactory moduleFactory;
-    private static TimestampServicesProvider remoteProvider;
-
     private static final String TIMESTAMP_MIGRATION_COMMAND_NAME
             = TimestampMigrationCommand.class.getAnnotation(Command.class).name();
 
-    private static final String NO_TIMELOCK_CONFIG = "src/integTest/resources/cliTestConfigNoTimelock.yml";
+    private static final String NO_TIMELOCK_CONFIG = ResourceHelpers.resourceFilePath("cliTestConfigNoTimelock.yml");
     private static final String[] NO_TIMELOCK_COMMAND = getCommandForConfigPath(NO_TIMELOCK_CONFIG);
 
-    private static final String TIMELOCK_CONFIG = "src/integTest/resources/cliTestConfigTimelock.yml";
+    private static final String TIMELOCK_CONFIG = ResourceHelpers.resourceFilePath("cliTestConfigTimelock.yml");
     private static final String[] TIMELOCK_COMMAND = getCommandForConfigPath(TIMELOCK_CONFIG);
+
+    private static final TimestampServicesProvider REMOTE_PROVIDER = getTimestampServicesProvider();
+    private static final AtlasDbServicesFactory MODULE_FACTORY = new AtlasDbServicesFactory() {
+        @Override
+        public AtlasDbServices connect(ServicesConfigModule servicesConfigModule) {
+            return DaggerTestAtlasDbServices.builder()
+                    .servicesConfigModule(servicesConfigModule)
+                    .build();
+        }
+    };
 
     @ClassRule
     public static final DropwizardAppRule<TimeLockServerConfiguration> APP = new DropwizardAppRule<>(
             TimeLockServer.class,
             ResourceHelpers.resourceFilePath("singleTestServer.yml"));
 
-    @BeforeClass
-    public static void setUpClass() throws Exception {
-        moduleFactory = new AtlasDbServicesFactory() {
-            @Override
-            public AtlasDbServices connect(ServicesConfigModule servicesConfigModule) {
-                return DaggerTestAtlasDbServices.builder()
-                        .servicesConfigModule(servicesConfigModule)
-                        .build();
-            }
-        };
-        setUpTimestampServicesProvider();
+    @After
+    public void tearDown() {
+        resetProvider(REMOTE_PROVIDER);
     }
 
-    private static void setUpTimestampServicesProvider() throws IOException {
-        AtlasDbConfig atlasConfig = AtlasDbConfigs.load(new File(TIMELOCK_CONFIG));
-        TimeLockClientConfig clientConfig = atlasConfig.timelock().get();
-        remoteProvider = TimestampServicesProviders.createFromTimelockConfiguration(clientConfig);
-    }
-
-    private InMemoryTestRunner makeRunner(String... args) {
-        return new InMemoryTestRunner(TimestampMigrationCommand.class, args);
-    }
-
-    @Test(expected = RuntimeException.class)
+    @Test
     public void doesNotRunWithoutTimelockBlock() throws Exception {
         try (InMemoryTestRunner runner = makeRunner(NO_TIMELOCK_COMMAND)) {
-            runner.connect(moduleFactory);
-            runner.run(true, false);
+            runner.connect(MODULE_FACTORY);
+            assertThatThrownBy(() -> runner.run(true, false))
+                    .isInstanceOf(RuntimeException.class)
+                    .withFailMessage("CLI returned with nonzero exit code");
         }
     }
 
     @Test
     public void canMigrateTimestamps() throws Exception {
         try (InMemoryTestRunner runner = makeRunner(TIMELOCK_COMMAND)) {
-            AtlasDbServices services = runner.connect(moduleFactory);
+            AtlasDbServices services = runner.connect(MODULE_FACTORY);
             TimestampServicesProvider internalProvider =
                     TimestampServicesProviders.getInternalProviderFromAtlasDbConfig(services.getAtlasDbConfig());
             long ts1 = internalProvider.timestampService().getFreshTimestamp();
@@ -109,7 +100,7 @@ public class TimestampMigrationCommandTest {
     @Test
     public void throwsIfRequestingTimestampsAfterInvalidationForInternalService() throws Exception {
         try (InMemoryTestRunner runner = makeRunner(TIMELOCK_COMMAND)) {
-            AtlasDbServices services = runner.connect(moduleFactory);
+            AtlasDbServices services = runner.connect(MODULE_FACTORY);
             TimestampServicesProvider internalProvider =
                     TimestampServicesProviders.getInternalProviderFromAtlasDbConfig(services.getAtlasDbConfig());
             internalProvider.timestampService().getFreshTimestamp();
@@ -122,7 +113,7 @@ public class TimestampMigrationCommandTest {
     @Test
     public void canMigrateTimestampsInReverseDirection() throws Exception {
         try (InMemoryTestRunner runner = makeRunner(ObjectArrays.concat(TIMELOCK_COMMAND, "-r"))) {
-            AtlasDbServices services = runner.connect(moduleFactory);
+            AtlasDbServices services = runner.connect(MODULE_FACTORY);
             long ts1 = services.getTimestampService().getFreshTimestamp();
             runner.run(true, false);
             TimestampServicesProvider internalProvider =
@@ -135,7 +126,7 @@ public class TimestampMigrationCommandTest {
     @Test
     public void throwsIfRequestingTimestampsAfterInvalidationForRemoteService() throws Exception {
         try (InMemoryTestRunner runner = makeRunner(ObjectArrays.concat(TIMELOCK_COMMAND, "-r"))) {
-            AtlasDbServices services = runner.connect(moduleFactory);
+            AtlasDbServices services = runner.connect(MODULE_FACTORY);
             services.getTimestampService().getFreshTimestamp();
             runner.run(true, false);
             assertThatThrownBy(() -> services.getTimestampService().getFreshTimestamp())
@@ -143,14 +134,23 @@ public class TimestampMigrationCommandTest {
         }
     }
 
-    @After
-    public void tearDown() {
-        resetProvider(remoteProvider);
+    private static TimestampServicesProvider getTimestampServicesProvider() {
+        try {
+            AtlasDbConfig atlasConfig = AtlasDbConfigs.load(new File(TIMELOCK_CONFIG));
+            TimeLockClientConfig clientConfig = atlasConfig.timelock().get();
+            return TimestampServicesProviders.createFromTimelockConfiguration(clientConfig);
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    private static InMemoryTestRunner makeRunner(String... args) {
+        return new InMemoryTestRunner(TimestampMigrationCommand.class, args);
     }
 
     private static void resetProvider(TimestampServicesProvider provider) {
-        provider.timestampAdministrationService().invalidateTimestamps();
-        provider.timestampAdministrationService().fastForwardTimestamp(0L);
+        provider.timestampAdminService().invalidateTimestamps();
+        provider.timestampAdminService().fastForwardTimestamp(0L);
     }
 
     private static String[] getCommandForConfigPath(String configPath) {

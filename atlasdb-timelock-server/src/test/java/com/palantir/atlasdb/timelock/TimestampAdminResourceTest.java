@@ -23,34 +23,34 @@ import javax.ws.rs.NotFoundException;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
-import com.palantir.timestamp.TimestampAdministrationService;
+import com.palantir.timestamp.TimestampAdminService;
 
-public class TimestampAdministrationResourceTest {
+public class TimestampAdminResourceTest {
     private static final String EXISTING_CLIENT_1 = "client-1";
     private static final String EXISTING_CLIENT_2 = "client-2";
     private static final String NON_EXISTING_CLIENT = "non-existing-client";
 
-    private static final TimestampAdministrationService SERVICE_1 = mock(TimestampAdministrationService.class);
-    private static final TimestampAdministrationService SERVICE_2 = mock(TimestampAdministrationService.class);
-    private static final TimestampAdministrationResource RESOURCE = new TimestampAdministrationResource(
+    private static final TimestampAdminService SERVICE_1 = mock(TimestampAdminService.class);
+    private static final TimestampAdminService SERVICE_2 = mock(TimestampAdminService.class);
+    private static final TimestampAdminResource RESOURCE = new TimestampAdminResource(
             ImmutableMap.of(EXISTING_CLIENT_1, SERVICE_1,
                     EXISTING_CLIENT_2, SERVICE_2));
 
 
     @Test
-    public void canGetExistentTimestampAdministrationService() {
-        assertThat(RESOURCE.getTimestampAdministrationService(EXISTING_CLIENT_1)).isEqualTo(SERVICE_1);
-        assertThat(RESOURCE.getTimestampAdministrationService(EXISTING_CLIENT_2)).isEqualTo(SERVICE_2);
+    public void canGetExistentTimestampAdminService() {
+        assertThat(RESOURCE.getTimestampAdminService(EXISTING_CLIENT_1)).isEqualTo(SERVICE_1);
+        assertThat(RESOURCE.getTimestampAdminService(EXISTING_CLIENT_2)).isEqualTo(SERVICE_2);
     }
 
     @Test
-    public void respectsDifferentClientsWhenGettingTimestampAdministrationServices() {
-        assertThat(RESOURCE.getTimestampAdministrationService(EXISTING_CLIENT_1)).isNotEqualTo(SERVICE_2);
-        assertThat(RESOURCE.getTimestampAdministrationService(EXISTING_CLIENT_2)).isNotEqualTo(SERVICE_1);
+    public void respectsDifferentClientsWhenGettingTimestampAdminServices() {
+        assertThat(RESOURCE.getTimestampAdminService(EXISTING_CLIENT_1)).isNotEqualTo(SERVICE_2);
+        assertThat(RESOURCE.getTimestampAdminService(EXISTING_CLIENT_2)).isNotEqualTo(SERVICE_1);
     }
 
     @Test(expected = NotFoundException.class)
-    public void throwsOnNonexistentTimestampAdministrationService() {
-        RESOURCE.getTimestampAdministrationService(NON_EXISTING_CLIENT);
+    public void throwsOnNonexistentTimestampAdminService() {
+        RESOURCE.getTimestampAdminService(NON_EXISTING_CLIENT);
     }
 }

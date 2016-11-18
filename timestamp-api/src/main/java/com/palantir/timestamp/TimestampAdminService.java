@@ -19,8 +19,8 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
 
-@Path("/timestamp-administration")
-public interface TimestampAdministrationService {
+@Path("/timestamp-admin")
+public interface TimestampAdminService {
     /**
      * Fast forwards the timestamp to the specified one so that no one can be served fresh timestamps prior
      * to it from now on.

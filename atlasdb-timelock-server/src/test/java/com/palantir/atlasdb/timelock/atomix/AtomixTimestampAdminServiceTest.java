@@ -31,7 +31,7 @@ import io.atomix.copycat.server.storage.Storage;
 import io.atomix.copycat.server.storage.StorageLevel;
 import io.atomix.variables.DistributedLong;
 
-public class AtomixTimestampAdministrationServiceTest {
+public class AtomixTimestampAdminServiceTest {
     private static final Address LOCAL_ADDRESS = new Address("localhost", 8700);
     private static final String CLIENT_KEY = "client";
 
@@ -43,7 +43,7 @@ public class AtomixTimestampAdministrationServiceTest {
             .build();
 
     private AtomixTimestampService timestampService;
-    private AtomixTimestampAdministrationService administrationService;
+    private AtomixTimestampAdminService administrationService;
 
     @BeforeClass
     public static void startAtomix() {
@@ -59,7 +59,7 @@ public class AtomixTimestampAdministrationServiceTest {
     public void setupTimestampService() {
         DistributedLong distributedLong = DistributedValues.getTimestampForClient(ATOMIX_REPLICA, CLIENT_KEY);
         timestampService = new AtomixTimestampService(distributedLong);
-        administrationService = new AtomixTimestampAdministrationService(distributedLong);
+        administrationService = new AtomixTimestampAdminService(distributedLong);
     }
 
     @Test

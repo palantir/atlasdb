@@ -16,6 +16,7 @@ commons-io:commons-io = 2.1
 io.atomix:* = 1.0.0-rc9
 io.dropwizard.metrics:metrics-* = 3.1.1
 io.dropwizard:* = 0.9.3
+io.netty:* = 4.0.33.Final
 javax.validation:validation-api = 1.1.0.Final
 joda-time:joda-time = 2.7
 junit:junit = 4.12

@@ -29,7 +29,7 @@ import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
-import com.palantir.timestamp.TimestampAdministrationService;
+import com.palantir.timestamp.TimestampAdminService;
 import com.palantir.timestamp.TimestampService;
 
 public final class TimestampServicesProviders {
@@ -60,19 +60,19 @@ public final class TimestampServicesProviders {
     }
 
     public static TimestampServicesProvider createFromSingleService(TimestampService service) {
-        if (!(service instanceof TimestampAdministrationService)) {
+        if (!(service instanceof TimestampAdminService)) {
             throw new IllegalStateException("Timestamp service must also have administrative capabilities.");
         }
         return ImmutableTimestampServicesProvider.builder()
                 .timestampService(service)
-                .timestampAdministrationService((TimestampAdministrationService) service)
+                .timestampAdminService((TimestampAdminService) service)
                 .build();
     }
 
     public static TimestampServicesProvider createFromTimelockConfiguration(TimeLockClientConfig config) {
         return ImmutableTimestampServicesProvider.builder()
                 .timestampService(getTimelockProxy(config, TimestampService.class))
-                .timestampAdministrationService(getTimelockProxy(config, TimestampAdministrationService.class))
+                .timestampAdminService(getTimelockProxy(config, TimestampAdminService.class))
                 .build();
     }
 

@@ -17,12 +17,12 @@ package com.palantir.atlasdb.cli.command.timestamp;
 
 import org.immutables.value.Value;
 
-import com.palantir.timestamp.TimestampAdministrationService;
+import com.palantir.timestamp.TimestampAdminService;
 import com.palantir.timestamp.TimestampService;
 
 @Value.Immutable
 public interface TimestampServicesProvider {
     TimestampService timestampService();
 
-    TimestampAdministrationService timestampAdministrationService();
+    TimestampAdminService timestampAdminService();
 }

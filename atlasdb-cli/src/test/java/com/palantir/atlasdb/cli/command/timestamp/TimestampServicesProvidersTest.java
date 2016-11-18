@@ -60,7 +60,7 @@ public class TimestampServicesProvidersTest {
     public void createsFromSingleService() {
         TimestampService service = new InMemoryTimestampService();
         TimestampServicesProvider provider = TimestampServicesProviders.createFromSingleService(service);
-        assertThat(provider.timestampAdministrationService()).isNotNull();
+        assertThat(provider.timestampAdminService()).isNotNull();
     }
 
     @Test
@@ -74,6 +74,6 @@ public class TimestampServicesProvidersTest {
     public void canCreateTimelockProxy() {
         TimestampServicesProvider provider = TimestampServicesProviders.createFromTimelockConfiguration(CLIENT_CONFIG);
         assertThat(provider.timestampService()).isNotNull();
-        assertThat(provider.timestampAdministrationService()).isNotNull();
+        assertThat(provider.timestampAdminService()).isNotNull();
     }
 }
