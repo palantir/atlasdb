@@ -45,6 +45,19 @@ develop
          - AtlasDB now supports Cassandra 3.7 as well as Cassandra 2.2.8.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1206>`__)
 
+    *    - |improved|
+         - ``SweepStatsKeyValueService`` will no longer flush a final batch of statistics during shutdown. This avoids
+           potentially long pauses that could previously occur when closing a ``Cleaner``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1232>`__)
+
+    *    - |improved|
+         - Oracle perf improvement; table names now cached, resulting in fewer round trips to the database.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1215>`__)
+
+    *    - |fixed|
+         - Certain Oracle KVS calls no longer attempt to leak connections created internally.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1215>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -92,6 +105,10 @@ v0.24.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1177>`__)
 
     *    - |improved|
+         - Better support for AtlasDB clients running behind load balancers. In particular, if an AtlasDB client falls down and its load balancer responds with "503: Service Unavailable", the request will be attempted on other clients rather than aborting.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1175>`__)
+
+    *    - |improved|
          - Remove usage of ``createUnsafe`` in generated Schema code. You can regenerate your schema to get rid of the deprecation warnings.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1194>`__)
 
@@ -99,6 +116,11 @@ v0.24.0
          - ``atlasdb-cassandra`` now depends on ``cassandra-thrift`` instead of ``cassandra-all``.
            This reduces our dependency footprint.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1222>`__)
+
+    *    - |new|
+         - Add support for generating schemas with Java8 Optionals instead of Guava Optionals.
+           To use Java8 optionals, supply ``OptionalType.JAVA8`` as an additional constructor argument when creating your ``Schema`` object.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1162>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -140,9 +162,6 @@ v0.23.0
     *    - |changed|
          - We now test against Cassandra 2.2.8, rather than Cassandra 2.2.7.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1112>`__)
-
-    *    - |improved|
-         - Add support for generating schemas with Java8 Optionals instead of Guava Optionals.
 
     *    - |improved|
          - Added a significant amount of logging aimed at tracking down the ``MultipleRunningTimestampServicesError``.

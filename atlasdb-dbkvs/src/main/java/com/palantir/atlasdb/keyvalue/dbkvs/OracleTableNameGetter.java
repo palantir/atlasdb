@@ -74,4 +74,8 @@ public class OracleTableNameGetter {
     public String getPrefixedOverflowTableName() {
         return overflowTablePrefix + DbKvs.internalTableName(tableRef);
     }
+
+    public void clearCacheForTable(String fullTableName) {
+        oracleTableNameUnmapper.clearCacheForTable(fullTableName);
+    }
 }
