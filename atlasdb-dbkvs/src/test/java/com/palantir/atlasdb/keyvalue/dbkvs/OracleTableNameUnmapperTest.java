@@ -22,6 +22,8 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.sql.Connection;
@@ -46,7 +48,10 @@ public class OracleTableNameUnmapperTest {
     private static final Namespace TEST_NAMESPACE = Namespace.create("test_namespace");
     private static final String LONG_TABLE_NAME = "ThisIsAVeryLongTableNameThatWillExceed";
     private static final String SHORT_TABLE_NAME = "testShort";
+
     private static final TableReference TABLE_REF = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
+    private static final TableReference TABLE_REF_2 = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME + "2");
+
 
     private OracleTableNameUnmapper oracleTableNameUnmapper;
     private AgnosticResultSet resultSet;
@@ -89,5 +94,27 @@ public class OracleTableNameUnmapperTest {
 
         String shortName = oracleTableNameUnmapper.getShortTableNameFromMappingTable(TEST_PREFIX, TABLE_REF);
         assertThat(shortName, is(SHORT_TABLE_NAME));
+    }
+
+    @Test
+    public void cacheIsActuallyUsed() throws TableMappingNotFoundException {
+        // do a normal read
+        when(resultSet.size()).thenReturn(1);
+
+        AgnosticResultRow row = mock(AgnosticResultRow.class);
+        when(row.getString(eq("short_table_name"))).thenReturn(SHORT_TABLE_NAME);
+        doReturn(ImmutableList.of(row)).when(resultSet).rows();
+
+        String shortName = oracleTableNameUnmapper.getShortTableNameFromMappingTable(TEST_PREFIX, TABLE_REF_2);
+        assertThat(shortName, is(SHORT_TABLE_NAME));
+
+        // verify that underlying datastore was called once instead of hitting the cache
+        verify(row, times(1)).getString("short_table_name");
+
+        // read again looking for the same table
+        oracleTableNameUnmapper.getShortTableNameFromMappingTable(TEST_PREFIX, TABLE_REF_2);
+
+        // verify that cache was hit and underlying datastore was _still_ only called once
+        verify(row, times(1)).getString("short_table_name");
     }
 }
