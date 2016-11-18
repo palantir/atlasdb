@@ -81,6 +81,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
+    protected final TimestampCache timestampCache = new TimestampCache();
     protected boolean supportsReverse() {
         return true;
     }
@@ -99,7 +100,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                         TransactionConstants.TRANSACTION_TABLE,
                         ConflictHandler.IGNORE_ALL),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                TransactionReadSentinelBehavior.THROW_EXCEPTION);
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                timestampCache);
     }
 
     @Test
