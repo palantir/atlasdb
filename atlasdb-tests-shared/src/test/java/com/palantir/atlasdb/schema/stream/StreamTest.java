@@ -18,6 +18,7 @@ package com.palantir.atlasdb.schema.stream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import static junit.framework.TestCase.assertEquals;
@@ -27,6 +28,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
@@ -47,11 +49,14 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.schema.stream.generated.DeletingStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestTableFactory;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow;
+import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamMetadataTable;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow;
+import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow;
 import com.palantir.atlasdb.stream.GenericStreamStore;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
@@ -137,21 +142,31 @@ public class StreamTest extends AtlasDbTestCase {
 
     @Test
     public void testStoreByteStream() throws IOException {
-        storeAndCheckByteStreams(0);
-        storeAndCheckByteStreams(100);
-        storeAndCheckByteStreams(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES + 500);
-        storeAndCheckByteStreams(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 3);
-        storeAndCheckByteStreams(5000000);
+        PersistentStreamStore store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
+        storeByteStreams(store);
     }
 
-    private long storeAndCheckByteStreams(int size) throws IOException {
+    @Test
+    public void testStoreByteStreamWithHash() throws IOException {
+        PersistentStreamStore store = StreamTestWithHashStreamStore.of(txManager, StreamTestTableFactory.of());
+        storeByteStreams(store);
+    }
+
+    private void storeByteStreams(PersistentStreamStore store) throws IOException {
+        storeAndCheckByteStreams(store, 0);
+        storeAndCheckByteStreams(store, 100);
+        storeAndCheckByteStreams(store, StreamTestStreamStore.BLOCK_SIZE_IN_BYTES + 500);
+        storeAndCheckByteStreams(store, StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 3);
+        storeAndCheckByteStreams(store, 5000000);
+    }
+
+    private long storeAndCheckByteStreams(PersistentStreamStore store, int size) throws IOException {
         byte[] reference = PtBytes.toBytes("ref");
         final byte[] bytesToStore = new byte[size];
         Random rand = new Random();
         rand.nextBytes(bytesToStore);
 
         final long id = timestampService.getFreshTimestamp();
-        PersistentStreamStore store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
         txManager.runTaskWithRetry(t -> {
                     store.storeStreams(t, ImmutableMap.of(id, new ByteArrayInputStream(bytesToStore)));
                     store.markStreamAsUsed(t, id, reference);
@@ -286,6 +301,31 @@ public class StreamTest extends AtlasDbTestCase {
         });
 
         assertNotNull(getStream(streamId));
+    }
+
+    @Test
+    public void testStreamWithCompressionCompresses() throws IOException {
+        byte[] reference = PtBytes.toBytes("ref");
+        int inputBlocks = 4;
+        int inputSize = StreamTestWithHashStreamStore.BLOCK_SIZE_IN_BYTES * inputBlocks;
+        byte[] input = new byte[inputSize];
+        Arrays.fill(input, (byte) 0xff);
+        PersistentStreamStore store = StreamTestWithHashStreamStore.of(txManager, StreamTestTableFactory.of());
+
+        final long id = timestampService.getFreshTimestamp();
+        StreamMetadata metadata = txManager.runTaskWithRetry(t -> {
+                    store.storeStreams(t, ImmutableMap.of(id, new ByteArrayInputStream(input)));
+                    store.markStreamAsUsed(t, id, reference);
+                    StreamTestWithHashStreamMetadataTable table = StreamTestTableFactory.of().getStreamTestWithHashStreamMetadataTable(t);
+                    return table.getRow(StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow.of(id)).get().getMetadata();
+                });
+        long numBlocksUsed = getNumberOfBlocksFromMetadata(metadata);
+
+        assertTrue(numBlocksUsed < inputBlocks);
+    }
+
+    private long getNumberOfBlocksFromMetadata(StreamMetadata metadata) {
+        return (metadata.getLength() + StreamTestWithHashStreamStore.BLOCK_SIZE_IN_BYTES - 1) / StreamTestWithHashStreamStore.BLOCK_SIZE_IN_BYTES;
     }
 
     private InputStream getStream(long streamId) {

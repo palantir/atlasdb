@@ -39,6 +39,7 @@ import javax.annotation.Generated;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -66,9 +67,12 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.compression.LZ4CompressingInputStream;
+import com.palantir.common.compression.LZ4DecompressingInputStream;
 import com.palantir.common.io.ConcatenatedInputStream;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.ByteArrayIOStream;
+import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.file.DeleteOnCloseFileInputStream;
 import com.palantir.util.file.TempFileUtils;
@@ -79,13 +83,15 @@ public class StreamStoreRenderer {
     private final String packageName;
     private final String schemaName;
     private final int inMemoryThreshold;
+    private final boolean clientSideCompression;
 
-    public StreamStoreRenderer(String name, ValueType streamIdType, String packageName, String schemaName, int inMemoryThreshold) {
+    public StreamStoreRenderer(String name, ValueType streamIdType, String packageName, String schemaName, int inMemoryThreshold, boolean clientSideCompression) {
         this.name = name;
         this.streamIdType = streamIdType;
         this.packageName = packageName;
         this.schemaName = schemaName;
         this.inMemoryThreshold = inMemoryThreshold;
+        this.clientSideCompression = clientSideCompression;
     }
 
     public String getPackageName() {
@@ -157,6 +163,26 @@ public class StreamStoreRenderer {
                     line();
                     getBlock();
                     line();
+                    if (clientSideCompression) {
+                        storeStreamWithCompression();
+                        line();
+                        storeStreamsWithCompression();
+                        line();
+                        loadStreamWithCompression();
+                        line();
+                        loadStreamsWithCompression();
+                        line();
+                        loadStreamAsFile();
+                        line();
+                        loadToNewTempFileDecompressed();
+                        line();
+                        writeDecompressedStreamToFile();
+                        line();
+                        tryWriteDecompressedStreamToFile();
+                        line();
+                        streamBlockInputStream();
+                        line();
+                    }
                     getMetadata();
                     line();
                     lookupStreamIdsByHash();
@@ -516,6 +542,202 @@ public class StreamStoreRenderer {
                     line("index.delete(toDelete);");
                 } line("}");
             }
+
+            private void storeStreamWithCompression() {
+                line("@Override");
+                line("public Pair<", StreamId, ", Sha256Hash> storeStream(InputStream stream) {"); {
+                    line("long id = storeEmptyMetadata();");
+                    line("MessageDigest digest = Sha256Hash.getMessageDigest();");
+                    line("InputStream compressedStream;");
+                    line("try {"); {
+                        line("compressedStream = new LZ4CompressingInputStream(new DigestInputStream(stream, digest));");
+                    } line("} catch (IOException e) {"); {
+                        line("throw new RuntimeException(e);");
+                    } line("}");
+                    line("StreamMetadata metadata = storeBlocksAndGetFinalMetadata(null, id, compressedStream, false);");
+                    line("ByteString hashByteString = ByteString.copyFrom(digest.digest());");
+                    line("StreamMetadata correctedMetadata = StreamMetadata.newBuilder(metadata)");
+                    line("        .setHash(hashByteString)");
+                    line("        .build();");
+                    line("storeMetadataAndIndex(id, correctedMetadata);");
+                    line("return Pair.create(id, new Sha256Hash(correctedMetadata.getHash().toByteArray()));");
+                } line("}");
+            }
+
+            private void storeStreamsWithCompression() {
+                line("@Override");
+                line("public Map<", StreamId, ", Sha256Hash> storeStreams(final Transaction t, final Map<", StreamId, ", InputStream> streams) {"); {
+                    line("if (streams.isEmpty()) {"); {
+                        line("return ImmutableMap.of();");
+                    } line("}");
+                    line();
+                    line("Map<", StreamId, ", StreamMetadata> idsToEmptyMetadata = Maps.transformValues(streams, Functions.constant(getEmptyMetadata()));");
+                    line("putMetadataAndHashIndexTask(t, idsToEmptyMetadata);");
+                    line();
+                    line("Map<", StreamId, ", StreamMetadata> idsToMetadata = Maps.transformEntries(streams, (id, stream) -> {"); {
+                        line("MessageDigest digest = Sha256Hash.getMessageDigest();");
+                        line("InputStream compressedStream;");
+                        line("try {"); {
+                            line("compressedStream = new LZ4CompressingInputStream(new DigestInputStream(stream, digest));");
+                        } line("} catch (IOException e) {"); {
+                            line("throw new RuntimeException(e);");
+                        } line("}");
+                        line("StreamMetadata metadata = storeBlocksAndGetFinalMetadata(t, id, compressedStream, false);");
+                        line("ByteString hashByteString = ByteString.copyFrom(digest.digest());");
+                        line("return StreamMetadata.newBuilder(metadata)");
+                        line("        .setHash(hashByteString)");
+                        line("        .build();");
+                    } line("});");
+                    line("putMetadataAndHashIndexTask(t, idsToMetadata);");
+                    line();
+                    line("Map<", StreamId, ", Sha256Hash> hashes = Maps.transformValues(idsToMetadata,");
+                    line("        metadata -> new Sha256Hash(metadata.getHash().toByteArray()));");
+                    line("return hashes;");
+                } line("}");
+            }
+
+            private void loadStreamWithCompression() {
+                line("@Override");
+                line("public InputStream loadStream(Transaction t, final ", StreamId, " id) {"); {
+                    line("try {"); {
+                        line("return new LZ4DecompressingInputStream(super.loadStream(t, id));");
+                    } line("} catch (IOException e) {"); {
+                        line("throw new RuntimeException(e);");
+                    } line("}");
+                } line("}");
+            }
+
+            private void loadStreamsWithCompression() {
+                line("@Override");
+                line("public Map<", StreamId, ", InputStream> loadStreams(Transaction t, Set<", StreamId, "> ids) {"); {
+                    line("Map<", StreamId, ", InputStream> compressedStreams = super.loadStreams(t, ids);");
+                    line("return Maps.transformValues(compressedStreams, stream -> {"); {
+                        line("try {"); {
+                            line("return new LZ4DecompressingInputStream(stream);");
+                        } line("} catch (IOException e) {"); {
+                            line("throw new RuntimeException(e);");
+                        } line("}");
+                    } line("});");
+                } line("}");
+            }
+
+            private void loadStreamAsFile() {
+                line("@Override");
+                line("public File loadStreamAsFile(Transaction transaction, ", StreamId, " id) {"); {
+                    line("StreamMetadata metadata = getMetadata(transaction, id);");
+                    line("checkStreamStored(id, metadata);");
+                    line("return loadToNewTempFileDecompressed(transaction, id, metadata);");
+                } line("}");
+            }
+
+            private void loadToNewTempFileDecompressed() {
+                line("private File loadToNewTempFileDecompressed(Transaction transaction, ", StreamId, " id, StreamMetadata metadata) {"); {
+                    line("try {"); {
+                        line("File file = createTempFile(id);");
+                        line("writeDecompressedStreamToFile(transaction, id, metadata, file);");
+                        line("return file;");
+                    } line("} catch (IOException e) {"); {
+                        line("log.error(\"Could not create temp file for stream id \" + id, e);");
+                        line("throw Throwables.rewrapAndThrowUncheckedException(\"Could not create file to create stream.\", e);");
+                    } line("}");
+                } line("}");
+            }
+
+            private void writeDecompressedStreamToFile() {
+                line("private void writeDecompressedStreamToFile(Transaction transaction, ", StreamId, " id, StreamMetadata metadata, File file) throws FileNotFoundException {"); {
+                    line("FileOutputStream fos = new FileOutputStream(file);");
+                    line("try {"); {
+                        line("tryWriteDecompressedStreamToFile(transaction, id, metadata, fos);");
+                    } line("} catch (IOException e) {"); {
+                        line("log.error(\"Could not finish streaming blocks to file for stream \" + id, e);");
+                        line("throw Throwables.rewrapAndThrowUncheckedException(\"Error writing blocks while opening a stream.\", e);");
+                    } line("} finally {"); {
+                        line("try {"); {
+                            line("fos.close();");
+                        } line("} catch (IOException e) {"); {
+                            line("// Do nothing");
+                        } line("}");
+                    } line("}");
+                } line("}");
+            }
+
+            private void tryWriteDecompressedStreamToFile() {
+                line("private void tryWriteDecompressedStreamToFile(Transaction transaction, ", StreamId, " id, StreamMetadata metadata, FileOutputStream fos) throws IOException {"); {
+                    line("long numBlocks = getNumberOfBlocksFromMetadata(metadata);");
+                    line("InputStream blockStream = new StreamBlockInputStream(numBlocks, id, transaction);");
+                    line("InputStream decompressingStream = new LZ4DecompressingInputStream(blockStream);");
+                    line("byte[] buffer = new byte[BLOCK_SIZE_IN_BYTES];");
+                    line("int length;");
+                    line("while ((length = decompressingStream.read(buffer)) > 0) {"); {
+                        line("fos.write(buffer, 0, length);");
+                    } line("}");
+                    line("decompressingStream.close();");
+                    line("fos.close();");
+                } line("}");
+            }
+
+            private void streamBlockInputStream() {
+                line("private class StreamBlockInputStream extends InputStream {"); {
+                    line("private byte[] blockBytes;");
+                    line("private long numBlocks;");
+                    line("private int currentBlock;");
+                    line("private int position;");
+                    line("private final ", StreamId, " streamId;");
+                    line("private final Transaction transaction;");
+                    line();
+                    line("public StreamBlockInputStream(long numBlocks, ", StreamId, " streamId, Transaction transaction) {"); {
+                        line("this.blockBytes = new byte[0];");
+                        line("this.numBlocks = numBlocks;");
+                        line("this.currentBlock = 0;");
+                        line("this.position = 0;");
+                        line("this.streamId = streamId;");
+                        line("this.transaction = transaction;");
+                    } line("}");
+                    line();
+                    line("@Override");
+                    line("public int read() throws IOException {"); {
+                        line("if ((position == blockBytes.length) && !refill()) {"); {
+                            line("return -1;");
+                        } line("}");
+                        line("return blockBytes[position++] & 0xff;");
+                    } line("}");
+                    line();
+                    line("@Override");
+                    line("public int read(byte b[], int off, int len) throws IOException {"); {
+                        line("if (b == null) {"); {
+                            line("throw new NullPointerException();");
+                        } line("} else if (off < 0 || len < 0 || len > b.length - off) {"); {
+                            line("throw new IndexOutOfBoundsException();");
+                        } line("} else if (len == 0) {"); {
+                            line("return 0;");
+                        } line("}");
+                        line();
+                        line("int bytesRead = 0;");
+                        line("while (bytesRead < len) {"); {
+                            line("int remainingBuffer = blockBytes.length - position;");
+                            line("int bytesToRead = Math.min(len - bytesRead, remainingBuffer);");
+                            line("System.arraycopy(blockBytes, position, b, off + bytesRead, bytesToRead);");
+                            line("position += bytesToRead;");
+                            line("bytesRead += bytesToRead;");
+                            line("if ((position == blockBytes.length) && !refill()) {"); {
+                                line("break;");
+                            } line("}");
+                        } line("}");
+                        line("return bytesRead > 0 ? bytesRead : -1;");
+                    }line("}");
+                    line();
+                    line("private boolean refill() {"); {
+                        line("if (currentBlock == numBlocks) {"); {
+                            line("return false;");
+                        } line("}");
+                        line("blockBytes = getBlock(transaction, ", StreamValueRow, ".of(streamId, currentBlock));");
+                        line("position = 0;");
+                        line("currentBlock++;");
+                        line("return true;");
+                    } line("}");
+                } line("}");
+            }
+
         }.render();
     }
 
@@ -713,5 +935,9 @@ public class StreamStoreRenderer {
         List.class,
         CheckForNull.class,
         Generated.class,
+        LZ4CompressingInputStream.class,
+        LZ4DecompressingInputStream.class,
+        Pair.class,
+        Functions.class,
     };
 }
