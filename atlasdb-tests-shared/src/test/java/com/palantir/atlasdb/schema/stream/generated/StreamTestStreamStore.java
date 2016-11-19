@@ -24,6 +24,7 @@ import javax.annotation.Generated;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -52,9 +53,12 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.compression.LZ4CompressingInputStream;
+import com.palantir.common.compression.LZ4DecompressingInputStream;
 import com.palantir.common.io.ConcatenatedInputStream;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.ByteArrayIOStream;
+import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.file.DeleteOnCloseFileInputStream;
 import com.palantir.util.file.TempFileUtils;
@@ -378,6 +382,7 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
      * {@link File}
      * {@link FileNotFoundException}
      * {@link FileOutputStream}
+     * {@link Functions}
      * {@link Generated}
      * {@link HashMultimap}
      * {@link IOException}
@@ -385,6 +390,8 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
      * {@link ImmutableSet}
      * {@link InputStream}
      * {@link Ints}
+     * {@link LZ4CompressingInputStream}
+     * {@link LZ4DecompressingInputStream}
      * {@link List}
      * {@link Lists}
      * {@link Logger}
@@ -395,6 +402,7 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
      * {@link Multimap}
      * {@link Multimaps}
      * {@link OutputStream}
+     * {@link Pair}
      * {@link PersistentStreamStore}
      * {@link Preconditions}
      * {@link Set}
