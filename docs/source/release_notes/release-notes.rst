@@ -58,6 +58,10 @@ develop
          - Certain Oracle KVS calls no longer attempt to leak connections created internally.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1215>`__)
 
+    *    - |new|
+         - AtlasDB now supports client side compression in the stream store.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1240>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
