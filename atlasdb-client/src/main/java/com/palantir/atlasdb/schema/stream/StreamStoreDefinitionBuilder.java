@@ -29,6 +29,7 @@ public class StreamStoreDefinitionBuilder {
     private final String shortName, longName;
     private Map<String, StreamTableDefinitionBuilder> streamTables =  Maps.newHashMapWithExpectedSize(StreamTableType.values().length);
     private int inMemoryThreshold = AtlasDbConstants.DEFAULT_STREAM_IN_MEMORY_THRESHOLD;
+    private boolean compressStreamInClient;
 
     public StreamStoreDefinitionBuilder(String shortName, String longName, ValueType valueType) {
         for (StreamTableType tableType : StreamTableType.values()) {
@@ -37,6 +38,7 @@ public class StreamStoreDefinitionBuilder {
         this.valueType = valueType;
         this.shortName = shortName;
         this.longName = longName;
+        this.compressStreamInClient = false;
     }
 
     public StreamStoreDefinitionBuilder hashFirstRowComponent() {
@@ -54,6 +56,11 @@ public class StreamStoreDefinitionBuilder {
         return this;
     }
 
+    public StreamStoreDefinitionBuilder compressStreamInClient() {
+        compressStreamInClient = true;
+        return this;
+    }
+
     public StreamStoreDefinitionBuilder inMemoryThreshold(int inMemoryThreshold) {
         this.inMemoryThreshold = inMemoryThreshold;
         return this;
@@ -64,8 +71,7 @@ public class StreamStoreDefinitionBuilder {
 
         Preconditions.checkArgument(valueType.getJavaClassName().equals("long"), "Stream ids must be a long");
 
-
-        return new StreamStoreDefinition(tablesToCreate, shortName, longName, valueType, inMemoryThreshold);
+        return new StreamStoreDefinition(tablesToCreate, shortName, longName, valueType, inMemoryThreshold, compressStreamInClient);
     }
 
 }
