@@ -16,6 +16,7 @@ dependencies {
     compile group: 'com.palantir.remoting1', name: 'ssl-config'
     compile group: 'io.atomix', name: 'atomix-all'
     compile group: 'io.dropwizard', name: 'dropwizard-core'
+    compile group: 'io.dropwizard', name: 'dropwizard-auth'
 
     processor group: 'org.immutables', name: 'value'
 
