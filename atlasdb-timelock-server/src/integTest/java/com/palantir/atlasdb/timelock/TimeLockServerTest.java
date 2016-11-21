@@ -41,7 +41,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.timestamp.TimestampAdministrationService;
+import com.palantir.timestamp.TimestampAdminService;
 import com.palantir.timestamp.TimestampService;
 
 import io.atomix.Atomix;
@@ -191,14 +191,14 @@ public class TimeLockServerTest {
 
     @Test
     public void timestampAdministrationServiceShouldThrowIfQueryingNonexistentClient() {
-        TimestampAdministrationService nonexistent = getTimestampAdministrationService(NONEXISTENT_CLIENT);
+        TimestampAdminService nonexistent = getTimestampAdministrationService(NONEXISTENT_CLIENT);
         assertThatThrownBy(() -> nonexistent.fastForwardTimestamp(Long.MAX_VALUE))
                 .hasMessageContaining(NOT_FOUND_CODE);
     }
 
     @Test
     public void timestampAdministrationServiceShouldThrowIfQueryingInvalidClient() {
-        TimestampAdministrationService invalid = getTimestampAdministrationService(NONEXISTENT_CLIENT);
+        TimestampAdminService invalid = getTimestampAdministrationService(NONEXISTENT_CLIENT);
         assertThatThrownBy(() -> invalid.fastForwardTimestamp(Long.MAX_VALUE))
                 .hasMessageContaining(NOT_FOUND_CODE);
     }
@@ -206,9 +206,9 @@ public class TimeLockServerTest {
     @Test
     public void timestampAdministrationServiceInvalidationShouldBeNamespaced() {
         TimestampService service1 = getTimestampService(CLIENT_1);
-        TimestampAdministrationService adminService1 = getTimestampAdministrationService(CLIENT_1);
+        TimestampAdminService adminService1 = getTimestampAdministrationService(CLIENT_1);
         TimestampService service2 = getTimestampService(CLIENT_2);
-        TimestampAdministrationService adminService2 = getTimestampAdministrationService(CLIENT_2);
+        TimestampAdminService adminService2 = getTimestampAdministrationService(CLIENT_2);
 
         try {
             adminService1.invalidateTimestamps();
@@ -223,7 +223,7 @@ public class TimeLockServerTest {
     public void timestampAdministrationServiceFastForwardShouldBeNamespaced() {
         TimestampService service1 = getTimestampService(CLIENT_1);
         TimestampService service2 = getTimestampService(CLIENT_2);
-        TimestampAdministrationService adminService2 = getTimestampAdministrationService(CLIENT_2);
+        TimestampAdminService adminService2 = getTimestampAdministrationService(CLIENT_2);
 
         long service2OldTimestamp = service2.getFreshTimestamp();
         try {
@@ -240,7 +240,7 @@ public class TimeLockServerTest {
     public void timestampAdministrationServiceStillUsableIfNotLeader() {
         String leader = getLeaderId();
         TimestampService service = getTimestampService(CLIENT_1);
-        TimestampAdministrationService adminService = getTimestampAdministrationService(CLIENT_1);
+        TimestampAdminService adminService = getTimestampAdministrationService(CLIENT_1);
         try {
             long oldTimestamp = service.getFreshTimestamp();
             long delta = 10000;
@@ -275,8 +275,8 @@ public class TimeLockServerTest {
         return createProxyForService(client, TimestampService.class);
     }
 
-    private static TimestampAdministrationService getTimestampAdministrationService(String client) {
-        return createProxyForService(client, TimestampAdministrationService.class);
+    private static TimestampAdminService getTimestampAdministrationService(String client) {
+        return createProxyForService(client, TimestampAdminService.class);
     }
 
     private static <T> T createProxyForService(String client, Class<T> clazz) {

@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author bdorne
  *
  */
-public class InMemoryTimestampService implements TimestampService, TimestampAdministrationService {
+public class InMemoryTimestampService implements TimestampService, TimestampAdminService {
     private final AtomicLong counter = new AtomicLong(0);
 
     @Override
@@ -50,5 +50,10 @@ public class InMemoryTimestampService implements TimestampService, TimestampAdmi
             }
             currentValue = counter.get();
         }
+    }
+
+    @Override
+    public void invalidateTimestamps() {
+        counter.set(Long.MIN_VALUE);
     }
 }

@@ -23,6 +23,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.lock.LockService;
+import com.palantir.timestamp.TimestampAdminService;
 import com.palantir.timestamp.TimestampService;
 
 public class TimeLockResourceTest {
@@ -31,7 +32,12 @@ public class TimeLockResourceTest {
 
     private static final TimestampService TIME_SERVICE = mock(TimestampService.class);
     private static final LockService LOCK_SERVICE = mock(LockService.class);
-    private static final TimeLockServices TIME_LOCK_SERVICES = TimeLockServices.create(TIME_SERVICE, LOCK_SERVICE);
+    private static final TimestampAdminService ADMIN_TIME_SERVICE = mock(TimestampAdminService.class);
+    private static final TimeLockServices TIME_LOCK_SERVICES = ImmutableTimeLockServices.builder()
+            .timeService(TIME_SERVICE)
+            .lockService(LOCK_SERVICE)
+            .adminTimeService(ADMIN_TIME_SERVICE)
+            .build();
 
     private static final TimeLockResource RESOURCE = new TimeLockResource(
             ImmutableMap.of(EXISTING_CLIENT, TIME_LOCK_SERVICES));
@@ -54,5 +60,15 @@ public class TimeLockResourceTest {
     @Test(expected = NotFoundException.class)
     public void throwWhenLockServiceDoesntExist() {
         RESOURCE.getLockService(NON_EXISTING_CLIENT);
+    }
+
+    @Test
+    public void canGetExistingAdminTimeService() {
+        RESOURCE.getAdminTimeService(EXISTING_CLIENT);
+    }
+
+    @Test(expected = NotFoundException.class)
+    public void throwWhenAdminTimeServiceDoesntExist() {
+        RESOURCE.getAdminTimeService(NON_EXISTING_CLIENT);
     }
 }
