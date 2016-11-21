@@ -12,7 +12,7 @@ fi
 cd $(dirname $0)
 
 CURRENT_REF=$(git log -1 --format="%H")
-CHANGELOG_COMMIT_FLAG=$(git log --pretty=format:%B origin/develop..HEAD | grep -q '\[no release notes\]')$?
+CHANGELOG_COMMIT_FLAG=$(git log --pretty=format:%B origin/develop..HEAD | grep -iq '\[no release notes\]')$?
 CHANGELOG_MODIFIED=$(git log --name-only --pretty=format: origin/develop..HEAD | grep -q $CHANGELOG)$?
 
 if [ $CHANGELOG_COMMIT_FLAG -eq 0 ]; then
