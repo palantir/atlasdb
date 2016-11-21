@@ -22,5 +22,4 @@ public final class OracleErrorConstants {
 
     public static final String ORACLE_ALREADY_EXISTS_ERROR = "ORA-00955";
     public static final String ORACLE_NOT_EXISTS_ERROR = "ORA-00942";
-    public static final String ORACLE_UNIQUE_CONSTRAINT_ERROR =  "ORA-00001";
 }

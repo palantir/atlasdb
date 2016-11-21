@@ -116,17 +116,21 @@ public final class OracleDdlTable implements DbDdlTable {
 
     private void putTableNameMapping(String fullTableName, String shortTableName) {
         if (config.useTableMapping()) {
-            try {
-                conns.get().insertOneUnregisteredQuery(
-                        "INSERT INTO " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
-                                + " (table_name, short_table_name) VALUES (?, ?)",
-                        fullTableName,
-                        shortTableName);
-            } catch (PalantirSqlException ex) {
-                if (ex.getMessage().contains(OracleErrorConstants.ORACLE_UNIQUE_CONSTRAINT_ERROR)) {
-                    dropTableInternal(fullTableName, shortTableName);
-                }
-                log.error(ex.getMessage(), ex);
+            insertTableMappingIgnoringPrimaryKeyViolation(fullTableName, shortTableName);
+        }
+    }
+
+    private void insertTableMappingIgnoringPrimaryKeyViolation(String fullTableName, String shortTableName) {
+        try {
+            conns.get().insertOneUnregisteredQuery(
+                    "INSERT INTO " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
+                            + " (table_name, short_table_name) VALUES (?, ?)",
+                    fullTableName,
+                    shortTableName);
+        } catch (PalantirSqlException ex) {
+            if (!ex.getMessage().toLowerCase().contains(AtlasDbConstants.NAME_MAPPING_PK_CONSTRAINT.toLowerCase())) {
+                log.error("Error occurred trying to create table mapping {} -> {}", fullTableName, shortTableName, ex);
+                dropTableInternal(fullTableName, shortTableName);
                 throw ex;
             }
         }
@@ -208,7 +212,7 @@ public final class OracleDdlTable implements DbDdlTable {
             conns.get().executeUnregisteredQuery(sql);
         } catch (PalantirSqlException e) {
             if (!e.getMessage().contains(errorToIgnore)) {
-                log.error(e.getMessage(), e);
+                log.error("Error occurred trying to execute the query {}.", sql, e);
                 throw e;
             }
         }
