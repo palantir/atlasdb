@@ -51,8 +51,18 @@ public class EteSetup {
 
     private static DockerComposeRule docker;
     private static List<String> availableClients;
+    private static Duration waitDuration;
 
     static RuleChain setupComposition(Class<?> eteClass, String composeFile, List<String> availableClientNames) {
+        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES);
+    }
+
+    static RuleChain setupComposition(
+            Class<?> eteClass,
+            String composeFile,
+            List<String> availableClientNames,
+            Duration waitTime) {
+        waitDuration = waitTime;
         return setupComposition(eteClass, composeFile, availableClientNames, ImmutableMap.of());
     }
 
@@ -106,7 +116,7 @@ public class EteSetup {
             protected void before() throws Throwable {
                 Awaitility.await()
                         .ignoreExceptions()
-                        .atMost(Duration.TWO_MINUTES)
+                        .atMost(waitDuration)
                         .pollInterval(Duration.ONE_SECOND)
                         .until(serversAreReady());
             }
