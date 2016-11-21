@@ -33,6 +33,7 @@ public class TimeLockServerConfiguration extends Configuration {
             @JsonProperty(value = "cluster", required = true) ClusterConfiguration cluster,
             @JsonProperty(value = "clients", required = true) Set<String> clients) {
         Preconditions.checkState(!clients.isEmpty(), "'clients' should have at least one entry");
+        checkClientNames(clients);
 
         this.atomix = MoreObjects.firstNonNull(atomix, AtomixConfiguration.DEFAULT);
         this.cluster = cluster;
@@ -49,5 +50,11 @@ public class TimeLockServerConfiguration extends Configuration {
 
     public Set<String> clients() {
         return clients;
+    }
+
+    private static void checkClientNames(Set<String> clients) {
+        clients.forEach(name -> Preconditions.checkState(name.matches("[a-zA-Z0-9_-]+"),
+                String.format("Client names must consist of alphanumeric characters, underscores or dashes only;"
+                        + "found client '%s'.", name)));
     }
 }
