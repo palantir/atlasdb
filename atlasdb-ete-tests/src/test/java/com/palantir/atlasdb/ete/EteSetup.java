@@ -62,8 +62,7 @@ public class EteSetup {
             String composeFile,
             List<String> availableClientNames,
             Duration waitTime) {
-        waitDuration = waitTime;
-        return setupComposition(eteClass, composeFile, availableClientNames, ImmutableMap.of());
+        return setupComposition(eteClass, composeFile, availableClientNames, waitTime, ImmutableMap.of());
     }
 
     static RuleChain setupComposition(
@@ -71,6 +70,16 @@ public class EteSetup {
             String composeFile,
             List<String> availableClientNames,
             Map<String, String> environment) {
+        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES, environment);
+    }
+
+    static RuleChain setupComposition(
+            Class<?> eteClass,
+            String composeFile,
+            List<String> availableClientNames,
+            Duration waitTime,
+            Map<String, String> environment) {
+        waitDuration = waitTime;
         availableClients = ImmutableList.copyOf(availableClientNames);
 
         DockerMachine machine = DockerMachine.localMachine().withEnvironment(environment).build();
