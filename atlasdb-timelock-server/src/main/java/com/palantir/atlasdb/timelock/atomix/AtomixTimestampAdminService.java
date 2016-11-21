@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock.atomix;
 
 import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.timelock.security.Protected;
 import com.palantir.timestamp.TimestampAdminService;
 
 import io.atomix.variables.DistributedLong;
@@ -29,6 +30,7 @@ public class AtomixTimestampAdminService implements TimestampAdminService {
     }
 
     @Override
+    @Protected
     public void fastForwardTimestamp(long targetTimestamp) {
         long currentTimestamp = Futures.getUnchecked(timestamp.get());
         while (currentTimestamp < targetTimestamp) {
@@ -40,6 +42,7 @@ public class AtomixTimestampAdminService implements TimestampAdminService {
     }
 
     @Override
+    @Protected
     public void invalidateTimestamps() {
         timestamp.set(Long.MIN_VALUE);
     }

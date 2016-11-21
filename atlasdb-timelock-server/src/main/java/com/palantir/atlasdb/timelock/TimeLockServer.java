@@ -26,10 +26,10 @@ import com.palantir.atlasdb.timelock.atomix.AtomixTimestampService;
 import com.palantir.atlasdb.timelock.atomix.DistributedValues;
 import com.palantir.atlasdb.timelock.atomix.InvalidatingLeaderProxy;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
+import com.palantir.atlasdb.timelock.security.AdminAuthFilter;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting1.config.ssl.SslConfiguration;
 import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
-import com.palantir.timestamp.TimestampAdminService;
 
 import io.atomix.AtomixReplica;
 import io.atomix.catalyst.transport.Transport;
@@ -66,25 +66,26 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
         timeLockGroup.election().onElection(term -> Futures.getUnchecked(leaderId.set(term.leader().id())));
 
         Map<String, TimeLockServices> clientToTimelockServices = Maps.newHashMap();
-        Map<String, TimestampAdminService> clientToTimestampAdministrationServices = Maps.newHashMap();
         for (String client : configuration.clients()) {
             DistributedLong timestamp = DistributedValues.getTimestampForClient(localNode, client);
             clientToTimelockServices.put(client, createInvalidatingTimeLockServices(localMember, leaderId, timestamp));
-            clientToTimestampAdministrationServices.put(client, new AtomixTimestampAdminService(timestamp));
         }
 
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
         environment.jersey().register(new TimeLockResource(clientToTimelockServices));
-        environment.jersey().register(new TimestampAdminResource(clientToTimestampAdministrationServices));
+        environment.jersey().register(new AdminAuthFilter());
     }
 
     private static TimeLockServices createInvalidatingTimeLockServices(
             LocalMember localMember,
             DistributedValue<String> leaderId,
             DistributedLong timestamp) {
-        Supplier<TimeLockServices> timeLockSupplier = () -> TimeLockServices.create(
-                new AtomixTimestampService(timestamp),
-                LockServiceImpl.create());
+        Supplier<TimeLockServices> timeLockSupplier = () ->
+                ImmutableTimeLockServices.builder()
+                        .timeService(new AtomixTimestampService(timestamp))
+                        .lockService(LockServiceImpl.create())
+                        .adminTimeService(new AtomixTimestampAdminService(timestamp))
+                        .build();
         return InvalidatingLeaderProxy.create(localMember, leaderId, timeLockSupplier, TimeLockServices.class);
     }
 
