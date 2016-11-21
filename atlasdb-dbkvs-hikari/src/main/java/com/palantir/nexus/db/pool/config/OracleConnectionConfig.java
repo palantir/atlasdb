@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -46,6 +47,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
 
     @Override
     @Value.Derived
+    @JsonIgnore
     public String getUrl() {
         if (getServerDn().isPresent()) {
             return String.format("jdbc:oracle:thin:@(DESCRIPTION=" +
