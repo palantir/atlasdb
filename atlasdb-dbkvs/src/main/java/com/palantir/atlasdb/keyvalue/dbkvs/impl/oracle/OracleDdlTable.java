@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,12 +129,16 @@ public final class OracleDdlTable implements DbDdlTable {
                     fullTableName,
                     shortTableName);
         } catch (PalantirSqlException ex) {
-            if (!ex.getMessage().toLowerCase().contains(AtlasDbConstants.NAME_MAPPING_PK_CONSTRAINT.toLowerCase())) {
+            if (!isPrimaryKeyViolation(ex)) {
                 log.error("Error occurred trying to create table mapping {} -> {}", fullTableName, shortTableName, ex);
                 dropTableInternal(fullTableName, shortTableName);
                 throw ex;
             }
         }
+    }
+
+    private boolean isPrimaryKeyViolation(PalantirSqlException ex) {
+        return !StringUtils.containsIgnoreCase(ex.getMessage(), AtlasDbConstants.ORACLE_NAME_MAPPING_PK_CONSTRAINT);
     }
 
     @Override
