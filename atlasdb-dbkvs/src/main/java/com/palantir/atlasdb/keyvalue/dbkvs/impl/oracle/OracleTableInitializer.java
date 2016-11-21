@@ -56,11 +56,11 @@ public class OracleTableInitializer implements DbTableInitializer {
                         "CREATE TABLE %s ("
                                 + "table_name varchar(2000) NOT NULL,"
                                 + "short_table_name varchar(30) NOT NULL,"
-                                + "CONSTRAINT pk_%s PRIMARY KEY (table_name),"
+                                + "CONSTRAINT %s PRIMARY KEY (table_name),"
                                 + "CONSTRAINT unique_%s UNIQUE (short_table_name)"
                                 + ")",
                         AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE,
-                        AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE,
+                        AtlasDbConstants.ORACLE_NAME_MAPPING_PK_CONSTRAINT,
                         AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE),
                 OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
 

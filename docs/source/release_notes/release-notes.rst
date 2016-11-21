@@ -58,6 +58,10 @@ develop
          - Certain Oracle KVS calls no longer attempt to leak connections created internally.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1215>`__)
 
+    *    - |fixed|
+         - Oracle will not drop a table that already exists on  ``createTable`` calls when multiple AtlasDB clients make the call to create the same table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1243>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
