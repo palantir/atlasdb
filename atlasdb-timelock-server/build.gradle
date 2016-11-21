@@ -8,6 +8,8 @@ testSets {
     integTest
 }
 
+check.dependsOn integTest
+
 dependencies {
     compile project(":timestamp-api")
     compile project(":lock-impl")
