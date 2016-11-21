@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.net.ConnectException;
 import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
@@ -28,6 +29,7 @@ import javax.ws.rs.ServiceUnavailableException;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import io.atomix.catalyst.concurrent.Futures;
 import io.atomix.group.LocalMember;
 import io.atomix.variables.DistributedValue;
 
@@ -70,6 +72,12 @@ public class InvalidatingLeaderProxyTest {
         assertThatThrownBy(atomicString::get).isInstanceOf(ServiceUnavailableException.class);
         setLeader(LOCAL_MEMBER_ID);
         assertCanReadAndWriteValue(atomicString);
+    }
+
+    @Test
+    public void shouldThrow503WhenAnIoExceptionIsThrown() {
+        when(LEADER_ID.get()).thenReturn(Futures.exceptionalFuture(new ConnectException()));
+        assertThatThrownBy(atomicString::get).isInstanceOf(ServiceUnavailableException.class);
     }
 
     private void assertCanReadAndWriteValue(AtomicString container) {
