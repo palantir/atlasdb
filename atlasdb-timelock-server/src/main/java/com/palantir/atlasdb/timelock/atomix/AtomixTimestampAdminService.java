@@ -16,15 +16,14 @@
 package com.palantir.atlasdb.timelock.atomix;
 
 import com.google.common.util.concurrent.Futures;
-import com.palantir.timestamp.TimestampAdministrationService;
+import com.palantir.timestamp.TimestampAdminService;
 
 import io.atomix.variables.DistributedLong;
 
-public class AtomixTimestampAdministrationService implements TimestampAdministrationService {
-
+public class AtomixTimestampAdminService implements TimestampAdminService {
     private final DistributedLong timestamp;
 
-    public AtomixTimestampAdministrationService(DistributedLong timestamp) {
+    public AtomixTimestampAdminService(DistributedLong timestamp) {
         this.timestamp = timestamp;
     }
 

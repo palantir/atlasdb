@@ -23,7 +23,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.PTExecutors;
 
 @ThreadSafe
-public class PersistentTimestampService implements TimestampService, TimestampAdministrationService {
+public class PersistentTimestampService implements TimestampService, TimestampAdminService {
     private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
 
     private final ExecutorService executor;
@@ -80,6 +80,11 @@ public class PersistentTimestampService implements TimestampService, TimestampAd
     @Override
     public void fastForwardTimestamp(long newMinimumTimestamp) {
         availableTimestamps.fastForwardTo(newMinimumTimestamp);
+    }
+
+    @Override
+    public void invalidateTimestamps() {
+        throw new UnsupportedOperationException("To be implemented");
     }
 
     private int cleanUpTimestampRequest(int numTimestampsRequested) {

@@ -43,7 +43,7 @@ public class AtomixTimestampAdministrationServiceTest {
             .build();
 
     private AtomixTimestampService timestampService;
-    private AtomixTimestampAdministrationService administrationService;
+    private AtomixTimestampAdminService administrationService;
 
     @BeforeClass
     public static void startAtomix() {
@@ -59,7 +59,7 @@ public class AtomixTimestampAdministrationServiceTest {
     public void setupTimestampService() {
         DistributedLong distributedLong = DistributedValues.getTimestampForClient(ATOMIX_REPLICA, CLIENT_KEY);
         timestampService = new AtomixTimestampService(distributedLong);
-        administrationService = new AtomixTimestampAdministrationService(distributedLong);
+        administrationService = new AtomixTimestampAdminService(distributedLong);
     }
 
     @Test
