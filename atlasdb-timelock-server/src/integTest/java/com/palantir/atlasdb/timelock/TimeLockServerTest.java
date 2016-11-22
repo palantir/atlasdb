@@ -208,7 +208,6 @@ public class TimeLockServerTest {
         TimestampService service1 = getTimestampService(CLIENT_1);
         TimestampAdminService adminService1 = getTimestampAdministrationService(CLIENT_1);
         TimestampService service2 = getTimestampService(CLIENT_2);
-        TimestampAdminService adminService2 = getTimestampAdministrationService(CLIENT_2);
 
         try {
             adminService1.invalidateTimestamps();
@@ -237,20 +236,16 @@ public class TimeLockServerTest {
     }
 
     @Test
-    public void timestampAdministrationServiceStillUsableIfNotLeader() {
+    public void timestampAdministrationServiceNotUsableIfNotLeader() {
         String leader = getLeaderId();
         TimestampService service = getTimestampService(CLIENT_1);
         TimestampAdminService adminService = getTimestampAdministrationService(CLIENT_1);
         try {
             long oldTimestamp = service.getFreshTimestamp();
             long delta = 10000;
-
             setLeaderId(null);
-            adminService.fastForwardTimestamp(oldTimestamp + 10000);
-
-            setLeaderId(leader);
-            long newTimestamp = service.getFreshTimestamp();
-            assertThat(newTimestamp - oldTimestamp).isGreaterThan(delta);
+            assertThatThrownBy(() -> adminService.fastForwardTimestamp(oldTimestamp + delta))
+                    .hasMessageContaining(SERVICE_NOT_AVAILABLE_CODE);
         } finally {
             setLeaderId(leader);
         }
