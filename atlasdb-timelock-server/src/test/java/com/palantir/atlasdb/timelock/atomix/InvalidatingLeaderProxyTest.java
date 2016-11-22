@@ -17,6 +17,7 @@ package com.palantir.atlasdb.timelock.atomix;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -151,6 +152,27 @@ public class InvalidatingLeaderProxyTest {
         assertThatThrownBy(proxiedResource::isOpen).isInstanceOf(ServiceUnavailableException.class);
 
         verify(mockedResource, times(1)).close();
+    }
+
+    @Test
+    public void shouldThrowExceptionsThrownFromClosingTheDelegate() throws IOException {
+        ByteChannel mockedResource = mock(ByteChannel.class);
+        ByteChannel proxiedResource = InvalidatingLeaderProxy.create(
+                LOCAL_MEMBER,
+                LEADER_ID,
+                election,
+                () -> mockedResource,
+                ByteChannel.class);
+
+        IOException expectedInnerException = new IOException("the inner exception");
+        doThrow(expectedInnerException).when(mockedResource).close();
+
+        setLeader(LOCAL_MEMBER_ID);
+        proxiedResource.isOpen();
+
+        assertThatThrownBy(() -> setLeader(null))
+                .isInstanceOf(RuntimeException.class)
+                .hasCause(expectedInnerException);
     }
 
     @Test
