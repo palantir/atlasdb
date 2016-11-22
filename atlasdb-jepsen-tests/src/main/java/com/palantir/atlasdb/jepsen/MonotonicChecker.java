@@ -20,15 +20,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MonotonicChecker implements Visitor {
-    boolean valid = true;
-    List<Event> errors = new ArrayList<>();
-    Map<Integer, Last> lastPerProcess = new HashMap<>();
+import com.google.common.collect.ImmutableList;
 
-    private static class Last {
-        Long lastSeen = null;
-        Event lastEvent = null;
-    }
+public class MonotonicChecker implements Visitor {
+    private final List<Event> errors = new ArrayList<>();
+    private final Map<Integer, OkRead> latestEventPerProcess = new HashMap<>();
+
+    private boolean valid = true;
 
     @Override
     public void visit(InfoRead event) {
@@ -40,17 +38,17 @@ public class MonotonicChecker implements Visitor {
 
     @Override
     public void visit(OkRead event) {
-        Integer process = event.process();
-        lastPerProcess.putIfAbsent(process, new Last());
-        Last last = lastPerProcess.get(process);
-        Long value = event.value();
-        if (last.lastSeen != null && value <= last.lastSeen) {
-            valid = false;
-            errors.add(last.lastEvent);
-            errors.add(event);
+        int process = event.process();
+
+        if (latestEventPerProcess.containsKey(process)) {
+            OkRead previousEvent = latestEventPerProcess.get(process);
+            if (event.value() <= previousEvent.value()) {
+                valid = false;
+                errors.add(previousEvent);
+                errors.add(event);
+            }
         }
-        last.lastSeen = value;
-        last.lastEvent = event;
+        latestEventPerProcess.put(process, event);
     }
 
     public boolean valid() {
@@ -58,6 +56,6 @@ public class MonotonicChecker implements Visitor {
     }
 
     public List<Event> errors() {
-        return errors;
+        return ImmutableList.copyOf(errors);
     }
 }
