@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.jepsen.events;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -70,7 +69,7 @@ public class EventTest {
                 .process(SOME_PROCESS)
                 .time(SOME_TIME)
                 .build();
-        assertEquals(expectedEvent, event);
+        assertThat(expectedEvent).isEqualTo(event);
     }
 
     @Test
@@ -89,7 +88,7 @@ public class EventTest {
                 .process(SOME_PROCESS)
                 .time(SOME_TIME)
                 .build();
-        assertEquals(expectedEvent, event);
+        assertThat(expectedEvent).isEqualTo(event);
     }
 
     @Test(expected = IllegalArgumentException.class)
