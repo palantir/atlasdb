@@ -280,7 +280,6 @@ public final class TransactionManagers {
                                 .collect(Collectors.toSet()));
     }
 
-
     private static LockAndTimestampServices getLockAndTimestampServices(ServerListConfig lockServers,
             ServerListConfig timestampServers) {
         RemoteLockService lockService = new ServiceCreator<>(RemoteLockService.class).apply(lockServers);
