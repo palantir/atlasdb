@@ -26,7 +26,6 @@ import com.palantir.atlasdb.timelock.atomix.AtomixTimestampService;
 import com.palantir.atlasdb.timelock.atomix.DistributedValues;
 import com.palantir.atlasdb.timelock.atomix.InvalidatingLeaderProxy;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
-import com.palantir.atlasdb.timelock.security.AdminAuthFilter;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting1.config.ssl.SslConfiguration;
 import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
@@ -73,7 +72,6 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
 
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
         environment.jersey().register(new TimeLockResource(clientToTimelockServices));
-        environment.jersey().register(new AdminAuthFilter());
     }
 
     private static TimeLockServices createInvalidatingTimeLockServices(
