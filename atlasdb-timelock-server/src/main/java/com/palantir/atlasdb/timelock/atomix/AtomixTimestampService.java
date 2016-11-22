@@ -58,6 +58,4 @@ public class AtomixTimestampService implements TimestampService {
                 lastTimestampHandedOut + 1,
                 lastTimestampHandedOut + numTimestampsRequested);
     }
-
-
 }

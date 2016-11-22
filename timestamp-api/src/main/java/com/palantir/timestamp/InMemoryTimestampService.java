@@ -26,14 +26,23 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class InMemoryTimestampService implements TimestampService, TimestampAdminService {
     private final AtomicLong counter = new AtomicLong(0);
+    private boolean valid = true;
 
     @Override
     public long getFreshTimestamp() {
+        assertServiceValidity();
         return counter.incrementAndGet();
+    }
+
+    private void assertServiceValidity() {
+        if (!valid) {
+            throw new IllegalStateException("This timestamp service is invalid!");
+        }
     }
 
     @Override
     public TimestampRange getFreshTimestamps(int timestampsToGet) {
+        assertServiceValidity();
         if (timestampsToGet <= 0) {
             throw new IllegalArgumentException("Argument must be positive: " + timestampsToGet);
         }
@@ -46,6 +55,7 @@ public class InMemoryTimestampService implements TimestampService, TimestampAdmi
         long currentValue = counter.get();
         while (currentValue < newMinimumTimestamp) {
             if (counter.compareAndSet(currentValue, newMinimumTimestamp)) {
+                valid = true;
                 return;
             }
             currentValue = counter.get();
@@ -55,5 +65,6 @@ public class InMemoryTimestampService implements TimestampService, TimestampAdmi
     @Override
     public void invalidateTimestamps() {
         counter.set(Long.MIN_VALUE);
+        valid = false;
     }
 }
