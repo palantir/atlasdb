@@ -69,7 +69,7 @@ public class EventTest {
                 .process(SOME_PROCESS)
                 .time(SOME_TIME)
                 .build();
-        assertThat(expectedEvent).isEqualTo(event);
+        assertThat(event).isEqualTo(expectedEvent);
     }
 
     @Test
@@ -88,7 +88,7 @@ public class EventTest {
                 .process(SOME_PROCESS)
                 .time(SOME_TIME)
                 .build();
-        assertThat(expectedEvent).isEqualTo(event);
+        assertThat(event).isEqualTo(expectedEvent);
     }
 
     @Test(expected = IllegalArgumentException.class)
