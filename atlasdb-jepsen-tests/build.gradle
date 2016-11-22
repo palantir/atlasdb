@@ -1,6 +1,13 @@
-apply plugin: 'org.inferred.processors'
-
 apply from: "${rootProject.projectDir}/gradle/shared.gradle"
+
+apply plugin: 'org.inferred.processors'
+apply plugin: 'org.unbroken-dome.test-sets'
+
+testSets {
+    integTest
+}
+
+check.dependsOn integTest
 
 dependencies {
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
@@ -27,7 +34,7 @@ buildscript {
 apply plugin: 'docker-compose'
 
 task prepareForJepsen(type: Copy, dependsOn: ':atlasdb-ete-tests:distTar') {
-    from project(':atlasdb-ete-tests').distTar.outputs
+    from tasks.getByPath(':atlasdb-ete-tests:distTar').outputs
     into 'resources/atlasdb/'
 
     rename { filename -> 'atlasdb-ete.tgz' }
@@ -43,4 +50,4 @@ task jepsenTest(type: Exec, dependsOn: 'composeBuild') {
     commandLine project.dockerCompose.composeCommand('run', '--rm', 'jepsen')
 }
 
-test.dependsOn jepsenTest
+check.dependsOn jepsenTest
