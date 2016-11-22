@@ -1,10 +1,24 @@
 apply from: "${rootProject.projectDir}/gradle/shared.gradle"
 
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath "com.avast.gradle:docker-compose-gradle-plugin:0.3.5"
+    }
+}
+
+apply plugin: 'docker-compose'
 apply plugin: 'org.inferred.processors'
 apply plugin: 'org.unbroken-dome.test-sets'
 
 testSets {
     integTest
+}
+
+jacocoTestReport {
+    executionData test, integTest
 }
 
 check.dependsOn integTest
@@ -21,17 +35,6 @@ dependencies {
 
     testCompile group: 'org.assertj', name: 'assertj-core'
 }
-
-buildscript {
-    repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath "com.avast.gradle:docker-compose-gradle-plugin:0.3.5"
-    }
-}
-
-apply plugin: 'docker-compose'
 
 task prepareForJepsen(type: Copy, dependsOn: ':atlasdb-ete-tests:distTar') {
     from tasks.getByPath(':atlasdb-ete-tests:distTar').outputs
