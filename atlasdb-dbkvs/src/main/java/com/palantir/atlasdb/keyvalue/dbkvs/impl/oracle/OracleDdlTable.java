@@ -138,7 +138,7 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     private boolean isPrimaryKeyViolation(PalantirSqlException ex) {
-        return !StringUtils.containsIgnoreCase(ex.getMessage(), AtlasDbConstants.ORACLE_NAME_MAPPING_PK_CONSTRAINT);
+        return StringUtils.containsIgnoreCase(ex.getMessage(), AtlasDbConstants.ORACLE_NAME_MAPPING_PK_CONSTRAINT);
     }
 
     @Override
