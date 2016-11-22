@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.jepsen.events;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,7 +26,6 @@ import org.junit.Test;
 import clojure.lang.Keyword;
 
 public class EventTest {
-
     public static final long SOME_VALUE = 136L;
     public static final long SOME_TIME = 3029699376L;
     public static final int SOME_PROCESS = 1;
@@ -91,7 +91,7 @@ public class EventTest {
         assertThat(event).isEqualTo(expectedEvent);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void cannotDeserialiseOkReadWhenValueIsMissing() {
         Map<Keyword, Object> keywordMap = new HashMap<>();
         keywordMap.put(Keyword.intern("type"), Keyword.intern("ok"));
@@ -99,6 +99,6 @@ public class EventTest {
         keywordMap.put(Keyword.intern("process"), SOME_PROCESS);
         keywordMap.put(Keyword.intern("time"), SOME_TIME);
 
-        Event.fromKeywordMap(keywordMap);
+        assertThatThrownBy(() -> Event.fromKeywordMap(keywordMap)).isInstanceOf(IllegalArgumentException.class);
     }
 }
