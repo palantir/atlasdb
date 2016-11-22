@@ -66,6 +66,10 @@ develop
          - Our jackson version has been updated from 2.5.1 to 2.6.7 and dropwizard version from 0.8.2 to 0.9.3.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1209>`__)
 
+    *    - |new|
+         - ConnectionSupplier consumers can now choose to receive a brand new unshared connection.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1258>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
