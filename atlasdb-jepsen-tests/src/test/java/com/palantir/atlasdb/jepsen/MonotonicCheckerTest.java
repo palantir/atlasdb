@@ -15,85 +15,95 @@
  */
 package com.palantir.atlasdb.jepsen;
 
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 
 import org.junit.Test;
 
 public class MonotonicCheckerTest {
-    public static final Long ZERO_TIME = 0L;
-    public static final int PROCESS_0 = 0;
-    public static final int PROCESS_1 = 1;
+    private static final Long ZERO_TIME = 0L;
+    private static final int PROCESS_0 = 0;
+    private static final int PROCESS_1 = 1;
 
     @Test
-    public void checkerShouldPassOnEmptyList() {
-        MonotonicChecker monotonicChecker = runMonotonicChecker(new History());
+    public void shouldPassOnNoEvents() {
+        MonotonicChecker monotonicChecker = runMonotonicChecker();
 
-        assertTrue(monotonicChecker.valid());
-        assertThat(monotonicChecker.errors(), is(empty()));
+        assertThat(monotonicChecker.valid()).isTrue();
+        assertThat(monotonicChecker.errors()).isEmpty();
     }
 
     @Test
-    public void checkShouldFailOnDecreasingEntries() {
-        History history = new History();
+    public void shouldFailOnDecreasingValueEvents() {
+        Event event1 = ImmutableOkRead.builder()
+                .time(ZERO_TIME)
+                .process(PROCESS_0)
+                .value(1L)
+                .build();
+        Event event2 = ImmutableOkRead.builder()
+                .time(ZERO_TIME)
+                .process(PROCESS_0)
+                .value(0L)
+                .build();
 
-        Event event1 = new OkRead(ZERO_TIME, PROCESS_0, 1L);
-        Event event2 = new OkRead(ZERO_TIME, PROCESS_0, 0L);
+        MonotonicChecker monotonicChecker = runMonotonicChecker(event1, event2);
 
-        history.add(event1);
-        history.add(event2);
-
-        MonotonicChecker monotonicChecker = runMonotonicChecker(history);
-
-        assertFalse(monotonicChecker.valid());
-        assertThat(monotonicChecker.errors(), equalTo(Arrays.asList(event1, event2)));
+        assertThat(monotonicChecker.valid()).isFalse();
+        assertThat(monotonicChecker.errors()).containsExactly(event1, event2);
     }
 
     @Test
-    public void checkShouldFailOnEqualEntries() {
-        History history = new History();
+    public void shouldFailOnEqualEntries() {
+        Event event1 = ImmutableOkRead.builder()
+                .time(ZERO_TIME)
+                .process(PROCESS_0)
+                .value(0L)
+                .build();
+        Event event2 = ImmutableOkRead.builder()
+                .time(ZERO_TIME)
+                .process(PROCESS_0)
+                .value(0L)
+                .build();
 
-        Event event1 = new OkRead(ZERO_TIME, PROCESS_0, 0L);
-        Event event2 = new OkRead(ZERO_TIME, PROCESS_0, 0L);
+        MonotonicChecker monotonicChecker = runMonotonicChecker(event1, event2);
 
-        history.add(event1);
-        history.add(event2);
-
-        MonotonicChecker monotonicChecker = runMonotonicChecker(history);
-
-        assertFalse(monotonicChecker.valid());
-        assertThat(monotonicChecker.errors(), equalTo(Arrays.asList(event1, event2)));
+        assertThat(monotonicChecker.valid()).isFalse();
+        assertThat(monotonicChecker.errors()).containsExactly(event1, event2);
     }
 
     @Test
-    public void checkShouldPassOnTwoProcessesOverlapping() {
-        History history = new History();
+    public void shouldPassOnTwoProcessesOverlapping() {
+        Event event1 = ImmutableOkRead.builder()
+                .time(ZERO_TIME)
+                .process(PROCESS_0)
+                .value(1L)
+                .build();
+        Event event2 = ImmutableOkRead.builder()
+                .time(ZERO_TIME)
+                .process(PROCESS_1)
+                .value(2L)
+                .build();
+        Event event3 = ImmutableOkRead.builder()
+                .time(ZERO_TIME)
+                .process(PROCESS_0)
+                .value(4L)
+                .build();
+        Event event4 = ImmutableOkRead.builder()
+                .time(ZERO_TIME)
+                .process(PROCESS_1)
+                .value(3L)
+                .build();
 
-        Event event1 = new OkRead(ZERO_TIME, PROCESS_0, 1L);
-        Event event2 = new OkRead(ZERO_TIME, PROCESS_1, 2L);
-        Event event3 = new OkRead(ZERO_TIME, PROCESS_0, 4L);
-        Event event4 = new OkRead(ZERO_TIME, PROCESS_1, 3L);
+        MonotonicChecker monotonicChecker = runMonotonicChecker(event1, event2, event3, event4);
 
-        history.add(event1);
-        history.add(event2);
-        history.add(event3);
-        history.add(event4);
-
-        MonotonicChecker monotonicChecker = runMonotonicChecker(history);
-
-        assertTrue(monotonicChecker.valid());
-        assertThat(monotonicChecker.errors(), is(empty()));
+        assertThat(monotonicChecker.valid()).isTrue();
+        assertThat(monotonicChecker.errors()).isEmpty();
     }
 
-    private MonotonicChecker runMonotonicChecker(History history) {
+    private static MonotonicChecker runMonotonicChecker(Event... events) {
         MonotonicChecker monotonicChecker = new MonotonicChecker();
-        history.accept(monotonicChecker);
+        Arrays.asList(events).forEach(event -> event.accept(monotonicChecker));
         return monotonicChecker;
     }
 }

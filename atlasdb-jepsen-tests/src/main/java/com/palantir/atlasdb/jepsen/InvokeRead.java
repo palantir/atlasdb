@@ -15,22 +15,25 @@
  */
 package com.palantir.atlasdb.jepsen;
 
-public class InvokeRead extends Event {
-    Long time;
-    Integer process;
+import org.immutables.value.Value;
 
-    public InvokeRead(Long time, int process) {
-        this.time = time;
-        this.process = process;
-    }
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
+@JsonSerialize(as = ImmutableInvokeRead.class)
+@JsonDeserialize(as = ImmutableInvokeRead.class)
+@JsonTypeName(InvokeRead.TYPE)
+@Value.Immutable
+public abstract class InvokeRead implements Event {
+    public static final String TYPE = "invoke";
+
+    public abstract Long time();
+
+    public abstract Integer process();
+
+    @Override
     public void accept(Visitor visitor) {
         visitor.visit(this);
     }
-
-    @Override
-    public String toString() {
-        return String.format("Read Request: Time=%d Process=%d", time, process);
-    }
-
 }

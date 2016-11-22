@@ -15,35 +15,27 @@
  */
 package com.palantir.atlasdb.jepsen;
 
-public class OkRead extends Event {
-    Long time;
-    Integer process;
-    Long value;
+import org.immutables.value.Value;
 
-    public OkRead(Long time, Integer process, Long value) {
-        this.time = time;
-        this.process = process;
-        this.value = value;
-    }
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-    public Long time() {
-        return time;
-    }
+@JsonSerialize(as = ImmutableInvokeRead.class)
+@JsonDeserialize(as = ImmutableInvokeRead.class)
+@JsonTypeName(OkRead.TYPE)
+@Value.Immutable
+public abstract class OkRead implements Event {
+    public static final String TYPE = "ok";
 
-    public Integer process() {
-        return process;
-    }
+    public abstract long time();
 
-    public Long value() {
-        return value;
-    }
+    public abstract int process();
 
-    public void accept(Visitor visitor) {
-        visitor.visit(this);
-    }
+    public abstract long value();
 
     @Override
-    public String toString() {
-        return String.format("Successful Read Response: Time=%d Process=%d Value=%d", time, process, value);
+    public void accept(Visitor visitor) {
+        visitor.visit(this);
     }
 }

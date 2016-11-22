@@ -15,5 +15,28 @@
  */
 package com.palantir.atlasdb.jepsen;
 
-public abstract class Event implements Visitable {
+import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import clojure.lang.Keyword;
+import one.util.streamex.EntryStream;
+
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+@JsonSubTypes({
+        @JsonSubTypes.Type(InvokeRead.class),
+        @JsonSubTypes.Type(OkRead.class)
+        })
+public interface Event {
+    static Event fromKeywordMap(Map<Keyword, ?> map) {
+        Map<String, Object> convertedMap = EntryStream.of(map)
+                .mapKeys(Keyword::getName)
+                .mapValues(value -> value instanceof Keyword ? ((Keyword) value).getName() : value)
+                .toMap();
+        return new ObjectMapper().convertValue(convertedMap, Event.class);
+    }
+
+    void accept(Visitor visitor);
 }

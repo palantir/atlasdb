@@ -15,15 +15,15 @@
  */
 package com.palantir.atlasdb.jepsen;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import clojure.lang.PersistentArrayMap;
-import clojure.lang.PersistentVector;
+import clojure.lang.Keyword;
 
 public final class TimestampChecker {
     private static final Logger log = LoggerFactory.getLogger(TimestampChecker.class);
@@ -31,59 +31,44 @@ public final class TimestampChecker {
     private TimestampChecker() {
     }
 
-    public static boolean checkClojureHistory(PersistentVector clojureHistory) {
-        History history = parse(clojureHistory);
-        if (history == null) {
-            return false;
-        }
+    public static boolean checkClojureHistory(List<Map<Keyword, ?>> clojureHistory) {
+        List<Event> events = parse(clojureHistory);
+        return events != null && checkHistory(events);
 
-        return checkHistory(history);
     }
 
-    private static History parse(PersistentVector clojureHistory) {
+    private static List<Event> parse(List<Map<Keyword, ?>> clojureHistory) {
         try {
-            List<ParsedMap> parsed = parseIntoJavaObjects(clojureHistory);
-            return parseIntoEvents(parsed);
+            return parseIntoEvents(clojureHistory);
         } catch (Exception e) {
             log.error("Failed to parse output from Jepsen : " + e);
             return null;
         }
     }
 
-    private static boolean checkHistory(History history) {
+    private static boolean checkHistory(List<Event> events) {
         try {
             MonotonicChecker monotonicChecker = new MonotonicChecker();
-            history.accept(monotonicChecker);
+            events.forEach(event -> event.accept(monotonicChecker));
+
             if (!monotonicChecker.valid()) {
                 log.error("Check of monotonicity fails:");
                 log.error(Arrays.toString(monotonicChecker.errors().toArray()));
                 return false;
             }
         } catch (Exception e) {
-            log.error("Errored during check: " + e);
+            log.error("An error occurred while checking the history", e);
             return false;
         }
 
-        log.info("Everything OK");
+        log.debug("Checking the history was successful");
         return true;
     }
 
-    private static History parseIntoEvents(List<ParsedMap> parsedHistory) {
-        History history = new History();
-        for (ParsedMap m : parsedHistory) {
-            history.parseAndAdd(m);
-        }
-        return history;
-    }
-
-    private static List<ParsedMap> parseIntoJavaObjects(PersistentVector history) {
-        List<ParsedMap> parsedHistory = new ArrayList();
-        for (Object e : history) {
-            PersistentArrayMap map = (PersistentArrayMap) e;
-            ParsedMap parsedMap = ParsedMap.create(map);
-            parsedHistory.add(parsedMap);
-        }
-        return parsedHistory;
+    private static List<Event> parseIntoEvents(List<Map<Keyword, ?>> history) {
+        return history.stream()
+                .map(Event::fromKeywordMap)
+                .collect(Collectors.toList());
     }
 }
 

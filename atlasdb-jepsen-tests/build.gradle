@@ -1,12 +1,18 @@
-apply from: "../gradle/shared.gradle"
+apply plugin: 'org.inferred.processors'
+
+apply from: "${rootProject.projectDir}/gradle/shared.gradle"
 
 dependencies {
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
     compile group: 'com.google.guava', name: 'guava'
+    compile group: 'one.util', name: 'streamex'
     compile group: 'org.clojure', name: 'clojure'
     compile group: 'org.slf4j', name: 'slf4j-api'
 
-    testCompile group: 'org.hamcrest', name: 'hamcrest-core'
-    testCompile group: 'org.hamcrest', name: 'hamcrest-library'
+    processor group: 'org.immutables', name: 'value'
+
+    testCompile group: 'org.assertj', name: 'assertj-core'
 }
 
 buildscript {

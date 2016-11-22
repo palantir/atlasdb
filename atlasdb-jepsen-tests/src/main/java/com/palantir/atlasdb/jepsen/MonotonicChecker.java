@@ -22,7 +22,7 @@ import java.util.Map;
 
 public class MonotonicChecker implements Visitor {
     boolean valid = true;
-    List<Event> errors = new ArrayList();
+    List<Event> errors = new ArrayList<>();
     Map<Integer, Last> lastPerProcess = new HashMap<>();
 
     private static class Last {
@@ -30,6 +30,7 @@ public class MonotonicChecker implements Visitor {
         Event lastEvent = null;
     }
 
+    @Override
     public void visit(OkRead event) {
         Integer process = event.process();
         lastPerProcess.putIfAbsent(process, new Last());
@@ -44,6 +45,7 @@ public class MonotonicChecker implements Visitor {
         last.lastEvent = event;
     }
 
+    @Override
     public void visit(InvokeRead event) {
     }
 
