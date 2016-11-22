@@ -62,6 +62,10 @@ develop
          - Oracle will not drop a table that already exists on  ``createTable`` calls when multiple AtlasDB clients make the call to create the same table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1243>`__)
 
+    *    - |improved|
+         - Generated code is now formatted for readability with the Google Java Formatter.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1250>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
