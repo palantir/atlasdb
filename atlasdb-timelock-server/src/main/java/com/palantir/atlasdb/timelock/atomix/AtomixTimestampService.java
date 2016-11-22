@@ -50,6 +50,10 @@ public class AtomixTimestampService implements TimestampService {
 
         long lastTimestampHandedOut = Futures.getUnchecked(timestamp.getAndAdd(numTimestampsRequested));
 
+        if (lastTimestampHandedOut < 0) {
+            timestamp.set(Long.MIN_VALUE);
+            throw new IllegalStateException("This timestamp service has been invalidated!");
+        }
         return TimestampRange.createInclusiveRange(
                 lastTimestampHandedOut + 1,
                 lastTimestampHandedOut + numTimestampsRequested);

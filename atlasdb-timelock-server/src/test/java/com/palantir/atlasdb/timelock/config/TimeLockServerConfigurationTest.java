@@ -33,6 +33,9 @@ public class TimeLockServerConfigurationTest {
             .addServers(ADDRESS)
             .build();
     private static final Set<String> CLIENTS = ImmutableSet.of("client1", "client2");
+    private static final Set<String> EMPTY_STRING_CLIENT_SET = ImmutableSet.of("");
+    private static final Set<String> INVALID_CLIENT_SET = ImmutableSet.of("cl!ent");
+    private static final Set<String> MIXED_CLIENT_SET = ImmutableSet.of("client1", "cl!ent");
 
     @Test
     public void shouldAddDefaultConfigurationIfNotIncluded() {
@@ -43,6 +46,24 @@ public class TimeLockServerConfigurationTest {
     @Test
     public void shouldRequireAtLeastOneClient() {
         assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of()))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void shouldThrowOnEmptyStringClientName() {
+        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, EMPTY_STRING_CLIENT_SET))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void shouldThrowOnInvalidClientName() {
+        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, INVALID_CLIENT_SET))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void shouldThrowIfAnyClientNameIsInvalid() {
+        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, MIXED_CLIENT_SET))
                 .isInstanceOf(IllegalStateException.class);
     }
 }

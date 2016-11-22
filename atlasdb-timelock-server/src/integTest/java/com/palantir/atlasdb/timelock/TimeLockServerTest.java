@@ -41,6 +41,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.timestamp.TimestampAdminService;
 import com.palantir.timestamp.TimestampService;
 
 import io.atomix.Atomix;
@@ -52,6 +53,7 @@ import io.dropwizard.testing.junit.DropwizardAppRule;
 
 public class TimeLockServerTest {
     private static final String NOT_FOUND_CODE = "404";
+    private static final String INTERNAL_SERVER_ERROR_CODE = "500";
     private static final String SERVICE_NOT_AVAILABLE_CODE = "503";
 
     private static final String CLIENT_1 = "test";
@@ -187,6 +189,68 @@ public class TimeLockServerTest {
         }
     }
 
+    @Test
+    public void timestampAdministrationServiceShouldThrowIfQueryingNonexistentClient() {
+        TimestampAdminService nonexistent = getTimestampAdministrationService(NONEXISTENT_CLIENT);
+        assertThatThrownBy(() -> nonexistent.fastForwardTimestamp(Long.MAX_VALUE))
+                .hasMessageContaining(NOT_FOUND_CODE);
+    }
+
+    @Test
+    public void timestampAdministrationServiceShouldThrowIfQueryingInvalidClient() {
+        TimestampAdminService invalid = getTimestampAdministrationService(NONEXISTENT_CLIENT);
+        assertThatThrownBy(() -> invalid.fastForwardTimestamp(Long.MAX_VALUE))
+                .hasMessageContaining(NOT_FOUND_CODE);
+    }
+
+    @Test
+    public void timestampAdministrationServiceInvalidationShouldBeNamespaced() {
+        TimestampService service1 = getTimestampService(CLIENT_1);
+        TimestampAdminService adminService1 = getTimestampAdministrationService(CLIENT_1);
+        TimestampService service2 = getTimestampService(CLIENT_2);
+
+        try {
+            adminService1.invalidateTimestamps();
+            assertThatThrownBy(service1::getFreshTimestamp).hasMessageContaining(INTERNAL_SERVER_ERROR_CODE);
+            service2.getFreshTimestamp();
+        } finally {
+            adminService1.fastForwardTimestamp(0L);
+        }
+    }
+
+    @Test
+    public void timestampAdministrationServiceFastForwardShouldBeNamespaced() {
+        TimestampService service1 = getTimestampService(CLIENT_1);
+        TimestampService service2 = getTimestampService(CLIENT_2);
+        TimestampAdminService adminService2 = getTimestampAdministrationService(CLIENT_2);
+
+        long service2OldTimestamp = service2.getFreshTimestamp();
+        try {
+            adminService2.fastForwardTimestamp(Long.MAX_VALUE);
+            long freshTimestamp = service1.getFreshTimestamp();
+            assertThat(freshTimestamp).isGreaterThanOrEqualTo(0L);
+        } finally {
+            adminService2.invalidateTimestamps();
+            adminService2.fastForwardTimestamp(service2OldTimestamp);
+        }
+    }
+
+    @Test
+    public void timestampAdministrationServiceNotUsableIfNotLeader() {
+        String leader = getLeaderId();
+        TimestampService service = getTimestampService(CLIENT_1);
+        TimestampAdminService adminService = getTimestampAdministrationService(CLIENT_1);
+        try {
+            long oldTimestamp = service.getFreshTimestamp();
+            long delta = 10000;
+            setLeaderId(null);
+            assertThatThrownBy(() -> adminService.fastForwardTimestamp(oldTimestamp + delta))
+                    .hasMessageContaining(SERVICE_NOT_AVAILABLE_CODE);
+        } finally {
+            setLeaderId(leader);
+        }
+    }
+
     @Nullable
     private String getLeaderId() {
         DistributedValue<String> currentLeaderId = DistributedValues.getLeaderId(atomixClient);
@@ -199,16 +263,21 @@ public class TimeLockServerTest {
     }
 
     private static RemoteLockService getLockService(String client) {
-        return AtlasDbHttpClients.createProxy(
-                NO_SSL,
-                String.format("http://localhost:%d/%s", APP.getLocalPort(), client),
-                RemoteLockService.class);
+        return createProxyForService(client, RemoteLockService.class);
     }
 
     private static TimestampService getTimestampService(String client) {
+        return createProxyForService(client, TimestampService.class);
+    }
+
+    private static TimestampAdminService getTimestampAdministrationService(String client) {
+        return createProxyForService(client, TimestampAdminService.class);
+    }
+
+    private static <T> T createProxyForService(String client, Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
                 NO_SSL,
                 String.format("http://localhost:%d/%s", APP.getLocalPort(), client),
-                TimestampService.class);
+                clazz);
     }
 }

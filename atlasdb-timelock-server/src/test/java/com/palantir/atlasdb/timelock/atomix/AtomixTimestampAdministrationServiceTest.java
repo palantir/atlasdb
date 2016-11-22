@@ -23,8 +23,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.palantir.timestamp.TimestampRange;
-
 import io.atomix.AtomixReplica;
 import io.atomix.catalyst.transport.Address;
 import io.atomix.catalyst.transport.local.LocalServerRegistry;
@@ -33,7 +31,7 @@ import io.atomix.copycat.server.storage.Storage;
 import io.atomix.copycat.server.storage.StorageLevel;
 import io.atomix.variables.DistributedLong;
 
-public class AtomixTimestampServiceTest {
+public class AtomixTimestampAdministrationServiceTest {
     private static final Address LOCAL_ADDRESS = new Address("localhost", 8700);
     private static final String CLIENT_KEY = "client";
 
@@ -45,6 +43,7 @@ public class AtomixTimestampServiceTest {
             .build();
 
     private AtomixTimestampService timestampService;
+    private AtomixTimestampAdminService administrationService;
 
     @BeforeClass
     public static void startAtomix() {
@@ -60,43 +59,49 @@ public class AtomixTimestampServiceTest {
     public void setupTimestampService() {
         DistributedLong distributedLong = DistributedValues.getTimestampForClient(ATOMIX_REPLICA, CLIENT_KEY);
         timestampService = new AtomixTimestampService(distributedLong);
+        administrationService = new AtomixTimestampAdminService(distributedLong);
     }
 
     @Test
-    public void timestampsShouldBeIncreasing() {
-        long ts1 = timestampService.getFreshTimestamp();
-        long ts2 = timestampService.getFreshTimestamp();
-
-        assertThat(ts1).isLessThan(ts2);
+    public void shouldNotIssueTimestampsFastForwardedPast() {
+        long oldValue = timestampService.getFreshTimestamp();
+        long delta = 10000L;
+        administrationService.fastForwardTimestamp(oldValue + delta);
+        long newValue = timestampService.getFreshTimestamp();
+        assertThat(newValue - oldValue).isGreaterThan(delta);
     }
 
     @Test
-    public void canRequestTimestampRange() {
-        int expectedNumTimestamps = 5;
-        TimestampRange range = timestampService.getFreshTimestamps(expectedNumTimestamps);
-
-        long actualNumTimestamps = range.getUpperBound() - range.getLowerBound() + 1;
-        assertThat(actualNumTimestamps)
-                .withFailMessage("Expected %d timestamps, got %d timestamps. (The returned range was: %d-%d)",
-                        expectedNumTimestamps, actualNumTimestamps, range.getLowerBound(), range.getUpperBound())
-                .isEqualTo(expectedNumTimestamps);
+    public void shouldDoNothingIfFastForwardingToThePast() {
+        long oldValue = timestampService.getFreshTimestamp();
+        long delta = 10000L;
+        administrationService.fastForwardTimestamp(oldValue - delta);
+        long newValue = timestampService.getFreshTimestamp();
+        assertThat(newValue).isGreaterThan(oldValue);
     }
 
     @Test
-    public void shouldThrowIfRequestingNegativeNumbersOfTimestamps() {
-        assertThatThrownBy(() -> timestampService.getFreshTimestamps(-1))
-                .isInstanceOf(IllegalArgumentException.class);
+    public void shouldThrowOnInvalidatedTimestampService() {
+        long oldValue = timestampService.getFreshTimestamp();
+        try {
+            administrationService.invalidateTimestamps();
+            assertThatThrownBy(timestampService::getFreshTimestamp).isInstanceOf(IllegalStateException.class);
+        } finally {
+            administrationService.fastForwardTimestamp(oldValue);
+        }
     }
 
     @Test
-    public void shouldThrowIfRequestingZeroTimestamps() {
-        assertThatThrownBy(() -> timestampService.getFreshTimestamps(0))
-                .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    public void shouldThrowIfRequestingTooManyTimestamps() {
-        assertThatThrownBy(() -> timestampService.getFreshTimestamps(AtomixTimestampService.MAX_GRANT_SIZE + 1))
-                .isInstanceOf(IllegalArgumentException.class);
+    public void canRevalidateServiceViaFastForward() {
+        long oldValue = timestampService.getFreshTimestamp();
+        try {
+            administrationService.invalidateTimestamps();
+            assertThatThrownBy(timestampService::getFreshTimestamp).isInstanceOf(IllegalStateException.class);
+            administrationService.fastForwardTimestamp(0L);
+            long newTimestamp = timestampService.getFreshTimestamp();
+            assertThat(newTimestamp).isGreaterThan(0L);
+        } finally {
+            administrationService.fastForwardTimestamp(oldValue);
+        }
     }
 }

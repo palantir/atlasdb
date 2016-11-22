@@ -13,17 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock;
+package com.palantir.atlasdb.config;
 
 import org.immutables.value.Value;
 
-import com.palantir.lock.LockService;
-import com.palantir.timestamp.TimestampAdminService;
-import com.palantir.timestamp.TimestampService;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
+@JsonDeserialize(as = ImmutableTimeLockClientConfig.class)
+@JsonSerialize(as = ImmutableTimeLockClientConfig.class)
 @Value.Immutable
-public interface TimeLockServices {
-    TimestampService getTimeService();
-    LockService getLockService();
-    TimestampAdminService getAdminTimeService();
+public abstract class TimeLockClientConfig {
+    public abstract ServerListConfig serverListConfig();
+
+    public abstract String client();
 }

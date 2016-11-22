@@ -40,6 +40,10 @@ public class AtlasDbConfigTest {
     private static final Optional<SslConfiguration> SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
     private static final Optional<SslConfiguration> OTHER_SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
     private static final Optional<SslConfiguration> NO_SSL_CONFIG = Optional.absent();
+    private static final TimeLockClientConfig TIME_LOCK_CLIENT_CONFIG = ImmutableTimeLockClientConfig.builder()
+            .serverListConfig(DEFAULT_SERVER_LIST)
+            .client("foo")
+            .build();
 
     @Test
     public void configWithNoLeaderOrLockIsValid() {
@@ -73,6 +77,15 @@ public class AtlasDbConfigTest {
         assertThat(config, not(nullValue()));
     }
 
+    @Test
+    public void remoteTimelockConfigIsValid() {
+        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG)
+                .timelock(TIME_LOCK_CLIENT_CONFIG)
+                .build();
+        assertThat(config, not(nullValue()));
+    }
+
     @Test(expected = IllegalStateException.class)
     public void leaderBlockNotPermittedWithLockAndTimestampBlocks() {
         ImmutableAtlasDbConfig.builder()
@@ -97,6 +110,54 @@ public class AtlasDbConfigTest {
         ImmutableAtlasDbConfig.builder()
                 .keyValueService(KVS_CONFIG)
                 .leader(LEADER_CONFIG)
+                .timestamp(DEFAULT_SERVER_LIST)
+                .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void leaderBlockNotPermittedWithTimelockBlock() {
+        ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG)
+                .leader(LEADER_CONFIG)
+                .timelock(TIME_LOCK_CLIENT_CONFIG)
+                .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void leaderBlockNotPermittedWithLockTimestampAndTimelockBlock() {
+        ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG)
+                .leader(LEADER_CONFIG)
+                .timelock(TIME_LOCK_CLIENT_CONFIG)
+                .lock(DEFAULT_SERVER_LIST)
+                .timestamp(DEFAULT_SERVER_LIST)
+                .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void timelockBlockNotPermittedWithLockAndTimestampBlock() {
+        ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG)
+                .timelock(TIME_LOCK_CLIENT_CONFIG)
+                .lock(DEFAULT_SERVER_LIST)
+                .timestamp(DEFAULT_SERVER_LIST)
+                .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void timelockBlockNotPermittedWithLockBlock() {
+        ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG)
+                .timelock(TIME_LOCK_CLIENT_CONFIG)
+                .lock(DEFAULT_SERVER_LIST)
+                .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void timelockBlockNotPermittedWithTimestampBlock() {
+        ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG)
+                .timelock(TIME_LOCK_CLIENT_CONFIG)
                 .timestamp(DEFAULT_SERVER_LIST)
                 .build();
     }
@@ -147,6 +208,16 @@ public class AtlasDbConfigTest {
                 .build();
         AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
         assertThat(withSsl.timestamp().get().sslConfiguration(), is(SSL_CONFIG));
+    }
+
+    @Test
+    public void addingFallbackSslAddsItToTimelockBlock() {
+        AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG)
+                .timelock(TIME_LOCK_CLIENT_CONFIG)
+                .build();
+        AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
+        assertThat(withSsl.timelock().get().serverListConfig().sslConfiguration(), is(SSL_CONFIG));
     }
 
     @Test
