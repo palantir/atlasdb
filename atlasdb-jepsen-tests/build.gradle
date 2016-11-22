@@ -1,3 +1,14 @@
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+    compile group: 'com.google.guava', name: 'guava'
+    compile group: 'org.clojure', name: 'clojure'
+    compile group: 'org.slf4j', name: 'slf4j-api'
+
+    testCompile group: 'org.hamcrest', name: 'hamcrest-core'
+    testCompile group: 'org.hamcrest', name: 'hamcrest-library'
+}
+
 buildscript {
     repositories {
         jcenter()
@@ -21,7 +32,9 @@ task composeBuild(type: Exec, dependsOn: 'prepareForJepsen') {
     commandLine project.dockerCompose.composeCommand('build', '--force-rm')
 }
 
-task test(type: Exec, dependsOn: 'composeBuild') {
+task jepsenTest(type: Exec, dependsOn: 'composeBuild') {
     environment = project.dockerCompose.environment
     commandLine project.dockerCompose.composeCommand('run', '--rm', 'jepsen')
 }
+
+test.dependsOn jepsenTest
