@@ -9,7 +9,7 @@ function checkDocsBuild {
   make html
 }
 
-CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
+CONTAINER_1=(':atlasdb-cassandra-integration-tests:check :atlasdb-jepsen-tests:check')
 
 CONTAINER_2=(':atlasdb-ete-tests:check')
 
@@ -38,7 +38,7 @@ fi
 
 case $CIRCLE_NODE_INDEX in
     0) ./gradlew $TEST_CONTAINER_ARGS check $CONTAINER_0_EXCLUDE_ARGS ;;
-    1) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_1[@]} ;;
+    1) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_1[@]} -x atlasdb-jepsen-tests:jepsenTest ;;
     2) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest ;;
     3) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_3[@]} ;;
     4) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_4[@]} ;;
