@@ -44,7 +44,7 @@ class OracleTableNameUnmapper {
                 public String load(String fullTableName) throws Exception {
                     SqlConnection conn = null;
                     try {
-                        conn = conns.getFresh();
+                        conn = conns.getNewUnsharedConnection();
                         AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
                                 "SELECT short_table_name "
                                         + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
