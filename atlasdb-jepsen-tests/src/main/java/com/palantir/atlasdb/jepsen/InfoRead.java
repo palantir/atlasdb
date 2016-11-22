@@ -22,17 +22,13 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-@JsonSerialize(as = ImmutableInvokeRead.class)
-@JsonDeserialize(as = ImmutableInvokeRead.class)
+@JsonSerialize(as = ImmutableInfoRead.class)
+@JsonDeserialize(as = ImmutableInfoRead.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonTypeName(InvokeRead.TYPE)
+@JsonTypeName(InfoRead.TYPE)
 @Value.Immutable
-public abstract class InvokeRead implements Event {
-    public static final String TYPE = "invoke";
-
-    public abstract Long time();
-
-    public abstract Integer process();
+public abstract class InfoRead implements Event {
+    public static final String TYPE = "info";
 
     @Override
     public void accept(Visitor visitor) {

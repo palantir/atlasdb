@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.jepsen;
 
 public interface Visitor {
-    void visit(OkRead event);
+    void visit(InfoRead event);
     void visit(InvokeRead event);
+    void visit(OkRead event);
 }

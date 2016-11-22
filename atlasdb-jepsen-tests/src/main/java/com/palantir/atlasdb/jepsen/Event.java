@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.jepsen;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -26,15 +27,17 @@ import one.util.streamex.EntryStream;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
+        @JsonSubTypes.Type(InfoRead.class),
         @JsonSubTypes.Type(InvokeRead.class),
         @JsonSubTypes.Type(OkRead.class)
         })
 public interface Event {
     static Event fromKeywordMap(Map<Keyword, ?> map) {
-        Map<String, Object> convertedMap = EntryStream.of(map)
+        Map<String, Object> convertedMap = new HashMap<>();
+        EntryStream.of(map)
                 .mapKeys(Keyword::getName)
-                .mapValues(value -> value instanceof Keyword ? ((Keyword) value).getName() : value)
-                .toMap();
+                .mapValues(value -> value != null && value instanceof Keyword ? ((Keyword) value).getName() : value)
+                .forKeyValue(convertedMap::put);
         return new ObjectMapper().convertValue(convertedMap, Event.class);
     }
 

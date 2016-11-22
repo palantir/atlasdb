@@ -17,12 +17,14 @@ package com.palantir.atlasdb.jepsen;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-@JsonSerialize(as = ImmutableInvokeRead.class)
-@JsonDeserialize(as = ImmutableInvokeRead.class)
+@JsonSerialize(as = ImmutableOkRead.class)
+@JsonDeserialize(as = ImmutableOkRead.class)
+@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeName(OkRead.TYPE)
 @Value.Immutable
 public abstract class OkRead implements Event {

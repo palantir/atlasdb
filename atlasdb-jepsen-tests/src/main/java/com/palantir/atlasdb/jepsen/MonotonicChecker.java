@@ -31,6 +31,14 @@ public class MonotonicChecker implements Visitor {
     }
 
     @Override
+    public void visit(InfoRead event) {
+    }
+
+    @Override
+    public void visit(InvokeRead event) {
+    }
+
+    @Override
     public void visit(OkRead event) {
         Integer process = event.process();
         lastPerProcess.putIfAbsent(process, new Last());
@@ -43,10 +51,6 @@ public class MonotonicChecker implements Visitor {
         }
         last.lastSeen = value;
         last.lastEvent = event;
-    }
-
-    @Override
-    public void visit(InvokeRead event) {
     }
 
     public boolean valid() {
