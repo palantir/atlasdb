@@ -55,15 +55,6 @@ public class ImportRenderer extends Renderer {
         return !importClasses.isEmpty();
     }
 
-    void renderImportJavaDoc() {
-        line("/**");
-        line(" * This exists to avoid unused import warnings");
-        for (String className : importsSortedBySimpleName()) {
-            line(" * {@link ", className, "}", "");
-        }
-        line(" */");
-    }
-
     private SortedSet<String> importsSortedByFullName() {
         ImmutableSortedSet.Builder<String> sortedImports = ImmutableSortedSet.naturalOrder();
         for (Class<?> clazz : imports) {

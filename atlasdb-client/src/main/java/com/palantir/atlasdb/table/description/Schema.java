@@ -42,6 +42,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
+import com.google.googlejavaformat.java.Formatter;
+import com.google.googlejavaformat.java.FormatterException;
+import com.google.googlejavaformat.java.RemoveUnusedImports;
+import com.google.googlejavaformat.java.RemoveUnusedImports.JavadocOnlyImports;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -344,7 +348,11 @@ public class Schema {
         FileWriter os = null;
         try {
             os = new FileWriter(outputFile);
-            os.write(code);
+            String withoutImports = RemoveUnusedImports.removeUnusedImports(code, JavadocOnlyImports.KEEP);
+            String formatted = new Formatter().formatSource(withoutImports);
+            os.write(formatted);
+        } catch (FormatterException e) {
+            throw new RuntimeException(e);
         } finally {
             if (os != null) {
                 os.close();

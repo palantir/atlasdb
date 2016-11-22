@@ -22,6 +22,7 @@ dependencies {
   }
   compile group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang
   compile group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
+  compile 'com.google.googlejavaformat:google-java-format:1.1'
   compile group: "com.googlecode.protobuf-java-format", name: "protobuf-java-format", version: "1.2"
   compile group: "com.google.protobuf", name: "protobuf-java", version: "2.6.0"
   compile group: 'com.netflix.feign', name: 'feign-jackson'
