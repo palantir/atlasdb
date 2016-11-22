@@ -27,6 +27,7 @@ import javax.ws.rs.ServiceUnavailableException;
 
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import io.atomix.group.LocalMember;
 import io.atomix.variables.DistributedValue;
@@ -64,7 +65,8 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        if (isLeader()) {
+        String currentLeaderId = getLeaderId();
+        if (isLeader(currentLeaderId)) {
             Object delegate = delegateRef.get();
             while (delegate == null) {
                 delegateRef.compareAndSet(null, delegateSupplier.get());
@@ -74,13 +76,13 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
         } else {
             clearDelegate();
             throw new ServiceUnavailableException(
-                    String.format("This node (%s) is not the leader (%s)", getLocalId(), getLeaderId()),
+                    String.format("This node (%s) is not the leader (%s)", getLocalId(), currentLeaderId),
                     0L);
         }
     }
 
-    private boolean isLeader() {
-        return Objects.equals(getLocalId(), getLeaderId());
+    private boolean isLeader(String currentLeaderId) {
+        return Objects.equals(getLocalId(), currentLeaderId);
     }
 
     private String getLocalId() {
@@ -88,7 +90,19 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
     }
 
     private String getLeaderId() {
-        return Futures.getUnchecked(leaderId.get());
+        try {
+            return Futures.getUnchecked(leaderId.get());
+        } catch (UncheckedExecutionException e) {
+            if (e.getCause() instanceof IOException) {
+                throw new ServiceUnavailableException(
+                        String.format(
+                                "Could not contact the cluster. Has this node (%s) been partitioned off?",
+                                getLocalId()),
+                        0L,
+                        e);
+            }
+            throw e;
+        }
     }
 
     private void clearDelegate() throws IOException {
