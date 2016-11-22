@@ -50,7 +50,7 @@ public class ConnectionSupplier implements SqlConnectionSupplier {
     }
 
     /**
-     * Responsibility of the consumer to close this connection when finished
+     * Responsibility of the consumer to close this connection when finished.
      */
     public SqlConnection getNewUnsharedConnection() {
         return delegate.get();
