@@ -12,25 +12,32 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class StreamTestWithHashIndexCleanupTask implements OnCleanupTask {
 
-    private final StreamTestTableFactory tables;
+  private final StreamTestTableFactory tables;
 
-    public StreamTestWithHashIndexCleanupTask(Namespace namespace) {
-        tables = StreamTestTableFactory.of(namespace);
-    }
+  public StreamTestWithHashIndexCleanupTask(Namespace namespace) {
+    tables = StreamTestTableFactory.of(namespace);
+  }
 
-    @Override
-    public boolean cellsCleanedUp(Transaction t, Set<Cell> cells) {
-        StreamTestWithHashStreamIdxTable usersIndex = tables.getStreamTestWithHashStreamIdxTable(t);
-        Set<StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow> rows = Sets.newHashSetWithExpectedSize(cells.size());
-        for (Cell cell : cells) {
-            rows.add(StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow.of((Long) ValueType.VAR_LONG.convertToJava(cell.getRowName(), 0)));
-        }
-        Multimap<StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow, StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxColumnValue> rowsInDb = usersIndex.getRowsMultimap(rows);
-        Set<Long> toDelete = Sets.newHashSetWithExpectedSize(rows.size() - rowsInDb.keySet().size());
-        for (StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow rowToDelete : Sets.difference(rows, rowsInDb.keySet())) {
-            toDelete.add(rowToDelete.getId());
-        }
-        StreamTestWithHashStreamStore.of(tables).deleteStreams(t, toDelete);
-        return false;
+  @Override
+  public boolean cellsCleanedUp(Transaction t, Set<Cell> cells) {
+    StreamTestWithHashStreamIdxTable usersIndex = tables.getStreamTestWithHashStreamIdxTable(t);
+    Set<StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow> rows =
+        Sets.newHashSetWithExpectedSize(cells.size());
+    for (Cell cell : cells) {
+      rows.add(
+          StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow.of(
+              (Long) ValueType.VAR_LONG.convertToJava(cell.getRowName(), 0)));
     }
+    Multimap<
+            StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow,
+            StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxColumnValue>
+        rowsInDb = usersIndex.getRowsMultimap(rows);
+    Set<Long> toDelete = Sets.newHashSetWithExpectedSize(rows.size() - rowsInDb.keySet().size());
+    for (StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow rowToDelete :
+        Sets.difference(rows, rowsInDb.keySet())) {
+      toDelete.add(rowToDelete.getId());
+    }
+    StreamTestWithHashStreamStore.of(tables).deleteStreams(t, toDelete);
+    return false;
+  }
 }
