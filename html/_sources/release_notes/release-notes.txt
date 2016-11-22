@@ -62,6 +62,10 @@ develop
          - Oracle will not drop a table that already exists on  ``createTable`` calls when multiple AtlasDB clients make the call to create the same table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1243>`__)
 
+    *    - |breaking|
+         - Our jackson version has been updated from 2.5.1 to 2.6.7 and dropwizard version from 0.8.2 to 0.9.3.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1209>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
