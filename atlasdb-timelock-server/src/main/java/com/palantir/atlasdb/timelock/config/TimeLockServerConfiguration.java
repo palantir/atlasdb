@@ -56,7 +56,6 @@ public class TimeLockServerConfiguration extends Configuration {
         clients.forEach(
                 client -> Preconditions.checkState(client.matches("[a-zA-Z0-9_-]+"),
                         String.format("Client names must consist of 1 or more alphanumeric characters, dashes or "
-                                + "underscores only; found '%s' which does not follow this", client))
-        );
+                                + "underscores only; found '%s' which does not follow this", client)));
     }
 }

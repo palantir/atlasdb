@@ -28,10 +28,10 @@ public class AtomixTimestampAdminService implements TimestampAdminService {
     }
 
     @Override
-    public void fastForwardTimestamp(long targetTimestamp) {
+    public void fastForwardTimestamp(long newMinimumTimestamp) {
         long currentTimestamp = Futures.getUnchecked(timestamp.get());
-        while (currentTimestamp < targetTimestamp) {
-            if (Futures.getUnchecked(timestamp.compareAndSet(currentTimestamp, targetTimestamp))) {
+        while (currentTimestamp < newMinimumTimestamp) {
+            if (Futures.getUnchecked(timestamp.compareAndSet(currentTimestamp, newMinimumTimestamp))) {
                 return;
             }
             currentTimestamp = Futures.getUnchecked(timestamp.get());

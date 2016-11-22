@@ -63,12 +63,12 @@ public class TimeLockResourceTest {
     }
 
     @Test
-    public void canGetExistingAdminTimeService() {
-        RESOURCE.getAdminTimeService(EXISTING_CLIENT);
+    public void canGetExistingTimeAdminService() {
+        RESOURCE.getTimeAdminService(EXISTING_CLIENT);
     }
 
     @Test(expected = NotFoundException.class)
-    public void throwWhenAdminTimeServiceDoesntExist() {
-        RESOURCE.getAdminTimeService(NON_EXISTING_CLIENT);
+    public void throwWhenTimeAdminServiceDoesntExist() {
+        RESOURCE.getTimeAdminService(NON_EXISTING_CLIENT);
     }
 }

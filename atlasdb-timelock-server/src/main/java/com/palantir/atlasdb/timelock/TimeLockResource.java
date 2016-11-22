@@ -44,7 +44,7 @@ public class TimeLockResource {
     }
 
     @Path("/timestamp-admin")
-    public TimestampAdminService getAdminTimeService(@PathParam("client") String client) {
+    public TimestampAdminService getTimeAdminService(@PathParam("client") String client) {
         return getTimeLockServicesForClient(client).getAdminTimeService();
     }
 
