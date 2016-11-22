@@ -79,8 +79,7 @@ public class MutuallyExclusiveSetLockTest {
             thread = createThread(mutuallyExclusiveSetLock, Arrays.asList("heyo"));
             thread.setDaemon(true);
             thread.start();
-            Thread.sleep(100);
-            Assert.assertFalse(thread.isAlive());
+            thread.join(60 * 1000);
         } finally {
             mutuallyExclusiveSetLock.unlock(lockOnObjects);
         }
