@@ -46,6 +46,7 @@ public class FastForwardTimestamp extends AbstractTimestampCommand {
         if (!(ts instanceof PersistentTimestampService)) {
             printer.error("Timestamp service must be of type {}, but yours is {}.  Exiting.",
                     PersistentTimestampService.class.toString(), ts.getClass().toString());
+            return 1;
         }
         PersistentTimestampService pts = (PersistentTimestampService) ts;
 
