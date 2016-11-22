@@ -31,9 +31,9 @@ import com.palantir.atlasdb.jepsen.ImmutableInvokeEvent;
 public abstract class InvokeEvent implements Event {
     public static final String TYPE = "invoke";
 
-    public abstract Long time();
+    public abstract long time();
 
-    public abstract Integer process();
+    public abstract int process();
 
     @Override
     public void accept(EventVisitor visitor) {
