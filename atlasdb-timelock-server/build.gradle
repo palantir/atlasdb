@@ -8,6 +8,10 @@ testSets {
     integTest
 }
 
+jacocoTestReport {
+    executionData test, integTest
+}
+
 check.dependsOn integTest
 
 dependencies {
