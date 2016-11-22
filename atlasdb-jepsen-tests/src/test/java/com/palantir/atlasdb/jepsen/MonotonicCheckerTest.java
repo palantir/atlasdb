@@ -22,6 +22,7 @@ import java.util.Arrays;
 import org.junit.Test;
 
 import com.palantir.atlasdb.jepsen.events.Event;
+import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
 
 public class MonotonicCheckerTest {
     private static final Long ZERO_TIME = 0L;
