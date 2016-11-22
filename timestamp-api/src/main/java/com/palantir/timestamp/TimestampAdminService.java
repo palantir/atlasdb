@@ -22,6 +22,15 @@ import javax.ws.rs.QueryParam;
 @Path("/timestamp-admin")
 public interface TimestampAdminService {
     /**
+     * Obtains an upper bound on the number of timestamps issued so far.
+     * At the time this method is called, no timestamp greater than the return value of this method should
+     * have been issued.
+     */
+    @POST // We don't want caching
+    @Path("/upper-bound")
+    long upperBoundTimestamp();
+
+    /**
      * Fast forwards the timestamp to the specified one so that no one can be served fresh timestamps prior
      * to it from now on.
      *
@@ -36,7 +45,6 @@ public interface TimestampAdminService {
 
     /**
      * Invalidates all future timestamps administered by the corresponding TimestampService.
-     * Timestamps are "invalid" in that they will be negative.
      */
     @POST
     @Path("/invalidate")
