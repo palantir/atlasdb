@@ -21,27 +21,32 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.jepsen.events.Event;
+import com.palantir.atlasdb.jepsen.events.EventVisitor;
+import com.palantir.atlasdb.jepsen.events.InfoEvent;
+import com.palantir.atlasdb.jepsen.events.InvokeEvent;
+import com.palantir.atlasdb.jepsen.events.OkEvent;
 
-public class MonotonicChecker implements Visitor {
+public class MonotonicChecker implements EventVisitor {
     private final List<Event> errors = new ArrayList<>();
-    private final Map<Integer, OkRead> latestEventPerProcess = new HashMap<>();
+    private final Map<Integer, OkEvent> latestEventPerProcess = new HashMap<>();
 
     private boolean valid = true;
 
     @Override
-    public void visit(InfoRead event) {
+    public void visit(InfoEvent event) {
     }
 
     @Override
-    public void visit(InvokeRead event) {
+    public void visit(InvokeEvent event) {
     }
 
     @Override
-    public void visit(OkRead event) {
+    public void visit(OkEvent event) {
         int process = event.process();
 
         if (latestEventPerProcess.containsKey(process)) {
-            OkRead previousEvent = latestEventPerProcess.get(process);
+            OkEvent previousEvent = latestEventPerProcess.get(process);
             if (event.value() <= previousEvent.value()) {
                 valid = false;
                 errors.add(previousEvent);

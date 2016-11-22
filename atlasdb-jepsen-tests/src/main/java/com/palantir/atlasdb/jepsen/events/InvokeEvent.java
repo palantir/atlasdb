@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.jepsen;
+package com.palantir.atlasdb.jepsen.events;
 
 import org.immutables.value.Value;
 
@@ -21,17 +21,22 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.jepsen.ImmutableInvokeEvent;
 
-@JsonSerialize(as = ImmutableInfoRead.class)
-@JsonDeserialize(as = ImmutableInfoRead.class)
+@JsonSerialize(as = ImmutableInvokeEvent.class)
+@JsonDeserialize(as = ImmutableInvokeEvent.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonTypeName(InfoRead.TYPE)
+@JsonTypeName(InvokeEvent.TYPE)
 @Value.Immutable
-public abstract class InfoRead implements Event {
-    public static final String TYPE = "info";
+public abstract class InvokeEvent implements Event {
+    public static final String TYPE = "invoke";
+
+    public abstract Long time();
+
+    public abstract Integer process();
 
     @Override
-    public void accept(Visitor visitor) {
+    public void accept(EventVisitor visitor) {
         visitor.visit(this);
     }
 }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.jepsen;
+package com.palantir.atlasdb.jepsen.events;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,9 +27,9 @@ import one.util.streamex.EntryStream;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(InfoRead.class),
-        @JsonSubTypes.Type(InvokeRead.class),
-        @JsonSubTypes.Type(OkRead.class)
+        @JsonSubTypes.Type(InfoEvent.class),
+        @JsonSubTypes.Type(InvokeEvent.class),
+        @JsonSubTypes.Type(OkEvent.class)
         })
 public interface Event {
     static Event fromKeywordMap(Map<Keyword, ?> map) {
@@ -41,5 +41,5 @@ public interface Event {
         return new ObjectMapper().convertValue(convertedMap, Event.class);
     }
 
-    void accept(Visitor visitor);
+    void accept(EventVisitor visitor);
 }

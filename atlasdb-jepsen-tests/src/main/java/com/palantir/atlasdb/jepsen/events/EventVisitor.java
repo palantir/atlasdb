@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.jepsen;
+package com.palantir.atlasdb.jepsen.events;
 
-public interface Visitor {
-    void visit(InfoRead event);
-    void visit(InvokeRead event);
-    void visit(OkRead event);
+public interface EventVisitor {
+    void visit(InfoEvent event);
+    void visit(InvokeEvent event);
+    void visit(OkEvent event);
 }

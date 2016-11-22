@@ -15,13 +15,14 @@
  */
 package com.palantir.atlasdb.jepsen;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.palantir.atlasdb.jepsen.events.Event;
 
 import clojure.lang.Keyword;
 
@@ -32,16 +33,18 @@ public final class TimestampChecker {
     }
 
     public static boolean checkClojureHistory(List<Map<Keyword, ?>> clojureHistory) {
-        List<Event> events = parse(clojureHistory);
+        List<Event> events = convertClojureHistoryToEventList(clojureHistory);
         return events != null && checkHistory(events);
 
     }
 
-    private static List<Event> parse(List<Map<Keyword, ?>> clojureHistory) {
+    private static List<Event> convertClojureHistoryToEventList(List<Map<Keyword, ?>> clojureHistory) {
         try {
-            return parseIntoEvents(clojureHistory);
+            return clojureHistory.stream()
+                    .map(Event::fromKeywordMap)
+                    .collect(Collectors.toList());
         } catch (Exception e) {
-            log.error("Failed to parse output from Jepsen : " + e);
+            log.error("Failed to parse output from Jepsen: ", e);
             return null;
         }
     }
@@ -52,8 +55,7 @@ public final class TimestampChecker {
             events.forEach(event -> event.accept(monotonicChecker));
 
             if (!monotonicChecker.valid()) {
-                log.error("Check of monotonicity fails:");
-                log.error(Arrays.toString(monotonicChecker.errors().toArray()));
+                log.error("Check of monotonicity failed: {}", monotonicChecker.errors());
                 return false;
             }
         } catch (Exception e) {
@@ -65,11 +67,6 @@ public final class TimestampChecker {
         return true;
     }
 
-    private static List<Event> parseIntoEvents(List<Map<Keyword, ?>> history) {
-        return history.stream()
-                .map(Event::fromKeywordMap)
-                .collect(Collectors.toList());
-    }
 }
 
 

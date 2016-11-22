@@ -21,6 +21,8 @@ import java.util.Arrays;
 
 import org.junit.Test;
 
+import com.palantir.atlasdb.jepsen.events.Event;
+
 public class MonotonicCheckerTest {
     private static final Long ZERO_TIME = 0L;
     private static final int PROCESS_0 = 0;
@@ -36,12 +38,12 @@ public class MonotonicCheckerTest {
 
     @Test
     public void shouldFailOnDecreasingValueEvents() {
-        Event event1 = ImmutableOkRead.builder()
+        Event event1 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_0)
                 .value(1L)
                 .build();
-        Event event2 = ImmutableOkRead.builder()
+        Event event2 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_0)
                 .value(0L)
@@ -55,12 +57,12 @@ public class MonotonicCheckerTest {
 
     @Test
     public void shouldFailOnEqualEntries() {
-        Event event1 = ImmutableOkRead.builder()
+        Event event1 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_0)
                 .value(0L)
                 .build();
-        Event event2 = ImmutableOkRead.builder()
+        Event event2 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_0)
                 .value(0L)
@@ -74,22 +76,22 @@ public class MonotonicCheckerTest {
 
     @Test
     public void shouldPassOnTwoProcessesOverlapping() {
-        Event event1 = ImmutableOkRead.builder()
+        Event event1 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_0)
                 .value(1L)
                 .build();
-        Event event2 = ImmutableOkRead.builder()
+        Event event2 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_1)
                 .value(2L)
                 .build();
-        Event event3 = ImmutableOkRead.builder()
+        Event event3 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_0)
                 .value(4L)
                 .build();
-        Event event4 = ImmutableOkRead.builder()
+        Event event4 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_1)
                 .value(3L)
