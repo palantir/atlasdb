@@ -1,0 +1,36 @@
+apply from: "../gradle/shared.gradle"
+
+apply plugin: 'com.palantir.java-distribution'
+apply plugin: 'org.inferred.processors'
+apply plugin: 'org.unbroken-dome.test-sets'
+
+testSets {
+    integTest
+}
+
+check.dependsOn integTest
+
+dependencies {
+    compile project(":timestamp-api")
+    compile project(":lock-impl")
+
+    compile group: 'com.palantir.remoting1', name: 'jersey-servers'
+    compile group: 'com.palantir.remoting1', name: 'ssl-config'
+    compile group: 'io.atomix', name: 'atomix-all'
+    compile group: 'io.dropwizard', name: 'dropwizard-core'
+
+    processor group: 'org.immutables', name: 'value'
+
+    testCompile project(':atlasdb-config')
+
+    testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'org.mockito', name: 'mockito-core'
+
+    integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing'
+}
+
+distribution {
+    serviceName 'atlasdb-timelock-server'
+    mainClass 'com.palantir.atlasdb.timelock.TimeLockServer'
+    args 'server', 'var/conf/timelock.yml'
+}
