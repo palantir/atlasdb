@@ -42,6 +42,21 @@ develop
     *    - Type
          - Change
 
+    *    - |deprecated|
+         - ``GenericStreamStore.loadStream`` has been deprecated. Use ``loadSingleStream``, which returns an
+           ``Optional<InputStream>``, instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1265>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.25.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
     *    - |new|
          - Returned `RemotingKeyValueService` and associated remoting classes to the AtlasDB code base.  These now live
            in `atlasdb-remoting`.  This KVS will pass remote calls to a local delegate KVS.
