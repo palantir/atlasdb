@@ -17,8 +17,10 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.junit.After;
 
+import com.google.common.base.Optional;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.PostgresDbTimestampBoundStore;
+import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTest;
 import com.palantir.timestamp.TimestampBoundStore;
 
@@ -33,8 +35,9 @@ public class PostgresDbTimestampBoundStoreTest extends AbstractDbTimestampBoundS
     @Override
     protected TimestampBoundStore createTimestampBoundStore() {
         kvs = ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
-        return PostgresDbTimestampBoundStore.create(
+        return new InDbTimestampBoundStore(
                 kvs.getConnectionManager(),
-                DbkvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
+                AtlasDbConstants.TIMESTAMP_TABLE,
+                Optional.of(DbkvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix()));
     }
 }

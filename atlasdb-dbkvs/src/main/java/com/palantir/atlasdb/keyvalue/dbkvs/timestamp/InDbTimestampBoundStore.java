@@ -18,14 +18,19 @@ package com.palantir.atlasdb.keyvalue.dbkvs.timestamp;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
 import org.apache.commons.dbutils.QueryRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
@@ -34,7 +39,8 @@ import com.palantir.nexus.db.pool.RetriableTransactions;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
-abstract class AbstractDbTimestampBoundStore implements TimestampBoundStore {
+public class InDbTimestampBoundStore implements TimestampBoundStore {
+    private static final Logger log = LoggerFactory.getLogger(InDbTimestampBoundStore.class);
     ConnectionManager connManager;
     private final String tablePrefix;
     TableReference timestampTable;
@@ -45,14 +51,11 @@ abstract class AbstractDbTimestampBoundStore implements TimestampBoundStore {
     @GuardedBy("this")
     private Long currentLimit = null;
 
-    abstract void createTimestampTable(Connection connection) throws SQLException;
-
-    protected AbstractDbTimestampBoundStore(ConnectionManager connManager,
-            String tablePrefix,
-            TableReference timestampTable) {
+    public InDbTimestampBoundStore(ConnectionManager connManager,
+            TableReference timestampTable, Optional<String> tablePrefix) {
         this.connManager = Preconditions.checkNotNull(connManager, "connectionManager is required");
-        this.tablePrefix = tablePrefix;
         this.timestampTable = Preconditions.checkNotNull(timestampTable, "timestampTable is required");
+        this.tablePrefix = tablePrefix.isPresent() ? tablePrefix.get() : "";
     }
 
     protected void init() {
@@ -62,6 +65,30 @@ abstract class AbstractDbTimestampBoundStore implements TimestampBoundStore {
             throw PalantirSqlException.create(error);
         }
     }
+
+    public void createTimestampTable(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            if (dbType.equals(DBType.ORACLE)) {
+                createTimestampTableIgnoringAlreadyExistsError(statement);
+            } else {
+                statement.execute(String.format("CREATE TABLE IF NOT EXISTS %s ( last_allocated int8 NOT NULL )",
+                        prefixedTimestampTableName()));
+            }
+        }
+    }
+
+    private void createTimestampTableIgnoringAlreadyExistsError(Statement statement) throws SQLException {
+        try {
+            statement.execute(String.format("CREATE TABLE %s ( last_allocated NUMBER(38) NOT NULL )",
+                    prefixedTimestampTableName()));
+        } catch (SQLException e) {
+            if (!e.getMessage().contains(OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR)) {
+                log.error("Error occurred creating the Oracle timestamp table", e);
+                throw e;
+            }
+        }
+    }
+
 
     private interface Operation {
         long run(Connection connection, @Nullable Long oldLimit) throws SQLException;
