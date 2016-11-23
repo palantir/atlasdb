@@ -32,6 +32,8 @@ import com.palantir.timestamp.TimestampInvalidator;
 
 public class PostgresDbTimestampInvalidator implements TimestampInvalidator {
     private static final Logger log = LoggerFactory.getLogger(PostgresDbTimestampInvalidator.class);
+    public static final String TIMESTAMP_RELATION_NOT_EXISTS_MESSAGE =
+            String.format("relation \"%s\" does not exist", AtlasDbConstants.TIMESTAMP_TABLE);
     public static final String TIMESTAMP_COLUMN_NOT_EXISTS_MESSAGE =
             String.format("column \"%s\" does not exist", PostgresDbTimestampBoundStore.TIMESTAMP_COLUMN_NAME);
 
@@ -61,6 +63,8 @@ public class PostgresDbTimestampInvalidator implements TimestampInvalidator {
             if (e.getMessage().contains(TIMESTAMP_COLUMN_NOT_EXISTS_MESSAGE)) {
                 // This is fine. The table was already upgraded.
                 log.info("Tried to invalidate the postgres timestamp table a second time.");
+            } else if (e.getMessage().contains(TIMESTAMP_RELATION_NOT_EXISTS_MESSAGE)) {
+                log.info("Did not invalidate the postgres timestamp table, as it didn't exist.");
             }
             throw Throwables.propagate(e);
         }

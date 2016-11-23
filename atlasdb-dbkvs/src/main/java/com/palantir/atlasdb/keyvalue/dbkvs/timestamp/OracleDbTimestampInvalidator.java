@@ -60,8 +60,11 @@ public class OracleDbTimestampInvalidator implements TimestampInvalidator {
             if (e.getMessage().contains(OracleErrorConstants.ORACLE_DUPLICATE_COLUMNS_ERROR)) {
                 // This is fine. The table was already upgraded.
                 log.info("Tried to invalidate the Oracle timestamp table a second time.");
+            } else if (e.getMessage().contains(OracleErrorConstants.ORACLE_NOT_EXISTS_ERROR)) {
+                log.info("We didn't invalidate the Oracle timestamp table, because it didn't exist.");
+            } else {
+                throw Throwables.propagate(e);
             }
-            throw Throwables.propagate(e);
         }
     }
 }
