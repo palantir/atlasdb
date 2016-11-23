@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.schema.stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.fail;
@@ -30,6 +32,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -108,16 +111,10 @@ public class StreamTest extends AtlasDbTestCase {
         final long streamId = txManager.runTaskWithRetry(new TransactionTask<Long, Exception>() {
             @Override
             public Long execute(Transaction t) throws Exception {
-                byte[] data = PtBytes.toBytes("streamed");
                 Sha256Hash hash = Sha256Hash.computeHash(data);
                 byte[] reference = "ref".getBytes();
-                long streamId = defaultStore.getByHashOrStoreStreamAndMarkAsUsed(t, hash, new ByteArrayInputStream(data), reference);
-                try {
-                    defaultStore.loadStream(t, 1L).read(data, 0, data.length);
-                } catch (NoSuchElementException e) {
-                    // expected
-                }
-                return streamId;
+
+                return defaultStore.getByHashOrStoreStreamAndMarkAsUsed(t, hash, new ByteArrayInputStream(data), reference);
             }
         });
         txManager.runTaskWithRetry(new TransactionTask<Void, Exception>() {
@@ -126,6 +123,19 @@ public class StreamTest extends AtlasDbTestCase {
                 Assert.assertEquals(data.length, defaultStore.loadStream(t, streamId).read(data, 0, data.length));
                 return null;
             }
+        });
+    }
+
+    @Test
+    public void testLoadStreamWithWrongId() throws Exception {
+        final byte[] data = PtBytes.toBytes("streamed");
+        txManager.runTaskWithRetry((TransactionTask<Void, Exception>) t -> {
+            Sha256Hash hash = Sha256Hash.computeHash(data);
+            byte[] reference = "ref".getBytes();
+            defaultStore.getByHashOrStoreStreamAndMarkAsUsed(t, hash, new ByteArrayInputStream(data), reference);
+
+            assertThat(defaultStore.loadSingleStream(t, 1L), is(Optional.empty()));
+            return null;
         });
     }
 
