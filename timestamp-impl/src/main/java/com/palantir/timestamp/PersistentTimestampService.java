@@ -65,7 +65,18 @@ public class PersistentTimestampService implements TimestampService {
         return handedOut;
     }
 
-    @Override
+    /**
+     * Fast forwards the timestamp to the specified one so that no one can be served fresh timestamps prior
+     * to it from now on.
+     *
+     * Sets the upper limit in the TimestampBoundStore as well as increases the minimum timestamp that can
+     * be allocated from this instantiation of the TimestampService moving forward.
+     *
+     * The caller of this is responsible for not using any of the fresh timestamps previously served to it,
+     * and must call getFreshTimestamps() to ensure it is using timestamps after the fastforward point.
+     *
+     * @param newMinimumTimestamp
+     */
     public void fastForwardTimestamp(long newMinimumTimestamp) {
         availableTimestamps.fastForwardTo(newMinimumTimestamp);
     }

@@ -86,10 +86,5 @@ public class RateLimitedTimestampServiceTest {
             timestampsCount.addAndGet(numTimestampsRequested);
             return delegate.getFreshTimestamps(numTimestampsRequested);
         }
-
-        @Override
-        public void fastForwardTimestamp(long newMinimumTimestamp) {
-            delegate.fastForwardTimestamp(newMinimumTimestamp);
-        }
     }
 }

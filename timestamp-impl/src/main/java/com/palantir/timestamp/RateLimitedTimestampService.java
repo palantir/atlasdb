@@ -145,11 +145,6 @@ public class RateLimitedTimestampService implements TimestampService {
         return delegate.getFreshTimestamps(numTimestampsRequested);
     }
 
-    @Override
-    public void fastForwardTimestamp(long newMinimumTimestamp) {
-        throw new UnsupportedOperationException(this.getClass().getName() + " does not support fast forwarding");
-    }
-
     private synchronized boolean populateBatchAndInstallNewBatch(TimestampHolder batch) {
         sleepForRateLimiting();
 

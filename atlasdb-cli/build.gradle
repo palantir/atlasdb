@@ -14,5 +14,6 @@ dependencies {
     runtime project(':atlasdb-rocksdb')
 
     testCompile project(':atlasdb-rocksdb')
-    testCompile group: 'org.assertj', name: 'assertj-core', version: libVersions.assertj
+    testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'org.mockito', name: 'mockito-core'
 }
