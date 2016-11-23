@@ -75,7 +75,9 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting.ssl.SslConfiguration;
 import com.palantir.remoting.ssl.SslSocketFactories;
 import com.palantir.timestamp.DebugLogger;
+import com.palantir.timestamp.TimestampAdminService;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.migration.TimestampMigrator;
 
 public final class TransactionManagers {
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
@@ -130,6 +132,16 @@ public final class TransactionManagers {
                 env,
                 () -> LockServiceImpl.create(lockServerOptions),
                 atlasFactory::getTimestampService);
+
+        // Upgrade if necessary here!!!
+        if (config.timelock().isPresent()) {
+            TimestampAdminService timelockAdminService =
+                    AtlasDbHttpClients.createProxyWithFailover(createSslSocketFactory(config.timelock().get().serverListConfig().sslConfiguration()),
+                            getNamespacedConfig(config.timelock().get()).servers(), TimestampAdminService.class);
+            TimestampMigrator migrator = new TimestampMigrator(atlasFactory.getTimestampAdminService(),
+                    timelockAdminService);
+            migrator.migrateTimestamps(); // !
+        }
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);

@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.timestamp.DebugLogger;
+import com.palantir.timestamp.TimestampAdminService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.debug.ThreadDumps;
 
@@ -39,6 +40,7 @@ public class ServiceDiscoveringAtlasSupplier {
     private final Optional<LeaderConfig> leaderConfig;
     private final Supplier<KeyValueService> keyValueService;
     private final Supplier<TimestampService> timestampService;
+    private final Supplier<TimestampAdminService> timestampAdminService;
 
     public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
         this.config = config;
@@ -53,6 +55,7 @@ public class ServiceDiscoveringAtlasSupplier {
                 ));
         keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(config, leaderConfig));
         timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
+        timestampAdminService = () -> atlasFactory.createTimestampAdminService(getKeyValueService());
     }
 
     public KeyValueService getKeyValueService() {
@@ -82,6 +85,10 @@ public class ServiceDiscoveringAtlasSupplier {
         }
 
         return timestampService.get();
+    }
+
+    public TimestampAdminService getTimestampAdminService() {
+        return timestampAdminService.get();
     }
 
     private Predicate<AtlasDbFactory> producesCorrectType() {
