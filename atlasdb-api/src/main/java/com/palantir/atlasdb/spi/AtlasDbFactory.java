@@ -18,6 +18,7 @@ package com.palantir.atlasdb.spi;
 import com.google.common.base.Optional;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.timestamp.TimestampAdminService;
 import com.palantir.timestamp.TimestampService;
 
 public interface AtlasDbFactory {
@@ -27,4 +28,7 @@ public interface AtlasDbFactory {
 
     TimestampService createTimestampService(KeyValueService rawKvs);
 
+    default TimestampAdminService createTimestampAdminService(KeyValueService rawKvs) {
+        throw new UnsupportedOperationException("This AtlasDbFactory doesn't support timestamp admin services!");
+    }
 }
