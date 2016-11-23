@@ -120,7 +120,6 @@ public class CassandraTimestampAdminService implements TimestampAdminService {
         });
     }
 
-
     @Override
     public void invalidateTimestamps() {
         rawKvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
