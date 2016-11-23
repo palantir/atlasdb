@@ -31,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OracleDbTableFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.db.oracle.JdbcHandler;
+import com.palantir.db.oracle.NopJdbcHandler;
 
 @JsonDeserialize(as = ImmutableOracleDdlConfig.class)
 @JsonSerialize(as = ImmutableOracleDdlConfig.class)
@@ -39,7 +40,9 @@ import com.palantir.db.oracle.JdbcHandler;
 public abstract class OracleDdlConfig extends DdlConfig {
     public static final String TYPE = "oracle";
 
-    public abstract JdbcHandler jdbcHandler();
+    public JdbcHandler jdbcHandler() {
+        return new NopJdbcHandler();
+    }
 
     @Value.Default
     public String singleOverflowTable() {

@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -124,6 +125,34 @@ public final class TransactionManagers {
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
+
+//        TimestampInvalidator invalidator = new CassandraTimestampInvalidator(((CassandraKeyValueService) rawKvs));
+//        invalidator.invalidateTimestampTable();
+//
+//        TimestampAdminService intrinsicService = new IntrinsicTimestampAdminService(
+//                ((PersistentTimestampService) createRawEmbeddedServices(env, null,
+//                        atlasFactory::getTimestampService).time()),
+//                invalidator);
+
+        try {
+            rawKvs.getClass()
+                    .getMethod("getInvalidator")
+                    .invoke(rawKvs)
+                    .getClass()
+                    .getMethod("invalidateTimestampTable")
+                    .invoke(rawKvs.getClass()
+                            .getMethod("getInvalidator")
+                            .invoke(rawKvs));
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+        //        TimestampInvalidator invalidator = atlasFactory.();
+//        invalidator.invalidateTimestampTable();
 
         LockAndTimestampServices lts = createLockAndTimestampServices(
                 config,

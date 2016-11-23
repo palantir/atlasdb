@@ -21,6 +21,7 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.OracleDbTimestampInvalidator;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.nexus.db.monitoring.timer.SqlTimer;
 import com.palantir.nexus.db.monitoring.timer.SqlTimers;
@@ -43,6 +44,10 @@ public class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService {
         SqlConnectionSupplier sqlConnSupplier = getSimpleTimedSqlConnectionSupplier(connSupplier);
 
         return new ConnectionManagerAwareDbKvs(DbKvs.create(config, sqlConnSupplier), connManager);
+    }
+
+    public OracleDbTimestampInvalidator getInvalidator() {
+        return new OracleDbTimestampInvalidator(this);
     }
 
     private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(

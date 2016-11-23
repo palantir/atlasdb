@@ -13,14 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs;
+package com.palantir.timestamp;
 
-public final class OracleErrorConstants {
-    private OracleErrorConstants() {
-        //utility class
-    }
-
-    public static final String ORACLE_ALREADY_EXISTS_ERROR = "ORA-00955";
-    public static final String ORACLE_DUPLICATE_COLUMNS_ERROR = "ORA-00957";
-    public static final String ORACLE_NOT_EXISTS_ERROR = "ORA-00942";
+public interface TimestampInvalidator {
+    void invalidateTimestampTable();
 }

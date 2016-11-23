@@ -29,6 +29,7 @@ import com.palantir.nexus.db.pool.ConnectionManager;
 
 public final class OracleDbTimestampBoundStore extends AbstractDbTimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(OracleDbTimestampBoundStore.class);
+    public static final String TIMESTAMP_COLUMN_NAME = "last_allocated";
 
     public static OracleDbTimestampBoundStore create(ConnectionManager connManager, String tablePrefix) {
         OracleDbTimestampBoundStore oracleDbTimestampBoundStore = new OracleDbTimestampBoundStore(
@@ -55,7 +56,7 @@ public final class OracleDbTimestampBoundStore extends AbstractDbTimestampBoundS
 
     private void createTimestampTableIgnoringAlreadyExistsError(Statement statement) throws SQLException {
         try {
-            statement.execute(String.format("CREATE TABLE %s ( last_allocated NUMBER(38) NOT NULL )",
+            statement.execute(String.format("CREATE TABLE %s ( " + TIMESTAMP_COLUMN_NAME + " NUMBER(38) NOT NULL )",
                     prefixedTimestampTableName()));
         } catch (SQLException e) {
             if (!e.getMessage().contains(OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR)) {
