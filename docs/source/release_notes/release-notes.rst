@@ -31,6 +31,12 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+develop
+=======
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.25.0
 =======
 
@@ -42,7 +48,7 @@ v0.25.0
          - Change
 
     *    - |new|
-         - ConnectionSupplier consumers can now choose to receive a brand new unshared connection.
+         - Dbkvs: ConnectionSupplier consumers can now choose to receive a brand new unshared connection.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1258>`__)
 
     *    - |new|
@@ -61,7 +67,7 @@ v0.25.0
     *    - |improved|
          - Better support for AtlasDB clients running behind load balancers. In particular, if an AtlasDB client falls down and
            its load balancer responds with "503: Service Unavailable", the request will be attempted on other clients rather than aborting.
-          (`Pull Request <https://github.com/palantir/atlasdb/pull/1175>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1175>`__)
 
     *    - |fixed|
          - Oracle will not drop a table that already exists on  ``createTable`` calls when multiple AtlasDB clients make the call to create the same table.
@@ -72,7 +78,7 @@ v0.25.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1215>`__)
 
     *    - |breaking|
-         - Our jackson version has been updated from 2.5.1 to 2.6.7 and dropwizard version from 0.8.2 to 0.9.3.
+         - Our Jackson version has been updated from 2.5.1 to 2.6.7 and Dropwizard version from 0.8.2 to 0.9.3.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1209>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
