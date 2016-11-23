@@ -29,6 +29,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -85,18 +86,20 @@ public class CassandraTimestampAdminService implements TimestampAdminService {
 
     @Override
     public void fastForwardTimestamp(@QueryParam("newMinimum") long newMinimumTimestamp) {
-        if (!tableIsOk()) {
+        if (!timestampTableIsOk()) {
             repairTable();
         }
         advanceTableToTimestamp(newMinimumTimestamp);
     }
 
-    private boolean tableIsOk() {
+    @VisibleForTesting
+    boolean timestampTableIsOk() {
         byte[] persistedMetadata = rawKvs.getMetadataForTable(AtlasDbConstants.TIMESTAMP_TABLE);
         return Arrays.equals(persistedMetadata, CassandraTimestampConstants.TIMESTAMP_TABLE_METADATA.persistToBytes());
     }
 
-    private void repairTable() {
+    @VisibleForTesting
+    void repairTable() {
         rawKvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
         rawKvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE,
                 CassandraTimestampConstants.TIMESTAMP_TABLE_METADATA.persistToBytes());
@@ -145,7 +148,8 @@ public class CassandraTimestampAdminService implements TimestampAdminService {
         return mutation;
     }
 
-    private Column makeBogusColumn() {
+    @VisibleForTesting
+    Column makeBogusColumn() {
         Column column = new Column();
         column.setName(CassandraTimestampUtils.getColumnName());
         column.setValue(new byte[0]);
