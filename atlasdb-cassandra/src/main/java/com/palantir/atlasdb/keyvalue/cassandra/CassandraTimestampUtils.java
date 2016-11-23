@@ -17,9 +17,16 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
 
+import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Column;
+import org.apache.cassandra.thrift.ColumnOrSuperColumn;
+import org.apache.cassandra.thrift.ColumnPath;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.NotFoundException;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.common.base.Throwables;
 
 public class CassandraTimestampUtils {
     private CassandraTimestampUtils() {
@@ -44,4 +51,20 @@ public class CassandraTimestampUtils {
     public static ByteBuffer getRowName() {
         return ByteBuffer.wrap(PtBytes.toBytes(CassandraTimestampConstants.ROW_AND_COLUMN_NAME));
     }
+
+    public static ColumnOrSuperColumn readCassandraTimestamp(Cassandra.Client client) {
+        ByteBuffer rowName = CassandraTimestampUtils.getRowName();
+        ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
+        columnPath.setColumn(CassandraTimestampUtils.getColumnName());
+        ColumnOrSuperColumn result;
+        try {
+            result = client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM);
+        } catch (NotFoundException e) {
+            result = null;
+        } catch (Exception e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+        return result;
+    }
+
 }

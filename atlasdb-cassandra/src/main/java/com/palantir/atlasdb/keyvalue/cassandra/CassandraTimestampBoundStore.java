@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.nio.ByteBuffer;
 import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.GuardedBy;
@@ -24,9 +23,7 @@ import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.ColumnPath;
 import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,17 +67,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         return clientPool.runWithRetry(new FunctionCheckedException<Client, Long, RuntimeException>() {
             @Override
             public Long apply(Client client) {
-                ByteBuffer rowName = CassandraTimestampUtils.getRowName();
-                ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
-                columnPath.setColumn(CassandraTimestampUtils.getColumnName());
-                ColumnOrSuperColumn result;
-                try {
-                    result = client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM);
-                } catch (NotFoundException e) {
-                    result = null;
-                } catch (Exception e) {
-                    throw Throwables.throwUncheckedException(e);
-                }
+                ColumnOrSuperColumn result = CassandraTimestampUtils.readCassandraTimestamp(client);
                 if (result == null) {
                     DebugLogger.logger.info("[GET] Null result, setting timestamp limit to {}", INITIAL_VALUE);
                     cas(client, null, INITIAL_VALUE);

@@ -27,6 +27,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.TimestampAdminService;
 import com.palantir.timestamp.TimestampService;
 
 @AutoService(AtlasDbFactory.class)
@@ -61,6 +62,11 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                 + " CassandraKeyValueService, found %s", rawKvs.getClass());
         return PersistentTimestampService.create(
                 CassandraTimestampBoundStore.create((CassandraKeyValueService) rawKvs));
+    }
+
+    @Override
+    public TimestampAdminService createTimestampAdminService(KeyValueService rawKvs) {
+        return null;
     }
 
     @Override
