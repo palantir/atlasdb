@@ -21,7 +21,6 @@ import java.util.concurrent.Callable;
 
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -36,6 +35,8 @@ import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.common.base.Throwables;
+import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.TimestampService;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
@@ -174,13 +175,19 @@ public class KvsMigrationCommand implements Callable<Integer> {
     private KeyValueServiceMigrator getMigrator(AtlasDbServices fromServices, AtlasDbServices toServices)
             throws IOException {
         //TODO: this timestamp will have to be stored for online migration
-        Supplier<Long> migrationTimestampSupplier = Suppliers.ofInstance(fromServices
-                .getTimestampService()
-                .getFreshTimestamp());
-
+        long migrationStartTimestamp = fromServices.getTimestampService().getFreshTimestamp();
         long migrationCommitTimestamp = fromServices.getTimestampService().getFreshTimestamp();
-        toServices.getTransactionService().putUnlessExists(migrationTimestampSupplier.get(), migrationCommitTimestamp);
-        toServices.getTimestampService().fastForwardTimestamp(migrationCommitTimestamp + 1);
+
+        TimestampService toTimestampService = toServices.getTimestampService();
+        if (!(toTimestampService instanceof PersistentTimestampService)) {
+            printer.error("Timestamp service must be of type {}, but yours is {}.  Exiting.",
+                    PersistentTimestampService.class.toString(), toTimestampService.getClass().toString());
+            throw new IllegalArgumentException("Timestamp service was the wrong type");
+        }
+        PersistentTimestampService toPersistentTimestampService = (PersistentTimestampService) toTimestampService;
+
+        toServices.getTransactionService().putUnlessExists(migrationStartTimestamp, migrationCommitTimestamp);
+        toPersistentTimestampService.fastForwardTimestamp(migrationCommitTimestamp + 1);
 
         return new KeyValueServiceMigrator(
                 CHECKPOINT_NAMESPACE,
@@ -188,7 +195,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
                 toServices.getTransactionManager(),
                 fromServices.getKeyValueService(),
                 toServices.getKeyValueService(),
-                migrationTimestampSupplier,
+                Suppliers.ofInstance(migrationStartTimestamp),
                 threads,
                 batchSize,
                 ImmutableMap.of(),

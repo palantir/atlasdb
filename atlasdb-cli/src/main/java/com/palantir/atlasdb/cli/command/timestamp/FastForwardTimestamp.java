@@ -42,8 +42,15 @@ public class FastForwardTimestamp extends AbstractTimestampCommand {
 
     @Override
     protected int executeTimestampCommand(AtlasDbServices services) {
-        TimestampService timestampService = services.getTimestampService();
-        timestampService.fastForwardTimestamp(timestamp);
+        TimestampService ts = services.getTimestampService();
+        if (!(ts instanceof PersistentTimestampService)) {
+            printer.error("Timestamp service must be of type {}, but yours is {}.  Exiting.",
+                    PersistentTimestampService.class.toString(), ts.getClass().toString());
+            return 1;
+        }
+        PersistentTimestampService pts = (PersistentTimestampService) ts;
+
+        pts.fastForwardTimestamp(timestamp);
         printer.info("Timestamp successfully fast-forwarded to {}", timestamp);
         return 0;
     }
