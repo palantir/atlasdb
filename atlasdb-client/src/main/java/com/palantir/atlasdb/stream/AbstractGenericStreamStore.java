@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.CheckForNull;
@@ -72,7 +73,18 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     }
 
     @Override
-    public Map<ID, InputStream> loadStreams(Transaction transaction, Set<ID> ids) {
+    public final Optional<InputStream> loadSingleStream(Transaction transaction, final ID id) {
+        Map<ID, StreamMetadata> idToMetadata = getMetadata(transaction, Sets.newHashSet(id));
+        if (idToMetadata.isEmpty()) {
+            return Optional.empty();
+        }
+
+        StreamMetadata metadata = Iterables.getOnlyElement(idToMetadata.values());
+        return Optional.of(getStream(transaction, id, metadata));
+    }
+
+    @Override
+    public final Map<ID, InputStream> loadStreams(Transaction transaction, Set<ID> ids) {
         Map<ID, InputStream> ret = Maps.newHashMap();
         Map<ID, StreamMetadata> idsToMetadata = getMetadata(transaction, ids);
         for (Map.Entry<ID, StreamMetadata> entry : idsToMetadata.entrySet()) {

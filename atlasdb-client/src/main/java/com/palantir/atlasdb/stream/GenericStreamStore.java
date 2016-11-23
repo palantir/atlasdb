@@ -18,6 +18,7 @@ package com.palantir.atlasdb.stream;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -31,7 +32,17 @@ public interface GenericStreamStore<ID> {
 
     Map<Sha256Hash, ID> lookupStreamIdsByHash(Transaction t, final Set<Sha256Hash> hashes);
 
+    /**
+     * @deprecated use #loadSingleStream instead.
+     *
+     * Returns an InputStream if such a stream exists, throwing an exception if no stream exists.
+     */
+    @Deprecated
     InputStream loadStream(Transaction t, ID id);
+
+    Optional<InputStream> loadSingleStream(Transaction t, ID id);
+
     Map<ID, InputStream> loadStreams(Transaction t, Set<ID> ids);
+
     File loadStreamAsFile(Transaction t, ID id);
 }
