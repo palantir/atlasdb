@@ -114,7 +114,6 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
         return InvalidatingLeaderProxy.create(
                 localMember,
                 leaderId,
-                timeLockGroup.election(),
                 timeLockSupplier,
                 TimeLockServices.class);
     }

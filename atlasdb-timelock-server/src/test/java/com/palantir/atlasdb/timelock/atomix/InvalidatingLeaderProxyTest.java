@@ -54,7 +54,6 @@ public class InvalidatingLeaderProxyTest {
     private final AtomicString atomicString = InvalidatingLeaderProxy.create(
             LOCAL_MEMBER,
             LEADER_ID,
-            election,
             SimpleAtomicString::new,
             AtomicString.class);
 

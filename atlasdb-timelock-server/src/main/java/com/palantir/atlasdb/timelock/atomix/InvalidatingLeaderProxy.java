@@ -33,7 +33,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import io.atomix.group.LocalMember;
-import io.atomix.group.election.Election;
 import io.atomix.variables.DistributedValue;
 
 public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler {
@@ -54,15 +53,12 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
     public static <T> T create(
             LocalMember localMember,
             DistributedValue<String> leaderId,
-            Election election,
             Supplier<T> delegateSupplier,
             Class<T> interfaceClass) {
         InvalidatingLeaderProxy<T> proxy = new InvalidatingLeaderProxy<>(
                 localMember,
                 leaderId,
                 delegateSupplier);
-
-        election.onElection(term -> proxy.clearDelegateUnchecked());
 
         return (T) Proxy.newProxyInstance(
                 interfaceClass.getClassLoader(),
