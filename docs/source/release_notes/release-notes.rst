@@ -47,6 +47,14 @@ v0.25.0
     *    - Type
          - Change
 
+    *    - |fixed|
+         - ``--config-root`` and other global parameters can now be passed into dropwizard CLIs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1268>`__)
+
+    *    - |breaking|
+         - The migration ``--config-root`` shorthand (``-r``) can no longer be used as it conflicted with the timestamp command ``--row``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1268>`__)
+
     *    - |new|
          - Dbkvs: ConnectionSupplier consumers can now choose to receive a brand new unshared connection.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1258>`__)
