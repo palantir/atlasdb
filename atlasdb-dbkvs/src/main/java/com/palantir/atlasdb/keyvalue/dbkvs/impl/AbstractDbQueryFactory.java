@@ -53,22 +53,16 @@ public abstract class AbstractDbQueryFactory implements DbQueryFactory {
     @Override
     public FullQuery getRowsColumnRangeQuery(RowsColumnRangeBatchRequest batch, long ts) {
         List<FullQuery> fullQueries = new ArrayList<>();
-        if (batch.getPartialFirstRow().isPresent()) {
-            fullQueries.add(getRowsColumnRangeSubQuery(batch.getPartialFirstRow().get().getKey(),
-                    ts,
-                    batch.getPartialFirstRow().get().getValue()));
-        }
+        batch.getPartialFirstRow()
+                .ifPresent(entry -> fullQueries.add(getRowsColumnRangeSubQuery(entry.getKey(), ts, entry.getValue())));
         if (!batch.getRowsToLoadFully().isEmpty()) {
             fullQueries.add(getRowsColumnRangeFullyLoadedRowsSubQuery(batch.getRowsToLoadFully(),
                     ts,
                     batch.getColumnRangeSelection()));
 
         }
-        if (batch.getPartialLastRow().isPresent()) {
-            fullQueries.add(getRowsColumnRangeSubQuery(batch.getPartialLastRow().get().getKey(),
-                    ts,
-                    batch.getPartialLastRow().get().getValue()));
-        }
+        batch.getPartialLastRow()
+                .ifPresent(entry -> fullQueries.add(getRowsColumnRangeSubQuery(entry.getKey(), ts, entry.getValue())));
 
         List<String> subQueries = fullQueries.stream().map(FullQuery::getQuery).collect(Collectors.toList());
         int totalArgs = fullQueries.stream().mapToInt(fullQuery -> fullQuery.getArgs().length).sum();
