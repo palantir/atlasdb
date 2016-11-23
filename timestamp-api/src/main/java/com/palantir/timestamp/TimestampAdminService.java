@@ -33,6 +33,9 @@ public interface TimestampAdminService {
      * to it from now on. It is assumed that no TimestampServices backed by the underlying store are currently
      * running.
      *
+     * Furthermore, fast forwarding the timestamp is considered to be a valid means of re-validating an invalidated
+     * timestamp admin service.
+     *
      * @param newMinimumTimestamp The minimum timestamp to fast forward to.
      */
     @POST
