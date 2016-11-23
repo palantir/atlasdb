@@ -23,7 +23,9 @@ import java.util.function.Supplier;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.timelock.atomix.AtomixTimestampService;
 import com.palantir.atlasdb.timelock.atomix.DistributedValues;
+import com.palantir.atlasdb.timelock.atomix.ImmutableLeaderAndTerm;
 import com.palantir.atlasdb.timelock.atomix.InvalidatingLeaderProxy;
+import com.palantir.atlasdb.timelock.atomix.LeaderAndTerm;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting1.config.ssl.SslConfiguration;
@@ -61,7 +63,30 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
         LocalMember localMember = Futures.getUnchecked(timeLockGroup.join());
 
         DistributedValue<String> leaderId = DistributedValues.getLeaderId(localNode);
-        timeLockGroup.election().onElection(term -> Futures.getUnchecked(leaderId.set(term.leader().id())));
+        timeLockGroup.election().onElection(term -> {
+            LeaderAndTerm newLeader = ImmutableLeaderAndTerm.of(term.term(), term.leader().id());
+            while (true) {
+                String curValue = Futures.getUnchecked(leaderId.get());
+                LeaderAndTerm curLeader = LeaderAndTerm.fromStoredString(curValue);
+                if (curValue == null) {
+                    // We have never had a leader so we should try to set it.
+                    if (leaderId.compareAndSet(curValue, newLeader.toStoredString()).join()) {
+                        break;
+                    }
+                } else if (newLeader.getTerm() <= curLeader.getTerm()) {
+                    // Our incoming term is lower than the current leader so we can skip it.
+                    break;
+                } else if (newLeader.getLeader().equals(curLeader.getLeader())) {
+                    // Our incoming leader is the same as the current leader so we can stick with it.
+                    break;
+                } else {
+                    // We have a new leader so we should set it.
+                    if (leaderId.compareAndSet(curValue, newLeader.toStoredString()).join()) {
+                        break;
+                    }
+                }
+            }
+        });
 
         Map<String, TimeLockServices> clientToServices = new HashMap<>();
         for (String client : configuration.clients()) {

@@ -25,6 +25,8 @@ import java.util.function.Supplier;
 
 import javax.ws.rs.ServiceUnavailableException;
 
+import org.immutables.value.Value;
+
 import com.google.common.base.Throwables;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.util.concurrent.Futures;
@@ -37,7 +39,7 @@ import io.atomix.variables.DistributedValue;
 public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler {
     private final LocalMember localMember;
     private final DistributedValue<String> leaderId;
-    private final AtomicReference<T> delegateRef = new AtomicReference<>();
+    private final AtomicReference<TermAndDelegate> delegateRef = new AtomicReference<>();
     private final Supplier<T> delegateSupplier;
 
     private InvalidatingLeaderProxy(
@@ -70,33 +72,36 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        String currentLeaderId = getLeaderId();
-        if (isLeader(currentLeaderId)) {
-            Object delegate = delegateRef.get();
+        LeaderAndTerm currentLeaderId = getLeaderId();
+        if (currentLeaderId != null && isLeader(currentLeaderId.getLeader())) {
+            TermAndDelegate delegate = delegateRef.get();
             while (delegate == null) {
-                delegateRef.compareAndSet(null, delegateSupplier.get());
+                TermAndDelegate newDelegate = ImmutableTermAndDelegate.of(currentLeaderId.getTerm(), delegateSupplier.get());
+                delegateRef.compareAndSet(null, newDelegate);
                 delegate = delegateRef.get();
             }
-            return method.invoke(delegate, args);
-        } else {
-            clearDelegate();
-            throw new ServiceUnavailableException(
-                    String.format("This node (%s) is not the leader (%s)", getLocalId(), currentLeaderId),
-                    0L);
+
+            if (delegate.getTerm() == currentLeaderId.getTerm()) {
+                return method.invoke(delegate.getDelegate(), args);
+            }
         }
+        clearDelegate();
+        throw new ServiceUnavailableException(
+                String.format("This node (%s) is not the leader (%s)", getLocalId(), currentLeaderId),
+                0L);
     }
 
-    private boolean isLeader(String currentLeaderId) {
-        return Objects.equals(getLocalId(), currentLeaderId);
+    private boolean isLeader(String leader) {
+        return Objects.equals(getLocalId(), leader);
     }
 
     private String getLocalId() {
         return localMember.id();
     }
 
-    private String getLeaderId() {
+    private LeaderAndTerm getLeaderId() {
         try {
-            return Futures.getUnchecked(leaderId.get());
+            return LeaderAndTerm.fromStoredString(Futures.getUnchecked(leaderId.get()));
         } catch (UncheckedExecutionException e) {
             if (e.getCause() instanceof IOException) {
                 throw new ServiceUnavailableException(
@@ -119,9 +124,18 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
     }
 
     private void clearDelegate() throws IOException {
-        Object delegate = delegateRef.getAndSet(null);
-        if (delegate != null && delegate instanceof Closeable) {
-            ((Closeable) delegate).close();
+        TermAndDelegate delegate = delegateRef.getAndSet(null);
+        if (delegate != null && delegate.getDelegate() instanceof Closeable) {
+            ((Closeable) delegate.getDelegate()).close();
         }
+    }
+
+    @Value.Immutable
+    interface TermAndDelegate {
+        @Value.Parameter
+        long getTerm();
+
+        @Value.Parameter
+        Object getDelegate();
     }
 }
