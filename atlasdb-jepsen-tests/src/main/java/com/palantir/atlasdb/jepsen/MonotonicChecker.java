@@ -21,11 +21,14 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.EventVisitor;
 import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
+
+import clojure.lang.Keyword;
 
 public class MonotonicChecker implements EventVisitor {
     private final List<Event> errors = new ArrayList<>();
@@ -56,11 +59,8 @@ public class MonotonicChecker implements EventVisitor {
         latestEventPerProcess.put(process, event);
     }
 
-    public boolean valid() {
-        return valid;
-    }
-
-    public List<Event> errors() {
-        return ImmutableList.copyOf(errors);
+    public Map<Keyword, Object> results() {
+        return ImmutableMap.of(Keyword.intern("valid"), valid,
+                Keyword.intern("errors"), ImmutableList.copyOf(errors));
     }
 }

@@ -19,52 +19,43 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.atlasdb.jepsen.events.Event;
 
 import clojure.lang.Keyword;
 
 public final class TimestampChecker {
-    private static final Logger log = LoggerFactory.getLogger(TimestampChecker.class);
-
     private TimestampChecker() {
     }
 
-    public static boolean checkClojureHistory(List<Map<Keyword, ?>> clojureHistory) {
+    /**
+     * Parses a history of events from a Jepsen test of the timestamp service, and verifies that it fits the model.
+     * In particular, the timestamp values should be monotonically increasing for each process. See MonotonicChecker for
+     * more details.
+     *
+     * @param clojureHistory A history of events. This is a list of maps, for example:
+     *     [{":type": "invoke", "process": 0, "time", 0L},
+     *      {":type": "ok",     "process": 0, "time": 0L, "value", 10L}]
+     * @return A map of
+     *     :valid      A boolean of whether the check passes
+     *     :errors     A list of events that failed the check, or an empty list if the check passed
+     * @throws Exception if the parsing of the history fails.
+     */
+    public static Map<Keyword, Object> checkClojureHistory(List<Map<Keyword, ?>> clojureHistory) {
         List<Event> events = convertClojureHistoryToEventList(clojureHistory);
-        return events != null && checkHistory(events);
+        return checkHistory(events);
 
     }
 
     private static List<Event> convertClojureHistoryToEventList(List<Map<Keyword, ?>> clojureHistory) {
-        try {
-            return clojureHistory.stream()
-                    .map(Event::fromKeywordMap)
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.error("Failed to parse output from Jepsen: ", e);
-            return null;
-        }
+        return clojureHistory.stream()
+                .map(Event::fromKeywordMap)
+                .collect(Collectors.toList());
     }
 
-    private static boolean checkHistory(List<Event> events) {
-        try {
-            MonotonicChecker monotonicChecker = new MonotonicChecker();
-            events.forEach(event -> event.accept(monotonicChecker));
-
-            if (!monotonicChecker.valid()) {
-                log.error("Check of monotonicity failed: {}", monotonicChecker.errors());
-                return false;
-            }
-        } catch (Exception e) {
-            log.error("An error occurred while checking the history", e);
-            return false;
-        }
-
-        log.debug("Checking the history was successful");
-        return true;
+    private static Map<Keyword, Object> checkHistory(List<Event> events) {
+        MonotonicChecker monotonicChecker = new MonotonicChecker();
+        events.forEach(event -> event.accept(monotonicChecker));
+        return monotonicChecker.results();
     }
 
 }
