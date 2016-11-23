@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.timelock.atomix;
 
+import java.io.Serializable;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -26,23 +28,11 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableLeaderAndTerm.class)
 @JsonDeserialize(as = ImmutableLeaderAndTerm.class)
 @JsonInclude(Include.NON_NULL)
-public interface LeaderAndTerm {
+public interface LeaderAndTerm extends Serializable {
     @Value.Parameter
-    long getTerm();
+    long term();
 
     @Value.Parameter
-    String getLeader();
-
-    static LeaderAndTerm fromStoredString(String stored) {
-        if (stored == null) {
-            return null;
-        }
-        String[] split = stored.split("_", 2);
-        return ImmutableLeaderAndTerm.of(Long.parseLong(split[0]), split[1]);
-    }
-
-    default String toStoredString() {
-        return getTerm() + "_" + getLeader();
-    }
+    String leaderId();
 }
 

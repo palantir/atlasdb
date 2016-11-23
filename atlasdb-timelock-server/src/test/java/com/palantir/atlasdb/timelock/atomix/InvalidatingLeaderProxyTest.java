@@ -47,20 +47,20 @@ public class InvalidatingLeaderProxyTest {
     private static final String TEST_VALUE = "testValue";
     private static final String LOCAL_MEMBER_ID = "localId";
 
-    private static final DistributedValue<String> LEADER_ID = mock(DistributedValue.class);
+    private static final DistributedValue<LeaderAndTerm> LEADER_INFO = mock(DistributedValue.class);
     private static final LocalMember LOCAL_MEMBER = mock(LocalMember.class);
 
     private final GroupElection election = new GroupElection(mock(MembershipGroup.class));
     private final AtomicString atomicString = InvalidatingLeaderProxy.create(
             LOCAL_MEMBER,
-            LEADER_ID,
+            LEADER_INFO,
             SimpleAtomicString::new,
             AtomicString.class);
 
     @BeforeClass
     public static void setupMocks() {
         when(LOCAL_MEMBER.id()).thenReturn(LOCAL_MEMBER_ID);
-        when(LEADER_ID.get()).thenReturn(null);
+        when(LEADER_INFO.get()).thenReturn(null);
     }
 
     @Test
@@ -87,7 +87,7 @@ public class InvalidatingLeaderProxyTest {
 
     @Test
     public void shouldThrow503WhenAnIoExceptionIsThrown() {
-        when(LEADER_ID.get()).thenReturn(Futures.exceptionalFuture(new ConnectException()));
+        when(LEADER_INFO.get()).thenReturn(Futures.exceptionalFuture(new ConnectException()));
 
         assertThatThrownBy(atomicString::get)
                 .isInstanceOf(ServiceUnavailableException.class);
@@ -96,7 +96,7 @@ public class InvalidatingLeaderProxyTest {
     @Test
     public void shouldThrowTheUncheckedExecutionExceptionWhenNotIoException() {
         Exception expectedInnerException = new Exception("the inner exception");
-        when(LEADER_ID.get()).thenReturn(Futures.exceptionalFuture(expectedInnerException));
+        when(LEADER_INFO.get()).thenReturn(Futures.exceptionalFuture(expectedInnerException));
 
         assertThatThrownBy(atomicString::get)
                 .isInstanceOf(UncheckedExecutionException.class)
@@ -116,31 +116,11 @@ public class InvalidatingLeaderProxyTest {
     }
 
     @Test
-    public void shouldCloseDelegateIfCloseableAndNotLeader() throws IOException {
-        ByteChannel mockedResource = mock(ByteChannel.class);
-        ByteChannel proxiedResource = InvalidatingLeaderProxy.create(
-                LOCAL_MEMBER,
-                LEADER_ID,
-                election,
-                () -> mockedResource,
-                ByteChannel.class);
-
-        setLeader(LOCAL_MEMBER_ID);
-        proxiedResource.isOpen();
-
-        setLeaderWithoutCallbacks(null);
-        assertThatThrownBy(proxiedResource::isOpen).isInstanceOf(ServiceUnavailableException.class);
-
-        verify(mockedResource, times(1)).close();
-    }
-
-    @Test
     public void shouldCloseDelegateIfCloseableAndLeaderChanges() throws IOException {
         ByteChannel mockedResource = mock(ByteChannel.class);
         ByteChannel proxiedResource = InvalidatingLeaderProxy.create(
                 LOCAL_MEMBER,
-                LEADER_ID,
-                election,
+                LEADER_INFO,
                 () -> mockedResource,
                 ByteChannel.class);
 
@@ -158,8 +138,7 @@ public class InvalidatingLeaderProxyTest {
         ByteChannel mockedResource = mock(ByteChannel.class);
         ByteChannel proxiedResource = InvalidatingLeaderProxy.create(
                 LOCAL_MEMBER,
-                LEADER_ID,
-                election,
+                LEADER_INFO,
                 () -> mockedResource,
                 ByteChannel.class);
 
@@ -169,7 +148,8 @@ public class InvalidatingLeaderProxyTest {
         setLeader(LOCAL_MEMBER_ID);
         proxiedResource.isOpen();
 
-        assertThatThrownBy(() -> setLeader(null))
+        setLeader(null);
+        assertThatThrownBy(proxiedResource::isOpen)
                 .isInstanceOf(RuntimeException.class)
                 .hasCause(expectedInnerException);
     }
@@ -189,18 +169,16 @@ public class InvalidatingLeaderProxyTest {
         assertThat(container.get()).isEqualTo(TEST_VALUE);
     }
 
-    private void setLeader(@Nullable String leader) {
-        setLeaderWithoutCallbacks(leader);
+    private void setLeader(@Nullable String newLeader) {
+        long newTerm = election.term().term() + 1;
+        LeaderAndTerm newLeaderInfo = newLeader != null ? ImmutableLeaderAndTerm.of(newTerm, newLeader) : null;
+        when(LEADER_INFO.get()).thenReturn(CompletableFuture.completedFuture(newLeaderInfo));
 
         GroupMember member = mock(GroupMember.class);
-        when(member.id()).thenReturn(leader);
+        when(member.id()).thenReturn(newLeader);
 
-        election.onTerm(election.term().term() + 1);
+        election.onTerm(newTerm);
         election.onElection(member);
-    }
-
-    private void setLeaderWithoutCallbacks(@Nullable String leader) {
-        when(LEADER_ID.get()).thenReturn(CompletableFuture.completedFuture(leader));
     }
 
     private interface AtomicString {

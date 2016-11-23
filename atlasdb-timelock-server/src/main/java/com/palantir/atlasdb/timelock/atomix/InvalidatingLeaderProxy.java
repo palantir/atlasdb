@@ -27,7 +27,6 @@ import javax.ws.rs.ServiceUnavailableException;
 
 import org.immutables.value.Value;
 
-import com.google.common.base.Throwables;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.UncheckedExecutionException;
@@ -37,27 +36,27 @@ import io.atomix.variables.DistributedValue;
 
 public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler {
     private final LocalMember localMember;
-    private final DistributedValue<String> leaderId;
-    private final AtomicReference<TermAndDelegate> delegateRef = new AtomicReference<>();
+    private final DistributedValue<LeaderAndTerm> leaderInfo;
+    private final AtomicReference<TermWrapped<T>> delegateRef = new AtomicReference<>();
     private final Supplier<T> delegateSupplier;
 
     private InvalidatingLeaderProxy(
             LocalMember localMember,
-            DistributedValue<String> leaderId,
+            DistributedValue<LeaderAndTerm> leaderInfo,
             Supplier<T> delegateSupplier) {
         this.localMember = localMember;
-        this.leaderId = leaderId;
+        this.leaderInfo = leaderInfo;
         this.delegateSupplier = delegateSupplier;
     }
 
     public static <T> T create(
             LocalMember localMember,
-            DistributedValue<String> leaderId,
+            DistributedValue<LeaderAndTerm> leaderInfo,
             Supplier<T> delegateSupplier,
             Class<T> interfaceClass) {
         InvalidatingLeaderProxy<T> proxy = new InvalidatingLeaderProxy<>(
                 localMember,
-                leaderId,
+                leaderInfo,
                 delegateSupplier);
 
         return (T) Proxy.newProxyInstance(
@@ -68,36 +67,40 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        LeaderAndTerm currentLeaderId = getLeaderId();
-        if (currentLeaderId != null && isLeader(currentLeaderId.getLeader())) {
-            TermAndDelegate delegate = delegateRef.get();
-            while (delegate == null) {
-                TermAndDelegate newDelegate = ImmutableTermAndDelegate.of(currentLeaderId.getTerm(), delegateSupplier.get());
-                delegateRef.compareAndSet(null, newDelegate);
+        LeaderAndTerm currentLeaderInfo = getLeaderInfo();
+        if (currentLeaderInfo != null && isLeader(currentLeaderInfo.leaderId())) {
+            TermWrapped<T> delegate = delegateRef.get();
+            while (delegate == null || delegate.term() < currentLeaderInfo.term()) {
+                TermWrapped<T> newDelegate = ImmutableTermWrapped.of(currentLeaderInfo.term(), delegateSupplier.get());
+                if (delegateRef.compareAndSet(delegate, newDelegate)) {
+                    closeIfNecessary(delegate);
+                } else {
+                    closeIfNecessary(newDelegate);
+                }
                 delegate = delegateRef.get();
             }
 
-            if (delegate.getTerm() == currentLeaderId.getTerm()) {
-                return method.invoke(delegate.getDelegate(), args);
+            if (delegate.term() == currentLeaderInfo.term()) {
+                return method.invoke(delegate.delegate(), args);
             }
         }
         clearDelegate();
         throw new ServiceUnavailableException(
-                String.format("This node (%s) is not the leader (%s)", getLocalId(), currentLeaderId),
+                String.format("This node (%s) is not the leader (%s)", getLocalId(), currentLeaderInfo),
                 0L);
     }
 
-    private boolean isLeader(String leader) {
-        return Objects.equals(getLocalId(), leader);
+    private boolean isLeader(String leaderId) {
+        return Objects.equals(getLocalId(), leaderId);
     }
 
     private String getLocalId() {
         return localMember.id();
     }
 
-    private LeaderAndTerm getLeaderId() {
+    private LeaderAndTerm getLeaderInfo() {
         try {
-            return LeaderAndTerm.fromStoredString(Futures.getUnchecked(leaderId.get()));
+            return Futures.getUnchecked(leaderInfo.get());
         } catch (UncheckedExecutionException e) {
             if (e.getCause() instanceof IOException) {
                 throw new ServiceUnavailableException(
@@ -111,27 +114,23 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
         }
     }
 
-    private void clearDelegateUnchecked() {
-        try {
-            clearDelegate();
-        } catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
+    private void clearDelegate() throws IOException {
+        TermWrapped<T> wrappedDelegate = delegateRef.getAndSet(null);
+        closeIfNecessary(wrappedDelegate);
     }
 
-    private void clearDelegate() throws IOException {
-        TermAndDelegate delegate = delegateRef.getAndSet(null);
-        if (delegate != null && delegate.getDelegate() instanceof Closeable) {
-            ((Closeable) delegate.getDelegate()).close();
+    private void closeIfNecessary(TermWrapped<T> wrappedDelegate) throws IOException {
+        if (wrappedDelegate != null && wrappedDelegate.delegate() instanceof Closeable) {
+            ((Closeable) wrappedDelegate.delegate()).close();
         }
     }
 
     @Value.Immutable
-    interface TermAndDelegate {
+    interface TermWrapped<U> {
         @Value.Parameter
-        long getTerm();
+        long term();
 
         @Value.Parameter
-        Object getDelegate();
+        U delegate();
     }
 }

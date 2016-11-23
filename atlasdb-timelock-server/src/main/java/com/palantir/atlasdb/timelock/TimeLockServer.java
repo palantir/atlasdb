@@ -20,6 +20,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.timelock.atomix.AtomixTimestampService;
 import com.palantir.atlasdb.timelock.atomix.DistributedValues;
@@ -43,6 +46,8 @@ import io.dropwizard.Application;
 import io.dropwizard.setup.Environment;
 
 public class TimeLockServer extends Application<TimeLockServerConfiguration> {
+    private static final Logger log = LoggerFactory.getLogger(TimeLockServer.class);
+
     public static void main(String[] args) throws Exception {
         new TimeLockServer().run(args);
     }
@@ -62,28 +67,20 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
         DistributedGroup timeLockGroup = DistributedValues.getTimeLockGroup(localNode);
         LocalMember localMember = Futures.getUnchecked(timeLockGroup.join());
 
-        DistributedValue<String> leaderId = DistributedValues.getLeaderId(localNode);
+        DistributedValue<LeaderAndTerm> leaderInfo = DistributedValues.getLeaderInfo(localNode);
         timeLockGroup.election().onElection(term -> {
-            LeaderAndTerm newLeader = ImmutableLeaderAndTerm.of(term.term(), term.leader().id());
+            LeaderAndTerm newLeaderInfo = ImmutableLeaderAndTerm.of(term.term(), term.leader().id());
             while (true) {
-                String curValue = Futures.getUnchecked(leaderId.get());
-                LeaderAndTerm curLeader = LeaderAndTerm.fromStoredString(curValue);
-                if (curValue == null) {
-                    // We have never had a leader so we should try to set it.
-                    if (leaderId.compareAndSet(curValue, newLeader.toStoredString()).join()) {
-                        break;
-                    }
-                } else if (newLeader.getTerm() <= curLeader.getTerm()) {
-                    // Our incoming term is lower than the current leader so we can skip it.
+                LeaderAndTerm currentLeaderInfo = Futures.getUnchecked(leaderInfo.get());
+                if (currentLeaderInfo != null && newLeaderInfo.term() <= currentLeaderInfo.term()) {
+                    log.info("Not setting the leader to {} since it is not newer than the current leader {}",
+                            newLeaderInfo, currentLeaderInfo);
                     break;
-                } else if (newLeader.getLeader().equals(curLeader.getLeader())) {
-                    // Our incoming leader is the same as the current leader so we can stick with it.
+                }
+                log.debug("Updating the leader from {} to {}", currentLeaderInfo, newLeaderInfo);
+                if (leaderInfo.compareAndSet(currentLeaderInfo, newLeaderInfo).join()) {
+                    log.info("Leader has been set to {}", newLeaderInfo);
                     break;
-                } else {
-                    // We have a new leader so we should set it.
-                    if (leaderId.compareAndSet(curValue, newLeader.toStoredString()).join()) {
-                        break;
-                    }
                 }
             }
         });
@@ -93,8 +90,7 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
             DistributedLong timestamp = DistributedValues.getTimestampForClient(localNode, client);
             TimeLockServices timeLockServices = createInvalidatingTimeLockServices(
                     localMember,
-                    leaderId,
-                    timeLockGroup,
+                    leaderInfo,
                     timestamp);
             clientToServices.put(client, timeLockServices);
         }
@@ -105,15 +101,14 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
 
     private static TimeLockServices createInvalidatingTimeLockServices(
             LocalMember localMember,
-            DistributedValue<String> leaderId,
-            DistributedGroup timeLockGroup,
+            DistributedValue<LeaderAndTerm> leaderInfo,
             DistributedLong timestamp) {
         Supplier<TimeLockServices> timeLockSupplier = () -> TimeLockServices.create(
                 new AtomixTimestampService(timestamp),
                 LockServiceImpl.create());
         return InvalidatingLeaderProxy.create(
                 localMember,
-                leaderId,
+                leaderInfo,
                 timeLockSupplier,
                 TimeLockServices.class);
     }
