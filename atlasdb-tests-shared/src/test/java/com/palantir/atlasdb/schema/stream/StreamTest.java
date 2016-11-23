@@ -73,6 +73,7 @@ import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamMeta
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow;
+import com.palantir.atlasdb.stream.GenericStreamStore;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -265,24 +266,32 @@ public class StreamTest extends AtlasDbTestCase {
 
     private void verifyLoadingStreams(PersistentStreamStore store, long id, byte[] bytesToStore) throws IOException {
         verifyLoadStream(store, id, bytesToStore);
+        verifyLoadSingleStream(store, id, bytesToStore);
         verifyLoadStreams(store, id, bytesToStore);
         verifyLoadStreamAsFile(store, id, bytesToStore);
     }
 
-    private void verifyLoadStreamAsFile(PersistentStreamStore store, long id, byte[] bytesToStore) throws IOException {
-        File file = txManager.runTaskThrowOnConflict(t -> store.loadStreamAsFile(t, id));
-        Assert.assertArrayEquals(bytesToStore, FileUtils.readFileToByteArray(file));
+    @SuppressWarnings("deprecation")
+    private void verifyLoadStream(PersistentStreamStore store, long id, byte[] bytesToStore) throws IOException {
+        InputStream stream = txManager.runTaskThrowOnConflict(t -> store.loadStream(t, id));
+        assertStreamHasBytes(stream, bytesToStore);
     }
 
-    private void verifyLoadStreams(PersistentStreamStore store, long id, byte[] bytesToStore) throws IOException {
+    private void verifyLoadSingleStream(long id, byte[] toStore, GenericStreamStore<Long> store) throws IOException {
+        Optional<InputStream> stream = txManager.runTaskThrowOnConflict(t -> store.loadSingleStream(t, id));
+        assertTrue(stream.isPresent());
+        assertStreamHasBytes(stream.get(), toStore);
+    }
+
+    private void verifyLoadStreams(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
         Map<Long, InputStream> streams = txManager.runTaskThrowOnConflict(t ->
                 store.loadStreams(t, ImmutableSet.of(id)));
         assertStreamHasBytes(streams.get(id), bytesToStore);
     }
 
-    private void verifyLoadStream(PersistentStreamStore store, long id, byte[] bytesToStore) throws IOException {
-        InputStream stream = txManager.runTaskThrowOnConflict(t -> store.loadStream(t, id));
-        assertStreamHasBytes(stream, bytesToStore);
+    private void verifyLoadStreamAsFile(PersistentStreamStore store, long id, byte[] bytesToStore) throws IOException {
+        File file = txManager.runTaskThrowOnConflict(t -> store.loadStreamAsFile(t, id));
+        Assert.assertArrayEquals(bytesToStore, FileUtils.readFileToByteArray(file));
     }
 
     private void assertStreamHasBytes(InputStream stream, byte[] bytes) throws IOException {
