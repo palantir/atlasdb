@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampAdminService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -66,7 +67,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TimestampAdminService createTimestampAdminService(KeyValueService rawKvs) {
-        return null;
+        return new CassandraTimestampAdminService(rawKvs);
     }
 
     @Override

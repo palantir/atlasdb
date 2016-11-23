@@ -15,20 +15,49 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.List;
+import java.util.Map;
+
 import javax.ws.rs.QueryParam;
 
+import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.Mutation;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
+import com.palantir.atlasdb.table.description.ColumnValueDescription;
+import com.palantir.atlasdb.table.description.NamedColumnDescription;
+import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.timestamp.TimestampAdminService;
 
 public class CassandraTimestampAdminService implements TimestampAdminService {
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampAdminService.class);
 
+    private static final ColumnMetadataDescription BOGUS_COLUMN_METADATA =
+            new ColumnMetadataDescription(ImmutableList.of(
+                    new NamedColumnDescription(
+                            CassandraTimestampConstants.ROW_AND_COLUMN_NAME,
+                            "current_max_ts",
+                            ColumnValueDescription.forType(ValueType.FIXED_LONG))));
+
+    private static final TableMetadata BOGUS_TIMESTAMP_TABLE_METADATA = new TableMetadata(
+            CassandraTimestampConstants.NAME_METADATA,
+            BOGUS_COLUMN_METADATA,
+            ConflictHandler.IGNORE_ALL);
+
+    private final KeyValueService rawKvs;
     private final CassandraClientPool clientPool;
 
     public CassandraTimestampAdminService(KeyValueService rawKvs) {
@@ -36,6 +65,7 @@ public class CassandraTimestampAdminService implements TimestampAdminService {
                 String.format("CassandraTimestampAdminServices must be created with a CassandraKeyValueService, "
                         + "but %s was provided", rawKvs.getClass()));
 
+        this.rawKvs = rawKvs;
         clientPool = ((CassandraKeyValueService) rawKvs).clientPool;
     }
 
@@ -57,5 +87,34 @@ public class CassandraTimestampAdminService implements TimestampAdminService {
 
     @Override
     public void invalidateTimestamps() {
+        rawKvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
+        rawKvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE, BOGUS_TIMESTAMP_TABLE_METADATA.persistToBytes());
+        clientPool.runWithRetry(client -> {
+            try {
+                Mutation mutation = makeBogusMutation();
+                Map<String, List<Mutation>> cfValues = ImmutableMap.of(
+                        AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(), ImmutableList.of(mutation));
+                client.batch_mutate(
+                        ImmutableMap.of(CassandraTimestampUtils.getRowName(), cfValues),
+                        ConsistencyLevel.QUORUM);
+            } catch (TException e) {
+                log.error("Error trying to install bogus column!");
+            }
+            return null;
+        });
+    }
+
+    private Mutation makeBogusMutation() {
+        Mutation mutation = new Mutation();
+        mutation.setColumn_or_supercolumn(new ColumnOrSuperColumn().setColumn(makeBogusColumn()));
+        return mutation;
+    }
+
+    private Column makeBogusColumn() {
+        Column column = new Column();
+        column.setName(CassandraTimestampUtils.getColumnName());
+        column.setValue(new byte[0]);
+        column.setTimestamp(CassandraTimestampConstants.CASSANDRA_TIMESTAMP);
+        return column;
     }
 }
