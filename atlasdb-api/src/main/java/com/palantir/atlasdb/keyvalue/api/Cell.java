@@ -71,14 +71,17 @@ public final class Cell implements Serializable, Comparable<Cell> {
         Preconditions.checkNotNull(name, "name cannot be null");
         Preconditions.checkArgument(name.length > 0, "name must be non-empty");
 
-        String lengthErrorMessage = "name must be no longer than " + MAX_NAME_LENGTH;
-        if (log.isDebugEnabled()) {
-            lengthErrorMessage += ". Cell creation that was attempted was: " + this
-                    + "; since the vast majority of people encountering this problem are using unbounded Strings as"
-                    + " components, it may aid your debugging to know the ASCII interpretation of the bad field was:"
-                    + " [" + new String(name, StandardCharsets.US_ASCII) + "]";
+        try {
+            Preconditions.checkArgument(
+                    name.length <= MAX_NAME_LENGTH,
+                    "name must be no longer than {}.",
+                    MAX_NAME_LENGTH);
+        } catch (IllegalArgumentException e) {
+            log.debug("Cell creation that was attempted was: {}; since the vast majority of people encountering this "
+                    + "problem are using unbounded Strings as components, it may aid your debugging to know the ASCII "
+                    + "interpretation of the bad field was: [{}]", this, new String(name, StandardCharsets.US_ASCII));
+            throw e;
         }
-        Preconditions.checkArgument(name.length <= MAX_NAME_LENGTH, lengthErrorMessage);
     }
 
     private final byte[] rowName;
