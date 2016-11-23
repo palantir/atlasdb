@@ -18,16 +18,14 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.OracleDbTimestampBoundStore;
-import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.PostgresDbTimestampBoundStore;
+import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.nexus.db.DBType;
 import com.palantir.timestamp.PersistentTimestampService;
-import com.palantir.timestamp.TimestampBoundStore;
 import com.palantir.timestamp.TimestampService;
 
 @AutoService(AtlasDbFactory.class)
@@ -53,13 +51,9 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
                 "DbAtlasDbFactory expects a raw kvs of type ConnectionManagerAwareDbKvs, found %s", rawKvs.getClass());
         ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
 
-        TimestampBoundStore tbs;
-        if (dbkvs.getConnectionManager().getDbType().equals(DBType.ORACLE)) {
-            tbs = OracleDbTimestampBoundStore.create(dbkvs.getConnectionManager(), dbkvs.getTablePrefix());
-        } else {
-            tbs = PostgresDbTimestampBoundStore.create(dbkvs.getConnectionManager(), dbkvs.getTablePrefix());
-        }
-
-        return PersistentTimestampService.create(tbs);
+        return PersistentTimestampService.create(InDbTimestampBoundStore.create(
+                        dbkvs.getConnectionManager(),
+                        AtlasDbConstants.TIMESTAMP_TABLE,
+                        dbkvs.getTablePrefix()));
     }
 }
