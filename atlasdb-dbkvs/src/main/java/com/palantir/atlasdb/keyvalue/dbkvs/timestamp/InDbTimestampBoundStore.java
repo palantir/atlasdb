@@ -64,8 +64,14 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
         this(connManager, timestampTable, "");
     }
 
-    public static InDbTimestampBoundStore create(ConnectionManager connManager, TableReference timestampTable, String tablePrefixString) {
-        InDbTimestampBoundStore inDbTimestampBoundStore = new InDbTimestampBoundStore(connManager, timestampTable, tablePrefixString);
+    public static InDbTimestampBoundStore create(
+            ConnectionManager connManager,
+            TableReference timestampTable,
+            String tablePrefixString) {
+        InDbTimestampBoundStore inDbTimestampBoundStore = new InDbTimestampBoundStore(
+                connManager,
+                timestampTable,
+                tablePrefixString);
 
         inDbTimestampBoundStore.init();
 
