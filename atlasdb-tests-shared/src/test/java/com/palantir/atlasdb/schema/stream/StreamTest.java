@@ -175,13 +175,21 @@ public class StreamTest extends AtlasDbTestCase {
 
     private void verifyLoadingStreams(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
         verifyLoadStream(id, bytesToStore, store);
+        verifyLoadSingleStream(id, bytesToStore, store);
         verifyLoadStreams(id, bytesToStore, store);
         verifyLoadStreamAsFile(id, bytesToStore, store);
     }
 
+    @SuppressWarnings("deprecation")
     private void verifyLoadStream(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
         InputStream stream = txManager.runTaskThrowOnConflict(t -> store.loadStream(t, id));
         assertStreamHasBytes(stream, bytesToStore);
+    }
+
+    private void verifyLoadSingleStream(long id, byte[] toStore, GenericStreamStore<Long> store) throws IOException {
+        Optional<InputStream> stream = txManager.runTaskThrowOnConflict(t -> store.loadSingleStream(t, id));
+        assertTrue(stream.isPresent());
+        assertStreamHasBytes(stream.get(), toStore);
     }
 
     private void verifyLoadStreams(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
