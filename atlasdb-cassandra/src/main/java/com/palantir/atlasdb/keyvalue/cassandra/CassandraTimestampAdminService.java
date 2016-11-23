@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -83,7 +85,41 @@ public class CassandraTimestampAdminService implements TimestampAdminService {
 
     @Override
     public void fastForwardTimestamp(@QueryParam("newMinimum") long newMinimumTimestamp) {
+        if (!tableIsOk()) {
+            repairTable();
+        }
+        advanceTableToTimestamp(newMinimumTimestamp);
     }
+
+    private boolean tableIsOk() {
+        byte[] persistedMetadata = rawKvs.getMetadataForTable(AtlasDbConstants.TIMESTAMP_TABLE);
+        return Arrays.equals(persistedMetadata, CassandraTimestampConstants.TIMESTAMP_TABLE_METADATA.persistToBytes());
+    }
+
+    private void repairTable() {
+        rawKvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
+        rawKvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE,
+                CassandraTimestampConstants.TIMESTAMP_TABLE_METADATA.persistToBytes());
+    }
+
+    private void advanceTableToTimestamp(long newMinimumTimestamp) {
+        clientPool.runWithRetry(client -> {
+            try {
+                client.cas(
+                        CassandraTimestampUtils.getRowName(),
+                        AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
+                        ImmutableList.of(),
+                        ImmutableList.of(CassandraTimestampUtils.makeColumn(newMinimumTimestamp)),
+                        ConsistencyLevel.SERIAL,
+                        ConsistencyLevel.EACH_QUORUM);
+                return null;
+            } catch (TException e) {
+                log.error("Error occured whilst trying to fast forward the old timestamp table!");
+                throw Throwables.propagate(e);
+            }
+        });
+    }
+
 
     @Override
     public void invalidateTimestamps() {
