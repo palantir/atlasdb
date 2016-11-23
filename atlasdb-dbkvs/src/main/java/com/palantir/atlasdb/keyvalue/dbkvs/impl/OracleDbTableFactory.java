@@ -52,9 +52,9 @@ public class OracleDbTableFactory implements DbTableFactory {
     @Override
     public DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns) {
         OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(config, conns, tableRef);
-        TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
-        DbQueryFactory queryFactory;
+        TableSize tableSize = getTableSize(tableRef, conns);
         String shortTableName = getTableName(oracleTableNameGetter);
+        DbQueryFactory queryFactory;
         switch (tableSize) {
             case OVERFLOW:
                 String shortOverflowTableName = getOverflowTableName(oracleTableNameGetter);
@@ -87,7 +87,7 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbWriteTable createWrite(TableReference tableRef, ConnectionSupplier conns) {
-        TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
+        TableSize tableSize = getTableSize(tableRef, conns);
         switch (tableSize) {
             case OVERFLOW:
                 return OracleOverflowWriteTable.create(config, conns, tableRef);
@@ -96,6 +96,10 @@ public class OracleDbTableFactory implements DbTableFactory {
             default:
                 throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
         }
+    }
+
+    private TableSize getTableSize(TableReference tableRef, ConnectionSupplier conns) {
+        return new TableSizeCache(conns, config.metadataTable()).getTableSize(tableRef);
     }
 
     @Override

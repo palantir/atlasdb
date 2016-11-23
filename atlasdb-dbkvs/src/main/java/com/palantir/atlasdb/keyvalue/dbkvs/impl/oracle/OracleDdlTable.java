@@ -45,21 +45,25 @@ public final class OracleDdlTable implements DbDdlTable {
     private final ConnectionSupplier conns;
     private final TableReference tableRef;
     private final OracleTableNameGetter oracleTableNameGetter;
+    private final TableSizeCache tableSizeCache;
 
     private OracleDdlTable(
             OracleDdlConfig config,
             ConnectionSupplier conns,
             TableReference tableRef,
-            OracleTableNameGetter oracleTableNameGetter) {
+            OracleTableNameGetter oracleTableNameGetter,
+            TableSizeCache tableSizeCache) {
         this.config = config;
         this.conns = conns;
         this.tableRef = tableRef;
         this.oracleTableNameGetter = oracleTableNameGetter;
+        this.tableSizeCache = tableSizeCache;
     }
 
     public static OracleDdlTable create(TableReference tableRef, ConnectionSupplier conns, OracleDdlConfig config) {
         OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(config, conns, tableRef);
-        return new OracleDdlTable(config, conns, tableRef, oracleTableNameGetter);
+        TableSizeCache tableSizeCache = new TableSizeCache(conns, config.metadataTable());
+        return new OracleDdlTable(config, conns, tableRef, oracleTableNameGetter, tableSizeCache);
     }
 
     @Override
@@ -152,9 +156,14 @@ public final class OracleDdlTable implements DbDdlTable {
             // If table does not exist, do nothing
         }
 
+        dropTableMetadataAndClearTableSizeCache();
+    }
+
+    private void dropTableMetadataAndClearTableSizeCache() {
         conns.get().executeUnregisteredQuery(
                 "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
                 tableRef.getQualifiedName());
+        tableSizeCache.clearCacheForTable(tableRef);
     }
 
     private void dropTableInternal(String fullTableName, String shortTableName) {
@@ -181,8 +190,8 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     private void truncateOverflowTableIfItExists() {
-        TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
-        if (tableSize.equals(TableSize.OVERFLOW)) {
+        if (tableSizeCache.getTableSize(tableRef).equals(TableSize.OVERFLOW)
+                && config.overflowMigrationState() != OverflowMigrationState.UNSTARTED) {
             try {
                 conns.get().executeUnregisteredQuery(
                         "TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortOverflowTableName());
