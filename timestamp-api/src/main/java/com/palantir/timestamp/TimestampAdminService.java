@@ -22,11 +22,15 @@ import javax.ws.rs.QueryParam;
 @Path("/timestamp-admin")
 public interface TimestampAdminService {
     /**
+     * Returns a timestamp that is greater than any timestamp returned from the corresponding TimestampService.
+     */
+    @POST
+    @Path("/upper-bound")
+    long getUpperBoundTimestamp();
+
+    /**
      * Fast forwards the timestamp to the specified one so that no one can be served fresh timestamps prior
      * to it from now on.
-     *
-     * The caller of this is responsible for not using any of the fresh timestamps previously served to it,
-     * and must call getFreshTimestamps() to ensure it is using timestamps after the fastforward point.
      *
      * @param newMinimumTimestamp
      */

@@ -63,6 +63,12 @@ public class AtomixTimestampAdministrationServiceTest {
     }
 
     @Test
+    public void shouldReturnUpperBound() {
+        long freshTimestamp = timestampService.getFreshTimestamp();
+        assertThat(administrationService.getUpperBoundTimestamp()).isGreaterThanOrEqualTo(freshTimestamp);
+    }
+
+    @Test
     public void shouldNotIssueTimestampsFastForwardedPast() {
         long oldValue = timestampService.getFreshTimestamp();
         long delta = 10000L;

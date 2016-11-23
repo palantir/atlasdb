@@ -53,6 +53,12 @@ public class InMemoryTimestampServiceTest {
     }
 
     @Test
+    public void canGetUpperBound() {
+        long freshTimestamp = inMemoryTimestampService.getFreshTimestamp();
+        assertThat(inMemoryTimestampService.getUpperBoundTimestamp()).isGreaterThanOrEqualTo(freshTimestamp);
+    }
+
+    @Test
     public void canFastForwardTimestamps() {
         inMemoryTimestampService.fastForwardTimestamp(BOUNDARY_1);
         assertThat(inMemoryTimestampService.getFreshTimestamp()).isGreaterThan(BOUNDARY_1);
