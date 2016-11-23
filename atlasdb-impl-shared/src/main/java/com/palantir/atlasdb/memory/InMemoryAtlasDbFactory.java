@@ -15,9 +15,13 @@
  */
 package com.palantir.atlasdb.memory;
 
+import org.apache.commons.lang3.concurrent.ConcurrentException;
+import org.apache.commons.lang3.concurrent.LazyInitializer;
+
 import com.google.auto.service.AutoService;
 import com.google.common.base.Optional;
 import com.google.common.base.Suppliers;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
@@ -51,6 +55,7 @@ import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.TimestampAdminService;
 import com.palantir.timestamp.TimestampService;
 
 /**
@@ -62,6 +67,13 @@ import com.palantir.timestamp.TimestampService;
  */
 @AutoService(AtlasDbFactory.class)
 public class InMemoryAtlasDbFactory implements AtlasDbFactory {
+    private final LazyInitializer<InMemoryTimestampService> lazyInitializer =
+            new LazyInitializer<InMemoryTimestampService>() {
+                @Override
+                protected InMemoryTimestampService initialize() {
+                    return new InMemoryTimestampService();
+                }
+            };
 
     @Override
     public String getType() {
@@ -79,7 +91,21 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs) {
         AtlasDbVersion.ensureVersionReported();
-        return new InMemoryTimestampService();
+        return getInMemoryTimestampServiceUnchecked();
+    }
+
+    @Override
+    public TimestampAdminService createTimestampAdminService(KeyValueService rawKvs) {
+        AtlasDbVersion.ensureVersionReported();
+        return getInMemoryTimestampServiceUnchecked();
+    }
+
+    private InMemoryTimestampService getInMemoryTimestampServiceUnchecked() {
+        try {
+            return lazyInitializer.get();
+        } catch (ConcurrentException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
     public static SerializableTransactionManager createInMemoryTransactionManager(AtlasSchema schema) {
