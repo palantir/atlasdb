@@ -22,7 +22,7 @@ import javax.ws.rs.QueryParam;
 @Path("/timestamp-admin")
 public interface TimestampAdminService {
     /**
-     * Returns a timestamp that is greater than any timestamp returned from the corresponding TimestampService.
+     * Returns a timestamp that is greater than any timestamp already returned from the corresponding TimestampService.
      */
     @POST
     @Path("/upper-bound")
@@ -30,17 +30,18 @@ public interface TimestampAdminService {
 
     /**
      * Fast forwards the timestamp to the specified one so that no one can be served fresh timestamps prior
-     * to it from now on.
+     * to it from now on. It is assumed that no TimestampServices backed by the underlying store are currently
+     * running.
      *
-     * @param newMinimumTimestamp
+     * @param newMinimumTimestamp The minimum timestamp to fast forward to.
      */
     @POST
     @Path("/fast-forward")
     void fastForwardTimestamp(@QueryParam("newMinimum") long newMinimumTimestamp);
 
     /**
-     * Invalidates all future timestamps administered by the corresponding TimestampService.
-     * Timestamps are "invalid" in that they will be negative.
+     * Prevents the corresponding TimestampService from requesting additional timestamps.
+     * It is assumed that no TimestampServices backed by the underlying store are currently running.
      */
     @POST
     @Path("/invalidate")
