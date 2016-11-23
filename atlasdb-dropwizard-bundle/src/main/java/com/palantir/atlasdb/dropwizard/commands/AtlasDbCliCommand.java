@@ -80,7 +80,7 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
                         .add(subCommand.getName())
                         .build());
 
-        for (OptionMetadata option : Iterables.concat(subCommand.getCommandOptions(), subCommand.getGroupOptions())) {
+        for (OptionMetadata option : subCommand.getAllOptions()) {
             addOptionToParser(parser, option);
         }
 
