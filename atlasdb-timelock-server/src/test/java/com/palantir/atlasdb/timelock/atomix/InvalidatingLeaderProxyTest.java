@@ -136,7 +136,7 @@ public class InvalidatingLeaderProxyTest {
     }
 
     @Test
-    public void shouldCloseDelegateIfCloseableAndTermChanges() throws IOException {
+    public void shouldCloseDelegateIfCloseableAndLeaderChanges() throws IOException {
         ByteChannel mockedResource = mock(ByteChannel.class);
         ByteChannel proxiedResource = InvalidatingLeaderProxy.create(
                 LOCAL_MEMBER,
