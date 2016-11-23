@@ -20,7 +20,8 @@ dependencies {
 
     compile group: 'com.palantir.remoting1', name: 'jersey-servers'
     compile group: 'com.palantir.remoting1', name: 'ssl-config'
-    compile group: 'io.atomix', name: 'atomix-all'
+    compile group: 'io.atomix', name: 'atomix'
+    compile group: 'io.atomix.catalyst', name: 'catalyst-netty'
     compile group: 'io.dropwizard', name: 'dropwizard-core'
 
     processor group: 'org.immutables', name: 'value'
