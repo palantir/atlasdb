@@ -168,17 +168,17 @@
 </li>
 <li><p class="first">Be aware of the AWS VM type you are running on.</p>
 <blockquote>
-<div><p>A regression on an i2 instance can appear as a perf improvement on a m3.xlarge instance. The main consideration is i/o vs processor power. In general, try to run on AWS machines that are representitive of what customers might be running on.</p>
+<div><p>A regression on an i2 instance can appear as a perf improvement on a m3.xlarge instance. The main consideration is i/o vs processor power. In general, try to run on AWS machines that are representative of what customers might be running on.</p>
 </div></blockquote>
 </li>
-<li><p class="first">Do not run the CLI on the same VM as the the database unless you are simulating a colocated Client and server scenario.</p>
+<li><p class="first">Do not run the CLI on the same VM as the the database unless you are simulating a co-located Client and server scenario.</p>
 <blockquote>
 <div><p>Not only does this setup ignore network considerations, it is also likely that the benchmark application will influence the performance of the database. In this case, changing non-benchmarked code in the benchmarking framework might have an unintended impact on your test results.</p>
 </div></blockquote>
 </li>
 <li><p class="first">Consider running the CLI several times on multiple AWS VMs.</p>
 <blockquote>
-<div><p>Amazon does not make strict performance guarantees for a given VM type. That is to say, not all m4.xlarge VMs will have the exact same clock speed, hdd access speed, etc. If you want the most representitive data possible, you should run the same set of tests on multiple new boxes.</p>
+<div><p>Amazon does not make strict performance guarantees for a given VM type. That is to say, not all m4.xlarge VMs will have the exact same clock speed, hdd access speed, etc. If you want the most representative data possible, you should run the same set of tests on multiple new boxes.</p>
 </div></blockquote>
 </li>
 </ol>
