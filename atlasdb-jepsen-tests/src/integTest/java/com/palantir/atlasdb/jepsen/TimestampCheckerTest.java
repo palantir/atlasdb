@@ -17,10 +17,8 @@ package com.palantir.atlasdb.jepsen;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.entry;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,9 +47,8 @@ public class TimestampCheckerTest {
 
         Map<Keyword, Object> results = TimestampChecker.checkClojureHistory(convertedAllEvents);
 
-        List<Event> expectedErrors = new ArrayList<>();
-        assertThat(results).contains(entry(Keyword.intern("valid"), true));
-        assertThat(results).contains(entry(Keyword.intern("errors"), expectedErrors));
+        assertThat(results).containsEntry(Keyword.intern("valid"), true);
+        assertThat(results).containsEntry(Keyword.intern("errors"), ImmutableList.of());
     }
 
     @Test
@@ -67,13 +64,12 @@ public class TimestampCheckerTest {
 
         Map<Keyword, Object> results = TimestampChecker.checkClojureHistory(history);
 
-        List<Event> expectedErrors = new ArrayList<>();
-        assertThat(results).contains(entry(Keyword.intern("valid"), true));
-        assertThat(results).contains(entry(Keyword.intern("errors"), expectedErrors));
+        assertThat(results).containsEntry(Keyword.intern("valid"), true);
+        assertThat(results).containsEntry(Keyword.intern("errors"), ImmutableList.of());
     }
 
     @Test
-    public void incorrectHistoryShouldReturnInvalidWithErrors() {
+    public void historyOfDecreasingTimestampsShouldReturnInvalidWithErrors() {
         Map<Keyword, ?> read1 = ImmutableMap.of(Keyword.intern("type"), "ok",
                 Keyword.intern("process"), SOME_PROCESS,
                 Keyword.intern("time"), TIME_0,
@@ -87,12 +83,12 @@ public class TimestampCheckerTest {
         Map<Keyword, Object> results = TimestampChecker.checkClojureHistory(history);
 
         List<Event> expectedErrors = ImmutableList.of(Event.fromKeywordMap(read1), Event.fromKeywordMap(read2));
-        assertThat(results).contains(entry(Keyword.intern("valid"), false));
-        assertThat(results).contains(entry(Keyword.intern("errors"), expectedErrors));
+        assertThat(results).containsEntry(Keyword.intern("valid"), false);
+        assertThat(results).containsEntry(Keyword.intern("errors"), expectedErrors);
     }
 
     @Test
-    public void unparsableHistoryShouldThrow() {
+    public void historyWithUnrecognisedEventsShouldThrow() {
         Map<Keyword, ?> unparsableEvent = ImmutableMap.of(Keyword.intern("foo"), "bar");
         List<Map<Keyword, ?>> history = ImmutableList.of(unparsableEvent);
 

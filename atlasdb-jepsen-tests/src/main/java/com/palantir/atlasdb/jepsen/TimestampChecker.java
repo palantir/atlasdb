@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.jepsen.events.Event;
 
 import clojure.lang.Keyword;
@@ -55,7 +56,12 @@ public final class TimestampChecker {
     private static Map<Keyword, Object> checkHistory(List<Event> events) {
         MonotonicChecker monotonicChecker = new MonotonicChecker();
         events.forEach(event -> event.accept(monotonicChecker));
-        return monotonicChecker.results();
+        return createMapFromCompletedChecker(monotonicChecker);
+    }
+
+    private static Map<Keyword, Object> createMapFromCompletedChecker(MonotonicChecker monotonicChecker) {
+        return ImmutableMap.of(Keyword.intern("valid"), monotonicChecker.valid(),
+                Keyword.intern("errors"), monotonicChecker.errors());
     }
 
 }

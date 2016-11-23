@@ -16,19 +16,13 @@
 package com.palantir.atlasdb.jepsen;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
-
-import clojure.lang.Keyword;
 
 public class MonotonicCheckerTest {
     private static final Long ZERO_TIME = 0L;
@@ -37,11 +31,10 @@ public class MonotonicCheckerTest {
 
     @Test
     public void shouldPassOnNoEvents() {
-        Map<Keyword, Object> results = runMonotonicChecker();
+        MonotonicChecker monotonicChecker = runMonotonicChecker();
 
-        List<Event> expectedErrors = ImmutableList.of();
-        assertThat(results).contains(entry(Keyword.intern("valid"), true));
-        assertThat(results).contains(entry(Keyword.intern("errors"), expectedErrors));
+        assertThat(monotonicChecker.valid()).isTrue();
+        assertThat(monotonicChecker.errors()).isEmpty();
     }
 
     @Test
@@ -57,11 +50,10 @@ public class MonotonicCheckerTest {
                 .value(0L)
                 .build();
 
-        Map<Keyword, Object> results = runMonotonicChecker(event1, event2);
+        MonotonicChecker monotonicChecker = runMonotonicChecker(event1, event2);
 
-        List<Event> expectedErrors = ImmutableList.of(event1, event2);
-        assertThat(results).contains(entry(Keyword.intern("valid"), false));
-        assertThat(results).contains(entry(Keyword.intern("errors"), expectedErrors));
+        assertThat(monotonicChecker.valid()).isFalse();
+        assertThat(monotonicChecker.errors()).containsExactly(event1, event2);
     }
 
     @Test
@@ -77,11 +69,10 @@ public class MonotonicCheckerTest {
                 .value(0L)
                 .build();
 
-        Map<Keyword, Object> results = runMonotonicChecker(event1, event2);
+        MonotonicChecker monotonicChecker = runMonotonicChecker(event1, event2);
 
-        List<Event> expectedErrors = ImmutableList.of(event1, event2);
-        assertThat(results).contains(entry(Keyword.intern("valid"), false),
-                entry(Keyword.intern("errors"), expectedErrors));
+        assertThat(monotonicChecker.valid()).isFalse();
+        assertThat(monotonicChecker.errors()).containsExactly(event1, event2);
     }
 
     @Test
@@ -107,16 +98,15 @@ public class MonotonicCheckerTest {
                 .value(3L)
                 .build();
 
-        Map<Keyword, Object> results = runMonotonicChecker(event1, event2, event3, event4);
+        MonotonicChecker monotonicChecker = runMonotonicChecker(event1, event2, event3, event4);
 
-        List<Event> expectedErrors = ImmutableList.of();
-        assertThat(results).contains(entry(Keyword.intern("valid"), true));
-        assertThat(results).contains(entry(Keyword.intern("errors"), expectedErrors));
+        assertThat(monotonicChecker.valid()).isTrue();
+        assertThat(monotonicChecker.errors()).isEmpty();
     }
 
-    private static Map<Keyword, Object> runMonotonicChecker(Event... events) {
+    private static MonotonicChecker runMonotonicChecker(Event... events) {
         MonotonicChecker monotonicChecker = new MonotonicChecker();
         Arrays.asList(events).forEach(event -> event.accept(monotonicChecker));
-        return monotonicChecker.results();
+        return monotonicChecker;
     }
 }
