@@ -85,23 +85,19 @@ public class StreamTest extends AtlasDbTestCase {
     @Test
     public void testAddDelete() throws Exception {
         final byte[] data = PtBytes.toBytes("streamed");
-        final long streamId = txManager.runTaskWithRetry(new TransactionTask<Long, Exception>() {
-            @Override
-            public Long execute(Transaction t) throws Exception {
-                PersistentStreamStore store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
-                Sha256Hash hash = Sha256Hash.computeHash(data);
-                byte[] reference = "ref".getBytes();
+        final long streamId = txManager.runTaskWithRetry((TransactionTask<Long, Exception>) t -> {
+            PersistentStreamStore store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
+            Sha256Hash hash = Sha256Hash.computeHash(data);
+            byte[] reference = "ref".getBytes();
 
-                return store.getByHashOrStoreStreamAndMarkAsUsed(t, hash, new ByteArrayInputStream(data), reference);
-            }
+            return store.getByHashOrStoreStreamAndMarkAsUsed(t, hash, new ByteArrayInputStream(data), reference);
         });
-        txManager.runTaskWithRetry(new TransactionTask<Void, Exception>() {
-            @Override
-            public Void execute(Transaction t) throws Exception {
-                PersistentStreamStore store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
-                Assert.assertEquals(data.length, store.loadStream(t, streamId).read(data, 0, data.length));
-                return null;
-            }
+        txManager.runTaskWithRetry((TransactionTask<Void, Exception>) t -> {
+            PersistentStreamStore store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
+            Optional<InputStream> inputStream = store.loadSingleStream(t, streamId);
+            Assert.assertTrue(inputStream.isPresent());
+            Assert.assertEquals(data.length, inputStream.get().read(data, 0, data.length));
+            return null;
         });
     }
 
