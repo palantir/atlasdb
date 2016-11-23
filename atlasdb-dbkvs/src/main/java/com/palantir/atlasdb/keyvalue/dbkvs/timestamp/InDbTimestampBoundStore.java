@@ -207,7 +207,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
 
     private void createTimestampTable(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement()) {
-            if (dbType.equals(DBType.ORACLE)) {
+            if (getDbType(connection).equals(DBType.ORACLE)) {
                 createTimestampTableIgnoringAlreadyExistsError(statement);
             } else {
                 statement.execute(String.format("CREATE TABLE IF NOT EXISTS %s ( last_allocated int8 NOT NULL )",
