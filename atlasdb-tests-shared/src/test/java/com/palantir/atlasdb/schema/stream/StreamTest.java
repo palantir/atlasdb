@@ -15,15 +15,16 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.IsEqual.equalTo;
-import static org.hamcrest.core.IsNot.not;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
-import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -39,7 +40,6 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -95,8 +95,8 @@ public class StreamTest extends AtlasDbTestCase {
         txManager.runTaskWithRetry((TransactionTask<Void, Exception>) t -> {
             PersistentStreamStore store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
             Optional<InputStream> inputStream = store.loadSingleStream(t, streamId);
-            Assert.assertTrue(inputStream.isPresent());
-            Assert.assertEquals(data.length, inputStream.get().read(data, 0, data.length));
+            assertTrue(inputStream.isPresent());
+            assertEquals(data.length, inputStream.get().read(data, 0, data.length));
             return null;
         });
     }
@@ -121,7 +121,7 @@ public class StreamTest extends AtlasDbTestCase {
         byte[] persistedRow = row.persistToBytes();
         StreamTestWithHashStreamValueRow hydratedRow =
                 StreamTestWithHashStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
-        Assert.assertEquals(row, hydratedRow);
+        assertEquals(row, hydratedRow);
     }
 
     @Test
@@ -130,7 +130,7 @@ public class StreamTest extends AtlasDbTestCase {
         byte[] persistedRow = row.persistToBytes();
         StreamTestWithHashStreamMetadataRow hydratedRow =
                 StreamTestWithHashStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
-        Assert.assertEquals(row, hydratedRow);
+        assertEquals(row, hydratedRow);
     }
 
     @Test
@@ -139,7 +139,7 @@ public class StreamTest extends AtlasDbTestCase {
         byte[] persistedRow = row.persistToBytes();
         StreamTestWithHashStreamIdxRow hydratedRow =
                 StreamTestWithHashStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(persistedRow);
-        Assert.assertEquals(row, hydratedRow);
+        assertEquals(row, hydratedRow);
     }
 
     @Test
@@ -160,10 +160,10 @@ public class StreamTest extends AtlasDbTestCase {
         final long id = timestampService.getFreshTimestamp();
         PersistentStreamStore store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
         txManager.runTaskWithRetry(t -> {
-                    store.storeStreams(t, ImmutableMap.of(id, new ByteArrayInputStream(bytesToStore)));
-                    store.markStreamAsUsed(t, id, reference);
-                    return null;
-                });
+            store.storeStreams(t, ImmutableMap.of(id, new ByteArrayInputStream(bytesToStore)));
+            store.markStreamAsUsed(t, id, reference);
+            return null;
+        });
 
         verifyLoadingStreams(id, bytesToStore, store);
 
@@ -179,9 +179,9 @@ public class StreamTest extends AtlasDbTestCase {
         verifyLoadStreamAsFile(id, bytesToStore, store);
     }
 
-    private void verifyLoadStreamAsFile(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
-        File file = txManager.runTaskThrowOnConflict(t -> store.loadStreamAsFile(t, id));
-        Assert.assertArrayEquals(bytesToStore, FileUtils.readFileToByteArray(file));
+    private void verifyLoadStream(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
+        InputStream stream = txManager.runTaskThrowOnConflict(t -> store.loadStream(t, id));
+        assertStreamHasBytes(stream, bytesToStore);
     }
 
     private void verifyLoadStreams(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
@@ -190,14 +190,14 @@ public class StreamTest extends AtlasDbTestCase {
         assertStreamHasBytes(streams.get(id), bytesToStore);
     }
 
-    private void verifyLoadStream(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
-        InputStream stream = txManager.runTaskThrowOnConflict(t -> store.loadStream(t, id));
-        assertStreamHasBytes(stream, bytesToStore);
+    private void verifyLoadStreamAsFile(long id, byte[] toStore, GenericStreamStore<Long> store) throws IOException {
+        File file = txManager.runTaskThrowOnConflict(t -> store.loadStreamAsFile(t, id));
+        assertArrayEquals(toStore, FileUtils.readFileToByteArray(file));
     }
 
     private void assertStreamHasBytes(InputStream stream, byte[] bytes) throws IOException {
         byte[] streamAsBytes = IOUtils.toByteArray(stream);
-        Assert.assertArrayEquals(bytes, streamAsBytes);
+        assertArrayEquals(bytes, streamAsBytes);
     }
 
     @Test
@@ -223,11 +223,12 @@ public class StreamTest extends AtlasDbTestCase {
 
         txManager.runTaskWithRetry(t -> store.storeStreams(t, streams));
 
-        Map<Sha256Hash, Long> sha256HashLongMap = txManager.runTaskWithRetry(t -> store.lookupStreamIdsByHash(t, ImmutableSet.of(hash1, hash2, hash3)));
+        Map<Sha256Hash, Long> sha256HashLongMap = txManager.runTaskWithRetry(
+                t -> store.lookupStreamIdsByHash(t, ImmutableSet.of(hash1, hash2, hash3)));
 
         assertEquals(id1, sha256HashLongMap.get(hash1).longValue());
         assertEquals(id2, sha256HashLongMap.get(hash2).longValue());
-        assertEquals(null, sha256HashLongMap.get(hash3));
+        assertNull(sha256HashLongMap.get(hash3));
     }
 
     @Test
@@ -259,15 +260,16 @@ public class StreamTest extends AtlasDbTestCase {
 
         runConflictingTasksConcurrently(streamId, new TwoConflictingTasks() {
             @Override
-            public void startFirstAndFail(Transaction t, long streamId) {
+            public void startFirstAndFail(Transaction tx, long streamId) {
                 StreamTestStreamStore ss = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
-                ss.storeStreams(t, ImmutableMap.of(streamId, new ByteArrayInputStream(new byte[1])));
+                ss.storeStreams(tx, ImmutableMap.of(streamId, new ByteArrayInputStream(new byte[1])));
             }
 
             @Override
-            public void startSecondAndFinish(Transaction t, long streamId) {
-                DeletingStreamStore deletingStreamStore = new DeletingStreamStore(StreamTestStreamStore.of(txManager, StreamTestTableFactory.of()));
-                deletingStreamStore.deleteStreams(t, ImmutableSet.of(streamId));
+            public void startSecondAndFinish(Transaction tx, long streamId) {
+                DeletingStreamStore deletingStreamStore = new DeletingStreamStore(
+                        StreamTestStreamStore.of(txManager, StreamTestTableFactory.of()));
+                deletingStreamStore.deleteStreams(tx, ImmutableSet.of(streamId));
             }
         });
 
@@ -280,15 +282,16 @@ public class StreamTest extends AtlasDbTestCase {
 
         runConflictingTasksConcurrently(streamId, new TwoConflictingTasks() {
             @Override
-            public void startFirstAndFail(Transaction t, long streamId) {
-                DeletingStreamStore deletingStreamStore = new DeletingStreamStore(StreamTestStreamStore.of(txManager, StreamTestTableFactory.of()));
-                deletingStreamStore.deleteStreams(t, ImmutableSet.of(streamId));
+            public void startFirstAndFail(Transaction tx, long streamId) {
+                DeletingStreamStore deletingStreamStore = new DeletingStreamStore(
+                        StreamTestStreamStore.of(txManager, StreamTestTableFactory.of()));
+                deletingStreamStore.deleteStreams(tx, ImmutableSet.of(streamId));
             }
 
             @Override
-            public void startSecondAndFinish(Transaction t, long streamId) {
+            public void startSecondAndFinish(Transaction tx, long streamId) {
                 StreamTestStreamStore ss = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
-                ss.storeStreams(t, ImmutableMap.of(streamId, new ByteArrayInputStream(new byte[1])));
+                ss.storeStreams(tx, ImmutableMap.of(streamId, new ByteArrayInputStream(new byte[1])));
             }
         });
 
@@ -311,7 +314,7 @@ public class StreamTest extends AtlasDbTestCase {
         }
     }
 
-    private void runConflictingTasksConcurrently(long streamId, TwoConflictingTasks twoConflictingTasks) throws InterruptedException {
+    private void runConflictingTasksConcurrently(long streamId, TwoConflictingTasks tasks) throws InterruptedException {
         final CountDownLatch firstLatch = new CountDownLatch(1);
         final CountDownLatch secondLatch = new CountDownLatch(1);
 
@@ -321,7 +324,7 @@ public class StreamTest extends AtlasDbTestCase {
         Future<?> firstFuture = exec.submit(() -> {
             try {
                 txManager.runTaskThrowOnConflict(t -> {
-                    twoConflictingTasks.startFirstAndFail(t, streamId);
+                    tasks.startFirstAndFail(t, streamId);
                     letOtherTaskFinish(firstLatch, secondLatch);
                     return null;
                 });
@@ -333,10 +336,11 @@ public class StreamTest extends AtlasDbTestCase {
 
         firstLatch.await();
 
-        Future<?> secondFuture = exec.submit((Runnable) () -> txManager.runTaskThrowOnConflict((TransactionTask<Void, RuntimeException>) t -> {
-            twoConflictingTasks.startSecondAndFinish(t, streamId);
-            return null;
-        }));
+        Future<?> secondFuture = exec.submit((Runnable) () ->
+                txManager.runTaskThrowOnConflict((TransactionTask<Void, RuntimeException>) t -> {
+                    tasks.startSecondAndFinish(t, streamId);
+                    return null;
+                }));
 
         exec.shutdown();
         Futures.getUnchecked(secondFuture);
@@ -354,9 +358,9 @@ public class StreamTest extends AtlasDbTestCase {
         }
     }
 
-    abstract class TwoConflictingTasks {
-        public abstract void startFirstAndFail(Transaction t, long streamId);
-        public abstract void startSecondAndFinish(Transaction t, long streamId);
+    private abstract class TwoConflictingTasks {
+        public abstract void startFirstAndFail(Transaction tx, long streamId);
+        public abstract void startSecondAndFinish(Transaction tx, long streamId);
     }
 
 }
