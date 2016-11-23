@@ -172,6 +172,14 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal"><span class="pre">--config-root</span></code> and other global parameters can now be passed into dropwizard CLIs.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1268">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<td>The migration <code class="docutils literal"><span class="pre">--config-root</span></code> shorthand (<code class="docutils literal"><span class="pre">-r</span></code>) can no longer be used as it conflicted with the timestamp command <code class="docutils literal"><span class="pre">--row</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1268">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Dbkvs: ConnectionSupplier consumers can now choose to receive a brand new unshared connection.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1258">Pull Request</a>)</td>
