@@ -1722,7 +1722,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             log.error("No compaction client was configured, but compact was called."
                     + " If you actually want to clear deleted data immediately"
                     + " from Cassandra, lower your gc_grace_seconds setting and"
-                    + " run `nodetool compact {} {}`.", config.keyspace(), tableRef);
+                    + " run `nodetool compact {} {}`.", config.keyspace(), internalTableName(tableRef));
             return;
         }
         long timeoutInSeconds = config.jmx().get().compactionTimeoutSeconds();
