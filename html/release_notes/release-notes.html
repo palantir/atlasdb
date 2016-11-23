@@ -158,6 +158,9 @@
 </div>
 <div class="section" id="develop">
 <h2>develop<a class="headerlink" href="#develop" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="v0-25-0">
+<h2>v0.25.0<a class="headerlink" href="#v0-25-0" title="Permalink to this headline">¶</a></h2>
 <table border="1" class="docutils">
 <colgroup>
 <col width="11%" />
@@ -170,8 +173,16 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Dbkvs: ConnectionSupplier consumers can now choose to receive a brand new unshared connection.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1258">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB now supports Cassandra 3.7 as well as Cassandra 2.2.8.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1206">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Oracle perf improvement; table names now cached, resulting in fewer round trips to the database.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1215">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">SweepStatsKeyValueService</span></code> will no longer flush a final batch of statistics during shutdown. This avoids
@@ -179,24 +190,21 @@ potentially long pauses that could previously occur when closing a <code class="
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1232">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Oracle perf improvement; table names now cached, resulting in fewer round trips to the database.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1215">Pull Request</a>)</td>
+<td>Better support for AtlasDB clients running behind load balancers. In particular, if an AtlasDB client falls down and
+its load balancer responds with &#8220;503: Service Unavailable&#8221;, the request will be attempted on other clients rather than aborting.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1175">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Certain Oracle KVS calls no longer attempt to leak connections created internally.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1215">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Oracle will not drop a table that already exists on  <code class="docutils literal"><span class="pre">createTable</span></code> calls when multiple AtlasDB clients make the call to create the same table.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1243">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
-<td>Our jackson version has been updated from 2.5.1 to 2.6.7 and dropwizard version from 0.8.2 to 0.9.3.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1209">Pull Request</a>)</td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Certain Oracle KVS calls no longer attempt to leak connections created internally.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1215">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
-<td>ConnectionSupplier consumers can now choose to receive a brand new unshared connection.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1258">Pull Request</a>)</td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<td>Our Jackson version has been updated from 2.5.1 to 2.6.7 and Dropwizard version from 0.8.2 to 0.9.3.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1209">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -252,19 +260,15 @@ This should greatly improve usability for service admins using the CLIs.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1177">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Better support for AtlasDB clients running behind load balancers. In particular, if an AtlasDB client falls down and its load balancer responds with &#8220;503: Service Unavailable&#8221;, the request will be attempted on other clients rather than aborting.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1175">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Remove usage of <code class="docutils literal"><span class="pre">createUnsafe</span></code> in generated Schema code. You can regenerate your schema to get rid of the deprecation warnings.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1194">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">atlasdb-cassandra</span></code> now depends on <code class="docutils literal"><span class="pre">cassandra-thrift</span></code> instead of <code class="docutils literal"><span class="pre">cassandra-all</span></code>.
 This reduces our dependency footprint.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1222">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Add support for generating schemas with Java8 Optionals instead of Guava Optionals.
 To use Java8 optionals, supply <code class="docutils literal"><span class="pre">OptionalType.JAVA8</span></code> as an additional constructor argument when creating your <code class="docutils literal"><span class="pre">Schema</span></code> object.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1162">Pull Request</a>)</td>
