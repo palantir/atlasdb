@@ -34,6 +34,12 @@ Changelog
 develop
 =======
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.25.0
+=======
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -42,8 +48,16 @@ develop
          - Change
 
     *    - |new|
+         - Dbkvs: ConnectionSupplier consumers can now choose to receive a brand new unshared connection.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1258>`__)
+
+    *    - |new|
          - AtlasDB now supports Cassandra 3.7 as well as Cassandra 2.2.8.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1206>`__)
+
+    *    - |improved|
+         - Oracle perf improvement; table names now cached, resulting in fewer round trips to the database.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1215>`__)
 
     *    - |improved|
          - ``SweepStatsKeyValueService`` will no longer flush a final batch of statistics during shutdown. This avoids
@@ -51,24 +65,21 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1232>`__)
 
     *    - |improved|
-         - Oracle perf improvement; table names now cached, resulting in fewer round trips to the database.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1215>`__)
-
-    *    - |fixed|
-         - Certain Oracle KVS calls no longer attempt to leak connections created internally.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1215>`__)
+         - Better support for AtlasDB clients running behind load balancers. In particular, if an AtlasDB client falls down and
+           its load balancer responds with "503: Service Unavailable", the request will be attempted on other clients rather than aborting.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1175>`__)
 
     *    - |fixed|
          - Oracle will not drop a table that already exists on  ``createTable`` calls when multiple AtlasDB clients make the call to create the same table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1243>`__)
 
-    *    - |breaking|
-         - Our jackson version has been updated from 2.5.1 to 2.6.7 and dropwizard version from 0.8.2 to 0.9.3.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1209>`__)
+    *    - |fixed|
+         - Certain Oracle KVS calls no longer attempt to leak connections created internally.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1215>`__)
 
-    *    - |new|
-         - ConnectionSupplier consumers can now choose to receive a brand new unshared connection.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1258>`__)
+    *    - |breaking|
+         - Our Jackson version has been updated from 2.5.1 to 2.6.7 and Dropwizard version from 0.8.2 to 0.9.3.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1209>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -119,10 +130,6 @@ v0.24.0
          - CLIs now output to standard out, standard error, and the service logs, rather than only printing to the service logs.
            This should greatly improve usability for service admins using the CLIs.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1177>`__)
-
-    *    - |improved|
-         - Better support for AtlasDB clients running behind load balancers. In particular, if an AtlasDB client falls down and its load balancer responds with "503: Service Unavailable", the request will be attempted on other clients rather than aborting.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1175>`__)
 
     *    - |improved|
          - Remove usage of ``createUnsafe`` in generated Schema code. You can regenerate your schema to get rid of the deprecation warnings.
