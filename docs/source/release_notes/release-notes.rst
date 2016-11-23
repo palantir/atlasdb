@@ -41,6 +41,21 @@ develop
     *    - Type
          - Change
 
+    *    - |deprecated|
+         - ``GenericStreamStore.loadStream`` has been deprecated. Use ``loadSingleStream``, which returns an
+           ``Optional<InputStream>``, instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1265>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.25.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
     *    - |new|
          - AtlasDB now supports Cassandra 3.7 as well as Cassandra 2.2.8.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1206>`__)
