@@ -118,7 +118,9 @@ public class StreamTest extends AtlasDbTestCase {
         txManager.runTaskWithRetry((TransactionTask<Void, Exception>) t -> {
             Optional<InputStream> inputStream = defaultStore.loadSingleStream(t, streamId);
             assertTrue(inputStream.isPresent());
-            assertEquals(data.length, inputStream.get().read(data, 0, data.length));
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            outputStream.write(inputStream.get());
+            assertArrayEquals(data, outputStream.toByteArray());
             return null;
         });
     }
