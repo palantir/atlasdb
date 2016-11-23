@@ -41,5 +41,14 @@ public interface Event {
         return new ObjectMapper().convertValue(convertedMap, Event.class);
     }
 
+    static Map<Keyword, Object> toKeywordMap(Event event) {
+        Map<String, Object> stringToObject = new ObjectMapper().convertValue(event, Map.class);
+        Map<Keyword, Object> convertedMap = new HashMap<>();
+        EntryStream.of(stringToObject)
+                .mapKeys(Keyword::intern)
+                .forKeyValue(convertedMap::put);
+        return convertedMap;
+    }
+
     void accept(EventVisitor visitor);
 }
