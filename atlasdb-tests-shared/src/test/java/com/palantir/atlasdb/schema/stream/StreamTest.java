@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -31,7 +32,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
@@ -542,7 +542,9 @@ public class StreamTest extends AtlasDbTestCase {
             }
         });
 
-        assertNotNull(getStream(streamId));
+        Optional<InputStream> stream = getStream(streamId);
+        assertTrue(stream.isPresent());
+        assertNotNull(stream.get());
     }
 
     @Test
@@ -571,20 +573,15 @@ public class StreamTest extends AtlasDbTestCase {
         return (metadata.getLength() + blockSize - 1) / blockSize;
     }
 
-    private InputStream getStream(long streamId) {
+    private Optional<InputStream> getStream(long streamId) {
         return txManager.runTaskThrowOnConflict(t -> {
             StreamTestStreamStore streamStore = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
-            return streamStore.loadStream(t, streamId);
+            return streamStore.loadSingleStream(t, streamId);
         });
     }
 
     private void assertStreamDoesNotExist(final long streamId) {
-        try {
-            getStream(streamId);
-            fail("This element should have been deleted");
-        } catch (NoSuchElementException e) {
-            // expected
-        }
+        assertFalse("This element should have been deleted", getStream(streamId).isPresent());
     }
 
     private void runConflictingTasksConcurrently(long streamId, TwoConflictingTasks tasks) throws InterruptedException {
