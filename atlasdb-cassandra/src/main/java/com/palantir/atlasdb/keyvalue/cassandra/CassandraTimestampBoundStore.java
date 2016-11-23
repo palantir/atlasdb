@@ -34,14 +34,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.ColumnValueDescription;
-import com.palantir.atlasdb.table.description.NameComponentDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.NamedColumnDescription;
-import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.timestamp.DebugLogger;
@@ -52,19 +44,6 @@ import com.palantir.util.debug.ThreadDumps;
 public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampBoundStore.class);
 
-    private static final long CASSANDRA_TIMESTAMP = 0L;
-    private static final String ROW_AND_COLUMN_NAME = "ts";
-
-    public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
-            NameMetadataDescription.create(ImmutableList.of(
-                    new NameComponentDescription("timestamp_name", ValueType.STRING))),
-            new ColumnMetadataDescription(ImmutableList.of(
-                new NamedColumnDescription(
-                        ROW_AND_COLUMN_NAME,
-                        "current_max_ts",
-                        ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
-            ConflictHandler.IGNORE_ALL);
-
     private static final long INITIAL_VALUE = 10000L;
 
     @GuardedBy("this")
@@ -73,7 +52,8 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private final CassandraClientPool clientPool;
 
     public static TimestampBoundStore create(CassandraKeyValueService kvs) {
-        kvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE, TIMESTAMP_TABLE_METADATA.persistToBytes());
+        kvs.createTable(AtlasDbConstants.TIMESTAMP_TABLE,
+                CassandraTimestampConstants.TIMESTAMP_TABLE_METADATA.persistToBytes());
         return new CassandraTimestampBoundStore(kvs.clientPool);
     }
 
@@ -90,9 +70,9 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         return clientPool.runWithRetry(new FunctionCheckedException<Client, Long, RuntimeException>() {
             @Override
             public Long apply(Client client) {
-                ByteBuffer rowName = getRowName();
+                ByteBuffer rowName = CassandraTimestampUtils.getRowName();
                 ColumnPath columnPath = new ColumnPath(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName());
-                columnPath.setColumn(getColumnName());
+                columnPath.setColumn(CassandraTimestampUtils.getColumnName());
                 ColumnOrSuperColumn result;
                 try {
                     result = client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM);
@@ -131,10 +111,10 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         try {
             DebugLogger.logger.info("[CAS] Trying to set upper limit from {} to {}.", oldVal, newVal);
             result = client.cas(
-                    getRowName(),
+                    CassandraTimestampUtils.getRowName(),
                     AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
-                    oldVal == null ? ImmutableList.of() : ImmutableList.of(makeColumn(oldVal)),
-                    ImmutableList.of(makeColumn(newVal)),
+                    oldVal == null ? ImmutableList.of() : ImmutableList.of(CassandraTimestampUtils.makeColumn(oldVal)),
+                    ImmutableList.of(CassandraTimestampUtils.makeColumn(newVal)),
                     ConsistencyLevel.SERIAL,
                     ConsistencyLevel.EACH_QUORUM);
         } catch (Exception e) {
@@ -171,23 +151,5 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                 .map(PtBytes::toLong)
                 .map(String::valueOf)
                 .collect(Collectors.joining(", "));
-    }
-
-    private Column makeColumn(long ts) {
-        Column col = new Column();
-        col.setName(getColumnName());
-        col.setValue(PtBytes.toBytes(ts));
-        col.setTimestamp(CASSANDRA_TIMESTAMP);
-        return col;
-    }
-
-    private static byte[] getColumnName() {
-        return CassandraKeyValueServices
-                .makeCompositeBuffer(PtBytes.toBytes(ROW_AND_COLUMN_NAME), CASSANDRA_TIMESTAMP)
-                .array();
-    }
-
-    private static ByteBuffer getRowName() {
-        return ByteBuffer.wrap(PtBytes.toBytes(ROW_AND_COLUMN_NAME));
     }
 }
