@@ -27,8 +27,8 @@ public final class DistributedValues {
         // Utility class
     }
 
-    public static DistributedValue<String> getLeaderId(Atomix atomix) {
-        return Futures.getUnchecked(atomix.<String>getValue("atlasdb/leader"));
+    public static DistributedValue<LeaderAndTerm> getLeaderInfo(Atomix atomix) {
+        return Futures.getUnchecked(atomix.<LeaderAndTerm>getValue("atlasdb/leader"));
     }
 
     public static DistributedLong getTimestampForClient(Atomix atomix, String client) {
