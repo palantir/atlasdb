@@ -17,6 +17,7 @@ External Timestamp and Lock Service
     :titlesonly:
 
     installation
+    server_configuration
     migration
 
 The AtlasDB Timelock Service is an external implementation of the Timestamp and Lock services. Running an external
@@ -28,5 +29,8 @@ benefits:
 - To some extent, individual services can now scale independently of AtlasDB, depending on one's requirements.
 - Resource contention between your AtlasDB clients and embedded timestamp and lock services can be better managed.
 - Timestamp and Lock endpoints are now hidden from users, making abuse more difficult.
+
+Also, Timelock Services can be run in clustered mode, allowing for high availability (as long as a majority quorum
+of nodes exists).
 
 .. _Atomix: http://atomix.io/
