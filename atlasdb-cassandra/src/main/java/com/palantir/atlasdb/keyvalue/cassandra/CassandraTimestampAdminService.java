@@ -117,7 +117,7 @@ public class CassandraTimestampAdminService implements TimestampAdminService {
                         ConsistencyLevel.EACH_QUORUM);
                 return null;
             } catch (TException e) {
-                log.error("Error occured whilst trying to fast forward the old timestamp table!");
+                log.error("Error occurred whilst trying to fast forward the old timestamp table!");
                 throw Throwables.propagate(e);
             }
         });
@@ -137,6 +137,7 @@ public class CassandraTimestampAdminService implements TimestampAdminService {
                         ConsistencyLevel.QUORUM);
             } catch (TException e) {
                 log.error("Error trying to install bogus column!");
+                throw Throwables.propagate(e);
             }
             return null;
         });

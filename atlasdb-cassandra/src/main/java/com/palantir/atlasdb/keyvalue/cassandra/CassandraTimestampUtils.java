@@ -22,6 +22,7 @@ import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnPath;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.NotFoundException;
 
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -59,12 +60,11 @@ public class CassandraTimestampUtils {
         ColumnOrSuperColumn result;
         try {
             result = client.get(rowName, columnPath, ConsistencyLevel.LOCAL_QUORUM);
-        } catch (NotFoundException e) {
+        } catch (NotFoundException | InvalidRequestException e) {
             result = null;
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
         return result;
     }
-
 }

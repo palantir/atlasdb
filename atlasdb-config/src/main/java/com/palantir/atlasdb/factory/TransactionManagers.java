@@ -133,15 +133,8 @@ public final class TransactionManagers {
                 () -> LockServiceImpl.create(lockServerOptions),
                 atlasFactory::getTimestampService);
 
-        // Upgrade if necessary here!!!
-        if (config.timelock().isPresent()) {
-            TimestampAdminService timelockAdminService =
-                    AtlasDbHttpClients.createProxyWithFailover(createSslSocketFactory(config.timelock().get().serverListConfig().sslConfiguration()),
-                            getNamespacedConfig(config.timelock().get()).servers(), TimestampAdminService.class);
-            TimestampMigrator migrator = new TimestampMigrator(atlasFactory.getTimestampAdminService(),
-                    timelockAdminService);
-            migrator.migrateTimestamps(); // !
-        }
+        // Upgrade if necessary here.
+        migrateTimestampsIfNecessary(config, atlasFactory);
 
         KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
@@ -210,6 +203,41 @@ public final class TransactionManagers {
         backgroundSweeper.runInBackground();
 
         return transactionManager;
+    }
+
+    private static void migrateTimestampsIfNecessary(AtlasDbConfig config,
+            ServiceDiscoveringAtlasSupplier atlasFactory) {
+        if (config.timelock().isPresent()) {
+            TimestampAdminService intrinsicAdminService = atlasFactory.getTimestampAdminService();
+            if (intrinsicServiceIsValid(intrinsicAdminService)) {
+                performTimestampMigration(config, atlasFactory);
+            }
+        }
+    }
+
+    private static boolean intrinsicServiceIsValid(TimestampAdminService intrinsicAdminService) {
+        try {
+            intrinsicAdminService.getUpperBoundTimestamp();
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    private static void performTimestampMigration(AtlasDbConfig config, ServiceDiscoveringAtlasSupplier atlasFactory) {
+        TimestampAdminService timelockAdminService = getTimelockAdminService(config);
+        TimestampMigrator migrator = new TimestampMigrator(
+                atlasFactory.getTimestampAdminService(),
+                timelockAdminService);
+        migrator.migrateTimestamps();
+    }
+
+    private static TimestampAdminService getTimelockAdminService(AtlasDbConfig config) {
+        TimeLockClientConfig timeLockClientConfig = config.timelock().get();
+        return AtlasDbHttpClients.createProxyWithFailover(
+                createSslSocketFactory(timeLockClientConfig.serverListConfig().sslConfiguration()),
+                getNamespacedConfig(timeLockClientConfig).servers(),
+                TimestampAdminService.class);
     }
 
     private static Supplier<Long> getImmutableTsSupplier(final TransactionManager txManager) {
