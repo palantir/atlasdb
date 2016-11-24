@@ -15,8 +15,12 @@
  */
 package com.palantir.atlasdb.jepsen.events;
 
+import java.util.List;
+
 public interface EventVisitor {
     void visit(InfoEvent event);
     void visit(InvokeEvent event);
     void visit(OkEvent event);
+    boolean valid();
+    List<Event> errors();
 }
