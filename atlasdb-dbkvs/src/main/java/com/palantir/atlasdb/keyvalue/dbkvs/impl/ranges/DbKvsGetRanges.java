@@ -160,36 +160,19 @@ public class DbKvsGetRanges {
             boolean reverse,
             int numRowsToGet,
             int queryNum) {
-        String extraWhere;
         List<Object> args = Lists.newArrayList();
         args.add(queryNum);
-        if (reverse) {
-            extraWhere = " t.row_name <= ? ";
-        } else {
-            extraWhere = " t.row_name >= ? ";
-        }
-        if (startRow.length > 0) {
-            args.add(startRow);
-        } else {
-            args.add(reverse ? LARGEST_NAME : SMALLEST_NAME);
-        }
 
-        if (endRow.length > 0) {
-            if (reverse) {
-                extraWhere += " AND t.row_name > ? ";
-            } else {
-                extraWhere += " AND t.row_name < ? ";
-            }
-            args.add(endRow);
-        }
+        String whereClause = getWhereClause(endRow, reverse);
+        addRowArguments(startRow, endRow, reverse, args);
 
         String order = reverse ? "DESC" : "ASC";
         if (numRowsToGet == 1) {
             String minMax = reverse ? "max" : "min";
             // QA-69854 Special case 1 row reads because oracle is terrible at optimizing queries
             String query = dbType == DBType.ORACLE
-                    ? getSimpleRowSelectOneQueryOracle(minMax, extraWhere)
-                    : getSimpleRowSelectOneQueryPostgres(extraWhere, order);
+                    ? getSimpleRowSelectOneQueryOracle(minMax, whereClause)
+                    : getSimpleRowSelectOneQueryPostgres(whereClause, order);
             return Pair.create(query, args);
         } else {
             String query = String.format(
@@ -197,12 +180,35 @@ public class DbKvsGetRanges {
                     DbKvs.internalTableName(tableRef),
                     getPrefixedTableName(),
                     getPrefixedTableName(),
-                    extraWhere,
+                    whereClause,
                     order);
             String limitQuery = BasicSQLUtils.limitQuery(query, numRowsToGet, args, dbType);
             return Pair.create(limitQuery, args);
         }
     }
+
+    private String getWhereClause(byte[] endRow, boolean reverse) {
+        if (reverse) {
+            return " t.row_name <= ? " + (endRow.length > 0 ? " AND t.row_name > ? " : "");
+        } else {
+            return " t.row_name >= ? " + (endRow.length > 0 ? " AND t.row_name < ? " : "");
+        }
+    }
+
+    private void addRowArguments(byte[] startRow, byte[] endRow, boolean reverse, List<Object> args) {
+        if (!addRowIfExists(startRow, args)) {
+            args.add(reverse ? LARGEST_NAME : SMALLEST_NAME);
+        }
+        addRowIfExists(endRow, args);
+    }
+
+    private boolean addRowIfExists(byte[] row, List<Object> args) {
+        if (row.length > 0) {
+            return args.add(row);
+        }
+        return false;
+    }
+
     /**
      * This tablehod expects the input to be sorted by rowname ASC for both rowsForBatches and
      * cellsByRow.
@@ -284,24 +290,24 @@ public class DbKvsGetRanges {
         })).filter(Predicates.not(RowResults.<Value>createIsEmptyPredicate()));
     }
 
-    private String getSimpleRowSelectOneQueryPostgres(String extraWhere, String order) {
+    private String getSimpleRowSelectOneQueryPostgres(String whereClause, String order) {
         return String.format(
                 SIMPLE_ROW_SELECT_ONE_POSTGRES_TEMPLATE,
                 DbKvs.internalTableName(tableRef),
                 getPrefixedTableName(),
                 getPrefixedTableName(),
-                extraWhere,
+                whereClause,
                 order);
     }
 
-    private String getSimpleRowSelectOneQueryOracle(String minMax, String extraWhere) {
+    private String getSimpleRowSelectOneQueryOracle(String minMax, String whereClause) {
         return String.format(
                 SIMPLE_ROW_SELECT_ONE_ORACLE_TEMPLATE,
                 DbKvs.internalTableName(tableRef),
                 getPrefixedTableName(),
                 minMax,
                 getPrefixedTableName(),
-                extraWhere);
+                whereClause);
     }
 
     private String getPrefixedTableName() {
