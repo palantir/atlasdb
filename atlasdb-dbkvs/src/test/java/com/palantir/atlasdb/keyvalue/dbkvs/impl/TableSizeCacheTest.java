@@ -68,47 +68,62 @@ public class TableSizeCacheTest {
 
     @Test
     public void testGetTableSizeOneTimeHasCacheMiss() throws Exception {
-        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE), is(TableSize.OVERFLOW));
+        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+                is(TableSize.OVERFLOW));
         verify(connectionSupplier, times(1)).getNewUnsharedConnection();
     }
 
 
     @Test
     public void testGetTableSizeForSameTableHitsCache() throws Exception {
-        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE), is(TableSize.OVERFLOW));
-        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE), is(TableSize.OVERFLOW));
+        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+                is(TableSize.OVERFLOW));
+        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+                is(TableSize.OVERFLOW));
 
         verify(connectionSupplier, times(1)).getNewUnsharedConnection();
     }
 
     @Test
     public void testCacheInvalidationHitsConnectionAgain() throws Exception {
-        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE), is(TableSize.OVERFLOW));
+        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+                is(TableSize.OVERFLOW));
         TableSizeCache.clearCacheForTable(TEST_TABLE);
-        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE), is(TableSize.OVERFLOW));
+        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+                is(TableSize.OVERFLOW));
 
         verify(connectionSupplier, times(2)).getNewUnsharedConnection();
     }
 
     @Test
     public void testCacheHandlesMultipleTableRequests() throws Exception {
-        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE), is(TableSize.OVERFLOW));
-        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE_2, AtlasDbConstants.DEFAULT_METADATA_TABLE), is(TableSize.OVERFLOW));
+        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+                is(TableSize.OVERFLOW));
+        assertThat(
+                TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE_2, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+                is(TableSize.OVERFLOW));
 
         verify(connectionSupplier, times(2)).getNewUnsharedConnection();
     }
 
     @Test
     public void testCacheInvalidatesOnlyOneTable() throws Exception {
-        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE), is(TableSize.OVERFLOW));
-        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE_2, AtlasDbConstants.DEFAULT_METADATA_TABLE), is(TableSize.OVERFLOW));
+        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+                is(TableSize.OVERFLOW));
+        assertThat(
+                TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE_2, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+                is(TableSize.OVERFLOW));
         TableSizeCache.clearCacheForTable(TEST_TABLE);
 
-        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE), is(TableSize.OVERFLOW));
+        assertThat(
+                TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+                is(TableSize.OVERFLOW));
         verify(connectionSupplier, times(3)).getNewUnsharedConnection();
 
         // No additional fetch required
-        assertThat(TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE_2, AtlasDbConstants.DEFAULT_METADATA_TABLE), is(TableSize.OVERFLOW));
+        assertThat(
+                TableSizeCache.getTableSize(connectionSupplier, TEST_TABLE_2, AtlasDbConstants.DEFAULT_METADATA_TABLE),
+                is(TableSize.OVERFLOW));
         verify(connectionSupplier, times(3)).getNewUnsharedConnection();
     }
 }
