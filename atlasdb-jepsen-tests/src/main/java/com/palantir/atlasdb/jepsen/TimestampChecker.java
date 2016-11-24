@@ -44,7 +44,6 @@ public final class TimestampChecker {
     public static Map<Keyword, Object> checkClojureHistory(List<Map<Keyword, ?>> clojureHistory) {
         List<Event> events = convertClojureHistoryToEventList(clojureHistory);
         return checkHistory(events);
-
     }
 
     private static List<Event> convertClojureHistoryToEventList(List<Map<Keyword, ?>> clojureHistory) {
