@@ -3,12 +3,12 @@
 Timelock Server Configuration
 =============================
 
-Overview
---------
-
 The Timelock Server configuration file is written in YAML and is located at ``var/conf/timelock.yml``.
 It has three main blocks: the ``clients`` block, ``cluster`` block and ``atomix`` block. We will discuss how each of
 these may be configured in turn, as well as additional configuration parameters.
+
+.. contents::
+   :local:
 
 Clients
 -------
@@ -25,12 +25,12 @@ exist will result in a 404.
 
 A single Timelock Server or cluster of Timelock Servers can support multiple AtlasDB clients. When querying a
 Timelock Server, clients must supply a namespace for which they are requesting timestamps or locks in the form of a
-path variable.
+path variable. There are no guarantees of relationships between timestamps requested from different namespaces.
 
    .. code:: bash
 
-      curl localhost:8080/tom/timestamp/fresh-timestamp
-      curl localhost:8080/jerry/timestamp/fresh-timestamp # no guarantees of any relationship between the values
+      curl -XPOST localhost:8080/tom/timestamp/fresh-timestamp
+      curl -XPOST localhost:8080/jerry/timestamp/fresh-timestamp # no guarantees of any relationship between the values
 
 This is done for performance reasons: consider that if we maintained a global timestamp across all clients, then
 requests from each of these clients would need to all be synchronized.
@@ -50,17 +50,18 @@ follows:
           - http://palantir.com:8701
 
 .. list-table::
+   :widths: 5 40
    :header-rows: 1
 
- * - Property
-   - Description
+   * - Property
+     - Description
 
- * - localServer
-   - A string following the form ``protocol://hostname:port`` which matches the host on which this config exists.
+   * - localServer
+     - A string following the form ``protocol://hostname:port`` which matches the host on which this config exists.
 
- * - servers
-   - A list of strings following the form ``protocol://hostname:port`` identifying the hosts in this Timelock Service
-     cluster. Note that this list must include the ``localServer``.
+   * - servers
+     - A list of strings following the form ``protocol://hostname:port`` identifying the hosts in this Timelock
+       Service cluster. Note that this list must include the ``localServer``.
 
 Atomix
 ------
@@ -69,26 +70,27 @@ The Timelock Servers use the Atomix_ library, and allow for some configuration a
 persistence. Note that unlike the ``clients`` and ``cluster`` blocks, this block is optional.
 
 .. list-table::
+   :widths: 5 40
    :header-rows: 1
 
- * - Property
-   - Description
+   * - Property
+     - Description
 
- * - storageLevel
-   - One of ``DISK``, ``MEMORY`` or ``MAPPED`` (default: ``DISK``). These correspond to the level of persistence Atomix
-     uses to store the timestamps and leader state.
+   * - storageLevel
+     - One of ``DISK``, ``MEMORY`` or ``MAPPED`` (default: ``DISK``). These correspond to the level of persistence
+       Atomix uses to store the timestamps and leader state.
 
-     .. warning::
-        If you use ``MEMORY``, system failures may result in irrecoverable data loss. This setting is thus highly
-        discouraged.
+       .. warning::
+          If you use the ``MEMORY`` storage level, system failures may result in irrecoverable data loss. This setting
+          is thus highly discouraged.
 
- * - storageDirectory
-   - A path corresponding to the location in which Atomix will store its state machine (default: ``var/data/atomix``).
+   * - storageDirectory
+     - A path corresponding to the location in which Atomix will store its state machine (default: ``var/data/atomix``).
 
- * - sslConfiguration
-   - Security settings for communication between Atomix nodes, following the
-     `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java>`__
-     library (default: no SSL).
+   * - sslConfiguration
+     - Security settings for communication between Atomix nodes, following the
+       `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java>`__
+       library (default: no SSL).
 
 Further Configuration Parameters
 --------------------------------
