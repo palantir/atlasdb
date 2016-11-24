@@ -89,6 +89,14 @@ v0.25.0
          - Our Jackson version has been updated from 2.5.1 to 2.6.7 and Dropwizard version from 0.8.2 to 0.9.3.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1209>`__)
 
+    *    - |improved|
+         - Additional debugging available for those receiving 'name must be no longer than 1500 bytes' errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
+
+    *    - |breaking|
+         - ``Cell.validateNameValid`` is now private; consider ``Cell.isNameValid`` instead
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
