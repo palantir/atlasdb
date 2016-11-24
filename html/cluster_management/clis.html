@@ -188,11 +188,11 @@ For more information, check out <a class="reference internal" href="sweep/sweep-
 <p>This CLI can help you migrate your AtlasDB client product from one KVS to another.
 You will need to supply two different KVS configurations to the script.
 In the general case you first call <code class="docutils literal"><span class="pre">–-setup</span></code>, then <code class="docutils literal"><span class="pre">-–migrate</span></code>, then <code class="docutils literal"><span class="pre">-–validate</span></code> each time supplying the old and new configurations.</p>
-<p>We currently only support doing KVS migrations offline, so you must shut down your AtlasDB backed service to perform the migration.
+<p>We currently only support doing KVS migrations offline (using the <code class="docutils literal"><span class="pre">--offline</span></code> flag), so you must shut down your AtlasDB backed service to perform the migration.
 For more information run <code class="docutils literal"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">migrate</span></code> for more information.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
-./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml --migrate
-./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml --validate
+<div class="highlight-bash"><div class="highlight"><pre><span></span>./bin/atlasdb migrate --offline –-fromConfig from.yml --migrateConfig to.yml –-setup
+./bin/atlasdb migrate --offline –-fromConfig from.yml --migrateConfig to.yml --migrate
+./bin/atlasdb migrate --offline –-fromConfig from.yml --migrateConfig to.yml --validate
 </pre></div>
 </div>
 </div>
@@ -203,6 +203,7 @@ For more information run <code class="docutils literal"><span class="pre">./bin/
 <blockquote>
 <div><ul class="simple">
 <li><code class="docutils literal"><span class="pre">clean-cass-locks-state</span></code></li>
+<li><code class="docutils literal"><span class="pre">migrate</span></code></li>
 <li><code class="docutils literal"><span class="pre">timestamp</span> <span class="pre">clean-transactions</span></code></li>
 <li><code class="docutils literal"><span class="pre">timestamp</span> <span class="pre">fast-forward</span></code></li>
 </ul>
