@@ -43,11 +43,7 @@ public interface Event {
 
     static Map<Keyword, Object> toKeywordMap(Event event) {
         Map<String, Object> stringToObject = new ObjectMapper().convertValue(event, Map.class);
-        Map<Keyword, Object> convertedMap = new HashMap<>();
-        EntryStream.of(stringToObject)
-                .mapKeys(Keyword::intern)
-                .forKeyValue(convertedMap::put);
-        return convertedMap;
+        EntryStream.of(stringToObject).mapKeys(Keyword::intern).toMap();
     }
 
     void accept(EventVisitor visitor);
