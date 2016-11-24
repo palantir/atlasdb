@@ -1,4 +1,4 @@
-.. _timelock_migration:
+.. _timelock-migration:
 
 Migration to External Timelock Services
 =======================================
@@ -43,7 +43,7 @@ Manual Migration
 Step 1: Setting up the Timelock Server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-First, setup the Timelock Server following the instructions in :ref:`timelock_installation`.
+First, setup the Timelock Server following the instructions in :ref:`timelock-installation`.
 
 Step 2: Determining the Atlas Timestamp
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -63,6 +63,17 @@ follows:
    .. code:: bash
 
       curl -XPOST localhost:8080/test/timestamp-admin/fast-forward?newMinimum=N
+
+.. danger::
+
+   Make sure that N has been entered correctly.
+
+    - If N entered is too large, there will generally not be adverse consequences (apart from risks of ``long``
+      overflow), but...
+    - If N entered is too small and AtlasDB clients are restarted without rectifying this, this can result in
+      **SEVERE DATA CORRUPTION** because we lose the guarantee that timestamps are monotonically increasing.
+      As fast-forward is idempotent (it sets the timestamp to be the maximum of its current value and the
+      ``newMinimum``), *if clients have not been started again* this can be fixed by doing another fast-forward.
 
 Step 4: Invalidating the Old Atlas Timestamp
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -88,7 +99,7 @@ Please contact the AtlasDB team for assistance if you are uncertain about this s
 Steps 5 and 6: Client Configuration and Restart
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Configure your clients to use the Timelock Server following the instructions in :ref:`timelock_client_configuration`.
+Configure your clients to use the Timelock Server following the instructions in :ref:`timelock-client-configuration`.
 You may then restart your clients; they should now communicate with the Timelock Server when requesting timestamps
 and locks. This completes the migration process.
 

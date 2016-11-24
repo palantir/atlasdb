@@ -1,4 +1,5 @@
-=========================
+.. _external-timelock-service:
+
 External Timelock Service
 =========================
 

@@ -1,4 +1,4 @@
-.. _timelock_server_configuration:
+.. _timelock-server-configuration:
 
 Timelock Server Configuration
 =============================
@@ -82,7 +82,7 @@ persistence. Note that unlike the ``clients`` and ``cluster`` blocks, this block
 
        .. warning::
           If you use the ``MEMORY`` storage level, system failures may result in irrecoverable data loss. This setting
-          is thus highly discouraged.
+          is thus highly discouraged outside of test purposes.
 
    * - storageDirectory
      - A path corresponding to the location in which Atomix will store its state machine (default: ``var/data/atomix``).
