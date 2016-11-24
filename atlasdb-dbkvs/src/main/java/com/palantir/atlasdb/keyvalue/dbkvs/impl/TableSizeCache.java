@@ -23,9 +23,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
@@ -34,55 +33,53 @@ import com.palantir.nexus.db.sql.SqlConnection;
 public final class TableSizeCache {
     private static final Logger log = LoggerFactory.getLogger(TableSizeCache.class);
 
-    private final ConnectionSupplier conns;
-    private final TableReference metadataTable;
+    private static Cache<TableReference, TableSize> tableSizeByTableRef = CacheBuilder.newBuilder().build();
 
-    public TableSizeCache(ConnectionSupplier conns, TableReference metadataTable) {
-        this.conns = conns;
-        this.metadataTable = metadataTable;
+    private TableSizeCache() {
+        // Utility class
     }
 
-    private LoadingCache<TableReference, TableSize> tableSizeByTableRef = CacheBuilder.newBuilder().build(
-            new CacheLoader<TableReference, TableSize>() {
-                @Override
-                public TableSize load(TableReference tableRef) throws Exception {
-                    SqlConnection conn = null;
-                    try {
-                        conn = conns.getNewUnsharedConnection();
-                        AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
-                                String.format(
-                                        "SELECT table_size FROM %s WHERE table_name = ?",
-                                        metadataTable.getQualifiedName()),
-                                tableRef.getQualifiedName());
-                        Preconditions.checkArgument(
-                                !results.rows().isEmpty(),
-                                "table %s not found",
-                                tableRef.getQualifiedName());
-
-                        return TableSize.byId(Iterables.getOnlyElement(results.rows()).getInteger("table_size"));
-                    } finally {
-                        if (conn != null) {
-                            try {
-                                conn.getUnderlyingConnection().close();
-                            } catch (SQLException e) {
-                                log.error("Couldn't cleanup SQL connection while retrieving table size.", e);
-                            }
-                        }
-                    }
-                }
-            }
-    );
-
-    public TableSize getTableSize(TableReference tableRef) {
+    public static TableSize getTableSize(
+            final ConnectionSupplier connectionSupplier,
+            final TableReference tableRef,
+            TableReference metadataTable) {
         try {
-            return tableSizeByTableRef.get(tableRef);
+            return tableSizeByTableRef.get(tableRef, () -> {
+                SqlConnection conn = null;
+                try {
+                    conn = connectionSupplier.getNewUnsharedConnection();
+                    AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
+                            String.format(
+                                    "SELECT table_size FROM %s WHERE table_name = ?",
+                                    metadataTable.getQualifiedName()),
+                            tableRef.getQualifiedName());
+                    Preconditions.checkArgument(
+                            !results.rows().isEmpty(),
+                            "table %s not found",
+                            tableRef.getQualifiedName());
+
+                    return TableSize.byId(Iterables.getOnlyElement(results.rows()).getInteger("table_size"));
+                } finally {
+                    closeUnderlyingConnection(conn);
+                }
+            });
         } catch (ExecutionException e) {
             log.error("TableSize for the table {} could not be retrieved.", tableRef.getQualifiedName());
             throw Throwables.propagate(e);
         }
     }
 
-    public void clearCacheForTable(TableReference tableRef) {
+    private static void closeUnderlyingConnection(SqlConnection connection) {
+        if (connection != null) {
+            try {
+                connection.getUnderlyingConnection().close();
+            } catch (SQLException e) {
+                log.error("Couldn't cleanup SQL connection while retrieving table size.", e);
+            }
+        }
+    }
+
+    public static void clearCacheForTable(TableReference tableRef) {
         tableSizeByTableRef.invalidate(tableRef);
     }
 }
