@@ -50,14 +50,14 @@ This CLI can help you migrate your AtlasDB client product from one KVS to anothe
 You will need to supply two different KVS configurations to the script.
 In the general case you first call ``–-setup``, then ``-–migrate``, then ``-–validate`` each time supplying the old and new configurations.
 
-We currently only support doing KVS migrations offline, so you must shut down your AtlasDB backed service to perform the migration.
+We currently only support doing KVS migrations offline (using the ``--offline`` flag), so you must shut down your AtlasDB backed service to perform the migration.
 For more information run ``./bin/atlasdb help migrate`` for more information.
  
 .. code-block:: bash
 
-     ./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
-     ./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml --migrate
-     ./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml --validate
+     ./bin/atlasdb migrate --offline –-fromConfig from.yml --migrateConfig to.yml –-setup
+     ./bin/atlasdb migrate --offline –-fromConfig from.yml --migrateConfig to.yml --migrate
+     ./bin/atlasdb migrate --offline –-fromConfig from.yml --migrateConfig to.yml --validate
 
 .. _offline-clis:
 
@@ -67,6 +67,7 @@ Offline CLIs
 Due to their potentially destructive nature if run concurrently with active AtlasDB services, there a number of CLIs which can only be run when AtlasDB is offline. These are:
 
   - ``clean-cass-locks-state``
+  - ``migrate``
   - ``timestamp clean-transactions``
   - ``timestamp fast-forward``
 
