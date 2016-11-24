@@ -1,4 +1,4 @@
-.. _server_configuration:
+.. _timelock_server_configuration:
 
 Timelock Server Configuration
 =============================

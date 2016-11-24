@@ -1,4 +1,4 @@
-.. _installation:
+.. _timelock_installation:
 
 Timelock Server Installation
 ============================
@@ -31,7 +31,7 @@ Timelock Server Installation
 
       tar -zxvf atlasdb-timelock-server-0.25.0.sls.tgz; cd atlasdb-timelock-server-0.25.0
 
-5. Configure the Timelock Server, following the steps in configuration section (to be added).
+5. Configure the Timelock Server - see :ref:`timelock_server_configuration` for a guide on this.
 
    .. code:: bash
 
