@@ -36,6 +36,7 @@ import org.junit.Test;
 
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.atomix.catalyst.concurrent.Futures;
 import io.atomix.group.GroupMember;
 import io.atomix.group.LocalMember;
@@ -169,10 +170,15 @@ public class InvalidatingLeaderProxyTest {
         assertThat(container.get()).isEqualTo(TEST_VALUE);
     }
 
+    @SuppressFBWarnings("NP_NONNULL_PARAM_VIOLATION") // https://github.com/findbugsproject/findbugs/issues/79
     private void setLeader(@Nullable String newLeader) {
         long newTerm = election.term().term() + 1;
-        LeaderAndTerm newLeaderInfo = newLeader != null ? ImmutableLeaderAndTerm.of(newTerm, newLeader) : null;
-        when(LEADER_INFO.get()).thenReturn(CompletableFuture.completedFuture(newLeaderInfo));
+        if (newLeader != null) {
+            LeaderAndTerm newLeaderInfo = ImmutableLeaderAndTerm.of(newTerm, newLeader);
+            when(LEADER_INFO.get()).thenReturn(CompletableFuture.completedFuture(newLeaderInfo));
+        } else {
+            when(LEADER_INFO.get()).thenReturn(CompletableFuture.completedFuture(null));
+        }
 
         GroupMember member = mock(GroupMember.class);
         when(member.id()).thenReturn(newLeader);
