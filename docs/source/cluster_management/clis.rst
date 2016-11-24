@@ -67,6 +67,7 @@ Offline CLIs
 Due to their potentially destructive nature if run concurrently with active AtlasDB services, there a number of CLIs which can only be run when AtlasDB is offline. These are:
 
   - ``clean-cass-locks-state``
+  - ``migrate``
   - ``timestamp clean-transactions``
   - ``timestamp fast-forward``
 
