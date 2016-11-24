@@ -45,9 +45,11 @@ public interface Event {
     }
 
     static Map<Keyword, Object> toKeywordMap(Event event) {
-        TypeReference typeRef = new TypeReference<Map<String, Object>>(){};
-        Map<String, Object> mapKeyedByStrings = OBJECT_MAPPER.convertValue(event, typeRef);
-        return EntryStream.of(mapKeyedByStrings).mapKeys(Keyword::intern).toMap();
+        Map<String, Object> rawStringMap = OBJECT_MAPPER.convertValue(event, new TypeReference<Map<String, ?>>() {});
+        return EntryStream.of(rawStringMap)
+                .mapKeys(Keyword::intern)
+                .mapValues(value -> value != null && value instanceof String ? Keyword.intern((String) value) : value)
+                .toMap();
     }
 
     void accept(EventVisitor visitor);

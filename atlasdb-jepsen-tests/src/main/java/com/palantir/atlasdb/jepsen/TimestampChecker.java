@@ -60,7 +60,8 @@ public final class TimestampChecker {
 
     private static Map<Keyword, Object> createMapFromCompletedChecker(MonotonicChecker monotonicChecker) {
         List<Map<Keyword, Object>> errorsAsClojureHistory = convertEventListToClojureHistory(monotonicChecker.errors());
-        return ImmutableMap.of(Keyword.intern("valid?"), monotonicChecker.valid(),
+        return ImmutableMap.of(
+                Keyword.intern("valid?"), monotonicChecker.valid(),
                 Keyword.intern("errors"), errorsAsClojureHistory);
     }
 

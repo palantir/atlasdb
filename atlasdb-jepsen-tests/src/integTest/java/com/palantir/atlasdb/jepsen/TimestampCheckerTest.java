@@ -69,11 +69,11 @@ public class TimestampCheckerTest {
 
     @Test
     public void historyOfDecreasingTimestampsShouldReturnInvalidWithErrors() {
-        Map<Keyword, ?> read1 = ImmutableMap.of(Keyword.intern("type"), "ok",
+        Map<Keyword, ?> read1 = ImmutableMap.of(Keyword.intern("type"), Keyword.intern("ok"),
                 Keyword.intern("process"), SOME_PROCESS,
                 Keyword.intern("time"), TIME_0,
                 Keyword.intern("value"), 1L);
-        Map<Keyword, ?> read2 = ImmutableMap.of(Keyword.intern("type"), "ok",
+        Map<Keyword, ?> read2 = ImmutableMap.of(Keyword.intern("type"), Keyword.intern("ok"),
                 Keyword.intern("process"), SOME_PROCESS,
                 Keyword.intern("time"), TIME_1,
                 Keyword.intern("value"), 0L);
