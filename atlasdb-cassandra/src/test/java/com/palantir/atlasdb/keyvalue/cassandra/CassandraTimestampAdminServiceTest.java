@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public class CassandraTimestampAdminServiceTest {
     private CassandraKeyValueService mockCassandraKvs;
@@ -37,6 +38,17 @@ public class CassandraTimestampAdminServiceTest {
     public void setUp() {
         mockCassandraKvs = mock(CassandraKeyValueService.class);
         adminService = new CassandraTimestampAdminService(mockCassandraKvs);
+    }
+
+    @Test
+    public void shouldRefuseToCreateAdminServiceGivenNonCassandraKvs() {
+        KeyValueService otherKvs = mock(KeyValueService.class);
+        try {
+            new CassandraTimestampAdminService(otherKvs);
+            fail();
+        } catch (IllegalArgumentException e) {
+            // expected
+        }
     }
 
     @Test
