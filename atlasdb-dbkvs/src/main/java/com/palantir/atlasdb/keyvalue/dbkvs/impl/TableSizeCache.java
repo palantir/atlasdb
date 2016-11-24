@@ -33,7 +33,7 @@ import com.palantir.nexus.db.sql.SqlConnection;
 public final class TableSizeCache {
     private static final Logger log = LoggerFactory.getLogger(TableSizeCache.class);
 
-    private static Cache<TableReference, TableSize> tableSizeByTableRef = CacheBuilder.newBuilder().build();
+    private static final Cache<TableReference, TableSize> tableSizeByTableRef = CacheBuilder.newBuilder().build();
 
     private TableSizeCache() {
         // Utility class
