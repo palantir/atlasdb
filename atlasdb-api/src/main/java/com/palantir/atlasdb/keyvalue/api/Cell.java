@@ -78,8 +78,8 @@ public final class Cell implements Serializable, Comparable<Cell> {
                     MAX_NAME_LENGTH);
         } catch (IllegalArgumentException e) {
             log.debug("Cell creation that was attempted was: {}; since the vast majority of people encountering this "
-                    + "problem are using unbounded Strings as components, it may aid your debugging to know the ASCII "
-                    + "interpretation of the bad field was: [{}]", this, new String(name, StandardCharsets.US_ASCII));
+                    + "problem are using unbounded Strings as components, it may aid your debugging to know the UTF-8 "
+                    + "interpretation of the bad field was: [{}]", this, new String(name, StandardCharsets.UTF_8));
             throw e;
         }
     }
@@ -101,6 +101,7 @@ public final class Cell implements Serializable, Comparable<Cell> {
         this.rowName = rowName;
         this.columnName = columnName;
         this.ttlDurationMillis = ttlDurationMillis;
+
         validateNameValid(rowName);
         validateNameValid(columnName);
     }
