@@ -54,5 +54,5 @@ Timelock Server Installation
 
       curl -XPOST localhost:8080/test/timestamp/fresh-timestamp
 
-   This should return an integer. Note that the command above will not work if you are using SSL. If you run the
-   curl command again, you should obtain a strictly greater integer.
+   This should return an integer. Note that the command above will not work if you have set the Timelock Server to use
+   SSL. If you run the curl command again, you should obtain a strictly greater integer.
