@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 
+import org.apache.cassandra.thrift.InvalidRequestException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -29,11 +30,13 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
+import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.timestamp.TimestampAdminService;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class CassandraTimestampAdminServiceIntegrationTest {
-    private static final long TIMESTAMP = 3141592;
+    private static final long TIMESTAMP_1 = 3141592;
+    private static final long TIMESTAMP_2 = 31415926;
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraTimestampIntegrationTest.class)
@@ -58,21 +61,47 @@ public class CassandraTimestampAdminServiceIntegrationTest {
     }
 
     @Test
-    public void canGetUpperBound() {
-        boundStore.getUpperLimit(); // weird invariant of TimestampBoundStore; must get at least once before a store
-        boundStore.storeUpperLimit(TIMESTAMP);
-        assertThat(adminService.getUpperBoundTimestamp(), greaterThanOrEqualTo(TIMESTAMP));
+    public void throwsIfRetrievingUpperBoundWithoutTimestampTable() {
+        kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
+        try {
+            adminService.getUpperBoundTimestamp();
+            fail();
+        } catch (PalantirRuntimeException e) {
+            if (!(e.getCause() instanceof InvalidRequestException)) {
+                fail();
+            }
+            // expected
+        }
     }
 
     @Test
-    public void returnsUpperBoundOfZeroIfNoDataInKvs() {
-        assertThat(adminService.getUpperBoundTimestamp(), is(0L));
+    public void canGetUpperBound() {
+        boundStore.getUpperLimit(); // weird invariant of TimestampBoundStore; must get at least once before a store
+        boundStore.storeUpperLimit(TIMESTAMP_1);
+        assertThat(adminService.getUpperBoundTimestamp(), greaterThanOrEqualTo(TIMESTAMP_1));
     }
 
     @Test
     public void fastForwardAffectsFutureTimestamps() {
-        adminService.fastForwardTimestamp(TIMESTAMP);
-        assertThat(boundStore.getUpperLimit(), greaterThanOrEqualTo(TIMESTAMP));
+        System.out.println(adminService.getUpperBoundTimestamp());
+        adminService.fastForwardTimestamp(TIMESTAMP_1);
+        System.out.println(adminService.getUpperBoundTimestamp());
+        assertThat(boundStore.getUpperLimit(), greaterThanOrEqualTo(TIMESTAMP_1));
+    }
+
+    @Test
+    public void fastForwardWorksEvenWithoutTimestampTable() {
+        kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
+        adminService.fastForwardTimestamp(TIMESTAMP_1);
+        assertThat(boundStore.getUpperLimit(), greaterThanOrEqualTo(TIMESTAMP_1));
+    }
+
+    @Test
+    public void fastForwardToThePastDoesNothing() {
+        adminService.fastForwardTimestamp(TIMESTAMP_2);
+        assertThat(adminService.getUpperBoundTimestamp(), is(TIMESTAMP_2));
+        adminService.fastForwardTimestamp(TIMESTAMP_1);
+        assertThat(adminService.getUpperBoundTimestamp(), is(TIMESTAMP_2));
     }
 
     @Test
@@ -89,7 +118,7 @@ public class CassandraTimestampAdminServiceIntegrationTest {
     @Test
     public void canReadTimestampsAfterInvalidationAndFastForward() {
         adminService.invalidateTimestamps();
-        adminService.fastForwardTimestamp(TIMESTAMP);
-        assertThat(boundStore.getUpperLimit(), greaterThanOrEqualTo(TIMESTAMP));
+        adminService.fastForwardTimestamp(TIMESTAMP_1);
+        assertThat(boundStore.getUpperLimit(), greaterThanOrEqualTo(TIMESTAMP_1));
     }
 }

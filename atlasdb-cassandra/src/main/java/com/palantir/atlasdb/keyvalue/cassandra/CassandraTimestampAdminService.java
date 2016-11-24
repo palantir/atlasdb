@@ -15,21 +15,23 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.ws.rs.QueryParam;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -43,6 +45,7 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.timestamp.TimestampAdminService;
 
 public class CassandraTimestampAdminService implements TimestampAdminService {
@@ -74,28 +77,34 @@ public class CassandraTimestampAdminService implements TimestampAdminService {
 
     @Override
     public long getUpperBoundTimestamp() {
+        return MoreObjects.firstNonNull(getUpperBoundTimestampInternal(), 0L);
+    }
+
+    private Long getUpperBoundTimestampInternal() {
         return clientPool.runWithRetry(client -> {
             ColumnOrSuperColumn result = CassandraTimestampUtils.readCassandraTimestamp(client);
 
             if (result == null) {
-                return 0L;
+                return null;
             }
             return PtBytes.toLong(result.getColumn().getValue());
         });
     }
 
+
     @Override
     public void fastForwardTimestamp(@QueryParam("newMinimum") long newMinimumTimestamp) {
-        if (!timestampTableIsOk()) {
+        Optional<Long> existingTimestamp = Optional.empty();
+        try {
+            existingTimestamp = Optional.ofNullable(getUpperBoundTimestampInternal());
+        } catch (IllegalArgumentException e) {
             repairTable();
+        } catch (PalantirRuntimeException e) {
+            if (e.getCause() instanceof InvalidRequestException) {
+                repairTable();
+            }
         }
-        advanceTableToTimestamp(newMinimumTimestamp);
-    }
-
-    @VisibleForTesting
-    boolean timestampTableIsOk() {
-        byte[] persistedMetadata = rawKvs.getMetadataForTable(AtlasDbConstants.TIMESTAMP_TABLE);
-        return Arrays.equals(persistedMetadata, CassandraTimestampConstants.TIMESTAMP_TABLE_METADATA.persistToBytes());
+        advanceTableToTimestamp(newMinimumTimestamp, existingTimestamp);
     }
 
     @VisibleForTesting
@@ -105,13 +114,16 @@ public class CassandraTimestampAdminService implements TimestampAdminService {
                 CassandraTimestampConstants.TIMESTAMP_TABLE_METADATA.persistToBytes());
     }
 
-    private void advanceTableToTimestamp(long newMinimumTimestamp) {
+    private void advanceTableToTimestamp(long newMinimumTimestamp, Optional<Long> existingTimestamp) {
+        if (fastForwardingToThePast(newMinimumTimestamp, existingTimestamp)) {
+            return;
+        }
         clientPool.runWithRetry(client -> {
             try {
                 client.cas(
                         CassandraTimestampUtils.getRowName(),
                         AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName(),
-                        ImmutableList.of(),
+                        createExpectedColumnList(existingTimestamp),
                         ImmutableList.of(CassandraTimestampUtils.makeColumn(newMinimumTimestamp)),
                         ConsistencyLevel.SERIAL,
                         ConsistencyLevel.EACH_QUORUM);
@@ -121,6 +133,17 @@ public class CassandraTimestampAdminService implements TimestampAdminService {
                 throw Throwables.propagate(e);
             }
         });
+    }
+
+    @VisibleForTesting
+    static boolean fastForwardingToThePast(long newMinimumTimestamp, Optional<Long> existingTimestamp) {
+        return existingTimestamp.isPresent() && existingTimestamp.get() > newMinimumTimestamp;
+    }
+
+    private static ImmutableList<Column> createExpectedColumnList(Optional<Long> existingTimestamp) {
+        return existingTimestamp.isPresent() ?
+                ImmutableList.of(CassandraTimestampUtils.makeColumn(existingTimestamp.get())) :
+                ImmutableList.of();
     }
 
     @Override

@@ -15,12 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.AdditionalMatchers.aryEq;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+
+import java.util.Optional;
 
 import org.apache.cassandra.thrift.Column;
 import org.junit.Before;
@@ -41,6 +45,17 @@ public class CassandraTimestampAdminServiceTest {
     }
 
     @Test
+    public void canDetermineIfTryingToFastForwardToThePast() {
+        assertThat(CassandraTimestampAdminService.fastForwardingToThePast(5L, Optional.of(0L)), is(false));
+        assertThat(CassandraTimestampAdminService.fastForwardingToThePast(5L, Optional.of(10L)), is(true));
+    }
+
+    @Test
+    public void fastForwardingWithNoPastDataIsNotFastForwardingToThePast() {
+        assertThat(CassandraTimestampAdminService.fastForwardingToThePast(Long.MIN_VALUE, Optional.empty()), is(false));
+    }
+
+    @Test
     public void shouldRefuseToCreateAdminServiceGivenNonCassandraKvs() {
         KeyValueService otherKvs = mock(KeyValueService.class);
         try {
@@ -49,12 +64,6 @@ public class CassandraTimestampAdminServiceTest {
         } catch (IllegalArgumentException e) {
             // expected
         }
-    }
-
-    @Test
-    public void healthCheckChecksTimestampTableMetadataFromKvs() {
-        adminService.timestampTableIsOk();
-        verify(mockCassandraKvs, times(1)).getMetadataForTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
 
     @Test
