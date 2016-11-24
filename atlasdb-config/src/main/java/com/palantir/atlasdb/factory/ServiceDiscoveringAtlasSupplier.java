@@ -96,9 +96,8 @@ public class ServiceDiscoveringAtlasSupplier {
             writeStringToStream(outputStream,
                     "This file contains thread dumps that will be useful for the AtlasDB Dev team, in case you hit a "
                             + "MultipleRunningTimestampServices error. In this case, please send this file to them.\n");
-            writeStringToStream(outputStream, "First thread dump: " + timestampServiceCreationInfo);
-            writeStringToStream(outputStream, "Second thread dump: " + ThreadDumps.programmaticThreadDump());
-            outputStream.close();
+            writeStringToStream(outputStream, "First thread dump: " + timestampServiceCreationInfo + "\n");
+            writeStringToStream(outputStream, "Second thread dump: " + ThreadDumps.programmaticThreadDump() + "\n");
             return file.getPath();
         }
     }
