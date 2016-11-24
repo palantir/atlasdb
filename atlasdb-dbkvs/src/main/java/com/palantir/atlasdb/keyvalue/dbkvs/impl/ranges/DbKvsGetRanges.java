@@ -145,8 +145,7 @@ public class DbKvsGetRanges {
                 Ordering.natural(),
                 UnsignedBytes.lexicographicalComparator());
         for (AgnosticResultRow row : results.rows()) {
-            @SuppressWarnings("deprecation")
-            byte[] rowName = row.getBytes("row_name");
+            byte[] rowName = row.getBlob("row_name");
             int batchNum = row.getInteger("batch_num");
             if (rowName != null) {
                 ret.put(batchNum, rowName);

@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresTableInitializer;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.nexus.db.DBType;
@@ -48,6 +49,11 @@ public class PostgresDbTableFactory implements DbTableFactory {
 
         pool.allowCoreThreadTimeOut(false);
         return pool;
+    }
+
+    @Override
+    public DbKvsGetRanges createGetRanges(DbKvs dbKvs, TableReference tableRef, ConnectionSupplier conns) {
+        return new DbKvsGetRanges(dbKvs, tableRef, conns, config, getDbType());
     }
 
     @Override

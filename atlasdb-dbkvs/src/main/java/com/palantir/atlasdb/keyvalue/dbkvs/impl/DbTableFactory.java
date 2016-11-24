@@ -18,9 +18,11 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 import java.io.Closeable;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
 import com.palantir.nexus.db.DBType;
 
 public interface DbTableFactory extends Closeable {
+    DbKvsGetRanges createGetRanges(DbKvs dbKvs, TableReference tableRef, ConnectionSupplier conns);
     DbMetadataTable createMetadata(TableReference tableRef, ConnectionSupplier conns);
     DbDdlTable createDdl(TableReference tableName, ConnectionSupplier conns);
     DbTableInitializer createInitializer(ConnectionSupplier conns);

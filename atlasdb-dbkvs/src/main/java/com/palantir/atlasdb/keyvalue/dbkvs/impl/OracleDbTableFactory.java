@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowQueryFactor
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleRawQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleTableInitializer;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ranges.DbKvsGetRanges;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.nexus.db.DBType;
 
@@ -32,6 +33,11 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     public OracleDbTableFactory(OracleDdlConfig config) {
         this.config = config;
+    }
+
+    @Override
+    public DbKvsGetRanges createGetRanges(DbKvs dbKvs, TableReference tableRef, ConnectionSupplier conns) {
+        return new DbKvsGetRanges(dbKvs, tableRef, conns, config, getDbType());
     }
 
     @Override

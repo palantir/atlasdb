@@ -380,7 +380,7 @@ public class DbKvs extends AbstractKeyValueService {
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             long timestamp) {
-        return runDbkvsGetRanges(
+        return runGetRanges(
                 tableRef,
                 dbKvsGetRanges -> dbKvsGetRanges.getFirstBatchForRanges(rangeRequests, timestamp));
     }
@@ -1061,10 +1061,10 @@ public class DbKvs extends AbstractKeyValueService {
         }
     }
 
-    private <T> T runDbkvsGetRanges(TableReference tableRef, Function<DbKvsGetRanges, T> runner) {
+    private <T> T runGetRanges(TableReference tableRef, Function<DbKvsGetRanges, T> runner) {
         ConnectionSupplier conns = new ConnectionSupplier(connections);
         try {
-            return runner.apply(new DbKvsGetRanges(this, tableRef, conns, config, dbTables.getDbType()));
+            return runner.apply(dbTables.createGetRanges(this, tableRef, conns));
         } finally {
             conns.close();
         }
