@@ -56,10 +56,12 @@ public class MonotonicChecker implements EventVisitor {
         latestEventPerProcess.put(process, event);
     }
 
+    @Override
     public boolean valid() {
         return valid;
     }
 
+    @Override
     public List<Event> errors() {
         return ImmutableList.copyOf(errors);
     }
