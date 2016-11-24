@@ -37,14 +37,13 @@ public final class TimestampChecker {
      *     [{":type": "invoke", "process": 0, "time", 0L},
      *      {":type": "ok",     "process": 0, "time": 0L, "value", 10L}]
      * @return A map of
-     *     :valid      A boolean of whether the check passes
+     *     :valid?     A boolean of whether the check passes
      *     :errors     A list of events that failed the check, or an empty list if the check passed
      * @throws Exception if the parsing of the history fails.
      */
     public static Map<Keyword, Object> checkClojureHistory(List<Map<Keyword, ?>> clojureHistory) {
         List<Event> events = convertClojureHistoryToEventList(clojureHistory);
         return checkHistory(events);
-
     }
 
     private static List<Event> convertClojureHistoryToEventList(List<Map<Keyword, ?>> clojureHistory) {
@@ -60,8 +59,16 @@ public final class TimestampChecker {
     }
 
     private static Map<Keyword, Object> createMapFromCompletedChecker(MonotonicChecker monotonicChecker) {
-        return ImmutableMap.of(Keyword.intern("valid"), monotonicChecker.valid(),
-                Keyword.intern("errors"), monotonicChecker.errors());
+        List<Map<Keyword, Object>> errorsAsClojureHistory = convertEventListToClojureHistory(monotonicChecker.errors());
+        return ImmutableMap.of(
+                Keyword.intern("valid?"), monotonicChecker.valid(),
+                Keyword.intern("errors"), errorsAsClojureHistory);
+    }
+
+    private static List<Map<Keyword, Object>> convertEventListToClojureHistory(List<Event> events) {
+        return events.stream()
+                .map(Event::toKeywordMap)
+                .collect(Collectors.toList());
     }
 
 }
