@@ -88,7 +88,7 @@ Please contact the AtlasDB team for assistance if you are uncertain about this s
 Steps 5 and 6: Client Configuration and Restart
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Configure your clients to use the Timelock Server following the instructions in client config.
+Configure your clients to use the Timelock Server following the instructions in :ref:`timelock_client_configuration`.
 You may then restart your clients; they should now communicate with the Timelock Server when requesting timestamps
 and locks. This completes the migration process.
 
