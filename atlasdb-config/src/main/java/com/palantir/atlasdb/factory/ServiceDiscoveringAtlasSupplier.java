@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ServiceLoader;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
@@ -63,25 +67,62 @@ public class ServiceDiscoveringAtlasSupplier {
         DebugLogger.logger.info("Fetching timestamp service from thread {}. This should only happen once.",
                 Thread.currentThread().getName());
 
-        String threadDump = ThreadDumps.programmaticThreadDump();
         if (timestampServiceCreationInfo == null) {
-            timestampServiceCreationInfo = threadDump;
+            timestampServiceCreationInfo = ThreadDumps.programmaticThreadDump();
         } else {
-            if (!leaderConfig.isPresent()) {
-                DebugLogger.logger.error("Timestamp service fetched for a second time, and there is no leader config."
-                        + "This means that you may soon encounter the MultipleRunningTimestampServices error."
-                        + "Now outputting thread dumps from both fetches of the timestamp service...");
-            } else {
-                DebugLogger.logger.warn("Timestamp service fetched for a second time. This is only OK if you are "
-                        + "running in an HA configuration and have just had a leadership election. "
-                        + "You do have a leader config, but we're printing thread dumps from both fetches of the "
-                        + "timestamp service, in case this second service was created in error.");
-            }
-            DebugLogger.logger.error("First thread dump: " + timestampServiceCreationInfo);
-            DebugLogger.logger.error("Second thread dump: " + threadDump);
+            handleMultipleTimestampFetch();
         }
 
         return timestampService.get();
+    }
+
+    private void handleMultipleTimestampFetch() {
+        try {
+            String threadDumpFile = saveThreadDumps();
+            reportMultipleTimestampFetch(threadDumpFile);
+        } catch (IOException e) {
+            DebugLogger.logger.error("The timestamp service was fetched for a second time. We tried to output thread "
+                    + "dumps to a temporary file, but encountered an error.", e);
+        }
+    }
+
+    private String saveThreadDumps() throws IOException {
+        File file = File.createTempFile("atlas-timestamps-log", ".log");
+        return saveThreadDumpsToFile(file);
+    }
+
+    private String saveThreadDumpsToFile(File file) throws IOException {
+        try (FileOutputStream outputStream = new FileOutputStream(file)) {
+            writeStringToStream(outputStream,
+                    "This file contains thread dumps that will be useful for the AtlasDB Dev team, in case you hit a "
+                            + "MultipleRunningTimestampServices error. In this case, please send this file to them.\n");
+            writeStringToStream(outputStream, "First thread dump: " + timestampServiceCreationInfo);
+            writeStringToStream(outputStream, "Second thread dump: " + ThreadDumps.programmaticThreadDump());
+            outputStream.close();
+            return file.getPath();
+        }
+    }
+
+    private void reportMultipleTimestampFetch(String path) {
+        if (!leaderConfig.isPresent()) {
+            DebugLogger.logger.warn("Timestamp service fetched for a second time, and there is no leader config. "
+                    + "This means that you may soon encounter the MultipleRunningTimestampServices error. "
+                    + "Thread dumps from both fetches of the timestamp service have been outputted to {}. "
+                    + "If you encounter a MultipleRunningTimestampServices error, please send this file to "
+                    + "support.", path);
+        } else {
+            DebugLogger.logger.warn("Timestamp service fetched for a second time. This is only OK if you are "
+                    + "running in an HA configuration and have just had a leadership election. "
+                    + "You do have a leader config, but we're outputting thread dumps from both fetches of the "
+                    + "timestamp service, in case this second service was created in error. "
+                    + "Thread dumps from both fetches of the timestamp service have been outputted to {}. "
+                    + "If you encounter a MultipleRunningTimestampServices error, please send this file to "
+                    + "support.", path);
+        }
+    }
+
+    private void writeStringToStream(FileOutputStream outputStream, String stringToWrite) throws IOException {
+        outputStream.write(stringToWrite.getBytes(StandardCharsets.UTF_8));
     }
 
     private Predicate<AtlasDbFactory> producesCorrectType() {
