@@ -17,12 +17,14 @@ package com.palantir.atlasdb.http;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
+import com.squareup.okhttp.ConnectionPool;
 
 import feign.Client;
 import feign.Contract;
@@ -100,6 +102,7 @@ public final class AtlasDbHttpClients {
      */
     private static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory) {
         com.squareup.okhttp.OkHttpClient client = new com.squareup.okhttp.OkHttpClient();
+        client.setConnectionPool(new ConnectionPool(100, TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES)));
         client.setSslSocketFactory(sslSocketFactory.orNull());
         return new OkHttpClient(client);
     }
