@@ -20,6 +20,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import clojure.lang.Keyword;
@@ -32,18 +33,21 @@ import one.util.streamex.EntryStream;
         @JsonSubTypes.Type(OkEvent.class)
         })
 public interface Event {
+    ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     static Event fromKeywordMap(Map<Keyword, ?> map) {
         Map<String, Object> convertedMap = new HashMap<>();
         EntryStream.of(map)
                 .mapKeys(Keyword::getName)
                 .mapValues(value -> value != null && value instanceof Keyword ? ((Keyword) value).getName() : value)
                 .forKeyValue(convertedMap::put);
-        return new ObjectMapper().convertValue(convertedMap, Event.class);
+        return OBJECT_MAPPER.convertValue(convertedMap, Event.class);
     }
 
     static Map<Keyword, Object> toKeywordMap(Event event) {
-        Map<String, Object> stringToObject = new ObjectMapper().convertValue(event, Map.class);
-        EntryStream.of(stringToObject).mapKeys(Keyword::intern).toMap();
+        TypeReference typeRef = new TypeReference<Map<String, Object>>(){};
+        Map<String, Object> mapKeyedByStrings = OBJECT_MAPPER.convertValue(event, typeRef);
+        return EntryStream.of(mapKeyedByStrings).mapKeys(Keyword::intern).toMap();
     }
 
     void accept(EventVisitor visitor);
