@@ -53,12 +53,6 @@ public final class TimestampChecker {
                 .collect(Collectors.toList());
     }
 
-    private static List<Map<Keyword, Object>> convertEventListToClojureHistory(List<Event> events) {
-        return events.stream()
-                .map(Event::toKeywordMap)
-                .collect(Collectors.toList());
-    }
-
     private static Map<Keyword, Object> checkHistory(List<Event> events) {
         MonotonicChecker monotonicChecker = new MonotonicChecker();
         events.forEach(event -> event.accept(monotonicChecker));
@@ -69,6 +63,12 @@ public final class TimestampChecker {
         List<Map<Keyword, Object>> errorsAsClojureHistory = convertEventListToClojureHistory(monotonicChecker.errors());
         return ImmutableMap.of(Keyword.intern("valid?"), monotonicChecker.valid(),
                 Keyword.intern("errors"), errorsAsClojureHistory);
+    }
+
+    private static List<Map<Keyword, Object>> convertEventListToClojureHistory(List<Event> events) {
+        return events.stream()
+                .map(Event::toKeywordMap)
+                .collect(Collectors.toList());
     }
 
 }
