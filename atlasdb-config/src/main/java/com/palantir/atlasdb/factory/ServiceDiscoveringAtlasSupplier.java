@@ -63,7 +63,7 @@ public class ServiceDiscoveringAtlasSupplier {
         return keyValueService.get();
     }
 
-    public TimestampService getTimestampService() {
+    public synchronized TimestampService getTimestampService() {
         DebugLogger.logger.info("Fetching timestamp service from thread {}. This should only happen once.",
                 Thread.currentThread().getName());
 
