@@ -89,6 +89,11 @@ v0.25.0
          - Our Jackson version has been updated from 2.5.1 to 2.6.7 and Dropwizard version from 0.8.2 to 0.9.3.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1209>`__)
 
+    *    - |improved|
+         - OkHttpClient connection pool configured to have 100 idle connections with 10 minute keep-alive, reducing the number of connections
+           that need to be created when a large number of transactions begin.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1273>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
