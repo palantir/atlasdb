@@ -66,8 +66,9 @@ follows:
 Atomix
 ------
 
-The Timelock Servers use the Atomix_ library, and allow for some configuration as to Atomix-related communication and
-persistence. Note that unlike the ``clients`` and ``cluster`` blocks, this block is optional.
+The Timelock Servers use the `Atomix <http://atomix.io>`__ library, and allow for some configuration as to
+Atomix-related communication and persistence. Note that unlike the ``clients`` and ``cluster`` blocks, this block is
+optional.
 
 .. list-table::
    :widths: 5 40
@@ -87,7 +88,7 @@ persistence. Note that unlike the ``clients`` and ``cluster`` blocks, this block
    * - storageDirectory
      - A path corresponding to the location in which Atomix will store its state machine (default: ``var/data/atomix``).
 
-   * - sslConfiguration
+   * - security
      - Security settings for communication between Atomix nodes, following the
        `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java>`__
        library (default: no SSL).
@@ -95,9 +96,6 @@ persistence. Note that unlike the ``clients`` and ``cluster`` blocks, this block
 Further Configuration Parameters
 --------------------------------
 
-The Timelock Server is implemented as a Dropwizard application, and may thus be suitably configured_ with a ``server``
-block. This may be useful if, for example, one needs to change the application and/or admin ports for the Timelock
-Server.
-
-.. _Atomix: http://atomix.io/
-.. _configured: http://www.dropwizard.io/0.9.2/docs/manual/configuration.html
+The Timelock Server is implemented as a Dropwizard application, and may thus be suitably configured with a ``server``
+block following `Dropwizard's configuration <http://www.dropwizard.io/0.9.3/docs/manual/configuration.html>`__. This
+may be useful if, for example, one needs to change the application and/or admin ports for the Timelock Server.
