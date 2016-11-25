@@ -23,11 +23,11 @@ import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
-import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import io.atomix.copycat.session.ClosedSessionException;
 
-public class AtomixRetryer {
+public final class AtomixRetryer {
     public static final int RETRY_ATTEMPTS = 3;
 
     private static final Retryer<Object> RETRYER = RetryerBuilder.newBuilder()
@@ -43,8 +43,10 @@ public class AtomixRetryer {
     public static <T> T getWithRetry(Supplier<CompletableFuture<T>> supplier) {
         try {
             return (T) RETRYER.call(() -> supplier.get().join());
-        } catch (ExecutionException | RetryException e) {
-            throw Throwables.propagate(e);
+        } catch (RetryException e) {
+            throw new UncheckedExecutionException(e);
+        } catch (ExecutionException e) {
+            throw new UncheckedExecutionException(e.getCause());
         }
     }
 }

@@ -24,12 +24,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import com.github.rholder.retry.RetryException;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import io.atomix.Atomix;
 import io.atomix.copycat.session.ClosedSessionException;
@@ -51,11 +51,8 @@ public class AtomixRetryerTest {
         try {
             AtomixRetryer.getWithRetry(() -> atomix.getLong(LONG_KEY));
             fail();
-        } catch (RuntimeException e) {
-            if (!(e.getCause() instanceof RetryException)) {
-                fail();
-            }
-            // RuntimeException with a RetryException as the cause
+        } catch (UncheckedExecutionException e) {
+            assertThat(e.getCause()).isInstanceOf(RetryException.class);
         }
         verify(atomix, times(AtomixRetryer.RETRY_ATTEMPTS)).getLong(eq(LONG_KEY));
     }
@@ -63,26 +60,25 @@ public class AtomixRetryerTest {
     @Test
     public void doesNotRetrySuccessfulOperations() {
         CompletableFuture<DistributedLong> happyFuture = new CompletableFuture<>();
-        happyFuture.complete(null);
+        DistributedLong distributedLong = mock(DistributedLong.class);
+        happyFuture.complete(distributedLong);
         when(atomix.getLong(LONG_KEY)).thenReturn(happyFuture);
 
-        DistributedLong distributedLong = AtomixRetryer.getWithRetry(() -> atomix.getLong(LONG_KEY));
+        DistributedLong returnedLong = AtomixRetryer.getWithRetry(() -> atomix.getLong(LONG_KEY));
 
-        assertThat(distributedLong).isNull();
+        assertThat(returnedLong).isEqualTo(distributedLong);
         verify(atomix, times(1)).getLong(eq(LONG_KEY));
     }
 
     @Test
     public void rethrowsOtherExceptions() {
-        when(atomix.getLong(LONG_KEY)).thenThrow(new IllegalArgumentException());
+        when(atomix.getLong(LONG_KEY)).thenThrow(new IllegalArgumentException("foo"));
         try {
             AtomixRetryer.getWithRetry(() -> atomix.getLong(LONG_KEY));
             fail();
-        } catch (RuntimeException e) {
-            if (!(e.getCause() instanceof ExecutionException)) {
-                fail();
-            }
-            // RuntimeException with an ExecutionException as the cause
+        } catch (UncheckedExecutionException e) {
+            assertThat(e.getCause()).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("foo");
         }
         verify(atomix, times(1)).getLong(eq(LONG_KEY));
     }

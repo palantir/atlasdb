@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.nio.channels.ByteChannel;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 import javax.annotation.Nullable;
 import javax.ws.rs.ServiceUnavailableException;
@@ -96,7 +97,8 @@ public class InvalidatingLeaderProxyTest {
 
     @Test
     public void shouldThrowTheUncheckedExecutionExceptionWhenNotIoException() {
-        Exception expectedInnerException = new Exception("the inner exception");
+        Exception expectedInnerException =
+                new CompletionException(new Exception("the inner exception"));
         when(LEADER_INFO.get()).thenReturn(Futures.exceptionalFuture(expectedInnerException));
 
         assertThatThrownBy(atomicString::get)
