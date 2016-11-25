@@ -20,26 +20,30 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.Checker;
+import com.palantir.atlasdb.jepsen.events.Event;
 
 import clojure.lang.Keyword;
 
 public class TimestampCheckerTest {
     private static final Map<Keyword, ?> INFO_EVENT = ImmutableMap.of(Keyword.intern("type"), Keyword.intern("info"));
+    private static final Map<Keyword, ?> INVOKE_EVENT = ImmutableMap.of(
+            Keyword.intern("type"), Keyword.intern("invoke"),
+            Keyword.intern("process"), 0,
+            Keyword.intern("time"), 0L);
     private static final Map<Keyword, ?> UNRECOGNISED_EVENT = ImmutableMap.of(Keyword.intern("foo"), "bar");
 
     @Test
     public void correctHistoryShouldReturnValidAndNoErrors() {
-        Checker checker = mock(Checker.class);
-        when(checker.valid()).thenReturn(true);
-        when(checker.errors()).thenReturn(ImmutableList.of());
+        Checker checker = createMockedChecker(true);
 
         Map<Keyword, Object> results = new TimestampChecker(checker).checkClojureHistory(ImmutableList.of(INFO_EVENT));
 
@@ -50,9 +54,7 @@ public class TimestampCheckerTest {
 
     @Test
     public void incorrectHistoryShouldReturnInvalidWithErrors() {
-        Checker checker = mock(Checker.class);
-        when(checker.valid()).thenReturn(false);
-        when(checker.errors()).thenReturn(ImmutableList.of(Event.fromKeywordMap(INFO_EVENT)));
+        Checker checker = createMockedChecker(false, INFO_EVENT);
 
         Map<Keyword, Object> results = new TimestampChecker(checker).checkClojureHistory(ImmutableList.of(INFO_EVENT));
 
@@ -62,9 +64,46 @@ public class TimestampCheckerTest {
     }
 
     @Test
+    public void ifTwoCheckersFailErrorsAreCombined() {
+        Checker firstChecker = createMockedChecker(false, INFO_EVENT);
+        Checker secondChecker = createMockedChecker(false, INVOKE_EVENT);
+
+        TimestampChecker timestampChecker = new TimestampChecker(firstChecker, secondChecker);
+        Map<Keyword, Object> results = timestampChecker.checkClojureHistory(ImmutableList.of(INFO_EVENT));
+
+        Map<Keyword, Object> expectedResults = ImmutableMap.of(Keyword.intern("valid?"), false,
+                Keyword.intern("errors"), ImmutableList.of(INFO_EVENT, INVOKE_EVENT));
+        assertThat(results).isEqualTo(expectedResults);
+    }
+
+    @Test
+    public void invalidIfOneOutOfTwoCheckersFails() {
+        Checker firstChecker = createMockedChecker(false, INFO_EVENT);
+        Checker secondChecker = createMockedChecker(true);
+
+        TimestampChecker timestampChecker = new TimestampChecker(firstChecker, secondChecker);
+        Map<Keyword, Object> results = timestampChecker.checkClojureHistory(ImmutableList.of(INFO_EVENT));
+
+        Map<Keyword, Object> expectedResults = ImmutableMap.of(Keyword.intern("valid?"), false,
+                Keyword.intern("errors"), ImmutableList.of(INFO_EVENT));
+        assertThat(results).isEqualTo(expectedResults);
+    }
+
+    private Checker createMockedChecker(boolean valid, Map<Keyword, ?> ... errors) {
+        List<Map<Keyword, ?>> listOfErrors = ImmutableList.copyOf(errors);
+        List<Event> listOfErrorsAsEvents = listOfErrors.stream()
+                .map(Event::fromKeywordMap)
+                .collect(Collectors.toList());
+
+        Checker checker = mock(Checker.class);
+        when(checker.valid()).thenReturn(valid);
+        when(checker.errors()).thenReturn(listOfErrorsAsEvents);
+        return checker;
+    }
+
+    @Test
     public void historyWithUnrecognisedShouldThrow() {
         Checker checker = mock(Checker.class);
-
         assertThatThrownBy(() -> new TimestampChecker(checker).checkClojureHistory(
                 ImmutableList.of(UNRECOGNISED_EVENT))).isInstanceOf(Exception.class);
     }
