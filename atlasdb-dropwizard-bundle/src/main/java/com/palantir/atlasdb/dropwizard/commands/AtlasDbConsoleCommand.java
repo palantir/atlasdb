@@ -59,6 +59,7 @@ public class AtlasDbConsoleCommand<T extends Configuration & AtlasDbConfiguratio
             }
         }
 
+        addOfflineParameter(subparser);
         super.configure(subparser);
     }
 

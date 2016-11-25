@@ -152,6 +152,11 @@ public final class OracleDdlTable implements DbDdlTable {
             // If table does not exist, do nothing
         }
 
+        clearTableSizeCacheAndDropTableMetadata();
+    }
+
+    private void clearTableSizeCacheAndDropTableMetadata() {
+        TableSizeCache.clearCacheForTable(tableRef);
         conns.get().executeUnregisteredQuery(
                 "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
                 tableRef.getQualifiedName());
@@ -182,7 +187,8 @@ public final class OracleDdlTable implements DbDdlTable {
 
     private void truncateOverflowTableIfItExists() {
         TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
-        if (tableSize.equals(TableSize.OVERFLOW)) {
+        if (tableSize.equals(TableSize.OVERFLOW)
+                && config.overflowMigrationState() != OverflowMigrationState.UNSTARTED) {
             try {
                 conns.get().executeUnregisteredQuery(
                         "TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortOverflowTableName());

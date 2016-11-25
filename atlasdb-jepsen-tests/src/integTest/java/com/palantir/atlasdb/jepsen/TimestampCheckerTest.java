@@ -31,7 +31,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
-import com.palantir.atlasdb.jepsen.events.Event;
 
 import clojure.lang.Keyword;
 import one.util.streamex.EntryStream;
@@ -47,7 +46,7 @@ public class TimestampCheckerTest {
 
         Map<Keyword, Object> results = TimestampChecker.checkClojureHistory(convertedAllEvents);
 
-        assertThat(results).containsEntry(Keyword.intern("valid"), true);
+        assertThat(results).containsEntry(Keyword.intern("valid?"), true);
         assertThat(results).containsEntry(Keyword.intern("errors"), ImmutableList.of());
     }
 
@@ -64,17 +63,17 @@ public class TimestampCheckerTest {
 
         Map<Keyword, Object> results = TimestampChecker.checkClojureHistory(history);
 
-        assertThat(results).containsEntry(Keyword.intern("valid"), true);
+        assertThat(results).containsEntry(Keyword.intern("valid?"), true);
         assertThat(results).containsEntry(Keyword.intern("errors"), ImmutableList.of());
     }
 
     @Test
     public void historyOfDecreasingTimestampsShouldReturnInvalidWithErrors() {
-        Map<Keyword, ?> read1 = ImmutableMap.of(Keyword.intern("type"), "ok",
+        Map<Keyword, ?> read1 = ImmutableMap.of(Keyword.intern("type"), Keyword.intern("ok"),
                 Keyword.intern("process"), SOME_PROCESS,
                 Keyword.intern("time"), TIME_0,
                 Keyword.intern("value"), 1L);
-        Map<Keyword, ?> read2 = ImmutableMap.of(Keyword.intern("type"), "ok",
+        Map<Keyword, ?> read2 = ImmutableMap.of(Keyword.intern("type"), Keyword.intern("ok"),
                 Keyword.intern("process"), SOME_PROCESS,
                 Keyword.intern("time"), TIME_1,
                 Keyword.intern("value"), 0L);
@@ -82,8 +81,8 @@ public class TimestampCheckerTest {
 
         Map<Keyword, Object> results = TimestampChecker.checkClojureHistory(history);
 
-        List<Event> expectedErrors = ImmutableList.of(Event.fromKeywordMap(read1), Event.fromKeywordMap(read2));
-        assertThat(results).containsEntry(Keyword.intern("valid"), false);
+        List<Map<Keyword, ?>> expectedErrors = ImmutableList.of(read1, read2);
+        assertThat(results).containsEntry(Keyword.intern("valid?"), false);
         assertThat(results).containsEntry(Keyword.intern("errors"), expectedErrors);
     }
 

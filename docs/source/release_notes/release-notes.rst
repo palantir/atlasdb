@@ -49,6 +49,10 @@ develop
          - Multinode Cassandra: ``createTable`` and ``dropTable`` now throw a PalantirRuntimeException if there is an unresponsive node.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
 
+    *    - |improved|
+         - Substantially improved performance of the DbKvs implementation of the single-iterator version of getRowsColumnRange.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1132>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -61,6 +65,20 @@ v0.25.0
 
     *    - Type
          - Change
+
+    *    - |fixed|
+         - Worrying-looking thread dumps no longer appear in logs when we suspect that the
+           ``MultipleRunningTimestampServicesError`` may have been hit. Instead, we output them to a temporary file,
+           logging only its path to the user.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1275>`__)
+
+    *    - |fixed|
+         - ``--config-root`` and other global parameters can now be passed into dropwizard CLIs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1268>`__)
+
+    *    - |breaking|
+         - The migration ``--config-root`` shorthand (``-r``) can no longer be used as it conflicted with the timestamp command ``--row``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1268>`__)
 
     *    - |new|
          - Dbkvs: ConnectionSupplier consumers can now choose to receive a brand new unshared connection.
@@ -92,9 +110,21 @@ v0.25.0
          - Certain Oracle KVS calls no longer attempt to leak connections created internally.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1215>`__)
 
+    *    - |fixed|
+         - OracleKVS: ``TableSizeCache`` now invalidates the cache on table delete.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1272>`__)
+
     *    - |breaking|
          - Our Jackson version has been updated from 2.5.1 to 2.6.7 and Dropwizard version from 0.8.2 to 0.9.3.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1209>`__)
+
+    *    - |improved|
+         - Additional debugging available for those receiving 'name must be no longer than 1500 bytes' errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
+
+    *    - |breaking|
+         - ``Cell.validateNameValid`` is now private; consider ``Cell.isNameValid`` instead
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
