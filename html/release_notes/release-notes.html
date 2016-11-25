@@ -210,15 +210,19 @@ its load balancer responds with &#8220;503: Service Unavailable&#8221;, the requ
 <td>Certain Oracle KVS calls no longer attempt to leak connections created internally.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1215">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>OracleKVS: <code class="docutils literal"><span class="pre">TableSizeCache</span></code> now invalidates the cache on table delete.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1272">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
 <td>Our Jackson version has been updated from 2.5.1 to 2.6.7 and Dropwizard version from 0.8.2 to 0.9.3.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1209">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Additional debugging available for those receiving &#8216;name must be no longer than 1500 bytes&#8217; errors.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1117">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
 <td><code class="docutils literal"><span class="pre">Cell.validateNameValid</span></code> is now private; consider <code class="docutils literal"><span class="pre">Cell.isNameValid</span></code> instead
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1117">Pull Request</a>)</td>
 </tr>
