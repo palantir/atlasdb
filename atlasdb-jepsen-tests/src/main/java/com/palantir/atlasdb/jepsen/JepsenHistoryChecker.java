@@ -27,16 +27,16 @@ import com.palantir.atlasdb.jepsen.events.Event;
 
 import clojure.lang.Keyword;
 
-public class TimestampChecker {
+public class JepsenHistoryChecker {
 
     private final List<Checker> checkers;
 
-    public TimestampChecker(Checker... checkers) {
+    public JepsenHistoryChecker(Checker... checkers) {
         this.checkers = ImmutableList.copyOf(checkers);
     }
 
-    public static TimestampChecker createWithStandardCheckers() {
-        return new TimestampChecker(new MonotonicChecker());
+    public static JepsenHistoryChecker createWithStandardCheckers() {
+        return new JepsenHistoryChecker(new MonotonicChecker());
     }
 
     /**

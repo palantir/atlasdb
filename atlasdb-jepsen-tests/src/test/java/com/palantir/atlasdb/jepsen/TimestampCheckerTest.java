@@ -45,7 +45,7 @@ public class TimestampCheckerTest {
     public void correctHistoryShouldReturnValidAndNoErrors() {
         Checker checker = createMockedChecker(true);
 
-        Map<Keyword, Object> results = new TimestampChecker(checker).checkClojureHistory(ImmutableList.of(INFO_EVENT));
+        Map<Keyword, Object> results = new JepsenHistoryChecker(checker).checkClojureHistory(ImmutableList.of(INFO_EVENT));
 
         Map<Keyword, Object> expectedResults = ImmutableMap.of(Keyword.intern("valid?"), true,
                 Keyword.intern("errors"), ImmutableList.of());
@@ -56,7 +56,7 @@ public class TimestampCheckerTest {
     public void incorrectHistoryShouldReturnInvalidWithErrors() {
         Checker checker = createMockedChecker(false, INFO_EVENT);
 
-        Map<Keyword, Object> results = new TimestampChecker(checker).checkClojureHistory(ImmutableList.of(INFO_EVENT));
+        Map<Keyword, Object> results = new JepsenHistoryChecker(checker).checkClojureHistory(ImmutableList.of(INFO_EVENT));
 
         Map<Keyword, Object> expectedResults = ImmutableMap.of(Keyword.intern("valid?"), false,
                 Keyword.intern("errors"), ImmutableList.of(INFO_EVENT));
@@ -68,7 +68,7 @@ public class TimestampCheckerTest {
         Checker firstChecker = createMockedChecker(false, INFO_EVENT);
         Checker secondChecker = createMockedChecker(false, INVOKE_EVENT);
 
-        TimestampChecker timestampChecker = new TimestampChecker(firstChecker, secondChecker);
+        JepsenHistoryChecker timestampChecker = new JepsenHistoryChecker(firstChecker, secondChecker);
         Map<Keyword, Object> results = timestampChecker.checkClojureHistory(ImmutableList.of(INFO_EVENT));
 
         Map<Keyword, Object> expectedResults = ImmutableMap.of(Keyword.intern("valid?"), false,
@@ -81,7 +81,7 @@ public class TimestampCheckerTest {
         Checker firstChecker = createMockedChecker(false, INFO_EVENT);
         Checker secondChecker = createMockedChecker(true);
 
-        TimestampChecker timestampChecker = new TimestampChecker(firstChecker, secondChecker);
+        JepsenHistoryChecker timestampChecker = new JepsenHistoryChecker(firstChecker, secondChecker);
         Map<Keyword, Object> results = timestampChecker.checkClojureHistory(ImmutableList.of(INFO_EVENT));
 
         Map<Keyword, Object> expectedResults = ImmutableMap.of(Keyword.intern("valid?"), false,
@@ -104,7 +104,7 @@ public class TimestampCheckerTest {
     @Test
     public void historyWithUnrecognisedShouldThrow() {
         Checker checker = mock(Checker.class);
-        assertThatThrownBy(() -> new TimestampChecker(checker).checkClojureHistory(
+        assertThatThrownBy(() -> new JepsenHistoryChecker(checker).checkClojureHistory(
                 ImmutableList.of(UNRECOGNISED_EVENT))).isInstanceOf(Exception.class);
     }
 }
