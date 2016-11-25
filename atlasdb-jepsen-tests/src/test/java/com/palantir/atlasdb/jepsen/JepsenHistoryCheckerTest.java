@@ -33,7 +33,7 @@ import com.palantir.atlasdb.jepsen.events.Event;
 
 import clojure.lang.Keyword;
 
-public class TimestampCheckerTest {
+public class JepsenHistoryCheckerTest {
     private static final Map<Keyword, ?> INFO_EVENT = ImmutableMap.of(Keyword.intern("type"), Keyword.intern("info"));
     private static final Map<Keyword, ?> INVOKE_EVENT = ImmutableMap.of(
             Keyword.intern("type"), Keyword.intern("invoke"),

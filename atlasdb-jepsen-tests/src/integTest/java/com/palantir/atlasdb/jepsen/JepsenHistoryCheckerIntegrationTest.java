@@ -33,7 +33,7 @@ import com.google.common.io.Resources;
 import clojure.lang.Keyword;
 import one.util.streamex.EntryStream;
 
-public class TimestampCheckerIntegrationTest {
+public class JepsenHistoryCheckerIntegrationTest {
     @Test
     public void correctExampleHistoryShouldReturnValidAndNoErrors() throws IOException {
         List<Map<Keyword, ?>> convertedAllEvents = getClojureMapFromFile("history.json");
