@@ -34,6 +34,21 @@ Changelog
 develop
 =======
 
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Multinode Cassandra: ``getAllTimestamps`` and ``getRangeOfTimestamps`` now work as long as quorum for reading is achieved.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+
+    *    - |fixed|
+         - Multinode Cassandra: ``createTable`` and ``dropTable`` now throw a PalantirRuntimeException if there is an unresponsive node.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
