@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Objects;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -28,7 +29,6 @@ import javax.ws.rs.ServiceUnavailableException;
 import org.immutables.value.Value;
 
 import com.google.common.reflect.AbstractInvocationHandler;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import io.atomix.group.LocalMember;
@@ -100,9 +100,9 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
 
     private LeaderAndTerm getLeaderInfo() {
         try {
-            return Futures.getUnchecked(leaderInfo.get());
+            return AtomixRetryer.getWithRetry(leaderInfo::get);
         } catch (UncheckedExecutionException e) {
-            if (e.getCause() instanceof IOException) {
+            if (rootCauseIsIoException(e)) {
                 throw new ServiceUnavailableException(
                         String.format(
                                 "Could not contact the cluster. Has this node (%s) been partitioned off?",
@@ -112,6 +112,11 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
             }
             throw e;
         }
+    }
+
+    private boolean rootCauseIsIoException(UncheckedExecutionException ex) {
+        return ex.getCause() instanceof CompletionException
+                && ex.getCause().getCause() instanceof IOException;
     }
 
     private void clearDelegate() throws IOException {
