@@ -152,14 +152,14 @@ public final class OracleDdlTable implements DbDdlTable {
             // If table does not exist, do nothing
         }
 
-        dropTableMetadataAndClearTableSizeCache();
+        clearTableSizeCacheAndDropTableMetadata();
     }
 
-    private void dropTableMetadataAndClearTableSizeCache() {
+    private void clearTableSizeCacheAndDropTableMetadata() {
+        TableSizeCache.clearCacheForTable(tableRef);
         conns.get().executeUnregisteredQuery(
                 "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
                 tableRef.getQualifiedName());
-        TableSizeCache.clearCacheForTable(tableRef);
     }
 
     private void dropTableInternal(String fullTableName, String shortTableName) {
