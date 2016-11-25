@@ -68,7 +68,7 @@ public final class TimestampChecker {
         List<Event> errors = new ArrayList<>();
         for (Checker checker : checkers) {
             events.forEach(event -> event.accept(checker));
-            valid = valid && checker.valid();
+            valid &= checker.valid();
             errors.addAll(checker.errors());
         }
         return createMapFromCompletedChecker(valid, errors);
