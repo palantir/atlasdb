@@ -173,56 +173,62 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Worrying-looking thread dumps no longer appear in logs when we suspect that the
+<code class="docutils literal"><span class="pre">MultipleRunningTimestampServicesError</span></code> may have been hit. Instead, we output them to a temporary file,
+logging only its path to the user.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1275">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal"><span class="pre">--config-root</span></code> and other global parameters can now be passed into dropwizard CLIs.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1268">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
 <td>The migration <code class="docutils literal"><span class="pre">--config-root</span></code> shorthand (<code class="docutils literal"><span class="pre">-r</span></code>) can no longer be used as it conflicted with the timestamp command <code class="docutils literal"><span class="pre">--row</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1268">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Dbkvs: ConnectionSupplier consumers can now choose to receive a brand new unshared connection.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1258">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB now supports Cassandra 3.7 as well as Cassandra 2.2.8.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1206">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Oracle perf improvement; table names now cached, resulting in fewer round trips to the database.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1215">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">SweepStatsKeyValueService</span></code> will no longer flush a final batch of statistics during shutdown. This avoids
 potentially long pauses that could previously occur when closing a <code class="docutils literal"><span class="pre">Cleaner</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1232">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Better support for AtlasDB clients running behind load balancers. In particular, if an AtlasDB client falls down and
 its load balancer responds with &#8220;503: Service Unavailable&#8221;, the request will be attempted on other clients rather than aborting.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1175">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Oracle will not drop a table that already exists on  <code class="docutils literal"><span class="pre">createTable</span></code> calls when multiple AtlasDB clients make the call to create the same table.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1243">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Certain Oracle KVS calls no longer attempt to leak connections created internally.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1215">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>OracleKVS: <code class="docutils literal"><span class="pre">TableSizeCache</span></code> now invalidates the cache on table delete.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1272">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
 <td>Our Jackson version has been updated from 2.5.1 to 2.6.7 and Dropwizard version from 0.8.2 to 0.9.3.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1209">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Additional debugging available for those receiving &#8216;name must be no longer than 1500 bytes&#8217; errors.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1117">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
 <td><code class="docutils literal"><span class="pre">Cell.validateNameValid</span></code> is now private; consider <code class="docutils literal"><span class="pre">Cell.isNameValid</span></code> instead
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1117">Pull Request</a>)</td>
 </tr>
