@@ -23,15 +23,15 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.jepsen.events.Event;
-import com.palantir.atlasdb.jepsen.events.EventVisitor;
+import com.palantir.atlasdb.jepsen.events.Checker;
 
 import clojure.lang.Keyword;
 
 public final class TimestampChecker {
 
-    List<EventVisitor> checkers;
+    List<Checker> checkers;
 
-    public TimestampChecker(EventVisitor... checkers) {
+    public TimestampChecker(Checker... checkers) {
         this.checkers = Arrays.asList(checkers);
     }
 
@@ -66,7 +66,7 @@ public final class TimestampChecker {
     private Map<Keyword, Object> checkHistory(List<Event> events) {
         boolean valid = true;
         List<Event> errors = new ArrayList<>();
-        for (EventVisitor checker : checkers) {
+        for (Checker checker : checkers) {
             events.forEach(event -> event.accept(checker));
             valid = valid && checker.valid();
             errors.addAll(checker.errors());

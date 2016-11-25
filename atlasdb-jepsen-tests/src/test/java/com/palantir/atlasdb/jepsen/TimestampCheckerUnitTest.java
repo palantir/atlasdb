@@ -27,7 +27,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.jepsen.events.Event;
-import com.palantir.atlasdb.jepsen.events.EventVisitor;
+import com.palantir.atlasdb.jepsen.events.Checker;
 
 import clojure.lang.Keyword;
 
@@ -37,7 +37,7 @@ public class TimestampCheckerUnitTest {
 
     @Test
     public void correctHistoryShouldReturnValidAndNoErrors() {
-        EventVisitor checker = mock(EventVisitor.class);
+        Checker checker = mock(Checker.class);
         when(checker.valid()).thenReturn(true);
         when(checker.errors()).thenReturn(ImmutableList.of());
 
@@ -50,7 +50,7 @@ public class TimestampCheckerUnitTest {
 
     @Test
     public void incorrectHistoryShouldReturnInvalidWithErrors() {
-        EventVisitor checker = mock(EventVisitor.class);
+        Checker checker = mock(Checker.class);
         when(checker.valid()).thenReturn(false);
         when(checker.errors()).thenReturn(ImmutableList.of(Event.fromKeywordMap(INFO_EVENT)));
 
@@ -63,7 +63,7 @@ public class TimestampCheckerUnitTest {
 
     @Test
     public void historyWithUnrecognisedShouldThrow() {
-        EventVisitor checker = mock(EventVisitor.class);
+        Checker checker = mock(Checker.class);
 
         assertThatThrownBy(() -> new TimestampChecker(checker).checkClojureHistory(
                 ImmutableList.of(UNRECOGNISED_EVENT))).isInstanceOf(Exception.class);
