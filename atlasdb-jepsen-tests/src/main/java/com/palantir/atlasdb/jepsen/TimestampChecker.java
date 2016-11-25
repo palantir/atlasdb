@@ -16,14 +16,14 @@
 package com.palantir.atlasdb.jepsen;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.Checker;
+import com.palantir.atlasdb.jepsen.events.Event;
 
 import clojure.lang.Keyword;
 
@@ -32,7 +32,7 @@ public final class TimestampChecker {
     List<Checker> checkers;
 
     public TimestampChecker(Checker... checkers) {
-        this.checkers = Arrays.asList(checkers);
+        this.checkers = ImmutableList.copyOf(checkers);
     }
 
     public static TimestampChecker createWithStandardCheckers() {
