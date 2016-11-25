@@ -85,6 +85,10 @@ v0.25.0
          - Certain Oracle KVS calls no longer attempt to leak connections created internally.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1215>`__)
 
+    *    - |fixed|
+         - OracleKVS: ``TableSizeCache`` now invalidates the cache on table delete.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1272>`__)
+
     *    - |breaking|
          - Our Jackson version has been updated from 2.5.1 to 2.6.7 and Dropwizard version from 0.8.2 to 0.9.3.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1209>`__)
