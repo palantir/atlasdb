@@ -57,7 +57,7 @@ public final class TimestampChecker {
         return checkHistory(events);
     }
 
-    private List<Event> convertClojureHistoryToEventList(List<Map<Keyword, ?>> clojureHistory) {
+    private static List<Event> convertClojureHistoryToEventList(List<Map<Keyword, ?>> clojureHistory) {
         return clojureHistory.stream()
                 .map(Event::fromKeywordMap)
                 .collect(Collectors.toList());
