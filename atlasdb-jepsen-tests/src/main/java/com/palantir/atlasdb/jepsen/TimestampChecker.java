@@ -29,7 +29,7 @@ import clojure.lang.Keyword;
 
 public final class TimestampChecker {
 
-    List<Checker> checkers;
+    private final List<Checker> checkers;
 
     public TimestampChecker(Checker... checkers) {
         this.checkers = ImmutableList.copyOf(checkers);
