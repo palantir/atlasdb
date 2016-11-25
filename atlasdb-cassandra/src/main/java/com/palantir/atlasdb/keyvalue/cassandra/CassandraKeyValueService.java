@@ -1210,13 +1210,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     rangeRequest,
                     timestampsGetterBatchSize.get(),
                     timestamp,
-                    deleteConsistency);
+                    readConsistency);
         } else {
             return getRangeWithPageCreator(
                     tableRef,
                     rangeRequest,
                     timestamp,
-                    deleteConsistency,
+                    readConsistency,
                     TimestampExtractor.SUPPLIER);
         }
     }
@@ -1304,6 +1304,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         CassandraVerifier.sanityCheckTableName(table);
 
                         if (existingTables.contains(table)) {
+                            if (clientPool.blacklistedHosts.size() != 0) throw new UnavailableException();
                             client.system_drop_column_family(internalTableName(table));
                             putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
                         } else {
@@ -1427,6 +1428,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         clientPool.runWithRetry(client -> {
             for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
                 try {
+                    if (clientPool.blacklistedHosts.size() != 0) throw new PalantirRuntimeException();
                     client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
                             configManager.getConfig().keyspace(),
                             tableEntry.getKey(),
@@ -1670,7 +1672,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts) {
         AllTimestampsCollector collector = new AllTimestampsCollector();
-        loadWithTs(tableRef, cells, ts, true, collector, deleteConsistency);
+        loadWithTs(tableRef, cells, ts, true, collector, readConsistency);
         return collector.collectedResults;
     }
 

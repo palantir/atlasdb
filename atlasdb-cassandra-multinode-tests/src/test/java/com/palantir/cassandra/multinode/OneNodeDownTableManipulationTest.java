@@ -15,50 +15,60 @@
  */
 package com.palantir.cassandra.multinode;
 
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.TEST_TABLE;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.db;
-
-import java.lang.reflect.InvocationTargetException;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.exception.PalantirRuntimeException;
 
 public class OneNodeDownTableManipulationTest {
     private static final TableReference NEW_TABLE = TableReference.createWithEmptyNamespace("new_table");
+    private static final TableReference NEW_TABLE2 = TableReference.createWithEmptyNamespace("new_table2");
 
     @Rule
-    public ExpectedException expect_exception = ExpectedException.none();
+    public ExpectedException expectException = ExpectedException.none();
 
     @Test
-    public void createTableThrowsISE(){
-        expect_exception.expect(IllegalStateException.class);
-        db.createTable(NEW_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+    public void createTableThrows() {
+        expectException.expect(PalantirRuntimeException.class);
+        OneNodeDownTestSuite.db.createTable(NEW_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
     @Test
-    public void dropTableThrows(){
-        expect_exception.expect(StackOverflowError.class);
-        db.dropTable(TEST_TABLE);
+    public void createTablesThrows() {
+        expectException.expect(PalantirRuntimeException.class);
+        OneNodeDownTestSuite.db.createTables(ImmutableMap.of(NEW_TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA));
     }
 
     @Test
-    public void canCompactInternally(){
-        db.compactInternally(TEST_TABLE);
+    public void dropTableThrows() {
+        expectException.expect(PalantirRuntimeException.class);
+        OneNodeDownTestSuite.db.dropTable(OneNodeDownTestSuite.TEST_TABLE);
+    }
+
+    @Test
+    public void dropTablesThrows() {
+        expectException.expect(PalantirRuntimeException.class);
+        OneNodeDownTestSuite.db.dropTables(ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE));
+    }
+
+    @Test
+    public void canCompactInternally() {
+        OneNodeDownTestSuite.db.compactInternally(OneNodeDownTestSuite.TEST_TABLE);
     }
 
     @Test
     public void canCleanUpSchemaMutationLockTablesState() throws Exception {
-        db.cleanUpSchemaMutationLockTablesState();
+        OneNodeDownTestSuite.db.cleanUpSchemaMutationLockTablesState();
     }
 
     @Test
-    public void truncateTableThrowsPRE(){
-        expect_exception.expect(PalantirRuntimeException.class);
-        db.truncateTable(TEST_TABLE);
+    public void truncateTableThrows() {
+        expectException.expect(PalantirRuntimeException.class);
+        OneNodeDownTestSuite.db.truncateTable(OneNodeDownTestSuite.TEST_TABLE);
     }
 }

@@ -15,11 +15,6 @@
  */
 package com.palantir.cassandra.multinode;
 
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.CELL_1_1;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.DEFAULT_TIMESTAMP;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.TEST_TABLE;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.db;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -30,11 +25,12 @@ import com.palantir.common.exception.PalantirRuntimeException;
 public class OneNodeDownDeleteTest {
 
     @Rule
-    public ExpectedException expect_exception = ExpectedException.none();
+    public ExpectedException expectException = ExpectedException.none();
 
     @Test
-    public void deletingThrowsPRE() {
-        expect_exception.expect(PalantirRuntimeException.class);
-        db.delete(TEST_TABLE, ImmutableMultimap.of(CELL_1_1, DEFAULT_TIMESTAMP));
+    public void deletingThrows() {
+        expectException.expect(PalantirRuntimeException.class);
+        OneNodeDownTestSuite.db.delete(OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_TIMESTAMP));
     }
 }

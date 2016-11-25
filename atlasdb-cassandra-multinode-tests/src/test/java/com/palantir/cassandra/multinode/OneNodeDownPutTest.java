@@ -17,17 +17,7 @@ package com.palantir.cassandra.multinode;
 
 import static org.junit.Assert.assertEquals;
 
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.CELL_1_1;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.CELL_1_2;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.CELL_2_1;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.CELL_2_2;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.CELL_3_1;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.CELL_3_2;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.DEFAULT_VALUE;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.TEST_TABLE;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.db;
-
-import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,53 +33,59 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 
 public class OneNodeDownPutTest {
 
-    private final byte[] NEW_VALUE = "new_value".getBytes();
-    private final long NEW_TIMESTAMP = 7L;
+    private final byte[] newValue = "new_value".getBytes();
+    private final long newTimestamp = 7L;
 
     @Rule
-    public ExpectedException expect_exception = ExpectedException.none();
+    public ExpectedException expectException = ExpectedException.none();
 
     @Test
     public void canPut() {
-        db.put(TEST_TABLE, ImmutableMap.of(CELL_1_1, NEW_VALUE), NEW_TIMESTAMP);
-        OneNodeDownGetTest.verifyTimestampAndValue(CELL_1_1, NEW_TIMESTAMP, NEW_VALUE);
+        OneNodeDownTestSuite.db.put(OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, newValue), newTimestamp);
+        OneNodeDownGetTest.verifyTimestampAndValue(OneNodeDownTestSuite.CELL_1_1, newTimestamp, newValue);
     }
 
     @Test
     public void canPutWithTimestamps() {
-        db.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(CELL_1_2, Value.create(NEW_VALUE, NEW_TIMESTAMP)));
-        OneNodeDownGetTest.verifyTimestampAndValue(CELL_1_2, NEW_TIMESTAMP, NEW_VALUE);
+        OneNodeDownTestSuite.db.putWithTimestamps(OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_2, Value.create(newValue, newTimestamp)));
+        OneNodeDownGetTest.verifyTimestampAndValue(OneNodeDownTestSuite.CELL_1_2, newTimestamp, newValue);
     }
 
     @Test
     public void canMultiPut() {
-        HashMap<Cell, byte[]> entries = new HashMap();
-        entries.put(CELL_2_1, NEW_VALUE);
-        entries.put(CELL_2_2, NEW_VALUE);
+        ImmutableMap<Cell, byte[]> entries = ImmutableMap.of(OneNodeDownTestSuite.CELL_2_1, newValue,
+                OneNodeDownTestSuite.CELL_2_2, newValue);
 
-        db.multiPut(ImmutableMap.of(TEST_TABLE, entries), NEW_TIMESTAMP);
-
-        OneNodeDownGetTest.verifyTimestampAndValue(CELL_2_1, NEW_TIMESTAMP, NEW_VALUE);
-        OneNodeDownGetTest.verifyTimestampAndValue(CELL_2_2, NEW_TIMESTAMP, NEW_VALUE);
+        OneNodeDownTestSuite.db.multiPut(ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, entries), newTimestamp);
+        OneNodeDownGetTest.verifyTimestampAndValue(OneNodeDownTestSuite.CELL_2_1, newTimestamp, newValue);
+        OneNodeDownGetTest.verifyTimestampAndValue(OneNodeDownTestSuite.CELL_2_2, newTimestamp, newValue);
     }
 
     @Test
     public void canPutUnlessExists() {
-        expect_exception.expect(KeyAlreadyExistsException.class);
-        db.putUnlessExists(TEST_TABLE, ImmutableMap.of(CELL_3_2, DEFAULT_VALUE));
-        OneNodeDownGetTest.verifyTimestampAndValue(CELL_3_2, AtlasDbConstants.TRANSACTION_TS, DEFAULT_VALUE);
+        expectException.expect(KeyAlreadyExistsException.class);
+        OneNodeDownTestSuite.db.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableMap.of(OneNodeDownTestSuite.CELL_3_2, OneNodeDownTestSuite.DEFAULT_VALUE));
+        OneNodeDownGetTest.verifyTimestampAndValue(OneNodeDownTestSuite.CELL_3_2, AtlasDbConstants.TRANSACTION_TS,
+                OneNodeDownTestSuite.DEFAULT_VALUE);
     }
 
     @Test
     public void putUnlessExistsThrowsOnExists() {
-        expect_exception.expect(KeyAlreadyExistsException.class);
-        db.putUnlessExists(TEST_TABLE, ImmutableMap.of(CELL_1_1, DEFAULT_VALUE));
+        expectException.expect(KeyAlreadyExistsException.class);
+        OneNodeDownTestSuite.db.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_VALUE));
     }
 
     @Test
     public void canAddGarbageCollectionSentinelValues() {
-        db.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(CELL_3_1));
-        assertEquals(new Long(Value.INVALID_VALUE_TIMESTAMP),
-                db.getLatestTimestamps(TEST_TABLE, ImmutableMap.of(CELL_3_1, Long.MAX_VALUE)).get(CELL_3_1));
+        OneNodeDownTestSuite.db.addGarbageCollectionSentinelValues(OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableSet.of(OneNodeDownTestSuite.CELL_3_1));
+        Map<Cell, Long> latestTimestamp = OneNodeDownTestSuite.db.getLatestTimestamps(OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableMap.of(OneNodeDownTestSuite.CELL_3_1, Long.MAX_VALUE));
+        assertEquals(Value.INVALID_VALUE_TIMESTAMP,
+                latestTimestamp.get(OneNodeDownTestSuite.CELL_3_1).longValue());
     }
 }

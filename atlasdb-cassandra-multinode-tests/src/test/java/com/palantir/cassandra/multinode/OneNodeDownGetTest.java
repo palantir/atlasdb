@@ -16,23 +16,14 @@
 package com.palantir.cassandra.multinode;
 
 import static org.junit.Assert.assertEquals;
-
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.CELL_1_1;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.CELL_1_2;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.DEFAULT_TIMESTAMP;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.DEFAULT_VALUE;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.FIRST_ROW;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.SECOND_ROW;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.TEST_TABLE;
-import static com.palantir.cassandra.multinode.OneNodeDownTestSuite.db;
+import static org.junit.Assert.assertFalse;
 
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -42,99 +33,113 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.exception.PalantirRuntimeException;
-
-
 
 
 public class OneNodeDownGetTest {
 
-    @Rule
-    public ExpectedException expect_exception = ExpectedException.none();
-
     @Test
     public void canGet() {
-        verifyTimestampAndValue(CELL_1_1, DEFAULT_TIMESTAMP, DEFAULT_VALUE);
+        verifyTimestampAndValue(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_TIMESTAMP,
+                OneNodeDownTestSuite.DEFAULT_VALUE);
     }
 
     @Test
     public void canGetRows() {
-        Map<Cell, Value> row = db.getRows(TEST_TABLE, ImmutableList.of(FIRST_ROW),
+        Map<Cell, Value> row = OneNodeDownTestSuite.db.getRows(OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableList.of(OneNodeDownTestSuite.FIRST_ROW),
                 ColumnSelection.all(), Long.MAX_VALUE);
-        assertEquals(DEFAULT_TIMESTAMP, row.get(CELL_1_1).getTimestamp());
-        assertEquals(new String(DEFAULT_VALUE), new String(row.get(CELL_1_1).getContents()));
-        assertEquals(DEFAULT_TIMESTAMP, row.get(CELL_1_2).getTimestamp());
-        assertEquals(new String(DEFAULT_VALUE), new String(row.get(CELL_1_2).getContents()));
+
+        assertEquals(OneNodeDownTestSuite.DEFAULT_TIMESTAMP, row.get(OneNodeDownTestSuite.CELL_1_1).getTimestamp());
+        assertEquals(new String(OneNodeDownTestSuite.DEFAULT_VALUE),
+                new String(row.get(OneNodeDownTestSuite.CELL_1_1).getContents()));
+        assertEquals(OneNodeDownTestSuite.DEFAULT_TIMESTAMP, row.get(OneNodeDownTestSuite.CELL_1_2).getTimestamp());
+        assertEquals(new String(OneNodeDownTestSuite.DEFAULT_VALUE),
+                new String(row.get(OneNodeDownTestSuite.CELL_1_2).getContents()));
     }
 
     @Test
     public void canGetRange() {
-        final RangeRequest range = RangeRequest.builder().endRowExclusive(SECOND_ROW).build();
-        ClosableIterator<RowResult<Value>> it = db.getRange(TEST_TABLE, range, Long.MAX_VALUE);
+        final RangeRequest range = RangeRequest.builder().endRowExclusive(OneNodeDownTestSuite.SECOND_ROW).build();
+        ClosableIterator<RowResult<Value>> it = OneNodeDownTestSuite.db.getRange(OneNodeDownTestSuite.TEST_TABLE, range,
+                Long.MAX_VALUE);
 
         RowResult<Value> row = it.next();
-        assertEquals(false, it.hasNext());
-        assertEquals(new String(FIRST_ROW), new String(row.getRowName()));
+        assertEquals(new String(OneNodeDownTestSuite.FIRST_ROW), new String(row.getRowName()));
         assertEquals(2, row.getColumns().size());
+        assertFalse(it.hasNext());
     }
 
     @Test
     public void canGetRowsColumnRange() {
         BatchColumnRangeSelection rangeSelection = BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY,
                 PtBytes.EMPTY_BYTE_ARRAY, 1);
-        Map<byte[], RowColumnRangeIterator> rowsColumnRange = db.getRowsColumnRange(TEST_TABLE,
-                ImmutableList.of(FIRST_ROW), rangeSelection, Long.MAX_VALUE);
+        Map<byte[], RowColumnRangeIterator> rowsColumnRange = OneNodeDownTestSuite.db.getRowsColumnRange(
+                OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableList.of(OneNodeDownTestSuite.FIRST_ROW), rangeSelection, Long.MAX_VALUE);
 
         assertEquals(1, rowsColumnRange.size());
-
         byte[] rowName = rowsColumnRange.keySet().iterator().next();
-        assertEquals(new String(FIRST_ROW), new String(rowName));
-        System.out.println(rowsColumnRange.get(rowName));
+        assertEquals(new String(OneNodeDownTestSuite.FIRST_ROW), new String(rowName));
+
+        RowColumnRangeIterator it = rowsColumnRange.get(rowName);
+
+        Map.Entry<Cell, Value> column1 = it.next();
+        assertEquals(new String(OneNodeDownTestSuite.DEFAULT_VALUE), new String(column1.getValue().getContents()));
+        Map.Entry<Cell, Value> column2 = it.next();
+        assertEquals(new String(OneNodeDownTestSuite.DEFAULT_VALUE), new String(column2.getValue().getContents()));
+
+        assertFalse(it.hasNext());
     }
 
     @Test
-    public void canGetAllTableNames(){
-        Iterator<TableReference> it = db.getAllTableNames().iterator();
-        assertEquals(TEST_TABLE, it.next());
-        assertEquals(false, it.hasNext());
+    public void canGetAllTableNames() {
+        Iterator<TableReference> it = OneNodeDownTestSuite.db.getAllTableNames().iterator();
+        assertEquals(OneNodeDownTestSuite.TEST_TABLE, it.next());
+        assertFalse(it.hasNext());
     }
 
     @Test
-    public void canGetLatestTimestamps(){
-        Map<Cell, Long> latest = db.getLatestTimestamps(TEST_TABLE, ImmutableMap.of(CELL_1_1, Long.MAX_VALUE));
-        assertEquals(new Long(DEFAULT_TIMESTAMP), latest.get(CELL_1_1));
+    public void canGetLatestTimestamps() {
+        Map<Cell, Long> latest = OneNodeDownTestSuite.db.getLatestTimestamps(OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, Long.MAX_VALUE));
+        assertEquals(OneNodeDownTestSuite.DEFAULT_TIMESTAMP, latest.get(OneNodeDownTestSuite.CELL_1_1).longValue());
     }
 
     @Test
-    public void getRangeOfTimestampsThrowsICE(){
-        //Requires all Cassandra nodes to be available
-        expect_exception.expect(InsufficientConsistencyException.class);
-        final RangeRequest range = RangeRequest.builder().endRowExclusive(SECOND_ROW).build();
-        ClosableIterator<RowResult<Set<Long>>> r = db.getRangeOfTimestamps(TEST_TABLE, range, Long.MAX_VALUE);
-        while(r.hasNext()){
-            System.out.println(r.next());
-        }
+    public void canGetRangeOfTimestamps() {
+        RangeRequest range = RangeRequest.builder().endRowExclusive(OneNodeDownTestSuite.SECOND_ROW).build();
+        ClosableIterator<RowResult<Set<Long>>> it = OneNodeDownTestSuite.db.getRangeOfTimestamps(
+                OneNodeDownTestSuite.TEST_TABLE, range, Long.MAX_VALUE);
+
+        RowResult<Set<Long>> rowResult = it.next();
+        assertEquals(new String(OneNodeDownTestSuite.FIRST_ROW), new String(rowResult.getRowName()));
+
+        SortedMap<byte[], Set<Long>> timestampMap = rowResult.getColumns();
+        assertEquals(2, timestampMap.get(OneNodeDownTestSuite.FIRST_COLUMN).size());
+        assertEquals(1, timestampMap.get(OneNodeDownTestSuite.SECOND_COLUMN).size());
+
+        assertFalse(it.hasNext());
     }
 
 
     @Test
-    public void getAllTimestampsThrowsPRE(){
-        expect_exception.expect(PalantirRuntimeException.class);
-        Multimap<Cell, Long> result = db.getAllTimestamps(TEST_TABLE,
-                ImmutableSet.of(CELL_1_1), Long.MAX_VALUE);
-//        assertEquals(2, result.get(CELL_1_1).size());
+    public void canGetAllTimestamps() {
+        Multimap<Cell, Long> result = OneNodeDownTestSuite.db.getAllTimestamps(OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableSet.of(OneNodeDownTestSuite.CELL_1_1), Long.MAX_VALUE);
+        assertEquals(2, result.get(OneNodeDownTestSuite.CELL_1_1).size());
     }
 
-    protected static void verifyTimestampAndValue(Cell cell, long timestamp, byte[] value){
-        Map<Cell, Value> result = db.get(TEST_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE));
+    protected static void verifyTimestampAndValue(Cell cell, long timestamp, byte[] value) {
+        Map<Cell, Value> result = OneNodeDownTestSuite.db.get(OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableMap.of(cell, Long.MAX_VALUE));
         assertEquals(timestamp, result.get(cell).getTimestamp());
         assertEquals(new String(value), new String(result.get(cell).getContents()));
     }
+
 }
