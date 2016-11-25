@@ -147,7 +147,7 @@ public class Containers extends ExternalResource {
     private static void waitForContainersToStart() {
         for (Container container : Sets.difference(containersToStart, containersStarted)) {
             Awaitility.await()
-                    .atMost(Duration.TWO_MINUTES)
+                    .atMost(Duration.FIVE_MINUTES)
                     .pollInterval(Duration.ONE_SECOND)
                     .until(() -> container.isReady(dockerComposeRule).succeeded());
         }
