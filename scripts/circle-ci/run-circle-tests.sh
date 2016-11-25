@@ -43,5 +43,6 @@ case $CIRCLE_NODE_INDEX in
     3) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_3[@]} -x :atlasdb-jepsen-tests:jepsenTest ;;
     4) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_4[@]} ;;
     5) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_5[@]} ;;
-    6) ./gradlew --profile --continue -x compileJava -x compileTestJava findbugsMain findbugsTest checkstyleMain checkstyleTest && checkDocsBuild ;;
+    6) CASSANDRA_VERSION=3.7 ./gradlew --profile --continue atlasdb-cassandra-integration-tests:test atlasdb-cassandra-multinode-tests:test atlasdb-ete-tests:test ;;
+    7) ./gradlew --profile --continue -x compileJava -x compileTestJava findbugsMain findbugsTest checkstyleMain checkstyleTest && checkDocsBuild ;;
 esac
