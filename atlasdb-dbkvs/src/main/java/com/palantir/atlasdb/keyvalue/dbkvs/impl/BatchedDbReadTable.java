@@ -171,6 +171,19 @@ public class BatchedDbReadTable extends AbstractDbReadTable {
     }
 
     @Override
+    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(
+            RowsColumnRangeBatchRequest rowsColumnRangeBatch,
+            long ts) {
+        Queue<Future<ClosableIterator<AgnosticLightResultRow>>> futures = Queues.newArrayDeque();
+        List<RowsColumnRangeBatchRequest> partitioned =
+                RowsColumnRangeBatchRequests.partition(rowsColumnRangeBatch, getBatchSize());
+        for (RowsColumnRangeBatchRequest partition : partitioned) {
+            futures.add(submit(exec, queryFactory.getRowsColumnRangeQuery(partition, ts)));
+        }
+        return new LazyClosableIterator<AgnosticLightResultRow>(futures);
+    }
+
+    @Override
     protected ClosableIterator<AgnosticLightResultRow> run(FullQuery query) {
         final SqlConnection freshConn = conns.getFresh();
         try {
