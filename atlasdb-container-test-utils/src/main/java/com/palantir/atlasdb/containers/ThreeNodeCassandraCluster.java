@@ -86,17 +86,14 @@ public class ThreeNodeCassandraCluster extends Container {
                 ThreeNodeCassandraClusterOperations cassandraOperations =
                         new ThreeNodeCassandraClusterOperations(rule, CASSANDRA_VERSION);
 
-                log.info("Running nodetool to check if three nodes are up");
                 if (!cassandraOperations.nodetoolShowsThreeCassandraNodesUp()) {
                     return false;
                 }
 
                 // slightly hijacking the isReady function here - using it
                 // to actually modify the cluster
-                log.info("Replicating across three nodes");
                 cassandraOperations.replicateSystemAuthenticationDataOnAllNodes();
 
-                log.info("Trying to crete CKVS");
                 return canCreateCassandraKeyValueService();
             } catch (Exception e) {
                 log.info("Exception while checking if the Cassandra cluster was ready: " + e);
