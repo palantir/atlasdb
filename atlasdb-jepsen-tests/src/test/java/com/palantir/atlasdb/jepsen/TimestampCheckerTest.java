@@ -31,7 +31,7 @@ import com.palantir.atlasdb.jepsen.events.Checker;
 
 import clojure.lang.Keyword;
 
-public class TimestampCheckerUnitTest {
+public class TimestampCheckerTest {
     private static final Map<Keyword, ?> INFO_EVENT = ImmutableMap.of(Keyword.intern("type"), Keyword.intern("info"));
     private static final Map<Keyword, ?> UNRECOGNISED_EVENT = ImmutableMap.of(Keyword.intern("foo"), "bar");
 
