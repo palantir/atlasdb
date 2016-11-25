@@ -27,7 +27,7 @@ import com.palantir.atlasdb.jepsen.events.Event;
 
 import clojure.lang.Keyword;
 
-public final class TimestampChecker {
+public class TimestampChecker {
 
     private final List<Checker> checkers;
 
