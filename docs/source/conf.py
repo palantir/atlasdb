@@ -83,8 +83,6 @@ def get_version_from_gradle():
 #
 # The short X.Y version.
 version = get_version_from_gradle()
-global the_version_in_conf_py
-the_version_in_conf_py = version
 # The full version, including alpha/beta/rc tags.
 release = version
 

@@ -9,9 +9,9 @@ def setup(app):
 
 
 class CodeBlockWithVersion(CodeBlock):
-    """ This directive exactly Sphinx's CodeBlock directive, except that
-    we do an initial transformation of the content, replacing |version| with
-    the version in conf.py.
+    """ Exactly Sphinx's CodeBlock directive, except that we do an initial
+    transformation of the content, replacing |version| with the version in
+    conf.py.
     """
 
     def _get_version_from_conf_py(self):
