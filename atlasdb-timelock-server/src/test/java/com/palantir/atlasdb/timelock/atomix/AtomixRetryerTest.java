@@ -83,4 +83,16 @@ public class AtomixRetryerTest {
         }
         verify(atomix, times(1)).getLong(eq(LONG_KEY));
     }
+
+    @Test
+    public void rethrowsOnErrorWhenGettingFuture() {
+        when(atomix.getLong(LONG_KEY)).thenThrow(new OutOfMemoryError("oom"));
+        try {
+            AtomixRetryer.getWithRetry(() -> atomix.getLong(LONG_KEY));
+            fail();
+        } catch (OutOfMemoryError e) {
+            assertThat(e).hasMessageContaining("oom");
+        }
+        verify(atomix, times(1)).getLong(eq(LONG_KEY));
+    }
 }
