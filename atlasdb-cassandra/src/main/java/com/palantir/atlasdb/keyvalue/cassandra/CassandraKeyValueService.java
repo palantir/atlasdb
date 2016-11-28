@@ -1290,33 +1290,29 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private void dropTablesInternal(final Set<TableReference> tablesToDrop) throws Exception {
         try {
-            clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
-                @Override
-                public Void apply(Client client) throws Exception {
-                    KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
-                    Set<TableReference> existingTables = Sets.newHashSet();
+            clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
+                KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
+                Set<TableReference> existingTables = Sets.newHashSet();
 
-                    existingTables.addAll(ks.getCf_defs().stream()
-                            .map(cf -> tableReferenceFromCfDef(cf))
-                            .collect(Collectors.toList()));
+                existingTables.addAll(ks.getCf_defs().stream()
+                        .map(this::tableReferenceFromCfDef)
+                        .collect(Collectors.toList()));
 
-                    for (TableReference table : tablesToDrop) {
-                        CassandraVerifier.sanityCheckTableName(table);
+                for (TableReference table : tablesToDrop) {
+                    CassandraVerifier.sanityCheckTableName(table);
 
-                        if (existingTables.contains(table)) {
-                            if (clientPool.blacklistedHosts.size() != 0) throw new UnavailableException();
-                            client.system_drop_column_family(internalTableName(table));
-                            putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
-                        } else {
-                            log.warn("Ignored call to drop a table ({}) that did not exist.", table);
-                        }
+                    if (existingTables.contains(table)) {
+                        client.system_drop_column_family(internalTableName(table));
+                        putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
+                    } else {
+                        log.warn("Ignored call to drop a table ({}) that did not exist.", table);
                     }
-                    CassandraKeyValueServices.waitForSchemaVersions(
-                            client,
-                            "(all tables in a call to dropTables)",
-                            configManager.getConfig().schemaMutationTimeoutMillis());
-                    return null;
                 }
+                CassandraKeyValueServices.waitForSchemaVersions(
+                        client,
+                        "(all tables in a call to dropTables)",
+                        configManager.getConfig().schemaMutationTimeoutMillis());
+                return null;
             });
         } catch (UnavailableException e) {
             throw new PalantirRuntimeException("Dropping tables requires all Cassandra nodes to be up and available.");
@@ -1428,7 +1424,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         clientPool.runWithRetry(client -> {
             for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
                 try {
-                    if (clientPool.blacklistedHosts.size() != 0) throw new PalantirRuntimeException();
                     client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
                             configManager.getConfig().keyspace(),
                             tableEntry.getKey(),
