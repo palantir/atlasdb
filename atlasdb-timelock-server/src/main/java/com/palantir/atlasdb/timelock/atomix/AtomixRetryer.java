@@ -45,8 +45,7 @@ public final class AtomixRetryer {
                 @Override
                 public <V> void onRetry(Attempt<V> attempt) {
                     if (attempt.hasException() && canBeRetried(attempt.getExceptionCause())) {
-                        log.warn("Encountered a retriable exception [{}] in an Atomix operation (attempt {}/{}). "
-                                        + "Retrying",
+                        log.warn("Encountered a retriable exception [{}] in an Atomix operation (attempt {}/{}). ",
                                 attempt.getExceptionCause(),
                                 attempt.getAttemptNumber(),
                                 RETRY_ATTEMPTS);
