@@ -93,7 +93,7 @@ public class EventTest {
 
     @Test
     public void canDeserialiseFailEventWithStacktrace() {
-        final String exceptionString = new RuntimeException("Error").toString();
+        String exceptionString = new RuntimeException("Error").toString();
 
         Map<Keyword, Object> keywordMap = new HashMap<>();
         keywordMap.put(Keyword.intern("type"), Keyword.intern("fail"));
