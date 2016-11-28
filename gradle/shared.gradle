@@ -33,6 +33,7 @@ jacoco {
 libsDirName = file('build/artifacts')
 
 dependencies {
+    compile group: 'com.google.code.findbugs', name: 'annotations'
     checkstyle group: 'com.puppycrawl.tools', name: 'checkstyle', version: libVersions.checkstyle
     testCompile group: 'junit', name: 'junit'
 }
