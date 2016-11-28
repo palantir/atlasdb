@@ -35,6 +35,7 @@ import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.performance.benchmarks.table.Tables;
 import com.palantir.atlasdb.performance.benchmarks.table.WideRowTable;
 
 /**
@@ -62,7 +63,7 @@ public class KvsGetDynamicBenchmarks {
     public Object getAllColumnsImplicitly(WideRowTable table) throws UnsupportedEncodingException {
         Map<Cell, Value> result = table.getKvs().getRows(
                 table.getTableRef(),
-                Collections.singleton(WideRowTable.getRow()),
+                Collections.singleton(Tables.ROW_BYTES.array()),
                 ColumnSelection.all(),
                 Long.MAX_VALUE);
         Preconditions.checkState(result.size() == WideRowTable.NUM_COLS,
@@ -86,7 +87,7 @@ public class KvsGetDynamicBenchmarks {
     @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
     public Object getFirstColumnExplicitlyGetRows(WideRowTable table) throws UnsupportedEncodingException {
         Map<Cell, Value> result = table.getKvs()
-                .getRows(table.getTableRef(), Collections.singleton(WideRowTable.getRow()),
+                .getRows(table.getTableRef(), Collections.singleton(Tables.ROW_BYTES.array()),
                         ColumnSelection.create(
                                 table.getFirstCellAsSet().stream().map(Cell::getColumnName).collect(Collectors.toList())
                         ),
