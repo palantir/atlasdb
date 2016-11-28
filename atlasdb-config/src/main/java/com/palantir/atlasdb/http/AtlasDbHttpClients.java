@@ -27,6 +27,7 @@ import com.google.common.collect.Lists;
 import feign.Client;
 import feign.Contract;
 import feign.Feign;
+import feign.Request;
 import feign.codec.Decoder;
 import feign.codec.Encoder;
 import feign.codec.ErrorDecoder;
@@ -91,6 +92,23 @@ public final class AtlasDbHttpClients {
                 .errorDecoder(errorDecoder)
                 .client(client)
                 .retryer(failoverFeignTarget)
+                .target(failoverFeignTarget);
+    }
+
+    public static <T> T createProxyWithQuickFailover(
+            Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris,
+            int feignTimeoutMillis, int maxBackoffMillis, Class<T> type) {
+        FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
+        Client client = failoverFeignTarget.wrapClient(newOkHttpClient(sslSocketFactory));
+        Request.Options options = new Request.Options(feignTimeoutMillis, feignTimeoutMillis);
+        return Feign.builder()
+                .contract(contract)
+                .encoder(encoder)
+                .decoder(decoder)
+                .errorDecoder(errorDecoder)
+                .client(client)
+                .retryer(failoverFeignTarget)
+                .options(options)
                 .target(failoverFeignTarget);
     }
 
