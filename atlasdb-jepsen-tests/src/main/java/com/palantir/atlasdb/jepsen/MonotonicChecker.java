@@ -21,13 +21,13 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
-import com.palantir.atlasdb.jepsen.events.EventVisitor;
 import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 
-public class MonotonicChecker implements EventVisitor {
+public class MonotonicChecker implements Checker {
     private final List<Event> errors = new ArrayList<>();
     private final Map<Integer, OkEvent> latestEventPerProcess = new HashMap<>();
 
@@ -56,10 +56,12 @@ public class MonotonicChecker implements EventVisitor {
         latestEventPerProcess.put(process, event);
     }
 
+    @Override
     public boolean valid() {
         return valid;
     }
 
+    @Override
     public List<Event> errors() {
         return ImmutableList.copyOf(errors);
     }
