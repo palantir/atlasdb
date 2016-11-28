@@ -53,7 +53,7 @@ public abstract class AbstractLockAwareTransactionManager
                     log.warn("Could not lock successfully", ex);
                     failureCount++;
                     if (shouldStopRetrying(failureCount)) {
-                        log.warn("Failing after " + failureCount + " tries", ex);
+                        log.warn("Failing after {} tries", failureCount, ex);
                         throw ex;
                     }
                     sleepForBackoff(failureCount);
@@ -75,7 +75,7 @@ public abstract class AbstractLockAwareTransactionManager
                 }
                 failureCount++;
                 if (shouldStopRetrying(failureCount)) {
-                    log.warn("Failing after " + failureCount + " tries", e);
+                    log.warn("Failing after {} tries", failureCount, e);
                     throw e;
                 }
                 log.info("retrying transaction", e);
