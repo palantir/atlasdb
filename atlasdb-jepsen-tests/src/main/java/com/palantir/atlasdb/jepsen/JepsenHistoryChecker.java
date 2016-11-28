@@ -36,7 +36,7 @@ public class JepsenHistoryChecker {
     }
 
     public static JepsenHistoryChecker createWithStandardCheckers() {
-        return new JepsenHistoryChecker(new MonotonicChecker());
+        return new JepsenHistoryChecker(new MonotonicChecker(), new ImpossibleServerChecker());
     }
 
     /**

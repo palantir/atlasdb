@@ -39,3 +39,9 @@ distribution {
     mainClass 'com.palantir.atlasdb.timelock.TimeLockServer'
     args 'server', 'var/conf/timelock.yml'
 }
+
+distribution {
+    serviceName 'atlasdb-timelock-server'
+    mainClass 'com.palantir.atlasdb.timelock.TimeLockServer'
+    args 'server', 'var/conf/timelock.yml'
+}

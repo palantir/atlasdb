@@ -23,6 +23,7 @@ import java.util.Map;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
+import com.palantir.atlasdb.jepsen.events.FailEvent;
 import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
@@ -54,6 +55,10 @@ public class MonotonicChecker implements Checker {
             }
         }
         latestEventPerProcess.put(process, event);
+    }
+
+    @Override
+    public void visit(FailEvent event) {
     }
 
     @Override

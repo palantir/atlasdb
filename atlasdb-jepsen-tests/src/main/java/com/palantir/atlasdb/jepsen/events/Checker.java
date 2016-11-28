@@ -21,6 +21,7 @@ public interface Checker {
     void visit(InfoEvent event);
     void visit(InvokeEvent event);
     void visit(OkEvent event);
+    void visit(FailEvent event);
     boolean valid();
     List<Event> errors();
 }
