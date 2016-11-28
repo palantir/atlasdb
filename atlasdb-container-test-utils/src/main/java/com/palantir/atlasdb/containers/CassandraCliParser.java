@@ -41,7 +41,7 @@ public final class CassandraCliParser {
                 }
             }
         } catch (Exception e) {
-            log.error("Failed parsing system_auth keyspace RF: " + e);
+            log.error("Failed parsing system_auth keyspace RF.", e);
             throw new IllegalArgumentException("Cannot determine replication factor of system_auth keyspace");
         }
 

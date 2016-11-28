@@ -45,7 +45,7 @@ public class ThreeNodeCassandraClusterOperations {
             int numberNodesUp = cassandraCliParser.parseNumberOfUpNodesFromNodetoolStatus(output);
             return numberNodesUp == 3;
         } catch (Exception e) {
-            log.warn("Failed while running nodetool status: " + e);
+            log.warn("Failed while running nodetool status", e);
             return false;
         }
     }
