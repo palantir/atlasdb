@@ -34,22 +34,29 @@ import static org.mockito.Mockito.verify;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlRow;
 import org.apache.thrift.TException;
+import org.junit.After;
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
@@ -65,13 +72,23 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@RunWith(Parameterized.class)
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
     private static final long LOCK_ID = 123456789;
+
+    @Parameterized.Parameters
+    public static Iterable<Supplier<KeyValueService>> keyValueServicesToTest() {
+        return CassandraContainer.testWithBothThriftAndCql();
+    }
+
+    @Parameterized.Parameter
+    public Supplier<KeyValueService> kvsSupplier;
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
             .with(new CassandraContainer());
 
+    private ExecutorService executorService;
     private final Logger logger = mock(Logger.class);
 
     private TableReference testTable = TableReference.createFromFullyQualifiedName("ns.never_seen");
@@ -91,12 +108,19 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         }
     }.toTableMetadata().persistToBytes();
 
+    @Before
+    public void setupKvs() {
+        executorService = Executors.newFixedThreadPool(4);
+    }
+
+    @After
+    public void cleanUp() {
+        executorService.shutdown();
+    }
+
     @Override
     protected KeyValueService getKeyValueService() {
-        return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
-                CassandraContainer.LEADER_CONFIG,
-                logger);
+        return kvsSupplier.get();
     }
 
     @Override
@@ -115,6 +139,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         TableReference table1 = TableReference.createFromFullyQualifiedName("ns.tAbLe");
         TableReference table2 = TableReference.createFromFullyQualifiedName("ns.table");
         TableReference table3 = TableReference.createFromFullyQualifiedName("ns.TABle");
+
+        keyValueService.dropTable(table1);
+        keyValueService.dropTable(table2);
+        keyValueService.dropTable(table3);
+
         keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(table2, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(table3, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -126,28 +155,30 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Test
     public void testCfEqualityChecker() throws TException {
-        CassandraKeyValueService kvs;
+        CassandraKeyValueService cassandraKeyValueService;
         if (keyValueService instanceof CassandraKeyValueService) {
-            kvs = (CassandraKeyValueService) keyValueService;
+            cassandraKeyValueService = (CassandraKeyValueService) keyValueService;
         } else if (keyValueService instanceof TableSplittingKeyValueService) { // scylla tests
             KeyValueService delegate = ((TableSplittingKeyValueService) keyValueService).getDelegate(testTable);
             assertTrue("The nesting of Key Value Services has apparently changed",
                     delegate instanceof CassandraKeyValueService);
-            kvs = (CassandraKeyValueService) delegate;
+            cassandraKeyValueService = (CassandraKeyValueService) delegate;
         } else {
             throw new IllegalArgumentException("Can't run this cassandra-specific test against a non-cassandra KVS");
         }
 
-        kvs.createTable(testTable, tableMetadata);
+        cassandraKeyValueService.createTable(testTable, tableMetadata);
 
-        List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client ->
+        List<CfDef> knownCfs = cassandraKeyValueService.clientPool.runWithRetry(client ->
                 client.describe_keyspace("atlasdb").getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
                 .filter(cf -> cf.getName().equals("ns__never_seen"))
                 .collect(Collectors.toList()));
 
         assertTrue("After serialization and deserialization to database, Cf metadata did not match.",
-                ColumnFamilyDefinitions.isMatchingCf(kvs.getCfForTable(testTable, tableMetadata), clusterSideCf));
+                ColumnFamilyDefinitions.isMatchingCf(
+                        cassandraKeyValueService.getCfForTable(testTable, tableMetadata),
+                        clusterSideCf));
     }
 
     @SuppressFBWarnings("SLF4J_FORMAT_SHOULD_BE_CONST")
@@ -172,6 +203,10 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Test
     public void testLockTablesStateCleanUp() throws Exception {
+        // we can ignore this on CQL KVS because we don't use this style of locking in it
+        Assume.assumeFalse("CQL KVS uses a different style of locking",
+                keyValueService instanceof CQLKeyValueService);
+
         CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
                 ckvs.getClientPool(),

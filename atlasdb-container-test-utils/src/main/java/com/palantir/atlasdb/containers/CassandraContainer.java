@@ -16,9 +16,12 @@
 package com.palantir.atlasdb.containers;
 
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
@@ -27,38 +30,49 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraJmxCompactionConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 public class CassandraContainer extends Container {
-
-    public static final int CASSANDRA_PORT = 9160;
+    public static final int THRIFT_PORT = CassandraConstants.DEFAULT_THRIFT_PORT;
+    public static final int CQL_PORT = CassandraConstants.DEFAULT_CQL_PORT;
     public static final String USERNAME = "cassandra";
     public static final String PASSWORD = "cassandra";
 
-    public static final CassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(new InetSocketAddress("cassandra", CASSANDRA_PORT))
-            .poolSize(20)
-            .keyspace("atlasdb")
-            .credentials(ImmutableCassandraCredentialsConfig.builder()
-                    .username(USERNAME)
-                    .password(PASSWORD)
-                    .build())
-            .replicationFactor(1)
-            .mutationBatchCount(10000)
-            .mutationBatchSizeBytes(10000000)
-            .fetchBatchCount(1000)
-            .safetyDisabled(false)
-            .autoRefreshNodes(false)
-            .jmx(ImmutableCassandraJmxCompactionConfig.builder()
-                    .username(USERNAME)
-                    .password(PASSWORD)
-                    .build())
-            .build();
+    private static final ImmutableCassandraKeyValueServiceConfig.Builder SHARED_CONFIG =
+            ImmutableCassandraKeyValueServiceConfig.builder()
+                    .poolSize(20)
+                    .keyspace("atlasdb")
+                    .credentials(ImmutableCassandraCredentialsConfig.builder()
+                            .username(USERNAME)
+                            .password(PASSWORD)
+                            .build())
+                    .replicationFactor(1)
+                    .mutationBatchCount(10000)
+                    .mutationBatchSizeBytes(10000000)
+                    .fetchBatchCount(1000)
+                    .safetyDisabled(false)
+                    .autoRefreshNodes(false)
+                    .jmx(ImmutableCassandraJmxCompactionConfig.builder()
+                            .username(USERNAME)
+                            .password(PASSWORD)
+                            .build());
 
-    public static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
-            .builder()
+    public static final CassandraKeyValueServiceConfig THRIFT_CONFIG =
+            SHARED_CONFIG
+                    .servers(ImmutableList.of(new InetSocketAddress("cassandra", THRIFT_PORT)))
+                    .build();
+
+    public static final CassandraKeyValueServiceConfig CQL_CONFIG =
+            SHARED_CONFIG
+                    .servers(ImmutableList.of(new InetSocketAddress("cassandra", CQL_PORT)))
+                    .build();
+
+    public static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig.builder()
             .quorumSize(1)
             .localServer("localhost")
             .leaders(ImmutableSet.of("localhost"))
@@ -77,10 +91,18 @@ public class CassandraContainer extends Container {
     @Override
     public SuccessOrFailure isReady(DockerComposeRule rule) {
         return SuccessOrFailure.onResultOf(() -> {
-            CassandraKeyValueService.create(
-                    CassandraKeyValueServiceConfigManager.createSimpleManager(KVS_CONFIG),
-                    LEADER_CONFIG);
+            testWithBothThriftAndCql().forEach(Supplier::get);
             return true;
         });
+    }
+
+    public static Iterable<Supplier<KeyValueService>> testWithBothThriftAndCql() {
+        return Arrays.asList(
+                () -> CassandraKeyValueService.create(
+                        CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.THRIFT_CONFIG),
+                        CassandraContainer.LEADER_CONFIG),
+                () -> CQLKeyValueService.create(
+                        CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.CQL_CONFIG))
+                );
     }
 }

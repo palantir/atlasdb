@@ -56,9 +56,9 @@ public class CassandraKeyValueServiceSweeperIntegrationTest extends AbstractSwee
     @Override
     protected KeyValueService getKeyValueService() {
         CassandraKeyValueServiceConfig config = useColumnBatchSize
-                ? ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
+                ? ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.THRIFT_CONFIG)
                         .withTimestampsGetterBatchSize(Optional.of(10))
-                : CassandraContainer.KVS_CONFIG;
+                : CassandraContainer.THRIFT_CONFIG;
 
         return CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(config), CassandraContainer.LEADER_CONFIG);
