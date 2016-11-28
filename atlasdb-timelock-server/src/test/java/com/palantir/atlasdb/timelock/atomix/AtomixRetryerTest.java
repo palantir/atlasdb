@@ -29,7 +29,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.github.rholder.retry.RetryException;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import io.atomix.Atomix;
 import io.atomix.copycat.session.ClosedSessionException;
@@ -51,7 +50,7 @@ public class AtomixRetryerTest {
         try {
             AtomixRetryer.getWithRetry(() -> atomix.getLong(LONG_KEY));
             fail();
-        } catch (UncheckedExecutionException e) {
+        } catch (RuntimeException e) {
             assertThat(e.getCause()).isInstanceOf(RetryException.class);
         }
         verify(atomix, times(AtomixRetryer.RETRY_ATTEMPTS)).getLong(eq(LONG_KEY));
@@ -76,9 +75,8 @@ public class AtomixRetryerTest {
         try {
             AtomixRetryer.getWithRetry(() -> atomix.getLong(LONG_KEY));
             fail();
-        } catch (UncheckedExecutionException e) {
-            assertThat(e.getCause()).isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("foo");
+        } catch (IllegalArgumentException e) {
+            assertThat(e).hasMessageContaining("foo");
         }
         verify(atomix, times(1)).getLong(eq(LONG_KEY));
     }

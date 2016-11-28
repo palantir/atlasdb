@@ -23,7 +23,8 @@ import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
-import com.google.common.util.concurrent.UncheckedExecutionException;
+import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.Futures;
 
 import io.atomix.copycat.session.ClosedSessionException;
 
@@ -42,11 +43,11 @@ public final class AtomixRetryer {
     @SuppressWarnings("unchecked") // We only want to create 1 retryer; this is safe given the type of supplier.
     public static <T> T getWithRetry(Supplier<CompletableFuture<T>> supplier) {
         try {
-            return (T) RETRYER.call(() -> supplier.get().join());
+            return (T) RETRYER.call(() -> Futures.getUnchecked(supplier.get()));
         } catch (RetryException e) {
-            throw new UncheckedExecutionException(e);
+            throw Throwables.propagate(e);
         } catch (ExecutionException e) {
-            throw new UncheckedExecutionException(e.getCause());
+            throw Throwables.propagate(e.getCause());
         }
     }
 }
