@@ -60,7 +60,7 @@ public class CassandraClientPoolIntegrationTest {
             .with(new CassandraContainer());
 
     private CassandraKeyValueService kv = CassandraKeyValueService.create(
-            CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+            CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.THRIFT_CONFIG),
             CassandraContainer.LEADER_CONFIG);
 
     @Before

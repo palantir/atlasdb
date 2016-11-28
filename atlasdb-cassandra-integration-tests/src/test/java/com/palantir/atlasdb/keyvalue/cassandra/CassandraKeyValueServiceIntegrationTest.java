@@ -108,7 +108,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.THRIFT_CONFIG),
                 CassandraContainer.LEADER_CONFIG,
                 logger);
     }
@@ -188,7 +188,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
                 ckvs.clientPool,
-                CassandraContainer.KVS_CONFIG);
+                CassandraContainer.THRIFT_CONFIG);
         SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
                 ckvs.clientPool,
                 new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));

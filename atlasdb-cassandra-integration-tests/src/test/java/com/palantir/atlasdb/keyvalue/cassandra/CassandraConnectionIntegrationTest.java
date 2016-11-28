@@ -35,13 +35,13 @@ public class CassandraConnectionIntegrationTest {
             .with(new CassandraContainer());
 
     private static final CassandraKeyValueServiceConfig NO_CREDS_CKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig
-            .copyOf(CassandraContainer.KVS_CONFIG)
+            .copyOf(CassandraContainer.THRIFT_CONFIG)
             .withCredentials(Optional.absent());
 
     @Test
     public void testAuthProvided() {
         CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.THRIFT_CONFIG),
                 CassandraContainer.LEADER_CONFIG).close();
     }
 
