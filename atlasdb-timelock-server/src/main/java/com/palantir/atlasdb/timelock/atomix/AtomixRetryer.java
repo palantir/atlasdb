@@ -25,6 +25,7 @@ import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import io.atomix.copycat.session.ClosedSessionException;
 
@@ -32,7 +33,8 @@ public final class AtomixRetryer {
     public static final int RETRY_ATTEMPTS = 3;
 
     private static final Retryer<Object> RETRYER = RetryerBuilder.newBuilder()
-            .retryIfExceptionOfType(ClosedSessionException.class)
+            .retryIfException(e -> e instanceof UncheckedExecutionException
+                    && e.getCause() instanceof ClosedSessionException)
             .withStopStrategy(StopStrategies.stopAfterAttempt(RETRY_ATTEMPTS))
             .build();
 
