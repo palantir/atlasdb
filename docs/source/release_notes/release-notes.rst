@@ -45,6 +45,10 @@ develop
          - Multinode Cassandra: ``createTable(s)`` and ``dropTable(s)`` now throw an IllegalStateException if a node is down in a multinode Cassandra cluster.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
 
+    *    - |fixed|
+         - Multinode Cassandra: ``getAllTimestamps`` and ``getRangeOfTimestamps`` now work as long as quorum for reading is achieved.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1289>`__)
+
     *    - |improved|
          - Substantially improved performance of the DbKvs implementation of the single-iterator version of getRowsColumnRange.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1132>`__)
@@ -57,10 +61,6 @@ develop
     *    - |improved|
          - Transaction perf improvement; commit timestamp lookups are now cached across transactions.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1238>`__)
-
-    *    - |fixed|
-         - Multinode Cassandra: ``getAllTimestamps`` and ``getRangeOfTimestamps`` now work on a multinode Cassandra cluster with one down node.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1289>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
