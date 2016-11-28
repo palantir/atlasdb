@@ -29,16 +29,20 @@ public class ThreeNodeCassandraClusterOperations {
     private static final int NODETOOL_STATUS_TIMEOUT_SECONDS = 10;
     private static final int NODETOOL_REPAIR_TIMEOUT_SECONDS = 999;
 
-    DockerComposeRule dockerComposeRule;
+    private final DockerComposeRule dockerComposeRule;
+    private final CassandraCliParser cassandraCliParser;
+    private final CassandraVersion cassandraVersion;
 
-    public ThreeNodeCassandraClusterOperations(DockerComposeRule dockerComposeRule) {
+    public ThreeNodeCassandraClusterOperations(DockerComposeRule dockerComposeRule, CassandraVersion version) {
         this.dockerComposeRule = dockerComposeRule;
+        this.cassandraVersion = version;
+        this.cassandraCliParser = new CassandraCliParser(version);
     }
 
     public boolean nodetoolShowsThreeCassandraNodesUp() {
         try {
             String output = runNodetoolCommand("status", NODETOOL_STATUS_TIMEOUT_SECONDS);
-            int numberNodesUp = CassandraCliParser.parseNumberOfUpNodesFromNodetoolStatus(output);
+            int numberNodesUp = cassandraCliParser.parseNumberOfUpNodesFromNodetoolStatus(output);
             return numberNodesUp == 3;
         } catch (Exception e) {
             log.warn("Failed while running nodetool status: " + e);
@@ -66,8 +70,9 @@ public class ThreeNodeCassandraClusterOperations {
 
     private boolean systemAuthenticationKeyspaceHasReplicationFactorThree()
             throws IOException, InterruptedException {
-        String output = runCql("SELECT * FROM system.schema_keyspaces;");
-        int replicationFactor = CassandraCliParser.parseSystemAuthReplicationFromCqlsh(output);
+        String getAllKeyspaces = cassandraVersion.getAllKeyspacesCql();
+        String output = runCql(getAllKeyspaces);
+        int replicationFactor = cassandraCliParser.parseSystemAuthReplicationFromCqlsh(output);
         return replicationFactor == 3;
     }
 
@@ -88,7 +93,6 @@ public class ThreeNodeCassandraClusterOperations {
                 "nodetool",
                 "--host", ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME,
                 nodetoolCommand);
-
     }
 
     private String runCommandInCliContainer(String... arguments) throws IOException,

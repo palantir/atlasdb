@@ -50,7 +50,10 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
         Preconditions.checkArgument(rawKvs instanceof ConnectionManagerAwareDbKvs,
                 "DbAtlasDbFactory expects a raw kvs of type ConnectionManagerAwareDbKvs, found %s", rawKvs.getClass());
         ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
-        return PersistentTimestampService.create(
-                InDbTimestampBoundStore.create(dbkvs.getConnectionManager(), AtlasDbConstants.TIMESTAMP_TABLE));
+
+        return PersistentTimestampService.create(InDbTimestampBoundStore.create(
+                        dbkvs.getConnectionManager(),
+                        AtlasDbConstants.TIMESTAMP_TABLE,
+                        dbkvs.getTablePrefix()));
     }
 }

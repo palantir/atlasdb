@@ -57,8 +57,9 @@ public class KvsMigrationCommand implements Callable<Integer> {
             required = false)
     private File toConfigFile;
 
-    @Option(name = {"-r", "--config-root"},
+    @Option(name = {"--config-root"},
             title = "CONFIG ROOT",
+            type = OptionType.GLOBAL,
             description = "field in the config yaml file that contains the atlasdb configuration root")
     private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_PATH;
 

@@ -58,6 +58,8 @@ test:
         parallel: true
     - mkdir -p $CIRCLE_ARTIFACTS/checkstyle $CIRCLE_ARTIFACTS/findbugs:
         parallel: true
+    - "if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi":
+        parallel: true
     - find . -type d -regex ".*/build/reports/checkstyle" | sed 's#\./\(\(.*\)/build/reports/checkstyle\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/checkstyle/\2#' | bash:
         parallel: true
     - find . -type d -regex ".*/build/reports/findbugs" | sed 's#\./\(\(.*\)/build/reports/findbugs\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/findbugs/\2#' | bash:

@@ -19,4 +19,8 @@ public class TableMappingNotFoundException extends Exception {
     public TableMappingNotFoundException(String msg) {
         super(msg);
     }
+
+    public TableMappingNotFoundException(Throwable cause) {
+        super(cause);
+    }
 }

@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +24,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
@@ -38,9 +40,6 @@ import com.palantir.util.VersionStrings;
 public final class OracleDdlTable implements DbDdlTable {
     private static final Logger log = LoggerFactory.getLogger(OracleDdlTable.class);
     private static final String MIN_ORACLE_VERSION = "11.2.0.2.3";
-    private static final String ORACLE_NOT_EXISTS_ERROR = "ORA-00942";
-    private static final String ORACLE_ALREADY_EXISTS_ERROR = "ORA-00955";
-    private static final String ORACLE_UNIQUE_CONSTRAINT_ERROR =  "ORA-00001";
 
     private final OracleDdlConfig config;
     private final ConnectionSupplier conns;
@@ -100,7 +99,7 @@ public final class OracleDdlTable implements DbDdlTable {
                 + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortTableName)
                 + " PRIMARY KEY (row_name, col_name, ts) "
                 + ") organization index compress overflow",
-                ORACLE_ALREADY_EXISTS_ERROR);
+                OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
         putTableNameMapping(oracleTableNameGetter.getPrefixedTableName(), shortTableName);
     }
 
@@ -112,26 +111,34 @@ public final class OracleDdlTable implements DbDdlTable {
                 + "  val BLOB NOT NULL,"
                 + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortOverflowTableName) + " PRIMARY KEY (id)"
                 + ")",
-                ORACLE_ALREADY_EXISTS_ERROR);
+                OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
         putTableNameMapping(oracleTableNameGetter.getPrefixedOverflowTableName(), shortOverflowTableName);
     }
 
     private void putTableNameMapping(String fullTableName, String shortTableName) {
         if (config.useTableMapping()) {
-            try {
-                conns.get().insertOneUnregisteredQuery(
-                        "INSERT INTO " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
-                                + " (table_name, short_table_name) VALUES (?, ?)",
-                        fullTableName,
-                        shortTableName);
-            } catch (PalantirSqlException ex) {
-                if (ex.getMessage().contains(ORACLE_UNIQUE_CONSTRAINT_ERROR)) {
-                    dropTableInternal(fullTableName, shortTableName);
-                }
-                log.error(ex.getMessage(), ex);
+            insertTableMappingIgnoringPrimaryKeyViolation(fullTableName, shortTableName);
+        }
+    }
+
+    private void insertTableMappingIgnoringPrimaryKeyViolation(String fullTableName, String shortTableName) {
+        try {
+            conns.get().insertOneUnregisteredQuery(
+                    "INSERT INTO " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
+                            + " (table_name, short_table_name) VALUES (?, ?)",
+                    fullTableName,
+                    shortTableName);
+        } catch (PalantirSqlException ex) {
+            if (!isPrimaryKeyViolation(ex)) {
+                log.error("Error occurred trying to create table mapping {} -> {}", fullTableName, shortTableName, ex);
+                dropTableInternal(fullTableName, shortTableName);
                 throw ex;
             }
         }
+    }
+
+    private boolean isPrimaryKeyViolation(PalantirSqlException ex) {
+        return StringUtils.containsIgnoreCase(ex.getMessage(), AtlasDbConstants.ORACLE_NAME_MAPPING_PK_CONSTRAINT);
     }
 
     @Override
@@ -145,17 +152,23 @@ public final class OracleDdlTable implements DbDdlTable {
             // If table does not exist, do nothing
         }
 
+        clearTableSizeCacheAndDropTableMetadata();
+    }
+
+    private void clearTableSizeCacheAndDropTableMetadata() {
+        TableSizeCache.clearCacheForTable(tableRef);
         conns.get().executeUnregisteredQuery(
                 "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
                 tableRef.getQualifiedName());
     }
 
     private void dropTableInternal(String fullTableName, String shortTableName) {
-        executeIgnoringError("DROP TABLE " + shortTableName + " PURGE", ORACLE_NOT_EXISTS_ERROR);
+        executeIgnoringError("DROP TABLE " + shortTableName + " PURGE", OracleErrorConstants.ORACLE_NOT_EXISTS_ERROR);
         if (config.useTableMapping()) {
             conns.get().executeUnregisteredQuery(
                     "DELETE FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE table_name = ?",
                     fullTableName);
+            oracleTableNameGetter.clearCacheForTable(fullTableName);
         }
     }
 
@@ -174,7 +187,8 @@ public final class OracleDdlTable implements DbDdlTable {
 
     private void truncateOverflowTableIfItExists() {
         TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
-        if (tableSize.equals(TableSize.OVERFLOW)) {
+        if (tableSize.equals(TableSize.OVERFLOW)
+                && config.overflowMigrationState() != OverflowMigrationState.UNSTARTED) {
             try {
                 conns.get().executeUnregisteredQuery(
                         "TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortOverflowTableName());
@@ -209,7 +223,7 @@ public final class OracleDdlTable implements DbDdlTable {
             conns.get().executeUnregisteredQuery(sql);
         } catch (PalantirSqlException e) {
             if (!e.getMessage().contains(errorToIgnore)) {
-                log.error(e.getMessage(), e);
+                log.error("Error occurred trying to execute the query {}.", sql, e);
                 throw e;
             }
         }

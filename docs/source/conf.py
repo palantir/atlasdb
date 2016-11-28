@@ -48,7 +48,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'AtlasDB'
+project = u'OSS AtlasDB'
 copyright = u'2016, Palantir Technologies'
 author = u'Palantir Technologies'
 

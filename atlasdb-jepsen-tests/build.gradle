@@ -1,3 +1,5 @@
+apply from: "${rootProject.projectDir}/gradle/shared.gradle"
+
 buildscript {
     repositories {
         jcenter()
@@ -8,9 +10,35 @@ buildscript {
 }
 
 apply plugin: 'docker-compose'
+apply plugin: 'org.inferred.processors'
+apply plugin: 'org.unbroken-dome.test-sets'
+
+testSets {
+    integTest
+}
+
+jacocoTestReport {
+    executionData test, integTest
+}
+
+check.dependsOn integTest
+
+dependencies {
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+    compile group: 'com.google.guava', name: 'guava'
+    compile group: 'one.util', name: 'streamex'
+    compile group: 'org.clojure', name: 'clojure'
+    compile group: 'org.slf4j', name: 'slf4j-api'
+
+    processor group: 'org.immutables', name: 'value'
+
+    testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'org.mockito', name: 'mockito-core'
+}
 
 task prepareForJepsen(type: Copy, dependsOn: ':atlasdb-ete-tests:distTar') {
-    from project(':atlasdb-ete-tests').distTar.outputs
+    from tasks.getByPath(':atlasdb-ete-tests:distTar').outputs
     into 'resources/atlasdb/'
 
     rename { filename -> 'atlasdb-ete.tgz' }
@@ -21,7 +49,9 @@ task composeBuild(type: Exec, dependsOn: 'prepareForJepsen') {
     commandLine project.dockerCompose.composeCommand('build', '--force-rm')
 }
 
-task test(type: Exec, dependsOn: 'composeBuild') {
+task jepsenTest(type: Exec, dependsOn: 'composeBuild') {
     environment = project.dockerCompose.environment
     commandLine project.dockerCompose.composeCommand('run', '--rm', 'jepsen')
 }
+
+check.dependsOn jepsenTest

@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.containers;
 
 import java.net.InetSocketAddress;
+import java.util.Map;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
@@ -31,6 +32,7 @@ import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 public class CassandraContainer extends Container {
+
     public static final int CASSANDRA_PORT = 9160;
     public static final String USERNAME = "cassandra";
     public static final String PASSWORD = "cassandra";
@@ -61,6 +63,11 @@ public class CassandraContainer extends Container {
             .localServer("localhost")
             .leaders(ImmutableSet.of("localhost"))
             .build());
+
+    @Override
+    public Map<String, String> getEnvironment() {
+        return CassandraVersion.getEnvironment();
+    }
 
     @Override
     public String getDockerComposeFile() {

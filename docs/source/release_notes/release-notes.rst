@@ -41,8 +41,82 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - Substantially improved performance of the DbKvs implementation of the single-iterator version of getRowsColumnRange.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1132>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.25.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Worrying-looking thread dumps no longer appear in logs when we suspect that the
+           ``MultipleRunningTimestampServicesError`` may have been hit. Instead, we output them to a temporary file,
+           logging only its path to the user.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1275>`__)
+
+    *    - |fixed|
+         - ``--config-root`` and other global parameters can now be passed into dropwizard CLIs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1268>`__)
+
+    *    - |breaking|
+         - The migration ``--config-root`` shorthand (``-r``) can no longer be used as it conflicted with the timestamp command ``--row``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1268>`__)
+
+    *    - |new|
+         - Dbkvs: ConnectionSupplier consumers can now choose to receive a brand new unshared connection.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1258>`__)
+
+    *    - |new|
+         - AtlasDB now supports Cassandra 3.7 as well as Cassandra 2.2.8.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1206>`__)
+
+    *    - |improved|
+         - Oracle perf improvement; table names now cached, resulting in fewer round trips to the database.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1215>`__)
+
+    *    - |improved|
+         - ``SweepStatsKeyValueService`` will no longer flush a final batch of statistics during shutdown. This avoids
+           potentially long pauses that could previously occur when closing a ``Cleaner``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1232>`__)
+
+    *    - |improved|
+         - Better support for AtlasDB clients running behind load balancers. In particular, if an AtlasDB client falls down and
+           its load balancer responds with "503: Service Unavailable", the request will be attempted on other clients rather than aborting.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1175>`__)
+
+    *    - |fixed|
+         - Oracle will not drop a table that already exists on  ``createTable`` calls when multiple AtlasDB clients make the call to create the same table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1243>`__)
+
+    *    - |fixed|
+         - Certain Oracle KVS calls no longer attempt to leak connections created internally.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1215>`__)
+
+    *    - |fixed|
+         - OracleKVS: ``TableSizeCache`` now invalidates the cache on table delete.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1272>`__)
+
+    *    - |breaking|
+         - Our Jackson version has been updated from 2.5.1 to 2.6.7 and Dropwizard version from 0.8.2 to 0.9.3.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1209>`__)
+
+    *    - |improved|
+         - Additional debugging available for those receiving 'name must be no longer than 1500 bytes' errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
+
+    *    - |breaking|
+         - ``Cell.validateNameValid`` is now private; consider ``Cell.isNameValid`` instead
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -85,14 +159,14 @@ v0.24.0
            See the :ref:`documentation <clis-migrate>` for details on how to use the KVS migration command.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1171>`__)
 
+    *    - |fixed|
+         - The timestamp bound store now works with Oracle as a relational backing store.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1224>`__)
+
     *    - |improved|
          - CLIs now output to standard out, standard error, and the service logs, rather than only printing to the service logs.
            This should greatly improve usability for service admins using the CLIs.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1177>`__)
-
-    *    - |improved|
-         - Better support for AtlasDB clients running behind load balancers. In particular, if an AtlasDB client falls down and its load balancer responds with "503: Service Unavailable", the request will be attempted on other clients rather than aborting.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1175>`__)
 
     *    - |improved|
          - Remove usage of ``createUnsafe`` in generated Schema code. You can regenerate your schema to get rid of the deprecation warnings.
