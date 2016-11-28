@@ -36,6 +36,7 @@ public abstract class AbstractLockAwareTransactionManager
         extends AbstractTransactionManager
         implements LockAwareTransactionManager {
     private static final Logger log = LoggerFactory.getLogger(AbstractLockAwareTransactionManager.class);
+
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
             Iterable<HeldLocksToken> lockTokens,
