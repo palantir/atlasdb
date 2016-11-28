@@ -96,7 +96,7 @@ public class ThreeNodeCassandraCluster extends Container {
 
                 return canCreateCassandraKeyValueService();
             } catch (Exception e) {
-                log.info("Exception while checking if the Cassandra cluster was ready: " + e);
+                log.info("Exception while checking if the Cassandra cluster was ready.", e);
                 return false;
             }
         });
