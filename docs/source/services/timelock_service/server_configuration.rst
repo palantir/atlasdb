@@ -70,6 +70,12 @@ The Timelock Servers use the `Atomix <http://atomix.io>`__ library, and allow fo
 Atomix-related communication and persistence. Note that unlike the ``clients`` and ``cluster`` blocks, this block is
 optional.
 
+   .. code:: yaml
+
+      atomix:
+        storageLevel: DISK
+        storageDirectory: /var/data/atomix
+
 .. list-table::
    :widths: 5 40
    :header-rows: 1
@@ -86,7 +92,8 @@ optional.
           is thus highly discouraged outside of test purposes.
 
    * - storageDirectory
-     - A path corresponding to the location in which Atomix will store its state machine (default: ``var/data/atomix``).
+     - A path corresponding to the location in which Atomix will store its state machine (default: ``var/data/atomix``
+       relative to the root directory that the timelock server was unpacked at).
 
    * - security
      - Security settings for communication between Atomix nodes, following the

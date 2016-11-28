@@ -29,8 +29,11 @@ benefits:
 - Additional reliability; we rely on the `Atomix <http://atomix.io>`__ open-source distributed coordination library,
   which has been Jepsen tested for fault tolerance.
 - To some extent, individual services can now scale independently of AtlasDB, depending on one's requirements.
-- Resource contention between your AtlasDB clients and embedded timestamp and lock services can be better managed.
+  This can be useful in certain situations, such as if you have a large number of clients (since maintaining a
+  distributed leader with embedded services could incur some network overhead).
+- Resource contention between your AtlasDB clients and the timestamp and lock services can be better managed,
+  because external timestamp services may be run on separate servers and/or JVMs (while the old embedded services
+  had to be run on the same server, and within the same JVM).
 - Timestamp and Lock endpoints are now hidden from users, making abuse more difficult.
-
-Also, Timelock Services can be run in clustered mode, allowing for high availability (as long as a majority quorum
-of nodes exists).
+- Timelock Services can be run in clustered mode, allowing for high availability as long as a majority quorum of nodes
+  exists.
