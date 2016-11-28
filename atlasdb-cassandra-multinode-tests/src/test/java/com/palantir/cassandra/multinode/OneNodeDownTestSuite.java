@@ -41,7 +41,7 @@ import com.palantir.docker.compose.connection.Container;
         OneNodeDownDeleteTest.class,
         OneNodeDownTableManipulationTest.class
         })
-public abstract class OneNodeDownTestSuite {
+public final class OneNodeDownTestSuite {
 
     private static final String CASSANDRA_NODE_TO_KILL = ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME;
 
@@ -62,6 +62,8 @@ public abstract class OneNodeDownTestSuite {
     public static final long DEFAULT_TIMESTAMP = 2L;
 
     public static CassandraKeyValueService db;
+
+    private OneNodeDownTestSuite(){}
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(OneNodeDownTestSuite.class)

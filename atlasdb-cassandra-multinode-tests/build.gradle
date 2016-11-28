@@ -14,4 +14,8 @@ dependencies {
 
     testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
     testCompile group: 'com.google.code.findbugs', name: 'annotations'
+
+    test {
+        exclude '**/OneNodeDownTestSuite.class'
+    }
 }
