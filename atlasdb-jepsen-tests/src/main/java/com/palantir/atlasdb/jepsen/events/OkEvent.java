@@ -37,7 +37,7 @@ public abstract class OkEvent implements Event {
     public abstract long value();
 
     @Override
-    public void accept(Checker visitor) {
+    public void accept(EventVisitor visitor) {
         visitor.visit(this);
     }
 }

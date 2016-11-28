@@ -31,7 +31,7 @@ public abstract class InfoEvent implements Event {
     public static final String TYPE = "info";
 
     @Override
-    public void accept(Checker visitor) {
+    public void accept(EventVisitor visitor) {
         visitor.visit(this);
     }
 }

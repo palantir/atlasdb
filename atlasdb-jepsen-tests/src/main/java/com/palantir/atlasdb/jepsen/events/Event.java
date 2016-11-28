@@ -52,5 +52,5 @@ public interface Event {
                 .toMap();
     }
 
-    void accept(Checker visitor);
+    void accept(EventVisitor visitor);
 }

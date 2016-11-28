@@ -13,31 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.jepsen.events;
+package com.palantir.atlasdb.jepsen;
+
+import java.util.List;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.jepsen.events.Event;
 
-@JsonSerialize(as = ImmutableFailEvent.class)
-@JsonDeserialize(as = ImmutableFailEvent.class)
-@JsonIgnoreProperties(ignoreUnknown = true)
-@JsonTypeName(FailEvent.TYPE)
+@JsonSerialize(as = ImmutableCheckerResult.class)
+@JsonDeserialize(as = ImmutableCheckerResult.class)
 @Value.Immutable
-public abstract class FailEvent implements Event {
-    public static final String TYPE = "fail";
+public abstract class CheckerResult {
 
-    public abstract long time();
+    public abstract boolean valid();
 
-    public abstract int process();
-
-    public abstract String error();
-
-    @Override
-    public void accept(EventVisitor visitor) {
-        visitor.visit(this);
-    }
+    public abstract List<Event> errors();
 }

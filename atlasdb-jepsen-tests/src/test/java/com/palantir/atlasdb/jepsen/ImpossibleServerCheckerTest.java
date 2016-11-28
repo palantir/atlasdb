@@ -17,10 +17,9 @@ package com.palantir.atlasdb.jepsen;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
-
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.ImmutableFailEvent;
 import com.palantir.atlasdb.jepsen.events.ImmutableInvokeEvent;
@@ -32,10 +31,10 @@ public class ImpossibleServerCheckerTest {
 
     @Test
     public void shouldPassOnNoEvents() {
-        ImpossibleServerChecker checker = runChecker();
+        CheckerResult result = runChecker();
 
-        assertThat(checker.valid()).isTrue();
-        assertThat(checker.errors()).isEmpty();
+        assertThat(result.valid()).isTrue();
+        assertThat(result.errors()).isEmpty();
     }
 
     @Test
@@ -46,10 +45,10 @@ public class ImpossibleServerCheckerTest {
         Event event3 = createInvokeEvent(time++, PROCESS_0);
         Event event4 = createOkEvent(time++, PROCESS_0, 0L);
 
-        ImpossibleServerChecker checker = runChecker(event1, event2, event3, event4);
+        CheckerResult result = runChecker(event1, event2, event3, event4);
 
-        assertThat(checker.valid()).isFalse();
-        assertThat(checker.errors()).containsExactly(event2, event3, event4);
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).containsExactly(event2, event3, event4);
     }
 
     @Test
@@ -60,10 +59,10 @@ public class ImpossibleServerCheckerTest {
         Event event3 = createInvokeEvent(time++, PROCESS_1);
         Event event4 = createOkEvent(time++, PROCESS_1, 0L);
 
-        ImpossibleServerChecker checker = runChecker(event1, event2, event3, event4);
+        CheckerResult result = runChecker(event1, event2, event3, event4);
 
-        assertThat(checker.valid()).isFalse();
-        assertThat(checker.errors()).containsExactly(event2, event3, event4);
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).containsExactly(event2, event3, event4);
     }
 
     @Test
@@ -74,10 +73,10 @@ public class ImpossibleServerCheckerTest {
         Event event3 = createInvokeEvent(time++, PROCESS_0);
         Event event4 = createOkEvent(time++, PROCESS_0, 0L);
 
-        ImpossibleServerChecker checker = runChecker(event1, event2, event3, event4);
+        CheckerResult result = runChecker(event1, event2, event3, event4);
 
-        assertThat(checker.valid()).isFalse();
-        assertThat(checker.errors()).containsExactly(event2, event3, event4);
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).containsExactly(event2, event3, event4);
     }
 
     @Test
@@ -88,10 +87,10 @@ public class ImpossibleServerCheckerTest {
         Event event3 = createOkEvent(time++, PROCESS_0, 1L);
         Event event4 = createOkEvent(time++, PROCESS_1, 0L);
 
-        ImpossibleServerChecker checker = runChecker(event1, event2, event3, event4);
+        CheckerResult result = runChecker(event1, event2, event3, event4);
 
-        assertThat(checker.valid()).isTrue();
-        assertThat(checker.errors()).isEmpty();
+        assertThat(result.valid()).isTrue();
+        assertThat(result.errors()).isEmpty();
     }
 
     @Test
@@ -102,10 +101,10 @@ public class ImpossibleServerCheckerTest {
         Event event3 = createInvokeEvent(time++, PROCESS_0);
         Event event4 = createOkEvent(time++, PROCESS_0, 1L);
 
-        ImpossibleServerChecker checker = runChecker(event1, event2, event3, event4);
+        CheckerResult result = runChecker(event1, event2, event3, event4);
 
-        assertThat(checker.valid()).isTrue();
-        assertThat(checker.errors()).isEmpty();
+        assertThat(result.valid()).isTrue();
+        assertThat(result.errors()).isEmpty();
     }
 
     @Test
@@ -116,10 +115,10 @@ public class ImpossibleServerCheckerTest {
         Event event3 = createInvokeEvent(time++, PROCESS_1);
         Event event4 = createOkEvent(time++, PROCESS_1, 1L);
 
-        ImpossibleServerChecker checker = runChecker(event1, event2, event3, event4);
+        CheckerResult result = runChecker(event1, event2, event3, event4);
 
-        assertThat(checker.valid()).isTrue();
-        assertThat(checker.errors()).isEmpty();
+        assertThat(result.valid()).isTrue();
+        assertThat(result.errors()).isEmpty();
     }
 
     @Test
@@ -130,10 +129,10 @@ public class ImpossibleServerCheckerTest {
         Event event2 = createFailEvent(time++, PROCESS_0);
         Event event4 = createOkEvent(time++, PROCESS_1, 1L);
 
-        ImpossibleServerChecker checker = runChecker(event1, event2, event3, event4);
+        CheckerResult result = runChecker(event1, event2, event3, event4);
 
-        assertThat(checker.valid()).isTrue();
-        assertThat(checker.errors()).isEmpty();
+        assertThat(result.valid()).isTrue();
+        assertThat(result.errors()).isEmpty();
     }
 
     private ImmutableInvokeEvent createInvokeEvent(long time, int process) {
@@ -159,9 +158,8 @@ public class ImpossibleServerCheckerTest {
                 .build();
     }
 
-    private static ImpossibleServerChecker runChecker(Event... events) {
+    private static CheckerResult runChecker(Event... events) {
         ImpossibleServerChecker checker = new ImpossibleServerChecker();
-        Arrays.asList(events).forEach(event -> event.accept(checker));
-        return checker;
+        return checker.check(ImmutableList.copyOf(events));
     }
 }

@@ -67,9 +67,9 @@ public class JepsenHistoryChecker {
         boolean valid = true;
         List<Event> errors = new ArrayList<>();
         for (Checker checker : checkers) {
-            events.forEach(event -> event.accept(checker));
-            valid &= checker.valid();
-            errors.addAll(checker.errors());
+            CheckerResult result = checker.check(events);
+            valid &= result.valid();
+            errors.addAll(result.errors());
         }
         return createMapFromCompletedChecker(valid, errors);
     }

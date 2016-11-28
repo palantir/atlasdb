@@ -25,6 +25,7 @@ import java.util.TreeSet;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
+import com.palantir.atlasdb.jepsen.events.EventVisitor;
 import com.palantir.atlasdb.jepsen.events.FailEvent;
 import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
 import com.palantir.atlasdb.jepsen.events.InfoEvent;
@@ -32,71 +33,81 @@ import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 
 public class ImpossibleServerChecker implements Checker {
-    private static final long DUMMY_VALUE = -1L;
-    private static final int DUMMY_PROCESS = -1;
-    private final List<Event> errors = new ArrayList<>();
-    private boolean valid = true;
-    private NavigableSet<OkEvent> acknowledgedReadsOverTime = new TreeSet<>(ImpossibleServerChecker::compareEventTime);
 
-    private static int compareEventTime(OkEvent first, OkEvent second) {
-        return Long.compare(first.time(), second.time());
-    }
+    private static class Visitor implements EventVisitor {
+        private static final long DUMMY_VALUE = -1L;
+        private static final int DUMMY_PROCESS = -1;
+        private final List<Event> errors = new ArrayList<>();
+        private boolean valid = true;
+        private NavigableSet<OkEvent> acknowledgedReadsOverTime = new TreeSet<>(Visitor::compareEventTime);
 
-    Map<Integer, InvokeEvent> pendingReadForProcess = new HashMap<>();
-
-    @Override
-    public void visit(InfoEvent event) {
-    }
-
-    @Override
-    public void visit(InvokeEvent event) {
-        Integer process = event.process();
-        pendingReadForProcess.put(process, event);
-    }
-
-    @Override
-    public void visit(OkEvent event) {
-        Integer process = event.process();
-
-        InvokeEvent invoke = pendingReadForProcess.get(process);
-        if (invoke != null) {
-            validateTimestampHigherThanReadsCompletedBeforeInvoke(invoke, event);
+        private static int compareEventTime(OkEvent first, OkEvent second) {
+            return Long.compare(first.time(), second.time());
         }
 
-        pendingReadForProcess.remove(process);
-        acknowledgedReadsOverTime.add(event);
-    }
+        Map<Integer, InvokeEvent> pendingReadForProcess = new HashMap<>();
 
-    @Override
-    public void visit(FailEvent event) {
-        Integer process = event.process();
-        pendingReadForProcess.remove(process);
-    }
+        @Override
+        public void visit(InfoEvent event) {
+        }
 
-    private void validateTimestampHigherThanReadsCompletedBeforeInvoke(InvokeEvent invoke, OkEvent event) {
-        OkEvent lastAcknowledgedRead = lastAcknowledgedReadBefore(invoke.time());
-        if (lastAcknowledgedRead != null && lastAcknowledgedRead.value() >= event.value()) {
-            valid = false;
-            errors.add(lastAcknowledgedRead);
-            errors.add(invoke);
-            errors.add(event);
+        @Override
+        public void visit(InvokeEvent event) {
+            Integer process = event.process();
+            pendingReadForProcess.put(process, event);
+        }
+
+        @Override
+        public void visit(OkEvent event) {
+            Integer process = event.process();
+
+            InvokeEvent invoke = pendingReadForProcess.get(process);
+            if (invoke != null) {
+                validateTimestampHigherThanReadsCompletedBeforeInvoke(invoke, event);
+            }
+
+            pendingReadForProcess.remove(process);
+            acknowledgedReadsOverTime.add(event);
+        }
+
+        @Override
+        public void visit(FailEvent event) {
+            Integer process = event.process();
+            pendingReadForProcess.remove(process);
+        }
+
+        private void validateTimestampHigherThanReadsCompletedBeforeInvoke(InvokeEvent invoke, OkEvent event) {
+            OkEvent lastAcknowledgedRead = lastAcknowledgedReadBefore(invoke.time());
+            if (lastAcknowledgedRead != null && lastAcknowledgedRead.value() >= event.value()) {
+                valid = false;
+                errors.add(lastAcknowledgedRead);
+                errors.add(invoke);
+                errors.add(event);
+            }
+        }
+
+        public boolean valid() {
+            return valid;
+        }
+
+        public List<Event> errors() {
+            return ImmutableList.copyOf(errors);
+        }
+
+        private OkEvent lastAcknowledgedReadBefore(Long time) {
+            OkEvent dummyOkEvent = ImmutableOkEvent.builder()
+                    .time(time)
+                    .process(DUMMY_PROCESS)
+                    .value(DUMMY_VALUE)
+                    .build();
+            return acknowledgedReadsOverTime.floor(dummyOkEvent);
         }
     }
 
-    public boolean valid() {
-        return valid;
-    }
-
-    public List<Event> errors() {
-        return ImmutableList.copyOf(errors);
-    }
-
-    private OkEvent lastAcknowledgedReadBefore(Long time) {
-        OkEvent dummyOkEvent = ImmutableOkEvent.builder()
-                .time(time)
-                .process(DUMMY_PROCESS)
-                .value(DUMMY_VALUE)
-                .build();
-        return acknowledgedReadsOverTime.floor(dummyOkEvent);
+    @Override
+    public CheckerResult check(List<Event> events) {
+        Visitor visitor = new Visitor();
+        events.forEach(event -> event.accept(visitor));
+        return ImmutableCheckerResult.builder().valid(visitor.valid).errors(visitor.errors()).build();
     }
 }
