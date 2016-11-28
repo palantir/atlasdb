@@ -16,6 +16,6 @@ dependencies {
     testCompile group: 'com.google.code.findbugs', name: 'annotations'
 
     test {
-        exclude '**/OneNodeDownTestSuite.class'
+        include '**/OneNodeDownTestSuite.class'
     }
 }
