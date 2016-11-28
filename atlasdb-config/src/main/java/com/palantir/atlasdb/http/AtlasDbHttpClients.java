@@ -38,6 +38,10 @@ import feign.jaxrs.JAXRSContract;
 import feign.okhttp.OkHttpClient;
 
 public final class AtlasDbHttpClients {
+
+    private static final int CONNECTION_POOL_SIZE = 100;
+    private static final long KEEP_ALIVE_TIME_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
+
     private static final ObjectMapper mapper = new ObjectMapper();
     private static final Contract contract = new JAXRSContract();
     private static final Encoder encoder = new JacksonEncoder(mapper);
@@ -102,7 +106,7 @@ public final class AtlasDbHttpClients {
      */
     private static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory) {
         com.squareup.okhttp.OkHttpClient client = new com.squareup.okhttp.OkHttpClient();
-        client.setConnectionPool(new ConnectionPool(100, TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES)));
+        client.setConnectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS));
         client.setSslSocketFactory(sslSocketFactory.orNull());
         return new OkHttpClient(client);
     }
