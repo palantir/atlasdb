@@ -21,6 +21,7 @@ io.dropwizard.metrics:metrics-* = 3.1.1
 io.dropwizard:* = 0.9.3
 javax.validation:validation-api = 1.1.0.Final
 joda-time:joda-time = 2.7
+jp.skypencil.findbugs.slf4j:* = 1.2.4
 junit:junit = 4.12
 net.java.dev.jna:jna = 4.1.0
 one.util:streamex = 0.6.3

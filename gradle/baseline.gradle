@@ -36,6 +36,11 @@ List<String> blacklistedBaselineProjects = [
 if (!blacklistedBaselineProjects.contains(project.name)) {
     apply plugin: 'com.palantir.baseline-checkstyle'
     apply plugin: 'com.palantir.baseline-findbugs'
+    apply plugin: 'findbugs'
+    dependencies {
+        findbugsPlugins group: 'jp.skypencil.findbugs.slf4j', name: 'bug-pattern', ext: 'jar'
+    }
+
 }
 
 apply plugin: 'com.palantir.baseline-eclipse'
