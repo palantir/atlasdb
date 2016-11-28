@@ -31,11 +31,10 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.docker.compose.connection.ContainerName;
 import com.palantir.docker.compose.execution.DockerCompose;
-import com.palantir.docker.compose.logging.FileLogCollector;
 import com.palantir.docker.compose.logging.LogCollector;
 
 public class InterruptibleFileLogCollector implements LogCollector {
-    private static final Logger log = LoggerFactory.getLogger(FileLogCollector.class);
+    private static final Logger log = LoggerFactory.getLogger(InterruptibleFileLogCollector.class);
 
     private static final long STOP_TIMEOUT_IN_MILLIS = 50;
 
