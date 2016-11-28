@@ -95,7 +95,7 @@ public class OracleTableInitializer implements DbTableInitializer {
             connectionSupplier.get().executeUnregisteredQuery(sql);
         } catch (PalantirSqlException e) {
             if (!e.getMessage().contains(errorToIgnore)) {
-                log.error(e.getMessage(), e);
+                log.error("Error occurred trying to execute the query {}.", sql, e);
                 throw e;
             }
         }

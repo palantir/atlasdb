@@ -1060,7 +1060,7 @@ public class DbKvs extends AbstractKeyValueService {
             try {
                 conn.getUnderlyingConnection().close();
             } catch (Exception e) {
-                log.debug(e.getMessage(), e);
+                log.debug("An error occurred closing the connection used by run.", e);
             }
         }
     }
