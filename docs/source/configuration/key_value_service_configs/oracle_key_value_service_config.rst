@@ -19,7 +19,7 @@ e.g.
 
 .. code-block-with-version-replacement:: groovy
 
-  runtime 'com.palantir.atlasdb:atlasdb-dbkvs:|version|'
+  runtime 'com.palantir.atlasdb:atlasdb-dbkvs:|last-release|'
   runtime 'com.palantir.atlasdb:dbkvs-oracle-driver:0.3.0'
 
 .. oracle-kvs-config:

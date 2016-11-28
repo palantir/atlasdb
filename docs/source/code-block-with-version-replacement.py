@@ -5,6 +5,7 @@ from sphinx.directives import CodeBlock
 def setup(app):
     app.add_directive('code-block-with-version-replacement',
                       CodeBlockWithVersion)
+    app.add_config_value('last_release', '0.0.0', 'env')
     return {'version': '0.1'}
 
 
@@ -17,11 +18,14 @@ class CodeBlockWithVersion(CodeBlock):
     def _get_version_from_conf_py(self):
         env = self.state.document.settings.env
         config = env.config
-        return config['version']
+        # print type(config)
+        # print dir(config)
+        # print config.config_values
+        return config['last_release']
 
     def _transformed_content(self):
         version = self._get_version_from_conf_py()
-        return map(lambda x: x.replace('|version|', version),
+        return map(lambda x: x.replace('|last-release|', version),
                    self.content)
 
     def run(self):
