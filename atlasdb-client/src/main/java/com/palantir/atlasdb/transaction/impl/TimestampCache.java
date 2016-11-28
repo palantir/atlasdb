@@ -18,23 +18,30 @@ package com.palantir.atlasdb.transaction.impl;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
-// This class just here for readability and not directly leaking / tying us down to a Guava class in our API
+/**
+ * This class just here for readability and not directly leaking / tying us down to a Guava class in our API
+ */
 public class TimestampCache {
     final Cache<Long, Long> timestampCache;
 
     public TimestampCache() {
         timestampCache = CacheBuilder.newBuilder()
-                .maximumSize(1_000_000) // up to ~32MB with java Long object bloat
+                .maximumSize(1_000_000) // up to ~72MB with java Long object bloat
                 .build();
     }
 
-    // returns null if not present
+    /**
+     * Returns null if not present
+     */
     public Long getCommitTimestampIfPresent(Long startTimestamp) {
         return timestampCache.getIfPresent(startTimestamp);
     }
 
-    // Be very careful to only insert timestamps here that are already present in the backing store,
-    // effectively using the timestamp table as existing concurrency control for who wins a commit
+
+    /**
+     * Be very careful to only insert timestamps here that are already present in the backing store,
+     * effectively using the timestamp table as existing concurrency control for who wins a commit
+     */
     public void putAlreadyCommittedTransaction(Long startTimestamp, Long commitTimestamp) {
         timestampCache.put(startTimestamp, commitTimestamp);
     }
