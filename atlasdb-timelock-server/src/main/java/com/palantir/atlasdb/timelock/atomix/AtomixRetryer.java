@@ -19,7 +19,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.github.rholder.retry.Attempt;
 import com.github.rholder.retry.RetryException;
+import com.github.rholder.retry.RetryListener;
 import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
@@ -32,9 +37,22 @@ import io.atomix.copycat.session.ClosedSessionException;
 public final class AtomixRetryer {
     public static final int RETRY_ATTEMPTS = 3;
 
+    private static final Logger log = LoggerFactory.getLogger(AtomixRetryer.class);
+
     private static final Retryer<Object> RETRYER = RetryerBuilder.newBuilder()
-            .retryIfException(e -> e instanceof UncheckedExecutionException
-                    && e.getCause() instanceof ClosedSessionException)
+            .retryIfException(AtomixRetryer::canBeRetried)
+            .withRetryListener(new RetryListener() {
+                @Override
+                public <V> void onRetry(Attempt<V> attempt) {
+                    if (attempt.hasException() && canBeRetried(attempt.getExceptionCause())) {
+                        log.warn("Encountered a retriable exception [{}] in an Atomix operation (attempt {}/{}). "
+                                        + "Retrying",
+                                attempt.getExceptionCause(),
+                                attempt.getAttemptNumber(),
+                                RETRY_ATTEMPTS);
+                    }
+                }
+            })
             .withStopStrategy(StopStrategies.stopAfterAttempt(RETRY_ATTEMPTS))
             .build();
 
@@ -51,5 +69,10 @@ public final class AtomixRetryer {
         } catch (ExecutionException e) {
             throw Throwables.propagate(e.getCause());
         }
+    }
+
+    private static boolean canBeRetried(Throwable throwable) {
+        return throwable instanceof UncheckedExecutionException
+                && throwable.getCause() instanceof ClosedSessionException;
     }
 }
