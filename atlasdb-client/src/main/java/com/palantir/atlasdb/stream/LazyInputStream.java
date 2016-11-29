@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.stream;
 
 import java.io.ByteArrayOutputStream;
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -31,7 +30,7 @@ public class LazyInputStream extends InputStream {
     private final BiConsumer<Integer, OutputStream> blockGetter;
     private final long numBlocks;
 
-    private int lastBlockRead;
+    private int nextBlockToRead;
     private Iterator<Byte> buffer;
 
     // TODO factory method?
@@ -39,33 +38,32 @@ public class LazyInputStream extends InputStream {
         this.blockGetter = blockGetter;
         this.numBlocks = numBlocks;
 
-        this.lastBlockRead = -1;
+        this.nextBlockToRead = 0;
 
         getNextBlock();
     }
 
     private void getNextBlock() throws IOException {
-        lastBlockRead = lastBlockRead++;
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        this.blockGetter.accept(lastBlockRead, outputStream);
+        this.blockGetter.accept(nextBlockToRead, outputStream);
         byte[] bytes = outputStream.toByteArray();
         List<Byte> list = Arrays.asList(ArrayUtils.toObject(bytes));
         this.buffer = list.iterator();
         outputStream.close();
+        nextBlockToRead += 1;
     }
 
     @Override
     public int read() throws IOException {
         if (buffer.hasNext()) {
-            return buffer.next();
+            return buffer.next() & 0xff;
         }
 
-        // TODO possible off by one error here
-        if (lastBlockRead < numBlocks) {
+        if (nextBlockToRead < numBlocks) {
             getNextBlock();
-            return buffer.next();
+            return buffer.next() & 0xff;
         }
 
-        throw new EOFException("The buffer has been exhausted!");
+        return -1;
     }
 }
