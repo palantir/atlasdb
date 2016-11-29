@@ -15,12 +15,14 @@
  */
 package com.palantir.atlasdb.jdbc;
 
+import org.junit.AfterClass;
+
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.jdbc.JdbcKeyValueService;
 
 public class JdbcKeyValueSharedTest extends AbstractKeyValueServiceTest {
-    private JdbcKeyValueService db = null;
+    private static JdbcKeyValueService db = null;
 
 
     @Override
@@ -39,9 +41,8 @@ public class JdbcKeyValueSharedTest extends AbstractKeyValueServiceTest {
         return db;
     }
 
-    @Override
-    public void tearDown() throws Exception {
-        super.tearDown();
+    @AfterClass
+    public static void tearDownKvs() {
         if (db != null) {
             db.close();
             db = null;

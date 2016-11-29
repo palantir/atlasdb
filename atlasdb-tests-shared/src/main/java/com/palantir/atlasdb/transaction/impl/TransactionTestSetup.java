@@ -105,7 +105,7 @@ public abstract class TransactionTestSetup {
     }
 
     @AfterClass
-    public static void tearDownKVS() {
+    public static void tearDownKvs() {
         if (keyValueService != null) {
             keyValueService.close();
         }
