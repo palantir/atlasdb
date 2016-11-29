@@ -114,7 +114,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
                     });
         long numBlocks = getNumberOfBlocksFromMetadata(metadata);
         try {
-            return new BlockConsumingInputStream(pageRefresher, numBlocks);
+            return BlockConsumingInputStream.create(pageRefresher, numBlocks);
         } catch (IOException e) {
             throw Throwables.throwUncheckedException(e);
         }

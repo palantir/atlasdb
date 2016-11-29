@@ -33,24 +33,17 @@ public class BlockConsumingInputStream extends InputStream {
     private int nextBlockToRead;
     private Iterator<Byte> buffer;
 
-    // TODO factory method?
-    public BlockConsumingInputStream(BiConsumer<Integer, OutputStream> blockGetter, long numBlocks) throws IOException {
-        this.blockGetter = blockGetter;
-        this.numBlocks = numBlocks;
-
-        this.nextBlockToRead = 0;
-
-        getNextBlock();
+    public static BlockConsumingInputStream create(BiConsumer<Integer, OutputStream> blockGetter, long numBlocks)
+            throws IOException {
+        BlockConsumingInputStream stream = new BlockConsumingInputStream(blockGetter, numBlocks);
+        stream.getNextBlock();
+        return stream;
     }
 
-    private void getNextBlock() throws IOException {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        this.blockGetter.accept(nextBlockToRead, outputStream);
-        byte[] bytes = outputStream.toByteArray();
-        List<Byte> list = Arrays.asList(ArrayUtils.toObject(bytes));
-        this.buffer = list.iterator();
-        outputStream.close();
-        nextBlockToRead += 1;
+    private BlockConsumingInputStream(BiConsumer<Integer, OutputStream> blockGetter, long numBlocks) {
+        this.blockGetter = blockGetter;
+        this.numBlocks = numBlocks;
+        this.nextBlockToRead = 0;
     }
 
     @Override
@@ -65,5 +58,15 @@ public class BlockConsumingInputStream extends InputStream {
         }
 
         return -1;
+    }
+
+    private void getNextBlock() throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        this.blockGetter.accept(nextBlockToRead, outputStream);
+        byte[] bytes = outputStream.toByteArray();
+        List<Byte> list = Arrays.asList(ArrayUtils.toObject(bytes));
+        this.buffer = list.iterator();
+        outputStream.close();
+        nextBlockToRead += 1;
     }
 }
