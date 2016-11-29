@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 import javax.annotation.CheckForNull;
 
@@ -40,7 +41,6 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.ByteArrayIOStream;
-import com.palantir.util.file.DeleteOnCloseFileInputStream;
 
 public abstract class AbstractGenericStreamStore<ID> implements GenericStreamStore<ID> {
     protected static final Logger log = LoggerFactory.getLogger(AbstractGenericStreamStore.class);
@@ -101,8 +101,18 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
             loadSingleBlockToOutputStream(transaction, id, 0, ios);
             return ios.getInputStream();
         } else {
-            File file = loadToNewTempFile(transaction, id, metadata);
-            return new DeleteOnCloseFileInputStream(file);
+            return makeStream(transaction, id, metadata);
+        }
+    }
+
+    private InputStream makeStream(Transaction transaction, ID id, StreamMetadata metadata) {
+        BiConsumer<Integer, OutputStream> pageReferesher =
+                (block, outputStream) -> loadSingleBlockToOutputStream(transaction, id, block, outputStream);
+        long numBlocks = getNumberOfBlocksFromMetadata(metadata);
+        try {
+            return new LazyInputStream(pageReferesher, numBlocks);
+        } catch (IOException e) {
+            throw Throwables.throwUncheckedException(e);
         }
     }
 
