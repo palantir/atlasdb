@@ -15,21 +15,37 @@
  */
 package com.palantir.atlasdb.keyvalue.rocksdb.impl;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.junit.AfterClass;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class RocksTransactionTest extends AbstractTransactionTest {
-    private RocksDbKeyValueService db = null;
+    private static RocksDbKeyValueService db = null;
 
     @Override
     public void setUp() throws Exception {
-        db = RocksDbKeyValueService.create("testdb");
-        for (TableReference tableRef : db.getAllTableNames()) {
-            if (!tableRef.getNamespace().getName().equals("default") && !tableRef.getTablename().equals("_metadata")) {
-                db.dropTable(tableRef);
-            }
+        if (db == null) {
+            db = RocksDbKeyValueService.create("testdb");
+            Set<TableReference> nonMetadataTables = db.getAllTableNames().stream().filter(
+                    tableRef -> !tableRef.getNamespace().getName().equals("default") && !tableRef.getTablename().equals(
+                            "_metadata")).collect(Collectors.toSet());
+            db.dropTables(nonMetadataTables);
         }
+
+        Set<TableReference> nonMetadataTables = db.getAllTableNames().stream().filter(
+                tableRef -> !tableRef.getNamespace().getName().equals("default") && !tableRef.getTablename().equals(
+                        "_metadata")).collect(Collectors.toSet());
+        db.truncateTables(nonMetadataTables);
+
         super.setUp();
     }
 
@@ -43,12 +59,21 @@ public class RocksTransactionTest extends AbstractTransactionTest {
         return false;
     }
 
-    @Override
-    public void tearDown() {
-        super.tearDown();
+    @AfterClass
+    public static void tearDownKvs() {
         if (db != null) {
             db.close();
             db = null;
         }
+    }
+
+    @Override
+    public void tearDown() {
+        // This is implemented as a drop/create instead of a truncate() because of a actual issues
+        // in the RocksDB KVS
+        keyValueService.dropTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
+        keyValueService.createTables(ImmutableMap.of(
+                TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA,
+                TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
     }
 }
