@@ -101,11 +101,11 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
             loadSingleBlockToOutputStream(transaction, id, 0, ios);
             return ios.getInputStream();
         } else {
-            return makeStream(transaction, id, metadata);
+            return makeStream(id, metadata);
         }
     }
 
-    private InputStream makeStream(Transaction transaction, ID id, StreamMetadata metadata) {
+    private InputStream makeStream(ID id, StreamMetadata metadata) {
         BiConsumer<Integer, OutputStream> pageRefresher =
                 (block, outputStream) ->
                     txnMgr.runTaskReadOnly(txn -> {
