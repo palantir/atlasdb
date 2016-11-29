@@ -26,6 +26,7 @@ import org.junit.rules.RuleChain;
 import com.google.common.base.Throwables;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ProjectName;
+import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.logging.LogDirectory;
 
@@ -34,6 +35,7 @@ public class DockerProxyRuleTest {
             .file("docker/services.yml")
             .saveLogsTo(LogDirectory.circleAwareLogDirectory(DockerProxyRuleTest.class))
             .waitingForService("webserver", Container::areAllPortsOpen)
+            .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
             .build();
 
     private static final DockerProxyRule PROXY_RULE = new DockerProxyRule(
