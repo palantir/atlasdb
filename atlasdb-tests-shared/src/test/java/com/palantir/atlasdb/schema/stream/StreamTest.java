@@ -136,12 +136,28 @@ public class StreamTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void testStoreByteStream() throws IOException {
+    public void testStoreEmptyByteStream() throws IOException {
         storeAndCheckByteStreams(0);
+    }
+
+    @Test
+    public void testStoreSmallByteStream() throws IOException {
         storeAndCheckByteStreams(100);
+    }
+
+    @Test
+    public void testStoreByteStreamJustBiggerThanOneBlock() throws IOException {
         storeAndCheckByteStreams(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES + 500);
+    }
+
+    @Test
+    public void testStoreByteStreamThreeBlocksLong() throws IOException {
         storeAndCheckByteStreams(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 3);
-        storeAndCheckByteStreams(5000000);
+    }
+
+    @Test
+    public void testStoreByteStreamFiveMegaBytes() throws IOException {
+        storeAndCheckByteStreams(5_000_000);
     }
 
     private long storeAndCheckByteStreams(int size) throws IOException {
