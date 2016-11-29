@@ -106,11 +106,15 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     }
 
     private InputStream makeStream(Transaction transaction, ID id, StreamMetadata metadata) {
-        BiConsumer<Integer, OutputStream> pageReferesher =
-                (block, outputStream) -> loadSingleBlockToOutputStream(transaction, id, block, outputStream);
+        BiConsumer<Integer, OutputStream> pageRefresher =
+                (block, outputStream) ->
+                    txnMgr.runTaskReadOnly(txn -> {
+                        loadSingleBlockToOutputStream(txn, id, block, outputStream);
+                        return null;
+                    });
         long numBlocks = getNumberOfBlocksFromMetadata(metadata);
         try {
-            return new LazyInputStream(pageReferesher, numBlocks);
+            return new LazyInputStream(pageRefresher, numBlocks);
         } catch (IOException e) {
             throw Throwables.throwUncheckedException(e);
         }
