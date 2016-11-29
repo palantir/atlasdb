@@ -47,8 +47,11 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.util.Pair;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public final class CassandraKeyValueServices {
-    private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueServices.class); // did this on purpose
+    private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class); // did this on purpose
 
     private static final long INITIAL_SLEEP_TIME = 100;
     private static final long MAX_SLEEP_TIME = 5000;
@@ -94,8 +97,8 @@ public final class CassandraKeyValueServices {
                 + " Find the nodes above that diverge from the majority schema"
                 + " or have schema 'UNKNOWN', which likely means they are down/unresponsive"
                 + " and examine their logs to determine the issue."
-                + " Fixing the underlying issue and restarting Cassandra"
-                + " should resolve the problem. You can quick-check this with 'nodetool describecluster'.";
+                + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
+                + " You can quick-check this with 'nodetool describecluster'.";
         for (Entry<String, List<String>> version : versions.entrySet()) {
             sb.append(String.format("%nAt schema version %s:", version.getKey()));
             for (String node : version.getValue()) {

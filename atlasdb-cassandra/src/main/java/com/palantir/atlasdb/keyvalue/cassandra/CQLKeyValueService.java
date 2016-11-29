@@ -389,7 +389,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
         if (rowCount > fetchBatchCount) {
             log.warn("Rebatched in getRows a call to {} that attempted to multiget {} rows; "
-                    + "this may indicate overly-large batching on a higher level.\n {}",
+                    + "this may indicate overly-large batching on a higher level.\n{}",
                     tableRef.getQualifiedName(),
                     rowCount,
                     CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
@@ -443,7 +443,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         for (Entry<byte[], SortedSet<Cell>> entry : Multimaps.asMap(cellsByCol).entrySet()) {
             if (entry.getValue().size() > config.fetchBatchCount()) {
                 log.warn("A call to {} is performing a multiget {} cells; this may indicate overly-large batching "
-                        + "on a higher level.\n {}",
+                        + "on a higher level.\n{}",
                         tableRef,
                         entry.getValue().size(),
                         CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
@@ -536,7 +536,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                 + " LIMIT 1";
         if (timestampByCell.size() > fetchBatchCount) {
             log.warn("Re-batching in getLatestTimestamps a call to {} that attempted to multiget {} cells; "
-                    + "this may indicate overly-large batching on a higher level.\n {}",
+                    + "this may indicate overly-large batching on a higher level.\n{}",
                     tableRef,
                     timestampByCell.size(),
                     CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
@@ -852,7 +852,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         }
         if (cellCount > fetchBatchCount) {
             log.warn("Rebatched in delete a call to {} that attempted to delete {} cells; "
-                    + "this may indicate overly-large batching on a higher level.\n {}",
+                    + "this may indicate overly-large batching on a higher level.\n{}",
                     tableRef, cellCount, CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
         }
     }
@@ -1234,7 +1234,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     private void alterTableForCompaction(TableReference tableRef, int gcGraceSeconds, float tombstoneThreshold) {
         log.trace("Altering table {} to have gc_grace_seconds={} and tombstone_threshold={}",
-                tableRef, gcGraceSeconds, tombstoneThreshold);
+                tableRef, gcGraceSeconds, String.format("%.2f", tombstoneThreshold));
         String alterTableQuery =
                 "ALTER TABLE " + getFullTableName(tableRef)
                         + " WITH gc_grace_seconds = " + gcGraceSeconds

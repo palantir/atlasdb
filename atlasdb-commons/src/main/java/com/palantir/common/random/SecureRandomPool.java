@@ -63,9 +63,8 @@ public class SecureRandomPool {
                 pool.add(random);
             }
         } catch (NoSuchAlgorithmException e) {
-            String msg = "Error getting SecureRandom using {} algorithm.";
-            log.error(msg, algorithm, e);
-            throw new RuntimeException(msg, e);
+            log.error("Error getting SecureRandom using {} algorithm.", algorithm, e);
+            throw new RuntimeException(String.format("Error getting SecureRandom using %s algorithm.", algorithm), e);
         }
     }
 

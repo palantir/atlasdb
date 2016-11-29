@@ -248,7 +248,7 @@ public class CassandraClientPool {
                                 activeCheckouts > 0 ? Integer.toString(activeCheckouts) : "(unknown)",
                                 totalAllowed > 0 ? Integer.toString(totalAllowed) : "(not bounded)"));
             }
-            log.debug("Current Pool state: {}", currentState.toString());
+            log.debug("Current pool state: {}", currentState.toString());
         }
     }
 
@@ -545,10 +545,11 @@ public class CassandraClientPool {
                 if (ex instanceof TTransportException
                         && ex.getCause() != null
                         && (ex.getCause().getClass() == SocketException.class)) {
-                    String msg = "Error writing to Cassandra socket. Likely cause:"
-                            + " Exceeded maximum thrift frame size; unlikely cause: network issues.";
-                    log.error("Tried to connect to cassandra {} times. Error writing to Cassandra socket. Likely cause:"
-                            + " Exceeded maximum thrift frame size; unlikely cause: network issues.", numTries, ex);
+                    String msg = "Error writing to Cassandra socket. "
+                            + "Likely cause: Exceeded maximum thrift frame size; "
+                            + "unlikely cause: network issues.";
+                    String logMessage = "Tried to connect to cassandra {} times. " + msg;
+                    log.error(logMessage, numTries, ex);
                     throw (K) new TTransportException(((TTransportException) ex).getType(), msg, ex);
                 } else {
                     log.error("Tried to connect to cassandra {} times.", numTries, ex);
@@ -601,7 +602,7 @@ public class CassandraClientPool {
 
             RuntimeException ex = new IllegalStateException("Hosts have differing ring descriptions."
                     + " This can lead to inconsistent reads and lost data. ");
-            log.error("QA-86204 {}", tokenRangesToHost, ex);
+            log.error("QA-86204 {}: The token ranges to host are:\n{}", ex.getMessage(), tokenRangesToHost, ex);
 
 
             // provide some easier to grok logging for the two most common cases

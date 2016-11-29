@@ -153,7 +153,7 @@ public final class CQLKeyValueServices {
                         if (!success) {
                             sb.append(" (retrieval timed out)");
                         }
-                        log.info("Query trace: {}", sb.toString());
+                        log.info("Query trace: {}", sb);
                         return null;
                     }
                 });

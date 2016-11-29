@@ -64,8 +64,7 @@ public class CassandraExpiringKeyValueService extends CassandraKeyValueService i
             CassandraKeyValueServiceConfigManager configManager,
             Optional<CassandraJmxCompactionManager> compactionManager,
             Optional<LeaderConfig> leaderConfig) {
-        super(LoggerFactory.getLogger(CassandraExpiringKeyValueService.class),
-                configManager, compactionManager, leaderConfig);
+        super(LoggerFactory.getLogger(CassandraKeyValueService.class), configManager, compactionManager, leaderConfig);
     }
 
     @Override

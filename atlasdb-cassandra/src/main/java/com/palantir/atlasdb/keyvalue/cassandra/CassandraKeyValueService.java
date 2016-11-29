@@ -381,7 +381,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             }
             if (rowCount > fetchBatchCount) {
                 log.warn("Rebatched in getRows a call to {} that attempted to multiget {} rows; "
-                        + "this may indicate overly-large batching on a higher level.\n {}",
+                        + "this may indicate overly-large batching on a higher level.\n{}",
                         tableRef.getQualifiedName(),
                         rowCount,
                         CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));

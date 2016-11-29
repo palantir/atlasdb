@@ -513,20 +513,18 @@ public abstract class BasicSQL {
         if (!message.contains(ORACLE_CANCEL_ERROR) && !message.contains(POSTGRES_CANCEL_ERROR)) {
             throw PalantirSqlException.create(cause);
         }
-        String msg = "We got an execution exception that was an interrupt, most likely from someone " + //$NON-NLS-1$
-                "incorrectly ignoring an interrupt. Elaped time: {} \nError message: {} "
-                + "Error code: {} "
-                + "Error state: {} "
-                + "Error cause: {}";
         String elapsedTime = "N/A";
         if (startTime > 0) {
            elapsedTime = String.valueOf(System.currentTimeMillis() - startTime); //$NON-NLS-1$
         }
-        msg += "\nError message: {}";
-        msg += "Error code: {}";
-        msg += "Error state: {}";
-        msg += "Error cause: {}";
-        SqlLoggers.CANCEL_LOGGER.info(msg,
+        SqlLoggers.CANCEL_LOGGER.info(
+                "We got an execution exception that was an interrupt, most likely from someone " //$NON-NLS-1$
+                + "incorrectly ignoring an interrupt. "
+                + "Elapsed time: {}\n"
+                + "Error message: {} "
+                + "Error code: {} "
+                + "Error state: {} "
+                + "Error cause: {}",
                 elapsedTime,
                 cause.getMessage(),  //$NON-NLS-1$
                 cause.getErrorCode(),  //$NON-NLS-1$
@@ -563,7 +561,7 @@ public abstract class BasicSQL {
     protected boolean selectExistsInternal(final Connection c,
             final FinalSQLString sql, Object... vs) throws PalantirSqlException {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
-            SqlLoggers.LOGGER.trace("SQL internal exists check query: {}", sql.getQuery());
+            SqlLoggers.LOGGER.trace("SQL selectExistsInternal query: {}", sql.getQuery());
         }
         return wrapPreparedStatement(c, sql, vs, new PreparedStatementVisitor<Boolean>() {
             @Override
@@ -583,7 +581,7 @@ public abstract class BasicSQL {
     protected int selectIntegerInternal(final Connection c,
             final FinalSQLString sql, Object... vs) throws PalantirSqlException {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
-            SqlLoggers.LOGGER.trace("SQL select integer internal query: {}", sql.getQuery());
+            SqlLoggers.LOGGER.trace("SQL selectIntegerInternal query: {}", sql.getQuery());
         }
         return wrapPreparedStatement(c, sql, vs, new PreparedStatementVisitor<Integer>() {
             @Override
@@ -594,7 +592,8 @@ public abstract class BasicSQL {
                         if (ResultSets.next(rs)) {
                             int ret = ResultSets.getInt(rs, 1);
                             if (ResultSets.next(rs)) {
-                                SqlLoggers.LOGGER.error("In selectInteger more than one row was returned for query: {}",
+                                SqlLoggers.LOGGER.error(
+                                        "In selectIntegerInternal more than one row was returned for query: {}",
                                         sql); //$NON-NLS-1$
                                 assert false : "Found more than one row in SQL#selectInteger"; //$NON-NLS-1$
                             }
@@ -611,7 +610,7 @@ public abstract class BasicSQL {
     protected Long selectLongInternal(final Connection c, final FinalSQLString sql, Object vs[], final Long defaultVal,
             final boolean useBrokenBehaviorWithNullAndZero) throws PalantirSqlException, PalantirInterruptedException {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
-            SqlLoggers.LOGGER.trace("SQL select long internal query: {}", sql.getQuery());
+            SqlLoggers.LOGGER.trace("SQL selectLongInternal query: {}", sql.getQuery());
         }
         return wrapPreparedStatement(c, sql, vs, new PreparedStatementVisitor<Long>() {
             @Override
@@ -626,7 +625,8 @@ public abstract class BasicSQL {
                             }
 
                             if (ResultSets.next(rs)) {
-                                SqlLoggers.LOGGER.error("In selectLong more than one row was returned for query: {}",
+                                SqlLoggers.LOGGER.error(
+                                        "In selectLongInternal more than one row was returned for query: {}",
                                         sql); //$NON-NLS-1$
                                 assert false : "Found more than one row in SQL#selectLong"; //$NON-NLS-1$
                             }
@@ -634,9 +634,10 @@ public abstract class BasicSQL {
                             if (ret != null) {
                                 return ret;
                             } else if (useBrokenBehaviorWithNullAndZero) {
-                                SqlLoggers.LOGGER.error("In selectLong null was returned in the one row for this "
-                                        + "query: {}," + sql); //$NON-NLS-1$
-                                assert false : "If this case is hit, it is a programming error.  "
+                                SqlLoggers.LOGGER.error(
+                                        "In selectLongInternal null was returned in the one row for this query: {}",
+                                        sql); //$NON-NLS-1$
+                                assert false : "If this case is hit, it is a programming error. "
                                         + "You should use a default value."; //$NON-NLS-1$
                                 return 0L;
                             }
