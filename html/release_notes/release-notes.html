@@ -173,6 +173,11 @@
 <td>Substantially improved performance of the DbKvs implementation of the single-iterator version of getRowsColumnRange.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1132">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>OkHttpClient connection pool configured to have 100 idle connections with 10 minute keep-alive, reducing the number of connections
+that need to be created when a large number of transactions begin.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1294">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
