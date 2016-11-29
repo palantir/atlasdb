@@ -1210,13 +1210,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     rangeRequest,
                     timestampsGetterBatchSize.get(),
                     timestamp,
-                    deleteConsistency);
+                    readConsistency);
         } else {
             return getRangeWithPageCreator(
                     tableRef,
                     rangeRequest,
                     timestamp,
-                    deleteConsistency,
+                    readConsistency,
                     TimestampExtractor.SUPPLIER);
         }
     }
@@ -1676,7 +1676,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts) {
         AllTimestampsCollector collector = new AllTimestampsCollector();
-        loadWithTs(tableRef, cells, ts, true, collector, deleteConsistency);
+        loadWithTs(tableRef, cells, ts, true, collector, readConsistency);
         return collector.collectedResults;
     }
 
