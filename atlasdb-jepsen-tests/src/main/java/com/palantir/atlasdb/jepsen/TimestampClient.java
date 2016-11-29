@@ -80,19 +80,11 @@ public final class TimestampClient {
     }
 
     private static boolean hostIsListening(String host) {
-        Socket socket = null;
         try {
-            socket = new Socket(host, PORT);
+            new Socket(host, PORT);
             return true;
         } catch (Exception e) {
             return false;
-        } finally {
-            if (socket != null) {
-                try {
-                    socket.close();
-                } catch (Exception e) {
-                }
-            }
         }
     }
 }
