@@ -48,7 +48,6 @@ import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
 public abstract class AbstractPersistentStreamStore extends AbstractGenericStreamStore<Long> implements PersistentStreamStore {
-    private final Logger log = LoggerFactory.getLogger(AbstractPersistentStreamStore.class);
     protected AbstractPersistentStreamStore(TransactionManager txManager) {
         super(txManager);
     }

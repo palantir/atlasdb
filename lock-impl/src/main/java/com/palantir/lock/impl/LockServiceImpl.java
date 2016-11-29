@@ -538,9 +538,9 @@ import com.palantir.util.Pair;
             heldLocksTokenMap.put(token, heldLocks);
             lockTokenReaperQueue.add(token);
             String errorMessage =
-                    "Received .unlockAndFreeze() call for anonymous client with token {}";
-            log.warn(errorMessage, heldLocks.realToken);
-            throw new IllegalArgumentException(errorMessage);
+                    "Received .unlockAndFreeze() call for anonymous client with token %s";
+            log.warn(replaceFormatSpecifiersByBraces(errorMessage), heldLocks.realToken);
+            throw new IllegalArgumentException(String.format(errorMessage, heldLocks.realToken));
         }
         if (heldLocks.locks.hasReadLock()) {
             heldLocksTokenMap.put(token, heldLocks);

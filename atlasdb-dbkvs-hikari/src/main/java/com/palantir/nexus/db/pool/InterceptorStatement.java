@@ -37,7 +37,7 @@ import com.google.common.reflect.AbstractInvocationHandler;
  */
 public class InterceptorStatement<T extends Statement> extends AbstractInvocationHandler
         implements InvocationHandler {
-    private static final Logger log = LoggerFactory.getLogger(InterceptorStatement.class);
+    private static final Logger log = LoggerFactory.getLogger(ConnectionManager.class);
 
     private final T delegate;
 

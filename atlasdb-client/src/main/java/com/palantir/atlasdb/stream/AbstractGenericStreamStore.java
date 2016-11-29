@@ -43,7 +43,7 @@ import com.palantir.util.ByteArrayIOStream;
 import com.palantir.util.file.DeleteOnCloseFileInputStream;
 
 public abstract class AbstractGenericStreamStore<ID> implements GenericStreamStore<ID> {
-    private static final Logger log = LoggerFactory.getLogger(AbstractGenericStreamStore.class);
+    protected static final Logger log = LoggerFactory.getLogger(AbstractGenericStreamStore.class);
 
     @CheckForNull protected final TransactionManager txnMgr;
 

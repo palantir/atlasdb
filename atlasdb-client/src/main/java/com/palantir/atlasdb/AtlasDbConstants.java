@@ -27,7 +27,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class AtlasDbConstants {
-    private static final Logger PERF_LOG = LoggerFactory.getLogger("dualschema.perf");
+    public static final Logger PERF_LOG = LoggerFactory.getLogger("dualschema.perf");
 
     public static final TableReference PUNCH_TABLE = TableReference.createWithEmptyNamespace("_punch");
 
@@ -58,10 +58,6 @@ public class AtlasDbConstants {
     public static final int DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB = 8;
     public static final int DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB = 64;
     public static final long TRANSACTION_TS = 0L;
-
-    public static Logger getPerfLogger() {
-        return PERF_LOG;
-    }
 
     // TODO (ejin): Organize constants (maybe into a single class?)
     public static final Set<TableReference> hiddenTables = ImmutableSet.of(

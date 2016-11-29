@@ -27,7 +27,7 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.Throwables;
 
 public abstract class AbstractTransactionManager implements TransactionManager {
-    private static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
+    public static final Logger log = LoggerFactory.getLogger(AbstractTransactionManager.class);
 
     private volatile boolean closed = false;
 
