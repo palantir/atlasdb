@@ -30,33 +30,33 @@ public class AtlasDbConstants {
     public static final Logger PERF_LOG = LoggerFactory.getLogger("dualschema.perf");
 
     public static final TableReference PUNCH_TABLE = TableReference.createWithEmptyNamespace("_punch");
-
     public static final TableReference SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub");
     public static final TableReference NAMESPACE_TABLE = TableReference.createWithEmptyNamespace("_namespace");
     public static final TableReference TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("_timestamp");
+
     public static final TableReference DEFAULT_METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
-
     public static final TableReference DEFAULT_ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace("atlasdb_metadata");
-    public static final String ORACLE_NAME_MAPPING_TABLE = "atlasdb_table_names";
 
+    public static final String ORACLE_NAME_MAPPING_TABLE = "atlasdb_table_names";
     public static final String ORACLE_NAME_MAPPING_PK_CONSTRAINT = "pk_" + ORACLE_NAME_MAPPING_TABLE;
     public static final String ORACLE_OVERFLOW_SEQUENCE = "overflow_seq";
-    public static final String NAMESPACE_PREFIX = "_n_";
 
+    public static final String NAMESPACE_PREFIX = "_n_";
     public static final String NAMESPACE_SHORT_COLUMN_NAME = "s";
     public static final byte[] NAMESPACE_SHORT_COLUMN_BYTES = PtBytes.toBytes(NAMESPACE_SHORT_COLUMN_NAME);
-    public static final TableReference PARTITION_MAP_TABLE = TableReference.createWithEmptyNamespace("_partition_map");
 
+    public static final TableReference PARTITION_MAP_TABLE = TableReference.createWithEmptyNamespace("_partition_map");
     public static final char SCRUB_TABLE_SEPARATOR_CHAR = '\0';
     public static final byte[] EMPTY_TABLE_METADATA = {}; // use carefully
     public static final byte[] GENERIC_TABLE_METADATA = new TableMetadata().persistToBytes();
+
     public static final long SCRUBBER_RETRY_DELAY_MILLIS = 500L;
 
     public static final int MINIMUM_COMPRESSION_BLOCK_SIZE_KB = 4;
-
     public static final int DEFAULT_INDEX_COMPRESSION_BLOCK_SIZE_KB = 4;
     public static final int DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB = 8;
     public static final int DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB = 64;
+
     public static final long TRANSACTION_TS = 0L;
 
     // TODO (ejin): Organize constants (maybe into a single class?)
