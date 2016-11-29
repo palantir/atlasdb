@@ -17,7 +17,6 @@ CONTAINER_3=(':atlasdb-dbkvs-tests:check' ':atlasdb-tests-shared:check' ':atlasd
 
 CONTAINER_4=(':lock-impl:check' ':atlasdb-dbkvs:check' ':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-dropwizard-bundle:check')
 
-#CONTAINER_5=(':atlasdb-ete-tests:longTest')
 CONTAINER_5=(':atlasdb-cassandra-integration-tests:check')
 
 # Container 0 - runs tasks not found in the below containers
