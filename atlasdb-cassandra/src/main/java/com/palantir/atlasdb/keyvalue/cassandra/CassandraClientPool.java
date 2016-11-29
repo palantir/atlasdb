@@ -68,6 +68,8 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Feature breakdown:
  *   - Pooling
@@ -570,6 +572,7 @@ public class CassandraClientPool {
     // consistent ring across all of it's nodes.  One node will think it owns more than the others
     // think it does and they will not send writes to it, but it will respond to requests
     // acting like it does.
+    @SuppressFBWarnings("SLF4J_MANUALLY_PROVIDED_MESSAGE")
     private void sanityCheckRingConsistency() {
         Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost = HashMultimap.create();
         for (InetSocketAddress host : currentPools.keySet()) {

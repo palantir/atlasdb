@@ -138,14 +138,25 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                     ConsistencyLevel.SERIAL,
                     ConsistencyLevel.EACH_QUORUM);
         } catch (Exception e) {
-            String msg = String.format("[CAS] Error trying to set from %s to %s", oldVal, newVal);
-            log.error("[CAS] Error trying to set upper limit from {} to {}.", oldVal, newVal);
-            DebugLogger.logger.info("[CAS] Error trying to set upper limit from {} to {}.", oldVal, newVal);
+            log.error("[CAS] Error trying to set from {} to {}", oldVal, newVal, e);
+            DebugLogger.logger.error("[CAS] Error trying to set from {} to {}", oldVal, newVal, e);
             throw Throwables.throwUncheckedException(e);
         }
-
         if (!result.isSuccess()) {
-            MultipleRunningTimestampServiceError err = logMultipleTimestampServicesAndThrow(oldVal, newVal, result);
+            String msg = "Unable to CAS from {} to {}."
+                    + " Timestamp limit changed underneath us (limit in memory: {}, stored in DB: {})."
+                    + " This may indicate that another timestamp service is running against this cassandra keyspace."
+                    + " This is likely caused by multiple copies of a service running without a configured set of"
+                    + " leaders or a CLI being run with an embedded timestamp service against an already running"
+                    + " service.";
+            MultipleRunningTimestampServiceError err = new MultipleRunningTimestampServiceError(
+                    String.format(replaceBracesWithStringFormatSpecifier(msg),
+                            oldVal,
+                            newVal,
+                            currentLimit,
+                            getCurrentTimestampValues(result)));
+            log.error(msg, oldVal, newVal, currentLimit, getCurrentTimestampValues(result), err);
+            DebugLogger.logger.error(msg, oldVal, newVal, currentLimit, getCurrentTimestampValues(result), err);
             DebugLogger.logger.error("Thread dump: {}", ThreadDumps.programmaticThreadDump());
             throw err;
         } else {
@@ -154,31 +165,8 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         }
     }
 
-    private MultipleRunningTimestampServiceError logMultipleTimestampServicesAndThrow(
-            Long oldVal,
-            long newVal,
-            CASResult result) {
-        String msg = "Unable to CAS from %s to %s. "
-                + " Timestamp limit changed underneath us (limit in memory: %s, stored in DB: %s)."
-                + " This may indicate that another timestamp service is running against this cassandra keyspace."
-                + " This is likely caused by multiple copies of a service running without a configured set of"
-                + " leaders or a CLI being run with an embedded timestamp service against an already running"
-                + " service.";
-        MultipleRunningTimestampServiceError err = new MultipleRunningTimestampServiceError(
-                String.format(msg, oldVal, newVal, currentLimit, getCurrentTimestampValues(result)));
-        log.error(replaceFormatSpecifiersByBraces(msg), oldVal, newVal, currentLimit, getCurrentTimestampValues(result), err);
-        DebugLogger.logger.error(
-                replaceFormatSpecifiersByBraces(msg),
-                oldVal,
-                newVal,
-                currentLimit,
-                getCurrentTimestampValues(result),
-                err);
-        return err;
-    }
-
-    private String replaceFormatSpecifiersByBraces(String msg) {
-        return msg.replaceAll("%s", "{}");
+    private String replaceBracesWithStringFormatSpecifier(String msg) {
+        return msg.replaceAll("\\{\\}", "%s");
     }
 
     private String getCurrentTimestampValues(CASResult result) {

@@ -32,7 +32,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.palantir.util.Pair;
 
 public final class PaxosQuorumChecker {
 
