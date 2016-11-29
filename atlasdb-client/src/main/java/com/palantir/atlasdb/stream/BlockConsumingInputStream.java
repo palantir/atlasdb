@@ -26,7 +26,7 @@ import java.util.function.BiConsumer;
 
 import org.apache.commons.lang3.ArrayUtils;
 
-public class LazyInputStream extends InputStream {
+public class BlockConsumingInputStream extends InputStream {
     private final BiConsumer<Integer, OutputStream> blockGetter;
     private final long numBlocks;
 
@@ -34,7 +34,7 @@ public class LazyInputStream extends InputStream {
     private Iterator<Byte> buffer;
 
     // TODO factory method?
-    public LazyInputStream(BiConsumer<Integer, OutputStream> blockGetter, long numBlocks) throws IOException {
+    public BlockConsumingInputStream(BiConsumer<Integer, OutputStream> blockGetter, long numBlocks) throws IOException {
         this.blockGetter = blockGetter;
         this.numBlocks = numBlocks;
 
