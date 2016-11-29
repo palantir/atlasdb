@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.function.Supplier;
+
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -32,7 +34,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     }
 
     @Parameterized.Parameter
-    private KeyValueService kv;
+    public Supplier<KeyValueService> kvs;
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceTransactionIntegrationTest.class)
@@ -40,7 +42,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return kv;
+        return kvs.get();
     }
 
     @Override

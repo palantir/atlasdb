@@ -18,6 +18,7 @@ package com.palantir.atlasdb.containers;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -29,6 +30,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraJmxCompactionConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.docker.compose.DockerComposeRule;
@@ -90,21 +92,20 @@ public class CassandraContainer extends Container {
     @Override
     public SuccessOrFailure isReady(DockerComposeRule rule) {
         return SuccessOrFailure.onResultOf(() -> {
-            testWithBothThriftAndCql();
+            testWithBothThriftAndCql().forEach(Supplier::get);
             return true;
         });
     }
 
     // I don't like the (lack of) types either, it's for JUnit parameterisation
-    public static Iterable<?> testWithBothThriftAndCql() {
+    public static Iterable<Supplier<KeyValueService>> testWithBothThriftAndCql() {
         return Arrays.asList(
 //                CassandraKeyValueService.create(
 //                        CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.THRIFT_CONFIG),
 //                        CassandraContainer.LEADER_CONFIG)
 //                ,
-                CQLKeyValueService.create(
+                () -> CQLKeyValueService.create(
                         CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.CQL_CONFIG)
-                )
-        );
+                ));
     }
 }

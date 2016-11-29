@@ -16,6 +16,9 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
@@ -44,6 +47,8 @@ import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.Metadata;
+import com.datastax.driver.core.NettyOptions;
+import com.datastax.driver.core.PlainTextAuthProvider;
 import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ProtocolOptions.Compression;
@@ -89,6 +94,7 @@ import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -121,6 +127,9 @@ import com.palantir.remoting.ssl.SslSocketFactories;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+
+import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.proxy.Socks5ProxyHandler;
 
 public class CQLKeyValueService extends AbstractKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(CQLKeyValueService.class);
@@ -167,6 +176,11 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         clusterBuilder.withClusterName("atlas_cassandra_cluster_" + config.keyspace()); // for JMX metrics
         clusterBuilder.withCompression(Compression.LZ4);
 
+        if (config.credentials().isPresent()) {
+            CassandraCredentialsConfig credentials = config.credentials().get();
+            clusterBuilder.withAuthProvider(new PlainTextAuthProvider(credentials.username(), credentials.password()));
+        }
+
         if (config.sslConfiguration().isPresent()) {
             SSLContext sslContext = SslSocketFactories.createSslContext(config.sslConfiguration().get());
             SSLOptions sslOptions = new SSLOptions(sslContext, SSLOptions.DEFAULT_SSL_CIPHER_SUITES);
@@ -180,6 +194,16 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         poolingOptions.setMaxRequestsPerConnection(HostDistance.REMOTE, config.poolSize());
         poolingOptions.setPoolTimeoutMillis(config.cqlPoolTimeoutMillis());
         clusterBuilder.withPoolingOptions(poolingOptions);
+        clusterBuilder.withNettyOptions(new NettyOptions() {
+            @Override
+            public void afterChannelInitialized(SocketChannel channel) throws Exception {
+                URI channelUri = new URI(null, Iterables.getFirst(config.servers(), null).getHostName(), null, null);
+                Proxy proxy = Iterables.getFirst(ProxySelector.getDefault().select(channelUri), Proxy.NO_PROXY);
+                if (!proxy.equals(Proxy.NO_PROXY)) {
+                    channel.pipeline().addFirst(new Socks5ProxyHandler(proxy.address()));
+                }
+            }
+        });
 
         // defaults for queries; can override on per-query basis
         QueryOptions queryOptions = new QueryOptions();
