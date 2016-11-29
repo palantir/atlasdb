@@ -24,7 +24,7 @@ import javax.ws.rs.core.MediaType;
 @Path("/timestamp")
 public interface TimestampService {
     /**
-     * A request to this method should return a result greater than any timestamp
+     * A request to this method should return a timestamp greater than any timestamp
      * that may have been observed before the request was initiated.
      */
     @POST // This has to be POST because we can't allow caching.
