@@ -37,24 +37,28 @@ public class OneNodeDownTableManipulationTest {
     @Test
     public void createTableThrows() {
         expectException.expect(PalantirRuntimeException.class);
+        expectException.expectMessage("The nodes do not agree on the schema version");
         OneNodeDownTestSuite.db.createTable(NEW_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
     @Test
     public void createTablesThrows() {
         expectException.expect(PalantirRuntimeException.class);
+        expectException.expectMessage("The nodes do not agree on the schema version");
         OneNodeDownTestSuite.db.createTables(ImmutableMap.of(NEW_TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA));
     }
 
     @Test
     public void dropTableThrows() {
         expectException.expect(PalantirRuntimeException.class);
+        expectException.expectMessage("The nodes do not agree on the schema version");
         OneNodeDownTestSuite.db.dropTable(OneNodeDownTestSuite.TEST_TABLE);
     }
 
     @Test
     public void dropTablesThrows() {
         expectException.expect(PalantirRuntimeException.class);
+        expectException.expectMessage("The nodes do not agree on the schema version");
         OneNodeDownTestSuite.db.dropTables(ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE));
     }
 

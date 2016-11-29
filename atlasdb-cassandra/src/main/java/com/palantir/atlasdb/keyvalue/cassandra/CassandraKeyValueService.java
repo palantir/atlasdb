@@ -1298,7 +1298,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     if (existingTables.contains(table)) {
                         Map<String, List<String>> versions = client.describe_schema_versions();
                         if (versions.size() > 1) {
-                            throw new UnavailableException();
+                            throw new PalantirRuntimeException("The nodes do not agree on the schema version");
                         }
                         client.system_drop_column_family(internalTableName(table));
                         putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
@@ -1313,8 +1313,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 return null;
             });
         } catch (UnavailableException e) {
-            throw new PalantirRuntimeException(
-                    "Dropping tables requires all Cassandra nodes to be up and available, and agree on schema versions.");
+            throw new PalantirRuntimeException("Dropping tables requires all Cassandra nodes to be up and available.");
         }
     }
 
@@ -1424,15 +1423,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 try {
                     Map<String, List<String>> versions = client.describe_schema_versions();
                     if (versions.size() > 1) {
-                        throw new UnavailableException();
+                        throw new PalantirRuntimeException("The nodes do not agree on the schema version");
                     }
                     client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
                             configManager.getConfig().keyspace(),
                             tableEntry.getKey(),
                             tableEntry.getValue()));
                 } catch (UnavailableException e) {
-                    throw new PalantirRuntimeException(
-                            "Creating tables requires all Cassandra nodes to be up and available, and agree on schema versions.");
+                    throw new PalantirRuntimeException("Creating tables requires all Cassandra nodes to be up and available.");
                 } catch (TException thriftException) {
                     if (thriftException.getMessage() != null
                             && !thriftException.getMessage().contains("already existing table")) {
