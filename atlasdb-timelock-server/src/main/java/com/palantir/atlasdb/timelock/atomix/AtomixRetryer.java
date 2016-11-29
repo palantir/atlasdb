@@ -35,10 +35,9 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.atomix.copycat.session.ClosedSessionException;
 
 public final class AtomixRetryer {
-    public static final int RETRY_ATTEMPTS = 3;
-
     private static final Logger log = LoggerFactory.getLogger(AtomixRetryer.class);
 
+    public static final int RETRY_ATTEMPTS = 3;
     private static final Retryer<Object> RETRYER = RetryerBuilder.newBuilder()
             .retryIfException(AtomixRetryer::canBeRetried)
             .withRetryListener(new RetryListener() {

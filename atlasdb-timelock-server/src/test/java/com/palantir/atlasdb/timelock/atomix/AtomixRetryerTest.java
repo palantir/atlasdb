@@ -78,7 +78,8 @@ public class AtomixRetryerTest {
             AtomixRetryer.getWithRetry(() -> atomix.getLong(LONG_KEY));
             fail();
         } catch (UncheckedExecutionException e) {
-            assertThat(e.getCause()).isInstanceOf(IllegalArgumentException.class)
+            assertThat(e.getCause())
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("foo");
         }
         verify(atomix, times(1)).getLong(eq(LONG_KEY));
