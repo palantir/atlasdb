@@ -19,39 +19,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
-//import com.google.common.collect.ImmutableMap;
-//import com.google.common.collect.ImmutableSet;
-//import com.palantir.atlasdb.AtlasDbConstants;
-//import com.palantir.atlasdb.keyvalue.api.TableReference;
+
 import com.palantir.common.exception.PalantirRuntimeException;
 
 public class OneNodeDownTableManipulationTest {
-//    private static final TableReference NEW_TABLE = TableReference.createWithEmptyNamespace("new_table");
-//    private static final TableReference NEW_TABLE2 = TableReference.createWithEmptyNamespace("new_table2");
-
-//    @Test
-//    public void createTableThrows() {
-//        expectException.expect(PalantirRuntimeException.class);
-//        OneNodeDownTestSuite.db.createTable(NEW_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-//    }
-//
-//    @Test
-//    public void createTablesThrows() {
-//        expectException.expect(PalantirRuntimeException.class);
-//        OneNodeDownTestSuite.db.createTables(ImmutableMap.of(NEW_TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA));
-//    }
-//
-//    @Test
-//    public void dropTableThrows() {
-//        expectException.expect(PalantirRuntimeException.class);
-//        OneNodeDownTestSuite.db.dropTable(OneNodeDownTestSuite.TEST_TABLE);
-//    }
-//
-//    @Test
-//    public void dropTablesThrows() {
-//        expectException.expect(PalantirRuntimeException.class);
-//        OneNodeDownTestSuite.db.dropTables(ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE));
-//    }
 
     @Test
     public void canCompactInternally() {
