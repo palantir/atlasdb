@@ -33,6 +33,7 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CQLKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
@@ -72,12 +73,13 @@ public class CassandraContainer extends Container {
                     .servers(ImmutableList.of(new InetSocketAddress("cassandra", CQL_PORT)))
                     .build();
 
-    public static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
-            .builder()
-            .quorumSize(1)
-            .localServer("localhost")
-            .leaders(ImmutableSet.of("localhost"))
-            .build());
+    public static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(
+            ImmutableLeaderConfig
+                    .builder()
+                    .quorumSize(1)
+                    .localServer("localhost")
+                    .leaders(ImmutableSet.of("localhost"))
+                    .build());
 
     @Override
     public Map<String, String> getEnvironment() {
@@ -97,15 +99,13 @@ public class CassandraContainer extends Container {
         });
     }
 
-    // I don't like the (lack of) types either, it's for JUnit parameterisation
     public static Iterable<Supplier<KeyValueService>> testWithBothThriftAndCql() {
         return Arrays.asList(
-//                CassandraKeyValueService.create(
-//                        CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.THRIFT_CONFIG),
-//                        CassandraContainer.LEADER_CONFIG)
-//                ,
+                () -> CassandraKeyValueService.create(
+                        CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.THRIFT_CONFIG),
+                        CassandraContainer.LEADER_CONFIG),
                 () -> CQLKeyValueService.create(
-                        CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.CQL_CONFIG)
-                ));
+                        CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.CQL_CONFIG))
+                );
     }
 }

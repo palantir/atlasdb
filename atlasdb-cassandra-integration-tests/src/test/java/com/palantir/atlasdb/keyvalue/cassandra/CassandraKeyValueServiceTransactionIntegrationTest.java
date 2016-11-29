@@ -34,7 +34,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     }
 
     @Parameterized.Parameter
-    public Supplier<KeyValueService> kvs;
+    public static Supplier<KeyValueService> kvs;
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceTransactionIntegrationTest.class)

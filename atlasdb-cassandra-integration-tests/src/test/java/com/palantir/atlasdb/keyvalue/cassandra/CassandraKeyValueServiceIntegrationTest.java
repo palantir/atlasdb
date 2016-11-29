@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
@@ -46,13 +47,14 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
@@ -66,8 +68,17 @@ import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
+@RunWith(Parameterized.class)
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
     private static final long LOCK_ID = 123456789;
+
+    @Parameterized.Parameters
+    public static Iterable<?> keyValueServicesToTest() {
+        return CassandraContainer.testWithBothThriftAndCql();
+    }
+
+    @Parameterized.Parameter
+    public Supplier<KeyValueService> kvs;
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
@@ -107,10 +118,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.THRIFT_CONFIG),
-                CassandraContainer.LEADER_CONFIG,
-                logger);
+        return kvs.get();
     }
 
     @Override
@@ -149,7 +157,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                     delegate instanceof CassandraKeyValueService);
             kvs = (CassandraKeyValueService) delegate;
         } else {
-            throw new IllegalArgumentException("Can't run this cassandra-specific test against a non-cassandra KVS");
+            return; // this test tests functionality specific to C*KVS
         }
 
         kvs.createTable(testTable, tableMetadata);
@@ -185,27 +193,30 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Test
     public void testLockTablesStateCleanUp() throws Exception {
-        CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
-                ckvs.clientPool,
-                CassandraContainer.THRIFT_CONFIG);
-        SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
-                ckvs.clientPool,
-                new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
+        // we can ignore this on CQL KVS because we don't use this style of locking in it
+        if (keyValueService instanceof CassandraKeyValueService) {
+            CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
+            SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
+                    ckvs.clientPool,
+                    CassandraContainer.THRIFT_CONFIG);
+            SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
+                    ckvs.clientPool,
+                    new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
 
-        grabLock(lockTestTools);
-        createExtraLocksTable(lockTables);
+            grabLock(lockTestTools);
+            createExtraLocksTable(lockTables);
 
-        ckvs.cleanUpSchemaMutationLockTablesState();
+            ckvs.cleanUpSchemaMutationLockTablesState();
 
-        // depending on which table we pick when running cleanup on multiple lock tables, we might have a table with
-        // no rows or a table with a single row containing the cleared lock value (both are valid clean states).
-        List<CqlRow> resultRows = lockTestTools.readLocksTable().getRows();
-        assertThat(resultRows, either(is(empty())).or(hasSize(1)));
-        if (resultRows.size() == 1) {
-            Column resultColumn = Iterables.getOnlyElement(Iterables.getOnlyElement(resultRows).getColumns());
-            long lockId = SchemaMutationLock.getLockIdFromColumn(resultColumn);
-            assertThat(lockId, is(SchemaMutationLock.GLOBAL_DDL_LOCK_CLEARED_ID));
+            // depending on which table we pick when running cleanup on multiple lock tables, we might have a table with
+            // no rows or a table with a single row containing the cleared lock value (both are valid clean states).
+            List<CqlRow> resultRows = lockTestTools.readLocksTable().getRows();
+            assertThat(resultRows, either(is(empty())).or(hasSize(1)));
+            if (resultRows.size() == 1) {
+                Column resultColumn = Iterables.getOnlyElement(Iterables.getOnlyElement(resultRows).getColumns());
+                long lockId = SchemaMutationLock.getLockIdFromColumn(resultColumn);
+                assertThat(lockId, is(SchemaMutationLock.GLOBAL_DDL_LOCK_CLEARED_ID));
+            }
         }
     }
 
