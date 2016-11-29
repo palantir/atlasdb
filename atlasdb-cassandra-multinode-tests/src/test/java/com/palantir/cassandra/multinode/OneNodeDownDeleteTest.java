@@ -15,22 +15,19 @@
  */
 package com.palantir.cassandra.multinode;
 
-import org.junit.Rule;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.ImmutableMultimap;
 import com.palantir.common.exception.PalantirRuntimeException;
 
 public class OneNodeDownDeleteTest {
 
-    @Rule
-    public ExpectedException expectException = ExpectedException.none();
-
     @Test
     public void deletingThrows() {
-        expectException.expect(PalantirRuntimeException.class);
-        OneNodeDownTestSuite.db.delete(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_TIMESTAMP));
+        assertThatThrownBy(() -> OneNodeDownTestSuite.db.delete(OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_1,
+                        OneNodeDownTestSuite.DEFAULT_TIMESTAMP))).isInstanceOf(PalantirRuntimeException.class);
     }
 }
