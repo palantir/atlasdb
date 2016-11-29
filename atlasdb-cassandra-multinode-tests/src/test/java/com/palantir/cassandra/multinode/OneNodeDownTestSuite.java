@@ -12,7 +12,10 @@
  */
 package com.palantir.cassandra.multinode;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.AfterClass;
@@ -27,8 +30,10 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.docker.compose.connection.Container;
@@ -45,23 +50,25 @@ public final class OneNodeDownTestSuite {
 
     private static final String CASSANDRA_NODE_TO_KILL = ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME;
 
-    public static final TableReference TEST_TABLE = TableReference.createWithEmptyNamespace("test_table");
+    protected static final TableReference TEST_TABLE = TableReference.createWithEmptyNamespace("test_table");
 
-    public static final byte[] FIRST_ROW = "row1".getBytes();
-    public static final byte[] SECOND_ROW = "row2".getBytes();
-    public static final byte[] FIRST_COLUMN = "col1".getBytes();
-    public static final byte[] SECOND_COLUMN = "col2".getBytes();
-    public static final Cell CELL_1_1 = Cell.create(FIRST_ROW, FIRST_COLUMN);
-    public static final Cell CELL_1_2 = Cell.create(FIRST_ROW, SECOND_COLUMN);
-    public static final Cell CELL_2_1 = Cell.create(SECOND_ROW, FIRST_COLUMN);
-    public static final Cell CELL_2_2 = Cell.create(SECOND_ROW, SECOND_COLUMN);
-    public static final Cell CELL_3_1 = Cell.create("row3".getBytes(), FIRST_COLUMN);
-    public static final Cell CELL_3_2 = Cell.create("row3".getBytes(), SECOND_COLUMN);
+    static final byte[] FIRST_ROW = PtBytes.toBytes("row1");
+    static final byte[] SECOND_ROW = PtBytes.toBytes("row2");
+    static final byte[] FIRST_COLUMN = PtBytes.toBytes("col1");
+    static final byte[] SECOND_COLUMN = PtBytes.toBytes("col2");
+    static final Cell CELL_1_1 = Cell.create(FIRST_ROW, FIRST_COLUMN);
+    static final Cell CELL_1_2 = Cell.create(FIRST_ROW, SECOND_COLUMN);
+    static final Cell CELL_2_1 = Cell.create(SECOND_ROW, FIRST_COLUMN);
+    static final Cell CELL_2_2 = Cell.create(SECOND_ROW, SECOND_COLUMN);
+    static final Cell CELL_3_1 = Cell.create(PtBytes.toBytes("row3"), FIRST_COLUMN);
+    static final Cell CELL_4_1 = Cell.create(PtBytes.toBytes("row4"), FIRST_COLUMN);
 
-    public static final byte[] DEFAULT_VALUE = "default_value".getBytes();
-    public static final long DEFAULT_TIMESTAMP = 2L;
+    static final byte[] DEFAULT_CONTENTS = PtBytes.toBytes("default_value");
+    static final long DEFAULT_TIMESTAMP = 2L;
+    static final long OLD_TIMESTAMP = 1L;
+    static final Value DEFAULT_VALUE = Value.create(DEFAULT_CONTENTS, DEFAULT_TIMESTAMP);
 
-    public static CassandraKeyValueService db;
+    static CassandraKeyValueService db;
 
     private OneNodeDownTestSuite(){}
 
@@ -77,20 +84,20 @@ public final class OneNodeDownTestSuite {
     }
 
     @AfterClass
-    public static void bringClusterBack() throws IOException, InterruptedException {
+    public static void closeKvs() throws IOException, InterruptedException {
         db.close();
     }
 
     private static void setupTestTable() {
-        db = createCassandraKvs();
+        CassandraKeyValueService setupDb = createCassandraKvs();
 
-        db.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        db.put(TEST_TABLE, ImmutableMap.of(CELL_1_1, "old_value".getBytes()), 1);
-        db.put(TEST_TABLE, ImmutableMap.of(CELL_1_1, DEFAULT_VALUE), DEFAULT_TIMESTAMP);
-        db.put(TEST_TABLE, ImmutableMap.of(CELL_1_2, DEFAULT_VALUE), DEFAULT_TIMESTAMP);
-        db.put(TEST_TABLE, ImmutableMap.of(CELL_2_1, DEFAULT_VALUE), DEFAULT_TIMESTAMP);
+        setupDb.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        setupDb.put(TEST_TABLE, ImmutableMap.of(CELL_1_1, PtBytes.toBytes("old_value")), OLD_TIMESTAMP);
+        setupDb.put(TEST_TABLE, ImmutableMap.of(CELL_1_1, DEFAULT_CONTENTS), DEFAULT_TIMESTAMP);
+        setupDb.put(TEST_TABLE, ImmutableMap.of(CELL_1_2, DEFAULT_CONTENTS), DEFAULT_TIMESTAMP);
+        setupDb.put(TEST_TABLE, ImmutableMap.of(CELL_2_1, DEFAULT_CONTENTS), DEFAULT_TIMESTAMP);
 
-        db.close();
+        setupDb.close();
     }
 
     protected static CassandraKeyValueService createCassandraKvs() {
@@ -112,7 +119,6 @@ public final class OneNodeDownTestSuite {
         container.kill();
     }
 
-
     private static void waitUntilStartupChecksPass() {
         Awaitility.await()
                 .atMost(60, TimeUnit.SECONDS)
@@ -129,5 +135,10 @@ public final class OneNodeDownTestSuite {
             return false;
         }
         return true;
+    }
+
+    protected static void verifyValue(Cell cell, Value value) {
+        Map<Cell, Value> result = db.get(TEST_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE));
+        assertThat(value).isEqualTo(result.get(cell));
     }
 }

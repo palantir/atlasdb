@@ -14,6 +14,7 @@ dependencies {
 
     testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
     testCompile group: 'com.google.code.findbugs', name: 'annotations'
+    testCompile group: 'org.assertj', name: 'assertj-core', version: libVersions.assertj
 
     test {
         include '**/OneNodeDownTestSuite.class'

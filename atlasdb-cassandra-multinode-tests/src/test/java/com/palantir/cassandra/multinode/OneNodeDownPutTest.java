@@ -15,68 +15,66 @@
  */
 package com.palantir.cassandra.multinode;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.Value;
 
 public class OneNodeDownPutTest {
 
-    private final byte[] newValue = "new_value".getBytes();
-    private final long newTimestamp = 7L;
+    private static final byte[] newContents = PtBytes.toBytes("new_value");
+    private static final long newTimestamp = 7L;
 
-    @Rule
-    public ExpectedException expectException = ExpectedException.none();
+    private static final Value newValue = Value.create(newContents, newTimestamp);
 
     @Test
     public void canPut() {
         OneNodeDownTestSuite.db.put(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, newValue), newTimestamp);
-        OneNodeDownGetTest.verifyTimestampAndValue(OneNodeDownTestSuite.CELL_1_1, newTimestamp, newValue);
+                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, newContents), newTimestamp);
+        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_1_1, newValue);
     }
 
     @Test
     public void canPutWithTimestamps() {
         OneNodeDownTestSuite.db.putWithTimestamps(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_2, Value.create(newValue, newTimestamp)));
-        OneNodeDownGetTest.verifyTimestampAndValue(OneNodeDownTestSuite.CELL_1_2, newTimestamp, newValue);
+                ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_2, newValue));
+        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_1_2, newValue);
     }
 
     @Test
     public void canMultiPut() {
-        ImmutableMap<Cell, byte[]> entries = ImmutableMap.of(OneNodeDownTestSuite.CELL_2_1, newValue,
-                OneNodeDownTestSuite.CELL_2_2, newValue);
+        ImmutableMap<Cell, byte[]> entries = ImmutableMap.of(OneNodeDownTestSuite.CELL_2_1, newContents,
+                OneNodeDownTestSuite.CELL_2_2, newContents);
 
         OneNodeDownTestSuite.db.multiPut(ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, entries), newTimestamp);
-        OneNodeDownGetTest.verifyTimestampAndValue(OneNodeDownTestSuite.CELL_2_1, newTimestamp, newValue);
-        OneNodeDownGetTest.verifyTimestampAndValue(OneNodeDownTestSuite.CELL_2_2, newTimestamp, newValue);
+        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_2_1, newValue);
+        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_2_2, newValue);
     }
 
     @Test
     public void canPutUnlessExists() {
-        expectException.expect(KeyAlreadyExistsException.class);
         OneNodeDownTestSuite.db.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(OneNodeDownTestSuite.CELL_3_2, OneNodeDownTestSuite.DEFAULT_VALUE));
-        OneNodeDownGetTest.verifyTimestampAndValue(OneNodeDownTestSuite.CELL_3_2, AtlasDbConstants.TRANSACTION_TS,
-                OneNodeDownTestSuite.DEFAULT_VALUE);
+                ImmutableMap.of(OneNodeDownTestSuite.CELL_4_1, OneNodeDownTestSuite.DEFAULT_CONTENTS));
+        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_4_1,
+                Value.create(OneNodeDownTestSuite.DEFAULT_CONTENTS, AtlasDbConstants.TRANSACTION_TS));
     }
 
     @Test
     public void putUnlessExistsThrowsOnExists() {
-        expectException.expect(KeyAlreadyExistsException.class);
-        OneNodeDownTestSuite.db.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_VALUE));
+        assertThatThrownBy(() -> OneNodeDownTestSuite.db.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_CONTENTS))).isInstanceOf(
+                KeyAlreadyExistsException.class);
     }
 
     @Test

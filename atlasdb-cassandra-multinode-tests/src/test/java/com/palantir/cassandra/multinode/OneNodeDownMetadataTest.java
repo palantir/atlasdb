@@ -15,13 +15,12 @@
  */
 package com.palantir.cassandra.multinode;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -33,8 +32,6 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 
 public class OneNodeDownMetadataTest {
-    @Rule
-    public ExpectedException expectException = ExpectedException.none();
 
     @Test
     public void canGetMetadataForTable() {
@@ -53,18 +50,18 @@ public class OneNodeDownMetadataTest {
 
     @Test
     public void putMetadataForTableThrows() {
-        expectException.expect(IllegalStateException.class);
         TableMetadata newTableMetadata = new TableMetadata(new NameMetadataDescription(),
                 new ColumnMetadataDescription(), ConflictHandler.IGNORE_ALL);
-        OneNodeDownTestSuite.db.putMetadataForTable(OneNodeDownTestSuite.TEST_TABLE, newTableMetadata.persistToBytes());
+        assertThatThrownBy(() -> OneNodeDownTestSuite.db.putMetadataForTable(OneNodeDownTestSuite.TEST_TABLE,
+                newTableMetadata.persistToBytes())).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     public void putMetadataForTablesThrows() {
-        expectException.expect(IllegalStateException.class);
         TableMetadata newTableMetadata = new TableMetadata(new NameMetadataDescription(),
                 new ColumnMetadataDescription(), ConflictHandler.IGNORE_ALL);
-        OneNodeDownTestSuite.db.putMetadataForTables(
-                ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, newTableMetadata.persistToBytes()));
+        assertThatThrownBy(() -> OneNodeDownTestSuite.db.putMetadataForTables(
+                ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, newTableMetadata.persistToBytes())))
+                .isInstanceOf(IllegalStateException.class);
     }
 }

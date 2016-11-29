@@ -15,9 +15,9 @@
  */
 package com.palantir.cassandra.multinode;
 
-import org.junit.Rule;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 //import com.google.common.collect.ImmutableMap;
 //import com.google.common.collect.ImmutableSet;
@@ -28,9 +28,6 @@ import com.palantir.common.exception.PalantirRuntimeException;
 public class OneNodeDownTableManipulationTest {
 //    private static final TableReference NEW_TABLE = TableReference.createWithEmptyNamespace("new_table");
 //    private static final TableReference NEW_TABLE2 = TableReference.createWithEmptyNamespace("new_table2");
-
-    @Rule
-    public ExpectedException expectException = ExpectedException.none();
 
 //    @Test
 //    public void createTableThrows() {
@@ -68,7 +65,7 @@ public class OneNodeDownTableManipulationTest {
 
     @Test
     public void truncateTableThrows() {
-        expectException.expect(PalantirRuntimeException.class);
-        OneNodeDownTestSuite.db.truncateTable(OneNodeDownTestSuite.TEST_TABLE);
+        assertThatThrownBy(() -> OneNodeDownTestSuite.db.truncateTable(OneNodeDownTestSuite.TEST_TABLE)).isInstanceOf(
+                PalantirRuntimeException.class);
     }
 }
