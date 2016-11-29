@@ -50,7 +50,7 @@ public class HikariCpConnectionManagerTest {
             .file("src/test/resources/docker-compose.yml")
             .waitingForService("postgres", Container::areAllPortsOpen)
             .saveLogsTo(LogDirectory.circleAwareLogDirectory(HikariCpConnectionManagerTest.class))
-            .shutdownStrategy(ShutdownStrategy.SKIP)
+            .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
             .build();
 
     private ConnectionManager manager;
