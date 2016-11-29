@@ -82,7 +82,7 @@ public final class PaxosQuorumChecker {
             }));
         }
 
-        List<Pair<String, Throwable>> toLog = Lists.newArrayList();
+        List<Throwable> toLog = Lists.newArrayList();
         boolean interrupted = false;
         List<RESPONSE> receivedResponses = new ArrayList<RESPONSE>();
         int acksRecieved = 0;
@@ -123,7 +123,7 @@ public final class PaxosQuorumChecker {
                 } catch (ExecutionException e) {
                     nacksRecieved++;
                     if (onlyLogOnQuorumFailure) {
-                        toLog.add(Pair.create(PAXOS_MESSAGE_ERROR, e.getCause()));
+                        toLog.add(e.getCause());
                     } else {
                         log.warn(PAXOS_MESSAGE_ERROR, e.getCause());
                     }
@@ -156,8 +156,8 @@ public final class PaxosQuorumChecker {
             }
 
             if (onlyLogOnQuorumFailure && acksRecieved < quorumSize) {
-                for (Pair<String, Throwable> p : toLog) {
-                    log.warn("Pair lhSide: {}, Pair rhSide: {}", p.lhSide, p.rhSide);
+                for (Throwable throwable : toLog) {
+                    log.warn(PAXOS_MESSAGE_ERROR, throwable);
                 }
             }
         }

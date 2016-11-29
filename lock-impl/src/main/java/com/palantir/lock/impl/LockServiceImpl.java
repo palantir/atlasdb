@@ -370,7 +370,7 @@ import com.palantir.util.Pair;
                             request, request.getCreatingThreadName(), System.currentTimeMillis() - startTime);
                 }
                 if (requestLogger.isTraceEnabled()) {
-                    StringBuilder sb = new StringBuilder();
+                    StringBuilder sb = new StringBuilder("Current holders of the first {} of {} total failed locks were: [");
                     Iterator<Entry<LockDescriptor, LockClient>> entries = failedLocks.entrySet().iterator();
                     for (int i = 0; i < MAX_FAILED_LOCKS_TO_LOG; i++) {
                         if (entries.hasNext()) {
@@ -379,10 +379,8 @@ import com.palantir.util.Pair;
                                     ", Holder: ").append(entry.getValue().toString()).append(";");
                         }
                     }
-                    requestLogger.trace("Current holders of the first {} of {} total failed locks were: [{}]",
-                            MAX_FAILED_LOCKS_TO_LOG,
-                            failedLocks.size(),
-                            sb.toString());
+                    sb.append(" ]");
+                    requestLogger.trace(sb.toString(), MAX_FAILED_LOCKS_TO_LOG, failedLocks.size());
                 }
                 return new LockResponse(null, failedLocks);
             }
@@ -547,9 +545,9 @@ import com.palantir.util.Pair;
         if (heldLocks.locks.hasReadLock()) {
             heldLocksTokenMap.put(token, heldLocks);
             lockTokenReaperQueue.add(token);
-            String errorMessage = "Received .unlockAndFreeze() call for read locks: {}";
-            log.warn(errorMessage, heldLocks.realToken);
-            throw new IllegalArgumentException(errorMessage);
+            String errorMessage = "Received .unlockAndFreeze() call for read locks: %s";
+            log.warn(replaceFormatSpecifiersByBraces(errorMessage), heldLocks.realToken);
+            throw new IllegalArgumentException(String.format(errorMessage, heldLocks.realToken));
         }
         for (ClientAwareReadWriteLock lock : heldLocks.locks.getKeys()) {
             lock.get(client, LockMode.WRITE).unlockAndFreeze();
@@ -805,11 +803,10 @@ import com.palantir.util.Pair;
         HeldLocksGrant grant = new HeldLocksGrant(grantId);
         @Nullable HeldLocks<HeldLocksGrant> heldLocks = heldLocksGrantMap.remove(grant);
         if (heldLocks == null) {
-            String message = "Lock client {} tried to use a lock grant that doesn't" +
-                    " correspond to any held locks (grantId: {}" +
-                    "); it's likely that this lock grant has expired due to timeout";
-            log.warn(message, client, grantId.toString(Character.MAX_RADIX));
-            throw new IllegalArgumentException(message);
+            String message = "Lock client %s tried to use a lock grant that doesn't correspond to any held locks "
+                           + "(grantId: %s); it's likely that this lock grant has expired due to timeout";
+            log.warn(replaceFormatSpecifiersByBraces(message), client, grantId.toString(Character.MAX_RADIX));
+            throw new IllegalArgumentException(String.format(message, client, grantId.toString(Character.MAX_RADIX)));
         }
         HeldLocksGrant realGrant = heldLocks.realToken;
         changeOwner(heldLocks.locks, INTERNAL_LOCK_GRANT_CLIENT, client);
@@ -819,6 +816,10 @@ import com.palantir.util.Pair;
             log.trace(".useGrant({}, {}) returns {}", client, grantId.toString(Character.MAX_RADIX), token);
         }
         return token;
+    }
+
+    private String replaceFormatSpecifiersByBraces(String errorMessage) {
+        return errorMessage.replaceAll("%s", "{}");
     }
 
     private void changeOwner(LockCollection<? extends ClientAwareReadWriteLock> locks, LockClient oldClient,

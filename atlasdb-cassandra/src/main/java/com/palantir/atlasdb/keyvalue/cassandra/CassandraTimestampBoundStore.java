@@ -166,9 +166,9 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                 + " service.";
         MultipleRunningTimestampServiceError err = new MultipleRunningTimestampServiceError(
                 String.format(msg, oldVal, newVal, currentLimit, getCurrentTimestampValues(result)));
-        log.error(getLogMessage(msg), oldVal, newVal, currentLimit, getCurrentTimestampValues(result), err);
+        log.error(replaceFormatSpecifiersByBraces(msg), oldVal, newVal, currentLimit, getCurrentTimestampValues(result), err);
         DebugLogger.logger.error(
-                getLogMessage(msg),
+                replaceFormatSpecifiersByBraces(msg),
                 oldVal,
                 newVal,
                 currentLimit,
@@ -177,7 +177,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         return err;
     }
 
-    private String getLogMessage(String msg) {
+    private String replaceFormatSpecifiersByBraces(String msg) {
         return msg.replaceAll("%s", "{}");
     }
 
