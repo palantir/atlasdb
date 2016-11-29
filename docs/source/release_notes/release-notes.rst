@@ -45,10 +45,6 @@ develop
          - Multinode Cassandra: ``getAllTimestamps`` and ``getRangeOfTimestamps`` now work as long as quorum for reading is achieved.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1289>`__)
 
-    *    - |fixed|
-         - Multinode Cassandra: ``createTable`` and ``dropTable`` now throw a PalantirRuntimeException if there is an unresponsive node.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1289>`__)
-
     *    - |improved|
          - Substantially improved performance of the DbKvs implementation of the single-iterator version of getRowsColumnRange.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1132>`__)

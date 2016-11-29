@@ -89,7 +89,7 @@ public class OneNodeDownGetTest {
                 ImmutableList.of(OneNodeDownTestSuite.FIRST_ROW), rangeSelection, Long.MAX_VALUE);
 
         assertEquals(1, rowsColumnRange.size());
-        byte[] rowName = rowsColumnRange.keySet().iterator().next();
+        byte[] rowName = rowsColumnRange.entrySet().iterator().next().getKey();
         assertTrue(Arrays.equals(OneNodeDownTestSuite.FIRST_ROW, rowName));
 
         RowColumnRangeIterator it = rowsColumnRange.get(rowName);
