@@ -63,6 +63,9 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     }
 
     public FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type) {
+        if (maxBackoffMillis <= 0) {
+            throw new IllegalArgumentException("Cannot set non-positive backoff " + Integer.toString(maxBackoffMillis));
+        }
         this.servers = ImmutableList.copyOf(ImmutableSet.copyOf(servers));
         this.type = type;
         this.maxBackoffMillis = maxBackoffMillis;

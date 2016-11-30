@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLSocketFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.squareup.okhttp.ConnectionPool;
@@ -42,6 +43,8 @@ public final class AtlasDbHttpClients {
 
     private static final int CONNECTION_POOL_SIZE = 100;
     private static final long KEEP_ALIVE_TIME_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
+    private static final int ONE_MIILISECOND = 1;
+    private static final Request.Options DEFAULT_FEIGN_OPTIONS = new Request.Options();
 
     private static final ObjectMapper mapper = new ObjectMapper();
     private static final Contract contract = new JAXRSContract();
@@ -89,15 +92,20 @@ public final class AtlasDbHttpClients {
      */
     public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
-        return createProxyWithFailover(sslSocketFactory, endpointUris, new Request.Options(),
-                FailoverFeignTarget.DEFAULT_MAX_BACKOFF_MILLIS, type);
+        return createProxyWithFailover(
+                sslSocketFactory,
+                endpointUris,
+                DEFAULT_FEIGN_OPTIONS,
+                FailoverFeignTarget.DEFAULT_MAX_BACKOFF_MILLIS,
+                type);
     }
 
     /**
-     * As with the createProxyWithFailover method, but with the ability to set Feign timeout options and the maximum
-     * time that the failover client will backoff for.
+     * @param feignOptions      Options to configure Feign timeouts.
+     * @param maxBackoffMillis  Passed through to the FailoverFeignTarget, this configures the maximum time that a
+     *                          backoff will be for.
      */
-    public static <T> T createProxyWithFailover(
+    private static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris,
             Request.Options feignOptions, int maxBackoffMillis, Class<T> type) {
         FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
@@ -111,6 +119,18 @@ public final class AtlasDbHttpClients {
                 .retryer(failoverFeignTarget)
                 .options(feignOptions)
                 .target(failoverFeignTarget);
+    }
+
+    @VisibleForTesting
+    static <T> T createProxyWithFailoverWithoutBackoff(
+            Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
+        Request.Options options = new Request.Options(ONE_MIILISECOND, ONE_MIILISECOND);
+        return createProxyWithFailover(
+                sslSocketFactory,
+                endpointUris,
+                options,
+                ONE_MIILISECOND,
+                type);
     }
 
     /**
