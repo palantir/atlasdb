@@ -4,6 +4,4 @@
             [jepsen.atlasdb :as atlasdb]))
 
 (deftest atlasdb-test
-  (let [test (atlasdb/atlasdb-test)]
-    (atlasdb/with-cassandra test
-      (is (:valid? (:results (jepsen/run! test)))))))
+   (is (:valid? (:results (jepsen/run! (atlasdb/atlasdb-test))))))
