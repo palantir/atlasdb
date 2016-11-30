@@ -20,11 +20,13 @@ import java.util.List;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -40,8 +42,6 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.SimulatingServerProxy;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.util.Mutable;
-import com.palantir.util.Mutables;
 
 /**
  * Tests for the Lock Server.
@@ -788,7 +788,6 @@ public abstract class LockServiceTest {
                     }
                 }), 100);
 
-
         final int partitions = 5;
         final int[] partition = new int[partitions - 1];
         final int numThreads = partitions * 10;
@@ -796,15 +795,13 @@ public abstract class LockServiceTest {
             partition[i - 1] = numThreads * i / partitions;
         }
 
+        ReadWriteLock terminationLock = new ReentrantReadWriteLock();
         List<Future<?>> futures = Lists.newArrayList();
-        final Mutable<Integer> numSuccess = Mutables.newMutable(0);
-        final Mutable<Integer> numFailure = Mutables.newMutable(0);
         for (int i = 0; i < numThreads; ++i) {
             final int clientID = i;
             InterruptibleFuture<?> future = new InterruptibleFuture<Void>() {
                 @Override
                 public Void call() throws InterruptedException {
-                    try {
                     while (true) {
                         LockClient client = LockClient.of("client" + clientID);
                         LockRequest request;
@@ -840,47 +837,60 @@ public abstract class LockServiceTest {
                                             SimpleTimeDuration.of(2000, TimeUnit.MILLISECONDS))
                                     .build();
                         }
-                        token = server.lockWithFullLockResponse(client, request).getToken();
-                        if (token == null) {
-                            numFailure.set(numFailure.get() + 1);
-                        } else {
-                            numSuccess.set(numSuccess.get() + 1);
-                            Assert.assertEquals(Integer.toString(clientID), token.getClient().getClientId());
-                            Assert.assertEquals(request.getLockDescriptors(), token.getLockDescriptors());
-                            try {
-                                Thread.sleep(50);
-                            } catch (InterruptedException e) {
-                                /* Intentionally swallow. */
-                            }
-                            System.out.println(System.currentTimeMillis()
-                                    - token.getExpirationDateMs());
-                            server.unlock(token);
-                            Assert.assertTrue(server.getTokens(client).isEmpty());
+
+                        if (!terminationLock.readLock().tryLock()) {
+                            Assert.assertTrue(Thread.currentThread().isInterrupted());
+                            throw new InterruptedException();
                         }
-                    }
-                    } catch (RuntimeException e) {
-                        e.printStackTrace();
-                        throw e;
+
+                        try {
+                            token = server.lockWithFullLockResponse(client, request).getToken();
+                        } catch (Exception e) {
+                            Assert.assertTrue(e instanceof InterruptedException);
+                            // make sure we unlock before terminating
+                            // each future is only cancelled once, so no need for general retries here
+                            terminationLock.readLock().unlock();
+                            throw e;
+                        }
+
+                        if (token == null) {
+                            terminationLock.readLock().unlock();
+                            continue;
+                        }
+
+                        Assert.assertEquals(Integer.toString(clientID), token.getClient().getClientId());
+                        Assert.assertEquals(request.getLockDescriptors(), token.getLockDescriptors());
+
+                        try {
+                            server.unlock(token);
+                        } catch (Exception e) {
+                            Assert.assertTrue(e instanceof InterruptedException);
+                            // make sure we unlock before terminating
+                            // each future is only cancelled once, so no need for general retries here
+                            server.unlock(token);
+                            terminationLock.readLock().unlock();
+                            throw e;
+                        }
+
+                        terminationLock.readLock().unlock();
+
+                        Assert.assertTrue(server.getTokens(client).isEmpty());
                     }
                 }
             };
+
             futures.add(future);
             executor.execute(future);
         }
+
         Thread.sleep(5000);
+
         for (Future<?> future : futures) {
             future.cancel(true);
         }
-        for (Future<?> future : futures) {
-            try {
-                future.get();
-                Assert.fail();
-            } catch (ExecutionException expected) {
-                /* expected */
-            }
-        }
-        System.out.println("Number of unsuccessfully acquired locks: " + numFailure.get());
-        System.out.println("Number of successfully acquired locks: " + numSuccess.get());
+
+        terminationLock.writeLock().lock();
+
         LockRequest request = LockRequest.builder(
                 ImmutableSortedMap.of(lock1, LockMode.WRITE, lock2, LockMode.WRITE)).build();
         HeldLocksToken token = server.lockWithFullLockResponse(LockClient.ANONYMOUS, request).getToken();
@@ -888,6 +898,8 @@ public abstract class LockServiceTest {
         Assert.assertEquals(LockClient.ANONYMOUS, token.getClient());
         Assert.assertEquals(request.getLockDescriptors(), token.getLockDescriptors());
         server.unlock(token);
+
+        terminationLock.writeLock().unlock();
     }
 
     /** Tests expiring lock tokens and grants */
