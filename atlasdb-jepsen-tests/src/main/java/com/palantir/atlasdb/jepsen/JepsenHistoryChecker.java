@@ -35,7 +35,10 @@ public class JepsenHistoryChecker {
     }
 
     public static JepsenHistoryChecker createWithStandardCheckers() {
-        return new JepsenHistoryChecker(new MonotonicChecker(), new NonOverlappingReadsMonotonicChecker());
+        return new JepsenHistoryChecker(
+                new MonotonicChecker(),
+                new NonOverlappingReadsMonotonicChecker(),
+                new UniquenessChecker());
     }
 
     /**
