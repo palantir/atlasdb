@@ -83,24 +83,19 @@ public final class AtlasDbHttpClients {
      */
     public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
-        FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, type);
-        Client client = failoverFeignTarget.wrapClient(newOkHttpClient(sslSocketFactory));
-        return Feign.builder()
-                .contract(contract)
-                .encoder(encoder)
-                .decoder(decoder)
-                .errorDecoder(errorDecoder)
-                .client(client)
-                .retryer(failoverFeignTarget)
-                .target(failoverFeignTarget);
+        return createProxyWithFailover(sslSocketFactory, endpointUris, new Request.Options(),
+                FailoverFeignTarget.DEFAULT_MAX_BACKOFF_MILLIS, type);
     }
 
-    public static <T> T createProxyWithQuickFailover(
+    /**
+     * As above, but you can optionally override Feign options, and the maximum time that the failover client will
+     * backoff for.
+     */
+    public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris,
-            int feignTimeoutMillis, int maxBackoffMillis, Class<T> type) {
+            Request.Options feignOptions, int maxBackoffMillis, Class<T> type) {
         FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
         Client client = failoverFeignTarget.wrapClient(newOkHttpClient(sslSocketFactory));
-        Request.Options options = new Request.Options(feignTimeoutMillis, feignTimeoutMillis);
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
@@ -108,7 +103,7 @@ public final class AtlasDbHttpClients {
                 .errorDecoder(errorDecoder)
                 .client(client)
                 .retryer(failoverFeignTarget)
-                .options(options)
+                .options(feignOptions)
                 .target(failoverFeignTarget);
     }
 

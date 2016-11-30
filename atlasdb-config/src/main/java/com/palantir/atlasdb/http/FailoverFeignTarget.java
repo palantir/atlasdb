@@ -38,6 +38,8 @@ import feign.Retryer;
 import feign.Target;
 
 public class FailoverFeignTarget<T> implements Target<T>, Retryer {
+    public static final int DEFAULT_MAX_BACKOFF_MILLIS = 3000;
+
     private static final Logger log = LoggerFactory.getLogger(FailoverFeignTarget.class);
     private static final double GOLDEN_RATIO = (Math.sqrt(5) + 1.0) / 2.0;
 
@@ -56,7 +58,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     final ThreadLocal<Integer> mostRecentServerIndex = new ThreadLocal<>();
 
     public FailoverFeignTarget(Collection<String> servers, Class<T> type) {
-        this(servers, 3000, type);
+        this(servers, DEFAULT_MAX_BACKOFF_MILLIS, type);
     }
 
     public FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type) {
