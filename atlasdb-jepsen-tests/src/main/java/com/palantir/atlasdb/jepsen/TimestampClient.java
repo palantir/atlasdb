@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.jepsen;
 
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -42,19 +40,6 @@ public final class TimestampClient {
         return createFromUris(endpointUris);
     }
 
-    public static TimestampService createFromUris(List<String> endpointUris) {
-        return AtlasDbHttpClients.createProxyWithFailover(
-                Optional.<SSLSocketFactory>absent(),
-                endpointUris,
-                TimestampService.class);
-    }
-
-    public static TimestampService randomizeHostsAndCreate(List<String> hosts) {
-        List<String> randomizedHosts = new ArrayList<>(hosts);
-        Collections.shuffle(randomizedHosts);
-        return create(randomizedHosts);
-    }
-
     public static void waitUntilHostReady(String host) {
         Awaitility.await()
                 .atMost(TIMEOUT_SECONDS, TimeUnit.SECONDS)
@@ -67,23 +52,30 @@ public final class TimestampClient {
                 .until(() -> clusterReturnsTimestamp(hosts));
     }
 
-    private static boolean clusterReturnsTimestamp(List<String> hosts) {
+    private static List<String> hostnamesToEndpointUris(List<String> hosts) {
+        return Lists.transform(hosts, host -> String.format("http://%s:%d/%s", host, PORT, NAMESPACE));
+    }
+
+    private static TimestampService createFromUris(List<String> endpointUris) {
+        return AtlasDbHttpClients.createProxyWithFailover(
+                Optional.<SSLSocketFactory>absent(),
+                endpointUris,
+                TimestampService.class);
+    }
+
+    private static boolean hostIsListening(String host) {
         try {
-            TimestampService service = create(hosts);
-            service.getFreshTimestamp();
+            new Socket(host, PORT);
             return true;
         } catch (Exception e) {
             return false;
         }
     }
 
-    private static List<String> hostnamesToEndpointUris(List<String> hosts) {
-        return Lists.transform(hosts, host -> String.format("http://%s:%d/%s", host, PORT, NAMESPACE));
-    }
-
-    private static boolean hostIsListening(String host) {
+    private static boolean clusterReturnsTimestamp(List<String> hosts) {
         try {
-            new Socket(host, PORT);
+            TimestampService service = create(hosts);
+            service.getFreshTimestamp();
             return true;
         } catch (Exception e) {
             return false;
