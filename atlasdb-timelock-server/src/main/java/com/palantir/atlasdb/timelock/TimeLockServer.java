@@ -15,14 +15,17 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
 
+import org.eclipse.jetty.util.component.AbstractLifeCycle;
+import org.eclipse.jetty.util.component.LifeCycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.timelock.atomix.AtomixRetryer;
 import com.palantir.atlasdb.timelock.atomix.AtomixTimestampService;
 import com.palantir.atlasdb.timelock.atomix.DistributedValues;
@@ -54,7 +57,7 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
 
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
-        AtomixReplica localNode = AtomixReplica.builder(configuration.cluster().localServer())
+        AtomixReplica replica = AtomixReplica.builder(configuration.cluster().localServer())
                 .withStorage(Storage.builder()
                         .withDirectory(configuration.atomix().storageDirectory())
                         .withStorageLevel(configuration.atomix().storageLevel())
@@ -62,34 +65,26 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
                 .withTransport(createTransport(configuration.atomix().security()))
                 .build();
         try {
-            setup(localNode, configuration, environment);
+            AtomixRetryer.getWithRetry(() -> replica.bootstrap(configuration.cluster().servers()));
+            environment.lifecycle().addLifeCycleListener(new AbstractLifeCycle.AbstractLifeCycleListener() {
+                @Override
+                public void lifeCycleStopped(LifeCycle event) {
+                    AtomixRetryer.getWithRetry(replica::shutdown);
+                }
+            });
+
+            run(configuration, environment, replica);
         } catch (Exception e) {
-            localNode.shutdown();
+            replica.shutdown();
             throw e;
         }
     }
 
-    private void setup(AtomixReplica localNode, TimeLockServerConfiguration configuration, Environment environment) {
-        localNode.bootstrap(configuration.cluster().servers()).join();
-
-        DistributedGroup timeLockGroup = DistributedValues.getTimeLockGroup(localNode);
+    private static void run(TimeLockServerConfiguration configuration, Environment environment, AtomixReplica replica) {
+        DistributedGroup timeLockGroup = DistributedValues.getTimeLockGroup(replica);
         LocalMember localMember = AtomixRetryer.getWithRetry(timeLockGroup::join);
 
-        DistributedValue<LeaderAndTerm> leaderInfo = getDistributedLeaderAndTerm(localNode, timeLockGroup);
-        Map<String, TimeLockServices> clientToServices = createTimeLockServicesForClients(
-                localNode,
-                configuration,
-                localMember,
-                leaderInfo);
-
-        environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
-        environment.jersey().register(new TimeLockResource(clientToServices));
-    }
-
-    private DistributedValue<LeaderAndTerm> getDistributedLeaderAndTerm(
-            AtomixReplica localNode,
-            DistributedGroup timeLockGroup) {
-        DistributedValue<LeaderAndTerm> leaderInfo = DistributedValues.getLeaderInfo(localNode);
+        DistributedValue<LeaderAndTerm> leaderInfo = DistributedValues.getLeaderInfo(replica);
         timeLockGroup.election().onElection(term -> {
             LeaderAndTerm newLeaderInfo = ImmutableLeaderAndTerm.of(term.term(), term.leader().id());
             while (true) {
@@ -106,16 +101,24 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
                 }
             }
         });
-        return leaderInfo;
+
+        Map<String, TimeLockServices> clientToServices = createTimeLockServicesForClients(
+                replica,
+                configuration.clients(),
+                localMember,
+                leaderInfo);
+
+        environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
+        environment.jersey().register(new TimeLockResource(clientToServices));
     }
 
-    private Map<String, TimeLockServices> createTimeLockServicesForClients(
+    private static Map<String, TimeLockServices> createTimeLockServicesForClients(
             AtomixReplica localNode,
-            TimeLockServerConfiguration configuration,
+            Set<String> clients,
             LocalMember localMember,
             DistributedValue<LeaderAndTerm> leaderInfo) {
-        Map<String, TimeLockServices> clientToServices = new HashMap<>();
-        for (String client : configuration.clients()) {
+        ImmutableMap.Builder<String, TimeLockServices> clientToServices = ImmutableMap.builder();
+        for (String client : clients) {
             DistributedLong timestamp = DistributedValues.getTimestampForClient(localNode, client);
             TimeLockServices timeLockServices = createInvalidatingTimeLockServices(
                     localMember,
@@ -123,7 +126,7 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
                     timestamp);
             clientToServices.put(client, timeLockServices);
         }
-        return clientToServices;
+        return clientToServices.build();
     }
 
     private static TimeLockServices createInvalidatingTimeLockServices(
