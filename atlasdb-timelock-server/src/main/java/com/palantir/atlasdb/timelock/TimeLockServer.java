@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.timelock.atomix.AtomixRetryer;
 import com.palantir.atlasdb.timelock.atomix.AtomixTimestampService;
 import com.palantir.atlasdb.timelock.atomix.DistributedValues;
 import com.palantir.atlasdb.timelock.atomix.ImmutableLeaderAndTerm;
@@ -65,13 +65,13 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
         localNode.bootstrap(configuration.cluster().servers()).join();
 
         DistributedGroup timeLockGroup = DistributedValues.getTimeLockGroup(localNode);
-        LocalMember localMember = Futures.getUnchecked(timeLockGroup.join());
+        LocalMember localMember = AtomixRetryer.getWithRetry(timeLockGroup::join);
 
         DistributedValue<LeaderAndTerm> leaderInfo = DistributedValues.getLeaderInfo(localNode);
         timeLockGroup.election().onElection(term -> {
             LeaderAndTerm newLeaderInfo = ImmutableLeaderAndTerm.of(term.term(), term.leader().id());
             while (true) {
-                LeaderAndTerm currentLeaderInfo = Futures.getUnchecked(leaderInfo.get());
+                LeaderAndTerm currentLeaderInfo = AtomixRetryer.getWithRetry(leaderInfo::get);
                 if (currentLeaderInfo != null && newLeaderInfo.term() <= currentLeaderInfo.term()) {
                     log.info("Not setting the leader to {} since it is not newer than the current leader {}",
                             newLeaderInfo, currentLeaderInfo);
