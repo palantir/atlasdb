@@ -1042,6 +1042,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                             .bind();
             try {
                 ResultSet resultSet = longRunningQuerySession.execute(dropStatement);
+
                 cqlKeyValueServices.logTracedQuery(dropQuery, resultSet, session, cqlStatementCache.normalQuery);
             } catch (com.datastax.driver.core.exceptions.UnavailableException e) {
                 throw new InsufficientConsistencyException("Dropping tables requires all Cassandra"
@@ -1051,10 +1052,11 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
         CQLKeyValueServices.waitForSchemaVersionsToCoalesce("dropTables(" + tablesToDrop.size() + " tables)", this);
 
-        put(AtlasDbConstants.DEFAULT_METADATA_TABLE, Maps.toMap(
-                        Lists.transform(Lists.newArrayList(tablesToDrop), CQLKeyValueServices::getMetadataCell),
-                        Functions.constant(PtBytes.EMPTY_BYTE_ARRAY)),
-                System.currentTimeMillis());
+        ImmutableMap<TableReference, byte[]> deleteMetadata = Maps.toMap(
+                Lists.newArrayList(tablesToDrop),
+                Functions.constant(PtBytes.EMPTY_BYTE_ARRAY));
+
+        internalPutMetadataForTables(deleteMetadata, false);
     }
 
     private void createKeyspace(String keyspaceName, Set<String> dcsInCluster) {
@@ -1169,13 +1171,24 @@ public class CQLKeyValueService extends AbstractKeyValueService {
             }
         }
         if (!cellToMetadata.isEmpty()) {
-            put(AtlasDbConstants.DEFAULT_METADATA_TABLE, cellToMetadata, System.currentTimeMillis());
+            long timestamp = System.currentTimeMillis();
+
+            Multimap<Cell, Long> oldVersions = getAllTimestamps(
+                    AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                    cellToMetadata.keySet(),
+                    timestamp);
+
+            put(AtlasDbConstants.DEFAULT_METADATA_TABLE, cellToMetadata, timestamp);
+
+            delete(AtlasDbConstants.DEFAULT_METADATA_TABLE, oldVersions);
+
             if (possiblyNeedToPerformSettingsChanges) {
                 CQLKeyValueServices.waitForSchemaVersionsToCoalesce(
                         "putMetadataForTables(" + tableNameToMetadata.size() + " tables)", this);
             }
         }
     }
+
     @Override
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
         try {
