@@ -18,6 +18,7 @@ package com.palantir.atlasdb.schema.stream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import static junit.framework.TestCase.assertEquals;
@@ -33,6 +34,7 @@ import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -42,6 +44,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
@@ -180,6 +183,43 @@ public class StreamTest extends AtlasDbTestCase {
         verifyLoadingStreams(id, bytesToStore, store);
 
         return id;
+    }
+
+    @Test
+    public void shouldQuicklyGetFirstByte() throws IOException {
+        long millisFor100mb = measureMillisToGetFirstByteFromStreamStoreWithMbs(100);
+        long millisFor1mb = measureMillisToGetFirstByteFromStreamStoreWithMbs(1);
+
+        assertTrue("Loading the first byte of a stream should perform better than log(size). "
+                + "We actually expect constant time, but are being permissive. "
+                + "Fetching 1MB took " + millisFor1mb + "ms, but 100 MB took " + millisFor100mb + "ms.",
+                millisFor100mb < (millisFor1mb * 10));
+    }
+
+    private long measureMillisToGetFirstByteFromStreamStoreWithMbs(int megabytes) throws IOException {
+        final int size = megabytes * 1024 * 1024;
+        byte[] bytesToStore = new byte[size];
+        Random rand = new Random();
+        rand.nextBytes(bytesToStore);
+
+        PersistentStreamStore store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
+        final long id = timestampService.getFreshTimestamp();
+        txManager.runTaskWithRetry(t -> {
+                    store.storeStreams(t, ImmutableMap.of(id, new ByteArrayInputStream(bytesToStore)));
+                    store.markStreamAsUsed(t, id, PtBytes.toBytes(megabytes));
+                    return null;
+                });
+
+        Stopwatch timer = Stopwatch.createStarted();
+        InputStream stream = txManager.runTaskThrowOnConflict(t -> store.loadStream(t, id));
+        byte[] sample = new byte[1];
+        //noinspection ResultOfMethodCallIgnored
+        stream.read(sample);
+        timer.stop();
+        Assert.assertEquals(bytesToStore[0], sample[0]);
+        long millis = timer.elapsed(TimeUnit.MILLISECONDS);
+        System.out.println(String.format("Getting first byte of %dMB took %d milliseconds.", megabytes, millis));
+        return millis;
     }
 
     private void verifyLoadingStreams(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
