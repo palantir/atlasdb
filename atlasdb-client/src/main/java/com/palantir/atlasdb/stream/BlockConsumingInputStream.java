@@ -26,7 +26,7 @@ import java.util.function.BiConsumer;
 
 import org.apache.commons.lang3.ArrayUtils;
 
-public class BlockConsumingInputStream extends InputStream {
+public final class BlockConsumingInputStream extends InputStream {
     private final BiConsumer<Integer, OutputStream> blockGetter;
     private final long numBlocks;
 
@@ -67,6 +67,6 @@ public class BlockConsumingInputStream extends InputStream {
         List<Byte> list = Arrays.asList(ArrayUtils.toObject(bytes));
         this.buffer = list.iterator();
         outputStream.close();
-        nextBlockToRead += 1;
+        nextBlockToRead++;
     }
 }
