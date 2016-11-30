@@ -94,8 +94,8 @@ public final class AtlasDbHttpClients {
     }
 
     /**
-     * As above, but you can optionally override Feign options, and the maximum time that the failover client will
-     * backoff for.
+     * As with the createProxyWithFailover method, but with the ability to set Feign timeout options and the maximum
+     * time that the failover client will backoff for.
      */
     public static <T> T createProxyWithFailover(
             Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris,
