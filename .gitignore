@@ -11,6 +11,7 @@ Thumbs.db
 *.iml
 *.ipr
 *.iws
+*.pyc
 fix-ivy.py
 .idea
 .checkstyle

@@ -6,7 +6,7 @@ The AtlasDB Lock Service exposes an API to lock clients for acquiring read and r
 The Lock Service also supports clustering. When multiple lock services are clustered, they will collaborate to elect a leader
 via the Paxos algorithm.
 
-A description of Paxos can be found on `Wikipedia <https://github.com/palantir/atlasdb/issues/449>`__
+A description of Paxos can be found on `Wikipedia <https://en.wikipedia.org/wiki/Paxos_(computer_science)>`__
 
 .. toctree::
    :maxdepth: 1
