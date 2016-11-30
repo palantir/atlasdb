@@ -1,5 +1,6 @@
 jepsen:
-  build: .
+  image: tjake/jepsen:latest
   privileged: true
   volumes:
     - ./:/jepsen/atlasdb
+  command: "wrapdocker bash -c 'source ~/.bashrc && cd /jepsen/atlasdb && lein test'"

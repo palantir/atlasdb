@@ -59,12 +59,7 @@ task copyTimelockServer(type: Copy, dependsOn: ':atlasdb-timelock-server:distTar
     rename { filename -> 'atlasdb-timelock-server.tgz' }
 }
 
-task composeBuild(type: Exec) {
-    environment = project.dockerCompose.environment
-    commandLine project.dockerCompose.composeCommand('build', '--force-rm')
-}
-
-task jepsenTest(type: Exec, dependsOn: ['copyFatJar', 'copyTimelockServer', 'composeBuild']) {
+task jepsenTest(type: Exec, dependsOn: ['copyFatJar', 'copyTimelockServer']) {
     environment = project.dockerCompose.environment
     commandLine project.dockerCompose.composeCommand('run', '--rm', 'jepsen')
 }
