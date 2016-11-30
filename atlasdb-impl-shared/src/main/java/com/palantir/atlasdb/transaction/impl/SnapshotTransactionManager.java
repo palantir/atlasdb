@@ -190,7 +190,7 @@ import com.palantir.timestamp.TimestampService;
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
-                timestampCache);
+                timestampValidationReadCache);
     }
 
     @Override
@@ -212,7 +212,7 @@ import com.palantir.timestamp.TimestampService;
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
-                timestampCache);
+                timestampValidationReadCache);
         return runTaskThrowOnConflict(task, new ReadTransaction(transaction, sweepStrategyManager));
     }
 
