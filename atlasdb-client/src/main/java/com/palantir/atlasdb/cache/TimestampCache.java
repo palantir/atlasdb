@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.transaction.impl;
+package com.palantir.atlasdb.cache;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;

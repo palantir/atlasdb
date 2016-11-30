@@ -68,6 +68,7 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -187,7 +188,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private volatile long commitTsForScrubbing = TransactionConstants.FAILED_COMMIT_TS;
     protected final boolean allowHiddenTableAccess;
     protected final Stopwatch transactionTimer = Stopwatch.createStarted();
-    protected final TimestampCache timestampCache;
+    protected final TimestampCache timestampValidationReadCache;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
@@ -209,7 +210,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                Long transactionTimeoutMillis,
                                TransactionReadSentinelBehavior readSentinelBehavior,
                                boolean allowHiddenTableAccess,
-                               TimestampCache timestampCache) {
+                               TimestampCache timestampValidationReadCache) {
         this.keyValueService = keyValueService;
         this.timestampService = timestampService;
         this.defaultTransactionService = transactionService;
@@ -224,7 +225,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.transactionReadTimeoutMillis = transactionTimeoutMillis;
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
-        this.timestampCache = timestampCache;
+        this.timestampValidationReadCache = timestampValidationReadCache;
     }
 
     // TEST ONLY
@@ -237,7 +238,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         Map<TableReference, ConflictHandler> tablesToWriteWrite,
                         AtlasDbConstraintCheckingMode constraintCheckingMode,
                         TransactionReadSentinelBehavior readSentinelBehavior,
-                        TimestampCache timestampCache) {
+                        TimestampCache timestampValidationReadCache) {
         this.keyValueService = keyValueService;
         this.timestampService = timestampService;
         this.defaultTransactionService = transactionService;
@@ -252,7 +253,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.transactionReadTimeoutMillis = null;
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = false;
-        this.timestampCache = timestampCache;
+        this.timestampValidationReadCache = timestampValidationReadCache;
     }
 
     /**
@@ -265,9 +266,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                   long startTimeStamp,
                                   AtlasDbConstraintCheckingMode constraintCheckingMode,
                                   TransactionReadSentinelBehavior readSentinelBehavior,
-                                  TimestampCache timestampCache) {
+                                  TimestampCache timestampValidationReadCache) {
         this(keyValueService, transactionService, lockService, startTimeStamp,
-                constraintCheckingMode, readSentinelBehavior, false, timestampCache);
+                constraintCheckingMode, readSentinelBehavior, false, timestampValidationReadCache);
     }
 
     protected SnapshotTransaction(KeyValueService keyValueService,
@@ -277,7 +278,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                   AtlasDbConstraintCheckingMode constraintCheckingMode,
                                   TransactionReadSentinelBehavior readSentinelBehavior,
                                   boolean allowHiddenTableAccess,
-                                  TimestampCache timestampCache) {
+                                  TimestampCache timestampValidationReadCache) {
         this.keyValueService = keyValueService;
         this.defaultTransactionService = transactionService;
         this.cleaner = NoOpCleaner.INSTANCE;
@@ -292,7 +293,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.transactionReadTimeoutMillis = null;
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
-        this.timestampCache = timestampCache;
+        this.timestampValidationReadCache = timestampValidationReadCache;
     }
 
     @Override
@@ -1686,7 +1687,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Long, Long> result = Maps.newHashMap();
         Set<Long> gets = Sets.newHashSet();
         for (long startTs : startTimestamps) {
-            Long cached = timestampCache.getCommitTimestampIfPresent(startTs);
+            Long cached = timestampValidationReadCache.getCommitTimestampIfPresent(startTs);
             if (cached != null) {
                 result.put(startTs, cached);
             } else {
@@ -1714,7 +1715,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 long startTs = e.getKey();
                 long commitTs = e.getValue();
                 result.put(startTs, commitTs);
-                timestampCache.putAlreadyCommittedTransaction(startTs, commitTs);
+                timestampValidationReadCache.putAlreadyCommittedTransaction(startTs, commitTs);
             }
         }
         return result;
