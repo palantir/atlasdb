@@ -85,16 +85,13 @@ public class DegradedClusterInitializationTest {
         DockerPort containerPort = new DockerPort(container.getContainerName(),
                 CassandraContainer.THRIFT_PORT,
                 CassandraContainer.THRIFT_PORT);
-        Awaitility.await()
-                .atMost(60, TimeUnit.SECONDS)
-                .until(containerPort::isListeningNow);
-
         DockerPort cqlPort = new DockerPort(container.getContainerName(),
                 CassandraContainer.CQL_PORT,
                 CassandraContainer.CQL_PORT);
+
         Awaitility.await()
                 .atMost(60, TimeUnit.SECONDS)
-                .until(cqlPort::isListeningNow);
+                .until(() -> containerPort.isListeningNow() && cqlPort.isListeningNow());
     }
 
     private static void waitUntilStartupChecksPass() {

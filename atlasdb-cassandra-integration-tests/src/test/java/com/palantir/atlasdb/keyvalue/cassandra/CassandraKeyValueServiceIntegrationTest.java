@@ -43,6 +43,7 @@ import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlRow;
 import org.apache.thrift.TException;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -73,18 +74,17 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static final long LOCK_ID = 123456789;
 
     @Parameterized.Parameters
-    public static Iterable<?> keyValueServicesToTest() {
+    public static Iterable<Supplier<KeyValueService>> keyValueServicesToTest() {
         return CassandraContainer.testWithBothThriftAndCql();
     }
 
     @Parameterized.Parameter
-    public Supplier<KeyValueService> kvs;
+    public Supplier<KeyValueService> kvsSupplier;
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
             .with(new CassandraContainer());
 
-    private KeyValueService keyValueService;
     private ExecutorService executorService;
     private Logger logger = mock(Logger.class);
 
@@ -107,7 +107,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Before
     public void setupKvs() {
-        keyValueService = getKeyValueService();
         executorService = Executors.newFixedThreadPool(4);
     }
 
@@ -118,7 +117,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return kvs.get();
+        return kvsSupplier.get();
     }
 
     @Override
@@ -153,28 +152,31 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Test
     public void testCfEqualityChecker() throws TException {
-        CassandraKeyValueService kvs;
+        CassandraKeyValueService cassandraKeyValueService;
         if (keyValueService instanceof CassandraKeyValueService) {
-            kvs = (CassandraKeyValueService) keyValueService;
+            cassandraKeyValueService = (CassandraKeyValueService) keyValueService;
         } else if (keyValueService instanceof TableSplittingKeyValueService) { // scylla tests
             KeyValueService delegate = ((TableSplittingKeyValueService) keyValueService).getDelegate(testTable);
             assertTrue("The nesting of Key Value Services has apparently changed",
                     delegate instanceof CassandraKeyValueService);
-            kvs = (CassandraKeyValueService) delegate;
+            cassandraKeyValueService = (CassandraKeyValueService) delegate;
         } else {
-            return; // this test tests functionality specific to C*KVS
+            Assume.assumeTrue("This test tests functionality specific to C*KVS", false);
+            return;
         }
 
-        kvs.createTable(testTable, tableMetadata);
+        cassandraKeyValueService.createTable(testTable, tableMetadata);
 
-        List<CfDef> knownCfs = kvs.clientPool.runWithRetry(client ->
+        List<CfDef> knownCfs = cassandraKeyValueService.clientPool.runWithRetry(client ->
                 client.describe_keyspace("atlasdb").getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
                 .filter(cf -> cf.getName().equals("ns__never_seen"))
                 .collect(Collectors.toList()));
 
         assertTrue("After serialization and deserialization to database, Cf metadata did not match.",
-                ColumnFamilyDefinitions.isMatchingCf(kvs.getCfForTable(testTable, tableMetadata), clusterSideCf));
+                ColumnFamilyDefinitions.isMatchingCf(
+                        cassandraKeyValueService.getCfForTable(testTable, tableMetadata),
+                        clusterSideCf));
     }
 
     @Test
@@ -199,29 +201,30 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Test
     public void testLockTablesStateCleanUp() throws Exception {
         // we can ignore this on CQL KVS because we don't use this style of locking in it
-        if (keyValueService instanceof CassandraKeyValueService) {
-            CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
-            SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
-                    ckvs.clientPool,
-                    CassandraContainer.THRIFT_CONFIG);
-            SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
-                    ckvs.clientPool,
-                    new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
+        Assume.assumeFalse("CQL KVS uses a different style of locking",
+                keyValueService instanceof CQLKeyValueService);
 
-            grabLock(lockTestTools);
-            createExtraLocksTable(lockTables);
+        CassandraKeyValueService ckvs = (CassandraKeyValueService) keyValueService;
+        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
+                ckvs.clientPool,
+                CassandraContainer.THRIFT_CONFIG);
+        SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
+                ckvs.clientPool,
+                new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
 
-            ckvs.cleanUpSchemaMutationLockTablesState();
+        grabLock(lockTestTools);
+        createExtraLocksTable(lockTables);
 
-            // depending on which table we pick when running cleanup on multiple lock tables, we might have a table with
-            // no rows or a table with a single row containing the cleared lock value (both are valid clean states).
-            List<CqlRow> resultRows = lockTestTools.readLocksTable().getRows();
-            assertThat(resultRows, either(is(empty())).or(hasSize(1)));
-            if (resultRows.size() == 1) {
-                Column resultColumn = Iterables.getOnlyElement(Iterables.getOnlyElement(resultRows).getColumns());
-                long lockId = SchemaMutationLock.getLockIdFromColumn(resultColumn);
-                assertThat(lockId, is(SchemaMutationLock.GLOBAL_DDL_LOCK_CLEARED_ID));
-            }
+        ckvs.cleanUpSchemaMutationLockTablesState();
+
+        // depending on which table we pick when running cleanup on multiple lock tables, we might have a table with
+        // no rows or a table with a single row containing the cleared lock value (both are valid clean states).
+        List<CqlRow> resultRows = lockTestTools.readLocksTable().getRows();
+        assertThat(resultRows, either(is(empty())).or(hasSize(1)));
+        if (resultRows.size() == 1) {
+            Column resultColumn = Iterables.getOnlyElement(Iterables.getOnlyElement(resultRows).getColumns());
+            long lockId = SchemaMutationLock.getLockIdFromColumn(resultColumn);
+            assertThat(lockId, is(SchemaMutationLock.GLOBAL_DDL_LOCK_CLEARED_ID));
         }
     }
 

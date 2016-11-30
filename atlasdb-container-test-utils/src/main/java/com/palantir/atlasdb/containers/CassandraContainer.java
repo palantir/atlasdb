@@ -38,7 +38,6 @@ import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 public class CassandraContainer extends Container {
-
     public static final int THRIFT_PORT = CassandraConstants.DEFAULT_THRIFT_PORT;
     public static final int CQL_PORT = CassandraConstants.DEFAULT_CQL_PORT;
     public static final String USERNAME = "cassandra";
@@ -73,13 +72,11 @@ public class CassandraContainer extends Container {
                     .servers(ImmutableList.of(new InetSocketAddress("cassandra", CQL_PORT)))
                     .build();
 
-    public static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(
-            ImmutableLeaderConfig
-                    .builder()
-                    .quorumSize(1)
-                    .localServer("localhost")
-                    .leaders(ImmutableSet.of("localhost"))
-                    .build());
+    public static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig.builder()
+            .quorumSize(1)
+            .localServer("localhost")
+            .leaders(ImmutableSet.of("localhost"))
+            .build());
 
     @Override
     public Map<String, String> getEnvironment() {

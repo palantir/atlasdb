@@ -1095,9 +1095,10 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                     AtlasDbConstants.EMPTY_TABLE_METADATA,
                     this);
         }
-        Set<TableReference> tablesToCreate = tableRefsToTableMetadata.keySet().stream().filter(
-                tableReference -> ! existingTables.contains(
-                                TableReference.createLowerCased(tableReference))).collect(Collectors.toSet());
+
+        Set<TableReference> tablesToCreate = tableRefsToTableMetadata.keySet().stream()
+                .filter(tableReference -> !existingTables.contains(TableReference.createLowerCased(tableReference)))
+                .collect(Collectors.toSet());
 
         for (TableReference tableRef : tablesToCreate) {
             try {

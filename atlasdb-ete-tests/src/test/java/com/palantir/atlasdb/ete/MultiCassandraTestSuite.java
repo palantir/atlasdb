@@ -69,14 +69,17 @@ public class MultiCassandraTestSuite extends EteSetup {
     }
 
     private static void waitForCassandraContainer(Container container) {
-        DockerPort thriftPort = new DockerPort(container.getContainerName(), CassandraContainer.THRIFT_PORT, CassandraContainer.THRIFT_PORT);
-        DockerPort cqlPort = new DockerPort(container.getContainerName(), CassandraContainer.CQL_PORT, CassandraContainer.CQL_PORT);
+        DockerPort thriftPort = new DockerPort(
+                container.getContainerName(),
+                CassandraContainer.THRIFT_PORT,
+                CassandraContainer.THRIFT_PORT);
+        DockerPort cqlPort = new DockerPort(
+                container.getContainerName(),
+                CassandraContainer.CQL_PORT,
+                CassandraContainer.CQL_PORT);
 
         Awaitility.await()
                 .atMost(60, TimeUnit.SECONDS)
-                .until(thriftPort::isListeningNow);
-        Awaitility.await()
-                .atMost(60, TimeUnit.SECONDS)
-                .until(cqlPort::isListeningNow);
+                .until(() -> thriftPort.isListeningNow() && cqlPort.isListeningNow());
     }
 }

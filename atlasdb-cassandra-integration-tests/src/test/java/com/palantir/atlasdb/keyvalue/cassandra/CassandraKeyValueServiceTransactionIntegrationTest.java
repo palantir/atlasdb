@@ -34,7 +34,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     }
 
     @Parameterized.Parameter
-    public static Supplier<KeyValueService> kvs;
+    public Supplier<KeyValueService> kvsSupplier;
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceTransactionIntegrationTest.class)
@@ -42,7 +42,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return kvs.get();
+        return kvsSupplier.get();
     }
 
     @Override
