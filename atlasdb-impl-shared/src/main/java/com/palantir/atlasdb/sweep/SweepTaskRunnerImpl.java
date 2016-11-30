@@ -54,6 +54,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.persistentlock.DeletionLock;
+import com.palantir.atlasdb.persistentlock.PersistentLockIsTakenException;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.sweepers.ConservativeSweeper;
 import com.palantir.atlasdb.sweep.sweepers.NothingSweeper;
@@ -79,16 +81,19 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
     private final Supplier<Long> immutableTimestampSupplier;
     private final TransactionService transactionService;
     private final SweepStrategyManager sweepStrategyManager;
+    private final DeletionLock deletionLock;
     private final CellsSweeper cellsSweeper;
 
     public SweepTaskRunnerImpl(
             KeyValueService keyValueService,
+            DeletionLock deletionLock,
             Supplier<Long> unreadableTimestampSupplier,
             Supplier<Long> immutableTimestampSupplier,
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
             CellsSweeper cellsSweeper) {
         this.keyValueService = keyValueService;
+        this.deletionLock = deletionLock;
         this.unreadableTimestampSupplier = unreadableTimestampSupplier;
         this.immutableTimestampSupplier = immutableTimestampSupplier;
         this.transactionService = transactionService;
@@ -115,6 +120,21 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
             return SweepResults.createEmptySweepResult(0L);
         }
 
+        return runSweepWithDeletionLock(tableRef, rowBatchSize, cellBatchSize, nullableStartRow);
+    }
+
+    private SweepResults runSweepWithDeletionLock(
+            TableReference tableRef, int rowBatchSize, int cellBatchSize, @Nullable byte[] nullableStartRow) {
+        try {
+            return deletionLock.runWithLockNonExclusively(
+                    () -> runSweepInternal(tableRef, rowBatchSize, cellBatchSize, nullableStartRow),
+                    "Sweep for " + tableRef);
+        } catch (PersistentLockIsTakenException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private SweepResults runSweepInternal(TableReference tableRef, int rowBatchSize, int cellBatchSize, @Nullable byte[] nullableStartRow) {
         // Earliest start timestamp of any currently open transaction, with two caveats:
         // (1) unreadableTimestamps are calculated via wall-clock time, and so may not be correct
         //     under pathological clock conditions

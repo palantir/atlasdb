@@ -41,6 +41,14 @@ timestamp
 
 Read or recalculate the immutable timestamp. Run ``./bin/atlasdb help timestamp`` for more information.
 
+deletion-lock
+-------------
+
+Acquire or release the deletion lock. Holding this lock ensures that other deletion-heavy workflows (currently sweep and scrub)
+cannot run; this is useful while taking a backup, to prevent concurrent deletions from corrupting the backup.
+
+Run ``./bin/atlasdb help deletion-lock`` for more information.
+
 .. _clis-migrate:
 
 migrate

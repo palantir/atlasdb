@@ -17,6 +17,7 @@ package com.palantir.atlasdb.cli.command;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -77,5 +78,12 @@ public abstract class AbstractCommand implements Callable<Integer> {
 
     protected boolean isOffline() {
         return offline;
+    }
+
+    static boolean exactlyOneParameterIsSet(Object... values) {
+        return 1 == Arrays.stream(values)
+                .map(o -> o instanceof Boolean ? o : o != null)
+                .filter(v -> v.equals(true))
+                .count();
     }
 }
