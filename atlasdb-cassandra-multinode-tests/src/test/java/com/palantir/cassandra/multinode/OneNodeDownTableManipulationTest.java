@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
-
 import com.palantir.common.exception.PalantirRuntimeException;
 
 public class OneNodeDownTableManipulationTest {
@@ -36,7 +35,7 @@ public class OneNodeDownTableManipulationTest {
 
     @Test
     public void truncateTableThrows() {
-        assertThatThrownBy(() -> OneNodeDownTestSuite.db.truncateTable(OneNodeDownTestSuite.TEST_TABLE)).isInstanceOf(
-                PalantirRuntimeException.class);
+        assertThatThrownBy(() -> OneNodeDownTestSuite.db.truncateTable(OneNodeDownTestSuite.TEST_TABLE))
+                .isExactlyInstanceOf(PalantirRuntimeException.class);
     }
 }

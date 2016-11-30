@@ -44,11 +44,11 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 
-
 public class OneNodeDownGetTest {
 
-    ImmutableMap<Cell, Value> expectedRow = ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1,
-            OneNodeDownTestSuite.DEFAULT_VALUE, OneNodeDownTestSuite.CELL_1_2, OneNodeDownTestSuite.DEFAULT_VALUE);
+    ImmutableMap<Cell, Value> expectedRow = ImmutableMap.of(
+            OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_VALUE,
+            OneNodeDownTestSuite.CELL_1_2, OneNodeDownTestSuite.DEFAULT_VALUE);
 
     @Test
     public void canGet() {
@@ -59,8 +59,7 @@ public class OneNodeDownGetTest {
     @Test
     public void canGetRows() {
         Map<Cell, Value> row = OneNodeDownTestSuite.db.getRows(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableList.of(OneNodeDownTestSuite.FIRST_ROW),
-                ColumnSelection.all(), Long.MAX_VALUE);
+                ImmutableList.of(OneNodeDownTestSuite.FIRST_ROW), ColumnSelection.all(), Long.MAX_VALUE);
 
         assertThat(row).containsAllEntriesOf(expectedRow);
     }
@@ -68,12 +67,12 @@ public class OneNodeDownGetTest {
     @Test
     public void canGetRange() {
         final RangeRequest range = RangeRequest.builder().endRowExclusive(OneNodeDownTestSuite.SECOND_ROW).build();
-        ClosableIterator<RowResult<Value>> it = OneNodeDownTestSuite.db.getRange(OneNodeDownTestSuite.TEST_TABLE, range,
-                Long.MAX_VALUE);
+        ClosableIterator<RowResult<Value>> it = OneNodeDownTestSuite.db.getRange(OneNodeDownTestSuite.TEST_TABLE,
+                range, Long.MAX_VALUE);
 
-        ImmutableMap<byte[], Value> expectedColumns = ImmutableMap.of(OneNodeDownTestSuite.FIRST_COLUMN,
-                OneNodeDownTestSuite.DEFAULT_VALUE, OneNodeDownTestSuite.SECOND_COLUMN,
-                OneNodeDownTestSuite.DEFAULT_VALUE);
+        ImmutableMap<byte[], Value> expectedColumns = ImmutableMap.of(
+                OneNodeDownTestSuite.FIRST_COLUMN, OneNodeDownTestSuite.DEFAULT_VALUE,
+                OneNodeDownTestSuite.SECOND_COLUMN, OneNodeDownTestSuite.DEFAULT_VALUE);
         RowResult<Value> expectedRowResult = RowResult.create(OneNodeDownTestSuite.FIRST_ROW,
                 ImmutableSortedMap.copyOf(expectedColumns, UnsignedBytes.lexicographicalComparator()));
 
@@ -85,8 +84,8 @@ public class OneNodeDownGetTest {
         BatchColumnRangeSelection rangeSelection = BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY,
                 PtBytes.EMPTY_BYTE_ARRAY, 1);
         Map<byte[], RowColumnRangeIterator> rowsColumnRange = OneNodeDownTestSuite.db.getRowsColumnRange(
-                OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableList.of(OneNodeDownTestSuite.FIRST_ROW), rangeSelection, Long.MAX_VALUE);
+                OneNodeDownTestSuite.TEST_TABLE, ImmutableList.of(OneNodeDownTestSuite.FIRST_ROW),
+                rangeSelection, Long.MAX_VALUE);
 
         assertEquals(1, rowsColumnRange.size());
         byte[] rowName = rowsColumnRange.entrySet().iterator().next().getKey();
@@ -99,7 +98,7 @@ public class OneNodeDownGetTest {
     @Test
     public void canGetAllTableNames() {
         Iterator<TableReference> it = OneNodeDownTestSuite.db.getAllTableNames().iterator();
-        assertThat(it).containsExactly(OneNodeDownTestSuite.TEST_TABLE);
+        assertThat(it).contains(OneNodeDownTestSuite.TEST_TABLE);
     }
 
     @Test
@@ -115,10 +114,11 @@ public class OneNodeDownGetTest {
         ClosableIterator<RowResult<Set<Long>>> it = OneNodeDownTestSuite.db.getRangeOfTimestamps(
                 OneNodeDownTestSuite.TEST_TABLE, range, Long.MAX_VALUE);
 
-        ImmutableMap<byte[], ImmutableSet<Long>> expectedTimestamps = ImmutableMap.of(OneNodeDownTestSuite.FIRST_COLUMN,
+        ImmutableMap<byte[], ImmutableSet<Long>> expectedTimestamps = ImmutableMap.of(
+                OneNodeDownTestSuite.FIRST_COLUMN,
                 ImmutableSet.of(OneNodeDownTestSuite.DEFAULT_TIMESTAMP, OneNodeDownTestSuite.OLD_TIMESTAMP),
-                OneNodeDownTestSuite.SECOND_COLUMN, ImmutableSet.of(OneNodeDownTestSuite.DEFAULT_TIMESTAMP));
-
+                OneNodeDownTestSuite.SECOND_COLUMN,
+                ImmutableSet.of(OneNodeDownTestSuite.DEFAULT_TIMESTAMP));
         RowResult<Set<Long>> expectedRowResult = RowResult.create(OneNodeDownTestSuite.FIRST_ROW,
                 ImmutableSortedMap.copyOf(expectedTimestamps, UnsignedBytes.lexicographicalComparator()));
 
@@ -131,9 +131,10 @@ public class OneNodeDownGetTest {
         Multimap<Cell, Long> result = OneNodeDownTestSuite.db.getAllTimestamps(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableSet.of(OneNodeDownTestSuite.CELL_1_1), Long.MAX_VALUE);
 
-        ImmutableMultimap<Cell, Long> expectedResult = ImmutableMultimap.<Cell, Long>builder().put(
-                OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.OLD_TIMESTAMP).put(OneNodeDownTestSuite.CELL_1_1,
-                OneNodeDownTestSuite.DEFAULT_TIMESTAMP).build();
+        ImmutableMultimap<Cell, Long> expectedResult = ImmutableMultimap.<Cell, Long>builder()
+                .put(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.OLD_TIMESTAMP)
+                .put(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_TIMESTAMP)
+                .build();
 
         assertThat(result.entries()).containsExactlyElementsOf(expectedResult.entries());
     }

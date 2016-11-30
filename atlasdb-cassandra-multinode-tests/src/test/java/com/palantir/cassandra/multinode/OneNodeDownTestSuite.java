@@ -90,13 +90,11 @@ public final class OneNodeDownTestSuite {
 
     private static void setupTestTable() {
         CassandraKeyValueService setupDb = createCassandraKvs();
-
         setupDb.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         setupDb.put(TEST_TABLE, ImmutableMap.of(CELL_1_1, PtBytes.toBytes("old_value")), OLD_TIMESTAMP);
         setupDb.put(TEST_TABLE, ImmutableMap.of(CELL_1_1, DEFAULT_CONTENTS), DEFAULT_TIMESTAMP);
         setupDb.put(TEST_TABLE, ImmutableMap.of(CELL_1_2, DEFAULT_CONTENTS), DEFAULT_TIMESTAMP);
         setupDb.put(TEST_TABLE, ImmutableMap.of(CELL_2_1, DEFAULT_CONTENTS), DEFAULT_TIMESTAMP);
-
         setupDb.close();
     }
 
