@@ -298,7 +298,7 @@ public class DbKvsGetRanges {
             try {
                 underlyingConnection.close();
             } catch (Exception e) {
-                log.debug("Error occurred trying to close the sql connection.", e);
+                log.debug("Error occurred trying to close the sql connection", e);
             }
         }
     }

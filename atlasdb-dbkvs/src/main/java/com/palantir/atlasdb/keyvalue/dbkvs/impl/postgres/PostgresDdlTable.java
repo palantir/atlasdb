@@ -120,7 +120,7 @@ public class PostgresDdlTable implements DbDdlTable {
             fn.run();
         } catch (PalantirSqlException e) {
             if (!shouldIgnoreException.test(e)) {
-                log.error("Error occurred trying to run the fn", e);
+                log.error("Error occurred trying to run function", e);
                 throw e;
             }
         }
