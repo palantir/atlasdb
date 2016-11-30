@@ -51,6 +51,7 @@ import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.schema.stream.generated.DeletingStreamStore;
+import com.palantir.atlasdb.schema.stream.generated.KeyValueTable;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestTableFactory;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow;
@@ -247,6 +248,42 @@ public class StreamTest extends AtlasDbTestCase {
     private void assertStreamHasBytes(InputStream stream, byte[] bytes) throws IOException {
         byte[] streamAsBytes = IOUtils.toByteArray(stream);
         Assert.assertArrayEquals(bytes, streamAsBytes);
+    }
+
+    @Test
+    public void testOverwrite() throws IOException {
+        Random rand = new Random();
+        StreamTestTableFactory tableFactory = StreamTestTableFactory.of();
+
+        final byte[] reference = PtBytes.toBytes("ref");
+        final byte[] bytes1 = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
+        rand.nextBytes(bytes1);
+
+        KeyValueTable.KeyValueRow keyValueRow = KeyValueTable.KeyValueRow.of("ref");
+
+        // Store the stream, together with a reference
+        Long streamId = txManager.runTaskWithRetry(tx -> {
+            long id = storeStream(bytes1, reference);
+            KeyValueTable keyValueTable = tableFactory.getKeyValueTable(tx);
+            keyValueTable.putStreamId(keyValueRow, id);
+            return id;
+        });
+
+        // Then fetch streamId as an input stream
+        InputStream firstStream = txManager.runTaskWithRetry(tx -> store.loadStream(tx, streamId));
+
+        // Then store "ref" -> some_other_stream
+        final byte[] bytes2 = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
+        rand.nextBytes(bytes2);
+        txManager.runTaskWithRetry(tx -> {
+            long id = storeStream(bytes2, reference);
+            KeyValueTable keyValueTable = tableFactory.getKeyValueTable(tx);
+            keyValueTable.putStreamId(keyValueRow, id);
+            return null;
+        });
+
+        // Then continue to read - it should be OK
+        assertStreamHasBytes(firstStream, bytes1);
     }
 
     @Test
