@@ -56,7 +56,6 @@ import com.palantir.atlasdb.schema.stream.generated.StreamTestTableFactory;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow;
-import com.palantir.atlasdb.stream.GenericStreamStore;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -68,6 +67,8 @@ import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
 public class StreamTest extends AtlasDbTestCase {
+    private PersistentStreamStore store;
+
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -75,6 +76,8 @@ public class StreamTest extends AtlasDbTestCase {
     public void createSchema() {
         Schemas.deleteTablesAndIndexes(StreamTestSchema.getSchema(), keyValueService);
         Schemas.createTablesAndIndexes(StreamTestSchema.getSchema(), keyValueService);
+
+        store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
     }
 
     @Test
@@ -88,7 +91,6 @@ public class StreamTest extends AtlasDbTestCase {
         final long streamId = txManager.runTaskWithRetry(new TransactionTask<Long, Exception>() {
             @Override
             public Long execute(Transaction t) throws Exception {
-                PersistentStreamStore store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
                 byte[] data = PtBytes.toBytes("streamed");
                 Sha256Hash hash = Sha256Hash.computeHash(data);
                 byte[] reference = "ref".getBytes();
@@ -104,7 +106,6 @@ public class StreamTest extends AtlasDbTestCase {
         txManager.runTaskWithRetry(new TransactionTask<Void, Exception>() {
             @Override
             public Void execute(Transaction t) throws Exception {
-                PersistentStreamStore store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
                 Assert.assertEquals(data.length, store.loadStream(t, streamId).read(data, 0, data.length));
                 return null;
             }
@@ -169,18 +170,12 @@ public class StreamTest extends AtlasDbTestCase {
         Random rand = new Random();
         rand.nextBytes(bytesToStore);
 
-        final long id = timestampService.getFreshTimestamp();
-        PersistentStreamStore store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
-        txManager.runTaskWithRetry(t -> {
-                    store.storeStreams(t, ImmutableMap.of(id, new ByteArrayInputStream(bytesToStore)));
-                    store.markStreamAsUsed(t, id, reference);
-                    return null;
-                });
+        final long id = storeStream(bytesToStore, reference);
 
-        verifyLoadingStreams(id, bytesToStore, store);
+        verifyLoadingStreams(id, bytesToStore);
 
         store.storeStream(new ByteArrayInputStream(bytesToStore));
-        verifyLoadingStreams(id, bytesToStore, store);
+        verifyLoadingStreams(id, bytesToStore);
 
         return id;
     }
@@ -202,13 +197,7 @@ public class StreamTest extends AtlasDbTestCase {
         Random rand = new Random();
         rand.nextBytes(bytesToStore);
 
-        PersistentStreamStore store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
-        final long id = timestampService.getFreshTimestamp();
-        txManager.runTaskWithRetry(t -> {
-                    store.storeStreams(t, ImmutableMap.of(id, new ByteArrayInputStream(bytesToStore)));
-                    store.markStreamAsUsed(t, id, PtBytes.toBytes(megabytes));
-                    return null;
-                });
+        final long id = storeStream(bytesToStore, PtBytes.toBytes(megabytes));
 
         Stopwatch timer = Stopwatch.createStarted();
         InputStream stream = txManager.runTaskThrowOnConflict(t -> store.loadStream(t, id));
@@ -222,24 +211,35 @@ public class StreamTest extends AtlasDbTestCase {
         return millis;
     }
 
-    private void verifyLoadingStreams(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
-        verifyLoadStream(id, bytesToStore, store);
-        verifyLoadStreams(id, bytesToStore, store);
-        verifyLoadStreamAsFile(id, bytesToStore, store);
+    private long storeStream(byte[] bytesToStore, byte[] reference) {
+        final long id = timestampService.getFreshTimestamp();
+        txManager.runTaskWithRetry(t -> {
+            store.storeStreams(t, ImmutableMap.of(id, new ByteArrayInputStream(bytesToStore)));
+            store.markStreamAsUsed(t, id, reference);
+            return null;
+        });
+
+        return id;
     }
 
-    private void verifyLoadStreamAsFile(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
+    private void verifyLoadingStreams(long id, byte[] bytesToStore) throws IOException {
+        verifyLoadStream(id, bytesToStore);
+        verifyLoadStreams(id, bytesToStore);
+        verifyLoadStreamAsFile(id, bytesToStore);
+    }
+
+    private void verifyLoadStreamAsFile(long id, byte[] bytesToStore) throws IOException {
         File file = txManager.runTaskThrowOnConflict(t -> store.loadStreamAsFile(t, id));
         Assert.assertArrayEquals(bytesToStore, FileUtils.readFileToByteArray(file));
     }
 
-    private void verifyLoadStreams(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
+    private void verifyLoadStreams(long id, byte[] bytesToStore) throws IOException {
         Map<Long, InputStream> streams = txManager.runTaskThrowOnConflict(t ->
                 store.loadStreams(t, ImmutableSet.of(id)));
         assertStreamHasBytes(streams.get(id), bytesToStore);
     }
 
-    private void verifyLoadStream(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
+    private void verifyLoadStream(long id, byte[] bytesToStore) throws IOException {
         InputStream stream = txManager.runTaskThrowOnConflict(t -> store.loadStream(t, id));
         assertStreamHasBytes(stream, bytesToStore);
     }
@@ -268,8 +268,6 @@ public class StreamTest extends AtlasDbTestCase {
                 id1, new ByteArrayInputStream(bytes1),
                 id2, new ByteArrayInputStream(bytes2));
 
-        PersistentStreamStore store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
-
         txManager.runTaskWithRetry(t -> store.storeStreams(t, streams));
 
         Map<Sha256Hash, Long> sha256HashLongMap = txManager.runTaskWithRetry(t -> store.lookupStreamIdsByHash(t, ImmutableSet.of(hash1, hash2, hash3)));
@@ -292,7 +290,6 @@ public class StreamTest extends AtlasDbTestCase {
                 id1, new ByteArrayInputStream(bytes),
                 id2, new ByteArrayInputStream(bytes));
 
-        PersistentStreamStore store = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
         txManager.runTaskWithRetry(t -> store.storeStreams(t, streams));
 
         Pair<Long, Sha256Hash> idAndHash1 = store.storeStream(new ByteArrayInputStream(bytes));
