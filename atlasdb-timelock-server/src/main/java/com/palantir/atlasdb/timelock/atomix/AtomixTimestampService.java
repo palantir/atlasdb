@@ -17,7 +17,6 @@ package com.palantir.atlasdb.timelock.atomix;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.Futures;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
@@ -48,7 +47,7 @@ public class AtomixTimestampService implements TimestampService {
         Preconditions.checkArgument(numTimestampsRequested <= MAX_GRANT_SIZE,
                 "Must request at most %s timestamps, requested: %s", MAX_GRANT_SIZE, numTimestampsRequested);
 
-        long lastTimestampHandedOut = Futures.getUnchecked(timestamp.getAndAdd(numTimestampsRequested));
+        long lastTimestampHandedOut = AtomixRetryer.getWithRetry(() -> timestamp.getAndAdd(numTimestampsRequested));
 
         return TimestampRange.createInclusiveRange(
                 lastTimestampHandedOut + 1,

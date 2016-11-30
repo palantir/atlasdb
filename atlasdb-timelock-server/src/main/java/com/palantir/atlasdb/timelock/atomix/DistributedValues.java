@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.atomix;
 
-import com.google.common.util.concurrent.Futures;
-
 import io.atomix.Atomix;
 import io.atomix.group.DistributedGroup;
 import io.atomix.variables.DistributedLong;
@@ -28,14 +26,14 @@ public final class DistributedValues {
     }
 
     public static DistributedValue<LeaderAndTerm> getLeaderInfo(Atomix atomix) {
-        return Futures.getUnchecked(atomix.<LeaderAndTerm>getValue("atlasdb/leader"));
+        return AtomixRetryer.getWithRetry(() -> atomix.<LeaderAndTerm>getValue("atlasdb/leader"));
     }
 
     public static DistributedLong getTimestampForClient(Atomix atomix, String client) {
-        return Futures.getUnchecked(atomix.getLong("atlasdb/timestamp/" + client));
+        return AtomixRetryer.getWithRetry(() -> atomix.getLong("atlasdb/timestamp/" + client));
     }
 
     public static DistributedGroup getTimeLockGroup(Atomix atomix) {
-        return Futures.getUnchecked(atomix.getGroup("atlasdb/timelock"));
+        return AtomixRetryer.getWithRetry(() -> atomix.getGroup("atlasdb/timelock"));
     }
 }
