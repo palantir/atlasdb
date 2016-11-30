@@ -33,19 +33,34 @@ import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 
 public class ImpossibleServerChecker implements Checker {
+    @Override
+    public CheckerResult check(List<Event> events) {
+        Visitor visitor = new Visitor();
+        events.forEach(event -> event.accept(visitor));
+        return ImmutableCheckerResult.builder()
+                .valid(visitor.valid)
+                .errors(visitor.errors())
+                .build();
+    }
 
     private static class Visitor implements EventVisitor {
         private static final long DUMMY_VALUE = -1L;
         private static final int DUMMY_PROCESS = -1;
+
+        private final Map<Integer, InvokeEvent> pendingReadForProcess = new HashMap<>();
+        private final NavigableSet<OkEvent> acknowledgedReadsOverTime = new TreeSet<>(
+                (first, second) -> Long.compare(first.time(), second.time()));
+
         private final List<Event> errors = new ArrayList<>();
         private boolean valid = true;
-        private NavigableSet<OkEvent> acknowledgedReadsOverTime = new TreeSet<>(Visitor::compareEventTime);
 
-        private static int compareEventTime(OkEvent first, OkEvent second) {
-            return Long.compare(first.time(), second.time());
+        public boolean valid() {
+            return valid;
         }
 
-        Map<Integer, InvokeEvent> pendingReadForProcess = new HashMap<>();
+        public List<Event> errors() {
+            return ImmutableList.copyOf(errors);
+        }
 
         @Override
         public void visit(InfoEvent event) {
@@ -59,7 +74,7 @@ public class ImpossibleServerChecker implements Checker {
 
         @Override
         public void visit(OkEvent event) {
-            Integer process = event.process();
+            int process = event.process();
 
             InvokeEvent invoke = pendingReadForProcess.get(process);
             if (invoke != null) {
@@ -86,15 +101,7 @@ public class ImpossibleServerChecker implements Checker {
             }
         }
 
-        public boolean valid() {
-            return valid;
-        }
-
-        public List<Event> errors() {
-            return ImmutableList.copyOf(errors);
-        }
-
-        private OkEvent lastAcknowledgedReadBefore(Long time) {
+        private OkEvent lastAcknowledgedReadBefore(long time) {
             OkEvent dummyOkEvent = ImmutableOkEvent.builder()
                     .time(time)
                     .process(DUMMY_PROCESS)
@@ -102,12 +109,5 @@ public class ImpossibleServerChecker implements Checker {
                     .build();
             return acknowledgedReadsOverTime.floor(dummyOkEvent);
         }
-    }
-
-    @Override
-    public CheckerResult check(List<Event> events) {
-        Visitor visitor = new Visitor();
-        events.forEach(event -> event.accept(visitor));
-        return ImmutableCheckerResult.builder().valid(visitor.valid).errors(visitor.errors()).build();
     }
 }

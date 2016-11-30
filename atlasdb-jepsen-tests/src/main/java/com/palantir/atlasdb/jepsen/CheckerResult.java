@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.jepsen;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
@@ -27,6 +28,15 @@ import com.palantir.atlasdb.jepsen.events.Event;
 @JsonDeserialize(as = ImmutableCheckerResult.class)
 @Value.Immutable
 public abstract class CheckerResult {
+    public static CheckerResult combine(List<CheckerResult> results) {
+        return ImmutableCheckerResult.builder()
+                .valid(results.stream()
+                        .allMatch(CheckerResult::valid))
+                .errors(results.stream()
+                        .flatMap(result -> result.errors().stream())
+                        .collect(Collectors.toList()))
+                .build();
+    }
 
     public abstract boolean valid();
 

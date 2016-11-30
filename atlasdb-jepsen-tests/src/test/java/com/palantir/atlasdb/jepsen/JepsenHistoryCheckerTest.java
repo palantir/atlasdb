@@ -109,7 +109,10 @@ public class JepsenHistoryCheckerTest {
                 .collect(Collectors.toList());
 
         Checker checker = mock(Checker.class);
-        CheckerResult result = ImmutableCheckerResult.builder().valid(valid).errors(listOfErrorsAsEvents).build();
+        CheckerResult result = ImmutableCheckerResult.builder()
+                .valid(valid)
+                .errors(listOfErrorsAsEvents)
+                .build();
         when(checker.check(any())).thenReturn(result);
         return checker;
     }
