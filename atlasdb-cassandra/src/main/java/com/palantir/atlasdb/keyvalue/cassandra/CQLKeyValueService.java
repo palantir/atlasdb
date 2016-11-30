@@ -1086,7 +1086,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         Collection<com.datastax.driver.core.TableMetadata> tables = cluster.getMetadata()
                 .getKeyspace(config.keyspace()).getTables();
         Set<TableReference> existingTables = Sets.newHashSet(Iterables.transform(tables,
-                input -> TableReference.createUnsafe(input.getName())));
+                input -> TableReference.createLowerCased(fromInternalTableName(input.getName()))));
 
         // ScrubberStore likes to call createTable before our setup gets called...
         if (!existingTables.contains(AtlasDbConstants.DEFAULT_METADATA_TABLE)) {
@@ -1095,8 +1095,10 @@ public class CQLKeyValueService extends AbstractKeyValueService {
                     AtlasDbConstants.EMPTY_TABLE_METADATA,
                     this);
         }
+        Set<TableReference> tablesToCreate = tableRefsToTableMetadata.keySet().stream().filter(
+                tableReference -> ! existingTables.contains(
+                                TableReference.createLowerCased(tableReference))).collect(Collectors.toSet());
 
-        Set<TableReference> tablesToCreate = Sets.difference(tableRefsToTableMetadata.keySet(), existingTables);
         for (TableReference tableRef : tablesToCreate) {
             try {
                 cqlKeyValueServices.createTableWithSettings(tableRef, tableRefsToTableMetadata.get(tableRef), this);

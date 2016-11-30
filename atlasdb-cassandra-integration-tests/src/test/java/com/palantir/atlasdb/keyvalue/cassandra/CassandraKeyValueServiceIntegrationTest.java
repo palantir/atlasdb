@@ -137,6 +137,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         TableReference table1 = TableReference.createFromFullyQualifiedName("ns.tAbLe");
         TableReference table2 = TableReference.createFromFullyQualifiedName("ns.table");
         TableReference table3 = TableReference.createFromFullyQualifiedName("ns.TABle");
+
+        keyValueService.dropTable(table1);
+        keyValueService.dropTable(table2);
+        keyValueService.dropTable(table3);
+
         keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(table2, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(table3, AtlasDbConstants.GENERIC_TABLE_METADATA);
