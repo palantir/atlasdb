@@ -113,13 +113,13 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
     }
 
     private static Map<String, TimeLockServices> createTimeLockServicesForClients(
-            AtomixReplica localNode,
+            AtomixReplica replica,
             Set<String> clients,
             LocalMember localMember,
             DistributedValue<LeaderAndTerm> leaderInfo) {
         ImmutableMap.Builder<String, TimeLockServices> clientToServices = ImmutableMap.builder();
         for (String client : clients) {
-            DistributedLong timestamp = DistributedValues.getTimestampForClient(localNode, client);
+            DistributedLong timestamp = DistributedValues.getTimestampForClient(replica, client);
             TimeLockServices timeLockServices = createInvalidatingTimeLockServices(
                     localMember,
                     leaderInfo,
