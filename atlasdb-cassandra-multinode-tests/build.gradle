@@ -17,6 +17,7 @@ dependencies {
     testCompile group: 'org.assertj', name: 'assertj-core', version: libVersions.assertj
 
     test {
+        include '**/CassandraSchemaLockTest.class'
         include '**/OneNodeDownTestSuite.class'
     }
 }
