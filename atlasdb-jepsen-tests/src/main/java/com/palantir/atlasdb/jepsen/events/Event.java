@@ -30,7 +30,8 @@ import one.util.streamex.EntryStream;
 @JsonSubTypes({
         @JsonSubTypes.Type(InfoEvent.class),
         @JsonSubTypes.Type(InvokeEvent.class),
-        @JsonSubTypes.Type(OkEvent.class)
+        @JsonSubTypes.Type(OkEvent.class),
+        @JsonSubTypes.Type(FailEvent.class)
         })
 public interface Event {
     ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -48,9 +49,8 @@ public interface Event {
         Map<String, Object> rawStringMap = OBJECT_MAPPER.convertValue(event, new TypeReference<Map<String, ?>>() {});
         return EntryStream.of(rawStringMap)
                 .mapKeys(Keyword::intern)
-                .mapValues(value -> value != null && value instanceof String ? Keyword.intern((String) value) : value)
                 .toMap();
     }
 
-    void accept(Checker visitor);
+    void accept(EventVisitor visitor);
 }

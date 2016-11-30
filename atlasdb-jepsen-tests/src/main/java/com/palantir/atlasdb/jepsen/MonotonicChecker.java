@@ -23,46 +23,59 @@ import java.util.Map;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
+import com.palantir.atlasdb.jepsen.events.EventVisitor;
+import com.palantir.atlasdb.jepsen.events.FailEvent;
 import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 
 public class MonotonicChecker implements Checker {
-    private final List<Event> errors = new ArrayList<>();
-    private final Map<Integer, OkEvent> latestEventPerProcess = new HashMap<>();
 
-    private boolean valid = true;
+    private static class Visitor implements EventVisitor {
+        private final List<Event> errors = new ArrayList<>();
+        private boolean valid = true;
+        private final Map<Integer, OkEvent> latestEventPerProcess = new HashMap<>();
 
-    @Override
-    public void visit(InfoEvent event) {
-    }
-
-    @Override
-    public void visit(InvokeEvent event) {
-    }
-
-    @Override
-    public void visit(OkEvent event) {
-        int process = event.process();
-
-        if (latestEventPerProcess.containsKey(process)) {
-            OkEvent previousEvent = latestEventPerProcess.get(process);
-            if (event.value() <= previousEvent.value()) {
-                valid = false;
-                errors.add(previousEvent);
-                errors.add(event);
-            }
+        @Override
+        public void visit(InfoEvent event) {
         }
-        latestEventPerProcess.put(process, event);
+
+        @Override
+        public void visit(InvokeEvent event) {
+        }
+
+        @Override
+        public void visit(OkEvent event) {
+            int process = event.process();
+
+            if (latestEventPerProcess.containsKey(process)) {
+                OkEvent previousEvent = latestEventPerProcess.get(process);
+                if (event.value() <= previousEvent.value()) {
+                    valid = false;
+                    errors.add(previousEvent);
+                    errors.add(event);
+                }
+            }
+            latestEventPerProcess.put(process, event);
+        }
+
+        @Override
+        public void visit(FailEvent event) {
+        }
+
+        public boolean valid() {
+            return valid;
+        }
+
+        public List<Event> errors() {
+            return ImmutableList.copyOf(errors);
+        }
     }
 
     @Override
-    public boolean valid() {
-        return valid;
-    }
-
-    @Override
-    public List<Event> errors() {
-        return ImmutableList.copyOf(errors);
+    public CheckerResult check(List<Event> events) {
+        Visitor visitor = new Visitor();
+        events.forEach(event -> event.accept(visitor));
+        return ImmutableCheckerResult.builder().valid(visitor.valid).errors(visitor.errors()).build();
     }
 }

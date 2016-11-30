@@ -17,10 +17,9 @@ package com.palantir.atlasdb.jepsen;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
-
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
 
@@ -31,10 +30,10 @@ public class MonotonicCheckerTest {
 
     @Test
     public void shouldPassOnNoEvents() {
-        MonotonicChecker monotonicChecker = runMonotonicChecker();
+        CheckerResult result = runMonotonicChecker();
 
-        assertThat(monotonicChecker.valid()).isTrue();
-        assertThat(monotonicChecker.errors()).isEmpty();
+        assertThat(result.valid()).isTrue();
+        assertThat(result.errors()).isEmpty();
     }
 
     @Test
@@ -50,10 +49,10 @@ public class MonotonicCheckerTest {
                 .value(0L)
                 .build();
 
-        MonotonicChecker monotonicChecker = runMonotonicChecker(event1, event2);
+        CheckerResult result = runMonotonicChecker(event1, event2);
 
-        assertThat(monotonicChecker.valid()).isFalse();
-        assertThat(monotonicChecker.errors()).containsExactly(event1, event2);
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).containsExactly(event1, event2);
     }
 
     @Test
@@ -69,10 +68,10 @@ public class MonotonicCheckerTest {
                 .value(0L)
                 .build();
 
-        MonotonicChecker monotonicChecker = runMonotonicChecker(event1, event2);
+        CheckerResult result = runMonotonicChecker(event1, event2);
 
-        assertThat(monotonicChecker.valid()).isFalse();
-        assertThat(monotonicChecker.errors()).containsExactly(event1, event2);
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).containsExactly(event1, event2);
     }
 
     @Test
@@ -98,15 +97,14 @@ public class MonotonicCheckerTest {
                 .value(3L)
                 .build();
 
-        MonotonicChecker monotonicChecker = runMonotonicChecker(event1, event2, event3, event4);
+        CheckerResult result = runMonotonicChecker(event1, event2, event3, event4);
 
-        assertThat(monotonicChecker.valid()).isTrue();
-        assertThat(monotonicChecker.errors()).isEmpty();
+        assertThat(result.valid()).isTrue();
+        assertThat(result.errors()).isEmpty();
     }
 
-    private static MonotonicChecker runMonotonicChecker(Event... events) {
+    private static CheckerResult runMonotonicChecker(Event... events) {
         MonotonicChecker monotonicChecker = new MonotonicChecker();
-        Arrays.asList(events).forEach(event -> event.accept(monotonicChecker));
-        return monotonicChecker;
+        return monotonicChecker.check(ImmutableList.copyOf(events));
     }
 }

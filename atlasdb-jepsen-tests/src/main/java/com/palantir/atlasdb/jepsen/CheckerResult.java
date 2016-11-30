@@ -13,25 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.jepsen.events;
+package com.palantir.atlasdb.jepsen;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.jepsen.events.Event;
 
-@JsonSerialize(as = ImmutableInfoEvent.class)
-@JsonDeserialize(as = ImmutableInfoEvent.class)
-@JsonIgnoreProperties(ignoreUnknown = true)
-@JsonTypeName(InfoEvent.TYPE)
+@JsonSerialize(as = ImmutableCheckerResult.class)
+@JsonDeserialize(as = ImmutableCheckerResult.class)
 @Value.Immutable
-public abstract class InfoEvent implements Event {
-    public static final String TYPE = "info";
-
-    @Override
-    public void accept(EventVisitor visitor) {
-        visitor.visit(this);
+public abstract class CheckerResult {
+    public static CheckerResult combine(List<CheckerResult> results) {
+        return ImmutableCheckerResult.builder()
+                .valid(results.stream()
+                        .allMatch(CheckerResult::valid))
+                .errors(results.stream()
+                        .flatMap(result -> result.errors().stream())
+                        .collect(Collectors.toList()))
+                .build();
     }
+
+    public abstract boolean valid();
+
+    public abstract List<Event> errors();
 }
