@@ -61,42 +61,45 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
                         .build())
                 .withTransport(createTransport(configuration.atomix().security()))
                 .build();
+        try {
+            localNode.bootstrap(configuration.cluster().servers()).join();
 
-        localNode.bootstrap(configuration.cluster().servers()).join();
+            DistributedGroup timeLockGroup = DistributedValues.getTimeLockGroup(localNode);
+            LocalMember localMember = AtomixRetryer.getWithRetry(timeLockGroup::join);
 
-        DistributedGroup timeLockGroup = DistributedValues.getTimeLockGroup(localNode);
-        LocalMember localMember = AtomixRetryer.getWithRetry(timeLockGroup::join);
-
-        DistributedValue<LeaderAndTerm> leaderInfo = DistributedValues.getLeaderInfo(localNode);
-        timeLockGroup.election().onElection(term -> {
-            LeaderAndTerm newLeaderInfo = ImmutableLeaderAndTerm.of(term.term(), term.leader().id());
-            while (true) {
-                LeaderAndTerm currentLeaderInfo = AtomixRetryer.getWithRetry(leaderInfo::get);
-                if (currentLeaderInfo != null && newLeaderInfo.term() <= currentLeaderInfo.term()) {
-                    log.info("Not setting the leader to {} since it is not newer than the current leader {}",
-                            newLeaderInfo, currentLeaderInfo);
-                    break;
+            DistributedValue<LeaderAndTerm> leaderInfo = DistributedValues.getLeaderInfo(localNode);
+            timeLockGroup.election().onElection(term -> {
+                LeaderAndTerm newLeaderInfo = ImmutableLeaderAndTerm.of(term.term(), term.leader().id());
+                while (true) {
+                    LeaderAndTerm currentLeaderInfo = AtomixRetryer.getWithRetry(leaderInfo::get);
+                    if (currentLeaderInfo != null && newLeaderInfo.term() <= currentLeaderInfo.term()) {
+                        log.info("Not setting the leader to {} since it is not newer than the current leader {}",
+                                newLeaderInfo, currentLeaderInfo);
+                        break;
+                    }
+                    log.debug("Updating the leader from {} to {}", currentLeaderInfo, newLeaderInfo);
+                    if (leaderInfo.compareAndSet(currentLeaderInfo, newLeaderInfo).join()) {
+                        log.info("Leader has been set to {}", newLeaderInfo);
+                        break;
+                    }
                 }
-                log.debug("Updating the leader from {} to {}", currentLeaderInfo, newLeaderInfo);
-                if (leaderInfo.compareAndSet(currentLeaderInfo, newLeaderInfo).join()) {
-                    log.info("Leader has been set to {}", newLeaderInfo);
-                    break;
-                }
+            });
+            Map<String, TimeLockServices> clientToServices = new HashMap<>();
+            for (String client : configuration.clients()) {
+                DistributedLong timestamp = DistributedValues.getTimestampForClient(localNode, client);
+                TimeLockServices timeLockServices = createInvalidatingTimeLockServices(
+                        localMember,
+                        leaderInfo,
+                        timestamp);
+                clientToServices.put(client, timeLockServices);
             }
-        });
 
-        Map<String, TimeLockServices> clientToServices = new HashMap<>();
-        for (String client : configuration.clients()) {
-            DistributedLong timestamp = DistributedValues.getTimestampForClient(localNode, client);
-            TimeLockServices timeLockServices = createInvalidatingTimeLockServices(
-                    localMember,
-                    leaderInfo,
-                    timestamp);
-            clientToServices.put(client, timeLockServices);
+            environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
+            environment.jersey().register(new TimeLockResource(clientToServices));
+        } catch (Exception e) {
+            localNode.shutdown();
+            throw e;
         }
-
-        environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
-        environment.jersey().register(new TimeLockResource(clientToServices));
     }
 
     private static TimeLockServices createInvalidatingTimeLockServices(
