@@ -62,44 +62,68 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
                 .withTransport(createTransport(configuration.atomix().security()))
                 .build();
         try {
-            localNode.bootstrap(configuration.cluster().servers()).join();
-
-            DistributedGroup timeLockGroup = DistributedValues.getTimeLockGroup(localNode);
-            LocalMember localMember = AtomixRetryer.getWithRetry(timeLockGroup::join);
-
-            DistributedValue<LeaderAndTerm> leaderInfo = DistributedValues.getLeaderInfo(localNode);
-            timeLockGroup.election().onElection(term -> {
-                LeaderAndTerm newLeaderInfo = ImmutableLeaderAndTerm.of(term.term(), term.leader().id());
-                while (true) {
-                    LeaderAndTerm currentLeaderInfo = AtomixRetryer.getWithRetry(leaderInfo::get);
-                    if (currentLeaderInfo != null && newLeaderInfo.term() <= currentLeaderInfo.term()) {
-                        log.info("Not setting the leader to {} since it is not newer than the current leader {}",
-                                newLeaderInfo, currentLeaderInfo);
-                        break;
-                    }
-                    log.debug("Updating the leader from {} to {}", currentLeaderInfo, newLeaderInfo);
-                    if (leaderInfo.compareAndSet(currentLeaderInfo, newLeaderInfo).join()) {
-                        log.info("Leader has been set to {}", newLeaderInfo);
-                        break;
-                    }
-                }
-            });
-            Map<String, TimeLockServices> clientToServices = new HashMap<>();
-            for (String client : configuration.clients()) {
-                DistributedLong timestamp = DistributedValues.getTimestampForClient(localNode, client);
-                TimeLockServices timeLockServices = createInvalidatingTimeLockServices(
-                        localMember,
-                        leaderInfo,
-                        timestamp);
-                clientToServices.put(client, timeLockServices);
-            }
-
-            environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
-            environment.jersey().register(new TimeLockResource(clientToServices));
+            setup(localNode, configuration, environment);
         } catch (Exception e) {
             localNode.shutdown();
             throw e;
         }
+    }
+
+    private void setup(AtomixReplica localNode, TimeLockServerConfiguration configuration, Environment environment) {
+        localNode.bootstrap(configuration.cluster().servers()).join();
+
+        DistributedGroup timeLockGroup = DistributedValues.getTimeLockGroup(localNode);
+        LocalMember localMember = AtomixRetryer.getWithRetry(timeLockGroup::join);
+
+        DistributedValue<LeaderAndTerm> leaderInfo = getDistributedLeaderAndTerm(localNode, timeLockGroup);
+        Map<String, TimeLockServices> clientToServices = createTimeLockServicesForClients(
+                localNode,
+                configuration,
+                localMember,
+                leaderInfo);
+
+        environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
+        environment.jersey().register(new TimeLockResource(clientToServices));
+    }
+
+    private DistributedValue<LeaderAndTerm> getDistributedLeaderAndTerm(
+            AtomixReplica localNode,
+            DistributedGroup timeLockGroup) {
+        DistributedValue<LeaderAndTerm> leaderInfo = DistributedValues.getLeaderInfo(localNode);
+        timeLockGroup.election().onElection(term -> {
+            LeaderAndTerm newLeaderInfo = ImmutableLeaderAndTerm.of(term.term(), term.leader().id());
+            while (true) {
+                LeaderAndTerm currentLeaderInfo = AtomixRetryer.getWithRetry(leaderInfo::get);
+                if (currentLeaderInfo != null && newLeaderInfo.term() <= currentLeaderInfo.term()) {
+                    log.info("Not setting the leader to {} since it is not newer than the current leader {}",
+                            newLeaderInfo, currentLeaderInfo);
+                    break;
+                }
+                log.debug("Updating the leader from {} to {}", currentLeaderInfo, newLeaderInfo);
+                if (leaderInfo.compareAndSet(currentLeaderInfo, newLeaderInfo).join()) {
+                    log.info("Leader has been set to {}", newLeaderInfo);
+                    break;
+                }
+            }
+        });
+        return leaderInfo;
+    }
+
+    private Map<String, TimeLockServices> createTimeLockServicesForClients(
+            AtomixReplica localNode,
+            TimeLockServerConfiguration configuration,
+            LocalMember localMember,
+            DistributedValue<LeaderAndTerm> leaderInfo) {
+        Map<String, TimeLockServices> clientToServices = new HashMap<>();
+        for (String client : configuration.clients()) {
+            DistributedLong timestamp = DistributedValues.getTimestampForClient(localNode, client);
+            TimeLockServices timeLockServices = createInvalidatingTimeLockServices(
+                    localMember,
+                    leaderInfo,
+                    timestamp);
+            clientToServices.put(client, timeLockServices);
+        }
+        return clientToServices;
     }
 
     private static TimeLockServices createInvalidatingTimeLockServices(
