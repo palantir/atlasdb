@@ -32,7 +32,7 @@ import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 
-public class ImpossibleServerChecker implements Checker {
+public class NonOverlappingReadsMonotonicChecker implements Checker {
     @Override
     public CheckerResult check(List<Event> events) {
         Visitor visitor = new Visitor();

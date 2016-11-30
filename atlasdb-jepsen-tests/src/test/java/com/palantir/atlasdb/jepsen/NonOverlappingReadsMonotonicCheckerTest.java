@@ -25,7 +25,7 @@ import com.palantir.atlasdb.jepsen.events.ImmutableFailEvent;
 import com.palantir.atlasdb.jepsen.events.ImmutableInvokeEvent;
 import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
 
-public class ImpossibleServerCheckerTest {
+public class NonOverlappingReadsMonotonicCheckerTest {
     private static final int PROCESS_0 = 0;
     private static final int PROCESS_1 = 1;
 
@@ -159,7 +159,7 @@ public class ImpossibleServerCheckerTest {
     }
 
     private static CheckerResult runChecker(Event... events) {
-        ImpossibleServerChecker checker = new ImpossibleServerChecker();
+        NonOverlappingReadsMonotonicChecker checker = new NonOverlappingReadsMonotonicChecker();
         return checker.check(ImmutableList.copyOf(events));
     }
 }
