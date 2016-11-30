@@ -24,8 +24,8 @@
     (setup! [_ _ node]
       (c/su
         (debian/install-jdk8!)
-        (c/upload "resources/atlasdb/atlasdb-timelock-server.tgz" "/")
         (info node "Uploading and unpacking timelock server")
+        (c/upload "resources/atlasdb/atlasdb-timelock-server.tgz" "/")
         (c/exec :mkdir "/atlasdb-timelock-server")
         (c/exec :tar :xf "/atlasdb-timelock-server.tgz" "-C" "/atlasdb-timelock-server" "--strip-components" "1")
         (c/upload "resources/atlasdb/timelock.yml" "/atlasdb-timelock-server/var/conf")
@@ -56,7 +56,6 @@
   "
   [timestamp-client]
   (reify client/Client
-
     (setup!
       [this test node]
       "Factory that returns an object implementing client/Client"

@@ -42,6 +42,13 @@ public final class TimestampClient {
         return createFromUris(endpointUris);
     }
 
+    public static TimestampService createFromUris(List<String> endpointUris) {
+        return AtlasDbHttpClients.createProxyWithFailover(
+                Optional.<SSLSocketFactory>absent(),
+                endpointUris,
+                TimestampService.class);
+    }
+
     public static TimestampService randomizeHostsAndCreate(List<String> hosts) {
         List<String> randomizedHosts = new ArrayList<>(hosts);
         Collections.shuffle(randomizedHosts);
@@ -72,11 +79,6 @@ public final class TimestampClient {
 
     private static List<String> hostnamesToEndpointUris(List<String> hosts) {
         return Lists.transform(hosts, host -> String.format("http://%s:%d/%s", host, PORT, NAMESPACE));
-    }
-
-    public static TimestampService createFromUris(List<String> endpointUris) {
-        return AtlasDbHttpClients.createProxyWithFailover(Optional.<SSLSocketFactory>absent(), endpointUris,
-                TimestampService.class);
     }
 
     private static boolean hostIsListening(String host) {
