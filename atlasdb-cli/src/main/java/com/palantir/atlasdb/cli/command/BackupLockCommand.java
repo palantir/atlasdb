@@ -15,9 +15,9 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.persistentlock.DeletionLock;
 import com.palantir.atlasdb.persistentlock.LockEntry;
@@ -30,7 +30,7 @@ import io.airlift.airline.Option;
 
 @Command(name = "backup-lock", description = "Acquire or release the backup lock. Used to to prevent deletions")
 public class BackupLockCommand extends SingleBackendCommand {
-    private static final Logger log = LoggerFactory.getLogger(BackupLockCommand.class);
+    private static final OutputPrinter log = new OutputPrinter(LoggerFactory.getLogger(BackupLockCommand.class));
 
     @Option(name = {"-a", "--acquire"},
             description = "Acquire a backup lock")

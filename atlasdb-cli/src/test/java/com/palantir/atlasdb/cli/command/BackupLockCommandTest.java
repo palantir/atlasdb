@@ -64,8 +64,10 @@ public class BackupLockCommandTest {
         try (SingleBackendCliTestRunner runner = makeRunner(LOCK_COMMAND_NAME, "--acquire")) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
 
-            runner.run();
+            String stdout = runner.run();
 
+            assertThat(stdout, containsString("Successfully acquired deletion lock"));
+            assertThat(stdout, containsString("lockId="));
             assertThat(getAllLocks(services.getKeyValueService()).size(), equalTo(1));
         }
     }
@@ -77,8 +79,10 @@ public class BackupLockCommandTest {
             KeyValueService keyValueService = services.getKeyValueService();
             insertDeletionLock(keyValueService);
 
-            runner.run();
+            String stdout = runner.run();
 
+            assertThat(stdout, containsString("This persistent lock is now released:"));
+            assertThat(stdout, containsString("lockId="));
             assertThat(getAllLocks(keyValueService).size(), equalTo(0));
         }
     }

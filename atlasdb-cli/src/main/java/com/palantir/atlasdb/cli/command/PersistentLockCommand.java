@@ -17,9 +17,9 @@ package com.palantir.atlasdb.cli.command;
 
 import java.util.Set;
 
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.persistentlock.LockEntry;
 import com.palantir.atlasdb.persistentlock.PersistentLock;
@@ -32,7 +32,7 @@ import io.airlift.airline.Option;
 
 @Command(name = "persistent-lock", description = "Manipulate persistent locks - use with caution!")
 public class PersistentLockCommand extends SingleBackendCommand {
-    private static final Logger log = LoggerFactory.getLogger(PersistentLockCommand.class);
+    private static final OutputPrinter log = new OutputPrinter(LoggerFactory.getLogger(PersistentLockCommand.class));
 
     @Option(name = {"-l", "--list"},
             description = "List all the persistent locks currently taken")

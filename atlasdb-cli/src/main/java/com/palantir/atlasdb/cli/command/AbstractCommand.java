@@ -80,7 +80,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
         return offline;
     }
 
-    protected boolean exactlyOneParameterIsSet(Object... values) {
+    static boolean exactlyOneParameterIsSet(Object... values) {
         return 1 == Arrays.stream(values)
                 .map(o -> o instanceof Boolean ? o : o != null)
                 .filter(v -> v.equals(true))
