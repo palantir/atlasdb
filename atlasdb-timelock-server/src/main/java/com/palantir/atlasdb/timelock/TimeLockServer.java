@@ -66,18 +66,18 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
                 .build();
         try {
             AtomixRetryer.getWithRetry(() -> replica.bootstrap(configuration.cluster().servers()));
-            environment.lifecycle().addLifeCycleListener(new AbstractLifeCycle.AbstractLifeCycleListener() {
-                @Override
-                public void lifeCycleStopped(LifeCycle event) {
-                    AtomixRetryer.getWithRetry(replica::shutdown);
-                }
-            });
-
             run(configuration, environment, replica);
         } catch (Exception e) {
-            replica.shutdown();
+            AtomixRetryer.getWithRetry(replica::shutdown);
             throw e;
         }
+
+        environment.lifecycle().addLifeCycleListener(new AbstractLifeCycle.AbstractLifeCycleListener() {
+            @Override
+            public void lifeCycleStopped(LifeCycle event) {
+                AtomixRetryer.getWithRetry(replica::shutdown);
+            }
+        });
     }
 
     private static void run(TimeLockServerConfiguration configuration, Environment environment, AtomixReplica replica) {
