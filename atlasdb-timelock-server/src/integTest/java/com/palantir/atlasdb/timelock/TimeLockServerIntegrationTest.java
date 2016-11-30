@@ -52,7 +52,7 @@ import io.atomix.variables.DistributedValue;
 import io.dropwizard.testing.ResourceHelpers;
 import io.dropwizard.testing.junit.DropwizardAppRule;
 
-public class TimeLockServerTest {
+public class TimeLockServerIntegrationTest {
     private static final String NOT_FOUND_CODE = "404";
     private static final String SERVICE_NOT_AVAILABLE_CODE = "503";
 
