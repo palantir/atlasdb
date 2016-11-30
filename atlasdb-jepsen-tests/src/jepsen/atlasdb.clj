@@ -59,7 +59,7 @@
     (setup!
       [this test node]
       "Factory that returns an object implementing client/Client"
-        (create-client (TimestampClient/randomizeHostsAndCreate '("n1" "n2" "n3" "n4" "n5"))))
+        (create-client (TimestampClient/create '("n1" "n2" "n3" "n4" "n5"))))
 
     (invoke!
       [this test op]
