@@ -46,6 +46,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -110,7 +111,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    AtlasDbConstraintCheckingMode constraintCheckingMode,
                                    Long transactionTimeoutMillis,
                                    TransactionReadSentinelBehavior readSentinelBehavior,
-                                   boolean allowHiddenTableAccess) {
+                                   boolean allowHiddenTableAccess,
+                                   TimestampCache timestampCache) {
         super(keyValueService,
               lockService,
               timestampService,
@@ -124,7 +126,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               constraintCheckingMode,
               transactionTimeoutMillis,
               readSentinelBehavior,
-              allowHiddenTableAccess);
+              allowHiddenTableAccess,
+              timestampCache);
     }
 
     @Override
@@ -716,7 +719,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 transactionReadTimeoutMillis,
                 getReadSentinelBehavior(),
-                allowHiddenTableAccess) {
+                allowHiddenTableAccess,
+                timestampValidationReadCache) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,
