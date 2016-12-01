@@ -13,15 +13,15 @@ machine:
 
 checkout:
   post:
-    - sudo service clamav-freshclam stop
-    - sudo service couchdb stop
-    - sudo service memcached stop
-    - sudo service mongodb stop
-    - sudo service mysql stop
-    - sudo service postgresql stop
-    - sudo service rabbitmq-server stop
-    - sudo service redis-server stop
-    - sudo service zookeeper stop
+    - sudo service clamav-freshclam stop || true
+    - sudo service couchdb stop || true
+    - sudo service memcached stop || true
+    - sudo service mongodb stop || true
+    - sudo service mysql stop || true
+    - sudo service postgresql stop || true
+    - sudo service rabbitmq-server stop || true
+    - sudo service redis-server stop || true
+    - sudo service zookeeper stop || true
 
 general:
   artifacts:
