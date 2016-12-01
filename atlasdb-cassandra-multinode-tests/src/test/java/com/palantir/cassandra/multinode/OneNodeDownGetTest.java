@@ -20,7 +20,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -40,7 +39,6 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 
@@ -97,8 +95,7 @@ public class OneNodeDownGetTest {
 
     @Test
     public void canGetAllTableNames() {
-        Iterator<TableReference> it = OneNodeDownTestSuite.db.getAllTableNames().iterator();
-        assertThat(it).contains(OneNodeDownTestSuite.TEST_TABLE);
+        assertTrue(OneNodeDownTestSuite.tableExists(OneNodeDownTestSuite.TEST_TABLE));
     }
 
     @Test
@@ -124,7 +121,6 @@ public class OneNodeDownGetTest {
 
         assertThat(it).containsExactly(expectedRowResult);
     }
-
 
     @Test
     public void canGetAllTimestamps() {

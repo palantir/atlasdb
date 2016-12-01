@@ -116,7 +116,6 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -776,10 +775,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                        BatchColumnRangeSelection columnRangeSelection) {
         return (numRawResults < columnRangeSelection.getBatchHint())
                 || (completedCell
-                        && (RangeRequests.isLastRowName(lastCol)
-                                || Arrays.equals(
-                                        RangeRequests.nextLexicographicName(lastCol),
-                                        columnRangeSelection.getEndCol())));
+                    && (RangeRequests.isLastRowName(lastCol)
+                        || Arrays.equals(
+                            RangeRequests.nextLexicographicName(lastCol),
+                            columnRangeSelection.getEndCol())));
     }
 
     private byte[] getNextColumnRangeColumn(boolean completedCell, byte[] lastCol) {
@@ -1114,8 +1113,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                     final Map<Cell, Collection<Long>> cellVersionsMap) {
         try {
             clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
-
                 int numVersions = 0;
+
                 @Override
                 public Void apply(Client client) throws Exception {
                     // Delete must delete in the order of timestamp and we don't trust batch_mutate to do it
@@ -1304,8 +1303,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                 for (TableReference table : tablesToDrop) {
                     CassandraVerifier.sanityCheckTableName(table);
-
                     if (existingTables.contains(table)) {
+                        if (client.describe_schema_versions().containsKey("UNREACHABLE")) {
+                            throw new UnavailableException();
+                        }
                         client.system_drop_column_family(internalTableName(table));
                         putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
                     } else {
@@ -1319,7 +1320,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 return null;
             });
         } catch (UnavailableException e) {
-            throw new PalantirRuntimeException("Dropping tables requires all Cassandra nodes to be up and available.");
+            throw new IllegalStateException("Dropping tables requires all Cassandra nodes to be up and available.");
         }
     }
 
@@ -1428,12 +1429,15 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         clientPool.runWithRetry(client -> {
             for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
                 try {
+                    if (client.describe_schema_versions().containsKey("UNREACHABLE")) {
+                        throw new UnavailableException();
+                    }
                     client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
                             configManager.getConfig().keyspace(),
                             tableEntry.getKey(),
                             tableEntry.getValue()));
                 } catch (UnavailableException e) {
-                    throw new PalantirRuntimeException(
+                    throw new IllegalStateException(
                             "Creating tables requires all Cassandra nodes to be up and available.");
                 } catch (TException thriftException) {
                     if (thriftException.getMessage() != null

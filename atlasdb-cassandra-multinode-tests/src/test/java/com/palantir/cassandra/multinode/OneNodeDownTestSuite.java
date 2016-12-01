@@ -15,6 +15,7 @@ package com.palantir.cassandra.multinode;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -138,5 +139,15 @@ public final class OneNodeDownTestSuite {
     protected static void verifyValue(Cell cell, Value value) {
         Map<Cell, Value> result = db.get(TEST_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE));
         assertThat(value).isEqualTo(result.get(cell));
+    }
+
+    protected static boolean tableExists(TableReference tableReference) {
+        Iterator<TableReference> it = OneNodeDownTestSuite.db.getAllTableNames().iterator();
+        while (it.hasNext()) {
+            if (it.next().equals(tableReference)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
