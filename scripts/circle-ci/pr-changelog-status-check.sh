@@ -9,6 +9,7 @@ cd $(dirname $0)
 CURRENT_REF=$(git log -1 --format="%H")
 CHANGELOG_COMMIT_FLAG=$(git log --pretty=format:%B origin/develop..HEAD | grep -iq '\[no release notes\]')$?
 CHANGELOG_MODIFIED=$(git log --name-only --pretty=format: origin/develop..HEAD | grep -q $CHANGELOG)$?
+CHANGED_FILES=$(git log --name-only --pretty=format: origin/develop..HEAD)
 
 success() {
     message=$1
@@ -31,7 +32,9 @@ fail() {
     fi
 }
 
-if [ $CHANGELOG_COMMIT_FLAG -eq 0 ]; then
+if [ -z "$CHANGED_FILES" ]; then
+    success "No files have been changed"
+elif [ $CHANGELOG_COMMIT_FLAG -eq 0 ]; then
     success "Bypassed with commit flag"
 elif [ $CHANGELOG_MODIFIED -eq 0 ]; then
     success "release_notes.rst updated"
