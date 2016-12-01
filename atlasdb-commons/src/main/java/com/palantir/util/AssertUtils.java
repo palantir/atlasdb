@@ -27,6 +27,7 @@ import com.google.common.collect.Sets;
 public class AssertUtils {
 
     private static final Logger log = LoggerFactory.getLogger(AssertUtils.class);
+
     public static <T> boolean nonNullItems(Collection<T> c) {
         for (T t : c) {
             if (t == null) return false;
