@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.jepsen;
+package com.palantir.atlasdb.http;
 
 import java.net.Socket;
 import java.util.List;
@@ -24,7 +24,6 @@ import javax.net.ssl.SSLSocketFactory;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.jayway.awaitility.Awaitility;
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.timestamp.TimestampService;
 
 public final class TimestampClient {
@@ -57,7 +56,7 @@ public final class TimestampClient {
     }
 
     private static TimestampService createFromUris(List<String> endpointUris) {
-        return AtlasDbHttpClients.createProxyWithFailover(
+        return AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(
                 Optional.<SSLSocketFactory>absent(),
                 endpointUris,
                 TimestampService.class);
