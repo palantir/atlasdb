@@ -1062,7 +1062,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
                 });
             } catch (UnavailableException e) {
-                throw new PalantirRuntimeException("Truncating tables requires all Cassandra nodes"
+                throw new IllegalStateException("Truncating tables requires all Cassandra nodes"
                         + " to be up and available.");
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
@@ -1164,6 +1164,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             + numVersions + " total versions of " + cellVersionsMap.size() + " keys)";
                 }
             });
+        } catch (UnavailableException e) {
+            throw new IllegalStateException("Deleting requires all Cassandra nodes to be up and available.");
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
