@@ -42,15 +42,11 @@ develop
          - Change
 
     *    - |fixed|
-<<<<<<< HEAD
          - Multinode Cassandra: ``createTable(s)`` and ``dropTable(s)`` now throw an IllegalStateException if a node is down in a multinode Cassandra cluster.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
 
     *    - |fixed|
          - Multinode Cassandra: ``getAllTimestamps`` and ``getRangeOfTimestamps`` now work on a multinode Cassandra cluster with one down node.
-=======
-         - Multinode Cassandra: ``getAllTimestamps`` and ``getRangeOfTimestamps`` now work as long as quorum for reading is achieved.
->>>>>>> c48323ac3afd58d9120235154e2035330cefc3c4
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1289>`__)
 
     *    - |improved|

@@ -44,7 +44,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 
-
 public class OneNodeDownGetTest {
 
     ImmutableMap<Cell, Value> expectedRow = ImmutableMap.of(
@@ -125,7 +124,6 @@ public class OneNodeDownGetTest {
 
         assertThat(it).containsExactly(expectedRowResult);
     }
-
 
     @Test
     public void canGetAllTimestamps() {
