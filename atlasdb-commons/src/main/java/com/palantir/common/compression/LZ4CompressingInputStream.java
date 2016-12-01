@@ -63,7 +63,7 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
     }
 
     private void writeMagicValue() {
-        byte[] magicValue = LZ4Streams.littleEndianIntToBytes(LZ4Streams.MAGIC_VALUE);
+        byte[] magicValue = LZ4Streams.intToLittleEndianBytes(LZ4Streams.MAGIC_VALUE);
         copyToStartOfBuffer(magicValue, 0, 4);
     }
 
@@ -110,14 +110,14 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
         maxPosition = LZ4Streams.BLOCK_HEADER_LENGTH;
         if (frameDescriptor.hasContentChecksum) {
             // Write the final content hash
-            byte[] hashValue = LZ4Streams.littleEndianIntToBytes(hasher.getValue());
+            byte[] hashValue = LZ4Streams.intToLittleEndianBytes(hasher.getValue());
             System.arraycopy(hashValue, 0, buffer, LZ4Streams.BLOCK_HEADER_LENGTH, 4);
             maxPosition = LZ4Streams.BLOCK_HEADER_LENGTH + 4;
         }
     }
 
     private void writeBlockSize(int length) throws IOException {
-        byte[] blockSize = LZ4Streams.littleEndianIntToBytes(length);
+        byte[] blockSize = LZ4Streams.intToLittleEndianBytes(length);
         copyToStartOfBuffer(blockSize, 0, 4);
     }
 

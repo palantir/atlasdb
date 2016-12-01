@@ -51,13 +51,13 @@ public final class LZ4Streams {
         return BLOCK_HEADER_LENGTH + compressor.maxCompressedLength(frameDescriptor.maximumBlockSize);
     }
 
-    static byte[] littleEndianIntToBytes(int value) {
+    static byte[] intToLittleEndianBytes(int value) {
         ByteBuffer buffer = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(value);
         buffer.flip();
         return buffer.array();
     }
 
-    static int littleEndianIntFromBytes(byte[] b, int offset) {
+    static int intFromLittleEndianBytes(byte[] b, int offset) {
         ByteBuffer buffer = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).put(b, offset, 4);
         buffer.flip();
         return buffer.getInt();

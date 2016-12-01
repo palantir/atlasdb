@@ -58,7 +58,7 @@ public class LZ4DecompressingInputStream extends BufferedDelegateInputStream {
                 new byte[LZ4Streams.MAGIC_LENGTH + LZ4Streams.FRAME_DESCRIPTOR_LENGTH
                          + LZ4Streams.BLOCK_HEADER_LENGTH];
         nextLength = readBlock(frameHeader, frameHeader.length);
-        Preconditions.checkState(LZ4Streams.littleEndianIntFromBytes(frameHeader, 0) == LZ4Streams.MAGIC_VALUE,
+        Preconditions.checkState(LZ4Streams.intFromLittleEndianBytes(frameHeader, 0) == LZ4Streams.MAGIC_VALUE,
                 "Input is not an lz4 stream that this input stream can decompress");
         return LZ4FrameDescriptor.fromByteArray(Arrays.copyOfRange(frameHeader,
                 LZ4Streams.MAGIC_LENGTH, LZ4Streams.MAGIC_LENGTH + LZ4Streams.FRAME_DESCRIPTOR_LENGTH));
@@ -77,7 +77,7 @@ public class LZ4DecompressingInputStream extends BufferedDelegateInputStream {
             bytesReadSoFar += numRead;
         }
 
-        return LZ4Streams.littleEndianIntFromBytes(b, length - 4);
+        return LZ4Streams.intFromLittleEndianBytes(b, length - 4);
     }
 
     // Refills the internal buffer by decompressing, if applicable, the
@@ -129,7 +129,7 @@ public class LZ4DecompressingInputStream extends BufferedDelegateInputStream {
             throw new EOFException("Could not verify stream checksum because stream ended prematurely");
         }
         int computedChecksum = hasher.getValue();
-        int providedChecksum = LZ4Streams.littleEndianIntFromBytes(bytes, 0);
+        int providedChecksum = LZ4Streams.intFromLittleEndianBytes(bytes, 0);
         Preconditions.checkState(computedChecksum == providedChecksum,
                 "LZ4 content did not match checksum: content sums to %s, but checksum was %s",
                 computedChecksum, providedChecksum);
