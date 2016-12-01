@@ -28,6 +28,6 @@ public class OneNodeDownDeleteTest {
     public void deletingThrows() {
         assertThatThrownBy(() -> OneNodeDownTestSuite.db.delete(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_1,
-                        OneNodeDownTestSuite.DEFAULT_TIMESTAMP))).isInstanceOf(PalantirRuntimeException.class);
+                        OneNodeDownTestSuite.DEFAULT_TIMESTAMP))).isInstanceOf(IllegalStateException.class);
     }
 }

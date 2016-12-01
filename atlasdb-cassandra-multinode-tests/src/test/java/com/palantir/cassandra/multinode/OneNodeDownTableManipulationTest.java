@@ -75,6 +75,6 @@ public class OneNodeDownTableManipulationTest {
     @Test
     public void truncateTableThrows() {
         assertThatThrownBy(() -> OneNodeDownTestSuite.db.truncateTable(OneNodeDownTestSuite.TEST_TABLE)).isInstanceOf(
-                PalantirRuntimeException.class);
+                IllegalStateException.class);
     }
 }
