@@ -57,8 +57,11 @@ public final class OracleDdlTable implements DbDdlTable {
         this.oracleTableNameGetter = oracleTableNameGetter;
     }
 
-    public static OracleDdlTable create(TableReference tableRef, ConnectionSupplier conns, OracleDdlConfig config) {
-        OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(config, conns, tableRef);
+    public static OracleDdlTable create(
+            TableReference tableRef,
+            ConnectionSupplier conns,
+            OracleDdlConfig config,
+            OracleTableNameGetter oracleTableNameGetter) {
         return new OracleDdlTable(config, conns, tableRef, oracleTableNameGetter);
     }
 
@@ -88,7 +91,7 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     private void createTable(boolean needsOverflow) {
-        String shortTableName = oracleTableNameGetter.generateShortTableName();
+        String shortTableName = oracleTableNameGetter.generateShortTableName(conns, tableRef);
         executeIgnoringError(
                 "CREATE TABLE " + shortTableName + " ("
                 + "  row_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL,"
@@ -100,11 +103,11 @@ public final class OracleDdlTable implements DbDdlTable {
                 + " PRIMARY KEY (row_name, col_name, ts) "
                 + ") organization index compress overflow",
                 OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
-        putTableNameMapping(oracleTableNameGetter.getPrefixedTableName(), shortTableName);
+        putTableNameMapping(oracleTableNameGetter.getPrefixedTableName(tableRef), shortTableName);
     }
 
     private void createOverflowTable() {
-        final String shortOverflowTableName = oracleTableNameGetter.generateShortOverflowTableName();
+        final String shortOverflowTableName = oracleTableNameGetter.generateShortOverflowTableName(conns, tableRef);
         executeIgnoringError(
                 "CREATE TABLE " + shortOverflowTableName + " ("
                 + "  id  NUMBER(38) NOT NULL, "
@@ -112,7 +115,7 @@ public final class OracleDdlTable implements DbDdlTable {
                 + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortOverflowTableName) + " PRIMARY KEY (id)"
                 + ")",
                 OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
-        putTableNameMapping(oracleTableNameGetter.getPrefixedOverflowTableName(), shortOverflowTableName);
+        putTableNameMapping(oracleTableNameGetter.getPrefixedOverflowTableName(tableRef), shortOverflowTableName);
     }
 
     private void putTableNameMapping(String fullTableName, String shortTableName) {
@@ -144,10 +147,10 @@ public final class OracleDdlTable implements DbDdlTable {
     @Override
     public void drop() {
         try {
-            dropTableInternal(oracleTableNameGetter.getPrefixedTableName(),
-                    oracleTableNameGetter.getInternalShortTableName());
-            dropTableInternal(oracleTableNameGetter.getPrefixedOverflowTableName(),
-                    oracleTableNameGetter.getInternalShortOverflowTableName());
+            dropTableInternal(oracleTableNameGetter.getPrefixedTableName(tableRef),
+                    oracleTableNameGetter.getInternalShortTableName(conns, tableRef));
+            dropTableInternal(oracleTableNameGetter.getPrefixedOverflowTableName(tableRef),
+                    oracleTableNameGetter.getInternalShortOverflowTableName(conns, tableRef));
         } catch (TableMappingNotFoundException ex) {
             // If table does not exist, do nothing
         }
@@ -175,12 +178,13 @@ public final class OracleDdlTable implements DbDdlTable {
     @Override
     public void truncate() {
         try {
-            conns.get().executeUnregisteredQuery("TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortTableName());
+            conns.get().executeUnregisteredQuery(
+                    "TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef));
         } catch (TableMappingNotFoundException | RuntimeException e) {
             throw new IllegalStateException(
                     String.format(
                         "Truncate called on a table (%s) that did not exist",
-                        oracleTableNameGetter.getPrefixedTableName()));
+                        oracleTableNameGetter.getPrefixedTableName(tableRef)));
         }
         truncateOverflowTableIfItExists();
     }
@@ -191,14 +195,14 @@ public final class OracleDdlTable implements DbDdlTable {
                 && config.overflowMigrationState() != OverflowMigrationState.UNSTARTED) {
             try {
                 conns.get().executeUnregisteredQuery(
-                        "TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortOverflowTableName());
+                        "TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortOverflowTableName(conns, tableRef));
             } catch (TableMappingNotFoundException | RuntimeException e) {
                 throw new IllegalStateException(
                         String.format(
                                 "Truncate called on a table (%s) that was supposed to have an overflow table (%s),"
                                 + " but that overflow table appears to not exist",
-                                oracleTableNameGetter.getPrefixedTableName(),
-                                oracleTableNameGetter.getPrefixedOverflowTableName()));
+                                oracleTableNameGetter.getPrefixedTableName(tableRef),
+                                oracleTableNameGetter.getPrefixedOverflowTableName(tableRef)));
             }
         }
     }
@@ -232,7 +236,8 @@ public final class OracleDdlTable implements DbDdlTable {
         if (config.enableOracleEnterpriseFeatures()) {
             try {
                 conns.get().executeUnregisteredQuery(
-                        "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName() + " MOVE ONLINE");
+                        "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
+                                + " MOVE ONLINE");
             } catch (PalantirSqlException e) {
                 log.error("Tried to clean up {} bloat after a sweep operation,"
                         + " but underlying Oracle database or configuration does not support this"

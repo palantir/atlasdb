@@ -37,11 +37,15 @@ public class SimpleDbWriteTable implements DbWriteTable {
     protected final TableReference tableRef;
     private final PrefixedTableNames prefixedTableNames;
 
-    public SimpleDbWriteTable(DdlConfig config, ConnectionSupplier conns, TableReference tableRef) {
+    public SimpleDbWriteTable(
+            DdlConfig config,
+            ConnectionSupplier conns,
+            TableReference tableRef,
+            PrefixedTableNames prefixedTableNames) {
         this.config = config;
         this.conns = conns;
         this.tableRef = tableRef;
-        this.prefixedTableNames = new PrefixedTableNames(config, conns);
+        this.prefixedTableNames = prefixedTableNames;
     }
 
     @Override

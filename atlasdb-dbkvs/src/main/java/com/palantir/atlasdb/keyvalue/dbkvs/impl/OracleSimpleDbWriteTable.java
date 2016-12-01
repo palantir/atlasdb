@@ -17,16 +17,14 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 
-public class PrefixedTableNames {
-    private DdlConfig config;
-
-    public PrefixedTableNames(DdlConfig config) {
-        this.config = config;
+public class OracleSimpleDbWriteTable extends SimpleDbWriteTable {
+    public OracleSimpleDbWriteTable(
+            DdlConfig config,
+            ConnectionSupplier conns,
+            OracleTableNameGetter oracleTableNameGetter,
+            TableReference tableRef) {
+        super(config, conns, tableRef, new OraclePrefixedTableNames(config, conns, oracleTableNameGetter));
     }
-
-    public String get(TableReference tableRef) {
-        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
-    }
-
 }
