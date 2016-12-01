@@ -24,10 +24,11 @@ fail() {
     message=$1
     if [ -z "$GITHUB_AUTH_TOKEN" ]; then
         echo "$message"
+        exit 1
     else
         curl -X POST -f --silent --header "Authorization: token $GITHUB_AUTH_TOKEN" -d '{"state": "failure", "description": "$message", "context": "changelog"}' "https://api.github.com/repos/palantir/atlasdb/statuses/$CURRENT_REF" >/dev/null
+        exit 0
     fi
-    exit 1
 }
 
 if [ $CHANGELOG_COMMIT_FLAG -eq 0 ]; then
