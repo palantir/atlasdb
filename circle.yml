@@ -11,18 +11,6 @@ machine:
   services:
     - docker
 
-checkout:
-  post:
-    - sudo service clamav-freshclam stop || true
-    - sudo service couchdb stop || true
-    - sudo service memcached stop || true
-    - sudo service mongodb stop || true
-    - sudo service mysql stop || true
-    - sudo service postgresql stop || true
-    - sudo service rabbitmq-server stop || true
-    - sudo service redis-server stop || true
-    - sudo service zookeeper stop || true
-
 general:
   artifacts:
     - "build/reports/profile"
@@ -34,7 +22,6 @@ dependencies:
   override:
     - ./scripts/time-cmd.sh ./gradlew --profile --parallel resolveConfigurations
     - sudo pip install sphinx sphinx_rtd_theme
-    - scripts/circle-ci/pr-changelog-status-check.sh
 
 test:
   pre:
@@ -50,8 +37,6 @@ test:
     - ./scripts/time-cmd.sh ./scripts/circle-ci/ensure-repo-clean.sh
     - ./scripts/time-cmd.sh ./gradlew --profile jacocoFullReport -x classes:
         parallel: true
-    - bash <(curl -s https://codecov.io/bash):
-        parallel: true
     - mkdir -p $CIRCLE_TEST_REPORTS/junit/:
         parallel: true
     - find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;:
@@ -64,15 +49,3 @@ test:
         parallel: true
     - find . -type d -regex ".*/build/reports/findbugs" | sed 's#\./\(\(.*\)/build/reports/findbugs\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/findbugs/\2#' | bash:
         parallel: true
-
-deployment:
-  publish-docs:
-    branch: develop
-    owner: palantir
-    commands:
-      - ./scripts/circle-ci/publish-github-page.sh
-  bintray:
-    tag: /[0-9]+(\.[0-9]+){2}(-alpha|-beta)?(\+[0-9]{3})?/
-    owner: palantir
-    commands:
-      - ./gradlew bintrayUpload -x check
