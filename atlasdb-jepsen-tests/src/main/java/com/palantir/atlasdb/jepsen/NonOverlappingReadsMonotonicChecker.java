@@ -38,7 +38,7 @@ public class NonOverlappingReadsMonotonicChecker implements Checker {
         Visitor visitor = new Visitor();
         events.forEach(event -> event.accept(visitor));
         return ImmutableCheckerResult.builder()
-                .valid(visitor.valid)
+                .valid(visitor.valid())
                 .errors(visitor.errors())
                 .build();
     }
