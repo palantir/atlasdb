@@ -30,7 +30,6 @@ import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
-
 public class OneNodeDownMetadataTest {
 
     @Test
@@ -43,7 +42,6 @@ public class OneNodeDownMetadataTest {
     @Test
     public void canGetMetadataForAll() {
         Map<TableReference, byte[]> metadataMap = OneNodeDownTestSuite.db.getMetadataForTables();
-        assertEquals(1, metadataMap.size());
         assertEquals(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(AtlasDbConstants.GENERIC_TABLE_METADATA),
                 TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataMap.get(OneNodeDownTestSuite.TEST_TABLE)));
     }

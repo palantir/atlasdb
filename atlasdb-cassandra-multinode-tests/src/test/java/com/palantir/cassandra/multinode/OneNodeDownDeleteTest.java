@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMultimap;
-import com.palantir.common.exception.PalantirRuntimeException;
 
 public class OneNodeDownDeleteTest {
 

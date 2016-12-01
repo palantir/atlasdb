@@ -54,7 +54,8 @@ public class OneNodeDownPutTest {
 
     @Test
     public void canMultiPut() {
-        ImmutableMap<Cell, byte[]> entries = ImmutableMap.of(OneNodeDownTestSuite.CELL_2_1, newContents,
+        ImmutableMap<Cell, byte[]> entries = ImmutableMap.of(
+                OneNodeDownTestSuite.CELL_2_1, newContents,
                 OneNodeDownTestSuite.CELL_2_2, newContents);
 
         OneNodeDownTestSuite.db.multiPut(ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, entries), newTimestamp);

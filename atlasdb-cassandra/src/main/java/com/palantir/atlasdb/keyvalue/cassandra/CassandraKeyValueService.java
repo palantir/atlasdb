@@ -1059,8 +1059,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
                 });
             } catch (UnavailableException e) {
-                throw new IllegalStateException(
-                        "Truncating tables requires all Cassandra nodes to be up and available.");
+                throw new IllegalStateException("Truncating tables requires all Cassandra nodes"
+                        + " to be up and available.");
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
             }
@@ -1290,35 +1290,31 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private void dropTablesInternal(final Set<TableReference> tablesToDrop) throws Exception {
         try {
-            clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
-                @Override
-                public Void apply(Client client) throws Exception {
-                    KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
-                    Set<TableReference> existingTables = Sets.newHashSet();
+            clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
+                KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
+                Set<TableReference> existingTables = Sets.newHashSet();
 
-                    existingTables.addAll(ks.getCf_defs().stream()
-                            .map(cf -> tableReferenceFromCfDef(cf))
-                            .collect(Collectors.toList()));
+                existingTables.addAll(ks.getCf_defs().stream()
+                        .map(this::tableReferenceFromCfDef)
+                        .collect(Collectors.toList()));
 
-                    for (TableReference table : tablesToDrop) {
-                        CassandraVerifier.sanityCheckTableName(table);
-
+                for (TableReference table : tablesToDrop) {
+                    CassandraVerifier.sanityCheckTableName(table);
                         if (existingTables.contains(table)) {
                             if (client.describe_schema_versions().containsKey("UNREACHABLE")) {
-                                throw new PalantirRuntimeException("The nodes do not agree on the schema version");
+                                throw new IllegalStateException("The nodes do not agree on the schema version");
                             }
                             client.system_drop_column_family(internalTableName(table));
                             putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
                         } else {
                             log.warn("Ignored call to drop a table ({}) that did not exist.", table);
                         }
-                    }
-                    CassandraKeyValueServices.waitForSchemaVersions(
-                            client,
-                            "(all tables in a call to dropTables)",
-                            configManager.getConfig().schemaMutationTimeoutMillis());
-                    return null;
                 }
+                CassandraKeyValueServices.waitForSchemaVersions(
+                        client,
+                        "(all tables in a call to dropTables)",
+                        configManager.getConfig().schemaMutationTimeoutMillis());
+                return null;
             });
         } catch (UnavailableException e) {
             throw new IllegalStateException("Dropping tables requires all Cassandra nodes to be up and available.");
