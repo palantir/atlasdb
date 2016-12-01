@@ -93,8 +93,8 @@ public final class CassandraKeyValueServices {
 
         StringBuilder sb = new StringBuilder();
         String messageTemplate = "Cassandra cluster cannot come to agreement on schema versions,"
-                + " after attempting to modify table {}. {}  "
-                + " Find the nodes above that diverge from the majority schema"
+                + " after attempting to modify table {}. {}"
+                + " \nFind the nodes above that diverge from the majority schema"
                 + " or have schema 'UNKNOWN', which likely means they are down/unresponsive"
                 + " and examine their logs to determine the issue."
                 + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
