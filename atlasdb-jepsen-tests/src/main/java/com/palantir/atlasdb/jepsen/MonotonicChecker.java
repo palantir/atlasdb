@@ -30,6 +30,15 @@ import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 
 public class MonotonicChecker implements Checker {
+    @Override
+    public CheckerResult check(List<Event> events) {
+        Visitor visitor = new Visitor();
+        events.forEach(event -> event.accept(visitor));
+        return ImmutableCheckerResult.builder()
+                .valid(visitor.valid)
+                .errors(visitor.errors())
+                .build();
+    }
 
     private static class Visitor implements EventVisitor {
         private final List<Event> errors = new ArrayList<>();
@@ -70,12 +79,5 @@ public class MonotonicChecker implements Checker {
         public List<Event> errors() {
             return ImmutableList.copyOf(errors);
         }
-    }
-
-    @Override
-    public CheckerResult check(List<Event> events) {
-        Visitor visitor = new Visitor();
-        events.forEach(event -> event.accept(visitor));
-        return ImmutableCheckerResult.builder().valid(visitor.valid).errors(visitor.errors()).build();
     }
 }
