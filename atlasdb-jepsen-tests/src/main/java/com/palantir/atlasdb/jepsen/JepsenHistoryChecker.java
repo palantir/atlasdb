@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.jepsen;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,7 +35,7 @@ public class JepsenHistoryChecker {
     }
 
     public static JepsenHistoryChecker createWithStandardCheckers() {
-        return new JepsenHistoryChecker(new MonotonicChecker());
+        return new JepsenHistoryChecker(new MonotonicChecker(), new NonOverlappingReadsMonotonicChecker());
     }
 
     /**
@@ -50,7 +49,7 @@ public class JepsenHistoryChecker {
      * @return A map of
      *     :valid?     A boolean of whether the check passes
      *     :errors     A list of events that failed the check, or an empty list if the check passed
-     * @throws Exception if the parsing of the history fails.
+     * @throws RuntimeException if the parsing of the history fails.
      */
     public Map<Keyword, Object> checkClojureHistory(List<Map<Keyword, ?>> clojureHistory) {
         List<Event> events = convertClojureHistoryToEventList(clojureHistory);
@@ -64,20 +63,16 @@ public class JepsenHistoryChecker {
     }
 
     private Map<Keyword, Object> checkHistory(List<Event> events) {
-        boolean valid = true;
-        List<Event> errors = new ArrayList<>();
-        for (Checker checker : checkers) {
-            events.forEach(event -> event.accept(checker));
-            valid &= checker.valid();
-            errors.addAll(checker.errors());
-        }
-        return createMapFromCompletedChecker(valid, errors);
+        List<CheckerResult> allResults = checkers.stream()
+                .map(checker -> checker.check(events))
+                .collect(Collectors.toList());
+        return createClojureMapFromResults(CheckerResult.combine(allResults));
     }
 
-    private static Map<Keyword, Object> createMapFromCompletedChecker(boolean valid, List<Event> errors) {
-        List<Map<Keyword, Object>> errorsAsClojureHistory = convertEventListToClojureHistory(errors);
+    private static Map<Keyword, Object> createClojureMapFromResults(CheckerResult results) {
+        List<Map<Keyword, Object>> errorsAsClojureHistory = convertEventListToClojureHistory(results.errors());
         return ImmutableMap.of(
-                Keyword.intern("valid?"), valid,
+                Keyword.intern("valid?"), results.valid(),
                 Keyword.intern("errors"), errorsAsClojureHistory);
     }
 

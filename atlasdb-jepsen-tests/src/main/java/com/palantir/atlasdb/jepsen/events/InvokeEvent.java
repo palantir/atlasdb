@@ -35,7 +35,7 @@ public abstract class InvokeEvent implements Event {
     public abstract int process();
 
     @Override
-    public void accept(Checker visitor) {
+    public void accept(EventVisitor visitor) {
         visitor.visit(this);
     }
 }

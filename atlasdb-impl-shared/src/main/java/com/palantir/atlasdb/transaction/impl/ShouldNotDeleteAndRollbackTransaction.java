@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -30,14 +31,16 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                                long startTimeStamp,
                                AtlasDbConstraintCheckingMode constraintCheckingMode,
                                TransactionReadSentinelBehavior readSentinelBehavior,
-                               boolean allowHiddenTableAccess) {
+                               boolean allowHiddenTableAccess,
+                               TimestampCache timestampCache) {
         super(keyValueService,
               transactionService,
               null,
               startTimeStamp,
               constraintCheckingMode,
               readSentinelBehavior,
-              allowHiddenTableAccess);
+              allowHiddenTableAccess,
+              timestampCache);
     }
 
     @Override

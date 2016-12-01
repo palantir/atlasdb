@@ -17,6 +17,7 @@ package com.palantir.atlasdb.jepsen;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -34,9 +35,9 @@ import com.palantir.atlasdb.jepsen.events.Event;
 import clojure.lang.Keyword;
 
 public class JepsenHistoryCheckerTest {
-    private static final Map<Keyword, ?> INFO_EVENT = ImmutableMap.of(Keyword.intern("type"), Keyword.intern("info"));
+    private static final Map<Keyword, ?> INFO_EVENT = ImmutableMap.of(Keyword.intern("type"), "info");
     private static final Map<Keyword, ?> INVOKE_EVENT = ImmutableMap.of(
-            Keyword.intern("type"), Keyword.intern("invoke"),
+            Keyword.intern("type"), "invoke",
             Keyword.intern("process"), 0,
             Keyword.intern("time"), 0L);
     private static final Map<Keyword, ?> UNRECOGNISED_EVENT = ImmutableMap.of(Keyword.intern("foo"), "bar");
@@ -108,8 +109,11 @@ public class JepsenHistoryCheckerTest {
                 .collect(Collectors.toList());
 
         Checker checker = mock(Checker.class);
-        when(checker.valid()).thenReturn(valid);
-        when(checker.errors()).thenReturn(listOfErrorsAsEvents);
+        CheckerResult result = ImmutableCheckerResult.builder()
+                .valid(valid)
+                .errors(listOfErrorsAsEvents)
+                .build();
+        when(checker.check(any())).thenReturn(result);
         return checker;
     }
 }

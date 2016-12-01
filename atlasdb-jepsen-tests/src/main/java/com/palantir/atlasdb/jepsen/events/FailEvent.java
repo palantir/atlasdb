@@ -22,13 +22,19 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-@JsonSerialize(as = ImmutableInfoEvent.class)
-@JsonDeserialize(as = ImmutableInfoEvent.class)
+@JsonSerialize(as = ImmutableFailEvent.class)
+@JsonDeserialize(as = ImmutableFailEvent.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonTypeName(InfoEvent.TYPE)
+@JsonTypeName(FailEvent.TYPE)
 @Value.Immutable
-public abstract class InfoEvent implements Event {
-    public static final String TYPE = "info";
+public abstract class FailEvent implements Event {
+    public static final String TYPE = "fail";
+
+    public abstract long time();
+
+    public abstract int process();
+
+    public abstract String error();
 
     @Override
     public void accept(EventVisitor visitor) {
