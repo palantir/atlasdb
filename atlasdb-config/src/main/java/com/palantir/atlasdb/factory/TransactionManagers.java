@@ -218,7 +218,7 @@ public final class TransactionManagers {
             LockAndTimestampServices lockAndTimestampServices) {
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
-                .lock(LockRefreshingRemoteLockService.create(lockAndTimestampServices.lock()))
+                .lock(new LockRefreshingRemoteLockService(lockAndTimestampServices.lock()))
                 .build();
     }
 

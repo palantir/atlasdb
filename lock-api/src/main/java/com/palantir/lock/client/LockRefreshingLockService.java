@@ -15,151 +15,122 @@
  */
 package com.palantir.lock.client;
 
+import java.math.BigInteger;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.lock.ForwardingLockService;
+import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
+import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
+import com.palantir.lock.TimeDuration;
 
-public class LockRefreshingLockService extends ForwardingLockService {
-    private static final Logger log = LoggerFactory.getLogger(LockRefreshingLockService.class);
+public class LockRefreshingLockService extends LockRefreshingRemoteLockService implements LockService {
 
-    final LockService delegate;
-    final Set<LockRefreshToken> toRefresh;
-    final ScheduledExecutorService exec;
-    final long refreshFrequencyMillis = 5000;
-    volatile boolean isClosed = false;
+    private final LockService delegate;
 
-    public static LockRefreshingLockService create(LockService delegate) {
-        final LockRefreshingLockService ret = new LockRefreshingLockService(delegate);
-        ret.exec.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                long startTime = System.currentTimeMillis();
-                try {
-                    ret.refreshLocks();
-                } catch (Throwable t) {
-                    log.error("Failed to refresh locks", t);
-                } finally {
-                    long elapsed = System.currentTimeMillis() - startTime;
-
-                    if (elapsed > LockRequest.DEFAULT_LOCK_TIMEOUT.toMillis()/2) {
-                        log.error("Refreshing locks took " + elapsed + " milliseconds" +
-                                " for tokens: " + ret.toRefresh);
-                    } else if (elapsed > ret.refreshFrequencyMillis) {
-                        log.warn("Refreshing locks took " + elapsed + " milliseconds" +
-                                " for tokens: " + ret.toRefresh);
-                    }
-                }
-            }
-        }, 0, ret.refreshFrequencyMillis, TimeUnit.MILLISECONDS);
-        return ret;
-    }
-
-    private LockRefreshingLockService(LockService delegate) {
+    public LockRefreshingLockService(LockService delegate) {
+        super(delegate);
         this.delegate = delegate;
-        toRefresh = Sets.newConcurrentHashSet();
-        exec = PTExecutors.newScheduledThreadPool(1, PTExecutors.newNamedThreadFactory(true));
     }
 
-    @Override
-    protected LockService delegate() {
-        return delegate;
+    LockRefreshingLockService(LockService delegate,
+            ScheduledExecutorService executor, TimeDuration refreshRate) {
+        super(delegate, executor, refreshRate);
+        this.delegate = delegate;
+
     }
 
     @Override
     public LockResponse lockWithFullLockResponse(LockClient client, LockRequest request) throws InterruptedException {
-        LockResponse lock = super.lockWithFullLockResponse(client, request);
+        LockResponse lock = delegate.lockWithFullLockResponse(client, request);
         if (lock.getToken() != null) {
-            toRefresh.add(lock.getToken().getLockRefreshToken());
+            refresher.startRefreshing(lock.getToken().getLockRefreshToken());
         }
         return lock;
-    }
-
-    @Override
-    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request)
-            throws InterruptedException {
-        HeldLocksToken lock = super.lockAndGetHeldLocks(client, request);
-        if (lock != null) {
-            toRefresh.add(lock.getLockRefreshToken());
-        }
-        return lock;
-    }
-
-    @Override
-    public LockRefreshToken lock(String client, LockRequest request)
-            throws InterruptedException {
-        LockRefreshToken ret = super.lock(client, request);
-        if (ret != null) {
-            toRefresh.add(ret);
-        }
-        return ret;
-    }
-
-    @Override
-    public boolean unlock(LockRefreshToken token) {
-        toRefresh.remove(token);
-        return super.unlock(token);
-    }
-
-    private void refreshLocks() {
-        ImmutableSet<LockRefreshToken> refreshCopy = ImmutableSet.copyOf(toRefresh);
-        if (refreshCopy.isEmpty()) {
-            return;
-        }
-        Set<LockRefreshToken> refreshedTokens = delegate().refreshLockRefreshTokens(refreshCopy);
-        for (LockRefreshToken token : refreshCopy) {
-            if (!refreshedTokens.contains(token)
-                    && toRefresh.contains(token)) {
-                log.error("failed to refresh lock: " + token);
-                toRefresh.remove(token);
-            }
-        }
     }
 
     @Override
     public boolean unlock(HeldLocksToken token) {
-        toRefresh.remove(token.getLockRefreshToken());
-        return super.unlock(token);
+        refresher.stopRefreshing(token.getLockRefreshToken());
+        return delegate.unlock(token);
     }
 
     @Override
     public boolean unlockSimple(SimpleHeldLocksToken token) {
-        toRefresh.remove(token.asLockRefreshToken());
-        return super.unlockSimple(token);
+        refresher.stopRefreshing(token.asLockRefreshToken());
+        return delegate.unlockSimple(token);
     }
 
     @Override
     public boolean unlockAndFreeze(HeldLocksToken token) {
-        toRefresh.remove(token.getLockRefreshToken());
-        return super.unlockAndFreeze(token);
+        refresher.stopRefreshing(token.getLockRefreshToken());
+        return delegate.unlockAndFreeze(token);
     }
 
     @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        if (!isClosed) {
-            log.warn("Closing in the finalize method.  This should be closed explicitly.");
-            dispose();
-        }
+    public Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens) {
+        return delegate.refreshLockRefreshTokens(tokens);
     }
 
-    public void dispose() {
-        exec.shutdown();
-        isClosed = true;
+    @Override
+    public Long getMinLockedInVersionId(String client) {
+        return delegate.getMinLockedInVersionId(client);
+    }
+
+    @Override
+    public Set<HeldLocksToken> getTokens(LockClient client) {
+        return delegate.getTokens(client);
+    }
+
+    @Override
+    public Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens) {
+        return delegate.refreshTokens(tokens);
+    }
+
+    @Override
+    public HeldLocksGrant refreshGrant(HeldLocksGrant grant) {
+        return delegate.refreshGrant(grant);
+    }
+
+    @Override
+    public HeldLocksGrant refreshGrant(BigInteger grantId) {
+        return delegate.refreshGrant(grantId);
+    }
+
+    @Override
+    public HeldLocksGrant convertToGrant(HeldLocksToken token) {
+        return delegate.convertToGrant(token);
+    }
+
+    @Override
+    public HeldLocksToken useGrant(LockClient client, HeldLocksGrant grant) {
+        return delegate.useGrant(client, grant);
+    }
+
+    @Override
+    public HeldLocksToken useGrant(LockClient client, BigInteger grantId) {
+        return delegate.useGrant(client, grantId);
+    }
+
+    @Override
+    public Long getMinLockedInVersionId() {
+        return delegate.getMinLockedInVersionId();
+    }
+
+    @Override
+    public Long getMinLockedInVersionId(LockClient client) {
+        return delegate.getMinLockedInVersionId(client);
+    }
+
+    @Override
+    public LockServerOptions getLockServerOptions() {
+        return delegate.getLockServerOptions();
     }
 
 }
