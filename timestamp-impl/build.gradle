@@ -8,7 +8,7 @@ dependencies {
   compile group: 'org.hamcrest', name: 'hamcrest-library'
 
   testCompile group: 'junit', name: 'junit'
-  testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
-  testCompile 'com.jayway.awaitility:awaitility:1.6.5'
+  testCompile group: 'org.jmock', name: 'jmock', version: libVersions.jmock
+  testCompile group: 'com.jayway.awaitility', name: 'awaitility'
   testCompile group: 'org.mockito', name: 'mockito-core'
 }
