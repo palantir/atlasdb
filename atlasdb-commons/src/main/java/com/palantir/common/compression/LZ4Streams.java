@@ -1,5 +1,17 @@
-/*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+/**
+ * Copyright 2016 Palantir Technologies
+ *
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.palantir.common.compression;
@@ -20,23 +32,23 @@ public final class LZ4Streams {
         decompressor = factory.safeDecompressor();
     }
 
-    static final int HEADER_SIZE = 4;
-
-    static final int FRAME_DESCRIPTOR_SIZE = 3;
+    static final int FRAME_DESCRIPTOR_LENGTH = 3;
 
     static final int MAGIC_VALUE = 0x184D2204;
     static final int MAGIC_LENGTH = 4;
 
-    static final int FRAME_HEADER_LENGTH = 7;
+    static final int FRAME_HEADER_LENGTH = MAGIC_LENGTH + FRAME_DESCRIPTOR_LENGTH;
+
+    static final int BLOCK_HEADER_LENGTH = 4;
 
     static final LZ4FrameDescriptor DEFAULT_FRAME_DESCRIPTOR = new LZ4FrameDescriptor(false, 4);
 
-    static byte[] newUncompressedBuffer(LZ4FrameDescriptor frameDescriptor) {
-        return new byte[HEADER_SIZE + frameDescriptor.maximumBlockSize];
+    static int getUncompressedBufferSize(LZ4FrameDescriptor frameDescriptor) {
+        return BLOCK_HEADER_LENGTH + frameDescriptor.maximumBlockSize;
     }
 
-    static byte[] newCompressedBuffer(LZ4FrameDescriptor frameDescriptor) {
-        return new byte[HEADER_SIZE + compressor.maxCompressedLength(frameDescriptor.maximumBlockSize)];
+    static int getCompressedBufferSize(LZ4FrameDescriptor frameDescriptor) {
+        return BLOCK_HEADER_LENGTH + compressor.maxCompressedLength(frameDescriptor.maximumBlockSize);
     }
 
     static byte[] littleEndianIntToBytes(int value) {

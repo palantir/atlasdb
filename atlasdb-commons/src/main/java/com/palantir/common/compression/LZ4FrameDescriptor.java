@@ -1,18 +1,30 @@
-/*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+/**
+ * Copyright 2016 Palantir Technologies
+ *
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.palantir.common.compression;
 
 import com.google.common.base.Preconditions;
 
+import net.jpountz.xxhash.XXHash32;
 import net.jpountz.xxhash.XXHashFactory;
 
 /**
- * Specification at
- *     https://docs.google.com/document/d/1cl8N1bmkTdIpPLtnlzbBSFAdUeyNo5fwfHbHU7VRNWY
+ * Conforms to the v1.5.0 LZ4 specification.
  *
- * Currently supports only three-byte frame descriptors (no content size field)
+ * Currently supports only three-byte frame descriptors (no content size field).
  *
  * <pre>
  * Byte 1: Flags
@@ -68,7 +80,12 @@ public final class LZ4FrameDescriptor {
             result[0] |= CONTENT_CHECKSUM_FLAG;
         }
         result[1] |= maximumBlockSizeIndex << 4;
-        result[2] = (byte) (XXHashFactory.fastestInstance().hash32().hash(result, 0, 2, 0) >> 8 & 0xFF);
+
+        // Hash the first two bytes to create the frame descriptor checksum
+        XXHash32 frameDescriptorHash = XXHashFactory.fastestInstance().hash32();
+        int hash = frameDescriptorHash.hash(result, 0, 2, 0);
+        result[2] = (byte) ((hash >> 8) & 0xFF);
+
         return result;
     }
 

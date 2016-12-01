@@ -1,5 +1,17 @@
-/*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+/**
+ * Copyright 2016 Palantir Technologies
+ *
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.palantir.common.compression;
@@ -15,96 +27,70 @@ import net.jpountz.lz4.LZ4SafeDecompressor;
 import net.jpountz.xxhash.StreamingXXHash32;
 import net.jpountz.xxhash.XXHashFactory;
 
-public class LZ4DecompressingInputStream extends InputStream {
-    private final InputStream delegate;
+/**
+ * {@link InputStream} that wraps an InputStream that is compressed
+ * according to the v1.5.0 LZ4 specification. Buffers and decompresses
+ * the content of the delegate stream.
+ */
+public class LZ4DecompressingInputStream extends BufferedDelegateInputStream {
+
     private final LZ4SafeDecompressor decompressor;
-    private final byte[] buffer;
+    private final LZ4FrameDescriptor frameDescriptor;
     private final byte[] compressedBuffer;
     private final StreamingXXHash32 hasher;
-    private final LZ4FrameDescriptor frameDescriptor;
-    private int position;
-    private int maxPosition;
+
+    // Length in bytes of the next compressed block to be read from the delegate
     private int nextLength;
 
     public LZ4DecompressingInputStream(InputStream delegate) throws IOException {
-        this.delegate = delegate;
+        super(delegate);
         this.decompressor = LZ4Streams.decompressor;
         this.hasher = XXHashFactory.fastestInstance().newStreamingHash32(0);
-        byte[] actualMagic =
-                new byte[LZ4Streams.HEADER_SIZE + LZ4Streams.MAGIC_LENGTH + LZ4Streams.FRAME_DESCRIPTOR_SIZE];
-        this.nextLength = readBlock(actualMagic, actualMagic.length);
-        Preconditions.checkState(LZ4Streams.littleEndianIntFromBytes(actualMagic, 0) == LZ4Streams.MAGIC_VALUE,
+        this.frameDescriptor = readFrameHeader();
+        this.compressedBuffer = new byte[LZ4Streams.getCompressedBufferSize(frameDescriptor)];
+
+        allocateBuffer(LZ4Streams.getUncompressedBufferSize(frameDescriptor));
+    }
+
+    // Reads the frame header as well as the size of the first block
+    private LZ4FrameDescriptor readFrameHeader() throws IOException {
+        byte[] frameHeader =
+                new byte[LZ4Streams.MAGIC_LENGTH + LZ4Streams.FRAME_DESCRIPTOR_LENGTH
+                         + LZ4Streams.BLOCK_HEADER_LENGTH];
+        nextLength = readBlock(frameHeader, frameHeader.length);
+        Preconditions.checkState(LZ4Streams.littleEndianIntFromBytes(frameHeader, 0) == LZ4Streams.MAGIC_VALUE,
                 "Input is not an lz4 stream that this input stream can decompress");
-        this.frameDescriptor = LZ4FrameDescriptor.fromByteArray(Arrays.copyOfRange(actualMagic,
-                LZ4Streams.MAGIC_LENGTH, LZ4Streams.MAGIC_LENGTH + LZ4Streams.FRAME_DESCRIPTOR_SIZE));
-        this.buffer = LZ4Streams.newUncompressedBuffer(frameDescriptor);
-        this.compressedBuffer = LZ4Streams.newCompressedBuffer(frameDescriptor);
-        this.position = 0;
-        this.maxPosition = 0;
-    }
-
-    @Override
-    public int read() throws IOException {
-        if ((position == maxPosition) && !refill()) {
-            return -1;
-        }
-        return buffer[position++] & 0xff;
-    }
-
-    @Override
-    public int read(byte b[], int off, int len) throws IOException {
-        if (b == null) {
-            throw new NullPointerException();
-        } else if (off < 0 || len < 0 || len > b.length - off) {
-            throw new IndexOutOfBoundsException();
-        } else if (len == 0) {
-            return 0;
-        }
-
-        int bytesRead = 0;
-        while (bytesRead < len) {
-            int remainingBuffer = maxPosition - position;
-            int bytesToRead = Math.min(len - bytesRead, remainingBuffer);
-            System.arraycopy(buffer, position, b, off + bytesRead, bytesToRead);
-            position += bytesToRead;
-            bytesRead += bytesToRead;
-            if ((position == maxPosition) && !refill()) {
-                break;
-            }
-        }
-        return bytesRead > 0 ? bytesRead : -1;
-    }
-
-    @Override
-    public int available() throws IOException {
-        return maxPosition - position;
-    }
-
-    @Override
-    public void close() throws IOException {
-        delegate.close();
+        return LZ4FrameDescriptor.fromByteArray(Arrays.copyOfRange(frameHeader,
+                LZ4Streams.MAGIC_LENGTH, LZ4Streams.MAGIC_LENGTH + LZ4Streams.FRAME_DESCRIPTOR_LENGTH));
     }
 
     // This reads one block plus the size of the next block in as few
     // read calls as possible. The length should be the number of bytes
     // of data plus HEADER_SIZE bytes for the length of the next block.
     private int readBlock(byte[] b, int length) throws IOException {
-        int read = 0;
-        while (read < length) {
-            int r = delegate.read(b, read, length - read);
-            if (r < 0) {
+        int bytesReadSoFar = 0;
+        while (bytesReadSoFar < length) {
+            int numRead = delegate.read(b, bytesReadSoFar, length - bytesReadSoFar);
+            if (numRead < 0) {
                 throw new EOFException("Stream ended prematurely");
             }
-            read += r;
+            bytesReadSoFar += numRead;
         }
+
         return LZ4Streams.littleEndianIntFromBytes(b, length - 4);
     }
 
-    private boolean refill() throws IOException {
+    // Refills the internal buffer by decompressing, if applicable, the
+    // next block of data from the delegate input stream.
+    @Override
+    protected boolean refill() throws IOException {
         int length = nextLength;
 
-        //End of stream
         if (length == 0) {
+            // The next block has size zero, so there's no remaining bytes
+            // to read and this stream cannot be refilled. If the content
+            // checksum is enabled, validate the streamed data against the
+            // checksum in the LZ4 footer.
             if (frameDescriptor.hasContentChecksum) {
                 verifyContentChecksum();
             }
@@ -112,17 +98,22 @@ public class LZ4DecompressingInputStream extends InputStream {
         }
 
         if (length > 0) {
-            //Compressed block
-            nextLength = readBlock(compressedBuffer, length + LZ4Streams.HEADER_SIZE);
-            maxPosition = decompressor.decompress(compressedBuffer, 0, length, buffer, 0, frameDescriptor.maximumBlockSize);
+            // A positive length indicates a compressed block, so read
+            // the block and decompress it.
+            nextLength = readBlock(compressedBuffer, length + LZ4Streams.BLOCK_HEADER_LENGTH);
+            maxPosition = decompressor.decompress(compressedBuffer, BUFFER_START, length, buffer, BUFFER_START,
+                    frameDescriptor.maximumBlockSize);
         } else {
-            //Uncompressed block
+            // A negative length indicates that the upcoming block is
+            // uncompressed. The true size is the length with the highest
+            // order bit toggled.
             length ^= 0x80000000;
-            nextLength = readBlock(buffer, length + LZ4Streams.HEADER_SIZE);
+            nextLength = readBlock(buffer, length + LZ4Streams.BLOCK_HEADER_LENGTH);
             maxPosition = length;
         }
 
         if (frameDescriptor.hasContentChecksum) {
+            // Update the running hash with the decompressed data
             hasher.update(buffer, 0, maxPosition);
         }
 
@@ -130,6 +121,8 @@ public class LZ4DecompressingInputStream extends InputStream {
         return true;
     }
 
+    // Reads the content checksum from the LZ4 footer and compares it with
+    // the value obtained from the decompressed data read through the stream.
     private void verifyContentChecksum() throws IOException {
         byte[] bytes = new byte[4];
         if (delegate.read(bytes) < 4) {
@@ -141,4 +134,5 @@ public class LZ4DecompressingInputStream extends InputStream {
                 "LZ4 content did not match checksum: content sums to %s, but checksum was %s",
                 computedChecksum, providedChecksum);
     }
+
 }

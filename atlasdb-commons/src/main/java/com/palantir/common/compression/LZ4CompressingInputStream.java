@@ -1,5 +1,17 @@
-/*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+/**
+ * Copyright 2016 Palantir Technologies
+ *
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.palantir.common.compression;
@@ -11,15 +23,22 @@ import net.jpountz.lz4.LZ4Compressor;
 import net.jpountz.xxhash.StreamingXXHash32;
 import net.jpountz.xxhash.XXHashFactory;
 
-public class LZ4CompressingInputStream extends InputStream {
-    private final InputStream delegate;
+/**
+ * {@link InputStream} that buffers a delegate InputStream, compressing
+ * the stream as it is read. The compressed stream format corresponds to the
+ * v1.5.0 LZ4 specification.
+ *
+ * The resulting stream can be decompressed with the {@link LZ4DecompressingInputStream}.
+ */
+public final class LZ4CompressingInputStream extends BufferedDelegateInputStream {
+
     private final LZ4Compressor compressor;
-    private final byte[] buffer;
-    private final byte[] compressedBuffer;
-    private final StreamingXXHash32 hasher;
     private final LZ4FrameDescriptor frameDescriptor;
-    private int position;
-    private int maxPosition;
+    private final byte[] uncompressedBuffer;
+    private final StreamingXXHash32 hasher;
+
+    // True if the delegate stream has been exhausted and the LZ4
+    // footer has been written to the compressed buffer.
     private boolean inFrameFooter;
 
     public LZ4CompressingInputStream(InputStream delegate) throws IOException {
@@ -27,113 +46,110 @@ public class LZ4CompressingInputStream extends InputStream {
     }
 
     public LZ4CompressingInputStream(InputStream delegate, LZ4FrameDescriptor frameDescriptor) throws IOException {
-        this.delegate = delegate;
+        super(delegate, LZ4Streams.getCompressedBufferSize(frameDescriptor));
         this.compressor = LZ4Streams.compressor;
-        this.buffer = LZ4Streams.newUncompressedBuffer(frameDescriptor);
-        this.compressedBuffer = LZ4Streams.newCompressedBuffer(frameDescriptor);
-        this.hasher = XXHashFactory.fastestInstance().newStreamingHash32(0);
         this.frameDescriptor = frameDescriptor;
-        this.position = 0;
-        this.maxPosition = LZ4Streams.FRAME_HEADER_LENGTH;
+        this.uncompressedBuffer = new byte[LZ4Streams.getUncompressedBufferSize(frameDescriptor)];
+        this.hasher = XXHashFactory.fastestInstance().newStreamingHash32(0);
         this.inFrameFooter = false;
+
         writeFrameHeader();
     }
 
-    @Override
-    public int read() throws IOException {
-        if ((position == maxPosition) && !refill()) {
-            return -1;
-        }
-        return compressedBuffer[position++] & 0xff;
+    private void writeFrameHeader() {
+        writeMagicValue();
+        writeFrameDescriptor();
+        maxPosition = LZ4Streams.FRAME_HEADER_LENGTH;
     }
 
-    @Override
-    public int read(byte b[], int off, int len) throws IOException {
-        if (b == null) {
-            throw new NullPointerException();
-        } else if (off < 0 || len < 0 || len > b.length - off) {
-            throw new IndexOutOfBoundsException();
-        } else if (len == 0) {
-            return 0;
-        }
-
-        int bytesRead = 0;
-        while (bytesRead < len) {
-            int remainingBuffer = maxPosition - position;
-            int bytesToRead = Math.min(len - bytesRead, remainingBuffer);
-            System.arraycopy(compressedBuffer, position, b, off + bytesRead, bytesToRead);
-            position += bytesToRead;
-            bytesRead += bytesToRead;
-            if ((position == maxPosition) && !refill()) {
-                break;
-            }
-        }
-        return bytesRead > 0 ? bytesRead : -1;
-    }
-
-    @Override
-    public int available() throws IOException {
-        return maxPosition - position;
-    }
-
-    @Override
-    public void close() throws IOException {
-        delegate.close();
-    }
-
-    private void writeFrameHeader() throws IOException {
+    private void writeMagicValue() {
         byte[] magicValue = LZ4Streams.littleEndianIntToBytes(LZ4Streams.MAGIC_VALUE);
-        System.arraycopy(magicValue, 0, compressedBuffer, 0, 4);
-        byte[] frameDescriptorBytes = frameDescriptor.toByteArray();
-        System.arraycopy(frameDescriptorBytes, 0, compressedBuffer, 4, LZ4Streams.FRAME_DESCRIPTOR_SIZE);
+        copyToStartOfBuffer(magicValue, 0, 4);
     }
 
-    private boolean refill() throws IOException {
+    private void writeFrameDescriptor() {
+        byte[] frameDescriptorBytes = frameDescriptor.toByteArray();
+        System.arraycopy(frameDescriptorBytes, 0, buffer, LZ4Streams.MAGIC_LENGTH, LZ4Streams.FRAME_DESCRIPTOR_LENGTH);
+    }
+
+    private void copyToStartOfBuffer(byte[] src, int off, int len) {
+        System.arraycopy(src, off, buffer, BUFFER_START, len);
+    }
+
+    // Refills the internal buffer by compressing a block of data from
+    // the delegate input stream. If the block cannot be compressed, the
+    // uncompressed bytes are written instead.
+    @Override
+    protected boolean refill() throws IOException {
         if (inFrameFooter) {
+            // The delegate stream is exhausted and the frame footer has
+            // already been read, so the buffer can't be refilled.
             return false;
         }
 
-        int numRead = delegate.read(buffer, 0, frameDescriptor.maximumBlockSize);
-        if (numRead == -1) {
+        int numRead = delegate.read(uncompressedBuffer, 0, frameDescriptor.maximumBlockSize);
+        if (numRead == READ_FAILED) {
+            // The delegate stream is exhausted, so we write the LZ4 frame footer.
             inFrameFooter = true;
             writeFooter();
         } else {
             if (frameDescriptor.hasContentChecksum) {
-                hasher.update(buffer, 0, numRead);
+                // Update the running hash with the uncompressed data
+                hasher.update(uncompressedBuffer, 0, numRead);
             }
             compressBuffer(numRead);
         }
+
         return true;
     }
 
     private void writeFooter() throws IOException {
-        // Write 0 for the next block size
-        System.arraycopy(LZ4Streams.littleEndianIntToBytes(0), 0, compressedBuffer, 0, 4);
+        // Write 0 for the size of the next block to indicate no blocks are left
+        writeBlockSize(0);
         position = 0;
-        maxPosition = 4;
+        maxPosition = LZ4Streams.BLOCK_HEADER_LENGTH;
         if (frameDescriptor.hasContentChecksum) {
-            System.arraycopy(LZ4Streams.littleEndianIntToBytes(hasher.getValue()), 0, compressedBuffer, 4, 4);
-            maxPosition = 8;
+            // Write the final content hash
+            byte[] hashValue = LZ4Streams.littleEndianIntToBytes(hasher.getValue());
+            System.arraycopy(hashValue, 0, buffer, LZ4Streams.BLOCK_HEADER_LENGTH, 4);
+            maxPosition = LZ4Streams.BLOCK_HEADER_LENGTH + 4;
         }
-    }
-
-    private void compressBuffer(int bufferSize) throws IOException {
-        int compressedBufferMaxSize = compressedBuffer.length - LZ4Streams.HEADER_SIZE;
-        int compressedLength = compressor.compress(buffer, 0, bufferSize, compressedBuffer, LZ4Streams.HEADER_SIZE, compressedBufferMaxSize);
-
-        if (compressedLength >= bufferSize) {
-            System.arraycopy(buffer, 0, compressedBuffer, LZ4Streams.HEADER_SIZE, bufferSize);
-            //For uncompressed blocks, the highest bit in the block size should be 1
-            writeBlockSize(bufferSize ^ 0x80000000);
-            maxPosition = LZ4Streams.HEADER_SIZE + bufferSize;
-        } else {
-            writeBlockSize(compressedLength);
-            maxPosition = LZ4Streams.HEADER_SIZE + compressedLength;
-        }
-        position = 0;
     }
 
     private void writeBlockSize(int length) throws IOException {
-        System.arraycopy(LZ4Streams.littleEndianIntToBytes(length), 0, compressedBuffer, 0, 4);
+        byte[] blockSize = LZ4Streams.littleEndianIntToBytes(length);
+        copyToStartOfBuffer(blockSize, 0, 4);
+    }
+
+
+    // If the data in the uncompressed buffer is compressible, writes
+    // the compressed data to the buffer. Otherwise, writes the
+    // uncompressed data instead. The data is prepended by the size of
+    // the block.
+    private void compressBuffer(int uncompressedBufferSize) throws IOException {
+        // Leave space at the beginning of the buffer for the block size.
+        int compressedBufferMaxSize = buffer.length - LZ4Streams.BLOCK_HEADER_LENGTH;
+        int compressedLength = compressor.compress(uncompressedBuffer, 0, uncompressedBufferSize,
+                buffer, LZ4Streams.BLOCK_HEADER_LENGTH, compressedBufferMaxSize);
+
+        if (compressedLength >= uncompressedBufferSize) {
+            // The compressed data is longer than the original data, so
+            // we write the uncompressed data instead. For uncompressed
+            // blocks, the highest bit in the block size should be 1 so
+            // that the data is not decompressed when read.
+            System.arraycopy(uncompressedBuffer, 0, buffer, LZ4Streams.BLOCK_HEADER_LENGTH, uncompressedBufferSize);
+            maxPosition = LZ4Streams.BLOCK_HEADER_LENGTH + uncompressedBufferSize;
+            // The maximum LZ4 supported buffer size is 4 MB, so the highest
+            // order bit is unused and is 0. It's toggled to 1 to indicate an
+            // uncompressed block.
+            int modifiedBlockSize = uncompressedBufferSize ^ 0x80000000;
+            writeBlockSize(modifiedBlockSize);
+        } else {
+            maxPosition = LZ4Streams.BLOCK_HEADER_LENGTH + compressedLength;
+            writeBlockSize(compressedLength);
+        }
+
+        // Reset buffer position to the front of the newly refilled buffer.
+        position = 0;
     }
 }
