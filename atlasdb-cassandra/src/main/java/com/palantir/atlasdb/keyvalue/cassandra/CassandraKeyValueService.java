@@ -113,7 +113,6 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -1300,15 +1299,15 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                 for (TableReference table : tablesToDrop) {
                     CassandraVerifier.sanityCheckTableName(table);
-                        if (existingTables.contains(table)) {
-                            if (client.describe_schema_versions().containsKey("UNREACHABLE")) {
-                                throw new IllegalStateException("The nodes do not agree on the schema version");
-                            }
-                            client.system_drop_column_family(internalTableName(table));
-                            putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
-                        } else {
-                            log.warn("Ignored call to drop a table ({}) that did not exist.", table);
+                    if (existingTables.contains(table)) {
+                        if (client.describe_schema_versions().containsKey("UNREACHABLE")) {
+                            throw new UnavailableException();
                         }
+                        client.system_drop_column_family(internalTableName(table));
+                        putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
+                    } else {
+                        log.warn("Ignored call to drop a table ({}) that did not exist.", table);
+                    }
                 }
                 CassandraKeyValueServices.waitForSchemaVersions(
                         client,
@@ -1427,7 +1426,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
                 try {
                     if (client.describe_schema_versions().containsKey("UNREACHABLE")) {
-                        throw new PalantirRuntimeException("The nodes do not agree on the schema version");
+                        throw new UnavailableException();
                     }
                     client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
                             configManager.getConfig().keyspace(),

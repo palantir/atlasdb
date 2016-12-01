@@ -36,28 +36,28 @@ public class OneNodeDownTableManipulationTest {
     @Test
     public void createTableThrows() {
         expectException.expect(IllegalStateException.class);
-        expectException.expectMessage("The nodes do not agree on the schema version");
+        expectException.expectMessage("Creating tables requires all Cassandra nodes to be up and available.");
         OneNodeDownTestSuite.db.createTable(NEW_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
     @Test
     public void createTablesThrows() {
         expectException.expect(IllegalStateException.class);
-        expectException.expectMessage("The nodes do not agree on the schema version");
+        expectException.expectMessage("Creating tables requires all Cassandra nodes to be up and available.");
         OneNodeDownTestSuite.db.createTables(ImmutableMap.of(NEW_TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA));
     }
 
     @Test
     public void dropTableThrows() {
         expectException.expect(IllegalStateException.class);
-        expectException.expectMessage("The nodes do not agree on the schema version");
+        expectException.expectMessage("Dropping tables requires all Cassandra nodes to be up and available.");
         OneNodeDownTestSuite.db.dropTable(OneNodeDownTestSuite.TEST_TABLE);
     }
 
     @Test
     public void dropTablesThrows() {
         expectException.expect(IllegalStateException.class);
-        expectException.expectMessage("The nodes do not agree on the schema version");
+        expectException.expectMessage("Dropping tables requires all Cassandra nodes to be up and available.");
         OneNodeDownTestSuite.db.dropTables(ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE));
     }
 
