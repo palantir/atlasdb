@@ -18,6 +18,7 @@ package com.palantir.atlasdb.schema.stream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -28,6 +29,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
@@ -45,30 +47,38 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbTestCase;
+import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.stream.generated.DeletingStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.KeyValueTable;
+import com.palantir.atlasdb.schema.stream.generated.StreamTestIndexCleanupTask;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestTableFactory;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow;
-import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.table.description.Schemas;
+import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
 public class StreamTest extends AtlasDbTestCase {
-    private PersistentStreamStore store;
+    private StreamTestStreamStore store;
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -275,14 +285,116 @@ public class StreamTest extends AtlasDbTestCase {
         // Then store "ref" -> some_other_stream
         final byte[] bytes2 = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
         rand.nextBytes(bytes2);
+        storeStreamAndReference(tableFactory, keyValueRow, reference, bytes2);
+
+        // Then continue to read - it should be OK
+        assertStreamHasBytes(firstStream, bytes1);
+    }
+
+    private void storeStreamAndReference(StreamTestTableFactory tableFactory, KeyValueTable.KeyValueRow row,
+            byte[] reference, byte[] value) {
         txManager.runTaskWithRetry(tx -> {
-            long id = storeStream(bytes2, reference);
+            long id = storeStream(value, reference);
             KeyValueTable keyValueTable = tableFactory.getKeyValueTable(tx);
-            keyValueTable.putStreamId(keyValueRow, id);
+            keyValueTable.putStreamId(row, id);
+            return null;
+        });
+    }
+
+    @Test
+    public void testConcurrentOverwrite() throws IOException {
+        Random rand = new Random();
+        StreamTestTableFactory tableFactory = StreamTestTableFactory.of();
+
+        final byte[] reference = PtBytes.toBytes("ref");
+        final byte[] bytes1 = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
+        rand.nextBytes(bytes1);
+
+        KeyValueTable.KeyValueRow row = KeyValueTable.KeyValueRow.of("ref");
+
+        // Store the stream, together with a reference
+        txManager.runTaskWithRetry(tx -> {
+            long id = storeStream(bytes1, reference);
+            KeyValueTable keyValueTable = tableFactory.getKeyValueTable(tx);
+            keyValueTable.putStreamId(row, id);
             return null;
         });
 
-        // Then continue to read - it should be OK
+        // Then fetch streamId as an input stream
+        final byte[] bytes2 = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
+        rand.nextBytes(bytes2);
+        SerializableTransactionManager manager = new SerializableTransactionManager(
+                keyValueService, timestampService, lockClient, lockService, transactionService,
+                Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
+                conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE, false);
+
+        // TODO This should cause a read-write conflict. At time t1, we start this transaction, and do a read
+        // TODO of (ref, STREAM_ID), and get the streamId from above (1, let's say).
+        // TODO However, before committing, we do a write of (ref, STREAM_ID), putting 2 (let's say).
+        // TODO Only then do we commit the read transaction - and at this point we should realise that the value read
+        // TODO is now out of date.
+        byte[] result = manager.runTaskReadOnly(tx -> {
+            KeyValueTable keyValueTable = tableFactory.getKeyValueTable(tx);
+            KeyValueTable.KeyValueNamedColumn column = KeyValueTable.KeyValueNamedColumn.STREAM_ID;
+            ColumnSelection columns = KeyValueTable.getColumnSelection(column);
+            List<KeyValueTable.KeyValueNamedColumnValue<?>> rowColumns = keyValueTable.getRowColumns(row, columns);
+            Long streamId = (Long) Iterables.getOnlyElement(rowColumns).getValue();
+
+            InputStream stream = store.loadStream(tx, streamId);
+
+            manager.runTaskWithRetry(tx1 -> {
+                long id = storeStream(bytes2, reference);
+                KeyValueTable keyValueTable1 = tableFactory.getKeyValueTable(tx1);
+                keyValueTable1.putStreamId(row, id);
+                return null;
+            });
+
+            return IOUtils.toByteArray(stream);
+        });
+
+        assertArrayEquals(bytes1, result);
+    }
+
+    @Test
+    public void testConcurrentDelete() throws IOException {
+        Random rand = new Random();
+        StreamTestTableFactory tableFactory = StreamTestTableFactory.of();
+
+        final byte[] reference = PtBytes.toBytes("ref");
+        final byte[] bytes1 = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
+        rand.nextBytes(bytes1);
+
+        KeyValueTable.KeyValueRow keyValueRow = KeyValueTable.KeyValueRow.of("ref");
+
+        // Store the stream, together with a reference
+        Long streamId = txManager.runTaskWithRetry(tx -> {
+            long id = storeStream(bytes1, reference);
+            KeyValueTable keyValueTable = tableFactory.getKeyValueTable(tx);
+            keyValueTable.putStreamId(keyValueRow, id);
+            return id;
+        });
+
+        // Then fetch streamId as an input stream
+        InputStream firstStream = txManager.runTaskWithRetry(tx -> store.loadStream(tx, streamId));
+
+        // Delete the streams
+        txManager.runTaskWithRetry(tx -> {
+            KeyValueTable keyValueTable = tableFactory.getKeyValueTable(tx);
+            keyValueTable.delete(keyValueRow);
+            return null;
+        });
+
+        StreamTestIndexCleanupTask cleanup = new StreamTestIndexCleanupTask(Namespace.DEFAULT_NAMESPACE);
+        byte[] colBytes = KeyValueTable.KeyValueNamedColumn.STREAM_ID.name().getBytes();
+        Cell cell = Cell.create(keyValueRow.getKey().getBytes(), colBytes);
+
+        txManager.runTaskWithRetry(tx -> {
+            store.deleteStreams(tx, ImmutableSet.of(streamId));
+            return null;
+        });
+            //return cleanup.cellsCleanedUp(tx, ImmutableSet.of(cell));
+
+        // Gives a null pointer exception.
         assertStreamHasBytes(firstStream, bytes1);
     }
 
