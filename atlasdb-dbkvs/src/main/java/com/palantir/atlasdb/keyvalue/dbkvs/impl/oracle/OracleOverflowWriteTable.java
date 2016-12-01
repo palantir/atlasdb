@@ -49,26 +49,28 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     private final ConnectionSupplier conns;
     private final OverflowSequenceSupplier overflowSequenceSupplier;
     private final OracleTableNameGetter oracleTableNameGetter;
+    private final TableReference tableRef;
 
     private OracleOverflowWriteTable(
             OracleDdlConfig config,
             ConnectionSupplier conns,
             OverflowSequenceSupplier sequenceSupplier,
-            OracleTableNameGetter oracleTableNameGetter) {
+            OracleTableNameGetter oracleTableNameGetter,
+            TableReference tableRef) {
         this.config = config;
         this.conns = conns;
         this.overflowSequenceSupplier = sequenceSupplier;
         this.oracleTableNameGetter = oracleTableNameGetter;
+        this.tableRef = tableRef;
     }
 
     public static OracleOverflowWriteTable create(
             OracleDdlConfig config,
             ConnectionSupplier conns,
+            OracleTableNameGetter oracleTableNameGetter,
             TableReference tableRef) {
-        OracleTableNameGetter oracleTableNameGetter =
-                new OracleTableNameGetter(config, conns, tableRef);
         OverflowSequenceSupplier sequenceSupplier = OverflowSequenceSupplier.create(conns, config.tablePrefix());
-        return new OracleOverflowWriteTable(config, conns, sequenceSupplier, oracleTableNameGetter);
+        return new OracleOverflowWriteTable(config, conns, sequenceSupplier, oracleTableNameGetter, tableRef);
     }
 
     @Override
@@ -231,7 +233,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
 
     private String getShortTableName() {
         try {
-            return oracleTableNameGetter.getInternalShortTableName();
+            return oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
         } catch (TableMappingNotFoundException e) {
             throw Throwables.propagate(e);
         }
@@ -239,7 +241,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
 
     private String getShortOverflowTableName() {
         try {
-            return oracleTableNameGetter.getInternalShortOverflowTableName();
+            return oracleTableNameGetter.getInternalShortOverflowTableName(conns, tableRef);
         } catch (TableMappingNotFoundException e) {
             throw Throwables.propagate(e);
         }

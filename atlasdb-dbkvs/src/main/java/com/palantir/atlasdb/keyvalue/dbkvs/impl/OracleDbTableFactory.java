@@ -29,9 +29,11 @@ import com.palantir.nexus.db.DBType;
 
 public class OracleDbTableFactory implements DbTableFactory {
     private final OracleDdlConfig config;
+    private OracleTableNameGetter oracleTableNameGetter;
 
     public OracleDbTableFactory(OracleDdlConfig config) {
         this.config = config;
+        oracleTableNameGetter = new OracleTableNameGetter(config);
     }
 
     @Override
@@ -41,7 +43,7 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbDdlTable createDdl(TableReference tableRef, ConnectionSupplier conns) {
-        return OracleDdlTable.create(tableRef, conns, config);
+        return OracleDdlTable.create(tableRef, conns, config, oracleTableNameGetter);
     }
 
     @Override
@@ -50,14 +52,13 @@ public class OracleDbTableFactory implements DbTableFactory {
     }
 
     @Override
-    public DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns) {
-        OracleTableNameGetter oracleTableNameGetter = new OracleTableNameGetter(config, conns, tableRef);
-        TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
-        String shortTableName = getTableName(oracleTableNameGetter);
+    public DbReadTable createRead(TableReference tableRef, ConnectionSupplier connectionSupplier) {
+        TableSize tableSize = TableSizeCache.getTableSize(connectionSupplier, tableRef, config.metadataTable());
+        String shortTableName = getTableName(connectionSupplier, tableRef);
         DbQueryFactory queryFactory;
         switch (tableSize) {
             case OVERFLOW:
-                String shortOverflowTableName = getOverflowTableName(oracleTableNameGetter);
+                String shortOverflowTableName = getOverflowTableName(connectionSupplier, tableRef);
                 queryFactory = new OracleOverflowQueryFactory(config, shortTableName, shortOverflowTableName);
                 break;
             case RAW:
@@ -66,20 +67,20 @@ public class OracleDbTableFactory implements DbTableFactory {
             default:
                 throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
         }
-        return new UnbatchedDbReadTable(conns, queryFactory);
+        return new UnbatchedDbReadTable(connectionSupplier, queryFactory);
     }
 
-    private String getTableName(OracleTableNameGetter oracleTableNameGetter) {
+    private String getTableName(ConnectionSupplier connectionSupplier, TableReference tableRef) {
         try {
-            return oracleTableNameGetter.getInternalShortTableName();
+            return oracleTableNameGetter.getInternalShortTableName(connectionSupplier, tableRef);
         } catch (TableMappingNotFoundException e) {
             throw Throwables.propagate(e);
         }
     }
 
-    private String getOverflowTableName(OracleTableNameGetter oracleTableNameGetter) {
+    private String getOverflowTableName(ConnectionSupplier connectionSupplier, TableReference tableRef) {
         try {
-            return oracleTableNameGetter.getInternalShortOverflowTableName();
+            return oracleTableNameGetter.getInternalShortOverflowTableName(connectionSupplier, tableRef);
         } catch (TableMappingNotFoundException e) {
             throw Throwables.propagate(e);
         }
@@ -90,9 +91,9 @@ public class OracleDbTableFactory implements DbTableFactory {
         TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
         switch (tableSize) {
             case OVERFLOW:
-                return OracleOverflowWriteTable.create(config, conns, tableRef);
+                return OracleOverflowWriteTable.create(config, conns, oracleTableNameGetter, tableRef);
             case RAW:
-                return new SimpleDbWriteTable(config, conns, tableRef);
+                return new OracleSimpleDbWriteTable(config, conns, oracleTableNameGetter, tableRef);
             default:
                 throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
         }
@@ -101,6 +102,10 @@ public class OracleDbTableFactory implements DbTableFactory {
     @Override
     public DBType getDbType() {
         return DBType.ORACLE;
+    }
+
+    public OracleTableNameGetter getOracleTableNameGetter() {
+        return oracleTableNameGetter;
     }
 
     @Override

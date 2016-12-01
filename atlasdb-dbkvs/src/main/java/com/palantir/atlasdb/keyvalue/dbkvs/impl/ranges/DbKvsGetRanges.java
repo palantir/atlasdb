@@ -44,8 +44,10 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.OraclePrefixedTableNames;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.PrefixedTableNames;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
@@ -73,16 +75,19 @@ public class DbKvsGetRanges {
     private final DdlConfig config;
     private final DBType dbType;
     private final Supplier<SqlConnection> connectionSupplier;
+    private OracleTableNameGetter oracleTableNameGetter;
 
     public DbKvsGetRanges(
             DbKvs kvs,
             DdlConfig config,
             DBType dbType,
-            Supplier<SqlConnection> connectionSupplier) {
+            Supplier<SqlConnection> connectionSupplier,
+            OracleTableNameGetter oracleTableNameGetter) {
         this.kvs = kvs;
         this.config = config;
         this.dbType = dbType;
         this.connectionSupplier = connectionSupplier;
+        this.oracleTableNameGetter = oracleTableNameGetter;
     }
 
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
@@ -330,7 +335,14 @@ public class DbKvsGetRanges {
     }
 
     private String getPrefixedTableName(TableReference tableRef) {
-        return new PrefixedTableNames(config, new ConnectionSupplier(connectionSupplier)).get(tableRef);
+        switch (dbType) {
+            case ORACLE:
+                return new OraclePrefixedTableNames(
+                        config, new ConnectionSupplier(connectionSupplier), oracleTableNameGetter)
+                        .get(tableRef);
+            default:
+                return new PrefixedTableNames(config).get(tableRef);
+        }
     }
 
     private static final String SIMPLE_ROW_SELECT_TEMPLATE =
