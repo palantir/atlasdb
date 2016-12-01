@@ -1321,7 +1321,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 }
             });
         } catch (UnavailableException e) {
-            throw new PalantirRuntimeException("Dropping tables requires all Cassandra nodes to be up and available.");
+            throw new IllegalStateException("Dropping tables requires all Cassandra nodes to be up and available.");
         }
     }
 
@@ -1438,7 +1438,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             tableEntry.getKey(),
                             tableEntry.getValue()));
                 } catch (UnavailableException e) {
-                    throw new PalantirRuntimeException(
+                    throw new IllegalStateException(
                             "Creating tables requires all Cassandra nodes to be up and available.");
                 } catch (TException thriftException) {
                     if (thriftException.getMessage() != null
