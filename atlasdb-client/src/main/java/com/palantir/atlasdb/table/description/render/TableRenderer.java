@@ -287,7 +287,6 @@ public class TableRenderer {
                 }
                 if (!isNestedIndex) {
                     line();
-                    importRenderer.renderImportJavaDoc();
                     renderClassHash();
                 }
             } line("}");

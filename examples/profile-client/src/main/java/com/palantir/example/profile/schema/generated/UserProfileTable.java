@@ -2,7 +2,6 @@ package com.palantir.example.profile.schema.generated;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -12,16 +11,13 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ComparisonChain;
@@ -30,15 +26,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
-import com.google.common.hash.Hashing;
-import com.google.common.primitives.Bytes;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.compress.CompressionUtils;
@@ -55,25 +48,18 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
 import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
-import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
-import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.table.generation.ColumnValues;
-import com.palantir.atlasdb.table.generation.Descending;
 import com.palantir.atlasdb.table.generation.NamedColumnValue;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.AbortingVisitor;
-import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.BatchingVisitables;
@@ -83,3310 +69,3647 @@ import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
 import com.palantir.common.proxy.AsyncProxy;
-import com.palantir.util.AssertUtils;
-import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-public final class UserProfileTable implements
-        AtlasDbMutablePersistentTable<UserProfileTable.UserProfileRow,
-                                         UserProfileTable.UserProfileNamedColumnValue<?>,
-                                         UserProfileTable.UserProfileRowResult>,
-        AtlasDbNamedMutableTable<UserProfileTable.UserProfileRow,
-                                    UserProfileTable.UserProfileNamedColumnValue<?>,
-                                    UserProfileTable.UserProfileRowResult> {
+public final class UserProfileTable
+    implements AtlasDbMutablePersistentTable<
+            UserProfileTable.UserProfileRow, UserProfileTable.UserProfileNamedColumnValue<?>,
+            UserProfileTable.UserProfileRowResult>,
+        AtlasDbNamedMutableTable<
+            UserProfileTable.UserProfileRow, UserProfileTable.UserProfileNamedColumnValue<?>,
+            UserProfileTable.UserProfileRowResult> {
+  private final Transaction t;
+  private final List<UserProfileTrigger> triggers;
+  private static final String rawTableName = "user_profile";
+  private final TableReference tableRef;
+  private static final ColumnSelection allColumns =
+      getColumnSelection(UserProfileNamedColumn.values());
+
+  static UserProfileTable of(Transaction t, Namespace namespace) {
+    return new UserProfileTable(t, namespace, ImmutableList.<UserProfileTrigger>of());
+  }
+
+  static UserProfileTable of(
+      Transaction t,
+      Namespace namespace,
+      UserProfileTrigger trigger,
+      UserProfileTrigger... triggers) {
+    return new UserProfileTable(
+        t,
+        namespace,
+        ImmutableList.<UserProfileTrigger>builder().add(trigger).add(triggers).build());
+  }
+
+  static UserProfileTable of(
+      Transaction t, Namespace namespace, List<UserProfileTrigger> triggers) {
+    return new UserProfileTable(t, namespace, triggers);
+  }
+
+  private UserProfileTable(Transaction t, Namespace namespace, List<UserProfileTrigger> triggers) {
+    this.t = t;
+    this.tableRef = TableReference.create(namespace, rawTableName);
+    this.triggers = triggers;
+  }
+
+  public static String getRawTableName() {
+    return rawTableName;
+  }
+
+  public TableReference getTableRef() {
+    return tableRef;
+  }
+
+  public String getTableName() {
+    return tableRef.getQualifiedName();
+  }
+
+  public Namespace getNamespace() {
+    return tableRef.getNamespace();
+  }
+
+  /**
+   *
+   *
+   * <pre>
+   * UserProfileRow {
+   *   {@literal java.util.UUID id};
+   * }
+   * </pre>
+   */
+  public static final class UserProfileRow implements Persistable, Comparable<UserProfileRow> {
+    private final java.util.UUID id;
+
+    public static UserProfileRow of(java.util.UUID id) {
+      return new UserProfileRow(id);
+    }
+
+    private UserProfileRow(java.util.UUID id) {
+      this.id = id;
+    }
+
+    public java.util.UUID getId() {
+      return id;
+    }
+
+    public static Function<UserProfileRow, java.util.UUID> getIdFun() {
+      return new Function<UserProfileRow, java.util.UUID>() {
+        @Override
+        public java.util.UUID apply(UserProfileRow row) {
+          return row.id;
+        }
+      };
+    }
+
+    public static Function<java.util.UUID, UserProfileRow> fromIdFun() {
+      return new Function<java.util.UUID, UserProfileRow>() {
+        @Override
+        public UserProfileRow apply(java.util.UUID row) {
+          return UserProfileRow.of(row);
+        }
+      };
+    }
+
+    @Override
+    public byte[] persistToBytes() {
+      byte[] idBytes = EncodingUtils.encodeUUID(id);
+      return EncodingUtils.add(idBytes);
+    }
+
+    public static final Hydrator<UserProfileRow> BYTES_HYDRATOR =
+        new Hydrator<UserProfileRow>() {
+          @Override
+          public UserProfileRow hydrateFromBytes(byte[] __input) {
+            int __index = 0;
+            java.util.UUID id = EncodingUtils.decodeUUID(__input, __index);
+            __index += 16;
+            return new UserProfileRow(id);
+          }
+        };
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(getClass().getSimpleName()).add("id", id).toString();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      UserProfileRow other = (UserProfileRow) obj;
+      return Objects.equal(id, other.id);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(id);
+    }
+
+    @Override
+    public int compareTo(UserProfileRow o) {
+      return ComparisonChain.start().compare(this.id, o.id).result();
+    }
+  }
+
+  public interface UserProfileNamedColumnValue<T> extends NamedColumnValue<T> {
+    /* */
+  }
+
+  /**
+   *
+   *
+   * <pre>
+   * Column value description {
+   *   type: com.palantir.example.profile.schema.CreationData;
+   * }
+   * </pre>
+   */
+  public static final class Create
+      implements UserProfileNamedColumnValue<com.palantir.example.profile.schema.CreationData> {
+    private final com.palantir.example.profile.schema.CreationData value;
+
+    public static Create of(com.palantir.example.profile.schema.CreationData value) {
+      return new Create(value);
+    }
+
+    private Create(com.palantir.example.profile.schema.CreationData value) {
+      this.value = value;
+    }
+
+    @Override
+    public String getColumnName() {
+      return "create";
+    }
+
+    @Override
+    public String getShortColumnName() {
+      return "c";
+    }
+
+    @Override
+    public com.palantir.example.profile.schema.CreationData getValue() {
+      return value;
+    }
+
+    @Override
+    public byte[] persistValue() {
+      byte[] bytes =
+          com.palantir.atlasdb.compress.CompressionUtils.compress(
+              new com.palantir.example.profile.schema.CreationData.Persister()
+                  .persistToBytes(value),
+              com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
+      return CompressionUtils.compress(bytes, Compression.NONE);
+    }
+
+    @Override
+    public byte[] persistColumnName() {
+      return PtBytes.toCachedBytes("c");
+    }
+
+    public static final Hydrator<Create> BYTES_HYDRATOR =
+        new Hydrator<Create>() {
+          @Override
+          public Create hydrateFromBytes(byte[] bytes) {
+            bytes = CompressionUtils.decompress(bytes, Compression.NONE);
+            return of(
+                new com.palantir.example.profile.schema.CreationData.Persister()
+                    .hydrateFromBytes(
+                        com.palantir.atlasdb.compress.CompressionUtils.decompress(
+                            bytes,
+                            com.palantir.atlasdb.table.description.ColumnValueDescription
+                                .Compression.NONE)));
+          }
+        };
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(getClass().getSimpleName())
+          .add("Value", this.value)
+          .toString();
+    }
+  }
+
+  /**
+   *
+   *
+   * <pre>
+   * Column value description {
+   *   type: com.fasterxml.jackson.databind.JsonNode;
+   * }
+   * </pre>
+   */
+  public static final class Json
+      implements UserProfileNamedColumnValue<com.fasterxml.jackson.databind.JsonNode> {
+    private final com.fasterxml.jackson.databind.JsonNode value;
+
+    public static Json of(com.fasterxml.jackson.databind.JsonNode value) {
+      return new Json(value);
+    }
+
+    private Json(com.fasterxml.jackson.databind.JsonNode value) {
+      this.value = value;
+    }
+
+    @Override
+    public String getColumnName() {
+      return "json";
+    }
+
+    @Override
+    public String getShortColumnName() {
+      return "j";
+    }
+
+    @Override
+    public com.fasterxml.jackson.databind.JsonNode getValue() {
+      return value;
+    }
+
+    @Override
+    public byte[] persistValue() {
+      byte[] bytes =
+          com.palantir.atlasdb.compress.CompressionUtils.compress(
+              new com.palantir.atlasdb.persister.JsonNodePersister().persistToBytes(value),
+              com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
+      return CompressionUtils.compress(bytes, Compression.NONE);
+    }
+
+    @Override
+    public byte[] persistColumnName() {
+      return PtBytes.toCachedBytes("j");
+    }
+
+    public static final Hydrator<Json> BYTES_HYDRATOR =
+        new Hydrator<Json>() {
+          @Override
+          public Json hydrateFromBytes(byte[] bytes) {
+            bytes = CompressionUtils.decompress(bytes, Compression.NONE);
+            return of(
+                new com.palantir.atlasdb.persister.JsonNodePersister()
+                    .hydrateFromBytes(
+                        com.palantir.atlasdb.compress.CompressionUtils.decompress(
+                            bytes,
+                            com.palantir.atlasdb.table.description.ColumnValueDescription
+                                .Compression.NONE)));
+          }
+        };
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(getClass().getSimpleName())
+          .add("Value", this.value)
+          .toString();
+    }
+  }
+
+  /**
+   *
+   *
+   * <pre>
+   * Column value description {
+   *   type: com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile;
+   *   name: "UserProfile"
+   *   field {
+   *     name: "name"
+   *     number: 1
+   *     label: LABEL_REQUIRED
+   *     type: TYPE_STRING
+   *   }
+   *   field {
+   *     name: "birthEpochDay"
+   *     number: 2
+   *     label: LABEL_REQUIRED
+   *     type: TYPE_SINT64
+   *   }
+   * }
+   * </pre>
+   */
+  public static final class Metadata
+      implements UserProfileNamedColumnValue<
+          com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile> {
+    private final com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile
+        value;
+
+    public static Metadata of(
+        com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile value) {
+      return new Metadata(value);
+    }
+
+    private Metadata(
+        com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile value) {
+      this.value = value;
+    }
+
+    @Override
+    public String getColumnName() {
+      return "metadata";
+    }
+
+    @Override
+    public String getShortColumnName() {
+      return "m";
+    }
+
+    @Override
+    public com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile getValue() {
+      return value;
+    }
+
+    @Override
+    public byte[] persistValue() {
+      byte[] bytes = value.toByteArray();
+      return CompressionUtils.compress(bytes, Compression.NONE);
+    }
+
+    @Override
+    public byte[] persistColumnName() {
+      return PtBytes.toCachedBytes("m");
+    }
+
+    public static final Hydrator<Metadata> BYTES_HYDRATOR =
+        new Hydrator<Metadata>() {
+          @Override
+          public Metadata hydrateFromBytes(byte[] bytes) {
+            bytes = CompressionUtils.decompress(bytes, Compression.NONE);
+            try {
+              return of(
+                  com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile
+                      .parseFrom(bytes));
+            } catch (InvalidProtocolBufferException e) {
+              throw Throwables.throwUncheckedException(e);
+            }
+          }
+        };
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(getClass().getSimpleName())
+          .add("Value", this.value)
+          .toString();
+    }
+  }
+
+  /**
+   *
+   *
+   * <pre>
+   * Column value description {
+   *   type: Long;
+   * }
+   * </pre>
+   */
+  public static final class PhotoStreamId implements UserProfileNamedColumnValue<Long> {
+    private final Long value;
+
+    public static PhotoStreamId of(Long value) {
+      return new PhotoStreamId(value);
+    }
+
+    private PhotoStreamId(Long value) {
+      this.value = value;
+    }
+
+    @Override
+    public String getColumnName() {
+      return "photo_stream_id";
+    }
+
+    @Override
+    public String getShortColumnName() {
+      return "p";
+    }
+
+    @Override
+    public Long getValue() {
+      return value;
+    }
+
+    @Override
+    public byte[] persistValue() {
+      byte[] bytes = PtBytes.toBytes(Long.MIN_VALUE ^ value);
+      return CompressionUtils.compress(bytes, Compression.NONE);
+    }
+
+    @Override
+    public byte[] persistColumnName() {
+      return PtBytes.toCachedBytes("p");
+    }
+
+    public static final Hydrator<PhotoStreamId> BYTES_HYDRATOR =
+        new Hydrator<PhotoStreamId>() {
+          @Override
+          public PhotoStreamId hydrateFromBytes(byte[] bytes) {
+            bytes = CompressionUtils.decompress(bytes, Compression.NONE);
+            return of(Long.MIN_VALUE ^ PtBytes.toLong(bytes, 0));
+          }
+        };
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(getClass().getSimpleName())
+          .add("Value", this.value)
+          .toString();
+    }
+  }
+
+  public interface UserProfileTrigger {
+    public void putUserProfile(
+        Multimap<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> newRows);
+  }
+
+  public static final class UserProfileRowResult implements TypedRowResult {
+    private final RowResult<byte[]> row;
+
+    public static UserProfileRowResult of(RowResult<byte[]> row) {
+      return new UserProfileRowResult(row);
+    }
+
+    private UserProfileRowResult(RowResult<byte[]> row) {
+      this.row = row;
+    }
+
+    @Override
+    public UserProfileRow getRowName() {
+      return UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
+    }
+
+    public static Function<UserProfileRowResult, UserProfileRow> getRowNameFun() {
+      return new Function<UserProfileRowResult, UserProfileRow>() {
+        @Override
+        public UserProfileRow apply(UserProfileRowResult rowResult) {
+          return rowResult.getRowName();
+        }
+      };
+    }
+
+    public static Function<RowResult<byte[]>, UserProfileRowResult> fromRawRowResultFun() {
+      return new Function<RowResult<byte[]>, UserProfileRowResult>() {
+        @Override
+        public UserProfileRowResult apply(RowResult<byte[]> rowResult) {
+          return new UserProfileRowResult(rowResult);
+        }
+      };
+    }
+
+    public boolean hasCreate() {
+      return row.getColumns().containsKey(PtBytes.toCachedBytes("c"));
+    }
+
+    public boolean hasJson() {
+      return row.getColumns().containsKey(PtBytes.toCachedBytes("j"));
+    }
+
+    public boolean hasMetadata() {
+      return row.getColumns().containsKey(PtBytes.toCachedBytes("m"));
+    }
+
+    public boolean hasPhotoStreamId() {
+      return row.getColumns().containsKey(PtBytes.toCachedBytes("p"));
+    }
+
+    public com.palantir.example.profile.schema.CreationData getCreate() {
+      byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("c"));
+      if (bytes == null) {
+        return null;
+      }
+      Create value = Create.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+      return value.getValue();
+    }
+
+    public com.fasterxml.jackson.databind.JsonNode getJson() {
+      byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("j"));
+      if (bytes == null) {
+        return null;
+      }
+      Json value = Json.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+      return value.getValue();
+    }
+
+    public com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile
+        getMetadata() {
+      byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("m"));
+      if (bytes == null) {
+        return null;
+      }
+      Metadata value = Metadata.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+      return value.getValue();
+    }
+
+    public Long getPhotoStreamId() {
+      byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("p"));
+      if (bytes == null) {
+        return null;
+      }
+      PhotoStreamId value = PhotoStreamId.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+      return value.getValue();
+    }
+
+    public static Function<UserProfileRowResult, com.palantir.example.profile.schema.CreationData>
+        getCreateFun() {
+      return new Function<
+          UserProfileRowResult, com.palantir.example.profile.schema.CreationData>() {
+        @Override
+        public com.palantir.example.profile.schema.CreationData apply(
+            UserProfileRowResult rowResult) {
+          return rowResult.getCreate();
+        }
+      };
+    }
+
+    public static Function<UserProfileRowResult, com.fasterxml.jackson.databind.JsonNode>
+        getJsonFun() {
+      return new Function<UserProfileRowResult, com.fasterxml.jackson.databind.JsonNode>() {
+        @Override
+        public com.fasterxml.jackson.databind.JsonNode apply(UserProfileRowResult rowResult) {
+          return rowResult.getJson();
+        }
+      };
+    }
+
+    public static Function<
+            UserProfileRowResult,
+            com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile>
+        getMetadataFun() {
+      return new Function<
+          UserProfileRowResult,
+          com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile>() {
+        @Override
+        public com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile apply(
+            UserProfileRowResult rowResult) {
+          return rowResult.getMetadata();
+        }
+      };
+    }
+
+    public static Function<UserProfileRowResult, Long> getPhotoStreamIdFun() {
+      return new Function<UserProfileRowResult, Long>() {
+        @Override
+        public Long apply(UserProfileRowResult rowResult) {
+          return rowResult.getPhotoStreamId();
+        }
+      };
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(getClass().getSimpleName())
+          .add("RowName", getRowName())
+          .add("Create", getCreate())
+          .add("Json", getJson())
+          .add("Metadata", getMetadata())
+          .add("PhotoStreamId", getPhotoStreamId())
+          .toString();
+    }
+  }
+
+  public enum UserProfileNamedColumn {
+    CREATE {
+      @Override
+      public byte[] getShortName() {
+        return PtBytes.toCachedBytes("c");
+      }
+    },
+    JSON {
+      @Override
+      public byte[] getShortName() {
+        return PtBytes.toCachedBytes("j");
+      }
+    },
+    METADATA {
+      @Override
+      public byte[] getShortName() {
+        return PtBytes.toCachedBytes("m");
+      }
+    },
+    PHOTO_STREAM_ID {
+      @Override
+      public byte[] getShortName() {
+        return PtBytes.toCachedBytes("p");
+      }
+    };
+
+    public abstract byte[] getShortName();
+
+    public static Function<UserProfileNamedColumn, byte[]> toShortName() {
+      return new Function<UserProfileNamedColumn, byte[]>() {
+        @Override
+        public byte[] apply(UserProfileNamedColumn namedColumn) {
+          return namedColumn.getShortName();
+        }
+      };
+    }
+  }
+
+  public static ColumnSelection getColumnSelection(Collection<UserProfileNamedColumn> cols) {
+    return ColumnSelection.create(
+        Collections2.transform(cols, UserProfileNamedColumn.toShortName()));
+  }
+
+  public static ColumnSelection getColumnSelection(UserProfileNamedColumn... cols) {
+    return getColumnSelection(Arrays.asList(cols));
+  }
+
+  private static final Map<String, Hydrator<? extends UserProfileNamedColumnValue<?>>>
+      shortNameToHydrator =
+          ImmutableMap.<String, Hydrator<? extends UserProfileNamedColumnValue<?>>>builder()
+              .put("m", Metadata.BYTES_HYDRATOR)
+              .put("c", Create.BYTES_HYDRATOR)
+              .put("j", Json.BYTES_HYDRATOR)
+              .put("p", PhotoStreamId.BYTES_HYDRATOR)
+              .build();
+
+  public Map<
+          UserProfileRow,
+          com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile>
+      getMetadatas(Collection<UserProfileRow> rows) {
+    Map<Cell, UserProfileRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
+    for (UserProfileRow row : rows) {
+      cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("m")), row);
+    }
+    Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+    Map<
+            UserProfileRow,
+            com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile>
+        ret = Maps.newHashMapWithExpectedSize(results.size());
+    for (Entry<Cell, byte[]> e : results.entrySet()) {
+      com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile val =
+          Metadata.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+      ret.put(cells.get(e.getKey()), val);
+    }
+    return ret;
+  }
+
+  public Map<UserProfileRow, com.palantir.example.profile.schema.CreationData> getCreates(
+      Collection<UserProfileRow> rows) {
+    Map<Cell, UserProfileRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
+    for (UserProfileRow row : rows) {
+      cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c")), row);
+    }
+    Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+    Map<UserProfileRow, com.palantir.example.profile.schema.CreationData> ret =
+        Maps.newHashMapWithExpectedSize(results.size());
+    for (Entry<Cell, byte[]> e : results.entrySet()) {
+      com.palantir.example.profile.schema.CreationData val =
+          Create.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+      ret.put(cells.get(e.getKey()), val);
+    }
+    return ret;
+  }
+
+  public Map<UserProfileRow, com.fasterxml.jackson.databind.JsonNode> getJsons(
+      Collection<UserProfileRow> rows) {
+    Map<Cell, UserProfileRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
+    for (UserProfileRow row : rows) {
+      cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("j")), row);
+    }
+    Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+    Map<UserProfileRow, com.fasterxml.jackson.databind.JsonNode> ret =
+        Maps.newHashMapWithExpectedSize(results.size());
+    for (Entry<Cell, byte[]> e : results.entrySet()) {
+      com.fasterxml.jackson.databind.JsonNode val =
+          Json.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+      ret.put(cells.get(e.getKey()), val);
+    }
+    return ret;
+  }
+
+  public Map<UserProfileRow, Long> getPhotoStreamIds(Collection<UserProfileRow> rows) {
+    Map<Cell, UserProfileRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
+    for (UserProfileRow row : rows) {
+      cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("p")), row);
+    }
+    Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
+    Map<UserProfileRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
+    for (Entry<Cell, byte[]> e : results.entrySet()) {
+      Long val = PhotoStreamId.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+      ret.put(cells.get(e.getKey()), val);
+    }
+    return ret;
+  }
+
+  public void putMetadata(
+      UserProfileRow row,
+      com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile value) {
+    put(ImmutableMultimap.of(row, Metadata.of(value)));
+  }
+
+  public void putMetadata(
+      Map<
+              UserProfileRow,
+              com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile>
+          map) {
+    Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut =
+        Maps.newHashMapWithExpectedSize(map.size());
+    for (Entry<
+            UserProfileRow,
+            com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile>
+        e : map.entrySet()) {
+      toPut.put(e.getKey(), Metadata.of(e.getValue()));
+    }
+    put(Multimaps.forMap(toPut));
+  }
+
+  public void putMetadataUnlessExists(
+      UserProfileRow row,
+      com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile value) {
+    putUnlessExists(ImmutableMultimap.of(row, Metadata.of(value)));
+  }
+
+  public void putMetadataUnlessExists(
+      Map<
+              UserProfileRow,
+              com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile>
+          map) {
+    Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut =
+        Maps.newHashMapWithExpectedSize(map.size());
+    for (Entry<
+            UserProfileRow,
+            com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile>
+        e : map.entrySet()) {
+      toPut.put(e.getKey(), Metadata.of(e.getValue()));
+    }
+    putUnlessExists(Multimaps.forMap(toPut));
+  }
+
+  public void putCreate(
+      UserProfileRow row, com.palantir.example.profile.schema.CreationData value) {
+    put(ImmutableMultimap.of(row, Create.of(value)));
+  }
+
+  public void putCreate(Map<UserProfileRow, com.palantir.example.profile.schema.CreationData> map) {
+    Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut =
+        Maps.newHashMapWithExpectedSize(map.size());
+    for (Entry<UserProfileRow, com.palantir.example.profile.schema.CreationData> e :
+        map.entrySet()) {
+      toPut.put(e.getKey(), Create.of(e.getValue()));
+    }
+    put(Multimaps.forMap(toPut));
+  }
+
+  public void putCreateUnlessExists(
+      UserProfileRow row, com.palantir.example.profile.schema.CreationData value) {
+    putUnlessExists(ImmutableMultimap.of(row, Create.of(value)));
+  }
+
+  public void putCreateUnlessExists(
+      Map<UserProfileRow, com.palantir.example.profile.schema.CreationData> map) {
+    Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut =
+        Maps.newHashMapWithExpectedSize(map.size());
+    for (Entry<UserProfileRow, com.palantir.example.profile.schema.CreationData> e :
+        map.entrySet()) {
+      toPut.put(e.getKey(), Create.of(e.getValue()));
+    }
+    putUnlessExists(Multimaps.forMap(toPut));
+  }
+
+  public void putJson(UserProfileRow row, com.fasterxml.jackson.databind.JsonNode value) {
+    put(ImmutableMultimap.of(row, Json.of(value)));
+  }
+
+  public void putJson(Map<UserProfileRow, com.fasterxml.jackson.databind.JsonNode> map) {
+    Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut =
+        Maps.newHashMapWithExpectedSize(map.size());
+    for (Entry<UserProfileRow, com.fasterxml.jackson.databind.JsonNode> e : map.entrySet()) {
+      toPut.put(e.getKey(), Json.of(e.getValue()));
+    }
+    put(Multimaps.forMap(toPut));
+  }
+
+  public void putJsonUnlessExists(
+      UserProfileRow row, com.fasterxml.jackson.databind.JsonNode value) {
+    putUnlessExists(ImmutableMultimap.of(row, Json.of(value)));
+  }
+
+  public void putJsonUnlessExists(
+      Map<UserProfileRow, com.fasterxml.jackson.databind.JsonNode> map) {
+    Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut =
+        Maps.newHashMapWithExpectedSize(map.size());
+    for (Entry<UserProfileRow, com.fasterxml.jackson.databind.JsonNode> e : map.entrySet()) {
+      toPut.put(e.getKey(), Json.of(e.getValue()));
+    }
+    putUnlessExists(Multimaps.forMap(toPut));
+  }
+
+  public void putPhotoStreamId(UserProfileRow row, Long value) {
+    put(ImmutableMultimap.of(row, PhotoStreamId.of(value)));
+  }
+
+  public void putPhotoStreamId(Map<UserProfileRow, Long> map) {
+    Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut =
+        Maps.newHashMapWithExpectedSize(map.size());
+    for (Entry<UserProfileRow, Long> e : map.entrySet()) {
+      toPut.put(e.getKey(), PhotoStreamId.of(e.getValue()));
+    }
+    put(Multimaps.forMap(toPut));
+  }
+
+  public void putPhotoStreamIdUnlessExists(UserProfileRow row, Long value) {
+    putUnlessExists(ImmutableMultimap.of(row, PhotoStreamId.of(value)));
+  }
+
+  public void putPhotoStreamIdUnlessExists(Map<UserProfileRow, Long> map) {
+    Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut =
+        Maps.newHashMapWithExpectedSize(map.size());
+    for (Entry<UserProfileRow, Long> e : map.entrySet()) {
+      toPut.put(e.getKey(), PhotoStreamId.of(e.getValue()));
+    }
+    putUnlessExists(Multimaps.forMap(toPut));
+  }
+
+  @Override
+  public void put(Multimap<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> rows) {
+    t.useTable(tableRef, this);
+    Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> affectedCells = getAffectedCells(rows);
+    deleteCookiesIdx(affectedCells);
+    deleteCreatedIdx(affectedCells);
+    deleteUserBirthdaysIdx(affectedCells);
+    for (Entry<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> e : rows.entries()) {
+      if (e.getValue() instanceof Json) {
+        Json col = (Json) e.getValue();
+        {
+          UserProfileRow row = e.getKey();
+          CookiesIdxTable table = CookiesIdxTable.of(this);
+          Iterable<String> cookieIterable =
+              com.palantir.example.profile.schema.ProfileSchema.getCookies(col.getValue());
+          java.util.UUID id = row.getId();
+          for (String cookie : cookieIterable) {
+            CookiesIdxTable.CookiesIdxRow indexRow = CookiesIdxTable.CookiesIdxRow.of(cookie);
+            CookiesIdxTable.CookiesIdxColumn indexCol =
+                CookiesIdxTable.CookiesIdxColumn.of(
+                    row.persistToBytes(), e.getValue().persistColumnName(), id);
+            CookiesIdxTable.CookiesIdxColumnValue indexColVal =
+                CookiesIdxTable.CookiesIdxColumnValue.of(indexCol, 0L);
+            table.put(indexRow, indexColVal);
+          }
+        }
+      }
+      if (e.getValue() instanceof Create) {
+        Create col = (Create) e.getValue();
+        {
+          UserProfileRow row = e.getKey();
+          CreatedIdxTable table = CreatedIdxTable.of(this);
+          long time = col.getValue().getTimeCreated();
+          java.util.UUID id = row.getId();
+          CreatedIdxTable.CreatedIdxRow indexRow = CreatedIdxTable.CreatedIdxRow.of(time);
+          CreatedIdxTable.CreatedIdxColumn indexCol =
+              CreatedIdxTable.CreatedIdxColumn.of(
+                  row.persistToBytes(), e.getValue().persistColumnName(), id);
+          CreatedIdxTable.CreatedIdxColumnValue indexColVal =
+              CreatedIdxTable.CreatedIdxColumnValue.of(indexCol, 0L);
+          table.put(indexRow, indexColVal);
+        }
+      }
+      if (e.getValue() instanceof Metadata) {
+        Metadata col = (Metadata) e.getValue();
+        {
+          UserProfileRow row = e.getKey();
+          UserBirthdaysIdxTable table = UserBirthdaysIdxTable.of(this);
+          long birthday = col.getValue().getBirthEpochDay();
+          java.util.UUID id = row.getId();
+          UserBirthdaysIdxTable.UserBirthdaysIdxRow indexRow =
+              UserBirthdaysIdxTable.UserBirthdaysIdxRow.of(birthday);
+          UserBirthdaysIdxTable.UserBirthdaysIdxColumn indexCol =
+              UserBirthdaysIdxTable.UserBirthdaysIdxColumn.of(
+                  row.persistToBytes(), e.getValue().persistColumnName(), id);
+          UserBirthdaysIdxTable.UserBirthdaysIdxColumnValue indexColVal =
+              UserBirthdaysIdxTable.UserBirthdaysIdxColumnValue.of(indexCol, 0L);
+          table.put(indexRow, indexColVal);
+        }
+      }
+    }
+    t.put(tableRef, ColumnValues.toCellValues(rows));
+    for (UserProfileTrigger trigger : triggers) {
+      trigger.putUserProfile(rows);
+    }
+  }
+
+  @Override
+  public void putUnlessExists(
+      Multimap<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> rows) {
+    Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> existing =
+        getRowsMultimap(rows.keySet());
+    Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = HashMultimap.create();
+    for (Entry<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> entry : rows.entries()) {
+      if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+        toPut.put(entry.getKey(), entry.getValue());
+      }
+    }
+    put(toPut);
+  }
+
+  public void deleteMetadata(UserProfileRow row) {
+    deleteMetadata(ImmutableSet.of(row));
+  }
+
+  public void deleteMetadata(Iterable<UserProfileRow> rows) {
+    byte[] col = PtBytes.toCachedBytes("m");
+    Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
+    Map<Cell, byte[]> results = t.get(tableRef, cells);
+    deleteUserBirthdaysIdxRaw(results);
+    t.delete(tableRef, cells);
+  }
+
+  private void deleteUserBirthdaysIdxRaw(Map<Cell, byte[]> results) {
+    Set<Cell> indexCells = Sets.newHashSetWithExpectedSize(results.size());
+    for (Entry<Cell, byte[]> result : results.entrySet()) {
+      Metadata col = (Metadata) shortNameToHydrator.get("m").hydrateFromBytes(result.getValue());
+      UserProfileRow row =
+          UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
+      long birthday = col.getValue().getBirthEpochDay();
+      java.util.UUID id = row.getId();
+      UserBirthdaysIdxTable.UserBirthdaysIdxRow indexRow =
+          UserBirthdaysIdxTable.UserBirthdaysIdxRow.of(birthday);
+      UserBirthdaysIdxTable.UserBirthdaysIdxColumn indexCol =
+          UserBirthdaysIdxTable.UserBirthdaysIdxColumn.of(
+              row.persistToBytes(), col.persistColumnName(), id);
+      indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+    }
+    t.delete(TableReference.createFromFullyQualifiedName("default.user_birthdays_idx"), indexCells);
+  }
+
+  public void deleteCreate(UserProfileRow row) {
+    deleteCreate(ImmutableSet.of(row));
+  }
+
+  public void deleteCreate(Iterable<UserProfileRow> rows) {
+    byte[] col = PtBytes.toCachedBytes("c");
+    Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
+    Map<Cell, byte[]> results = t.get(tableRef, cells);
+    deleteCreatedIdxRaw(results);
+    t.delete(tableRef, cells);
+  }
+
+  private void deleteCreatedIdxRaw(Map<Cell, byte[]> results) {
+    Set<Cell> indexCells = Sets.newHashSetWithExpectedSize(results.size());
+    for (Entry<Cell, byte[]> result : results.entrySet()) {
+      Create col = (Create) shortNameToHydrator.get("c").hydrateFromBytes(result.getValue());
+      UserProfileRow row =
+          UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
+      long time = col.getValue().getTimeCreated();
+      java.util.UUID id = row.getId();
+      CreatedIdxTable.CreatedIdxRow indexRow = CreatedIdxTable.CreatedIdxRow.of(time);
+      CreatedIdxTable.CreatedIdxColumn indexCol =
+          CreatedIdxTable.CreatedIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
+      indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+    }
+    t.delete(TableReference.createFromFullyQualifiedName("default.created_idx"), indexCells);
+  }
+
+  public void deleteJson(UserProfileRow row) {
+    deleteJson(ImmutableSet.of(row));
+  }
+
+  public void deleteJson(Iterable<UserProfileRow> rows) {
+    byte[] col = PtBytes.toCachedBytes("j");
+    Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
+    Map<Cell, byte[]> results = t.get(tableRef, cells);
+    deleteCookiesIdxRaw(results);
+    t.delete(tableRef, cells);
+  }
+
+  private void deleteCookiesIdxRaw(Map<Cell, byte[]> results) {
+    Set<Cell> indexCells = Sets.newHashSetWithExpectedSize(results.size());
+    for (Entry<Cell, byte[]> result : results.entrySet()) {
+      Json col = (Json) shortNameToHydrator.get("j").hydrateFromBytes(result.getValue());
+      UserProfileRow row =
+          UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
+      Iterable<String> cookieIterable =
+          com.palantir.example.profile.schema.ProfileSchema.getCookies(col.getValue());
+      java.util.UUID id = row.getId();
+      for (String cookie : cookieIterable) {
+        CookiesIdxTable.CookiesIdxRow indexRow = CookiesIdxTable.CookiesIdxRow.of(cookie);
+        CookiesIdxTable.CookiesIdxColumn indexCol =
+            CookiesIdxTable.CookiesIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
+        indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+      }
+    }
+    t.delete(TableReference.createFromFullyQualifiedName("default.cookies_idx"), indexCells);
+  }
+
+  public void deletePhotoStreamId(UserProfileRow row) {
+    deletePhotoStreamId(ImmutableSet.of(row));
+  }
+
+  public void deletePhotoStreamId(Iterable<UserProfileRow> rows) {
+    byte[] col = PtBytes.toCachedBytes("p");
+    Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
+    t.delete(tableRef, cells);
+  }
+
+  @Override
+  public void delete(UserProfileRow row) {
+    delete(ImmutableSet.of(row));
+  }
+
+  @Override
+  public void delete(Iterable<UserProfileRow> rows) {
+    Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> result = getRowsMultimap(rows);
+    deleteCookiesIdx(result);
+    deleteCreatedIdx(result);
+    deleteUserBirthdaysIdx(result);
+    List<byte[]> rowBytes = Persistables.persistAll(rows);
+    Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size() * 4);
+    cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c")));
+    cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("j")));
+    cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("m")));
+    cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("p")));
+    t.delete(tableRef, cells);
+  }
+
+  @Override
+  public Optional<UserProfileRowResult> getRow(UserProfileRow row) {
+    return getRow(row, allColumns);
+  }
+
+  @Override
+  public Optional<UserProfileRowResult> getRow(UserProfileRow row, ColumnSelection columns) {
+    byte[] bytes = row.persistToBytes();
+    RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+    if (rowResult == null) {
+      return Optional.absent();
+    } else {
+      return Optional.of(UserProfileRowResult.of(rowResult));
+    }
+  }
+
+  @Override
+  public List<UserProfileRowResult> getRows(Iterable<UserProfileRow> rows) {
+    return getRows(rows, allColumns);
+  }
+
+  @Override
+  public List<UserProfileRowResult> getRows(
+      Iterable<UserProfileRow> rows, ColumnSelection columns) {
+    SortedMap<byte[], RowResult<byte[]>> results =
+        t.getRows(tableRef, Persistables.persistAll(rows), columns);
+    List<UserProfileRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
+    for (RowResult<byte[]> row : results.values()) {
+      rowResults.add(UserProfileRowResult.of(row));
+    }
+    return rowResults;
+  }
+
+  @Override
+  public List<UserProfileRowResult> getAsyncRows(
+      Iterable<UserProfileRow> rows, ExecutorService exec) {
+    return getAsyncRows(rows, allColumns, exec);
+  }
+
+  @Override
+  public List<UserProfileRowResult> getAsyncRows(
+      final Iterable<UserProfileRow> rows, final ColumnSelection columns, ExecutorService exec) {
+    Callable<List<UserProfileRowResult>> c =
+        new Callable<List<UserProfileRowResult>>() {
+          @Override
+          public List<UserProfileRowResult> call() {
+            return getRows(rows, columns);
+          }
+        };
+    return AsyncProxy.create(exec.submit(c), List.class);
+  }
+
+  @Override
+  public List<UserProfileNamedColumnValue<?>> getRowColumns(UserProfileRow row) {
+    return getRowColumns(row, allColumns);
+  }
+
+  @Override
+  public List<UserProfileNamedColumnValue<?>> getRowColumns(
+      UserProfileRow row, ColumnSelection columns) {
+    byte[] bytes = row.persistToBytes();
+    RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+    if (rowResult == null) {
+      return ImmutableList.of();
+    } else {
+      List<UserProfileNamedColumnValue<?>> ret =
+          Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+      for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
+        ret.add(
+            shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
+      }
+      return ret;
+    }
+  }
+
+  @Override
+  public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getRowsMultimap(
+      Iterable<UserProfileRow> rows) {
+    return getRowsMultimapInternal(rows, allColumns);
+  }
+
+  @Override
+  public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getRowsMultimap(
+      Iterable<UserProfileRow> rows, ColumnSelection columns) {
+    return getRowsMultimapInternal(rows, columns);
+  }
+
+  @Override
+  public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getAsyncRowsMultimap(
+      Iterable<UserProfileRow> rows, ExecutorService exec) {
+    return getAsyncRowsMultimap(rows, allColumns, exec);
+  }
+
+  @Override
+  public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getAsyncRowsMultimap(
+      final Iterable<UserProfileRow> rows, final ColumnSelection columns, ExecutorService exec) {
+    Callable<Multimap<UserProfileRow, UserProfileNamedColumnValue<?>>> c =
+        new Callable<Multimap<UserProfileRow, UserProfileNamedColumnValue<?>>>() {
+          @Override
+          public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> call() {
+            return getRowsMultimapInternal(rows, columns);
+          }
+        };
+    return AsyncProxy.create(exec.submit(c), Multimap.class);
+  }
+
+  private Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getRowsMultimapInternal(
+      Iterable<UserProfileRow> rows, ColumnSelection columns) {
+    SortedMap<byte[], RowResult<byte[]>> results =
+        t.getRows(tableRef, Persistables.persistAll(rows), columns);
+    return getRowMapFromRowResults(results.values());
+  }
+
+  private static Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getRowMapFromRowResults(
+      Collection<RowResult<byte[]>> rowResults) {
+    Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> rowMap = HashMultimap.create();
+    for (RowResult<byte[]> result : rowResults) {
+      UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
+      for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
+        rowMap.put(
+            row,
+            shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
+      }
+    }
+    return rowMap;
+  }
+
+  @Override
+  public Map<UserProfileRow, BatchingVisitable<UserProfileNamedColumnValue<?>>> getRowsColumnRange(
+      Iterable<UserProfileRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+    Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results =
+        t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+    Map<UserProfileRow, BatchingVisitable<UserProfileNamedColumnValue<?>>> transformed =
+        Maps.newHashMapWithExpectedSize(results.size());
+    for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+      UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+      BatchingVisitable<UserProfileNamedColumnValue<?>> bv =
+          BatchingVisitables.transform(
+              e.getValue(),
+              result -> {
+                return shortNameToHydrator
+                    .get(PtBytes.toString(result.getKey().getColumnName()))
+                    .hydrateFromBytes(result.getValue());
+              });
+      transformed.put(row, bv);
+    }
+    return transformed;
+  }
+
+  @Override
+  public Iterator<Map.Entry<UserProfileRow, UserProfileNamedColumnValue<?>>> getRowsColumnRange(
+      Iterable<UserProfileRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+    Iterator<Map.Entry<Cell, byte[]>> results =
+        t.getRowsColumnRange(
+            getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+    return Iterators.transform(
+        results,
+        e -> {
+          UserProfileRow row =
+              UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+          UserProfileNamedColumnValue<?> colValue =
+              shortNameToHydrator
+                  .get(PtBytes.toString(e.getKey().getColumnName()))
+                  .hydrateFromBytes(e.getValue());
+          return Maps.immutableEntry(row, colValue);
+        });
+  }
+
+  private Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getAffectedCells(
+      Multimap<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> rows) {
+    Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> oldData =
+        getRowsMultimap(rows.keySet());
+    Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> cellsAffected =
+        ArrayListMultimap.create();
+    for (UserProfileRow row : oldData.keySet()) {
+      Set<String> columns = new HashSet<String>();
+      for (UserProfileNamedColumnValue<?> v : rows.get(row)) {
+        columns.add(v.getColumnName());
+      }
+      for (UserProfileNamedColumnValue<?> v : oldData.get(row)) {
+        if (columns.contains(v.getColumnName())) {
+          cellsAffected.put(row, v);
+        }
+      }
+    }
+    return cellsAffected;
+  }
+
+  private void deleteCookiesIdx(Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> result) {
+    ImmutableSet.Builder<Cell> indexCells = ImmutableSet.builder();
+    for (Entry<UserProfileRow, UserProfileNamedColumnValue<?>> e : result.entries()) {
+      if (e.getValue() instanceof Json) {
+        Json col = (Json) e.getValue();
+        {
+          UserProfileRow row = e.getKey();
+          Iterable<String> cookieIterable =
+              com.palantir.example.profile.schema.ProfileSchema.getCookies(col.getValue());
+          java.util.UUID id = row.getId();
+          for (String cookie : cookieIterable) {
+            CookiesIdxTable.CookiesIdxRow indexRow = CookiesIdxTable.CookiesIdxRow.of(cookie);
+            CookiesIdxTable.CookiesIdxColumn indexCol =
+                CookiesIdxTable.CookiesIdxColumn.of(
+                    row.persistToBytes(), e.getValue().persistColumnName(), id);
+            indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+          }
+        }
+      }
+    }
+    t.delete(
+        TableReference.createFromFullyQualifiedName("default.cookies_idx"), indexCells.build());
+  }
+
+  private void deleteCreatedIdx(Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> result) {
+    ImmutableSet.Builder<Cell> indexCells = ImmutableSet.builder();
+    for (Entry<UserProfileRow, UserProfileNamedColumnValue<?>> e : result.entries()) {
+      if (e.getValue() instanceof Create) {
+        Create col = (Create) e.getValue();
+        {
+          UserProfileRow row = e.getKey();
+          long time = col.getValue().getTimeCreated();
+          java.util.UUID id = row.getId();
+          CreatedIdxTable.CreatedIdxRow indexRow = CreatedIdxTable.CreatedIdxRow.of(time);
+          CreatedIdxTable.CreatedIdxColumn indexCol =
+              CreatedIdxTable.CreatedIdxColumn.of(
+                  row.persistToBytes(), e.getValue().persistColumnName(), id);
+          indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+        }
+      }
+    }
+    t.delete(
+        TableReference.createFromFullyQualifiedName("default.created_idx"), indexCells.build());
+  }
+
+  private void deleteUserBirthdaysIdx(
+      Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> result) {
+    ImmutableSet.Builder<Cell> indexCells = ImmutableSet.builder();
+    for (Entry<UserProfileRow, UserProfileNamedColumnValue<?>> e : result.entries()) {
+      if (e.getValue() instanceof Metadata) {
+        Metadata col = (Metadata) e.getValue();
+        {
+          UserProfileRow row = e.getKey();
+          long birthday = col.getValue().getBirthEpochDay();
+          java.util.UUID id = row.getId();
+          UserBirthdaysIdxTable.UserBirthdaysIdxRow indexRow =
+              UserBirthdaysIdxTable.UserBirthdaysIdxRow.of(birthday);
+          UserBirthdaysIdxTable.UserBirthdaysIdxColumn indexCol =
+              UserBirthdaysIdxTable.UserBirthdaysIdxColumn.of(
+                  row.persistToBytes(), e.getValue().persistColumnName(), id);
+          indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
+        }
+      }
+    }
+    t.delete(
+        TableReference.createFromFullyQualifiedName("default.user_birthdays_idx"),
+        indexCells.build());
+  }
+
+  public BatchingVisitableView<UserProfileRowResult> getAllRowsUnordered() {
+    return getAllRowsUnordered(allColumns);
+  }
+
+  public BatchingVisitableView<UserProfileRowResult> getAllRowsUnordered(ColumnSelection columns) {
+    return BatchingVisitables.transform(
+        t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
+        new Function<RowResult<byte[]>, UserProfileRowResult>() {
+          @Override
+          public UserProfileRowResult apply(RowResult<byte[]> input) {
+            return UserProfileRowResult.of(input);
+          }
+        });
+  }
+
+  @Override
+  public List<String> findConstraintFailures(
+      Map<Cell, byte[]> writes,
+      ConstraintCheckingTransaction transaction,
+      AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    return ImmutableList.of();
+  }
+
+  @Override
+  public List<String> findConstraintFailuresNoRead(
+      Map<Cell, byte[]> writes, AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    return ImmutableList.of();
+  }
+
+  @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+  public static final class CookiesIdxTable
+      implements AtlasDbDynamicMutablePersistentTable<
+          CookiesIdxTable.CookiesIdxRow, CookiesIdxTable.CookiesIdxColumn,
+          CookiesIdxTable.CookiesIdxColumnValue, CookiesIdxTable.CookiesIdxRowResult> {
     private final Transaction t;
-    private final List<UserProfileTrigger> triggers;
-    private final static String rawTableName = "user_profile";
+    private final List<CookiesIdxTrigger> triggers;
+    private static final String rawTableName = "cookies_idx";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(UserProfileNamedColumn.values());
+    private static final ColumnSelection allColumns = ColumnSelection.all();
 
-    static UserProfileTable of(Transaction t, Namespace namespace) {
-        return new UserProfileTable(t, namespace, ImmutableList.<UserProfileTrigger>of());
+    public static CookiesIdxTable of(UserProfileTable table) {
+      return new CookiesIdxTable(
+          table.t, table.tableRef.getNamespace(), ImmutableList.<CookiesIdxTrigger>of());
     }
 
-    static UserProfileTable of(Transaction t, Namespace namespace, UserProfileTrigger trigger, UserProfileTrigger... triggers) {
-        return new UserProfileTable(t, namespace, ImmutableList.<UserProfileTrigger>builder().add(trigger).add(triggers).build());
+    public static CookiesIdxTable of(
+        UserProfileTable table, CookiesIdxTrigger trigger, CookiesIdxTrigger... triggers) {
+      return new CookiesIdxTable(
+          table.t,
+          table.tableRef.getNamespace(),
+          ImmutableList.<CookiesIdxTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static UserProfileTable of(Transaction t, Namespace namespace, List<UserProfileTrigger> triggers) {
-        return new UserProfileTable(t, namespace, triggers);
+    public static CookiesIdxTable of(UserProfileTable table, List<CookiesIdxTrigger> triggers) {
+      return new CookiesIdxTable(table.t, table.tableRef.getNamespace(), triggers);
     }
 
-    private UserProfileTable(Transaction t, Namespace namespace, List<UserProfileTrigger> triggers) {
-        this.t = t;
-        this.tableRef = TableReference.create(namespace, rawTableName);
-        this.triggers = triggers;
+    private CookiesIdxTable(Transaction t, Namespace namespace, List<CookiesIdxTrigger> triggers) {
+      this.t = t;
+      this.tableRef = TableReference.create(namespace, rawTableName);
+      this.triggers = triggers;
     }
 
     public static String getRawTableName() {
-        return rawTableName;
+      return rawTableName;
     }
 
     public TableReference getTableRef() {
-        return tableRef;
+      return tableRef;
     }
 
     public String getTableName() {
-        return tableRef.getQualifiedName();
+      return tableRef.getQualifiedName();
     }
 
     public Namespace getNamespace() {
-        return tableRef.getNamespace();
+      return tableRef.getNamespace();
     }
 
     /**
+     *
+     *
      * <pre>
-     * UserProfileRow {
+     * CookiesIdxRow {
+     *   {@literal String cookie};
+     * }
+     * </pre>
+     */
+    public static final class CookiesIdxRow implements Persistable, Comparable<CookiesIdxRow> {
+      private final String cookie;
+
+      public static CookiesIdxRow of(String cookie) {
+        return new CookiesIdxRow(cookie);
+      }
+
+      private CookiesIdxRow(String cookie) {
+        this.cookie = cookie;
+      }
+
+      public String getCookie() {
+        return cookie;
+      }
+
+      public static Function<CookiesIdxRow, String> getCookieFun() {
+        return new Function<CookiesIdxRow, String>() {
+          @Override
+          public String apply(CookiesIdxRow row) {
+            return row.cookie;
+          }
+        };
+      }
+
+      public static Function<String, CookiesIdxRow> fromCookieFun() {
+        return new Function<String, CookiesIdxRow>() {
+          @Override
+          public CookiesIdxRow apply(String row) {
+            return CookiesIdxRow.of(row);
+          }
+        };
+      }
+
+      @Override
+      public byte[] persistToBytes() {
+        byte[] cookieBytes = PtBytes.toBytes(cookie);
+        return EncodingUtils.add(cookieBytes);
+      }
+
+      public static final Hydrator<CookiesIdxRow> BYTES_HYDRATOR =
+          new Hydrator<CookiesIdxRow>() {
+            @Override
+            public CookiesIdxRow hydrateFromBytes(byte[] __input) {
+              int __index = 0;
+              String cookie = PtBytes.toString(__input, __index, __input.length - __index);
+              __index += 0;
+              return new CookiesIdxRow(cookie);
+            }
+          };
+
+      @Override
+      public String toString() {
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
+            .add("cookie", cookie)
+            .toString();
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+        if (this == obj) {
+          return true;
+        }
+        if (obj == null) {
+          return false;
+        }
+        if (getClass() != obj.getClass()) {
+          return false;
+        }
+        CookiesIdxRow other = (CookiesIdxRow) obj;
+        return Objects.equal(cookie, other.cookie);
+      }
+
+      @Override
+      public int hashCode() {
+        return Objects.hashCode(cookie);
+      }
+
+      @Override
+      public int compareTo(CookiesIdxRow o) {
+        return ComparisonChain.start().compare(this.cookie, o.cookie).result();
+      }
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * CookiesIdxColumn {
+     *   {@literal byte[] rowName};
+     *   {@literal byte[] columnName};
      *   {@literal java.util.UUID id};
      * }
      * </pre>
      */
-    public static final class UserProfileRow implements Persistable, Comparable<UserProfileRow> {
-        private final java.util.UUID id;
+    public static final class CookiesIdxColumn
+        implements Persistable, Comparable<CookiesIdxColumn> {
+      private final byte[] rowName;
+      private final byte[] columnName;
+      private final java.util.UUID id;
 
-        public static UserProfileRow of(java.util.UUID id) {
-            return new UserProfileRow(id);
-        }
+      public static CookiesIdxColumn of(byte[] rowName, byte[] columnName, java.util.UUID id) {
+        return new CookiesIdxColumn(rowName, columnName, id);
+      }
 
-        private UserProfileRow(java.util.UUID id) {
-            this.id = id;
-        }
+      private CookiesIdxColumn(byte[] rowName, byte[] columnName, java.util.UUID id) {
+        this.rowName = rowName;
+        this.columnName = columnName;
+        this.id = id;
+      }
 
-        public java.util.UUID getId() {
-            return id;
-        }
+      public byte[] getRowName() {
+        return rowName;
+      }
 
-        public static Function<UserProfileRow, java.util.UUID> getIdFun() {
-            return new Function<UserProfileRow, java.util.UUID>() {
-                @Override
-                public java.util.UUID apply(UserProfileRow row) {
-                    return row.id;
-                }
-            };
-        }
+      public byte[] getColumnName() {
+        return columnName;
+      }
 
-        public static Function<java.util.UUID, UserProfileRow> fromIdFun() {
-            return new Function<java.util.UUID, UserProfileRow>() {
-                @Override
-                public UserProfileRow apply(java.util.UUID row) {
-                    return UserProfileRow.of(row);
-                }
-            };
-        }
+      public java.util.UUID getId() {
+        return id;
+      }
 
-        @Override
-        public byte[] persistToBytes() {
-            byte[] idBytes = EncodingUtils.encodeUUID(id);
-            return EncodingUtils.add(idBytes);
-        }
-
-        public static final Hydrator<UserProfileRow> BYTES_HYDRATOR = new Hydrator<UserProfileRow>() {
-            @Override
-            public UserProfileRow hydrateFromBytes(byte[] __input) {
-                int __index = 0;
-                java.util.UUID id = EncodingUtils.decodeUUID(__input, __index);
-                __index += 16;
-                return new UserProfileRow(id);
-            }
+      public static Function<CookiesIdxColumn, byte[]> getRowNameFun() {
+        return new Function<CookiesIdxColumn, byte[]>() {
+          @Override
+          public byte[] apply(CookiesIdxColumn row) {
+            return row.rowName;
+          }
         };
+      }
 
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("id", id)
-                .toString();
-        }
+      public static Function<CookiesIdxColumn, byte[]> getColumnNameFun() {
+        return new Function<CookiesIdxColumn, byte[]>() {
+          @Override
+          public byte[] apply(CookiesIdxColumn row) {
+            return row.columnName;
+          }
+        };
+      }
 
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
+      public static Function<CookiesIdxColumn, java.util.UUID> getIdFun() {
+        return new Function<CookiesIdxColumn, java.util.UUID>() {
+          @Override
+          public java.util.UUID apply(CookiesIdxColumn row) {
+            return row.id;
+          }
+        };
+      }
+
+      @Override
+      public byte[] persistToBytes() {
+        byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+        byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+        byte[] idBytes = EncodingUtils.encodeUUID(id);
+        return EncodingUtils.add(rowNameBytes, columnNameBytes, idBytes);
+      }
+
+      public static final Hydrator<CookiesIdxColumn> BYTES_HYDRATOR =
+          new Hydrator<CookiesIdxColumn>() {
+            @Override
+            public CookiesIdxColumn hydrateFromBytes(byte[] __input) {
+              int __index = 0;
+              byte[] rowName = EncodingUtils.decodeSizedBytes(__input, __index);
+              __index += EncodingUtils.sizeOfSizedBytes(rowName);
+              byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
+              __index += EncodingUtils.sizeOfSizedBytes(columnName);
+              java.util.UUID id = EncodingUtils.decodeUUID(__input, __index);
+              __index += 16;
+              return new CookiesIdxColumn(rowName, columnName, id);
             }
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            UserProfileRow other = (UserProfileRow) obj;
-            return Objects.equal(id, other.id);
-        }
+          };
 
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(id);
-        }
+      public static BatchColumnRangeSelection createPrefixRangeUnsorted(
+          byte[] rowName, int batchSize) {
+        byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+        return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
+      }
 
-        @Override
-        public int compareTo(UserProfileRow o) {
-            return ComparisonChain.start()
-                .compare(this.id, o.id)
-                .result();
+      public static Prefix prefixUnsorted(byte[] rowName) {
+        byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+        return new Prefix(EncodingUtils.add(rowNameBytes));
+      }
+
+      public static BatchColumnRangeSelection createPrefixRange(
+          byte[] rowName, byte[] columnName, int batchSize) {
+        byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+        byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+        return ColumnRangeSelections.createPrefixRange(
+            EncodingUtils.add(rowNameBytes, columnNameBytes), batchSize);
+      }
+
+      public static Prefix prefix(byte[] rowName, byte[] columnName) {
+        byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+        byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+        return new Prefix(EncodingUtils.add(rowNameBytes, columnNameBytes));
+      }
+
+      @Override
+      public String toString() {
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
+            .add("rowName", rowName)
+            .add("columnName", columnName)
+            .add("id", id)
+            .toString();
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+        if (this == obj) {
+          return true;
         }
+        if (obj == null) {
+          return false;
+        }
+        if (getClass() != obj.getClass()) {
+          return false;
+        }
+        CookiesIdxColumn other = (CookiesIdxColumn) obj;
+        return Arrays.equals(rowName, other.rowName)
+            && Arrays.equals(columnName, other.columnName)
+            && Objects.equal(id, other.id);
+      }
+
+      @Override
+      public int hashCode() {
+        return Arrays.deepHashCode(new Object[] {rowName, columnName, id});
+      }
+
+      @Override
+      public int compareTo(CookiesIdxColumn o) {
+        return ComparisonChain.start()
+            .compare(this.rowName, o.rowName, UnsignedBytes.lexicographicalComparator())
+            .compare(this.columnName, o.columnName, UnsignedBytes.lexicographicalComparator())
+            .compare(this.id, o.id)
+            .result();
+      }
     }
 
-    public interface UserProfileNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
+    public interface CookiesIdxTrigger {
+      public void putCookiesIdx(Multimap<CookiesIdxRow, ? extends CookiesIdxColumnValue> newRows);
+    }
 
     /**
+     *
+     *
      * <pre>
-     * Column value description {
-     *   type: com.palantir.example.profile.schema.CreationData;
+     * Column name description {
+     *   {@literal byte[] rowName};
+     *   {@literal byte[] columnName};
+     *   {@literal java.util.UUID id};
      * }
-     * </pre>
-     */
-    public static final class Create implements UserProfileNamedColumnValue<com.palantir.example.profile.schema.CreationData> {
-        private final com.palantir.example.profile.schema.CreationData value;
-
-        public static Create of(com.palantir.example.profile.schema.CreationData value) {
-            return new Create(value);
-        }
-
-        private Create(com.palantir.example.profile.schema.CreationData value) {
-            this.value = value;
-        }
-
-        @Override
-        public String getColumnName() {
-            return "create";
-        }
-
-        @Override
-        public String getShortColumnName() {
-            return "c";
-        }
-
-        @Override
-        public com.palantir.example.profile.schema.CreationData getValue() {
-            return value;
-        }
-
-        @Override
-        public byte[] persistValue() {
-            byte[] bytes = com.palantir.atlasdb.compress.CompressionUtils.compress(new com.palantir.example.profile.schema.CreationData.Persister().persistToBytes(value), com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
-            return CompressionUtils.compress(bytes, Compression.NONE);
-        }
-
-        @Override
-        public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("c");
-        }
-
-        public static final Hydrator<Create> BYTES_HYDRATOR = new Hydrator<Create>() {
-            @Override
-            public Create hydrateFromBytes(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(new com.palantir.example.profile.schema.CreationData.Persister().hydrateFromBytes(com.palantir.atlasdb.compress.CompressionUtils.decompress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE)));
-            }
-        };
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("Value", this.value)
-                .toString();
-        }
-    }
-
-    /**
-     * <pre>
-     * Column value description {
-     *   type: com.fasterxml.jackson.databind.JsonNode;
-     * }
-     * </pre>
-     */
-    public static final class Json implements UserProfileNamedColumnValue<com.fasterxml.jackson.databind.JsonNode> {
-        private final com.fasterxml.jackson.databind.JsonNode value;
-
-        public static Json of(com.fasterxml.jackson.databind.JsonNode value) {
-            return new Json(value);
-        }
-
-        private Json(com.fasterxml.jackson.databind.JsonNode value) {
-            this.value = value;
-        }
-
-        @Override
-        public String getColumnName() {
-            return "json";
-        }
-
-        @Override
-        public String getShortColumnName() {
-            return "j";
-        }
-
-        @Override
-        public com.fasterxml.jackson.databind.JsonNode getValue() {
-            return value;
-        }
-
-        @Override
-        public byte[] persistValue() {
-            byte[] bytes = com.palantir.atlasdb.compress.CompressionUtils.compress(new com.palantir.atlasdb.persister.JsonNodePersister().persistToBytes(value), com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE);
-            return CompressionUtils.compress(bytes, Compression.NONE);
-        }
-
-        @Override
-        public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("j");
-        }
-
-        public static final Hydrator<Json> BYTES_HYDRATOR = new Hydrator<Json>() {
-            @Override
-            public Json hydrateFromBytes(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(new com.palantir.atlasdb.persister.JsonNodePersister().hydrateFromBytes(com.palantir.atlasdb.compress.CompressionUtils.decompress(bytes, com.palantir.atlasdb.table.description.ColumnValueDescription.Compression.NONE)));
-            }
-        };
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("Value", this.value)
-                .toString();
-        }
-    }
-
-    /**
-     * <pre>
-     * Column value description {
-     *   type: com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile;
-     *   name: "UserProfile"
-     *   field {
-     *     name: "name"
-     *     number: 1
-     *     label: LABEL_REQUIRED
-     *     type: TYPE_STRING
-     *   }
-     *   field {
-     *     name: "birthEpochDay"
-     *     number: 2
-     *     label: LABEL_REQUIRED
-     *     type: TYPE_SINT64
-     *   }
-     * }
-     * </pre>
-     */
-    public static final class Metadata implements UserProfileNamedColumnValue<com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile> {
-        private final com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile value;
-
-        public static Metadata of(com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile value) {
-            return new Metadata(value);
-        }
-
-        private Metadata(com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile value) {
-            this.value = value;
-        }
-
-        @Override
-        public String getColumnName() {
-            return "metadata";
-        }
-
-        @Override
-        public String getShortColumnName() {
-            return "m";
-        }
-
-        @Override
-        public com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile getValue() {
-            return value;
-        }
-
-        @Override
-        public byte[] persistValue() {
-            byte[] bytes = value.toByteArray();
-            return CompressionUtils.compress(bytes, Compression.NONE);
-        }
-
-        @Override
-        public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("m");
-        }
-
-        public static final Hydrator<Metadata> BYTES_HYDRATOR = new Hydrator<Metadata>() {
-            @Override
-            public Metadata hydrateFromBytes(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                try {
-                    return of(com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile.parseFrom(bytes));
-                } catch (InvalidProtocolBufferException e) {
-                    throw Throwables.throwUncheckedException(e);
-                }
-            }
-        };
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("Value", this.value)
-                .toString();
-        }
-    }
-
-    /**
-     * <pre>
      * Column value description {
      *   type: Long;
      * }
      * </pre>
      */
-    public static final class PhotoStreamId implements UserProfileNamedColumnValue<Long> {
-        private final Long value;
+    public static final class CookiesIdxColumnValue implements ColumnValue<Long> {
+      private final CookiesIdxColumn columnName;
+      private final Long value;
 
-        public static PhotoStreamId of(Long value) {
-            return new PhotoStreamId(value);
-        }
+      public static CookiesIdxColumnValue of(CookiesIdxColumn columnName, Long value) {
+        return new CookiesIdxColumnValue(columnName, value);
+      }
 
-        private PhotoStreamId(Long value) {
-            this.value = value;
-        }
+      private CookiesIdxColumnValue(CookiesIdxColumn columnName, Long value) {
+        this.columnName = columnName;
+        this.value = value;
+      }
 
-        @Override
-        public String getColumnName() {
-            return "photo_stream_id";
-        }
+      public CookiesIdxColumn getColumnName() {
+        return columnName;
+      }
 
-        @Override
-        public String getShortColumnName() {
-            return "p";
-        }
+      @Override
+      public Long getValue() {
+        return value;
+      }
 
-        @Override
-        public Long getValue() {
-            return value;
-        }
+      @Override
+      public byte[] persistColumnName() {
+        return columnName.persistToBytes();
+      }
 
-        @Override
-        public byte[] persistValue() {
-            byte[] bytes = PtBytes.toBytes(Long.MIN_VALUE ^ value);
-            return CompressionUtils.compress(bytes, Compression.NONE);
-        }
+      @Override
+      public byte[] persistValue() {
+        byte[] bytes = EncodingUtils.encodeUnsignedVarLong(value);
+        return CompressionUtils.compress(bytes, Compression.NONE);
+      }
 
-        @Override
-        public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("p");
-        }
+      public static Long hydrateValue(byte[] bytes) {
+        bytes = CompressionUtils.decompress(bytes, Compression.NONE);
+        return EncodingUtils.decodeUnsignedVarLong(bytes, 0);
+      }
 
-        public static final Hydrator<PhotoStreamId> BYTES_HYDRATOR = new Hydrator<PhotoStreamId>() {
-            @Override
-            public PhotoStreamId hydrateFromBytes(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(Long.MIN_VALUE ^ PtBytes.toLong(bytes, 0));
-            }
+      public static Function<CookiesIdxColumnValue, CookiesIdxColumn> getColumnNameFun() {
+        return new Function<CookiesIdxColumnValue, CookiesIdxColumn>() {
+          @Override
+          public CookiesIdxColumn apply(CookiesIdxColumnValue columnValue) {
+            return columnValue.getColumnName();
+          }
         };
+      }
 
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("Value", this.value)
-                .toString();
-        }
-    }
-
-    public interface UserProfileTrigger {
-        public void putUserProfile(Multimap<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> newRows);
-    }
-
-    public static final class UserProfileRowResult implements TypedRowResult {
-        private final RowResult<byte[]> row;
-
-        public static UserProfileRowResult of(RowResult<byte[]> row) {
-            return new UserProfileRowResult(row);
-        }
-
-        private UserProfileRowResult(RowResult<byte[]> row) {
-            this.row = row;
-        }
-
-        @Override
-        public UserProfileRow getRowName() {
-            return UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
-        }
-
-        public static Function<UserProfileRowResult, UserProfileRow> getRowNameFun() {
-            return new Function<UserProfileRowResult, UserProfileRow>() {
-                @Override
-                public UserProfileRow apply(UserProfileRowResult rowResult) {
-                    return rowResult.getRowName();
-                }
-            };
-        }
-
-        public static Function<RowResult<byte[]>, UserProfileRowResult> fromRawRowResultFun() {
-            return new Function<RowResult<byte[]>, UserProfileRowResult>() {
-                @Override
-                public UserProfileRowResult apply(RowResult<byte[]> rowResult) {
-                    return new UserProfileRowResult(rowResult);
-                }
-            };
-        }
-
-        public boolean hasCreate() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("c"));
-        }
-
-        public boolean hasJson() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("j"));
-        }
-
-        public boolean hasMetadata() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("m"));
-        }
-
-        public boolean hasPhotoStreamId() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("p"));
-        }
-
-        public com.palantir.example.profile.schema.CreationData getCreate() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("c"));
-            if (bytes == null) {
-                return null;
-            }
-            Create value = Create.BYTES_HYDRATOR.hydrateFromBytes(bytes);
-            return value.getValue();
-        }
-
-        public com.fasterxml.jackson.databind.JsonNode getJson() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("j"));
-            if (bytes == null) {
-                return null;
-            }
-            Json value = Json.BYTES_HYDRATOR.hydrateFromBytes(bytes);
-            return value.getValue();
-        }
-
-        public com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile getMetadata() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("m"));
-            if (bytes == null) {
-                return null;
-            }
-            Metadata value = Metadata.BYTES_HYDRATOR.hydrateFromBytes(bytes);
-            return value.getValue();
-        }
-
-        public Long getPhotoStreamId() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("p"));
-            if (bytes == null) {
-                return null;
-            }
-            PhotoStreamId value = PhotoStreamId.BYTES_HYDRATOR.hydrateFromBytes(bytes);
-            return value.getValue();
-        }
-
-        public static Function<UserProfileRowResult, com.palantir.example.profile.schema.CreationData> getCreateFun() {
-            return new Function<UserProfileRowResult, com.palantir.example.profile.schema.CreationData>() {
-                @Override
-                public com.palantir.example.profile.schema.CreationData apply(UserProfileRowResult rowResult) {
-                    return rowResult.getCreate();
-                }
-            };
-        }
-
-        public static Function<UserProfileRowResult, com.fasterxml.jackson.databind.JsonNode> getJsonFun() {
-            return new Function<UserProfileRowResult, com.fasterxml.jackson.databind.JsonNode>() {
-                @Override
-                public com.fasterxml.jackson.databind.JsonNode apply(UserProfileRowResult rowResult) {
-                    return rowResult.getJson();
-                }
-            };
-        }
-
-        public static Function<UserProfileRowResult, com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile> getMetadataFun() {
-            return new Function<UserProfileRowResult, com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile>() {
-                @Override
-                public com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile apply(UserProfileRowResult rowResult) {
-                    return rowResult.getMetadata();
-                }
-            };
-        }
-
-        public static Function<UserProfileRowResult, Long> getPhotoStreamIdFun() {
-            return new Function<UserProfileRowResult, Long>() {
-                @Override
-                public Long apply(UserProfileRowResult rowResult) {
-                    return rowResult.getPhotoStreamId();
-                }
-            };
-        }
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("RowName", getRowName())
-                .add("Create", getCreate())
-                .add("Json", getJson())
-                .add("Metadata", getMetadata())
-                .add("PhotoStreamId", getPhotoStreamId())
-                .toString();
-        }
-    }
-
-    public enum UserProfileNamedColumn {
-        CREATE {
-            @Override
-            public byte[] getShortName() {
-                return PtBytes.toCachedBytes("c");
-            }
-        },
-        JSON {
-            @Override
-            public byte[] getShortName() {
-                return PtBytes.toCachedBytes("j");
-            }
-        },
-        METADATA {
-            @Override
-            public byte[] getShortName() {
-                return PtBytes.toCachedBytes("m");
-            }
-        },
-        PHOTO_STREAM_ID {
-            @Override
-            public byte[] getShortName() {
-                return PtBytes.toCachedBytes("p");
-            }
+      public static Function<CookiesIdxColumnValue, Long> getValueFun() {
+        return new Function<CookiesIdxColumnValue, Long>() {
+          @Override
+          public Long apply(CookiesIdxColumnValue columnValue) {
+            return columnValue.getValue();
+          }
         };
+      }
 
-        public abstract byte[] getShortName();
+      @Override
+      public String toString() {
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
+            .add("ColumnName", this.columnName)
+            .add("Value", this.value)
+            .toString();
+      }
+    }
 
-        public static Function<UserProfileNamedColumn, byte[]> toShortName() {
-            return new Function<UserProfileNamedColumn, byte[]>() {
-                @Override
-                public byte[] apply(UserProfileNamedColumn namedColumn) {
-                    return namedColumn.getShortName();
-                }
-            };
+    public static final class CookiesIdxRowResult implements TypedRowResult {
+      private final CookiesIdxRow rowName;
+      private final ImmutableSet<CookiesIdxColumnValue> columnValues;
+
+      public static CookiesIdxRowResult of(RowResult<byte[]> rowResult) {
+        CookiesIdxRow rowName =
+            CookiesIdxRow.BYTES_HYDRATOR.hydrateFromBytes(rowResult.getRowName());
+        Set<CookiesIdxColumnValue> columnValues =
+            Sets.newHashSetWithExpectedSize(rowResult.getColumns().size());
+        for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
+          CookiesIdxColumn col = CookiesIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+          Long value = CookiesIdxColumnValue.hydrateValue(e.getValue());
+          columnValues.add(CookiesIdxColumnValue.of(col, value));
         }
-    }
+        return new CookiesIdxRowResult(rowName, ImmutableSet.copyOf(columnValues));
+      }
 
-    public static ColumnSelection getColumnSelection(Collection<UserProfileNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, UserProfileNamedColumn.toShortName()));
-    }
+      private CookiesIdxRowResult(
+          CookiesIdxRow rowName, ImmutableSet<CookiesIdxColumnValue> columnValues) {
+        this.rowName = rowName;
+        this.columnValues = columnValues;
+      }
 
-    public static ColumnSelection getColumnSelection(UserProfileNamedColumn... cols) {
-        return getColumnSelection(Arrays.asList(cols));
-    }
+      @Override
+      public CookiesIdxRow getRowName() {
+        return rowName;
+      }
 
-    private static final Map<String, Hydrator<? extends UserProfileNamedColumnValue<?>>> shortNameToHydrator =
-            ImmutableMap.<String, Hydrator<? extends UserProfileNamedColumnValue<?>>>builder()
-                .put("m", Metadata.BYTES_HYDRATOR)
-                .put("c", Create.BYTES_HYDRATOR)
-                .put("j", Json.BYTES_HYDRATOR)
-                .put("p", PhotoStreamId.BYTES_HYDRATOR)
-                .build();
+      public Set<CookiesIdxColumnValue> getColumnValues() {
+        return columnValues;
+      }
 
-    public Map<UserProfileRow, com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile> getMetadatas(Collection<UserProfileRow> rows) {
-        Map<Cell, UserProfileRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
-        for (UserProfileRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("m")), row);
-        }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<UserProfileRow, com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile> ret = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<Cell, byte[]> e : results.entrySet()) {
-            com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile val = Metadata.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
-            ret.put(cells.get(e.getKey()), val);
-        }
-        return ret;
-    }
-
-    public Map<UserProfileRow, com.palantir.example.profile.schema.CreationData> getCreates(Collection<UserProfileRow> rows) {
-        Map<Cell, UserProfileRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
-        for (UserProfileRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c")), row);
-        }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<UserProfileRow, com.palantir.example.profile.schema.CreationData> ret = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<Cell, byte[]> e : results.entrySet()) {
-            com.palantir.example.profile.schema.CreationData val = Create.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
-            ret.put(cells.get(e.getKey()), val);
-        }
-        return ret;
-    }
-
-    public Map<UserProfileRow, com.fasterxml.jackson.databind.JsonNode> getJsons(Collection<UserProfileRow> rows) {
-        Map<Cell, UserProfileRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
-        for (UserProfileRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("j")), row);
-        }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<UserProfileRow, com.fasterxml.jackson.databind.JsonNode> ret = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<Cell, byte[]> e : results.entrySet()) {
-            com.fasterxml.jackson.databind.JsonNode val = Json.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
-            ret.put(cells.get(e.getKey()), val);
-        }
-        return ret;
-    }
-
-    public Map<UserProfileRow, Long> getPhotoStreamIds(Collection<UserProfileRow> rows) {
-        Map<Cell, UserProfileRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
-        for (UserProfileRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("p")), row);
-        }
-        Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<UserProfileRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<Cell, byte[]> e : results.entrySet()) {
-            Long val = PhotoStreamId.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
-            ret.put(cells.get(e.getKey()), val);
-        }
-        return ret;
-    }
-
-    public void putMetadata(UserProfileRow row, com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile value) {
-        put(ImmutableMultimap.of(row, Metadata.of(value)));
-    }
-
-    public void putMetadata(Map<UserProfileRow, com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile> map) {
-        Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<UserProfileRow, com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile> e : map.entrySet()) {
-            toPut.put(e.getKey(), Metadata.of(e.getValue()));
-        }
-        put(Multimaps.forMap(toPut));
-    }
-
-    public void putMetadataUnlessExists(UserProfileRow row, com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile value) {
-        putUnlessExists(ImmutableMultimap.of(row, Metadata.of(value)));
-    }
-
-    public void putMetadataUnlessExists(Map<UserProfileRow, com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile> map) {
-        Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<UserProfileRow, com.palantir.example.profile.protos.generated.ProfilePersistence.UserProfile> e : map.entrySet()) {
-            toPut.put(e.getKey(), Metadata.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
-    public void putCreate(UserProfileRow row, com.palantir.example.profile.schema.CreationData value) {
-        put(ImmutableMultimap.of(row, Create.of(value)));
-    }
-
-    public void putCreate(Map<UserProfileRow, com.palantir.example.profile.schema.CreationData> map) {
-        Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<UserProfileRow, com.palantir.example.profile.schema.CreationData> e : map.entrySet()) {
-            toPut.put(e.getKey(), Create.of(e.getValue()));
-        }
-        put(Multimaps.forMap(toPut));
-    }
-
-    public void putCreateUnlessExists(UserProfileRow row, com.palantir.example.profile.schema.CreationData value) {
-        putUnlessExists(ImmutableMultimap.of(row, Create.of(value)));
-    }
-
-    public void putCreateUnlessExists(Map<UserProfileRow, com.palantir.example.profile.schema.CreationData> map) {
-        Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<UserProfileRow, com.palantir.example.profile.schema.CreationData> e : map.entrySet()) {
-            toPut.put(e.getKey(), Create.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
-    public void putJson(UserProfileRow row, com.fasterxml.jackson.databind.JsonNode value) {
-        put(ImmutableMultimap.of(row, Json.of(value)));
-    }
-
-    public void putJson(Map<UserProfileRow, com.fasterxml.jackson.databind.JsonNode> map) {
-        Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<UserProfileRow, com.fasterxml.jackson.databind.JsonNode> e : map.entrySet()) {
-            toPut.put(e.getKey(), Json.of(e.getValue()));
-        }
-        put(Multimaps.forMap(toPut));
-    }
-
-    public void putJsonUnlessExists(UserProfileRow row, com.fasterxml.jackson.databind.JsonNode value) {
-        putUnlessExists(ImmutableMultimap.of(row, Json.of(value)));
-    }
-
-    public void putJsonUnlessExists(Map<UserProfileRow, com.fasterxml.jackson.databind.JsonNode> map) {
-        Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<UserProfileRow, com.fasterxml.jackson.databind.JsonNode> e : map.entrySet()) {
-            toPut.put(e.getKey(), Json.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
-    public void putPhotoStreamId(UserProfileRow row, Long value) {
-        put(ImmutableMultimap.of(row, PhotoStreamId.of(value)));
-    }
-
-    public void putPhotoStreamId(Map<UserProfileRow, Long> map) {
-        Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<UserProfileRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), PhotoStreamId.of(e.getValue()));
-        }
-        put(Multimaps.forMap(toPut));
-    }
-
-    public void putPhotoStreamIdUnlessExists(UserProfileRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, PhotoStreamId.of(value)));
-    }
-
-    public void putPhotoStreamIdUnlessExists(Map<UserProfileRow, Long> map) {
-        Map<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<UserProfileRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), PhotoStreamId.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
-    @Override
-    public void put(Multimap<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> rows) {
-        t.useTable(tableRef, this);
-        Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> affectedCells = getAffectedCells(rows);
-        deleteCookiesIdx(affectedCells);
-        deleteCreatedIdx(affectedCells);
-        deleteUserBirthdaysIdx(affectedCells);
-        for (Entry<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> e : rows.entries()) {
-            if (e.getValue() instanceof Json)
-            {
-                Json col = (Json) e.getValue();
-                {
-                    UserProfileRow row = e.getKey();
-                    CookiesIdxTable table = CookiesIdxTable.of(this);
-                    Iterable<String> cookieIterable = com.palantir.example.profile.schema.ProfileSchema.getCookies(col.getValue());
-                    java.util.UUID id = row.getId();
-                    for (String cookie : cookieIterable) {
-                        CookiesIdxTable.CookiesIdxRow indexRow = CookiesIdxTable.CookiesIdxRow.of(cookie);
-                        CookiesIdxTable.CookiesIdxColumn indexCol = CookiesIdxTable.CookiesIdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName(), id);
-                        CookiesIdxTable.CookiesIdxColumnValue indexColVal = CookiesIdxTable.CookiesIdxColumnValue.of(indexCol, 0L);
-                        table.put(indexRow, indexColVal);
-                    }
-                }
-            }
-            if (e.getValue() instanceof Create)
-            {
-                Create col = (Create) e.getValue();
-                {
-                    UserProfileRow row = e.getKey();
-                    CreatedIdxTable table = CreatedIdxTable.of(this);
-                    long time = col.getValue().getTimeCreated();
-                    java.util.UUID id = row.getId();
-                    CreatedIdxTable.CreatedIdxRow indexRow = CreatedIdxTable.CreatedIdxRow.of(time);
-                    CreatedIdxTable.CreatedIdxColumn indexCol = CreatedIdxTable.CreatedIdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName(), id);
-                    CreatedIdxTable.CreatedIdxColumnValue indexColVal = CreatedIdxTable.CreatedIdxColumnValue.of(indexCol, 0L);
-                    table.put(indexRow, indexColVal);
-                }
-            }
-            if (e.getValue() instanceof Metadata)
-            {
-                Metadata col = (Metadata) e.getValue();
-                {
-                    UserProfileRow row = e.getKey();
-                    UserBirthdaysIdxTable table = UserBirthdaysIdxTable.of(this);
-                    long birthday = col.getValue().getBirthEpochDay();
-                    java.util.UUID id = row.getId();
-                    UserBirthdaysIdxTable.UserBirthdaysIdxRow indexRow = UserBirthdaysIdxTable.UserBirthdaysIdxRow.of(birthday);
-                    UserBirthdaysIdxTable.UserBirthdaysIdxColumn indexCol = UserBirthdaysIdxTable.UserBirthdaysIdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName(), id);
-                    UserBirthdaysIdxTable.UserBirthdaysIdxColumnValue indexColVal = UserBirthdaysIdxTable.UserBirthdaysIdxColumnValue.of(indexCol, 0L);
-                    table.put(indexRow, indexColVal);
-                }
-            }
-        }
-        t.put(tableRef, ColumnValues.toCellValues(rows));
-        for (UserProfileTrigger trigger : triggers) {
-            trigger.putUserProfile(rows);
-        }
-    }
-
-    @Override
-    public void putUnlessExists(Multimap<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> rows) {
-        Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
-    }
-
-    public void deleteMetadata(UserProfileRow row) {
-        deleteMetadata(ImmutableSet.of(row));
-    }
-
-    public void deleteMetadata(Iterable<UserProfileRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("m");
-        Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        Map<Cell, byte[]> results = t.get(tableRef, cells);
-        deleteUserBirthdaysIdxRaw(results);
-        t.delete(tableRef, cells);
-    }
-
-    private void deleteUserBirthdaysIdxRaw(Map<Cell, byte[]> results) {
-        Set<Cell> indexCells = Sets.newHashSetWithExpectedSize(results.size());
-        for (Entry<Cell, byte[]> result : results.entrySet()) {
-            Metadata col = (Metadata) shortNameToHydrator.get("m").hydrateFromBytes(result.getValue());
-            UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
-            long birthday = col.getValue().getBirthEpochDay();
-            java.util.UUID id = row.getId();
-            UserBirthdaysIdxTable.UserBirthdaysIdxRow indexRow = UserBirthdaysIdxTable.UserBirthdaysIdxRow.of(birthday);
-            UserBirthdaysIdxTable.UserBirthdaysIdxColumn indexCol = UserBirthdaysIdxTable.UserBirthdaysIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
-            indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
-        }
-        t.delete(TableReference.createFromFullyQualifiedName("default.user_birthdays_idx"), indexCells);
-    }
-
-    public void deleteCreate(UserProfileRow row) {
-        deleteCreate(ImmutableSet.of(row));
-    }
-
-    public void deleteCreate(Iterable<UserProfileRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("c");
-        Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        Map<Cell, byte[]> results = t.get(tableRef, cells);
-        deleteCreatedIdxRaw(results);
-        t.delete(tableRef, cells);
-    }
-
-    private void deleteCreatedIdxRaw(Map<Cell, byte[]> results) {
-        Set<Cell> indexCells = Sets.newHashSetWithExpectedSize(results.size());
-        for (Entry<Cell, byte[]> result : results.entrySet()) {
-            Create col = (Create) shortNameToHydrator.get("c").hydrateFromBytes(result.getValue());
-            UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
-            long time = col.getValue().getTimeCreated();
-            java.util.UUID id = row.getId();
-            CreatedIdxTable.CreatedIdxRow indexRow = CreatedIdxTable.CreatedIdxRow.of(time);
-            CreatedIdxTable.CreatedIdxColumn indexCol = CreatedIdxTable.CreatedIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
-            indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
-        }
-        t.delete(TableReference.createFromFullyQualifiedName("default.created_idx"), indexCells);
-    }
-
-    public void deleteJson(UserProfileRow row) {
-        deleteJson(ImmutableSet.of(row));
-    }
-
-    public void deleteJson(Iterable<UserProfileRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("j");
-        Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        Map<Cell, byte[]> results = t.get(tableRef, cells);
-        deleteCookiesIdxRaw(results);
-        t.delete(tableRef, cells);
-    }
-
-    private void deleteCookiesIdxRaw(Map<Cell, byte[]> results) {
-        Set<Cell> indexCells = Sets.newHashSetWithExpectedSize(results.size());
-        for (Entry<Cell, byte[]> result : results.entrySet()) {
-            Json col = (Json) shortNameToHydrator.get("j").hydrateFromBytes(result.getValue());
-            UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getRowName());
-            Iterable<String> cookieIterable = com.palantir.example.profile.schema.ProfileSchema.getCookies(col.getValue());
-            java.util.UUID id = row.getId();
-            for (String cookie : cookieIterable) {
-                CookiesIdxTable.CookiesIdxRow indexRow = CookiesIdxTable.CookiesIdxRow.of(cookie);
-                CookiesIdxTable.CookiesIdxColumn indexCol = CookiesIdxTable.CookiesIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
-                indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
-            }
-        }
-        t.delete(TableReference.createFromFullyQualifiedName("default.cookies_idx"), indexCells);
-    }
-
-    public void deletePhotoStreamId(UserProfileRow row) {
-        deletePhotoStreamId(ImmutableSet.of(row));
-    }
-
-    public void deletePhotoStreamId(Iterable<UserProfileRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("p");
-        Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
-        t.delete(tableRef, cells);
-    }
-
-    @Override
-    public void delete(UserProfileRow row) {
-        delete(ImmutableSet.of(row));
-    }
-
-    @Override
-    public void delete(Iterable<UserProfileRow> rows) {
-        Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> result = getRowsMultimap(rows);
-        deleteCookiesIdx(result);
-        deleteCreatedIdx(result);
-        deleteUserBirthdaysIdx(result);
-        List<byte[]> rowBytes = Persistables.persistAll(rows);
-        Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size() * 4);
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("j")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("m")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("p")));
-        t.delete(tableRef, cells);
-    }
-
-    @Override
-    public Optional<UserProfileRowResult> getRow(UserProfileRow row) {
-        return getRow(row, allColumns);
-    }
-
-    @Override
-    public Optional<UserProfileRowResult> getRow(UserProfileRow row, ColumnSelection columns) {
-        byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
-        if (rowResult == null) {
-            return Optional.absent();
-        } else {
-            return Optional.of(UserProfileRowResult.of(rowResult));
-        }
-    }
-
-    @Override
-    public List<UserProfileRowResult> getRows(Iterable<UserProfileRow> rows) {
-        return getRows(rows, allColumns);
-    }
-
-    @Override
-    public List<UserProfileRowResult> getRows(Iterable<UserProfileRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
-        List<UserProfileRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
-        for (RowResult<byte[]> row : results.values()) {
-            rowResults.add(UserProfileRowResult.of(row));
-        }
-        return rowResults;
-    }
-
-    @Override
-    public List<UserProfileRowResult> getAsyncRows(Iterable<UserProfileRow> rows, ExecutorService exec) {
-        return getAsyncRows(rows, allColumns, exec);
-    }
-
-    @Override
-    public List<UserProfileRowResult> getAsyncRows(final Iterable<UserProfileRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<List<UserProfileRowResult>> c =
-                new Callable<List<UserProfileRowResult>>() {
-            @Override
-            public List<UserProfileRowResult> call() {
-                return getRows(rows, columns);
-            }
+      public static Function<CookiesIdxRowResult, CookiesIdxRow> getRowNameFun() {
+        return new Function<CookiesIdxRowResult, CookiesIdxRow>() {
+          @Override
+          public CookiesIdxRow apply(CookiesIdxRowResult rowResult) {
+            return rowResult.rowName;
+          }
         };
-        return AsyncProxy.create(exec.submit(c), List.class);
-    }
+      }
 
-    @Override
-    public List<UserProfileNamedColumnValue<?>> getRowColumns(UserProfileRow row) {
-        return getRowColumns(row, allColumns);
-    }
-
-    @Override
-    public List<UserProfileNamedColumnValue<?>> getRowColumns(UserProfileRow row, ColumnSelection columns) {
-        byte[] bytes = row.persistToBytes();
-        RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
-        if (rowResult == null) {
-            return ImmutableList.of();
-        } else {
-            List<UserProfileNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
-            for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
-                ret.add(shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
-            }
-            return ret;
-        }
-    }
-
-    @Override
-    public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getRowsMultimap(Iterable<UserProfileRow> rows) {
-        return getRowsMultimapInternal(rows, allColumns);
-    }
-
-    @Override
-    public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getRowsMultimap(Iterable<UserProfileRow> rows, ColumnSelection columns) {
-        return getRowsMultimapInternal(rows, columns);
-    }
-
-    @Override
-    public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getAsyncRowsMultimap(Iterable<UserProfileRow> rows, ExecutorService exec) {
-        return getAsyncRowsMultimap(rows, allColumns, exec);
-    }
-
-    @Override
-    public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getAsyncRowsMultimap(final Iterable<UserProfileRow> rows, final ColumnSelection columns, ExecutorService exec) {
-        Callable<Multimap<UserProfileRow, UserProfileNamedColumnValue<?>>> c =
-                new Callable<Multimap<UserProfileRow, UserProfileNamedColumnValue<?>>>() {
-            @Override
-            public Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> call() {
-                return getRowsMultimapInternal(rows, columns);
-            }
+      public static Function<CookiesIdxRowResult, ImmutableSet<CookiesIdxColumnValue>>
+          getColumnValuesFun() {
+        return new Function<CookiesIdxRowResult, ImmutableSet<CookiesIdxColumnValue>>() {
+          @Override
+          public ImmutableSet<CookiesIdxColumnValue> apply(CookiesIdxRowResult rowResult) {
+            return rowResult.columnValues;
+          }
         };
-        return AsyncProxy.create(exec.submit(c), Multimap.class);
-    }
+      }
 
-    private Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getRowsMultimapInternal(Iterable<UserProfileRow> rows, ColumnSelection columns) {
-        SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
-        return getRowMapFromRowResults(results.values());
-    }
-
-    private static Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> rowMap = HashMultimap.create();
-        for (RowResult<byte[]> result : rowResults) {
-            UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
-            for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
-                rowMap.put(row, shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
-            }
-        }
-        return rowMap;
+      @Override
+      public String toString() {
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
+            .add("RowName", getRowName())
+            .add("ColumnValues", getColumnValues())
+            .toString();
+      }
     }
 
     @Override
-    public Map<UserProfileRow, BatchingVisitable<UserProfileNamedColumnValue<?>>> getRowsColumnRange(Iterable<UserProfileRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<UserProfileRow, BatchingVisitable<UserProfileNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-        for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-            UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<UserProfileNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
-                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
-            });
-            transformed.put(row, bv);
-        }
-        return transformed;
+    public void delete(CookiesIdxRow row, CookiesIdxColumn column) {
+      delete(ImmutableMultimap.of(row, column));
     }
 
     @Override
-    public Iterator<Map.Entry<UserProfileRow, UserProfileNamedColumnValue<?>>> getRowsColumnRange(Iterable<UserProfileRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-        Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-        return Iterators.transform(results, e -> {
-            UserProfileRow row = UserProfileRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            UserProfileNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
-            return Maps.immutableEntry(row, colValue);
-        });
+    public void delete(Iterable<CookiesIdxRow> rows) {
+      Multimap<CookiesIdxRow, CookiesIdxColumn> toRemove = HashMultimap.create();
+      Multimap<CookiesIdxRow, CookiesIdxColumnValue> result = getRowsMultimap(rows);
+      for (Entry<CookiesIdxRow, CookiesIdxColumnValue> e : result.entries()) {
+        toRemove.put(e.getKey(), e.getValue().getColumnName());
+      }
+      delete(toRemove);
     }
 
-    private Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> getAffectedCells(Multimap<UserProfileRow, ? extends UserProfileNamedColumnValue<?>> rows) {
-        Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> oldData = getRowsMultimap(rows.keySet());
-        Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> cellsAffected = ArrayListMultimap.create();
-        for (UserProfileRow row : oldData.keySet()) {
-            Set<String> columns = new HashSet<String>();
-            for (UserProfileNamedColumnValue<?> v : rows.get(row)) {
-                columns.add(v.getColumnName());
-            }
-            for (UserProfileNamedColumnValue<?> v : oldData.get(row)) {
-                if (columns.contains(v.getColumnName())) {
-                    cellsAffected.put(row, v);
-                }
-            }
+    @Override
+    public void delete(Multimap<CookiesIdxRow, CookiesIdxColumn> values) {
+      t.delete(tableRef, ColumnValues.toCells(values));
+    }
+
+    @Override
+    public void put(CookiesIdxRow rowName, Iterable<CookiesIdxColumnValue> values) {
+      put(
+          ImmutableMultimap.<CookiesIdxRow, CookiesIdxColumnValue>builder()
+              .putAll(rowName, values)
+              .build());
+    }
+
+    @Override
+    public void put(CookiesIdxRow rowName, CookiesIdxColumnValue... values) {
+      put(
+          ImmutableMultimap.<CookiesIdxRow, CookiesIdxColumnValue>builder()
+              .putAll(rowName, values)
+              .build());
+    }
+
+    @Override
+    public void put(Multimap<CookiesIdxRow, ? extends CookiesIdxColumnValue> values) {
+      t.useTable(tableRef, this);
+      t.put(tableRef, ColumnValues.toCellValues(values));
+      for (CookiesIdxTrigger trigger : triggers) {
+        trigger.putCookiesIdx(values);
+      }
+    }
+
+    @Override
+    public void putUnlessExists(CookiesIdxRow rowName, Iterable<CookiesIdxColumnValue> values) {
+      putUnlessExists(
+          ImmutableMultimap.<CookiesIdxRow, CookiesIdxColumnValue>builder()
+              .putAll(rowName, values)
+              .build());
+    }
+
+    @Override
+    public void putUnlessExists(CookiesIdxRow rowName, CookiesIdxColumnValue... values) {
+      putUnlessExists(
+          ImmutableMultimap.<CookiesIdxRow, CookiesIdxColumnValue>builder()
+              .putAll(rowName, values)
+              .build());
+    }
+
+    @Override
+    public void putUnlessExists(Multimap<CookiesIdxRow, ? extends CookiesIdxColumnValue> rows) {
+      Multimap<CookiesIdxRow, CookiesIdxColumn> toGet =
+          Multimaps.transformValues(rows, CookiesIdxColumnValue.getColumnNameFun());
+      Multimap<CookiesIdxRow, CookiesIdxColumnValue> existing = get(toGet);
+      Multimap<CookiesIdxRow, CookiesIdxColumnValue> toPut = HashMultimap.create();
+      for (Entry<CookiesIdxRow, ? extends CookiesIdxColumnValue> entry : rows.entries()) {
+        if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+          toPut.put(entry.getKey(), entry.getValue());
         }
-        return cellsAffected;
+      }
+      put(toPut);
     }
 
-    private void deleteCookiesIdx(Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> result) {
-        ImmutableSet.Builder<Cell> indexCells = ImmutableSet.builder();
-        for (Entry<UserProfileRow, UserProfileNamedColumnValue<?>> e : result.entries()) {
-            if (e.getValue() instanceof Json) {
-                Json col = (Json) e.getValue();{
-                    UserProfileRow row = e.getKey();
-                    Iterable<String> cookieIterable = com.palantir.example.profile.schema.ProfileSchema.getCookies(col.getValue());
-                    java.util.UUID id = row.getId();
-                    for (String cookie : cookieIterable) {
-                        CookiesIdxTable.CookiesIdxRow indexRow = CookiesIdxTable.CookiesIdxRow.of(cookie);
-                        CookiesIdxTable.CookiesIdxColumn indexCol = CookiesIdxTable.CookiesIdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName(), id);
-                        indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
-                    }
-                }
-            }
+    @Override
+    public void touch(Multimap<CookiesIdxRow, CookiesIdxColumn> values) {
+      Multimap<CookiesIdxRow, CookiesIdxColumnValue> currentValues = get(values);
+      put(currentValues);
+      Multimap<CookiesIdxRow, CookiesIdxColumn> toDelete = HashMultimap.create(values);
+      for (Map.Entry<CookiesIdxRow, CookiesIdxColumnValue> e : currentValues.entries()) {
+        toDelete.remove(e.getKey(), e.getValue().getColumnName());
+      }
+      delete(toDelete);
+    }
+
+    public static ColumnSelection getColumnSelection(Collection<CookiesIdxColumn> cols) {
+      return ColumnSelection.create(
+          Collections2.transform(cols, Persistables.persistToBytesFunction()));
+    }
+
+    public static ColumnSelection getColumnSelection(CookiesIdxColumn... cols) {
+      return getColumnSelection(Arrays.asList(cols));
+    }
+
+    @Override
+    public Multimap<CookiesIdxRow, CookiesIdxColumnValue> get(
+        Multimap<CookiesIdxRow, CookiesIdxColumn> cells) {
+      Set<Cell> rawCells = ColumnValues.toCells(cells);
+      Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
+      Multimap<CookiesIdxRow, CookiesIdxColumnValue> rowMap = HashMultimap.create();
+      for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
+        if (e.getValue().length > 0) {
+          CookiesIdxRow row =
+              CookiesIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+          CookiesIdxColumn col =
+              CookiesIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
+          Long val = CookiesIdxColumnValue.hydrateValue(e.getValue());
+          rowMap.put(row, CookiesIdxColumnValue.of(col, val));
         }
-        t.delete(TableReference.createFromFullyQualifiedName("default.cookies_idx"), indexCells.build());
+      }
+      return rowMap;
     }
 
-    private void deleteCreatedIdx(Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> result) {
-        ImmutableSet.Builder<Cell> indexCells = ImmutableSet.builder();
-        for (Entry<UserProfileRow, UserProfileNamedColumnValue<?>> e : result.entries()) {
-            if (e.getValue() instanceof Create) {
-                Create col = (Create) e.getValue();{
-                    UserProfileRow row = e.getKey();
-                    long time = col.getValue().getTimeCreated();
-                    java.util.UUID id = row.getId();
-                    CreatedIdxTable.CreatedIdxRow indexRow = CreatedIdxTable.CreatedIdxRow.of(time);
-                    CreatedIdxTable.CreatedIdxColumn indexCol = CreatedIdxTable.CreatedIdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName(), id);
-                    indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
-                }
-            }
-        }
-        t.delete(TableReference.createFromFullyQualifiedName("default.created_idx"), indexCells.build());
-    }
-
-    private void deleteUserBirthdaysIdx(Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> result) {
-        ImmutableSet.Builder<Cell> indexCells = ImmutableSet.builder();
-        for (Entry<UserProfileRow, UserProfileNamedColumnValue<?>> e : result.entries()) {
-            if (e.getValue() instanceof Metadata) {
-                Metadata col = (Metadata) e.getValue();{
-                    UserProfileRow row = e.getKey();
-                    long birthday = col.getValue().getBirthEpochDay();
-                    java.util.UUID id = row.getId();
-                    UserBirthdaysIdxTable.UserBirthdaysIdxRow indexRow = UserBirthdaysIdxTable.UserBirthdaysIdxRow.of(birthday);
-                    UserBirthdaysIdxTable.UserBirthdaysIdxColumn indexCol = UserBirthdaysIdxTable.UserBirthdaysIdxColumn.of(row.persistToBytes(), e.getValue().persistColumnName(), id);
-                    indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
-                }
-            }
-        }
-        t.delete(TableReference.createFromFullyQualifiedName("default.user_birthdays_idx"), indexCells.build());
-    }
-
-    public BatchingVisitableView<UserProfileRowResult> getAllRowsUnordered() {
-        return getAllRowsUnordered(allColumns);
-    }
-
-    public BatchingVisitableView<UserProfileRowResult> getAllRowsUnordered(ColumnSelection columns) {
-        return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
-                new Function<RowResult<byte[]>, UserProfileRowResult>() {
+    @Override
+    public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getAsync(
+        final Multimap<CookiesIdxRow, CookiesIdxColumn> cells, ExecutorService exec) {
+      Callable<Multimap<CookiesIdxRow, CookiesIdxColumnValue>> c =
+          new Callable<Multimap<CookiesIdxRow, CookiesIdxColumnValue>>() {
             @Override
-            public UserProfileRowResult apply(RowResult<byte[]> input) {
-                return UserProfileRowResult.of(input);
+            public Multimap<CookiesIdxRow, CookiesIdxColumnValue> call() {
+              return get(cells);
             }
-        });
+          };
+      return AsyncProxy.create(exec.submit(c), Multimap.class);
     }
 
     @Override
-    public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                               ConstraintCheckingTransaction transaction,
-                                               AtlasDbConstraintCheckingMode constraintCheckingMode) {
+    public List<CookiesIdxColumnValue> getRowColumns(CookiesIdxRow row) {
+      return getRowColumns(row, allColumns);
+    }
+
+    @Override
+    public List<CookiesIdxColumnValue> getRowColumns(CookiesIdxRow row, ColumnSelection columns) {
+      byte[] bytes = row.persistToBytes();
+      RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+      if (rowResult == null) {
         return ImmutableList.of();
+      } else {
+        List<CookiesIdxColumnValue> ret =
+            Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+        for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
+          CookiesIdxColumn col = CookiesIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+          Long val = CookiesIdxColumnValue.hydrateValue(e.getValue());
+          ret.add(CookiesIdxColumnValue.of(col, val));
+        }
+        return ret;
+      }
     }
 
     @Override
-    public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                     AtlasDbConstraintCheckingMode constraintCheckingMode) {
-        return ImmutableList.of();
+    public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getRowsMultimap(
+        Iterable<CookiesIdxRow> rows) {
+      return getRowsMultimapInternal(rows, allColumns);
     }
 
-    @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    public static final class CookiesIdxTable implements
-            AtlasDbDynamicMutablePersistentTable<CookiesIdxTable.CookiesIdxRow,
-                                                    CookiesIdxTable.CookiesIdxColumn,
-                                                    CookiesIdxTable.CookiesIdxColumnValue,
-                                                    CookiesIdxTable.CookiesIdxRowResult> {
-        private final Transaction t;
-        private final List<CookiesIdxTrigger> triggers;
-        private final static String rawTableName = "cookies_idx";
-        private final TableReference tableRef;
-        private final static ColumnSelection allColumns = ColumnSelection.all();
+    @Override
+    public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getRowsMultimap(
+        Iterable<CookiesIdxRow> rows, ColumnSelection columns) {
+      return getRowsMultimapInternal(rows, columns);
+    }
 
-        public static CookiesIdxTable of(UserProfileTable table) {
-            return new CookiesIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<CookiesIdxTrigger>of());
-        }
+    @Override
+    public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getAsyncRowsMultimap(
+        Iterable<CookiesIdxRow> rows, ExecutorService exec) {
+      return getAsyncRowsMultimap(rows, allColumns, exec);
+    }
 
-        public static CookiesIdxTable of(UserProfileTable table, CookiesIdxTrigger trigger, CookiesIdxTrigger... triggers) {
-            return new CookiesIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<CookiesIdxTrigger>builder().add(trigger).add(triggers).build());
-        }
-
-        public static CookiesIdxTable of(UserProfileTable table, List<CookiesIdxTrigger> triggers) {
-            return new CookiesIdxTable(table.t, table.tableRef.getNamespace(), triggers);
-        }
-
-        private CookiesIdxTable(Transaction t, Namespace namespace, List<CookiesIdxTrigger> triggers) {
-            this.t = t;
-            this.tableRef = TableReference.create(namespace, rawTableName);
-            this.triggers = triggers;
-        }
-
-        public static String getRawTableName() {
-            return rawTableName;
-        }
-
-        public TableReference getTableRef() {
-            return tableRef;
-        }
-
-        public String getTableName() {
-            return tableRef.getQualifiedName();
-        }
-
-        public Namespace getNamespace() {
-            return tableRef.getNamespace();
-        }
-
-        /**
-         * <pre>
-         * CookiesIdxRow {
-         *   {@literal String cookie};
-         * }
-         * </pre>
-         */
-        public static final class CookiesIdxRow implements Persistable, Comparable<CookiesIdxRow> {
-            private final String cookie;
-
-            public static CookiesIdxRow of(String cookie) {
-                return new CookiesIdxRow(cookie);
-            }
-
-            private CookiesIdxRow(String cookie) {
-                this.cookie = cookie;
-            }
-
-            public String getCookie() {
-                return cookie;
-            }
-
-            public static Function<CookiesIdxRow, String> getCookieFun() {
-                return new Function<CookiesIdxRow, String>() {
-                    @Override
-                    public String apply(CookiesIdxRow row) {
-                        return row.cookie;
-                    }
-                };
-            }
-
-            public static Function<String, CookiesIdxRow> fromCookieFun() {
-                return new Function<String, CookiesIdxRow>() {
-                    @Override
-                    public CookiesIdxRow apply(String row) {
-                        return CookiesIdxRow.of(row);
-                    }
-                };
-            }
-
+    @Override
+    public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getAsyncRowsMultimap(
+        final Iterable<CookiesIdxRow> rows, final ColumnSelection columns, ExecutorService exec) {
+      Callable<Multimap<CookiesIdxRow, CookiesIdxColumnValue>> c =
+          new Callable<Multimap<CookiesIdxRow, CookiesIdxColumnValue>>() {
             @Override
-            public byte[] persistToBytes() {
-                byte[] cookieBytes = PtBytes.toBytes(cookie);
-                return EncodingUtils.add(cookieBytes);
+            public Multimap<CookiesIdxRow, CookiesIdxColumnValue> call() {
+              return getRowsMultimapInternal(rows, columns);
             }
+          };
+      return AsyncProxy.create(exec.submit(c), Multimap.class);
+    }
 
-            public static final Hydrator<CookiesIdxRow> BYTES_HYDRATOR = new Hydrator<CookiesIdxRow>() {
-                @Override
-                public CookiesIdxRow hydrateFromBytes(byte[] __input) {
-                    int __index = 0;
-                    String cookie = PtBytes.toString(__input, __index, __input.length-__index);
-                    __index += 0;
-                    return new CookiesIdxRow(cookie);
-                }
-            };
+    private Multimap<CookiesIdxRow, CookiesIdxColumnValue> getRowsMultimapInternal(
+        Iterable<CookiesIdxRow> rows, ColumnSelection columns) {
+      SortedMap<byte[], RowResult<byte[]>> results =
+          t.getRows(tableRef, Persistables.persistAll(rows), columns);
+      return getRowMapFromRowResults(results.values());
+    }
 
-            @Override
-            public String toString() {
-                return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("cookie", cookie)
-                    .toString();
-            }
-
-            @Override
-            public boolean equals(Object obj) {
-                if (this == obj) {
-                    return true;
-                }
-                if (obj == null) {
-                    return false;
-                }
-                if (getClass() != obj.getClass()) {
-                    return false;
-                }
-                CookiesIdxRow other = (CookiesIdxRow) obj;
-                return Objects.equal(cookie, other.cookie);
-            }
-
-            @Override
-            public int hashCode() {
-                return Objects.hashCode(cookie);
-            }
-
-            @Override
-            public int compareTo(CookiesIdxRow o) {
-                return ComparisonChain.start()
-                    .compare(this.cookie, o.cookie)
-                    .result();
-            }
+    private static Multimap<CookiesIdxRow, CookiesIdxColumnValue> getRowMapFromRowResults(
+        Collection<RowResult<byte[]>> rowResults) {
+      Multimap<CookiesIdxRow, CookiesIdxColumnValue> rowMap = HashMultimap.create();
+      for (RowResult<byte[]> result : rowResults) {
+        CookiesIdxRow row = CookiesIdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
+        for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
+          CookiesIdxColumn col = CookiesIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+          Long val = CookiesIdxColumnValue.hydrateValue(e.getValue());
+          rowMap.put(row, CookiesIdxColumnValue.of(col, val));
         }
+      }
+      return rowMap;
+    }
 
-        /**
-         * <pre>
-         * CookiesIdxColumn {
-         *   {@literal byte[] rowName};
-         *   {@literal byte[] columnName};
-         *   {@literal java.util.UUID id};
-         * }
-         * </pre>
-         */
-        public static final class CookiesIdxColumn implements Persistable, Comparable<CookiesIdxColumn> {
-            private final byte[] rowName;
-            private final byte[] columnName;
-            private final java.util.UUID id;
-
-            public static CookiesIdxColumn of(byte[] rowName, byte[] columnName, java.util.UUID id) {
-                return new CookiesIdxColumn(rowName, columnName, id);
-            }
-
-            private CookiesIdxColumn(byte[] rowName, byte[] columnName, java.util.UUID id) {
-                this.rowName = rowName;
-                this.columnName = columnName;
-                this.id = id;
-            }
-
-            public byte[] getRowName() {
-                return rowName;
-            }
-
-            public byte[] getColumnName() {
-                return columnName;
-            }
-
-            public java.util.UUID getId() {
-                return id;
-            }
-
-            public static Function<CookiesIdxColumn, byte[]> getRowNameFun() {
-                return new Function<CookiesIdxColumn, byte[]>() {
-                    @Override
-                    public byte[] apply(CookiesIdxColumn row) {
-                        return row.rowName;
-                    }
-                };
-            }
-
-            public static Function<CookiesIdxColumn, byte[]> getColumnNameFun() {
-                return new Function<CookiesIdxColumn, byte[]>() {
-                    @Override
-                    public byte[] apply(CookiesIdxColumn row) {
-                        return row.columnName;
-                    }
-                };
-            }
-
-            public static Function<CookiesIdxColumn, java.util.UUID> getIdFun() {
-                return new Function<CookiesIdxColumn, java.util.UUID>() {
-                    @Override
-                    public java.util.UUID apply(CookiesIdxColumn row) {
-                        return row.id;
-                    }
-                };
-            }
-
-            @Override
-            public byte[] persistToBytes() {
-                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
-                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
-                byte[] idBytes = EncodingUtils.encodeUUID(id);
-                return EncodingUtils.add(rowNameBytes, columnNameBytes, idBytes);
-            }
-
-            public static final Hydrator<CookiesIdxColumn> BYTES_HYDRATOR = new Hydrator<CookiesIdxColumn>() {
-                @Override
-                public CookiesIdxColumn hydrateFromBytes(byte[] __input) {
-                    int __index = 0;
-                    byte[] rowName = EncodingUtils.decodeSizedBytes(__input, __index);
-                    __index += EncodingUtils.sizeOfSizedBytes(rowName);
-                    byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
-                    __index += EncodingUtils.sizeOfSizedBytes(columnName);
-                    java.util.UUID id = EncodingUtils.decodeUUID(__input, __index);
-                    __index += 16;
-                    return new CookiesIdxColumn(rowName, columnName, id);
-                }
-            };
-
-            public static BatchColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
-                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
-                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
-            }
-
-            public static Prefix prefixUnsorted(byte[] rowName) {
-                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
-                return new Prefix(EncodingUtils.add(rowNameBytes));
-            }
-
-            public static BatchColumnRangeSelection createPrefixRange(byte[] rowName, byte[] columnName, int batchSize) {
-                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
-                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
-                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes, columnNameBytes), batchSize);
-            }
-
-            public static Prefix prefix(byte[] rowName, byte[] columnName) {
-                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
-                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
-                return new Prefix(EncodingUtils.add(rowNameBytes, columnNameBytes));
-            }
-
-            @Override
-            public String toString() {
-                return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("rowName", rowName)
-                    .add("columnName", columnName)
-                    .add("id", id)
-                    .toString();
-            }
-
-            @Override
-            public boolean equals(Object obj) {
-                if (this == obj) {
-                    return true;
-                }
-                if (obj == null) {
-                    return false;
-                }
-                if (getClass() != obj.getClass()) {
-                    return false;
-                }
-                CookiesIdxColumn other = (CookiesIdxColumn) obj;
-                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
-            }
-
-            @Override
-            public int hashCode() {
-                return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
-            }
-
-            @Override
-            public int compareTo(CookiesIdxColumn o) {
-                return ComparisonChain.start()
-                    .compare(this.rowName, o.rowName, UnsignedBytes.lexicographicalComparator())
-                    .compare(this.columnName, o.columnName, UnsignedBytes.lexicographicalComparator())
-                    .compare(this.id, o.id)
-                    .result();
-            }
-        }
-
-        public interface CookiesIdxTrigger {
-            public void putCookiesIdx(Multimap<CookiesIdxRow, ? extends CookiesIdxColumnValue> newRows);
-        }
-
-        /**
-         * <pre>
-         * Column name description {
-         *   {@literal byte[] rowName};
-         *   {@literal byte[] columnName};
-         *   {@literal java.util.UUID id};
-         * }
-         * Column value description {
-         *   type: Long;
-         * }
-         * </pre>
-         */
-        public static final class CookiesIdxColumnValue implements ColumnValue<Long> {
-            private final CookiesIdxColumn columnName;
-            private final Long value;
-
-            public static CookiesIdxColumnValue of(CookiesIdxColumn columnName, Long value) {
-                return new CookiesIdxColumnValue(columnName, value);
-            }
-
-            private CookiesIdxColumnValue(CookiesIdxColumn columnName, Long value) {
-                this.columnName = columnName;
-                this.value = value;
-            }
-
-            public CookiesIdxColumn getColumnName() {
-                return columnName;
-            }
-
-            @Override
-            public Long getValue() {
-                return value;
-            }
-
-            @Override
-            public byte[] persistColumnName() {
-                return columnName.persistToBytes();
-            }
-
-            @Override
-            public byte[] persistValue() {
-                byte[] bytes = EncodingUtils.encodeUnsignedVarLong(value);
-                return CompressionUtils.compress(bytes, Compression.NONE);
-            }
-
-            public static Long hydrateValue(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return EncodingUtils.decodeUnsignedVarLong(bytes, 0);
-            }
-
-            public static Function<CookiesIdxColumnValue, CookiesIdxColumn> getColumnNameFun() {
-                return new Function<CookiesIdxColumnValue, CookiesIdxColumn>() {
-                    @Override
-                    public CookiesIdxColumn apply(CookiesIdxColumnValue columnValue) {
-                        return columnValue.getColumnName();
-                    }
-                };
-            }
-
-            public static Function<CookiesIdxColumnValue, Long> getValueFun() {
-                return new Function<CookiesIdxColumnValue, Long>() {
-                    @Override
-                    public Long apply(CookiesIdxColumnValue columnValue) {
-                        return columnValue.getValue();
-                    }
-                };
-            }
-
-            @Override
-            public String toString() {
-                return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("ColumnName", this.columnName)
-                    .add("Value", this.value)
-                    .toString();
-            }
-        }
-
-        public static final class CookiesIdxRowResult implements TypedRowResult {
-            private final CookiesIdxRow rowName;
-            private final ImmutableSet<CookiesIdxColumnValue> columnValues;
-
-            public static CookiesIdxRowResult of(RowResult<byte[]> rowResult) {
-                CookiesIdxRow rowName = CookiesIdxRow.BYTES_HYDRATOR.hydrateFromBytes(rowResult.getRowName());
-                Set<CookiesIdxColumnValue> columnValues = Sets.newHashSetWithExpectedSize(rowResult.getColumns().size());
-                for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
-                    CookiesIdxColumn col = CookiesIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                    Long value = CookiesIdxColumnValue.hydrateValue(e.getValue());
-                    columnValues.add(CookiesIdxColumnValue.of(col, value));
-                }
-                return new CookiesIdxRowResult(rowName, ImmutableSet.copyOf(columnValues));
-            }
-
-            private CookiesIdxRowResult(CookiesIdxRow rowName, ImmutableSet<CookiesIdxColumnValue> columnValues) {
-                this.rowName = rowName;
-                this.columnValues = columnValues;
-            }
-
-            @Override
-            public CookiesIdxRow getRowName() {
-                return rowName;
-            }
-
-            public Set<CookiesIdxColumnValue> getColumnValues() {
-                return columnValues;
-            }
-
-            public static Function<CookiesIdxRowResult, CookiesIdxRow> getRowNameFun() {
-                return new Function<CookiesIdxRowResult, CookiesIdxRow>() {
-                    @Override
-                    public CookiesIdxRow apply(CookiesIdxRowResult rowResult) {
-                        return rowResult.rowName;
-                    }
-                };
-            }
-
-            public static Function<CookiesIdxRowResult, ImmutableSet<CookiesIdxColumnValue>> getColumnValuesFun() {
-                return new Function<CookiesIdxRowResult, ImmutableSet<CookiesIdxColumnValue>>() {
-                    @Override
-                    public ImmutableSet<CookiesIdxColumnValue> apply(CookiesIdxRowResult rowResult) {
-                        return rowResult.columnValues;
-                    }
-                };
-            }
-
-            @Override
-            public String toString() {
-                return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("RowName", getRowName())
-                    .add("ColumnValues", getColumnValues())
-                    .toString();
-            }
-        }
-
-        @Override
-        public void delete(CookiesIdxRow row, CookiesIdxColumn column) {
-            delete(ImmutableMultimap.of(row, column));
-        }
-
-        @Override
-        public void delete(Iterable<CookiesIdxRow> rows) {
-            Multimap<CookiesIdxRow, CookiesIdxColumn> toRemove = HashMultimap.create();
-            Multimap<CookiesIdxRow, CookiesIdxColumnValue> result = getRowsMultimap(rows);
-            for (Entry<CookiesIdxRow, CookiesIdxColumnValue> e : result.entries()) {
-                toRemove.put(e.getKey(), e.getValue().getColumnName());
-            }
-            delete(toRemove);
-        }
-
-        @Override
-        public void delete(Multimap<CookiesIdxRow, CookiesIdxColumn> values) {
-            t.delete(tableRef, ColumnValues.toCells(values));
-        }
-
-        @Override
-        public void put(CookiesIdxRow rowName, Iterable<CookiesIdxColumnValue> values) {
-            put(ImmutableMultimap.<CookiesIdxRow, CookiesIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        @Override
-        public void put(CookiesIdxRow rowName, CookiesIdxColumnValue... values) {
-            put(ImmutableMultimap.<CookiesIdxRow, CookiesIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        @Override
-        public void put(Multimap<CookiesIdxRow, ? extends CookiesIdxColumnValue> values) {
-            t.useTable(tableRef, this);
-            t.put(tableRef, ColumnValues.toCellValues(values));
-            for (CookiesIdxTrigger trigger : triggers) {
-                trigger.putCookiesIdx(values);
-            }
-        }
-
-        @Override
-        public void putUnlessExists(CookiesIdxRow rowName, Iterable<CookiesIdxColumnValue> values) {
-            putUnlessExists(ImmutableMultimap.<CookiesIdxRow, CookiesIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        @Override
-        public void putUnlessExists(CookiesIdxRow rowName, CookiesIdxColumnValue... values) {
-            putUnlessExists(ImmutableMultimap.<CookiesIdxRow, CookiesIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        @Override
-        public void putUnlessExists(Multimap<CookiesIdxRow, ? extends CookiesIdxColumnValue> rows) {
-            Multimap<CookiesIdxRow, CookiesIdxColumn> toGet = Multimaps.transformValues(rows, CookiesIdxColumnValue.getColumnNameFun());
-            Multimap<CookiesIdxRow, CookiesIdxColumnValue> existing = get(toGet);
-            Multimap<CookiesIdxRow, CookiesIdxColumnValue> toPut = HashMultimap.create();
-            for (Entry<CookiesIdxRow, ? extends CookiesIdxColumnValue> entry : rows.entries()) {
-                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                    toPut.put(entry.getKey(), entry.getValue());
-                }
-            }
-            put(toPut);
-        }
-
-        @Override
-        public void touch(Multimap<CookiesIdxRow, CookiesIdxColumn> values) {
-            Multimap<CookiesIdxRow, CookiesIdxColumnValue> currentValues = get(values);
-            put(currentValues);
-            Multimap<CookiesIdxRow, CookiesIdxColumn> toDelete = HashMultimap.create(values);
-            for (Map.Entry<CookiesIdxRow, CookiesIdxColumnValue> e : currentValues.entries()) {
-                toDelete.remove(e.getKey(), e.getValue().getColumnName());
-            }
-            delete(toDelete);
-        }
-
-        public static ColumnSelection getColumnSelection(Collection<CookiesIdxColumn> cols) {
-            return ColumnSelection.create(Collections2.transform(cols, Persistables.persistToBytesFunction()));
-        }
-
-        public static ColumnSelection getColumnSelection(CookiesIdxColumn... cols) {
-            return getColumnSelection(Arrays.asList(cols));
-        }
-
-        @Override
-        public Multimap<CookiesIdxRow, CookiesIdxColumnValue> get(Multimap<CookiesIdxRow, CookiesIdxColumn> cells) {
-            Set<Cell> rawCells = ColumnValues.toCells(cells);
-            Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<CookiesIdxRow, CookiesIdxColumnValue> rowMap = HashMultimap.create();
-            for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
-                if (e.getValue().length > 0) {
-                    CookiesIdxRow row = CookiesIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-                    CookiesIdxColumn col = CookiesIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
-                    Long val = CookiesIdxColumnValue.hydrateValue(e.getValue());
-                    rowMap.put(row, CookiesIdxColumnValue.of(col, val));
-                }
-            }
-            return rowMap;
-        }
-
-        @Override
-        public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getAsync(final Multimap<CookiesIdxRow, CookiesIdxColumn> cells, ExecutorService exec) {
-            Callable<Multimap<CookiesIdxRow, CookiesIdxColumnValue>> c =
-                    new Callable<Multimap<CookiesIdxRow, CookiesIdxColumnValue>>() {
-                @Override
-                public Multimap<CookiesIdxRow, CookiesIdxColumnValue> call() {
-                    return get(cells);
-                }
-            };
-            return AsyncProxy.create(exec.submit(c), Multimap.class);
-        }
-
-        @Override
-        public List<CookiesIdxColumnValue> getRowColumns(CookiesIdxRow row) {
-            return getRowColumns(row, allColumns);
-        }
-
-        @Override
-        public List<CookiesIdxColumnValue> getRowColumns(CookiesIdxRow row, ColumnSelection columns) {
-            byte[] bytes = row.persistToBytes();
-            RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
-            if (rowResult == null) {
-                return ImmutableList.of();
-            } else {
-                List<CookiesIdxColumnValue> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
-                for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
-                    CookiesIdxColumn col = CookiesIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                    Long val = CookiesIdxColumnValue.hydrateValue(e.getValue());
-                    ret.add(CookiesIdxColumnValue.of(col, val));
-                }
-                return ret;
-            }
-        }
-
-        @Override
-        public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getRowsMultimap(Iterable<CookiesIdxRow> rows) {
-            return getRowsMultimapInternal(rows, allColumns);
-        }
-
-        @Override
-        public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getRowsMultimap(Iterable<CookiesIdxRow> rows, ColumnSelection columns) {
-            return getRowsMultimapInternal(rows, columns);
-        }
-
-        @Override
-        public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getAsyncRowsMultimap(Iterable<CookiesIdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, allColumns, exec);
-        }
-
-        @Override
-        public Multimap<CookiesIdxRow, CookiesIdxColumnValue> getAsyncRowsMultimap(final Iterable<CookiesIdxRow> rows, final ColumnSelection columns, ExecutorService exec) {
-            Callable<Multimap<CookiesIdxRow, CookiesIdxColumnValue>> c =
-                    new Callable<Multimap<CookiesIdxRow, CookiesIdxColumnValue>>() {
-                @Override
-                public Multimap<CookiesIdxRow, CookiesIdxColumnValue> call() {
-                    return getRowsMultimapInternal(rows, columns);
-                }
-            };
-            return AsyncProxy.create(exec.submit(c), Multimap.class);
-        }
-
-        private Multimap<CookiesIdxRow, CookiesIdxColumnValue> getRowsMultimapInternal(Iterable<CookiesIdxRow> rows, ColumnSelection columns) {
-            SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
-            return getRowMapFromRowResults(results.values());
-        }
-
-        private static Multimap<CookiesIdxRow, CookiesIdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<CookiesIdxRow, CookiesIdxColumnValue> rowMap = HashMultimap.create();
-            for (RowResult<byte[]> result : rowResults) {
-                CookiesIdxRow row = CookiesIdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
-                for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
-                    CookiesIdxColumn col = CookiesIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                    Long val = CookiesIdxColumnValue.hydrateValue(e.getValue());
-                    rowMap.put(row, CookiesIdxColumnValue.of(col, val));
-                }
-            }
-            return rowMap;
-        }
-
-        @Override
-        public Map<CookiesIdxRow, BatchingVisitable<CookiesIdxColumnValue>> getRowsColumnRange(Iterable<CookiesIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-            Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-            Map<CookiesIdxRow, BatchingVisitable<CookiesIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-            for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-                CookiesIdxRow row = CookiesIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                BatchingVisitable<CookiesIdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
-                    CookiesIdxColumn col = CookiesIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
-                    Long val = CookiesIdxColumnValue.hydrateValue(result.getValue());
-                    return CookiesIdxColumnValue.of(col, val);
+    @Override
+    public Map<CookiesIdxRow, BatchingVisitable<CookiesIdxColumnValue>> getRowsColumnRange(
+        Iterable<CookiesIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+      Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results =
+          t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+      Map<CookiesIdxRow, BatchingVisitable<CookiesIdxColumnValue>> transformed =
+          Maps.newHashMapWithExpectedSize(results.size());
+      for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+        CookiesIdxRow row = CookiesIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+        BatchingVisitable<CookiesIdxColumnValue> bv =
+            BatchingVisitables.transform(
+                e.getValue(),
+                result -> {
+                  CookiesIdxColumn col =
+                      CookiesIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(
+                          result.getKey().getColumnName());
+                  Long val = CookiesIdxColumnValue.hydrateValue(result.getValue());
+                  return CookiesIdxColumnValue.of(col, val);
                 });
-                transformed.put(row, bv);
+        transformed.put(row, bv);
+      }
+      return transformed;
+    }
+
+    @Override
+    public Iterator<Map.Entry<CookiesIdxRow, CookiesIdxColumnValue>> getRowsColumnRange(
+        Iterable<CookiesIdxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+      Iterator<Map.Entry<Cell, byte[]>> results =
+          t.getRowsColumnRange(
+              getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+      return Iterators.transform(
+          results,
+          e -> {
+            CookiesIdxRow row =
+                CookiesIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            CookiesIdxColumn col =
+                CookiesIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
+            Long val = CookiesIdxColumnValue.hydrateValue(e.getValue());
+            CookiesIdxColumnValue colValue = CookiesIdxColumnValue.of(col, val);
+            return Maps.immutableEntry(row, colValue);
+          });
+    }
+
+    public BatchingVisitableView<CookiesIdxRowResult> getRange(RangeRequest range) {
+      if (range.getColumnNames().isEmpty()) {
+        range = range.getBuilder().retainColumns(allColumns).build();
+      }
+      return BatchingVisitables.transform(
+          t.getRange(tableRef, range),
+          new Function<RowResult<byte[]>, CookiesIdxRowResult>() {
+            @Override
+            public CookiesIdxRowResult apply(RowResult<byte[]> input) {
+              return CookiesIdxRowResult.of(input);
             }
-            return transformed;
-        }
+          });
+    }
 
-        @Override
-        public Iterator<Map.Entry<CookiesIdxRow, CookiesIdxColumnValue>> getRowsColumnRange(Iterable<CookiesIdxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-            Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-            return Iterators.transform(results, e -> {
-                CookiesIdxRow row = CookiesIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-                CookiesIdxColumn col = CookiesIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
-                Long val = CookiesIdxColumnValue.hydrateValue(e.getValue());
-                CookiesIdxColumnValue colValue = CookiesIdxColumnValue.of(col, val);
-                return Maps.immutableEntry(row, colValue);
-            });
-        }
-
-        public BatchingVisitableView<CookiesIdxRowResult> getRange(RangeRequest range) {
-            if (range.getColumnNames().isEmpty()) {
-                range = range.getBuilder().retainColumns(allColumns).build();
-            }
-            return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, CookiesIdxRowResult>() {
+    public IterableView<BatchingVisitable<CookiesIdxRowResult>> getRanges(
+        Iterable<RangeRequest> ranges) {
+      Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
+      return IterableView.of(rangeResults)
+          .transform(
+              new Function<
+                  BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<CookiesIdxRowResult>>() {
                 @Override
-                public CookiesIdxRowResult apply(RowResult<byte[]> input) {
-                    return CookiesIdxRowResult.of(input);
-                }
-            });
-        }
-
-        public IterableView<BatchingVisitable<CookiesIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
-            return IterableView.of(rangeResults).transform(
-                    new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<CookiesIdxRowResult>>() {
-                @Override
-                public BatchingVisitable<CookiesIdxRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
-                    return BatchingVisitables.transform(visitable, new Function<RowResult<byte[]>, CookiesIdxRowResult>() {
+                public BatchingVisitable<CookiesIdxRowResult> apply(
+                    BatchingVisitable<RowResult<byte[]>> visitable) {
+                  return BatchingVisitables.transform(
+                      visitable,
+                      new Function<RowResult<byte[]>, CookiesIdxRowResult>() {
                         @Override
                         public CookiesIdxRowResult apply(RowResult<byte[]> row) {
-                            return CookiesIdxRowResult.of(row);
+                          return CookiesIdxRowResult.of(row);
                         }
-                    });
+                      });
                 }
-            });
-        }
+              });
+    }
 
-        public void deleteRange(RangeRequest range) {
-            deleteRanges(ImmutableSet.of(range));
-        }
+    public void deleteRange(RangeRequest range) {
+      deleteRanges(ImmutableSet.of(range));
+    }
 
-        public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<CookiesIdxRowResult>, RuntimeException>() {
+    public void deleteRanges(Iterable<RangeRequest> ranges) {
+      BatchingVisitables.concat(getRanges(ranges))
+          .batchAccept(
+              1000,
+              new AbortingVisitor<List<CookiesIdxRowResult>, RuntimeException>() {
                 @Override
                 public boolean visit(List<CookiesIdxRowResult> rowResults) {
-                    Multimap<CookiesIdxRow, CookiesIdxColumn> toRemove = HashMultimap.create();
-                    for (CookiesIdxRowResult rowResult : rowResults) {
-                        for (CookiesIdxColumnValue columnValue : rowResult.getColumnValues()) {
-                            toRemove.put(rowResult.getRowName(), columnValue.getColumnName());
-                        }
+                  Multimap<CookiesIdxRow, CookiesIdxColumn> toRemove = HashMultimap.create();
+                  for (CookiesIdxRowResult rowResult : rowResults) {
+                    for (CookiesIdxColumnValue columnValue : rowResult.getColumnValues()) {
+                      toRemove.put(rowResult.getRowName(), columnValue.getColumnName());
                     }
-                    delete(toRemove);
-                    return true;
+                  }
+                  delete(toRemove);
+                  return true;
                 }
-            });
-        }
-
-        @Override
-        public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                                   ConstraintCheckingTransaction transaction,
-                                                   AtlasDbConstraintCheckingMode constraintCheckingMode) {
-            return ImmutableList.of();
-        }
-
-        @Override
-        public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                         AtlasDbConstraintCheckingMode constraintCheckingMode) {
-            return ImmutableList.of();
-        }
+              });
     }
 
-
-    @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    public static final class CreatedIdxTable implements
-            AtlasDbDynamicMutablePersistentTable<CreatedIdxTable.CreatedIdxRow,
-                                                    CreatedIdxTable.CreatedIdxColumn,
-                                                    CreatedIdxTable.CreatedIdxColumnValue,
-                                                    CreatedIdxTable.CreatedIdxRowResult> {
-        private final Transaction t;
-        private final List<CreatedIdxTrigger> triggers;
-        private final static String rawTableName = "created_idx";
-        private final TableReference tableRef;
-        private final static ColumnSelection allColumns = ColumnSelection.all();
-
-        public static CreatedIdxTable of(UserProfileTable table) {
-            return new CreatedIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<CreatedIdxTrigger>of());
-        }
-
-        public static CreatedIdxTable of(UserProfileTable table, CreatedIdxTrigger trigger, CreatedIdxTrigger... triggers) {
-            return new CreatedIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<CreatedIdxTrigger>builder().add(trigger).add(triggers).build());
-        }
-
-        public static CreatedIdxTable of(UserProfileTable table, List<CreatedIdxTrigger> triggers) {
-            return new CreatedIdxTable(table.t, table.tableRef.getNamespace(), triggers);
-        }
-
-        private CreatedIdxTable(Transaction t, Namespace namespace, List<CreatedIdxTrigger> triggers) {
-            this.t = t;
-            this.tableRef = TableReference.create(namespace, rawTableName);
-            this.triggers = triggers;
-        }
-
-        public static String getRawTableName() {
-            return rawTableName;
-        }
-
-        public TableReference getTableRef() {
-            return tableRef;
-        }
-
-        public String getTableName() {
-            return tableRef.getQualifiedName();
-        }
-
-        public Namespace getNamespace() {
-            return tableRef.getNamespace();
-        }
-
-        /**
-         * <pre>
-         * CreatedIdxRow {
-         *   {@literal Long time};
-         * }
-         * </pre>
-         */
-        public static final class CreatedIdxRow implements Persistable, Comparable<CreatedIdxRow> {
-            private final long time;
-
-            public static CreatedIdxRow of(long time) {
-                return new CreatedIdxRow(time);
-            }
-
-            private CreatedIdxRow(long time) {
-                this.time = time;
-            }
-
-            public long getTime() {
-                return time;
-            }
-
-            public static Function<CreatedIdxRow, Long> getTimeFun() {
-                return new Function<CreatedIdxRow, Long>() {
-                    @Override
-                    public Long apply(CreatedIdxRow row) {
-                        return row.time;
-                    }
-                };
-            }
-
-            public static Function<Long, CreatedIdxRow> fromTimeFun() {
-                return new Function<Long, CreatedIdxRow>() {
-                    @Override
-                    public CreatedIdxRow apply(Long row) {
-                        return CreatedIdxRow.of(row);
-                    }
-                };
-            }
-
-            @Override
-            public byte[] persistToBytes() {
-                byte[] timeBytes = EncodingUtils.encodeUnsignedVarLong(time);
-                return EncodingUtils.add(timeBytes);
-            }
-
-            public static final Hydrator<CreatedIdxRow> BYTES_HYDRATOR = new Hydrator<CreatedIdxRow>() {
-                @Override
-                public CreatedIdxRow hydrateFromBytes(byte[] __input) {
-                    int __index = 0;
-                    Long time = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                    __index += EncodingUtils.sizeOfUnsignedVarLong(time);
-                    return new CreatedIdxRow(time);
-                }
-            };
-
-            @Override
-            public String toString() {
-                return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("time", time)
-                    .toString();
-            }
-
-            @Override
-            public boolean equals(Object obj) {
-                if (this == obj) {
-                    return true;
-                }
-                if (obj == null) {
-                    return false;
-                }
-                if (getClass() != obj.getClass()) {
-                    return false;
-                }
-                CreatedIdxRow other = (CreatedIdxRow) obj;
-                return Objects.equal(time, other.time);
-            }
-
-            @Override
-            public int hashCode() {
-                return Objects.hashCode(time);
-            }
-
-            @Override
-            public int compareTo(CreatedIdxRow o) {
-                return ComparisonChain.start()
-                    .compare(this.time, o.time)
-                    .result();
-            }
-        }
-
-        /**
-         * <pre>
-         * CreatedIdxColumn {
-         *   {@literal byte[] rowName};
-         *   {@literal byte[] columnName};
-         *   {@literal java.util.UUID id};
-         * }
-         * </pre>
-         */
-        public static final class CreatedIdxColumn implements Persistable, Comparable<CreatedIdxColumn> {
-            private final byte[] rowName;
-            private final byte[] columnName;
-            private final java.util.UUID id;
-
-            public static CreatedIdxColumn of(byte[] rowName, byte[] columnName, java.util.UUID id) {
-                return new CreatedIdxColumn(rowName, columnName, id);
-            }
-
-            private CreatedIdxColumn(byte[] rowName, byte[] columnName, java.util.UUID id) {
-                this.rowName = rowName;
-                this.columnName = columnName;
-                this.id = id;
-            }
-
-            public byte[] getRowName() {
-                return rowName;
-            }
-
-            public byte[] getColumnName() {
-                return columnName;
-            }
-
-            public java.util.UUID getId() {
-                return id;
-            }
-
-            public static Function<CreatedIdxColumn, byte[]> getRowNameFun() {
-                return new Function<CreatedIdxColumn, byte[]>() {
-                    @Override
-                    public byte[] apply(CreatedIdxColumn row) {
-                        return row.rowName;
-                    }
-                };
-            }
-
-            public static Function<CreatedIdxColumn, byte[]> getColumnNameFun() {
-                return new Function<CreatedIdxColumn, byte[]>() {
-                    @Override
-                    public byte[] apply(CreatedIdxColumn row) {
-                        return row.columnName;
-                    }
-                };
-            }
-
-            public static Function<CreatedIdxColumn, java.util.UUID> getIdFun() {
-                return new Function<CreatedIdxColumn, java.util.UUID>() {
-                    @Override
-                    public java.util.UUID apply(CreatedIdxColumn row) {
-                        return row.id;
-                    }
-                };
-            }
-
-            @Override
-            public byte[] persistToBytes() {
-                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
-                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
-                byte[] idBytes = EncodingUtils.encodeUUID(id);
-                return EncodingUtils.add(rowNameBytes, columnNameBytes, idBytes);
-            }
-
-            public static final Hydrator<CreatedIdxColumn> BYTES_HYDRATOR = new Hydrator<CreatedIdxColumn>() {
-                @Override
-                public CreatedIdxColumn hydrateFromBytes(byte[] __input) {
-                    int __index = 0;
-                    byte[] rowName = EncodingUtils.decodeSizedBytes(__input, __index);
-                    __index += EncodingUtils.sizeOfSizedBytes(rowName);
-                    byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
-                    __index += EncodingUtils.sizeOfSizedBytes(columnName);
-                    java.util.UUID id = EncodingUtils.decodeUUID(__input, __index);
-                    __index += 16;
-                    return new CreatedIdxColumn(rowName, columnName, id);
-                }
-            };
-
-            public static BatchColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
-                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
-                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
-            }
-
-            public static Prefix prefixUnsorted(byte[] rowName) {
-                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
-                return new Prefix(EncodingUtils.add(rowNameBytes));
-            }
-
-            public static BatchColumnRangeSelection createPrefixRange(byte[] rowName, byte[] columnName, int batchSize) {
-                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
-                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
-                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes, columnNameBytes), batchSize);
-            }
-
-            public static Prefix prefix(byte[] rowName, byte[] columnName) {
-                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
-                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
-                return new Prefix(EncodingUtils.add(rowNameBytes, columnNameBytes));
-            }
-
-            @Override
-            public String toString() {
-                return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("rowName", rowName)
-                    .add("columnName", columnName)
-                    .add("id", id)
-                    .toString();
-            }
-
-            @Override
-            public boolean equals(Object obj) {
-                if (this == obj) {
-                    return true;
-                }
-                if (obj == null) {
-                    return false;
-                }
-                if (getClass() != obj.getClass()) {
-                    return false;
-                }
-                CreatedIdxColumn other = (CreatedIdxColumn) obj;
-                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
-            }
-
-            @Override
-            public int hashCode() {
-                return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
-            }
-
-            @Override
-            public int compareTo(CreatedIdxColumn o) {
-                return ComparisonChain.start()
-                    .compare(this.rowName, o.rowName, UnsignedBytes.lexicographicalComparator())
-                    .compare(this.columnName, o.columnName, UnsignedBytes.lexicographicalComparator())
-                    .compare(this.id, o.id)
-                    .result();
-            }
-        }
-
-        public interface CreatedIdxTrigger {
-            public void putCreatedIdx(Multimap<CreatedIdxRow, ? extends CreatedIdxColumnValue> newRows);
-        }
-
-        /**
-         * <pre>
-         * Column name description {
-         *   {@literal byte[] rowName};
-         *   {@literal byte[] columnName};
-         *   {@literal java.util.UUID id};
-         * }
-         * Column value description {
-         *   type: Long;
-         * }
-         * </pre>
-         */
-        public static final class CreatedIdxColumnValue implements ColumnValue<Long> {
-            private final CreatedIdxColumn columnName;
-            private final Long value;
-
-            public static CreatedIdxColumnValue of(CreatedIdxColumn columnName, Long value) {
-                return new CreatedIdxColumnValue(columnName, value);
-            }
-
-            private CreatedIdxColumnValue(CreatedIdxColumn columnName, Long value) {
-                this.columnName = columnName;
-                this.value = value;
-            }
-
-            public CreatedIdxColumn getColumnName() {
-                return columnName;
-            }
-
-            @Override
-            public Long getValue() {
-                return value;
-            }
-
-            @Override
-            public byte[] persistColumnName() {
-                return columnName.persistToBytes();
-            }
-
-            @Override
-            public byte[] persistValue() {
-                byte[] bytes = EncodingUtils.encodeUnsignedVarLong(value);
-                return CompressionUtils.compress(bytes, Compression.NONE);
-            }
-
-            public static Long hydrateValue(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return EncodingUtils.decodeUnsignedVarLong(bytes, 0);
-            }
-
-            public static Function<CreatedIdxColumnValue, CreatedIdxColumn> getColumnNameFun() {
-                return new Function<CreatedIdxColumnValue, CreatedIdxColumn>() {
-                    @Override
-                    public CreatedIdxColumn apply(CreatedIdxColumnValue columnValue) {
-                        return columnValue.getColumnName();
-                    }
-                };
-            }
-
-            public static Function<CreatedIdxColumnValue, Long> getValueFun() {
-                return new Function<CreatedIdxColumnValue, Long>() {
-                    @Override
-                    public Long apply(CreatedIdxColumnValue columnValue) {
-                        return columnValue.getValue();
-                    }
-                };
-            }
-
-            @Override
-            public String toString() {
-                return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("ColumnName", this.columnName)
-                    .add("Value", this.value)
-                    .toString();
-            }
-        }
-
-        public static final class CreatedIdxRowResult implements TypedRowResult {
-            private final CreatedIdxRow rowName;
-            private final ImmutableSet<CreatedIdxColumnValue> columnValues;
-
-            public static CreatedIdxRowResult of(RowResult<byte[]> rowResult) {
-                CreatedIdxRow rowName = CreatedIdxRow.BYTES_HYDRATOR.hydrateFromBytes(rowResult.getRowName());
-                Set<CreatedIdxColumnValue> columnValues = Sets.newHashSetWithExpectedSize(rowResult.getColumns().size());
-                for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
-                    CreatedIdxColumn col = CreatedIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                    Long value = CreatedIdxColumnValue.hydrateValue(e.getValue());
-                    columnValues.add(CreatedIdxColumnValue.of(col, value));
-                }
-                return new CreatedIdxRowResult(rowName, ImmutableSet.copyOf(columnValues));
-            }
-
-            private CreatedIdxRowResult(CreatedIdxRow rowName, ImmutableSet<CreatedIdxColumnValue> columnValues) {
-                this.rowName = rowName;
-                this.columnValues = columnValues;
-            }
-
-            @Override
-            public CreatedIdxRow getRowName() {
-                return rowName;
-            }
-
-            public Set<CreatedIdxColumnValue> getColumnValues() {
-                return columnValues;
-            }
-
-            public static Function<CreatedIdxRowResult, CreatedIdxRow> getRowNameFun() {
-                return new Function<CreatedIdxRowResult, CreatedIdxRow>() {
-                    @Override
-                    public CreatedIdxRow apply(CreatedIdxRowResult rowResult) {
-                        return rowResult.rowName;
-                    }
-                };
-            }
-
-            public static Function<CreatedIdxRowResult, ImmutableSet<CreatedIdxColumnValue>> getColumnValuesFun() {
-                return new Function<CreatedIdxRowResult, ImmutableSet<CreatedIdxColumnValue>>() {
-                    @Override
-                    public ImmutableSet<CreatedIdxColumnValue> apply(CreatedIdxRowResult rowResult) {
-                        return rowResult.columnValues;
-                    }
-                };
-            }
-
-            @Override
-            public String toString() {
-                return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("RowName", getRowName())
-                    .add("ColumnValues", getColumnValues())
-                    .toString();
-            }
-        }
-
-        @Override
-        public void delete(CreatedIdxRow row, CreatedIdxColumn column) {
-            delete(ImmutableMultimap.of(row, column));
-        }
-
-        @Override
-        public void delete(Iterable<CreatedIdxRow> rows) {
-            Multimap<CreatedIdxRow, CreatedIdxColumn> toRemove = HashMultimap.create();
-            Multimap<CreatedIdxRow, CreatedIdxColumnValue> result = getRowsMultimap(rows);
-            for (Entry<CreatedIdxRow, CreatedIdxColumnValue> e : result.entries()) {
-                toRemove.put(e.getKey(), e.getValue().getColumnName());
-            }
-            delete(toRemove);
-        }
-
-        @Override
-        public void delete(Multimap<CreatedIdxRow, CreatedIdxColumn> values) {
-            t.delete(tableRef, ColumnValues.toCells(values));
-        }
-
-        @Override
-        public void put(CreatedIdxRow rowName, Iterable<CreatedIdxColumnValue> values) {
-            put(ImmutableMultimap.<CreatedIdxRow, CreatedIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        @Override
-        public void put(CreatedIdxRow rowName, CreatedIdxColumnValue... values) {
-            put(ImmutableMultimap.<CreatedIdxRow, CreatedIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        @Override
-        public void put(Multimap<CreatedIdxRow, ? extends CreatedIdxColumnValue> values) {
-            t.useTable(tableRef, this);
-            t.put(tableRef, ColumnValues.toCellValues(values));
-            for (CreatedIdxTrigger trigger : triggers) {
-                trigger.putCreatedIdx(values);
-            }
-        }
-
-        @Override
-        public void putUnlessExists(CreatedIdxRow rowName, Iterable<CreatedIdxColumnValue> values) {
-            putUnlessExists(ImmutableMultimap.<CreatedIdxRow, CreatedIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        @Override
-        public void putUnlessExists(CreatedIdxRow rowName, CreatedIdxColumnValue... values) {
-            putUnlessExists(ImmutableMultimap.<CreatedIdxRow, CreatedIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        @Override
-        public void putUnlessExists(Multimap<CreatedIdxRow, ? extends CreatedIdxColumnValue> rows) {
-            Multimap<CreatedIdxRow, CreatedIdxColumn> toGet = Multimaps.transformValues(rows, CreatedIdxColumnValue.getColumnNameFun());
-            Multimap<CreatedIdxRow, CreatedIdxColumnValue> existing = get(toGet);
-            Multimap<CreatedIdxRow, CreatedIdxColumnValue> toPut = HashMultimap.create();
-            for (Entry<CreatedIdxRow, ? extends CreatedIdxColumnValue> entry : rows.entries()) {
-                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                    toPut.put(entry.getKey(), entry.getValue());
-                }
-            }
-            put(toPut);
-        }
-
-        @Override
-        public void touch(Multimap<CreatedIdxRow, CreatedIdxColumn> values) {
-            Multimap<CreatedIdxRow, CreatedIdxColumnValue> currentValues = get(values);
-            put(currentValues);
-            Multimap<CreatedIdxRow, CreatedIdxColumn> toDelete = HashMultimap.create(values);
-            for (Map.Entry<CreatedIdxRow, CreatedIdxColumnValue> e : currentValues.entries()) {
-                toDelete.remove(e.getKey(), e.getValue().getColumnName());
-            }
-            delete(toDelete);
-        }
-
-        public static ColumnSelection getColumnSelection(Collection<CreatedIdxColumn> cols) {
-            return ColumnSelection.create(Collections2.transform(cols, Persistables.persistToBytesFunction()));
-        }
-
-        public static ColumnSelection getColumnSelection(CreatedIdxColumn... cols) {
-            return getColumnSelection(Arrays.asList(cols));
-        }
-
-        @Override
-        public Multimap<CreatedIdxRow, CreatedIdxColumnValue> get(Multimap<CreatedIdxRow, CreatedIdxColumn> cells) {
-            Set<Cell> rawCells = ColumnValues.toCells(cells);
-            Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<CreatedIdxRow, CreatedIdxColumnValue> rowMap = HashMultimap.create();
-            for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
-                if (e.getValue().length > 0) {
-                    CreatedIdxRow row = CreatedIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-                    CreatedIdxColumn col = CreatedIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
-                    Long val = CreatedIdxColumnValue.hydrateValue(e.getValue());
-                    rowMap.put(row, CreatedIdxColumnValue.of(col, val));
-                }
-            }
-            return rowMap;
-        }
-
-        @Override
-        public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getAsync(final Multimap<CreatedIdxRow, CreatedIdxColumn> cells, ExecutorService exec) {
-            Callable<Multimap<CreatedIdxRow, CreatedIdxColumnValue>> c =
-                    new Callable<Multimap<CreatedIdxRow, CreatedIdxColumnValue>>() {
-                @Override
-                public Multimap<CreatedIdxRow, CreatedIdxColumnValue> call() {
-                    return get(cells);
-                }
-            };
-            return AsyncProxy.create(exec.submit(c), Multimap.class);
-        }
-
-        @Override
-        public List<CreatedIdxColumnValue> getRowColumns(CreatedIdxRow row) {
-            return getRowColumns(row, allColumns);
-        }
-
-        @Override
-        public List<CreatedIdxColumnValue> getRowColumns(CreatedIdxRow row, ColumnSelection columns) {
-            byte[] bytes = row.persistToBytes();
-            RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
-            if (rowResult == null) {
-                return ImmutableList.of();
-            } else {
-                List<CreatedIdxColumnValue> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
-                for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
-                    CreatedIdxColumn col = CreatedIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                    Long val = CreatedIdxColumnValue.hydrateValue(e.getValue());
-                    ret.add(CreatedIdxColumnValue.of(col, val));
-                }
-                return ret;
-            }
-        }
-
-        @Override
-        public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getRowsMultimap(Iterable<CreatedIdxRow> rows) {
-            return getRowsMultimapInternal(rows, allColumns);
-        }
-
-        @Override
-        public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getRowsMultimap(Iterable<CreatedIdxRow> rows, ColumnSelection columns) {
-            return getRowsMultimapInternal(rows, columns);
-        }
-
-        @Override
-        public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getAsyncRowsMultimap(Iterable<CreatedIdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, allColumns, exec);
-        }
-
-        @Override
-        public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getAsyncRowsMultimap(final Iterable<CreatedIdxRow> rows, final ColumnSelection columns, ExecutorService exec) {
-            Callable<Multimap<CreatedIdxRow, CreatedIdxColumnValue>> c =
-                    new Callable<Multimap<CreatedIdxRow, CreatedIdxColumnValue>>() {
-                @Override
-                public Multimap<CreatedIdxRow, CreatedIdxColumnValue> call() {
-                    return getRowsMultimapInternal(rows, columns);
-                }
-            };
-            return AsyncProxy.create(exec.submit(c), Multimap.class);
-        }
-
-        private Multimap<CreatedIdxRow, CreatedIdxColumnValue> getRowsMultimapInternal(Iterable<CreatedIdxRow> rows, ColumnSelection columns) {
-            SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
-            return getRowMapFromRowResults(results.values());
-        }
-
-        private static Multimap<CreatedIdxRow, CreatedIdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<CreatedIdxRow, CreatedIdxColumnValue> rowMap = HashMultimap.create();
-            for (RowResult<byte[]> result : rowResults) {
-                CreatedIdxRow row = CreatedIdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
-                for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
-                    CreatedIdxColumn col = CreatedIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                    Long val = CreatedIdxColumnValue.hydrateValue(e.getValue());
-                    rowMap.put(row, CreatedIdxColumnValue.of(col, val));
-                }
-            }
-            return rowMap;
-        }
-
-        @Override
-        public Map<CreatedIdxRow, BatchingVisitable<CreatedIdxColumnValue>> getRowsColumnRange(Iterable<CreatedIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-            Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-            Map<CreatedIdxRow, BatchingVisitable<CreatedIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-            for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-                CreatedIdxRow row = CreatedIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                BatchingVisitable<CreatedIdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
-                    CreatedIdxColumn col = CreatedIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
-                    Long val = CreatedIdxColumnValue.hydrateValue(result.getValue());
-                    return CreatedIdxColumnValue.of(col, val);
-                });
-                transformed.put(row, bv);
-            }
-            return transformed;
-        }
-
-        @Override
-        public Iterator<Map.Entry<CreatedIdxRow, CreatedIdxColumnValue>> getRowsColumnRange(Iterable<CreatedIdxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-            Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-            return Iterators.transform(results, e -> {
-                CreatedIdxRow row = CreatedIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-                CreatedIdxColumn col = CreatedIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
-                Long val = CreatedIdxColumnValue.hydrateValue(e.getValue());
-                CreatedIdxColumnValue colValue = CreatedIdxColumnValue.of(col, val);
-                return Maps.immutableEntry(row, colValue);
-            });
-        }
-
-        public BatchingVisitableView<CreatedIdxRowResult> getRange(RangeRequest range) {
-            if (range.getColumnNames().isEmpty()) {
-                range = range.getBuilder().retainColumns(allColumns).build();
-            }
-            return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, CreatedIdxRowResult>() {
-                @Override
-                public CreatedIdxRowResult apply(RowResult<byte[]> input) {
-                    return CreatedIdxRowResult.of(input);
-                }
-            });
-        }
-
-        public IterableView<BatchingVisitable<CreatedIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
-            return IterableView.of(rangeResults).transform(
-                    new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<CreatedIdxRowResult>>() {
-                @Override
-                public BatchingVisitable<CreatedIdxRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
-                    return BatchingVisitables.transform(visitable, new Function<RowResult<byte[]>, CreatedIdxRowResult>() {
-                        @Override
-                        public CreatedIdxRowResult apply(RowResult<byte[]> row) {
-                            return CreatedIdxRowResult.of(row);
-                        }
-                    });
-                }
-            });
-        }
-
-        public void deleteRange(RangeRequest range) {
-            deleteRanges(ImmutableSet.of(range));
-        }
-
-        public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<CreatedIdxRowResult>, RuntimeException>() {
-                @Override
-                public boolean visit(List<CreatedIdxRowResult> rowResults) {
-                    Multimap<CreatedIdxRow, CreatedIdxColumn> toRemove = HashMultimap.create();
-                    for (CreatedIdxRowResult rowResult : rowResults) {
-                        for (CreatedIdxColumnValue columnValue : rowResult.getColumnValues()) {
-                            toRemove.put(rowResult.getRowName(), columnValue.getColumnName());
-                        }
-                    }
-                    delete(toRemove);
-                    return true;
-                }
-            });
-        }
-
-        @Override
-        public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                                   ConstraintCheckingTransaction transaction,
-                                                   AtlasDbConstraintCheckingMode constraintCheckingMode) {
-            return ImmutableList.of();
-        }
-
-        @Override
-        public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                         AtlasDbConstraintCheckingMode constraintCheckingMode) {
-            return ImmutableList.of();
-        }
+    @Override
+    public List<String> findConstraintFailures(
+        Map<Cell, byte[]> writes,
+        ConstraintCheckingTransaction transaction,
+        AtlasDbConstraintCheckingMode constraintCheckingMode) {
+      return ImmutableList.of();
     }
 
-
-    @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    public static final class UserBirthdaysIdxTable implements
-            AtlasDbDynamicMutablePersistentTable<UserBirthdaysIdxTable.UserBirthdaysIdxRow,
-                                                    UserBirthdaysIdxTable.UserBirthdaysIdxColumn,
-                                                    UserBirthdaysIdxTable.UserBirthdaysIdxColumnValue,
-                                                    UserBirthdaysIdxTable.UserBirthdaysIdxRowResult> {
-        private final Transaction t;
-        private final List<UserBirthdaysIdxTrigger> triggers;
-        private final static String rawTableName = "user_birthdays_idx";
-        private final TableReference tableRef;
-        private final static ColumnSelection allColumns = ColumnSelection.all();
-
-        public static UserBirthdaysIdxTable of(UserProfileTable table) {
-            return new UserBirthdaysIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<UserBirthdaysIdxTrigger>of());
-        }
-
-        public static UserBirthdaysIdxTable of(UserProfileTable table, UserBirthdaysIdxTrigger trigger, UserBirthdaysIdxTrigger... triggers) {
-            return new UserBirthdaysIdxTable(table.t, table.tableRef.getNamespace(), ImmutableList.<UserBirthdaysIdxTrigger>builder().add(trigger).add(triggers).build());
-        }
-
-        public static UserBirthdaysIdxTable of(UserProfileTable table, List<UserBirthdaysIdxTrigger> triggers) {
-            return new UserBirthdaysIdxTable(table.t, table.tableRef.getNamespace(), triggers);
-        }
-
-        private UserBirthdaysIdxTable(Transaction t, Namespace namespace, List<UserBirthdaysIdxTrigger> triggers) {
-            this.t = t;
-            this.tableRef = TableReference.create(namespace, rawTableName);
-            this.triggers = triggers;
-        }
-
-        public static String getRawTableName() {
-            return rawTableName;
-        }
-
-        public TableReference getTableRef() {
-            return tableRef;
-        }
-
-        public String getTableName() {
-            return tableRef.getQualifiedName();
-        }
-
-        public Namespace getNamespace() {
-            return tableRef.getNamespace();
-        }
-
-        /**
-         * <pre>
-         * UserBirthdaysIdxRow {
-         *   {@literal Long birthday};
-         * }
-         * </pre>
-         */
-        public static final class UserBirthdaysIdxRow implements Persistable, Comparable<UserBirthdaysIdxRow> {
-            private final long birthday;
-
-            public static UserBirthdaysIdxRow of(long birthday) {
-                return new UserBirthdaysIdxRow(birthday);
-            }
-
-            private UserBirthdaysIdxRow(long birthday) {
-                this.birthday = birthday;
-            }
-
-            public long getBirthday() {
-                return birthday;
-            }
-
-            public static Function<UserBirthdaysIdxRow, Long> getBirthdayFun() {
-                return new Function<UserBirthdaysIdxRow, Long>() {
-                    @Override
-                    public Long apply(UserBirthdaysIdxRow row) {
-                        return row.birthday;
-                    }
-                };
-            }
-
-            public static Function<Long, UserBirthdaysIdxRow> fromBirthdayFun() {
-                return new Function<Long, UserBirthdaysIdxRow>() {
-                    @Override
-                    public UserBirthdaysIdxRow apply(Long row) {
-                        return UserBirthdaysIdxRow.of(row);
-                    }
-                };
-            }
-
-            @Override
-            public byte[] persistToBytes() {
-                byte[] birthdayBytes = EncodingUtils.encodeSignedVarLong(birthday);
-                return EncodingUtils.add(birthdayBytes);
-            }
-
-            public static final Hydrator<UserBirthdaysIdxRow> BYTES_HYDRATOR = new Hydrator<UserBirthdaysIdxRow>() {
-                @Override
-                public UserBirthdaysIdxRow hydrateFromBytes(byte[] __input) {
-                    int __index = 0;
-                    Long birthday = EncodingUtils.decodeSignedVarLong(__input, __index);
-                    __index += EncodingUtils.sizeOfSignedVarLong(birthday);
-                    return new UserBirthdaysIdxRow(birthday);
-                }
-            };
-
-            @Override
-            public String toString() {
-                return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("birthday", birthday)
-                    .toString();
-            }
-
-            @Override
-            public boolean equals(Object obj) {
-                if (this == obj) {
-                    return true;
-                }
-                if (obj == null) {
-                    return false;
-                }
-                if (getClass() != obj.getClass()) {
-                    return false;
-                }
-                UserBirthdaysIdxRow other = (UserBirthdaysIdxRow) obj;
-                return Objects.equal(birthday, other.birthday);
-            }
-
-            @Override
-            public int hashCode() {
-                return Objects.hashCode(birthday);
-            }
-
-            @Override
-            public int compareTo(UserBirthdaysIdxRow o) {
-                return ComparisonChain.start()
-                    .compare(this.birthday, o.birthday)
-                    .result();
-            }
-        }
-
-        /**
-         * <pre>
-         * UserBirthdaysIdxColumn {
-         *   {@literal byte[] rowName};
-         *   {@literal byte[] columnName};
-         *   {@literal java.util.UUID id};
-         * }
-         * </pre>
-         */
-        public static final class UserBirthdaysIdxColumn implements Persistable, Comparable<UserBirthdaysIdxColumn> {
-            private final byte[] rowName;
-            private final byte[] columnName;
-            private final java.util.UUID id;
-
-            public static UserBirthdaysIdxColumn of(byte[] rowName, byte[] columnName, java.util.UUID id) {
-                return new UserBirthdaysIdxColumn(rowName, columnName, id);
-            }
-
-            private UserBirthdaysIdxColumn(byte[] rowName, byte[] columnName, java.util.UUID id) {
-                this.rowName = rowName;
-                this.columnName = columnName;
-                this.id = id;
-            }
-
-            public byte[] getRowName() {
-                return rowName;
-            }
-
-            public byte[] getColumnName() {
-                return columnName;
-            }
-
-            public java.util.UUID getId() {
-                return id;
-            }
-
-            public static Function<UserBirthdaysIdxColumn, byte[]> getRowNameFun() {
-                return new Function<UserBirthdaysIdxColumn, byte[]>() {
-                    @Override
-                    public byte[] apply(UserBirthdaysIdxColumn row) {
-                        return row.rowName;
-                    }
-                };
-            }
-
-            public static Function<UserBirthdaysIdxColumn, byte[]> getColumnNameFun() {
-                return new Function<UserBirthdaysIdxColumn, byte[]>() {
-                    @Override
-                    public byte[] apply(UserBirthdaysIdxColumn row) {
-                        return row.columnName;
-                    }
-                };
-            }
-
-            public static Function<UserBirthdaysIdxColumn, java.util.UUID> getIdFun() {
-                return new Function<UserBirthdaysIdxColumn, java.util.UUID>() {
-                    @Override
-                    public java.util.UUID apply(UserBirthdaysIdxColumn row) {
-                        return row.id;
-                    }
-                };
-            }
-
-            @Override
-            public byte[] persistToBytes() {
-                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
-                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
-                byte[] idBytes = EncodingUtils.encodeUUID(id);
-                return EncodingUtils.add(rowNameBytes, columnNameBytes, idBytes);
-            }
-
-            public static final Hydrator<UserBirthdaysIdxColumn> BYTES_HYDRATOR = new Hydrator<UserBirthdaysIdxColumn>() {
-                @Override
-                public UserBirthdaysIdxColumn hydrateFromBytes(byte[] __input) {
-                    int __index = 0;
-                    byte[] rowName = EncodingUtils.decodeSizedBytes(__input, __index);
-                    __index += EncodingUtils.sizeOfSizedBytes(rowName);
-                    byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
-                    __index += EncodingUtils.sizeOfSizedBytes(columnName);
-                    java.util.UUID id = EncodingUtils.decodeUUID(__input, __index);
-                    __index += 16;
-                    return new UserBirthdaysIdxColumn(rowName, columnName, id);
-                }
-            };
-
-            public static BatchColumnRangeSelection createPrefixRangeUnsorted(byte[] rowName, int batchSize) {
-                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
-                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
-            }
-
-            public static Prefix prefixUnsorted(byte[] rowName) {
-                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
-                return new Prefix(EncodingUtils.add(rowNameBytes));
-            }
-
-            public static BatchColumnRangeSelection createPrefixRange(byte[] rowName, byte[] columnName, int batchSize) {
-                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
-                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
-                return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes, columnNameBytes), batchSize);
-            }
-
-            public static Prefix prefix(byte[] rowName, byte[] columnName) {
-                byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
-                byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
-                return new Prefix(EncodingUtils.add(rowNameBytes, columnNameBytes));
-            }
-
-            @Override
-            public String toString() {
-                return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("rowName", rowName)
-                    .add("columnName", columnName)
-                    .add("id", id)
-                    .toString();
-            }
-
-            @Override
-            public boolean equals(Object obj) {
-                if (this == obj) {
-                    return true;
-                }
-                if (obj == null) {
-                    return false;
-                }
-                if (getClass() != obj.getClass()) {
-                    return false;
-                }
-                UserBirthdaysIdxColumn other = (UserBirthdaysIdxColumn) obj;
-                return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equal(id, other.id);
-            }
-
-            @Override
-            public int hashCode() {
-                return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
-            }
-
-            @Override
-            public int compareTo(UserBirthdaysIdxColumn o) {
-                return ComparisonChain.start()
-                    .compare(this.rowName, o.rowName, UnsignedBytes.lexicographicalComparator())
-                    .compare(this.columnName, o.columnName, UnsignedBytes.lexicographicalComparator())
-                    .compare(this.id, o.id)
-                    .result();
-            }
-        }
-
-        public interface UserBirthdaysIdxTrigger {
-            public void putUserBirthdaysIdx(Multimap<UserBirthdaysIdxRow, ? extends UserBirthdaysIdxColumnValue> newRows);
-        }
-
-        /**
-         * <pre>
-         * Column name description {
-         *   {@literal byte[] rowName};
-         *   {@literal byte[] columnName};
-         *   {@literal java.util.UUID id};
-         * }
-         * Column value description {
-         *   type: Long;
-         * }
-         * </pre>
-         */
-        public static final class UserBirthdaysIdxColumnValue implements ColumnValue<Long> {
-            private final UserBirthdaysIdxColumn columnName;
-            private final Long value;
-
-            public static UserBirthdaysIdxColumnValue of(UserBirthdaysIdxColumn columnName, Long value) {
-                return new UserBirthdaysIdxColumnValue(columnName, value);
-            }
-
-            private UserBirthdaysIdxColumnValue(UserBirthdaysIdxColumn columnName, Long value) {
-                this.columnName = columnName;
-                this.value = value;
-            }
-
-            public UserBirthdaysIdxColumn getColumnName() {
-                return columnName;
-            }
-
-            @Override
-            public Long getValue() {
-                return value;
-            }
-
-            @Override
-            public byte[] persistColumnName() {
-                return columnName.persistToBytes();
-            }
-
-            @Override
-            public byte[] persistValue() {
-                byte[] bytes = EncodingUtils.encodeUnsignedVarLong(value);
-                return CompressionUtils.compress(bytes, Compression.NONE);
-            }
-
-            public static Long hydrateValue(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return EncodingUtils.decodeUnsignedVarLong(bytes, 0);
-            }
-
-            public static Function<UserBirthdaysIdxColumnValue, UserBirthdaysIdxColumn> getColumnNameFun() {
-                return new Function<UserBirthdaysIdxColumnValue, UserBirthdaysIdxColumn>() {
-                    @Override
-                    public UserBirthdaysIdxColumn apply(UserBirthdaysIdxColumnValue columnValue) {
-                        return columnValue.getColumnName();
-                    }
-                };
-            }
-
-            public static Function<UserBirthdaysIdxColumnValue, Long> getValueFun() {
-                return new Function<UserBirthdaysIdxColumnValue, Long>() {
-                    @Override
-                    public Long apply(UserBirthdaysIdxColumnValue columnValue) {
-                        return columnValue.getValue();
-                    }
-                };
-            }
-
-            @Override
-            public String toString() {
-                return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("ColumnName", this.columnName)
-                    .add("Value", this.value)
-                    .toString();
-            }
-        }
-
-        public static final class UserBirthdaysIdxRowResult implements TypedRowResult {
-            private final UserBirthdaysIdxRow rowName;
-            private final ImmutableSet<UserBirthdaysIdxColumnValue> columnValues;
-
-            public static UserBirthdaysIdxRowResult of(RowResult<byte[]> rowResult) {
-                UserBirthdaysIdxRow rowName = UserBirthdaysIdxRow.BYTES_HYDRATOR.hydrateFromBytes(rowResult.getRowName());
-                Set<UserBirthdaysIdxColumnValue> columnValues = Sets.newHashSetWithExpectedSize(rowResult.getColumns().size());
-                for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
-                    UserBirthdaysIdxColumn col = UserBirthdaysIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                    Long value = UserBirthdaysIdxColumnValue.hydrateValue(e.getValue());
-                    columnValues.add(UserBirthdaysIdxColumnValue.of(col, value));
-                }
-                return new UserBirthdaysIdxRowResult(rowName, ImmutableSet.copyOf(columnValues));
-            }
-
-            private UserBirthdaysIdxRowResult(UserBirthdaysIdxRow rowName, ImmutableSet<UserBirthdaysIdxColumnValue> columnValues) {
-                this.rowName = rowName;
-                this.columnValues = columnValues;
-            }
-
-            @Override
-            public UserBirthdaysIdxRow getRowName() {
-                return rowName;
-            }
-
-            public Set<UserBirthdaysIdxColumnValue> getColumnValues() {
-                return columnValues;
-            }
-
-            public static Function<UserBirthdaysIdxRowResult, UserBirthdaysIdxRow> getRowNameFun() {
-                return new Function<UserBirthdaysIdxRowResult, UserBirthdaysIdxRow>() {
-                    @Override
-                    public UserBirthdaysIdxRow apply(UserBirthdaysIdxRowResult rowResult) {
-                        return rowResult.rowName;
-                    }
-                };
-            }
-
-            public static Function<UserBirthdaysIdxRowResult, ImmutableSet<UserBirthdaysIdxColumnValue>> getColumnValuesFun() {
-                return new Function<UserBirthdaysIdxRowResult, ImmutableSet<UserBirthdaysIdxColumnValue>>() {
-                    @Override
-                    public ImmutableSet<UserBirthdaysIdxColumnValue> apply(UserBirthdaysIdxRowResult rowResult) {
-                        return rowResult.columnValues;
-                    }
-                };
-            }
-
-            @Override
-            public String toString() {
-                return MoreObjects.toStringHelper(getClass().getSimpleName())
-                    .add("RowName", getRowName())
-                    .add("ColumnValues", getColumnValues())
-                    .toString();
-            }
-        }
-
-        @Override
-        public void delete(UserBirthdaysIdxRow row, UserBirthdaysIdxColumn column) {
-            delete(ImmutableMultimap.of(row, column));
-        }
-
-        @Override
-        public void delete(Iterable<UserBirthdaysIdxRow> rows) {
-            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> toRemove = HashMultimap.create();
-            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> result = getRowsMultimap(rows);
-            for (Entry<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> e : result.entries()) {
-                toRemove.put(e.getKey(), e.getValue().getColumnName());
-            }
-            delete(toRemove);
-        }
-
-        @Override
-        public void delete(Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> values) {
-            t.delete(tableRef, ColumnValues.toCells(values));
-        }
-
-        @Override
-        public void put(UserBirthdaysIdxRow rowName, Iterable<UserBirthdaysIdxColumnValue> values) {
-            put(ImmutableMultimap.<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        @Override
-        public void put(UserBirthdaysIdxRow rowName, UserBirthdaysIdxColumnValue... values) {
-            put(ImmutableMultimap.<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        @Override
-        public void put(Multimap<UserBirthdaysIdxRow, ? extends UserBirthdaysIdxColumnValue> values) {
-            t.useTable(tableRef, this);
-            t.put(tableRef, ColumnValues.toCellValues(values));
-            for (UserBirthdaysIdxTrigger trigger : triggers) {
-                trigger.putUserBirthdaysIdx(values);
-            }
-        }
-
-        @Override
-        public void putUnlessExists(UserBirthdaysIdxRow rowName, Iterable<UserBirthdaysIdxColumnValue> values) {
-            putUnlessExists(ImmutableMultimap.<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        @Override
-        public void putUnlessExists(UserBirthdaysIdxRow rowName, UserBirthdaysIdxColumnValue... values) {
-            putUnlessExists(ImmutableMultimap.<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>builder().putAll(rowName, values).build());
-        }
-
-        @Override
-        public void putUnlessExists(Multimap<UserBirthdaysIdxRow, ? extends UserBirthdaysIdxColumnValue> rows) {
-            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> toGet = Multimaps.transformValues(rows, UserBirthdaysIdxColumnValue.getColumnNameFun());
-            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> existing = get(toGet);
-            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> toPut = HashMultimap.create();
-            for (Entry<UserBirthdaysIdxRow, ? extends UserBirthdaysIdxColumnValue> entry : rows.entries()) {
-                if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                    toPut.put(entry.getKey(), entry.getValue());
-                }
-            }
-            put(toPut);
-        }
-
-        @Override
-        public void touch(Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> values) {
-            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> currentValues = get(values);
-            put(currentValues);
-            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> toDelete = HashMultimap.create(values);
-            for (Map.Entry<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> e : currentValues.entries()) {
-                toDelete.remove(e.getKey(), e.getValue().getColumnName());
-            }
-            delete(toDelete);
-        }
-
-        public static ColumnSelection getColumnSelection(Collection<UserBirthdaysIdxColumn> cols) {
-            return ColumnSelection.create(Collections2.transform(cols, Persistables.persistToBytesFunction()));
-        }
-
-        public static ColumnSelection getColumnSelection(UserBirthdaysIdxColumn... cols) {
-            return getColumnSelection(Arrays.asList(cols));
-        }
-
-        @Override
-        public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> get(Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> cells) {
-            Set<Cell> rawCells = ColumnValues.toCells(cells);
-            Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
-            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> rowMap = HashMultimap.create();
-            for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
-                if (e.getValue().length > 0) {
-                    UserBirthdaysIdxRow row = UserBirthdaysIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-                    UserBirthdaysIdxColumn col = UserBirthdaysIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
-                    Long val = UserBirthdaysIdxColumnValue.hydrateValue(e.getValue());
-                    rowMap.put(row, UserBirthdaysIdxColumnValue.of(col, val));
-                }
-            }
-            return rowMap;
-        }
-
-        @Override
-        public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getAsync(final Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> cells, ExecutorService exec) {
-            Callable<Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>> c =
-                    new Callable<Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>>() {
-                @Override
-                public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> call() {
-                    return get(cells);
-                }
-            };
-            return AsyncProxy.create(exec.submit(c), Multimap.class);
-        }
-
-        @Override
-        public List<UserBirthdaysIdxColumnValue> getRowColumns(UserBirthdaysIdxRow row) {
-            return getRowColumns(row, allColumns);
-        }
-
-        @Override
-        public List<UserBirthdaysIdxColumnValue> getRowColumns(UserBirthdaysIdxRow row, ColumnSelection columns) {
-            byte[] bytes = row.persistToBytes();
-            RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
-            if (rowResult == null) {
-                return ImmutableList.of();
-            } else {
-                List<UserBirthdaysIdxColumnValue> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
-                for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
-                    UserBirthdaysIdxColumn col = UserBirthdaysIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                    Long val = UserBirthdaysIdxColumnValue.hydrateValue(e.getValue());
-                    ret.add(UserBirthdaysIdxColumnValue.of(col, val));
-                }
-                return ret;
-            }
-        }
-
-        @Override
-        public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getRowsMultimap(Iterable<UserBirthdaysIdxRow> rows) {
-            return getRowsMultimapInternal(rows, allColumns);
-        }
-
-        @Override
-        public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getRowsMultimap(Iterable<UserBirthdaysIdxRow> rows, ColumnSelection columns) {
-            return getRowsMultimapInternal(rows, columns);
-        }
-
-        @Override
-        public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getAsyncRowsMultimap(Iterable<UserBirthdaysIdxRow> rows, ExecutorService exec) {
-            return getAsyncRowsMultimap(rows, allColumns, exec);
-        }
-
-        @Override
-        public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getAsyncRowsMultimap(final Iterable<UserBirthdaysIdxRow> rows, final ColumnSelection columns, ExecutorService exec) {
-            Callable<Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>> c =
-                    new Callable<Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>>() {
-                @Override
-                public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> call() {
-                    return getRowsMultimapInternal(rows, columns);
-                }
-            };
-            return AsyncProxy.create(exec.submit(c), Multimap.class);
-        }
-
-        private Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getRowsMultimapInternal(Iterable<UserBirthdaysIdxRow> rows, ColumnSelection columns) {
-            SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
-            return getRowMapFromRowResults(results.values());
-        }
-
-        private static Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-            Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> rowMap = HashMultimap.create();
-            for (RowResult<byte[]> result : rowResults) {
-                UserBirthdaysIdxRow row = UserBirthdaysIdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
-                for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
-                    UserBirthdaysIdxColumn col = UserBirthdaysIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                    Long val = UserBirthdaysIdxColumnValue.hydrateValue(e.getValue());
-                    rowMap.put(row, UserBirthdaysIdxColumnValue.of(col, val));
-                }
-            }
-            return rowMap;
-        }
-
-        @Override
-        public Map<UserBirthdaysIdxRow, BatchingVisitable<UserBirthdaysIdxColumnValue>> getRowsColumnRange(Iterable<UserBirthdaysIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
-            Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-            Map<UserBirthdaysIdxRow, BatchingVisitable<UserBirthdaysIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
-            for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-                UserBirthdaysIdxRow row = UserBirthdaysIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-                BatchingVisitable<UserBirthdaysIdxColumnValue> bv = BatchingVisitables.transform(e.getValue(), result -> {
-                    UserBirthdaysIdxColumn col = UserBirthdaysIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
-                    Long val = UserBirthdaysIdxColumnValue.hydrateValue(result.getValue());
-                    return UserBirthdaysIdxColumnValue.of(col, val);
-                });
-                transformed.put(row, bv);
-            }
-            return transformed;
-        }
-
-        @Override
-        public Iterator<Map.Entry<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>> getRowsColumnRange(Iterable<UserBirthdaysIdxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
-            Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
-            return Iterators.transform(results, e -> {
-                UserBirthdaysIdxRow row = UserBirthdaysIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-                UserBirthdaysIdxColumn col = UserBirthdaysIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
-                Long val = UserBirthdaysIdxColumnValue.hydrateValue(e.getValue());
-                UserBirthdaysIdxColumnValue colValue = UserBirthdaysIdxColumnValue.of(col, val);
-                return Maps.immutableEntry(row, colValue);
-            });
-        }
-
-        public BatchingVisitableView<UserBirthdaysIdxRowResult> getRange(RangeRequest range) {
-            if (range.getColumnNames().isEmpty()) {
-                range = range.getBuilder().retainColumns(allColumns).build();
-            }
-            return BatchingVisitables.transform(t.getRange(tableRef, range), new Function<RowResult<byte[]>, UserBirthdaysIdxRowResult>() {
-                @Override
-                public UserBirthdaysIdxRowResult apply(RowResult<byte[]> input) {
-                    return UserBirthdaysIdxRowResult.of(input);
-                }
-            });
-        }
-
-        public IterableView<BatchingVisitable<UserBirthdaysIdxRowResult>> getRanges(Iterable<RangeRequest> ranges) {
-            Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
-            return IterableView.of(rangeResults).transform(
-                    new Function<BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<UserBirthdaysIdxRowResult>>() {
-                @Override
-                public BatchingVisitable<UserBirthdaysIdxRowResult> apply(BatchingVisitable<RowResult<byte[]>> visitable) {
-                    return BatchingVisitables.transform(visitable, new Function<RowResult<byte[]>, UserBirthdaysIdxRowResult>() {
-                        @Override
-                        public UserBirthdaysIdxRowResult apply(RowResult<byte[]> row) {
-                            return UserBirthdaysIdxRowResult.of(row);
-                        }
-                    });
-                }
-            });
-        }
-
-        public void deleteRange(RangeRequest range) {
-            deleteRanges(ImmutableSet.of(range));
-        }
-
-        public void deleteRanges(Iterable<RangeRequest> ranges) {
-            BatchingVisitables.concat(getRanges(ranges)).batchAccept(1000, new AbortingVisitor<List<UserBirthdaysIdxRowResult>, RuntimeException>() {
-                @Override
-                public boolean visit(List<UserBirthdaysIdxRowResult> rowResults) {
-                    Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> toRemove = HashMultimap.create();
-                    for (UserBirthdaysIdxRowResult rowResult : rowResults) {
-                        for (UserBirthdaysIdxColumnValue columnValue : rowResult.getColumnValues()) {
-                            toRemove.put(rowResult.getRowName(), columnValue.getColumnName());
-                        }
-                    }
-                    delete(toRemove);
-                    return true;
-                }
-            });
-        }
-
-        @Override
-        public List<String> findConstraintFailures(Map<Cell, byte[]> writes,
-                                                   ConstraintCheckingTransaction transaction,
-                                                   AtlasDbConstraintCheckingMode constraintCheckingMode) {
-            return ImmutableList.of();
-        }
-
-        @Override
-        public List<String> findConstraintFailuresNoRead(Map<Cell, byte[]> writes,
-                                                         AtlasDbConstraintCheckingMode constraintCheckingMode) {
-            return ImmutableList.of();
-        }
+    @Override
+    public List<String> findConstraintFailuresNoRead(
+        Map<Cell, byte[]> writes, AtlasDbConstraintCheckingMode constraintCheckingMode) {
+      return ImmutableList.of();
+    }
+  }
+
+  @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+  public static final class CreatedIdxTable
+      implements AtlasDbDynamicMutablePersistentTable<
+          CreatedIdxTable.CreatedIdxRow, CreatedIdxTable.CreatedIdxColumn,
+          CreatedIdxTable.CreatedIdxColumnValue, CreatedIdxTable.CreatedIdxRowResult> {
+    private final Transaction t;
+    private final List<CreatedIdxTrigger> triggers;
+    private static final String rawTableName = "created_idx";
+    private final TableReference tableRef;
+    private static final ColumnSelection allColumns = ColumnSelection.all();
+
+    public static CreatedIdxTable of(UserProfileTable table) {
+      return new CreatedIdxTable(
+          table.t, table.tableRef.getNamespace(), ImmutableList.<CreatedIdxTrigger>of());
     }
 
+    public static CreatedIdxTable of(
+        UserProfileTable table, CreatedIdxTrigger trigger, CreatedIdxTrigger... triggers) {
+      return new CreatedIdxTable(
+          table.t,
+          table.tableRef.getNamespace(),
+          ImmutableList.<CreatedIdxTrigger>builder().add(trigger).add(triggers).build());
+    }
+
+    public static CreatedIdxTable of(UserProfileTable table, List<CreatedIdxTrigger> triggers) {
+      return new CreatedIdxTable(table.t, table.tableRef.getNamespace(), triggers);
+    }
+
+    private CreatedIdxTable(Transaction t, Namespace namespace, List<CreatedIdxTrigger> triggers) {
+      this.t = t;
+      this.tableRef = TableReference.create(namespace, rawTableName);
+      this.triggers = triggers;
+    }
+
+    public static String getRawTableName() {
+      return rawTableName;
+    }
+
+    public TableReference getTableRef() {
+      return tableRef;
+    }
+
+    public String getTableName() {
+      return tableRef.getQualifiedName();
+    }
+
+    public Namespace getNamespace() {
+      return tableRef.getNamespace();
+    }
 
     /**
-     * This exists to avoid unused import warnings
-     * {@link AbortingVisitor}
-     * {@link AbortingVisitors}
-     * {@link ArrayListMultimap}
-     * {@link Arrays}
-     * {@link AssertUtils}
-     * {@link AsyncProxy}
-     * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
-     * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
-     * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
-     * {@link AtlasDbNamedMutableTable}
-     * {@link AtlasDbNamedPersistentSet}
-     * {@link BatchColumnRangeSelection}
-     * {@link BatchingVisitable}
-     * {@link BatchingVisitableView}
-     * {@link BatchingVisitables}
-     * {@link Bytes}
-     * {@link Callable}
-     * {@link Cell}
-     * {@link Cells}
-     * {@link Collection}
-     * {@link Collections2}
-     * {@link ColumnRangeSelection}
-     * {@link ColumnRangeSelections}
-     * {@link ColumnSelection}
-     * {@link ColumnValue}
-     * {@link ColumnValues}
-     * {@link ComparisonChain}
-     * {@link Compression}
-     * {@link CompressionUtils}
-     * {@link ConstraintCheckingTransaction}
-     * {@link Descending}
-     * {@link EncodingUtils}
-     * {@link Entry}
-     * {@link EnumSet}
-     * {@link ExecutorService}
-     * {@link Function}
-     * {@link Generated}
-     * {@link HashMultimap}
-     * {@link HashSet}
-     * {@link Hashing}
-     * {@link Hydrator}
-     * {@link ImmutableList}
-     * {@link ImmutableMap}
-     * {@link ImmutableMultimap}
-     * {@link ImmutableSet}
-     * {@link InvalidProtocolBufferException}
-     * {@link IterableView}
-     * {@link Iterables}
-     * {@link Iterator}
-     * {@link Iterators}
-     * {@link Joiner}
-     * {@link List}
-     * {@link Lists}
-     * {@link Map}
-     * {@link Maps}
-     * {@link MoreObjects}
-     * {@link Multimap}
-     * {@link Multimaps}
-     * {@link NamedColumnValue}
-     * {@link Namespace}
-     * {@link Objects}
-     * {@link Optional}
-     * {@link Persistable}
-     * {@link Persistables}
-     * {@link Prefix}
-     * {@link PtBytes}
-     * {@link RangeRequest}
-     * {@link RowResult}
-     * {@link Set}
-     * {@link Sets}
-     * {@link Sha256Hash}
-     * {@link SortedMap}
-     * {@link Supplier}
-     * {@link TableReference}
-     * {@link Throwables}
-     * {@link TimeUnit}
-     * {@link Transaction}
-     * {@link TypedRowResult}
-     * {@link UnsignedBytes}
-     * {@link ValueType}
+     *
+     *
+     * <pre>
+     * CreatedIdxRow {
+     *   {@literal Long time};
+     * }
+     * </pre>
      */
-    static String __CLASS_HASH = "BAWiFRjPo3iiz4ifhWSE8g==";
+    public static final class CreatedIdxRow implements Persistable, Comparable<CreatedIdxRow> {
+      private final long time;
+
+      public static CreatedIdxRow of(long time) {
+        return new CreatedIdxRow(time);
+      }
+
+      private CreatedIdxRow(long time) {
+        this.time = time;
+      }
+
+      public long getTime() {
+        return time;
+      }
+
+      public static Function<CreatedIdxRow, Long> getTimeFun() {
+        return new Function<CreatedIdxRow, Long>() {
+          @Override
+          public Long apply(CreatedIdxRow row) {
+            return row.time;
+          }
+        };
+      }
+
+      public static Function<Long, CreatedIdxRow> fromTimeFun() {
+        return new Function<Long, CreatedIdxRow>() {
+          @Override
+          public CreatedIdxRow apply(Long row) {
+            return CreatedIdxRow.of(row);
+          }
+        };
+      }
+
+      @Override
+      public byte[] persistToBytes() {
+        byte[] timeBytes = EncodingUtils.encodeUnsignedVarLong(time);
+        return EncodingUtils.add(timeBytes);
+      }
+
+      public static final Hydrator<CreatedIdxRow> BYTES_HYDRATOR =
+          new Hydrator<CreatedIdxRow>() {
+            @Override
+            public CreatedIdxRow hydrateFromBytes(byte[] __input) {
+              int __index = 0;
+              Long time = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+              __index += EncodingUtils.sizeOfUnsignedVarLong(time);
+              return new CreatedIdxRow(time);
+            }
+          };
+
+      @Override
+      public String toString() {
+        return MoreObjects.toStringHelper(getClass().getSimpleName()).add("time", time).toString();
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+        if (this == obj) {
+          return true;
+        }
+        if (obj == null) {
+          return false;
+        }
+        if (getClass() != obj.getClass()) {
+          return false;
+        }
+        CreatedIdxRow other = (CreatedIdxRow) obj;
+        return Objects.equal(time, other.time);
+      }
+
+      @Override
+      public int hashCode() {
+        return Objects.hashCode(time);
+      }
+
+      @Override
+      public int compareTo(CreatedIdxRow o) {
+        return ComparisonChain.start().compare(this.time, o.time).result();
+      }
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * CreatedIdxColumn {
+     *   {@literal byte[] rowName};
+     *   {@literal byte[] columnName};
+     *   {@literal java.util.UUID id};
+     * }
+     * </pre>
+     */
+    public static final class CreatedIdxColumn
+        implements Persistable, Comparable<CreatedIdxColumn> {
+      private final byte[] rowName;
+      private final byte[] columnName;
+      private final java.util.UUID id;
+
+      public static CreatedIdxColumn of(byte[] rowName, byte[] columnName, java.util.UUID id) {
+        return new CreatedIdxColumn(rowName, columnName, id);
+      }
+
+      private CreatedIdxColumn(byte[] rowName, byte[] columnName, java.util.UUID id) {
+        this.rowName = rowName;
+        this.columnName = columnName;
+        this.id = id;
+      }
+
+      public byte[] getRowName() {
+        return rowName;
+      }
+
+      public byte[] getColumnName() {
+        return columnName;
+      }
+
+      public java.util.UUID getId() {
+        return id;
+      }
+
+      public static Function<CreatedIdxColumn, byte[]> getRowNameFun() {
+        return new Function<CreatedIdxColumn, byte[]>() {
+          @Override
+          public byte[] apply(CreatedIdxColumn row) {
+            return row.rowName;
+          }
+        };
+      }
+
+      public static Function<CreatedIdxColumn, byte[]> getColumnNameFun() {
+        return new Function<CreatedIdxColumn, byte[]>() {
+          @Override
+          public byte[] apply(CreatedIdxColumn row) {
+            return row.columnName;
+          }
+        };
+      }
+
+      public static Function<CreatedIdxColumn, java.util.UUID> getIdFun() {
+        return new Function<CreatedIdxColumn, java.util.UUID>() {
+          @Override
+          public java.util.UUID apply(CreatedIdxColumn row) {
+            return row.id;
+          }
+        };
+      }
+
+      @Override
+      public byte[] persistToBytes() {
+        byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+        byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+        byte[] idBytes = EncodingUtils.encodeUUID(id);
+        return EncodingUtils.add(rowNameBytes, columnNameBytes, idBytes);
+      }
+
+      public static final Hydrator<CreatedIdxColumn> BYTES_HYDRATOR =
+          new Hydrator<CreatedIdxColumn>() {
+            @Override
+            public CreatedIdxColumn hydrateFromBytes(byte[] __input) {
+              int __index = 0;
+              byte[] rowName = EncodingUtils.decodeSizedBytes(__input, __index);
+              __index += EncodingUtils.sizeOfSizedBytes(rowName);
+              byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
+              __index += EncodingUtils.sizeOfSizedBytes(columnName);
+              java.util.UUID id = EncodingUtils.decodeUUID(__input, __index);
+              __index += 16;
+              return new CreatedIdxColumn(rowName, columnName, id);
+            }
+          };
+
+      public static BatchColumnRangeSelection createPrefixRangeUnsorted(
+          byte[] rowName, int batchSize) {
+        byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+        return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
+      }
+
+      public static Prefix prefixUnsorted(byte[] rowName) {
+        byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+        return new Prefix(EncodingUtils.add(rowNameBytes));
+      }
+
+      public static BatchColumnRangeSelection createPrefixRange(
+          byte[] rowName, byte[] columnName, int batchSize) {
+        byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+        byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+        return ColumnRangeSelections.createPrefixRange(
+            EncodingUtils.add(rowNameBytes, columnNameBytes), batchSize);
+      }
+
+      public static Prefix prefix(byte[] rowName, byte[] columnName) {
+        byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+        byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+        return new Prefix(EncodingUtils.add(rowNameBytes, columnNameBytes));
+      }
+
+      @Override
+      public String toString() {
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
+            .add("rowName", rowName)
+            .add("columnName", columnName)
+            .add("id", id)
+            .toString();
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+        if (this == obj) {
+          return true;
+        }
+        if (obj == null) {
+          return false;
+        }
+        if (getClass() != obj.getClass()) {
+          return false;
+        }
+        CreatedIdxColumn other = (CreatedIdxColumn) obj;
+        return Arrays.equals(rowName, other.rowName)
+            && Arrays.equals(columnName, other.columnName)
+            && Objects.equal(id, other.id);
+      }
+
+      @Override
+      public int hashCode() {
+        return Arrays.deepHashCode(new Object[] {rowName, columnName, id});
+      }
+
+      @Override
+      public int compareTo(CreatedIdxColumn o) {
+        return ComparisonChain.start()
+            .compare(this.rowName, o.rowName, UnsignedBytes.lexicographicalComparator())
+            .compare(this.columnName, o.columnName, UnsignedBytes.lexicographicalComparator())
+            .compare(this.id, o.id)
+            .result();
+      }
+    }
+
+    public interface CreatedIdxTrigger {
+      public void putCreatedIdx(Multimap<CreatedIdxRow, ? extends CreatedIdxColumnValue> newRows);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Column name description {
+     *   {@literal byte[] rowName};
+     *   {@literal byte[] columnName};
+     *   {@literal java.util.UUID id};
+     * }
+     * Column value description {
+     *   type: Long;
+     * }
+     * </pre>
+     */
+    public static final class CreatedIdxColumnValue implements ColumnValue<Long> {
+      private final CreatedIdxColumn columnName;
+      private final Long value;
+
+      public static CreatedIdxColumnValue of(CreatedIdxColumn columnName, Long value) {
+        return new CreatedIdxColumnValue(columnName, value);
+      }
+
+      private CreatedIdxColumnValue(CreatedIdxColumn columnName, Long value) {
+        this.columnName = columnName;
+        this.value = value;
+      }
+
+      public CreatedIdxColumn getColumnName() {
+        return columnName;
+      }
+
+      @Override
+      public Long getValue() {
+        return value;
+      }
+
+      @Override
+      public byte[] persistColumnName() {
+        return columnName.persistToBytes();
+      }
+
+      @Override
+      public byte[] persistValue() {
+        byte[] bytes = EncodingUtils.encodeUnsignedVarLong(value);
+        return CompressionUtils.compress(bytes, Compression.NONE);
+      }
+
+      public static Long hydrateValue(byte[] bytes) {
+        bytes = CompressionUtils.decompress(bytes, Compression.NONE);
+        return EncodingUtils.decodeUnsignedVarLong(bytes, 0);
+      }
+
+      public static Function<CreatedIdxColumnValue, CreatedIdxColumn> getColumnNameFun() {
+        return new Function<CreatedIdxColumnValue, CreatedIdxColumn>() {
+          @Override
+          public CreatedIdxColumn apply(CreatedIdxColumnValue columnValue) {
+            return columnValue.getColumnName();
+          }
+        };
+      }
+
+      public static Function<CreatedIdxColumnValue, Long> getValueFun() {
+        return new Function<CreatedIdxColumnValue, Long>() {
+          @Override
+          public Long apply(CreatedIdxColumnValue columnValue) {
+            return columnValue.getValue();
+          }
+        };
+      }
+
+      @Override
+      public String toString() {
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
+            .add("ColumnName", this.columnName)
+            .add("Value", this.value)
+            .toString();
+      }
+    }
+
+    public static final class CreatedIdxRowResult implements TypedRowResult {
+      private final CreatedIdxRow rowName;
+      private final ImmutableSet<CreatedIdxColumnValue> columnValues;
+
+      public static CreatedIdxRowResult of(RowResult<byte[]> rowResult) {
+        CreatedIdxRow rowName =
+            CreatedIdxRow.BYTES_HYDRATOR.hydrateFromBytes(rowResult.getRowName());
+        Set<CreatedIdxColumnValue> columnValues =
+            Sets.newHashSetWithExpectedSize(rowResult.getColumns().size());
+        for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
+          CreatedIdxColumn col = CreatedIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+          Long value = CreatedIdxColumnValue.hydrateValue(e.getValue());
+          columnValues.add(CreatedIdxColumnValue.of(col, value));
+        }
+        return new CreatedIdxRowResult(rowName, ImmutableSet.copyOf(columnValues));
+      }
+
+      private CreatedIdxRowResult(
+          CreatedIdxRow rowName, ImmutableSet<CreatedIdxColumnValue> columnValues) {
+        this.rowName = rowName;
+        this.columnValues = columnValues;
+      }
+
+      @Override
+      public CreatedIdxRow getRowName() {
+        return rowName;
+      }
+
+      public Set<CreatedIdxColumnValue> getColumnValues() {
+        return columnValues;
+      }
+
+      public static Function<CreatedIdxRowResult, CreatedIdxRow> getRowNameFun() {
+        return new Function<CreatedIdxRowResult, CreatedIdxRow>() {
+          @Override
+          public CreatedIdxRow apply(CreatedIdxRowResult rowResult) {
+            return rowResult.rowName;
+          }
+        };
+      }
+
+      public static Function<CreatedIdxRowResult, ImmutableSet<CreatedIdxColumnValue>>
+          getColumnValuesFun() {
+        return new Function<CreatedIdxRowResult, ImmutableSet<CreatedIdxColumnValue>>() {
+          @Override
+          public ImmutableSet<CreatedIdxColumnValue> apply(CreatedIdxRowResult rowResult) {
+            return rowResult.columnValues;
+          }
+        };
+      }
+
+      @Override
+      public String toString() {
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
+            .add("RowName", getRowName())
+            .add("ColumnValues", getColumnValues())
+            .toString();
+      }
+    }
+
+    @Override
+    public void delete(CreatedIdxRow row, CreatedIdxColumn column) {
+      delete(ImmutableMultimap.of(row, column));
+    }
+
+    @Override
+    public void delete(Iterable<CreatedIdxRow> rows) {
+      Multimap<CreatedIdxRow, CreatedIdxColumn> toRemove = HashMultimap.create();
+      Multimap<CreatedIdxRow, CreatedIdxColumnValue> result = getRowsMultimap(rows);
+      for (Entry<CreatedIdxRow, CreatedIdxColumnValue> e : result.entries()) {
+        toRemove.put(e.getKey(), e.getValue().getColumnName());
+      }
+      delete(toRemove);
+    }
+
+    @Override
+    public void delete(Multimap<CreatedIdxRow, CreatedIdxColumn> values) {
+      t.delete(tableRef, ColumnValues.toCells(values));
+    }
+
+    @Override
+    public void put(CreatedIdxRow rowName, Iterable<CreatedIdxColumnValue> values) {
+      put(
+          ImmutableMultimap.<CreatedIdxRow, CreatedIdxColumnValue>builder()
+              .putAll(rowName, values)
+              .build());
+    }
+
+    @Override
+    public void put(CreatedIdxRow rowName, CreatedIdxColumnValue... values) {
+      put(
+          ImmutableMultimap.<CreatedIdxRow, CreatedIdxColumnValue>builder()
+              .putAll(rowName, values)
+              .build());
+    }
+
+    @Override
+    public void put(Multimap<CreatedIdxRow, ? extends CreatedIdxColumnValue> values) {
+      t.useTable(tableRef, this);
+      t.put(tableRef, ColumnValues.toCellValues(values));
+      for (CreatedIdxTrigger trigger : triggers) {
+        trigger.putCreatedIdx(values);
+      }
+    }
+
+    @Override
+    public void putUnlessExists(CreatedIdxRow rowName, Iterable<CreatedIdxColumnValue> values) {
+      putUnlessExists(
+          ImmutableMultimap.<CreatedIdxRow, CreatedIdxColumnValue>builder()
+              .putAll(rowName, values)
+              .build());
+    }
+
+    @Override
+    public void putUnlessExists(CreatedIdxRow rowName, CreatedIdxColumnValue... values) {
+      putUnlessExists(
+          ImmutableMultimap.<CreatedIdxRow, CreatedIdxColumnValue>builder()
+              .putAll(rowName, values)
+              .build());
+    }
+
+    @Override
+    public void putUnlessExists(Multimap<CreatedIdxRow, ? extends CreatedIdxColumnValue> rows) {
+      Multimap<CreatedIdxRow, CreatedIdxColumn> toGet =
+          Multimaps.transformValues(rows, CreatedIdxColumnValue.getColumnNameFun());
+      Multimap<CreatedIdxRow, CreatedIdxColumnValue> existing = get(toGet);
+      Multimap<CreatedIdxRow, CreatedIdxColumnValue> toPut = HashMultimap.create();
+      for (Entry<CreatedIdxRow, ? extends CreatedIdxColumnValue> entry : rows.entries()) {
+        if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+          toPut.put(entry.getKey(), entry.getValue());
+        }
+      }
+      put(toPut);
+    }
+
+    @Override
+    public void touch(Multimap<CreatedIdxRow, CreatedIdxColumn> values) {
+      Multimap<CreatedIdxRow, CreatedIdxColumnValue> currentValues = get(values);
+      put(currentValues);
+      Multimap<CreatedIdxRow, CreatedIdxColumn> toDelete = HashMultimap.create(values);
+      for (Map.Entry<CreatedIdxRow, CreatedIdxColumnValue> e : currentValues.entries()) {
+        toDelete.remove(e.getKey(), e.getValue().getColumnName());
+      }
+      delete(toDelete);
+    }
+
+    public static ColumnSelection getColumnSelection(Collection<CreatedIdxColumn> cols) {
+      return ColumnSelection.create(
+          Collections2.transform(cols, Persistables.persistToBytesFunction()));
+    }
+
+    public static ColumnSelection getColumnSelection(CreatedIdxColumn... cols) {
+      return getColumnSelection(Arrays.asList(cols));
+    }
+
+    @Override
+    public Multimap<CreatedIdxRow, CreatedIdxColumnValue> get(
+        Multimap<CreatedIdxRow, CreatedIdxColumn> cells) {
+      Set<Cell> rawCells = ColumnValues.toCells(cells);
+      Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
+      Multimap<CreatedIdxRow, CreatedIdxColumnValue> rowMap = HashMultimap.create();
+      for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
+        if (e.getValue().length > 0) {
+          CreatedIdxRow row =
+              CreatedIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+          CreatedIdxColumn col =
+              CreatedIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
+          Long val = CreatedIdxColumnValue.hydrateValue(e.getValue());
+          rowMap.put(row, CreatedIdxColumnValue.of(col, val));
+        }
+      }
+      return rowMap;
+    }
+
+    @Override
+    public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getAsync(
+        final Multimap<CreatedIdxRow, CreatedIdxColumn> cells, ExecutorService exec) {
+      Callable<Multimap<CreatedIdxRow, CreatedIdxColumnValue>> c =
+          new Callable<Multimap<CreatedIdxRow, CreatedIdxColumnValue>>() {
+            @Override
+            public Multimap<CreatedIdxRow, CreatedIdxColumnValue> call() {
+              return get(cells);
+            }
+          };
+      return AsyncProxy.create(exec.submit(c), Multimap.class);
+    }
+
+    @Override
+    public List<CreatedIdxColumnValue> getRowColumns(CreatedIdxRow row) {
+      return getRowColumns(row, allColumns);
+    }
+
+    @Override
+    public List<CreatedIdxColumnValue> getRowColumns(CreatedIdxRow row, ColumnSelection columns) {
+      byte[] bytes = row.persistToBytes();
+      RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+      if (rowResult == null) {
+        return ImmutableList.of();
+      } else {
+        List<CreatedIdxColumnValue> ret =
+            Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+        for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
+          CreatedIdxColumn col = CreatedIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+          Long val = CreatedIdxColumnValue.hydrateValue(e.getValue());
+          ret.add(CreatedIdxColumnValue.of(col, val));
+        }
+        return ret;
+      }
+    }
+
+    @Override
+    public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getRowsMultimap(
+        Iterable<CreatedIdxRow> rows) {
+      return getRowsMultimapInternal(rows, allColumns);
+    }
+
+    @Override
+    public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getRowsMultimap(
+        Iterable<CreatedIdxRow> rows, ColumnSelection columns) {
+      return getRowsMultimapInternal(rows, columns);
+    }
+
+    @Override
+    public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getAsyncRowsMultimap(
+        Iterable<CreatedIdxRow> rows, ExecutorService exec) {
+      return getAsyncRowsMultimap(rows, allColumns, exec);
+    }
+
+    @Override
+    public Multimap<CreatedIdxRow, CreatedIdxColumnValue> getAsyncRowsMultimap(
+        final Iterable<CreatedIdxRow> rows, final ColumnSelection columns, ExecutorService exec) {
+      Callable<Multimap<CreatedIdxRow, CreatedIdxColumnValue>> c =
+          new Callable<Multimap<CreatedIdxRow, CreatedIdxColumnValue>>() {
+            @Override
+            public Multimap<CreatedIdxRow, CreatedIdxColumnValue> call() {
+              return getRowsMultimapInternal(rows, columns);
+            }
+          };
+      return AsyncProxy.create(exec.submit(c), Multimap.class);
+    }
+
+    private Multimap<CreatedIdxRow, CreatedIdxColumnValue> getRowsMultimapInternal(
+        Iterable<CreatedIdxRow> rows, ColumnSelection columns) {
+      SortedMap<byte[], RowResult<byte[]>> results =
+          t.getRows(tableRef, Persistables.persistAll(rows), columns);
+      return getRowMapFromRowResults(results.values());
+    }
+
+    private static Multimap<CreatedIdxRow, CreatedIdxColumnValue> getRowMapFromRowResults(
+        Collection<RowResult<byte[]>> rowResults) {
+      Multimap<CreatedIdxRow, CreatedIdxColumnValue> rowMap = HashMultimap.create();
+      for (RowResult<byte[]> result : rowResults) {
+        CreatedIdxRow row = CreatedIdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
+        for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
+          CreatedIdxColumn col = CreatedIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+          Long val = CreatedIdxColumnValue.hydrateValue(e.getValue());
+          rowMap.put(row, CreatedIdxColumnValue.of(col, val));
+        }
+      }
+      return rowMap;
+    }
+
+    @Override
+    public Map<CreatedIdxRow, BatchingVisitable<CreatedIdxColumnValue>> getRowsColumnRange(
+        Iterable<CreatedIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+      Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results =
+          t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+      Map<CreatedIdxRow, BatchingVisitable<CreatedIdxColumnValue>> transformed =
+          Maps.newHashMapWithExpectedSize(results.size());
+      for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+        CreatedIdxRow row = CreatedIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+        BatchingVisitable<CreatedIdxColumnValue> bv =
+            BatchingVisitables.transform(
+                e.getValue(),
+                result -> {
+                  CreatedIdxColumn col =
+                      CreatedIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(
+                          result.getKey().getColumnName());
+                  Long val = CreatedIdxColumnValue.hydrateValue(result.getValue());
+                  return CreatedIdxColumnValue.of(col, val);
+                });
+        transformed.put(row, bv);
+      }
+      return transformed;
+    }
+
+    @Override
+    public Iterator<Map.Entry<CreatedIdxRow, CreatedIdxColumnValue>> getRowsColumnRange(
+        Iterable<CreatedIdxRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+      Iterator<Map.Entry<Cell, byte[]>> results =
+          t.getRowsColumnRange(
+              getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+      return Iterators.transform(
+          results,
+          e -> {
+            CreatedIdxRow row =
+                CreatedIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            CreatedIdxColumn col =
+                CreatedIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
+            Long val = CreatedIdxColumnValue.hydrateValue(e.getValue());
+            CreatedIdxColumnValue colValue = CreatedIdxColumnValue.of(col, val);
+            return Maps.immutableEntry(row, colValue);
+          });
+    }
+
+    public BatchingVisitableView<CreatedIdxRowResult> getRange(RangeRequest range) {
+      if (range.getColumnNames().isEmpty()) {
+        range = range.getBuilder().retainColumns(allColumns).build();
+      }
+      return BatchingVisitables.transform(
+          t.getRange(tableRef, range),
+          new Function<RowResult<byte[]>, CreatedIdxRowResult>() {
+            @Override
+            public CreatedIdxRowResult apply(RowResult<byte[]> input) {
+              return CreatedIdxRowResult.of(input);
+            }
+          });
+    }
+
+    public IterableView<BatchingVisitable<CreatedIdxRowResult>> getRanges(
+        Iterable<RangeRequest> ranges) {
+      Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
+      return IterableView.of(rangeResults)
+          .transform(
+              new Function<
+                  BatchingVisitable<RowResult<byte[]>>, BatchingVisitable<CreatedIdxRowResult>>() {
+                @Override
+                public BatchingVisitable<CreatedIdxRowResult> apply(
+                    BatchingVisitable<RowResult<byte[]>> visitable) {
+                  return BatchingVisitables.transform(
+                      visitable,
+                      new Function<RowResult<byte[]>, CreatedIdxRowResult>() {
+                        @Override
+                        public CreatedIdxRowResult apply(RowResult<byte[]> row) {
+                          return CreatedIdxRowResult.of(row);
+                        }
+                      });
+                }
+              });
+    }
+
+    public void deleteRange(RangeRequest range) {
+      deleteRanges(ImmutableSet.of(range));
+    }
+
+    public void deleteRanges(Iterable<RangeRequest> ranges) {
+      BatchingVisitables.concat(getRanges(ranges))
+          .batchAccept(
+              1000,
+              new AbortingVisitor<List<CreatedIdxRowResult>, RuntimeException>() {
+                @Override
+                public boolean visit(List<CreatedIdxRowResult> rowResults) {
+                  Multimap<CreatedIdxRow, CreatedIdxColumn> toRemove = HashMultimap.create();
+                  for (CreatedIdxRowResult rowResult : rowResults) {
+                    for (CreatedIdxColumnValue columnValue : rowResult.getColumnValues()) {
+                      toRemove.put(rowResult.getRowName(), columnValue.getColumnName());
+                    }
+                  }
+                  delete(toRemove);
+                  return true;
+                }
+              });
+    }
+
+    @Override
+    public List<String> findConstraintFailures(
+        Map<Cell, byte[]> writes,
+        ConstraintCheckingTransaction transaction,
+        AtlasDbConstraintCheckingMode constraintCheckingMode) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public List<String> findConstraintFailuresNoRead(
+        Map<Cell, byte[]> writes, AtlasDbConstraintCheckingMode constraintCheckingMode) {
+      return ImmutableList.of();
+    }
+  }
+
+  @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
+  public static final class UserBirthdaysIdxTable
+      implements AtlasDbDynamicMutablePersistentTable<
+          UserBirthdaysIdxTable.UserBirthdaysIdxRow, UserBirthdaysIdxTable.UserBirthdaysIdxColumn,
+          UserBirthdaysIdxTable.UserBirthdaysIdxColumnValue,
+          UserBirthdaysIdxTable.UserBirthdaysIdxRowResult> {
+    private final Transaction t;
+    private final List<UserBirthdaysIdxTrigger> triggers;
+    private static final String rawTableName = "user_birthdays_idx";
+    private final TableReference tableRef;
+    private static final ColumnSelection allColumns = ColumnSelection.all();
+
+    public static UserBirthdaysIdxTable of(UserProfileTable table) {
+      return new UserBirthdaysIdxTable(
+          table.t, table.tableRef.getNamespace(), ImmutableList.<UserBirthdaysIdxTrigger>of());
+    }
+
+    public static UserBirthdaysIdxTable of(
+        UserProfileTable table,
+        UserBirthdaysIdxTrigger trigger,
+        UserBirthdaysIdxTrigger... triggers) {
+      return new UserBirthdaysIdxTable(
+          table.t,
+          table.tableRef.getNamespace(),
+          ImmutableList.<UserBirthdaysIdxTrigger>builder().add(trigger).add(triggers).build());
+    }
+
+    public static UserBirthdaysIdxTable of(
+        UserProfileTable table, List<UserBirthdaysIdxTrigger> triggers) {
+      return new UserBirthdaysIdxTable(table.t, table.tableRef.getNamespace(), triggers);
+    }
+
+    private UserBirthdaysIdxTable(
+        Transaction t, Namespace namespace, List<UserBirthdaysIdxTrigger> triggers) {
+      this.t = t;
+      this.tableRef = TableReference.create(namespace, rawTableName);
+      this.triggers = triggers;
+    }
+
+    public static String getRawTableName() {
+      return rawTableName;
+    }
+
+    public TableReference getTableRef() {
+      return tableRef;
+    }
+
+    public String getTableName() {
+      return tableRef.getQualifiedName();
+    }
+
+    public Namespace getNamespace() {
+      return tableRef.getNamespace();
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * UserBirthdaysIdxRow {
+     *   {@literal Long birthday};
+     * }
+     * </pre>
+     */
+    public static final class UserBirthdaysIdxRow
+        implements Persistable, Comparable<UserBirthdaysIdxRow> {
+      private final long birthday;
+
+      public static UserBirthdaysIdxRow of(long birthday) {
+        return new UserBirthdaysIdxRow(birthday);
+      }
+
+      private UserBirthdaysIdxRow(long birthday) {
+        this.birthday = birthday;
+      }
+
+      public long getBirthday() {
+        return birthday;
+      }
+
+      public static Function<UserBirthdaysIdxRow, Long> getBirthdayFun() {
+        return new Function<UserBirthdaysIdxRow, Long>() {
+          @Override
+          public Long apply(UserBirthdaysIdxRow row) {
+            return row.birthday;
+          }
+        };
+      }
+
+      public static Function<Long, UserBirthdaysIdxRow> fromBirthdayFun() {
+        return new Function<Long, UserBirthdaysIdxRow>() {
+          @Override
+          public UserBirthdaysIdxRow apply(Long row) {
+            return UserBirthdaysIdxRow.of(row);
+          }
+        };
+      }
+
+      @Override
+      public byte[] persistToBytes() {
+        byte[] birthdayBytes = EncodingUtils.encodeSignedVarLong(birthday);
+        return EncodingUtils.add(birthdayBytes);
+      }
+
+      public static final Hydrator<UserBirthdaysIdxRow> BYTES_HYDRATOR =
+          new Hydrator<UserBirthdaysIdxRow>() {
+            @Override
+            public UserBirthdaysIdxRow hydrateFromBytes(byte[] __input) {
+              int __index = 0;
+              Long birthday = EncodingUtils.decodeSignedVarLong(__input, __index);
+              __index += EncodingUtils.sizeOfSignedVarLong(birthday);
+              return new UserBirthdaysIdxRow(birthday);
+            }
+          };
+
+      @Override
+      public String toString() {
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
+            .add("birthday", birthday)
+            .toString();
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+        if (this == obj) {
+          return true;
+        }
+        if (obj == null) {
+          return false;
+        }
+        if (getClass() != obj.getClass()) {
+          return false;
+        }
+        UserBirthdaysIdxRow other = (UserBirthdaysIdxRow) obj;
+        return Objects.equal(birthday, other.birthday);
+      }
+
+      @Override
+      public int hashCode() {
+        return Objects.hashCode(birthday);
+      }
+
+      @Override
+      public int compareTo(UserBirthdaysIdxRow o) {
+        return ComparisonChain.start().compare(this.birthday, o.birthday).result();
+      }
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * UserBirthdaysIdxColumn {
+     *   {@literal byte[] rowName};
+     *   {@literal byte[] columnName};
+     *   {@literal java.util.UUID id};
+     * }
+     * </pre>
+     */
+    public static final class UserBirthdaysIdxColumn
+        implements Persistable, Comparable<UserBirthdaysIdxColumn> {
+      private final byte[] rowName;
+      private final byte[] columnName;
+      private final java.util.UUID id;
+
+      public static UserBirthdaysIdxColumn of(
+          byte[] rowName, byte[] columnName, java.util.UUID id) {
+        return new UserBirthdaysIdxColumn(rowName, columnName, id);
+      }
+
+      private UserBirthdaysIdxColumn(byte[] rowName, byte[] columnName, java.util.UUID id) {
+        this.rowName = rowName;
+        this.columnName = columnName;
+        this.id = id;
+      }
+
+      public byte[] getRowName() {
+        return rowName;
+      }
+
+      public byte[] getColumnName() {
+        return columnName;
+      }
+
+      public java.util.UUID getId() {
+        return id;
+      }
+
+      public static Function<UserBirthdaysIdxColumn, byte[]> getRowNameFun() {
+        return new Function<UserBirthdaysIdxColumn, byte[]>() {
+          @Override
+          public byte[] apply(UserBirthdaysIdxColumn row) {
+            return row.rowName;
+          }
+        };
+      }
+
+      public static Function<UserBirthdaysIdxColumn, byte[]> getColumnNameFun() {
+        return new Function<UserBirthdaysIdxColumn, byte[]>() {
+          @Override
+          public byte[] apply(UserBirthdaysIdxColumn row) {
+            return row.columnName;
+          }
+        };
+      }
+
+      public static Function<UserBirthdaysIdxColumn, java.util.UUID> getIdFun() {
+        return new Function<UserBirthdaysIdxColumn, java.util.UUID>() {
+          @Override
+          public java.util.UUID apply(UserBirthdaysIdxColumn row) {
+            return row.id;
+          }
+        };
+      }
+
+      @Override
+      public byte[] persistToBytes() {
+        byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+        byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+        byte[] idBytes = EncodingUtils.encodeUUID(id);
+        return EncodingUtils.add(rowNameBytes, columnNameBytes, idBytes);
+      }
+
+      public static final Hydrator<UserBirthdaysIdxColumn> BYTES_HYDRATOR =
+          new Hydrator<UserBirthdaysIdxColumn>() {
+            @Override
+            public UserBirthdaysIdxColumn hydrateFromBytes(byte[] __input) {
+              int __index = 0;
+              byte[] rowName = EncodingUtils.decodeSizedBytes(__input, __index);
+              __index += EncodingUtils.sizeOfSizedBytes(rowName);
+              byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
+              __index += EncodingUtils.sizeOfSizedBytes(columnName);
+              java.util.UUID id = EncodingUtils.decodeUUID(__input, __index);
+              __index += 16;
+              return new UserBirthdaysIdxColumn(rowName, columnName, id);
+            }
+          };
+
+      public static BatchColumnRangeSelection createPrefixRangeUnsorted(
+          byte[] rowName, int batchSize) {
+        byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+        return ColumnRangeSelections.createPrefixRange(EncodingUtils.add(rowNameBytes), batchSize);
+      }
+
+      public static Prefix prefixUnsorted(byte[] rowName) {
+        byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+        return new Prefix(EncodingUtils.add(rowNameBytes));
+      }
+
+      public static BatchColumnRangeSelection createPrefixRange(
+          byte[] rowName, byte[] columnName, int batchSize) {
+        byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+        byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+        return ColumnRangeSelections.createPrefixRange(
+            EncodingUtils.add(rowNameBytes, columnNameBytes), batchSize);
+      }
+
+      public static Prefix prefix(byte[] rowName, byte[] columnName) {
+        byte[] rowNameBytes = EncodingUtils.encodeSizedBytes(rowName);
+        byte[] columnNameBytes = EncodingUtils.encodeSizedBytes(columnName);
+        return new Prefix(EncodingUtils.add(rowNameBytes, columnNameBytes));
+      }
+
+      @Override
+      public String toString() {
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
+            .add("rowName", rowName)
+            .add("columnName", columnName)
+            .add("id", id)
+            .toString();
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+        if (this == obj) {
+          return true;
+        }
+        if (obj == null) {
+          return false;
+        }
+        if (getClass() != obj.getClass()) {
+          return false;
+        }
+        UserBirthdaysIdxColumn other = (UserBirthdaysIdxColumn) obj;
+        return Arrays.equals(rowName, other.rowName)
+            && Arrays.equals(columnName, other.columnName)
+            && Objects.equal(id, other.id);
+      }
+
+      @Override
+      public int hashCode() {
+        return Arrays.deepHashCode(new Object[] {rowName, columnName, id});
+      }
+
+      @Override
+      public int compareTo(UserBirthdaysIdxColumn o) {
+        return ComparisonChain.start()
+            .compare(this.rowName, o.rowName, UnsignedBytes.lexicographicalComparator())
+            .compare(this.columnName, o.columnName, UnsignedBytes.lexicographicalComparator())
+            .compare(this.id, o.id)
+            .result();
+      }
+    }
+
+    public interface UserBirthdaysIdxTrigger {
+      public void putUserBirthdaysIdx(
+          Multimap<UserBirthdaysIdxRow, ? extends UserBirthdaysIdxColumnValue> newRows);
+    }
+
+    /**
+     *
+     *
+     * <pre>
+     * Column name description {
+     *   {@literal byte[] rowName};
+     *   {@literal byte[] columnName};
+     *   {@literal java.util.UUID id};
+     * }
+     * Column value description {
+     *   type: Long;
+     * }
+     * </pre>
+     */
+    public static final class UserBirthdaysIdxColumnValue implements ColumnValue<Long> {
+      private final UserBirthdaysIdxColumn columnName;
+      private final Long value;
+
+      public static UserBirthdaysIdxColumnValue of(UserBirthdaysIdxColumn columnName, Long value) {
+        return new UserBirthdaysIdxColumnValue(columnName, value);
+      }
+
+      private UserBirthdaysIdxColumnValue(UserBirthdaysIdxColumn columnName, Long value) {
+        this.columnName = columnName;
+        this.value = value;
+      }
+
+      public UserBirthdaysIdxColumn getColumnName() {
+        return columnName;
+      }
+
+      @Override
+      public Long getValue() {
+        return value;
+      }
+
+      @Override
+      public byte[] persistColumnName() {
+        return columnName.persistToBytes();
+      }
+
+      @Override
+      public byte[] persistValue() {
+        byte[] bytes = EncodingUtils.encodeUnsignedVarLong(value);
+        return CompressionUtils.compress(bytes, Compression.NONE);
+      }
+
+      public static Long hydrateValue(byte[] bytes) {
+        bytes = CompressionUtils.decompress(bytes, Compression.NONE);
+        return EncodingUtils.decodeUnsignedVarLong(bytes, 0);
+      }
+
+      public static Function<UserBirthdaysIdxColumnValue, UserBirthdaysIdxColumn>
+          getColumnNameFun() {
+        return new Function<UserBirthdaysIdxColumnValue, UserBirthdaysIdxColumn>() {
+          @Override
+          public UserBirthdaysIdxColumn apply(UserBirthdaysIdxColumnValue columnValue) {
+            return columnValue.getColumnName();
+          }
+        };
+      }
+
+      public static Function<UserBirthdaysIdxColumnValue, Long> getValueFun() {
+        return new Function<UserBirthdaysIdxColumnValue, Long>() {
+          @Override
+          public Long apply(UserBirthdaysIdxColumnValue columnValue) {
+            return columnValue.getValue();
+          }
+        };
+      }
+
+      @Override
+      public String toString() {
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
+            .add("ColumnName", this.columnName)
+            .add("Value", this.value)
+            .toString();
+      }
+    }
+
+    public static final class UserBirthdaysIdxRowResult implements TypedRowResult {
+      private final UserBirthdaysIdxRow rowName;
+      private final ImmutableSet<UserBirthdaysIdxColumnValue> columnValues;
+
+      public static UserBirthdaysIdxRowResult of(RowResult<byte[]> rowResult) {
+        UserBirthdaysIdxRow rowName =
+            UserBirthdaysIdxRow.BYTES_HYDRATOR.hydrateFromBytes(rowResult.getRowName());
+        Set<UserBirthdaysIdxColumnValue> columnValues =
+            Sets.newHashSetWithExpectedSize(rowResult.getColumns().size());
+        for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
+          UserBirthdaysIdxColumn col =
+              UserBirthdaysIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+          Long value = UserBirthdaysIdxColumnValue.hydrateValue(e.getValue());
+          columnValues.add(UserBirthdaysIdxColumnValue.of(col, value));
+        }
+        return new UserBirthdaysIdxRowResult(rowName, ImmutableSet.copyOf(columnValues));
+      }
+
+      private UserBirthdaysIdxRowResult(
+          UserBirthdaysIdxRow rowName, ImmutableSet<UserBirthdaysIdxColumnValue> columnValues) {
+        this.rowName = rowName;
+        this.columnValues = columnValues;
+      }
+
+      @Override
+      public UserBirthdaysIdxRow getRowName() {
+        return rowName;
+      }
+
+      public Set<UserBirthdaysIdxColumnValue> getColumnValues() {
+        return columnValues;
+      }
+
+      public static Function<UserBirthdaysIdxRowResult, UserBirthdaysIdxRow> getRowNameFun() {
+        return new Function<UserBirthdaysIdxRowResult, UserBirthdaysIdxRow>() {
+          @Override
+          public UserBirthdaysIdxRow apply(UserBirthdaysIdxRowResult rowResult) {
+            return rowResult.rowName;
+          }
+        };
+      }
+
+      public static Function<UserBirthdaysIdxRowResult, ImmutableSet<UserBirthdaysIdxColumnValue>>
+          getColumnValuesFun() {
+        return new Function<
+            UserBirthdaysIdxRowResult, ImmutableSet<UserBirthdaysIdxColumnValue>>() {
+          @Override
+          public ImmutableSet<UserBirthdaysIdxColumnValue> apply(
+              UserBirthdaysIdxRowResult rowResult) {
+            return rowResult.columnValues;
+          }
+        };
+      }
+
+      @Override
+      public String toString() {
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
+            .add("RowName", getRowName())
+            .add("ColumnValues", getColumnValues())
+            .toString();
+      }
+    }
+
+    @Override
+    public void delete(UserBirthdaysIdxRow row, UserBirthdaysIdxColumn column) {
+      delete(ImmutableMultimap.of(row, column));
+    }
+
+    @Override
+    public void delete(Iterable<UserBirthdaysIdxRow> rows) {
+      Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> toRemove = HashMultimap.create();
+      Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> result = getRowsMultimap(rows);
+      for (Entry<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> e : result.entries()) {
+        toRemove.put(e.getKey(), e.getValue().getColumnName());
+      }
+      delete(toRemove);
+    }
+
+    @Override
+    public void delete(Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> values) {
+      t.delete(tableRef, ColumnValues.toCells(values));
+    }
+
+    @Override
+    public void put(UserBirthdaysIdxRow rowName, Iterable<UserBirthdaysIdxColumnValue> values) {
+      put(
+          ImmutableMultimap.<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>builder()
+              .putAll(rowName, values)
+              .build());
+    }
+
+    @Override
+    public void put(UserBirthdaysIdxRow rowName, UserBirthdaysIdxColumnValue... values) {
+      put(
+          ImmutableMultimap.<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>builder()
+              .putAll(rowName, values)
+              .build());
+    }
+
+    @Override
+    public void put(Multimap<UserBirthdaysIdxRow, ? extends UserBirthdaysIdxColumnValue> values) {
+      t.useTable(tableRef, this);
+      t.put(tableRef, ColumnValues.toCellValues(values));
+      for (UserBirthdaysIdxTrigger trigger : triggers) {
+        trigger.putUserBirthdaysIdx(values);
+      }
+    }
+
+    @Override
+    public void putUnlessExists(
+        UserBirthdaysIdxRow rowName, Iterable<UserBirthdaysIdxColumnValue> values) {
+      putUnlessExists(
+          ImmutableMultimap.<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>builder()
+              .putAll(rowName, values)
+              .build());
+    }
+
+    @Override
+    public void putUnlessExists(
+        UserBirthdaysIdxRow rowName, UserBirthdaysIdxColumnValue... values) {
+      putUnlessExists(
+          ImmutableMultimap.<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>builder()
+              .putAll(rowName, values)
+              .build());
+    }
+
+    @Override
+    public void putUnlessExists(
+        Multimap<UserBirthdaysIdxRow, ? extends UserBirthdaysIdxColumnValue> rows) {
+      Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> toGet =
+          Multimaps.transformValues(rows, UserBirthdaysIdxColumnValue.getColumnNameFun());
+      Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> existing = get(toGet);
+      Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> toPut = HashMultimap.create();
+      for (Entry<UserBirthdaysIdxRow, ? extends UserBirthdaysIdxColumnValue> entry :
+          rows.entries()) {
+        if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
+          toPut.put(entry.getKey(), entry.getValue());
+        }
+      }
+      put(toPut);
+    }
+
+    @Override
+    public void touch(Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> values) {
+      Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> currentValues = get(values);
+      put(currentValues);
+      Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> toDelete = HashMultimap.create(values);
+      for (Map.Entry<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> e :
+          currentValues.entries()) {
+        toDelete.remove(e.getKey(), e.getValue().getColumnName());
+      }
+      delete(toDelete);
+    }
+
+    public static ColumnSelection getColumnSelection(Collection<UserBirthdaysIdxColumn> cols) {
+      return ColumnSelection.create(
+          Collections2.transform(cols, Persistables.persistToBytesFunction()));
+    }
+
+    public static ColumnSelection getColumnSelection(UserBirthdaysIdxColumn... cols) {
+      return getColumnSelection(Arrays.asList(cols));
+    }
+
+    @Override
+    public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> get(
+        Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> cells) {
+      Set<Cell> rawCells = ColumnValues.toCells(cells);
+      Map<Cell, byte[]> rawResults = t.get(tableRef, rawCells);
+      Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> rowMap = HashMultimap.create();
+      for (Entry<Cell, byte[]> e : rawResults.entrySet()) {
+        if (e.getValue().length > 0) {
+          UserBirthdaysIdxRow row =
+              UserBirthdaysIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+          UserBirthdaysIdxColumn col =
+              UserBirthdaysIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
+          Long val = UserBirthdaysIdxColumnValue.hydrateValue(e.getValue());
+          rowMap.put(row, UserBirthdaysIdxColumnValue.of(col, val));
+        }
+      }
+      return rowMap;
+    }
+
+    @Override
+    public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getAsync(
+        final Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> cells, ExecutorService exec) {
+      Callable<Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>> c =
+          new Callable<Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>>() {
+            @Override
+            public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> call() {
+              return get(cells);
+            }
+          };
+      return AsyncProxy.create(exec.submit(c), Multimap.class);
+    }
+
+    @Override
+    public List<UserBirthdaysIdxColumnValue> getRowColumns(UserBirthdaysIdxRow row) {
+      return getRowColumns(row, allColumns);
+    }
+
+    @Override
+    public List<UserBirthdaysIdxColumnValue> getRowColumns(
+        UserBirthdaysIdxRow row, ColumnSelection columns) {
+      byte[] bytes = row.persistToBytes();
+      RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
+      if (rowResult == null) {
+        return ImmutableList.of();
+      } else {
+        List<UserBirthdaysIdxColumnValue> ret =
+            Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+        for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
+          UserBirthdaysIdxColumn col =
+              UserBirthdaysIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+          Long val = UserBirthdaysIdxColumnValue.hydrateValue(e.getValue());
+          ret.add(UserBirthdaysIdxColumnValue.of(col, val));
+        }
+        return ret;
+      }
+    }
+
+    @Override
+    public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getRowsMultimap(
+        Iterable<UserBirthdaysIdxRow> rows) {
+      return getRowsMultimapInternal(rows, allColumns);
+    }
+
+    @Override
+    public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getRowsMultimap(
+        Iterable<UserBirthdaysIdxRow> rows, ColumnSelection columns) {
+      return getRowsMultimapInternal(rows, columns);
+    }
+
+    @Override
+    public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getAsyncRowsMultimap(
+        Iterable<UserBirthdaysIdxRow> rows, ExecutorService exec) {
+      return getAsyncRowsMultimap(rows, allColumns, exec);
+    }
+
+    @Override
+    public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getAsyncRowsMultimap(
+        final Iterable<UserBirthdaysIdxRow> rows,
+        final ColumnSelection columns,
+        ExecutorService exec) {
+      Callable<Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>> c =
+          new Callable<Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>>() {
+            @Override
+            public Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> call() {
+              return getRowsMultimapInternal(rows, columns);
+            }
+          };
+      return AsyncProxy.create(exec.submit(c), Multimap.class);
+    }
+
+    private Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> getRowsMultimapInternal(
+        Iterable<UserBirthdaysIdxRow> rows, ColumnSelection columns) {
+      SortedMap<byte[], RowResult<byte[]>> results =
+          t.getRows(tableRef, Persistables.persistAll(rows), columns);
+      return getRowMapFromRowResults(results.values());
+    }
+
+    private static Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>
+        getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
+      Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> rowMap = HashMultimap.create();
+      for (RowResult<byte[]> result : rowResults) {
+        UserBirthdaysIdxRow row =
+            UserBirthdaysIdxRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
+        for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
+          UserBirthdaysIdxColumn col =
+              UserBirthdaysIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+          Long val = UserBirthdaysIdxColumnValue.hydrateValue(e.getValue());
+          rowMap.put(row, UserBirthdaysIdxColumnValue.of(col, val));
+        }
+      }
+      return rowMap;
+    }
+
+    @Override
+    public Map<UserBirthdaysIdxRow, BatchingVisitable<UserBirthdaysIdxColumnValue>>
+        getRowsColumnRange(
+            Iterable<UserBirthdaysIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+      Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results =
+          t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+      Map<UserBirthdaysIdxRow, BatchingVisitable<UserBirthdaysIdxColumnValue>> transformed =
+          Maps.newHashMapWithExpectedSize(results.size());
+      for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+        UserBirthdaysIdxRow row = UserBirthdaysIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+        BatchingVisitable<UserBirthdaysIdxColumnValue> bv =
+            BatchingVisitables.transform(
+                e.getValue(),
+                result -> {
+                  UserBirthdaysIdxColumn col =
+                      UserBirthdaysIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(
+                          result.getKey().getColumnName());
+                  Long val = UserBirthdaysIdxColumnValue.hydrateValue(result.getValue());
+                  return UserBirthdaysIdxColumnValue.of(col, val);
+                });
+        transformed.put(row, bv);
+      }
+      return transformed;
+    }
+
+    @Override
+    public Iterator<Map.Entry<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue>> getRowsColumnRange(
+        Iterable<UserBirthdaysIdxRow> rows,
+        ColumnRangeSelection columnRangeSelection,
+        int batchHint) {
+      Iterator<Map.Entry<Cell, byte[]>> results =
+          t.getRowsColumnRange(
+              getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
+      return Iterators.transform(
+          results,
+          e -> {
+            UserBirthdaysIdxRow row =
+                UserBirthdaysIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            UserBirthdaysIdxColumn col =
+                UserBirthdaysIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());
+            Long val = UserBirthdaysIdxColumnValue.hydrateValue(e.getValue());
+            UserBirthdaysIdxColumnValue colValue = UserBirthdaysIdxColumnValue.of(col, val);
+            return Maps.immutableEntry(row, colValue);
+          });
+    }
+
+    public BatchingVisitableView<UserBirthdaysIdxRowResult> getRange(RangeRequest range) {
+      if (range.getColumnNames().isEmpty()) {
+        range = range.getBuilder().retainColumns(allColumns).build();
+      }
+      return BatchingVisitables.transform(
+          t.getRange(tableRef, range),
+          new Function<RowResult<byte[]>, UserBirthdaysIdxRowResult>() {
+            @Override
+            public UserBirthdaysIdxRowResult apply(RowResult<byte[]> input) {
+              return UserBirthdaysIdxRowResult.of(input);
+            }
+          });
+    }
+
+    public IterableView<BatchingVisitable<UserBirthdaysIdxRowResult>> getRanges(
+        Iterable<RangeRequest> ranges) {
+      Iterable<BatchingVisitable<RowResult<byte[]>>> rangeResults = t.getRanges(tableRef, ranges);
+      return IterableView.of(rangeResults)
+          .transform(
+              new Function<
+                  BatchingVisitable<RowResult<byte[]>>,
+                  BatchingVisitable<UserBirthdaysIdxRowResult>>() {
+                @Override
+                public BatchingVisitable<UserBirthdaysIdxRowResult> apply(
+                    BatchingVisitable<RowResult<byte[]>> visitable) {
+                  return BatchingVisitables.transform(
+                      visitable,
+                      new Function<RowResult<byte[]>, UserBirthdaysIdxRowResult>() {
+                        @Override
+                        public UserBirthdaysIdxRowResult apply(RowResult<byte[]> row) {
+                          return UserBirthdaysIdxRowResult.of(row);
+                        }
+                      });
+                }
+              });
+    }
+
+    public void deleteRange(RangeRequest range) {
+      deleteRanges(ImmutableSet.of(range));
+    }
+
+    public void deleteRanges(Iterable<RangeRequest> ranges) {
+      BatchingVisitables.concat(getRanges(ranges))
+          .batchAccept(
+              1000,
+              new AbortingVisitor<List<UserBirthdaysIdxRowResult>, RuntimeException>() {
+                @Override
+                public boolean visit(List<UserBirthdaysIdxRowResult> rowResults) {
+                  Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> toRemove =
+                      HashMultimap.create();
+                  for (UserBirthdaysIdxRowResult rowResult : rowResults) {
+                    for (UserBirthdaysIdxColumnValue columnValue : rowResult.getColumnValues()) {
+                      toRemove.put(rowResult.getRowName(), columnValue.getColumnName());
+                    }
+                  }
+                  delete(toRemove);
+                  return true;
+                }
+              });
+    }
+
+    @Override
+    public List<String> findConstraintFailures(
+        Map<Cell, byte[]> writes,
+        ConstraintCheckingTransaction transaction,
+        AtlasDbConstraintCheckingMode constraintCheckingMode) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public List<String> findConstraintFailuresNoRead(
+        Map<Cell, byte[]> writes, AtlasDbConstraintCheckingMode constraintCheckingMode) {
+      return ImmutableList.of();
+    }
+  }
+
+  static String __CLASS_HASH = "65801SdMiLnabpQtw+Ut2w==";
 }

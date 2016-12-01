@@ -13,54 +13,69 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableFactoryRenderer")
 public final class SweepTableFactory {
-    private final static Namespace defaultNamespace = Namespace.create("sweep", Namespace.UNCHECKED_NAME);
-    private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;
-    private final Namespace namespace;
+  private static final Namespace defaultNamespace =
+      Namespace.create("sweep", Namespace.UNCHECKED_NAME);
+  private final List<Function<? super Transaction, SharedTriggers>> sharedTriggers;
+  private final Namespace namespace;
 
-    public static SweepTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
-        return new SweepTableFactory(sharedTriggers, namespace);
+  public static SweepTableFactory of(
+      List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
+    return new SweepTableFactory(sharedTriggers, namespace);
+  }
+
+  public static SweepTableFactory of(
+      List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    return new SweepTableFactory(sharedTriggers, defaultNamespace);
+  }
+
+  private SweepTableFactory(
+      List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
+    this.sharedTriggers = sharedTriggers;
+    this.namespace = namespace;
+  }
+
+  public static SweepTableFactory of(Namespace namespace) {
+    return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), namespace);
+  }
+
+  public static SweepTableFactory of() {
+    return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
+  }
+
+  public SweepPriorityTable getSweepPriorityTable(
+      Transaction t, SweepPriorityTable.SweepPriorityTrigger... triggers) {
+    return SweepPriorityTable.of(
+        t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+  }
+
+  public SweepProgressTable getSweepProgressTable(
+      Transaction t, SweepProgressTable.SweepProgressTrigger... triggers) {
+    return SweepProgressTable.of(
+        t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+  }
+
+  public interface SharedTriggers
+      extends SweepPriorityTable.SweepPriorityTrigger, SweepProgressTable.SweepProgressTrigger {
+    /* empty */
+  }
+
+  public abstract static class NullSharedTriggers implements SharedTriggers {
+    @Override
+    public void putSweepPriority(
+        Multimap<
+                SweepPriorityTable.SweepPriorityRow,
+                ? extends SweepPriorityTable.SweepPriorityNamedColumnValue<?>>
+            newRows) {
+      // do nothing
     }
 
-    public static SweepTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
-        return new SweepTableFactory(sharedTriggers, defaultNamespace);
+    @Override
+    public void putSweepProgress(
+        Multimap<
+                SweepProgressTable.SweepProgressRow,
+                ? extends SweepProgressTable.SweepProgressNamedColumnValue<?>>
+            newRows) {
+      // do nothing
     }
-
-    private SweepTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers, Namespace namespace) {
-        this.sharedTriggers = sharedTriggers;
-        this.namespace = namespace;
-    }
-
-    public static SweepTableFactory of(Namespace namespace) {
-        return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), namespace);
-    }
-
-    public static SweepTableFactory of() {
-        return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
-    }
-
-    public SweepPriorityTable getSweepPriorityTable(Transaction t, SweepPriorityTable.SweepPriorityTrigger... triggers) {
-        return SweepPriorityTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
-    }
-
-    public SweepProgressTable getSweepProgressTable(Transaction t, SweepProgressTable.SweepProgressTrigger... triggers) {
-        return SweepProgressTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
-    }
-
-    public interface SharedTriggers extends
-            SweepPriorityTable.SweepPriorityTrigger,
-            SweepProgressTable.SweepProgressTrigger {
-        /* empty */
-    }
-
-    public abstract static class NullSharedTriggers implements SharedTriggers {
-        @Override
-        public void putSweepPriority(Multimap<SweepPriorityTable.SweepPriorityRow, ? extends SweepPriorityTable.SweepPriorityNamedColumnValue<?>> newRows) {
-            // do nothing
-        }
-
-        @Override
-        public void putSweepProgress(Multimap<SweepProgressTable.SweepProgressRow, ? extends SweepProgressTable.SweepProgressNamedColumnValue<?>> newRows) {
-            // do nothing
-        }
-    }
+  }
 }

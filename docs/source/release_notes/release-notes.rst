@@ -131,6 +131,10 @@ v0.25.0
          - ``Cell.validateNameValid`` is now private; consider ``Cell.isNameValid`` instead
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
 
+    *    - |improved|
+         - Generated code is now formatted for readability with the Google Java Formatter.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1250>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

@@ -16,27 +16,32 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class StreamTestMetadataCleanupTask implements OnCleanupTask {
 
-    private final StreamTestTableFactory tables;
+  private final StreamTestTableFactory tables;
 
-    public StreamTestMetadataCleanupTask(Namespace namespace) {
-        tables = StreamTestTableFactory.of(namespace);
-    }
+  public StreamTestMetadataCleanupTask(Namespace namespace) {
+    tables = StreamTestTableFactory.of(namespace);
+  }
 
-    @Override
-    public boolean cellsCleanedUp(Transaction t, Set<Cell> cells) {
-        StreamTestStreamMetadataTable metaTable = tables.getStreamTestStreamMetadataTable(t);
-        Collection<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> rows = Lists.newArrayListWithCapacity(cells.size());
-        for (Cell cell : cells) {
-            rows.add(StreamTestStreamMetadataTable.StreamTestStreamMetadataRow.of((Long) ValueType.VAR_LONG.convertToJava(cell.getRowName(), 0)));
-        }
-        Map<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
-        Set<Long> toDelete = Sets.newHashSet();
-        for (Map.Entry<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow, StreamMetadata> e : currentMetadata.entrySet()) {
-            if (e.getValue().getStatus() != Status.STORED) {
-                toDelete.add(e.getKey().getId());
-            }
-        }
-        StreamTestStreamStore.of(tables).deleteStreams(t, toDelete);
-        return false;
+  @Override
+  public boolean cellsCleanedUp(Transaction t, Set<Cell> cells) {
+    StreamTestStreamMetadataTable metaTable = tables.getStreamTestStreamMetadataTable(t);
+    Collection<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> rows =
+        Lists.newArrayListWithCapacity(cells.size());
+    for (Cell cell : cells) {
+      rows.add(
+          StreamTestStreamMetadataTable.StreamTestStreamMetadataRow.of(
+              (Long) ValueType.VAR_LONG.convertToJava(cell.getRowName(), 0)));
     }
+    Map<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow, StreamMetadata> currentMetadata =
+        metaTable.getMetadatas(rows);
+    Set<Long> toDelete = Sets.newHashSet();
+    for (Map.Entry<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow, StreamMetadata> e :
+        currentMetadata.entrySet()) {
+      if (e.getValue().getStatus() != Status.STORED) {
+        toDelete.add(e.getKey().getId());
+      }
+    }
+    StreamTestStreamStore.of(tables).deleteStreams(t, toDelete);
+    return false;
+  }
 }
