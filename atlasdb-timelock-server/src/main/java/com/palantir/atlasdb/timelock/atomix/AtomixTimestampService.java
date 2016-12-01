@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.timelock.atomix;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.timestamp.TimestampRange;
@@ -23,6 +26,8 @@ import com.palantir.timestamp.TimestampService;
 import io.atomix.variables.DistributedLong;
 
 public class AtomixTimestampService implements TimestampService {
+    private static final Logger log = LoggerFactory.getLogger(AtomixTimestampService.class);
+
     /**
      * Maximum number of timestamps that may be granted at once.
      */
@@ -33,6 +38,7 @@ public class AtomixTimestampService implements TimestampService {
 
     public AtomixTimestampService(DistributedLong timestamp) {
         this.timestamp = timestamp;
+        timestamp.onStateChange(state -> log.error("The timestamp is now in state {}", state.toString()));
     }
 
     @Override
@@ -49,6 +55,7 @@ public class AtomixTimestampService implements TimestampService {
 
         long lastTimestampHandedOut = AtomixRetryer.getWithRetry(() -> timestamp.getAndAdd(numTimestampsRequested));
 
+        log.error("Now issuing the timestamp {}, with state {}", lastTimestampHandedOut+1, timestamp.state());
         return TimestampRange.createInclusiveRange(
                 lastTimestampHandedOut + 1,
                 lastTimestampHandedOut + numTimestampsRequested);

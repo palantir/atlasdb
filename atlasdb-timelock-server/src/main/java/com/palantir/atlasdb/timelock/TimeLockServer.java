@@ -18,6 +18,8 @@ package com.palantir.atlasdb.timelock;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -40,6 +42,7 @@ import io.atomix.catalyst.transport.netty.NettyTransport;
 import io.atomix.copycat.server.storage.Storage;
 import io.atomix.group.DistributedGroup;
 import io.atomix.group.LocalMember;
+import io.atomix.resource.ReadConsistency;
 import io.atomix.variables.DistributedLong;
 import io.atomix.variables.DistributedValue;
 import io.dropwizard.Application;
@@ -97,6 +100,20 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
 
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
         environment.jersey().register(new TimeLockResource(clientToServices));
+
+        ExecutorService ex = Executors.newFixedThreadPool(1);
+        ex.submit(() -> {
+            while (true) {
+                try {
+                    log.error("I believe the timestamp for test is: {}",
+                            AtomixRetryer.getWithRetry(() -> localNode.getLong("atlasdb/timestamp/test").join().get(
+                                    ReadConsistency.SEQUENTIAL)));
+                    Thread.sleep(100);
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                }
+            }
+        });
     }
 
     private static TimeLockServices createInvalidatingTimeLockServices(
