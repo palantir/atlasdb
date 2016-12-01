@@ -15,19 +15,29 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import org.apache.commons.lang3.Validate;
 
+import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.transaction.api.LockAcquisitionException;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTasks;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
+import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 
 public abstract class AbstractLockAwareTransactionManager
@@ -73,6 +83,9 @@ public abstract class AbstractLockAwareTransactionManager
                     log.warn("Non-retriable exception while processing transaction.", e);
                     throw e;
                 }
+                if (e instanceof TransactionLockTimeoutException && !Iterables.isEmpty(lockTokens)) {
+                    refreshAfterLockTimeout(lockTokens, (TransactionLockTimeoutException) e);
+                }
                 failureCount++;
                 if (shouldStopRetrying(failureCount)) {
                     log.warn("Failing after " + failureCount + " tries", e);
@@ -99,6 +112,22 @@ public abstract class AbstractLockAwareTransactionManager
             throws E, InterruptedException {
         checkOpen();
         return runTaskWithLocksWithRetry(ImmutableList.of(), lockSupplier, task);
+    }
+
+    private void refreshAfterLockTimeout(Iterable<HeldLocksToken> lockTokens, TransactionLockTimeoutException ex) {
+        Set<LockRefreshToken> toRequest = ImmutableSet.copyOf(Iterables.transform(lockTokens,
+                new Function<HeldLocksToken, LockRefreshToken>() {
+                    @Nullable
+                    @Override
+                    public LockRefreshToken apply(HeldLocksToken input) {
+                        return input.getLockRefreshToken();
+                    }
+                }));
+        Set<LockRefreshToken> refreshedTokens = getLockService().refreshLockRefreshTokens(toRequest);
+        ImmutableSet<LockRefreshToken> failedTokens = Sets.difference(toRequest, refreshedTokens).immutableCopy();
+        if (!failedTokens.isEmpty()) {
+            throw new TransactionLockTimeoutException("lock tokens did not refresh: " + failedTokens, ex);
+        }
     }
 
     @Override
