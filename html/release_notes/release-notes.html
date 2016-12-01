@@ -169,16 +169,20 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Multinode Cassandra: <code class="docutils literal"><span class="pre">getAllTimestamps</span></code> and <code class="docutils literal"><span class="pre">getRangeOfTimestamps</span></code> now work as long as quorum for reading is achieved.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1289">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Substantially improved performance of the DbKvs implementation of the single-iterator version of getRowsColumnRange.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1132">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>OkHttpClient connection pool configured to have 100 idle connections with 10 minute keep-alive, reducing the number of connections
 that need to be created when a large number of transactions begin.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1294">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Transaction perf improvement; commit timestamp lookups are now cached across transactions.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1238">Pull Request</a>)</td>
 </tr>
