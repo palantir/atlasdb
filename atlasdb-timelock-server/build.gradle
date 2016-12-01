@@ -1,4 +1,5 @@
 apply from: "../gradle/shared.gradle"
+apply from: "../gradle/publishing-dist.gradle"
 
 apply plugin: 'com.palantir.java-distribution'
 apply plugin: 'org.inferred.processors'
@@ -35,8 +36,25 @@ dependencies {
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing'
 }
 
+def applicationName = "atlasdb-timelock-server"
+
 distribution {
-    serviceName 'atlasdb-timelock-server'
+    serviceName applicationName
     mainClass 'com.palantir.atlasdb.timelock.TimeLockServer'
     args 'server', 'var/conf/timelock.yml'
+}
+
+tasks.withType(Tar){
+    compression = Compression.GZIP
+    baseName = applicationName
+}
+
+publishing.publications {
+    artifactory(MavenPublication) {
+        artifact(distTar) {
+            classifier 'dist'
+        }
+        artifactId applicationName
+        groupId project.group
+    }
 }
