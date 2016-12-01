@@ -61,10 +61,19 @@ public abstract class DdlConfig {
         return 2 * 1024 * 1024;
     }
 
+    @Value.Default
+    public TruncateStyle truncateStyle() {
+        return TruncateStyle.TRUNCATE;
+    }
+
     @Value.Check
     protected final void check() {
         Preconditions.checkState(
                 metadataTable().getNamespace().isEmptyNamespace(),
                 "'metadataTable' should have empty namespace'");
+    }
+
+    public enum TruncateStyle {
+        TRUNCATE, DELETE;
     }
 }

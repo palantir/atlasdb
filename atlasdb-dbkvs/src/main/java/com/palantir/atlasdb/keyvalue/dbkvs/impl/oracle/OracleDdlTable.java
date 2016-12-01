@@ -175,7 +175,18 @@ public final class OracleDdlTable implements DbDdlTable {
     @Override
     public void truncate() {
         try {
-            conns.get().executeUnregisteredQuery("TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortTableName());
+            switch (config.truncateStyle()) {
+                case TRUNCATE:
+                    conns.get().executeUnregisteredQuery("TRUNCATE TABLE "
+                            + oracleTableNameGetter.getInternalShortTableName());
+                    break;
+                case DELETE:
+                    conns.get().executeUnregisteredQuery("DELETE FROM "
+                            + oracleTableNameGetter.getInternalShortTableName());
+                    break;
+                default:
+                    throw new IllegalStateException();
+            }
         } catch (TableMappingNotFoundException | RuntimeException e) {
             throw new IllegalStateException(
                     String.format(

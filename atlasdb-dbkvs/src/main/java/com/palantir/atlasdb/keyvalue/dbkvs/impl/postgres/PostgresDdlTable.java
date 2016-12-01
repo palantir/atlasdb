@@ -86,7 +86,16 @@ public class PostgresDdlTable implements DbDdlTable {
 
     @Override
     public void truncate() {
-        conns.get().executeUnregisteredQuery("TRUNCATE TABLE " + prefixedTableName());
+        switch (config.truncateStyle()) {
+            case TRUNCATE:
+                conns.get().executeUnregisteredQuery("TRUNCATE TABLE " + prefixedTableName());
+                break;
+            case DELETE:
+                conns.get().executeUnregisteredQuery("DELETE FROM " + prefixedTableName());
+                break;
+            default:
+                throw new IllegalStateException();
+        }
     }
 
     @Override
