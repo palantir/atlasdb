@@ -42,7 +42,6 @@ public class MonotonicChecker implements Checker {
 
     private static class Visitor implements EventVisitor {
         private final List<Event> errors = new ArrayList<>();
-        private boolean valid = true;
         private final Map<Integer, OkEvent> latestEventPerProcess = new HashMap<>();
 
         @Override
@@ -60,7 +59,6 @@ public class MonotonicChecker implements Checker {
             if (latestEventPerProcess.containsKey(process)) {
                 OkEvent previousEvent = latestEventPerProcess.get(process);
                 if (event.value() <= previousEvent.value()) {
-                    valid = false;
                     errors.add(previousEvent);
                     errors.add(event);
                 }
@@ -73,7 +71,7 @@ public class MonotonicChecker implements Checker {
         }
 
         public boolean valid() {
-            return valid;
+            return errors.isEmpty();
         }
 
         public List<Event> errors() {

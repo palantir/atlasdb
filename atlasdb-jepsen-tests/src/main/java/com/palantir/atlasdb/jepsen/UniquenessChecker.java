@@ -42,7 +42,6 @@ public class UniquenessChecker implements Checker {
 
     private static class Visitor implements EventVisitor {
         private final List<Event> errors = new ArrayList<>();
-        private boolean valid = true;
         private final Map<Long, OkEvent> valuesAlreadySeen = new HashMap<>();
 
         @Override
@@ -59,7 +58,6 @@ public class UniquenessChecker implements Checker {
 
             if (valuesAlreadySeen.containsKey(value)) {
                 OkEvent previousEvent = valuesAlreadySeen.get(value);
-                valid = false;
                 errors.add(previousEvent);
                 errors.add(event);
             }
@@ -72,7 +70,7 @@ public class UniquenessChecker implements Checker {
         }
 
         public boolean valid() {
-            return valid;
+            return errors.isEmpty();
         }
 
         public List<Event> errors() {
