@@ -68,6 +68,8 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Feature breakdown:
  *   - Pooling
@@ -248,7 +250,7 @@ public class CassandraClientPool {
                                 activeCheckouts > 0 ? Integer.toString(activeCheckouts) : "(unknown)",
                                 totalAllowed > 0 ? Integer.toString(totalAllowed) : "(not bounded)"));
             }
-            log.debug(currentState.toString());
+            log.debug("Current pool state: {}", currentState.toString());
         }
     }
 
@@ -545,12 +547,14 @@ public class CassandraClientPool {
                 if (ex instanceof TTransportException
                         && ex.getCause() != null
                         && (ex.getCause().getClass() == SocketException.class)) {
-                    String msg = "Error writing to Cassandra socket. Likely cause:"
-                            + " Exceeded maximum thrift frame size; unlikely cause: network issues.";
-                    log.error("Tried to connect to cassandra " + numTries + " times. " + msg, ex);
+                    String msg = "Error writing to Cassandra socket. "
+                            + "Likely cause: Exceeded maximum thrift frame size; "
+                            + "unlikely cause: network issues.";
+                    String logMessage = "Tried to connect to cassandra {} times. " + msg;
+                    log.error(logMessage, numTries, ex);
                     throw (K) new TTransportException(((TTransportException) ex).getType(), msg, ex);
                 } else {
-                    log.error("Tried to connect to cassandra " + numTries + " times.", ex);
+                    log.error("Tried to connect to cassandra {} times.", numTries, ex);
                     throw (K) ex;
                 }
             } else {
@@ -568,6 +572,7 @@ public class CassandraClientPool {
     // consistent ring across all of it's nodes.  One node will think it owns more than the others
     // think it does and they will not send writes to it, but it will respond to requests
     // acting like it does.
+    @SuppressFBWarnings("SLF4J_MANUALLY_PROVIDED_MESSAGE")
     private void sanityCheckRingConsistency() {
         Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost = HashMultimap.create();
         for (InetSocketAddress host : currentPools.keySet()) {
@@ -600,24 +605,23 @@ public class CassandraClientPool {
 
             RuntimeException ex = new IllegalStateException("Hosts have differing ring descriptions."
                     + " This can lead to inconsistent reads and lost data. ");
-            log.error("QA-86204 " + ex.getMessage() + tokenRangesToHost, ex);
+            log.error("QA-86204 {}: The token ranges to host are:\n{}", ex.getMessage(), tokenRangesToHost, ex);
 
 
             // provide some easier to grok logging for the two most common cases
             if (tokenRangesToHost.size() > 2) {
                 tokenRangesToHost.asMap().entrySet().stream()
                         .filter(entry -> entry.getValue().size() == 1)
-                        .forEach(entry -> log.error("Host: "
-                                + Iterables.getFirst(entry.getValue(), null)
-                                + " disagrees with the other nodes about the ring state."));
+                        .forEach(entry -> log.error("Host: {} disagrees with the other nodes about the ring state.",
+                                Iterables.getFirst(entry.getValue(), null)));
             }
             if (tokenRangesToHost.keySet().size() == 2) {
                 ImmutableList<Set<TokenRange>> sets = ImmutableList.copyOf(tokenRangesToHost.keySet());
                 Set<TokenRange> set1 = sets.get(0);
                 Set<TokenRange> set2 = sets.get(1);
-                log.error("Hosts are split."
-                        + " group1: " + tokenRangesToHost.get(set1)
-                        + " group2: " + tokenRangesToHost.get(set2));
+                log.error("Hosts are split. group1: {} group2: {}",
+                        tokenRangesToHost.get(set1),
+                        tokenRangesToHost.get(set2));
             }
 
             CassandraVerifier.logErrorOrThrow(ex.getMessage(), config.safetyDisabled());
