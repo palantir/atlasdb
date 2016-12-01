@@ -1062,7 +1062,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
                 });
             } catch (UnavailableException e) {
-                throw new PalantirRuntimeException("Truncating tables requires all Cassandra nodes"
+                throw new IllegalStateException("Truncating tables requires all Cassandra nodes"
                         + " to be up and available.");
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
@@ -1164,6 +1164,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             + numVersions + " total versions of " + cellVersionsMap.size() + " keys)";
                 }
             });
+        } catch (UnavailableException e) {
+            throw new IllegalStateException("Deleting requires all Cassandra nodes to be up and available.");
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -1210,13 +1212,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     rangeRequest,
                     timestampsGetterBatchSize.get(),
                     timestamp,
-                    deleteConsistency);
+                    readConsistency);
         } else {
             return getRangeWithPageCreator(
                     tableRef,
                     rangeRequest,
                     timestamp,
-                    deleteConsistency,
+                    readConsistency,
                     TimestampExtractor.SUPPLIER);
         }
     }
@@ -1290,32 +1292,29 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private void dropTablesInternal(final Set<TableReference> tablesToDrop) throws Exception {
         try {
-            clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
-                @Override
-                public Void apply(Client client) throws Exception {
-                    KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
-                    Set<TableReference> existingTables = Sets.newHashSet();
+            clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
+                KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
+                Set<TableReference> existingTables = Sets.newHashSet();
 
-                    existingTables.addAll(ks.getCf_defs().stream()
-                            .map(cf -> tableReferenceFromCfDef(cf))
-                            .collect(Collectors.toList()));
+                existingTables.addAll(ks.getCf_defs().stream()
+                        .map(this::tableReferenceFromCfDef)
+                        .collect(Collectors.toList()));
 
-                    for (TableReference table : tablesToDrop) {
-                        CassandraVerifier.sanityCheckTableName(table);
+                for (TableReference table : tablesToDrop) {
+                    CassandraVerifier.sanityCheckTableName(table);
 
-                        if (existingTables.contains(table)) {
-                            client.system_drop_column_family(internalTableName(table));
-                            putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
-                        } else {
-                            log.warn("Ignored call to drop a table ({}) that did not exist.", table);
-                        }
+                    if (existingTables.contains(table)) {
+                        client.system_drop_column_family(internalTableName(table));
+                        putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
+                    } else {
+                        log.warn("Ignored call to drop a table ({}) that did not exist.", table);
                     }
-                    CassandraKeyValueServices.waitForSchemaVersions(
-                            client,
-                            "(all tables in a call to dropTables)",
-                            configManager.getConfig().schemaMutationTimeoutMillis());
-                    return null;
                 }
+                CassandraKeyValueServices.waitForSchemaVersions(
+                        client,
+                        "(all tables in a call to dropTables)",
+                        configManager.getConfig().schemaMutationTimeoutMillis());
+                return null;
             });
         } catch (UnavailableException e) {
             throw new PalantirRuntimeException("Dropping tables requires all Cassandra nodes to be up and available.");
@@ -1670,7 +1669,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts) {
         AllTimestampsCollector collector = new AllTimestampsCollector();
-        loadWithTs(tableRef, cells, ts, true, collector, deleteConsistency);
+        loadWithTs(tableRef, cells, ts, true, collector, readConsistency);
         return collector.collectedResults;
     }
 
