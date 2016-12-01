@@ -31,7 +31,7 @@ public class UniquenessCheckerTest {
     private static final long VALUE_B = 1L;
 
     @Test
-    public void shouldPassOnNoEvents() {
+    public void shouldSuceeedOnNoEvents() {
         CheckerResult result = runUniquenessChecker();
 
         assertThat(result.valid()).isTrue();
