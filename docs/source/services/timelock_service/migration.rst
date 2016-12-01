@@ -19,12 +19,12 @@ Otherwise, this can lead to serious data corruption.
 The migration process must be run offline (that is, with no AtlasDB clients running during migration) and basically
 consists of the following steps:
 
-1. Set up the external timestamp service.
-2. Obtain a timestamp ``TS`` that is at least as large as the largest timestamp issued.
-3. Fast-forward the external timestamp service to at least ``TS``.
-4. Invalidate the old timestamp service, preventing AtlasDB clients from retrieving timestamps from it.
-5. Configure AtlasDB clients to retrieve timestamps from the new timestamp service.
-6. Restart AtlasDB clients.
+#. Set up the external timestamp service.
+#. Obtain a timestamp ``TS`` that is at least as large as the largest timestamp issued.
+#. Fast-forward the external timestamp service to at least ``TS``.
+#. Invalidate the old timestamp service, preventing AtlasDB clients from retrieving timestamps from it.
+#. Configure AtlasDB clients to retrieve timestamps from the new timestamp service.
+#. Start AtlasDB clients.
 
 Strictly speaking, step 4 is not required; that said, we prefer to do this to avoid the risk of data corruption in the
 event of misconfiguration (that is, if some but not all clients are pointed to the new timestamp service).

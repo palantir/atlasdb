@@ -4,7 +4,7 @@ Timelock Server Configuration
 =============================
 
 The Timelock Server configuration file is written in YAML and is located at ``var/conf/timelock.yml``.
-It has three main blocks: the ``clients`` block, ``cluster`` block and ``atomix`` block. We will discuss how each of
+It has three main configuration blocks: ``clients``, ``cluster``, and ``atomix``. We will discuss how each of
 these may be configured in turn, as well as additional configuration parameters.
 
 .. contents::
