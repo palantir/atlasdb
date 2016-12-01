@@ -122,7 +122,7 @@ public final class AtlasDbHttpClients {
     }
 
     @VisibleForTesting
-    static <T> T createProxyWithFailoverWithoutBackoff(
+    static <T> T createProxyWithQuickFailoverForTesting(
             Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
         Request.Options options = new Request.Options(ONE_MILLISECOND, ONE_MILLISECOND);
         return createProxyWithFailover(
