@@ -17,9 +17,10 @@ package com.palantir.cassandra.multinode;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Rule;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -30,35 +31,38 @@ public class OneNodeDownTableManipulationTest {
     private static final TableReference NEW_TABLE = TableReference.createWithEmptyNamespace("new_table");
     private static final TableReference NEW_TABLE2 = TableReference.createWithEmptyNamespace("new_table2");
 
-    @Rule
-    public ExpectedException expectException = ExpectedException.none();
-
     @Test
     public void createTableThrows() {
-        expectException.expect(IllegalStateException.class);
-        expectException.expectMessage("Creating tables requires all Cassandra nodes to be up and available.");
-        OneNodeDownTestSuite.db.createTable(NEW_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        assertThatThrownBy(
+                () -> OneNodeDownTestSuite.db.createTable(NEW_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA))
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Creating tables requires all Cassandra nodes to be up and available.");
+        assertFalse(OneNodeDownTestSuite.tableExists(NEW_TABLE));
     }
 
     @Test
     public void createTablesThrows() {
-        expectException.expect(IllegalStateException.class);
-        expectException.expectMessage("Creating tables requires all Cassandra nodes to be up and available.");
-        OneNodeDownTestSuite.db.createTables(ImmutableMap.of(NEW_TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA));
+        assertThatThrownBy(() -> OneNodeDownTestSuite.db.createTables(
+                ImmutableMap.of(NEW_TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA)))
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Creating tables requires all Cassandra nodes to be up and available.");
+        assertFalse(OneNodeDownTestSuite.tableExists(NEW_TABLE));
     }
 
     @Test
     public void dropTableThrows() {
-        expectException.expect(IllegalStateException.class);
-        expectException.expectMessage("Dropping tables requires all Cassandra nodes to be up and available.");
-        OneNodeDownTestSuite.db.dropTable(OneNodeDownTestSuite.TEST_TABLE);
+        assertThatThrownBy(() -> OneNodeDownTestSuite.db.dropTable(OneNodeDownTestSuite.TEST_TABLE))
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Dropping tables requires all Cassandra nodes to be up and available.");
+        assertTrue(OneNodeDownTestSuite.tableExists(OneNodeDownTestSuite.TEST_TABLE));
     }
 
     @Test
     public void dropTablesThrows() {
-        expectException.expect(IllegalStateException.class);
-        expectException.expectMessage("Dropping tables requires all Cassandra nodes to be up and available.");
-        OneNodeDownTestSuite.db.dropTables(ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE));
+        assertThatThrownBy(() -> OneNodeDownTestSuite.db.dropTables(ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE)))
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Dropping tables requires all Cassandra nodes to be up and available.");
+        assertTrue(OneNodeDownTestSuite.tableExists(OneNodeDownTestSuite.TEST_TABLE));
     }
 
     @Test
@@ -74,6 +78,15 @@ public class OneNodeDownTableManipulationTest {
     @Test
     public void truncateTableThrows() {
         assertThatThrownBy(() -> OneNodeDownTestSuite.db.truncateTable(OneNodeDownTestSuite.TEST_TABLE))
-                .isExactlyInstanceOf(IllegalStateException.class);
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Truncating tables requires all Cassandra nodes to be up and available.");
+    }
+
+    @Test
+    public void truncateTablesThrows() {
+        assertThatThrownBy(() -> OneNodeDownTestSuite.db.truncateTables(
+                ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE)))
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Truncating tables requires all Cassandra nodes to be up and available.");
     }
 }
