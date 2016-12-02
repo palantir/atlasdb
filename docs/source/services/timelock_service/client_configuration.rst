@@ -44,9 +44,8 @@ follows:
 
    * - serverListConfig.servers
      - A list of strings following the form ``protocol://hostname:port`` identifying the hosts in the Timelock Service
-       cluster. At least one server must be specified. AtlasDB assumes that the Timelock Servers which utilise the
-       application connectors referred to by these specifications are in a single cluster, as specified by said server
-       configuration files.
+       cluster. At least one server must be specified. AtlasDB assumes that the Timelock Servers being pointed at
+       are backed by the same Atomix cluster.
 
    * - serverListConfig.sslConfiguration
      - Security settings for communication between this client and the Timelock Servers, following the
