@@ -40,6 +40,13 @@ Manual Migration
 .. contents::
    :local:
 
+Step 0: Shutdown your AtlasDB Clients
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Make sure that all of your AtlasDB clients are shut down. Failure to do this can result in severe data corruption,
+because we cannot guarantee that the Timelock Server and the embedded AtlasDB timestamp services will together issue
+monotonically increasing timestamps. (In fact, they almost certainly will not!)
+
 Step 1: Setting up the Timelock Server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
