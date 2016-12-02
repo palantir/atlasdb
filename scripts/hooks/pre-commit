@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ "$(git diff --cached --name-only)x" = "x" ]; then
+    exit 0
+fi
+
+echo_and_run() {
+    echo "\$ $@"
+    "$@"
+}
+
+echo_and_run ./gradlew --continue -x test -x integTest -x jepsenTest $(comm -12 <((git diff --cached --name-only) | sed -n 's#^\([^/]*\)/.*#\1#p' | sort | uniq) <(sed -n 's/^include ":\(.*\)"$/\1/p' settings.gradle | sort) | sed "s#\(.*\)#:\1:check#" | tr "\n" " ")
