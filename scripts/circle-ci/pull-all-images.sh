@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 pull_images() {
-    docker-compose -f "${BASH_SOURCE%/*}/common-containers.yml" pull
+    docker-compose -f scripts/circle-ci/common-containers.yml pull
 }
 
 while ! pull_images; do
