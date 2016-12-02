@@ -2,6 +2,7 @@ machine:
   pre:
     - ./scripts/circle-ci/install-docker.sh:
         pwd: $CIRCLE_PROJECT_REPONAME
+    - sudo pip install docker-compose
   java:
     version:
       oraclejdk8
@@ -25,7 +26,6 @@ general:
 dependencies:
   pre:
     - ./scripts/circle-ci/download-moreutils.sh
-    - sudo pip install docker-compose
   override:
     - ./scripts/time-cmd.sh ./gradlew --profile --parallel resolveConfigurations
     - sudo pip install sphinx sphinx_rtd_theme
