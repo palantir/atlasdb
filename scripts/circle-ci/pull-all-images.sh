@@ -1,9 +1,10 @@
 #!/usr/bin/env sh
-set -e
 
-cd "${BASH_SOURCE%/*}" || exit
+pull_images() {
+    docker-compose -f "${BASH_SOURCE%/*}/common-containers.yml" pull
+}
 
-# wait for docker to switch on
-until docker ps; do sleep 1; done
-
-docker-compose -f common-containers.yml pull --ignore-pull-failures
+while ! pull_images; do
+    # Don't take up all cpu cycles if something fails
+    sleep 1
+done

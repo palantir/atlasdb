@@ -1,6 +1,5 @@
 machine:
   pre:
-    - ./scripts/circleci/pull-all-images.sh : { background: true }
     - ./scripts/circle-ci/install-docker.sh:
         pwd: $CIRCLE_PROJECT_REPONAME
   java:
@@ -15,6 +14,8 @@ machine:
 
 checkout:
   post:
+    - ./scripts/circle-ci/pull-all-images.sh:
+        background: true
     - ./scripts/circle-ci/stop-services.sh
 
 general:
