@@ -1,5 +1,6 @@
 machine:
   pre:
+    - ./scripts/circleci/pull-all-images.sh : { background: true }
     - curl -sSL https://s3.amazonaws.com/circle-downloads/install-circleci-docker.sh | bash -s -- 1.10.0
   java:
     version:
