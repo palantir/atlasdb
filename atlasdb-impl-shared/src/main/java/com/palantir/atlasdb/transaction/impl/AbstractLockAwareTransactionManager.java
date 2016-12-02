@@ -128,7 +128,9 @@ public abstract class AbstractLockAwareTransactionManager
         Set<LockRefreshToken> refreshedTokens = getLockService().refreshLockRefreshTokens(toRequest);
         ImmutableSet<LockRefreshToken> failedTokens = Sets.difference(toRequest, refreshedTokens).immutableCopy();
         if (!failedTokens.isEmpty()) {
-            throw new TransactionLockTimeoutException("lock tokens did not refresh: " + failedTokens, ex);
+            throw new TransactionLockTimeoutException("Provided lock tokens expired. Retry is not possible. tokens: "
+                    + failedTokens,
+                    ex);
         }
     }
 

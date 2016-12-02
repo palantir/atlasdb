@@ -78,10 +78,12 @@ import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.LockAcquisitionException;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.AbortingVisitor;
@@ -685,6 +687,21 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThat(rowResult, is(notNullValue()));
         assertThat(rowResult.getCellSet(), hasItem(writtenCell));
         assertThat(rowResult.getCellSet(), not(hasItem(emptyCell)));
+    }
+
+    @Test
+    public void noRetryOnExpiredLockTokens() throws LockAcquisitionException, RuntimeException, InterruptedException {
+        final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
+        HeldLocksToken expiredLockToken = getFakeHeldLocksToken();
+        try {
+            txManager.runTaskWithLocksWithRetry(ImmutableList.of(expiredLockToken), () -> null, (tx, locks) -> {
+                tx.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
+                return null;
+            });
+        } catch (TransactionLockTimeoutException e) {
+            assertTrue(e.getMessage().contains(ImmutableSet.of(expiredLockToken.getLockRefreshToken()).toString()));
+            assertTrue(e.getMessage().contains("Retry is not possible."));
+        }
     }
 
     private void writeCells(TableReference table, ImmutableMap<Cell, byte[]> cellsToWrite) {
