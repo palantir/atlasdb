@@ -1,7 +1,7 @@
 cassandra2:
   image: palantirtechnologies/docker-cassandra-atlasdb:2.2.8
 
-#cassandra3: //Uncomment when Cassanra 3.7 testing is enabled.
+#cassandra3: //Uncomment when Cassandra 3.7 testing is enabled.
 #  image: palantirtechnologies/docker-cassandra-atlasdb:3.7
 
 postgres:
@@ -13,5 +13,5 @@ nginx:
 socks:
   image: vimagick/dante:latest
 
-jepson:
+jepsen:
   image: tjake/jepsen:latest
