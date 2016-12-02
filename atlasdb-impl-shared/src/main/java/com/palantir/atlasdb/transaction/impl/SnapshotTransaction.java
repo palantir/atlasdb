@@ -1563,9 +1563,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return true;
         } catch (KeyAlreadyExistsException e) {
             String msg = "Two transactions tried to roll back someone else's request with start: " + startTs;
-            log.error("This isn't a bug but it should be very infrequent. "
-                    + "Two transactions tried to roll back someone else's request with start: {}",
-                    startTs,
+            log.error("This isn't a bug but it should be very infrequent. {}", msg,
                     new TransactionFailedRetriableException(msg, e));
             return false;
         }
