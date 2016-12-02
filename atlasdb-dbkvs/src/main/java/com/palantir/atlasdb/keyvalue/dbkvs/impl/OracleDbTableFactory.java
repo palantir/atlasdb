@@ -30,10 +30,12 @@ import com.palantir.nexus.db.DBType;
 public class OracleDbTableFactory implements DbTableFactory {
     private final OracleDdlConfig config;
     private OracleTableNameGetter oracleTableNameGetter;
+    private TableValueStyleCache valueStyleCache;
 
     public OracleDbTableFactory(OracleDdlConfig config) {
         this.config = config;
         oracleTableNameGetter = new OracleTableNameGetter(config);
+        valueStyleCache = new TableValueStyleCache();
     }
 
     @Override
@@ -43,7 +45,7 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbDdlTable createDdl(TableReference tableRef, ConnectionSupplier conns) {
-        return OracleDdlTable.create(tableRef, conns, config, oracleTableNameGetter);
+        return OracleDdlTable.create(tableRef, conns, config, oracleTableNameGetter, valueStyleCache);
     }
 
     @Override
@@ -53,10 +55,11 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbReadTable createRead(TableReference tableRef, ConnectionSupplier connectionSupplier) {
-        TableSize tableSize = TableSizeCache.getTableSize(connectionSupplier, tableRef, config.metadataTable());
+        TableValueStyle tableValueStyle =
+                valueStyleCache.getTableType(connectionSupplier, tableRef, config.metadataTable());
         String shortTableName = getTableName(connectionSupplier, tableRef);
         DbQueryFactory queryFactory;
-        switch (tableSize) {
+        switch (tableValueStyle) {
             case OVERFLOW:
                 String shortOverflowTableName = getOverflowTableName(connectionSupplier, tableRef);
                 queryFactory = new OracleOverflowQueryFactory(config, shortTableName, shortOverflowTableName);
@@ -65,7 +68,7 @@ public class OracleDbTableFactory implements DbTableFactory {
                 queryFactory = new OracleRawQueryFactory(shortTableName, config);
                 break;
             default:
-                throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
+                throw new EnumConstantNotPresentException(TableValueStyle.class, tableValueStyle.name());
         }
         return new UnbatchedDbReadTable(connectionSupplier, queryFactory);
     }
@@ -88,14 +91,14 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbWriteTable createWrite(TableReference tableRef, ConnectionSupplier conns) {
-        TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
-        switch (tableSize) {
+        TableValueStyle tableValueStyle = valueStyleCache.getTableType(conns, tableRef, config.metadataTable());
+        switch (tableValueStyle) {
             case OVERFLOW:
                 return OracleOverflowWriteTable.create(config, conns, oracleTableNameGetter, tableRef);
             case RAW:
                 return new OracleSimpleDbWriteTable(config, conns, oracleTableNameGetter, tableRef);
             default:
-                throw new EnumConstantNotPresentException(TableSize.class, tableSize.name());
+                throw new EnumConstantNotPresentException(TableValueStyle.class, tableValueStyle.name());
         }
     }
 

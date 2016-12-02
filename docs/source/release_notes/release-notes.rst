@@ -69,7 +69,12 @@ develop
 
     *    - |improved|
          - Oracle query performance improvement; table name cache now global to KVS level.
-         - (`Pull Request <https://github.com/palantir/atlasdb/pull/1325>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1325>`__)
+
+    *    - |fixed|
+         - Oracle value style caching limited in scope to per-KVS, previously per-JVM,
+           which could have in extremely rare cases caused issues for users in odd configurations.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1235>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

@@ -30,21 +30,17 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
 
-public final class TableSizeCache {
-    private static final Logger log = LoggerFactory.getLogger(TableSizeCache.class);
+public final class TableValueStyleCache {
+    private static final Logger log = LoggerFactory.getLogger(TableValueStyleCache.class);
 
-    private static final Cache<TableReference, TableSize> tableSizeByTableRef = CacheBuilder.newBuilder().build();
+    private final Cache<TableReference, TableValueStyle> valueStyleByTableRef = CacheBuilder.newBuilder().build();
 
-    private TableSizeCache() {
-        // Utility class
-    }
-
-    public static TableSize getTableSize(
+    public TableValueStyle getTableType(
             final ConnectionSupplier connectionSupplier,
             final TableReference tableRef,
             TableReference metadataTable) {
         try {
-            return tableSizeByTableRef.get(tableRef, () -> {
+            return valueStyleByTableRef.get(tableRef, () -> {
                 SqlConnection conn = null;
                 try {
                     conn = connectionSupplier.getNewUnsharedConnection();
@@ -58,13 +54,13 @@ public final class TableSizeCache {
                             "table %s not found",
                             tableRef.getQualifiedName());
 
-                    return TableSize.byId(Iterables.getOnlyElement(results.rows()).getInteger("table_size"));
+                    return TableValueStyle.byId(Iterables.getOnlyElement(results.rows()).getInteger("table_size"));
                 } finally {
                     closeUnderlyingConnection(conn);
                 }
             });
         } catch (ExecutionException e) {
-            log.error("TableSize for the table {} could not be retrieved.", tableRef.getQualifiedName());
+            log.error("TableValueStyle for the table {} could not be retrieved.", tableRef.getQualifiedName());
             throw Throwables.propagate(e);
         }
     }
@@ -79,7 +75,7 @@ public final class TableSizeCache {
         }
     }
 
-    public static void clearCacheForTable(TableReference tableRef) {
-        tableSizeByTableRef.invalidate(tableRef);
+    public void clearCacheForTable(TableReference tableRef) {
+        valueStyleByTableRef.invalidate(tableRef);
     }
 }
