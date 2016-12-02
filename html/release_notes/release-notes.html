@@ -195,6 +195,10 @@ that need to be created when a large number of transactions begin.
 <td>Transaction perf improvement; commit timestamp lookups are now cached across transactions.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1238">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td><code class="docutils literal"><span class="pre">LockAwareTransactionManager.runTaskWithLocksWithRetry</span></code> now fails faster if given lock tokens that time out in a way that cannot be recovered from.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1322">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
