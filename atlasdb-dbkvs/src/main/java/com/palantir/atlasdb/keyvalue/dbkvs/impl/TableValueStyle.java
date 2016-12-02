@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
-public enum TableSize {
+public enum TableValueStyle {
     RAW(3), OVERFLOW(4);
 
     private final int id;
 
-    TableSize(int id) {
+    TableValueStyle(int id) {
         this.id = id;
     }
 
@@ -28,7 +28,7 @@ public enum TableSize {
         return id;
     }
 
-    public static TableSize byId(int id) {
+    public static TableValueStyle byId(int id) {
         switch (id) {
             case 3:
                 return RAW;

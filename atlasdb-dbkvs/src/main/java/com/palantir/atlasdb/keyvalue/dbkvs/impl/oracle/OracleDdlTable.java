@@ -29,8 +29,8 @@ import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSize;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSizeCache;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCache;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.exception.PalantirSqlException;
@@ -45,24 +45,28 @@ public final class OracleDdlTable implements DbDdlTable {
     private final ConnectionSupplier conns;
     private final TableReference tableRef;
     private final OracleTableNameGetter oracleTableNameGetter;
+    private final TableValueStyleCache valueStyleCache;
 
     private OracleDdlTable(
             OracleDdlConfig config,
             ConnectionSupplier conns,
             TableReference tableRef,
-            OracleTableNameGetter oracleTableNameGetter) {
+            OracleTableNameGetter oracleTableNameGetter,
+            TableValueStyleCache valueStyleCache) {
         this.config = config;
         this.conns = conns;
         this.tableRef = tableRef;
         this.oracleTableNameGetter = oracleTableNameGetter;
+        this.valueStyleCache = valueStyleCache;
     }
 
     public static OracleDdlTable create(
             TableReference tableRef,
             ConnectionSupplier conns,
             OracleDdlConfig config,
-            OracleTableNameGetter oracleTableNameGetter) {
-        return new OracleDdlTable(config, conns, tableRef, oracleTableNameGetter);
+            OracleTableNameGetter oracleTableNameGetter,
+            TableValueStyleCache valueStyleCache) {
+        return new OracleDdlTable(config, conns, tableRef, oracleTableNameGetter, valueStyleCache);
     }
 
     @Override
@@ -87,7 +91,7 @@ public final class OracleDdlTable implements DbDdlTable {
         conns.get().insertOneUnregisteredQuery(
                 "INSERT INTO " + config.metadataTable().getQualifiedName() + " (table_name, table_size) VALUES (?, ?)",
                 tableRef.getQualifiedName(),
-                needsOverflow ? TableSize.OVERFLOW.getId() : TableSize.RAW.getId());
+                needsOverflow ? TableValueStyle.OVERFLOW.getId() : TableValueStyle.RAW.getId());
     }
 
     private void createTable(boolean needsOverflow) {
@@ -159,7 +163,7 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     private void clearTableSizeCacheAndDropTableMetadata() {
-        TableSizeCache.clearCacheForTable(tableRef);
+        valueStyleCache.clearCacheForTable(tableRef);
         conns.get().executeUnregisteredQuery(
                 "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
                 tableRef.getQualifiedName());
@@ -190,8 +194,8 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     private void truncateOverflowTableIfItExists() {
-        TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
-        if (tableSize.equals(TableSize.OVERFLOW)
+        TableValueStyle tableValueStyle = valueStyleCache.getTableType(conns, tableRef, config.metadataTable());
+        if (tableValueStyle.equals(TableValueStyle.OVERFLOW)
                 && config.overflowMigrationState() != OverflowMigrationState.UNSTARTED) {
             try {
                 conns.get().executeUnregisteredQuery(
