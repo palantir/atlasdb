@@ -12,7 +12,7 @@
             [knossos.history :as history]
             [jepsen.tests :as tests])
   (:import com.palantir.atlasdb.jepsen.JepsenHistoryChecker)
-  (:import com.palantir.atlasdb.jepsen.TimestampClient))
+  (:import com.palantir.atlasdb.http.TimestampClient))
 
 (defn create-server
   "Creates an object that implements the db/DB protocol.
