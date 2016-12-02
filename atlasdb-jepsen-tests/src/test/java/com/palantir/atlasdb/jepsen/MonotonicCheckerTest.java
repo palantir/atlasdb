@@ -29,7 +29,7 @@ public class MonotonicCheckerTest {
     private static final int PROCESS_1 = 1;
 
     @Test
-    public void shouldSuceedOnNoEvents() {
+    public void shouldSucceedOnNoEvents() {
         CheckerResult result = runMonotonicChecker();
 
         assertThat(result.valid()).isTrue();
@@ -75,7 +75,7 @@ public class MonotonicCheckerTest {
     }
 
     @Test
-    public void shouldSuceedOnTwoProcessesOverlapping() {
+    public void shouldSucceedOnTwoProcessesOverlapping() {
         Event event1 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_0)
