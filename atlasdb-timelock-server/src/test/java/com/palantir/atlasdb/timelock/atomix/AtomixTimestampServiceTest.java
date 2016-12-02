@@ -32,7 +32,6 @@ import io.atomix.catalyst.transport.local.LocalServerRegistry;
 import io.atomix.catalyst.transport.local.LocalTransport;
 import io.atomix.copycat.server.storage.Storage;
 import io.atomix.copycat.server.storage.StorageLevel;
-import io.atomix.variables.DistributedLong;
 
 public class AtomixTimestampServiceTest {
     private static final Address LOCAL_ADDRESS = new Address("localhost", 8700);
@@ -59,8 +58,7 @@ public class AtomixTimestampServiceTest {
 
     @Before
     public void setupTimestampService() {
-        DistributedLong distributedLong = DistributedValues.getTimestampForClient(ATOMIX_REPLICA, CLIENT_KEY);
-        timestampService = new AtomixTimestampService(distributedLong);
+        timestampService = new AtomixTimestampService(ATOMIX_REPLICA, CLIENT_KEY);
     }
 
     @Test

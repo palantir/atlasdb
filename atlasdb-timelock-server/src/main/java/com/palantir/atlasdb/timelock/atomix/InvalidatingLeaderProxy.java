@@ -30,32 +30,31 @@ import org.immutables.value.Value;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
+import io.atomix.Atomix;
 import io.atomix.group.LocalMember;
-import io.atomix.variables.DistributedValue;
 
 public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler {
     private final LocalMember localMember;
-    private final DistributedValue<LeaderAndTerm> leaderInfo;
+    private final Atomix atomix;
     private final AtomicReference<TermWrapped<T>> delegateRef = new AtomicReference<>();
     private final Supplier<T> delegateSupplier;
 
     private InvalidatingLeaderProxy(
             LocalMember localMember,
-            DistributedValue<LeaderAndTerm> leaderInfo,
-            Supplier<T> delegateSupplier) {
+            Atomix atomix, Supplier<T> delegateSupplier) {
         this.localMember = localMember;
-        this.leaderInfo = leaderInfo;
+        this.atomix = atomix;
         this.delegateSupplier = delegateSupplier;
     }
 
     public static <T> T create(
             LocalMember localMember,
-            DistributedValue<LeaderAndTerm> leaderInfo,
+            Atomix atomix,
             Supplier<T> delegateSupplier,
             Class<T> interfaceClass) {
         InvalidatingLeaderProxy<T> proxy = new InvalidatingLeaderProxy<>(
                 localMember,
-                leaderInfo,
+                atomix,
                 delegateSupplier);
 
         return (T) Proxy.newProxyInstance(
@@ -99,7 +98,7 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
 
     private LeaderAndTerm getLeaderInfo() {
         try {
-            return AtomixRetryer.getWithRetry(leaderInfo::get);
+            return AtomixRetryer.getWithRetry(() -> DistributedValues.getLeaderInfo(atomix).get());
         } catch (UncheckedExecutionException e) {
             if (e.getCause() instanceof IOException) {
                 throw new ServiceUnavailableException(

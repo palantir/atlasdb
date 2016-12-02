@@ -36,6 +36,7 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting1.config.ssl.SslConfiguration;
 import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
 
+import io.atomix.Atomix;
 import io.atomix.AtomixReplica;
 import io.atomix.catalyst.transport.Transport;
 import io.atomix.catalyst.transport.netty.NettyTransport;
@@ -43,7 +44,6 @@ import io.atomix.copycat.server.storage.Storage;
 import io.atomix.group.DistributedGroup;
 import io.atomix.group.LocalMember;
 import io.atomix.resource.ReadConsistency;
-import io.atomix.variables.DistributedLong;
 import io.atomix.variables.DistributedValue;
 import io.dropwizard.Application;
 import io.dropwizard.setup.Environment;
@@ -90,11 +90,8 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
 
         Map<String, TimeLockServices> clientToServices = new HashMap<>();
         for (String client : configuration.clients()) {
-            DistributedLong timestamp = DistributedValues.getTimestampForClient(localNode, client);
             TimeLockServices timeLockServices = createInvalidatingTimeLockServices(
-                    localMember,
-                    leaderInfo,
-                    timestamp);
+                    localMember, localNode, client);
             clientToServices.put(client, timeLockServices);
         }
 
@@ -117,15 +114,13 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
     }
 
     private static TimeLockServices createInvalidatingTimeLockServices(
-            LocalMember localMember,
-            DistributedValue<LeaderAndTerm> leaderInfo,
-            DistributedLong timestamp) {
+            LocalMember localMember, Atomix atomix, String client) {
         Supplier<TimeLockServices> timeLockSupplier = () -> TimeLockServices.create(
-                new AtomixTimestampService(timestamp),
+                new AtomixTimestampService(atomix, client),
                 LockServiceImpl.create());
         return InvalidatingLeaderProxy.create(
                 localMember,
-                leaderInfo,
+                atomix,
                 timeLockSupplier,
                 TimeLockServices.class);
     }

@@ -23,7 +23,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
-import io.atomix.variables.DistributedLong;
+import io.atomix.Atomix;
 
 public class AtomixTimestampService implements TimestampService {
     private static final Logger log = LoggerFactory.getLogger(AtomixTimestampService.class);
@@ -34,11 +34,14 @@ public class AtomixTimestampService implements TimestampService {
     @VisibleForTesting
     static final int MAX_GRANT_SIZE = 10_000;
 
-    private final DistributedLong timestamp;
+    private final Atomix atomix;
+    private final String client;
 
-    public AtomixTimestampService(DistributedLong timestamp) {
-        this.timestamp = timestamp;
-        timestamp.onStateChange(state -> log.error("The timestamp is now in state {}", state.toString()));
+    public AtomixTimestampService(Atomix atomix, String client) {
+        this.atomix = atomix;
+        this.client = client;
+        DistributedValues.getTimestampForClient(atomix, client).onStateChange(
+                state -> log.error("The timestamp is now in state {}", state.toString()));
     }
 
     @Override
@@ -53,9 +56,11 @@ public class AtomixTimestampService implements TimestampService {
         Preconditions.checkArgument(numTimestampsRequested <= MAX_GRANT_SIZE,
                 "Must request at most %s timestamps, requested: %s", MAX_GRANT_SIZE, numTimestampsRequested);
 
-        long lastTimestampHandedOut = AtomixRetryer.getWithRetry(() -> timestamp.getAndAdd(numTimestampsRequested));
+        log.error("Before the op my state is {}", DistributedValues.getTimestampForClient(atomix, client).state());
+        long lastTimestampHandedOut = AtomixRetryer.getWithRetry(() ->
+                DistributedValues.getTimestampForClient(atomix, client).getAndAdd(numTimestampsRequested));
 
-        log.error("Now issuing the timestamp {}, with state {}", lastTimestampHandedOut+1, timestamp.state());
+        log.error("Now issuing the timestamp {}, with state {}", lastTimestampHandedOut+1, DistributedValues.getTimestampForClient(atomix, client).state());
         return TimestampRange.createInclusiveRange(
                 lastTimestampHandedOut + 1,
                 lastTimestampHandedOut + numTimestampsRequested);
