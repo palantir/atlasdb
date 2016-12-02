@@ -1570,8 +1570,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 createTablesInternal(tablesToActuallyCreate);
             });
         }
-
-         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
+        internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
     }
 
     private Map<TableReference, byte[]> filterOutNoOpMetadataChanges(
@@ -1674,7 +1673,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      * <p>
      * This will not contain the names of any hidden tables (e. g., the _metadata table).
      *
-     * @return a set of TableReferences (table names) for all the visible tables.
+     * @return a set of TableReferences (table names) for all the visible tables
      */
     @Override
     public Set<TableReference> getAllTableNames() {
@@ -1955,7 +1954,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      * @param tableRef the name of the table to retrieve timestamps from.
      * @param cells set containg cells to retrieve timestamps for.
      * @param ts maximum timestamp to get (exclusive).
-     * @return multimap of timestamps by cell.
+     * @return multimap of timestamps by cell
      *
      * @throws IllegalStateException if not all hosts respond successfully.
      */
