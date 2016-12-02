@@ -3,13 +3,9 @@
 External Timelock Service
 =========================
 
-.. warning::
-
-   Running external timestamp and lock services is currently an experimental feature.
-   If you are interested in testing it, please contact the AtlasDB team.
-
 .. danger::
 
+   Running external timestamp and lock services is currently an experimental feature.
    Improperly configuring one's cluster to use external timestamp and lock services can result in **SEVERE DATA
    CORRUPTION**! Please contact the AtlasDB team if you wish to try this feature.
 

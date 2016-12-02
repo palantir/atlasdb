@@ -28,7 +28,7 @@ Timelock Server Installation
       tar -zxvf atlasdb-timelock-server-0.25.0.sls.tgz; cd atlasdb-timelock-server-0.25.0
 
 5. Configure the Timelock Server - see :ref:`timelock-server-configuration` for a guide on this. The configuration file
-   is at ``/var/conf/timelock.yml``.
+   is at ``var/conf/timelock.yml`` relative to the root directory of the Timelock Server.
 
 6. Start the Timelock Server with ``service/bin/init.sh start``.
    This should output the process ID of the Timelock Server. You can view the logs in the (by default) ``var/log``
@@ -41,4 +41,12 @@ Timelock Server Installation
 
       curl localhost:8081/healthcheck
 
-   The output should indicate that the Timelock Server is healthy.
+   The output should indicate that the Timelock Server is healthy. The output should resemble the following:
+
+   .. code:: bash
+
+      {
+          "deadlocks": {
+              "healthy": true
+          }
+      }
