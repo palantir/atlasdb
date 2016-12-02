@@ -49,7 +49,7 @@ public class LZ4CompressingInputStreamTests {
     }
 
     private InputStream uncompressedStream;
-    private LZ4CompressingInputStream compressedStream;
+    private InputStream compressedStream;
 
     @After
     public void after() throws IOException {
@@ -219,7 +219,7 @@ public class LZ4CompressingInputStreamTests {
         for (int i = 0; i < numBlocks; ++i) {
             int blockSize = readNextBlockSize();
             assertTrue(blockSize < 0);
-            int realBlockSize = blockSize ^ 0x80000000;
+            int realBlockSize = toUncompressedBlockSize(blockSize);
             assertEquals(compressionBlockSize, realBlockSize);
             byte[] uncompressedBlock = readNextBlock(blockSize);
             // Compare this block with the corresponding block on uncompressed data
@@ -258,7 +258,7 @@ public class LZ4CompressingInputStreamTests {
         for (int i = 0; i < numBlocks / 2; ++i) {
             int blockSize = readNextBlockSize();
             assertTrue(blockSize < 0);
-            int realBlockSize = blockSize ^ 0x80000000;
+            int realBlockSize = toUncompressedBlockSize(blockSize);
             assertEquals(compressionBlockSize, realBlockSize);
             byte[] uncompressedBlock = readNextBlock(blockSize);
             // Compare this block with the corresponding block on uncompressed data
@@ -346,13 +346,17 @@ public class LZ4CompressingInputStreamTests {
     private byte[] readNextBlock(int blockSize) throws IOException {
         if (blockSize < 0) {
             // Uncompressed block. Toggle the highest order bit to get the true block size.
-            blockSize ^= 0x80000000;
+            blockSize = toUncompressedBlockSize(blockSize);
         }
         byte[] data = new byte[blockSize];
         int bytesRead = compressedStream.read(data, 0, blockSize);
         assertEquals(blockSize, bytesRead);
 
         return data;
+    }
+
+    private static int toUncompressedBlockSize(int blockSize) {
+        return blockSize ^ 0x80000000;
     }
 
     private void assertStreamIsEmpty() throws IOException {

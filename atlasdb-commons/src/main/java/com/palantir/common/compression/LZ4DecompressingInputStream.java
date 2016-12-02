@@ -88,15 +88,9 @@ public class LZ4DecompressingInputStream extends BufferedDelegateInputStream {
 
         if (length == 0) {
             // The next block has size zero, so there's no remaining bytes
-            // to read and this stream cannot be refilled. If the content
-            // checksum is enabled, validate the streamed data against the
-            // checksum in the LZ4 footer.
-            if (frameDescriptor.hasContentChecksum()) {
-                verifyContentChecksum();
-            }
+            // to read and this stream cannot be refilled.
             return false;
         }
-
         if (length > 0) {
             // A positive length indicates a compressed block, so read
             // the block and decompress it.
@@ -115,6 +109,11 @@ public class LZ4DecompressingInputStream extends BufferedDelegateInputStream {
         if (frameDescriptor.hasContentChecksum()) {
             // Update the running hash with the decompressed data
             hasher.update(buffer, 0, bufferSize);
+
+            if (nextLength == 0) {
+                //All blocks have been read, so verify the checksum
+                verifyContentChecksum();
+            }
         }
 
         position = 0;
