@@ -32,7 +32,7 @@ The following behaviour is guaranteed when interacting with a three node Cassand
          - Same as when all nodes are up.
 
     *    - ``compactInternally``
-         -
+         - Same as when all nodes are up.
 
     *    - ``create``
          - Same as when all nodes are up.
