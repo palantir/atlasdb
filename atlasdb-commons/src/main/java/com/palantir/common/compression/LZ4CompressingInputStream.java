@@ -59,7 +59,7 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
     private void writeFrameHeader() {
         writeMagicValue();
         writeFrameDescriptor();
-        maxPosition = LZ4Streams.FRAME_HEADER_LENGTH;
+        bufferSize = LZ4Streams.FRAME_HEADER_LENGTH;
     }
 
     private void writeMagicValue() {
@@ -87,13 +87,13 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
             return false;
         }
 
-        int numRead = delegate.read(uncompressedBuffer, 0, frameDescriptor.maximumBlockSize);
+        int numRead = delegate.read(uncompressedBuffer, 0, frameDescriptor.getMaximumBlockSize());
         if (numRead == READ_FAILED) {
             // The delegate stream is exhausted, so we write the LZ4 frame footer.
             inFrameFooter = true;
             writeFooter();
         } else {
-            if (frameDescriptor.hasContentChecksum) {
+            if (frameDescriptor.hasContentChecksum()) {
                 // Update the running hash with the uncompressed data
                 hasher.update(uncompressedBuffer, 0, numRead);
             }
@@ -107,12 +107,9 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
         // Write 0 for the size of the next block to indicate no blocks are left
         writeBlockSize(0);
         position = 0;
-        maxPosition = LZ4Streams.BLOCK_HEADER_LENGTH;
-        if (frameDescriptor.hasContentChecksum) {
-            // Write the final content hash
-            byte[] hashValue = LZ4Streams.intToLittleEndianBytes(hasher.getValue());
-            System.arraycopy(hashValue, 0, buffer, LZ4Streams.BLOCK_HEADER_LENGTH, 4);
-            maxPosition = LZ4Streams.BLOCK_HEADER_LENGTH + 4;
+        bufferSize = LZ4Streams.BLOCK_HEADER_LENGTH;
+        if (frameDescriptor.hasContentChecksum()) {
+            writeFinalContentHash();
         }
     }
 
@@ -121,6 +118,11 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
         copyToStartOfBuffer(blockSize, 0, 4);
     }
 
+    private void writeFinalContentHash() {
+        byte[] hashValue = LZ4Streams.intToLittleEndianBytes(hasher.getValue());
+        System.arraycopy(hashValue, 0, buffer, LZ4Streams.BLOCK_HEADER_LENGTH, 4);
+        bufferSize += 4;
+    }
 
     // If the data in the uncompressed buffer is compressible, writes
     // the compressed data to the buffer. Otherwise, writes the
@@ -138,14 +140,14 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
             // blocks, the highest bit in the block size should be 1 so
             // that the data is not decompressed when read.
             System.arraycopy(uncompressedBuffer, 0, buffer, LZ4Streams.BLOCK_HEADER_LENGTH, uncompressedBufferSize);
-            maxPosition = LZ4Streams.BLOCK_HEADER_LENGTH + uncompressedBufferSize;
+            bufferSize = LZ4Streams.BLOCK_HEADER_LENGTH + uncompressedBufferSize;
             // The maximum LZ4 supported buffer size is 4 MB, so the highest
             // order bit is unused and is 0. It's toggled to 1 to indicate an
             // uncompressed block.
             int modifiedBlockSize = uncompressedBufferSize ^ 0x80000000;
             writeBlockSize(modifiedBlockSize);
         } else {
-            maxPosition = LZ4Streams.BLOCK_HEADER_LENGTH + compressedLength;
+            bufferSize = LZ4Streams.BLOCK_HEADER_LENGTH + compressedLength;
             writeBlockSize(compressedLength);
         }
 

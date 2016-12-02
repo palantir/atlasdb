@@ -57,8 +57,8 @@ public final class LZ4FrameDescriptor {
     };
 
     private final int maximumBlockSizeIndex;
-    final int maximumBlockSize;
-    final boolean hasContentChecksum;
+    private final int maximumBlockSize;
+    private final boolean hasContentChecksum;
 
     public static LZ4FrameDescriptor fromByteArray(byte[] descriptor) {
         boolean hasContentChecksum = (descriptor[0] & CONTENT_CHECKSUM_FLAG) > 0;
@@ -67,10 +67,10 @@ public final class LZ4FrameDescriptor {
     }
 
     public LZ4FrameDescriptor(boolean hasContentChecksum, int maximumBlockSizeIndex) {
-        this.hasContentChecksum = hasContentChecksum;
-        this.maximumBlockSizeIndex = maximumBlockSizeIndex;
         Preconditions.checkArgument(maximumBlockSizeIndex > 3 && maximumBlockSizeIndex < 8,
                 "Maximum block size of %s is not valid", maximumBlockSizeIndex);
+        this.hasContentChecksum = hasContentChecksum;
+        this.maximumBlockSizeIndex = maximumBlockSizeIndex;
         this.maximumBlockSize = BLOCK_SIZE_LOOKUP[maximumBlockSizeIndex];
     }
 
@@ -87,6 +87,14 @@ public final class LZ4FrameDescriptor {
         result[2] = (byte) ((hash >> 8) & 0xFF);
 
         return result;
+    }
+
+    public int getMaximumBlockSize() {
+        return maximumBlockSize;
+    }
+
+    public boolean hasContentChecksum() {
+        return hasContentChecksum;
     }
 
     @Override
@@ -107,7 +115,7 @@ public final class LZ4FrameDescriptor {
 
     @Override
     public int hashCode() {
-        int result = (hasContentChecksum ? 1 : 0);
+        int result = hasContentChecksum ? 1 : 0;
         result = 31 * result + maximumBlockSizeIndex;
         return result;
     }

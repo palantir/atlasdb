@@ -1,5 +1,17 @@
-/*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+/**
+ * Copyright 2016 Palantir Technologies
+ *
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.palantir.common.compression;
@@ -27,12 +39,12 @@ public abstract class BufferedDelegateInputStream extends InputStream {
     // Current position in the buffer
     protected int position;
     // Size in bytes of the data in the buffer
-    protected int maxPosition;
+    protected int bufferSize;
 
     public BufferedDelegateInputStream(InputStream delegate, int bufferSize) {
         this.delegate = delegate;
         this.position = 0;
-        this.maxPosition = 0;
+        this.bufferSize = 0;
         allocateBuffer(bufferSize);
     }
 
@@ -40,22 +52,22 @@ public abstract class BufferedDelegateInputStream extends InputStream {
         this(delegate, 0);
     }
 
-    public void allocateBuffer(int bufferSize) {
-        Preconditions.checkArgument(bufferSize >= 0, "buffer size must be greater than or equal to zero");
-        Preconditions.checkArgument(position == maxPosition, "cannot reallocate a buffer that has not been fully read");
-        this.buffer = new byte[bufferSize];
+    public void allocateBuffer(int size) {
+        Preconditions.checkArgument(size >= 0, "buffer size must be greater than or equal to zero");
+        Preconditions.checkState(position == bufferSize, "cannot reallocate a buffer that has not been fully read");
+        this.buffer = new byte[size];
     }
 
     @Override
     public final int read() throws IOException {
-        if ((position == maxPosition) && !refill()) {
+        if ((position == bufferSize) && !refill()) {
             return READ_FAILED;
         }
         return buffer[position++] & 0xff;
     }
 
     @Override
-    public final int read(byte b[], int off, int len) throws IOException {
+    public final int read(byte[] b, int off, int len) throws IOException {
         if (b == null) {
             throw new NullPointerException();
         } else if (off < 0 || len < 0 || len > b.length - off) {
@@ -70,22 +82,33 @@ public abstract class BufferedDelegateInputStream extends InputStream {
         // delegate input stream.
         int bytesReadSoFar = 0;
         while (bytesReadSoFar < len) {
-            int remainingBuffer = maxPosition - position;
-            int bytesToRead = Math.min(len - bytesReadSoFar, remainingBuffer);
-            System.arraycopy(buffer, position, b, off + bytesReadSoFar, bytesToRead);
-            position += bytesToRead;
-            bytesReadSoFar += bytesToRead;
-            if ((position == maxPosition) && !refill()) {
-                break;
+            int bytesRead = readBytes(b, off, len, bytesReadSoFar);
+            bytesReadSoFar += bytesRead;
+            if (position == bufferSize) {
+                boolean bufferRefilled = refill();
+                if (!bufferRefilled) {
+                    // We've exhausted the delegate stream and can't read any more.
+                    break;
+                }
             }
         }
 
         return bytesReadSoFar > 0 ? bytesReadSoFar : READ_FAILED;
     }
 
+    private int readBytes(byte[] dest, int offset, int maxBytesToRead, int bytesReadSoFar) {
+        int destPos = offset + bytesReadSoFar;
+        int bytesLeftInBuffer = available();
+        int bytesLeftToRead = maxBytesToRead - bytesReadSoFar;
+        int bytesToRead = Math.min(bytesLeftToRead, bytesLeftInBuffer);
+        System.arraycopy(buffer, position, dest, destPos, bytesToRead);
+        position += bytesToRead;
+        return bytesToRead;
+    }
+
     @Override
-    public final int available() throws IOException {
-        return maxPosition - position;
+    public final int available() {
+        return bufferSize - position;
     }
 
     @Override

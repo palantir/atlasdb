@@ -39,7 +39,7 @@ public class LZ4DecompressingInputStream extends BufferedDelegateInputStream {
     private final byte[] compressedBuffer;
     private final StreamingXXHash32 hasher;
 
-    // Length in bytes of the next compressed block to be read from the delegate
+    // Block size of the next upcoming block
     private int nextLength;
 
     public LZ4DecompressingInputStream(InputStream delegate) throws IOException {
@@ -91,7 +91,7 @@ public class LZ4DecompressingInputStream extends BufferedDelegateInputStream {
             // to read and this stream cannot be refilled. If the content
             // checksum is enabled, validate the streamed data against the
             // checksum in the LZ4 footer.
-            if (frameDescriptor.hasContentChecksum) {
+            if (frameDescriptor.hasContentChecksum()) {
                 verifyContentChecksum();
             }
             return false;
@@ -101,20 +101,20 @@ public class LZ4DecompressingInputStream extends BufferedDelegateInputStream {
             // A positive length indicates a compressed block, so read
             // the block and decompress it.
             nextLength = readBlock(compressedBuffer, length + LZ4Streams.BLOCK_HEADER_LENGTH);
-            maxPosition = decompressor.decompress(compressedBuffer, BUFFER_START, length, buffer, BUFFER_START,
-                    frameDescriptor.maximumBlockSize);
+            bufferSize = decompressor.decompress(compressedBuffer, BUFFER_START, length, buffer, BUFFER_START,
+                    frameDescriptor.getMaximumBlockSize());
         } else {
             // A negative length indicates that the upcoming block is
             // uncompressed. The true size is the length with the highest
             // order bit toggled.
             length ^= 0x80000000;
             nextLength = readBlock(buffer, length + LZ4Streams.BLOCK_HEADER_LENGTH);
-            maxPosition = length;
+            bufferSize = length;
         }
 
-        if (frameDescriptor.hasContentChecksum) {
+        if (frameDescriptor.hasContentChecksum()) {
             // Update the running hash with the decompressed data
-            hasher.update(buffer, 0, maxPosition);
+            hasher.update(buffer, 0, bufferSize);
         }
 
         position = 0;

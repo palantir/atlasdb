@@ -44,11 +44,11 @@ public final class LZ4Streams {
     static final LZ4FrameDescriptor DEFAULT_FRAME_DESCRIPTOR = new LZ4FrameDescriptor(false, 4);
 
     static int getUncompressedBufferSize(LZ4FrameDescriptor frameDescriptor) {
-        return BLOCK_HEADER_LENGTH + frameDescriptor.maximumBlockSize;
+        return BLOCK_HEADER_LENGTH + frameDescriptor.getMaximumBlockSize();
     }
 
     static int getCompressedBufferSize(LZ4FrameDescriptor frameDescriptor) {
-        return BLOCK_HEADER_LENGTH + compressor.maxCompressedLength(frameDescriptor.maximumBlockSize);
+        return BLOCK_HEADER_LENGTH + compressor.maxCompressedLength(frameDescriptor.getMaximumBlockSize());
     }
 
     static byte[] intToLittleEndianBytes(int value) {
