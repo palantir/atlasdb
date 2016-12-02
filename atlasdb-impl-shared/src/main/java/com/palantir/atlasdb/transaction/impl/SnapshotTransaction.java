@@ -933,15 +933,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
         if (bytes > TransactionConstants.ERROR_LEVEL_FOR_QUEUED_BYTES
                 && !AtlasDbConstants.TABLES_KNOWN_TO_BE_POORLY_DESIGNED.contains(tableRef)) {
-            log.error("A single get had a lot of bytes: " + bytes + " for table " + tableRef.getQualifiedName() + ". "
-                    + "The number of results was " + rawResults.size() + ". "
-                    + "The first 10 results were " + Iterables.limit(rawResults.entrySet(), 10) + ". "
-                    + "This can potentially cause out-of-memory errors.",
+            log.error("A single get had a lot of bytes: {} for table {}. The number of results was {}. "
+                            + "The first 10 results were {}. This can potentially cause out-of-memory errors.",
+                    bytes, tableRef.getQualifiedName(), rawResults.size(), Iterables.limit(rawResults.entrySet(), 10),
                     new RuntimeException("This exception and stack trace are provided for debugging purposes."));
         } else if (bytes > TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES && log.isWarnEnabled()) {
-            log.warn("A single get had quite a few bytes: " + bytes + " for table " + tableRef.getQualifiedName() + ". "
-                    + "The number of results was " + rawResults.size() + ". "
-                    + "The first 10 results were " + Iterables.limit(rawResults.entrySet(), 10) + ". ",
+            log.warn("A single get had quite a few bytes: {} for table {}. The number of results was {}. "
+                            + "The first 10 results were {}.",
+                    bytes, tableRef.getQualifiedName(), rawResults.size(), Iterables.limit(rawResults.entrySet(), 10),
                     new RuntimeException("This exception and stack trace are provided for debugging purposes."));
         }
 
@@ -1107,13 +1106,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 long newVal = byteCount.addAndGet(toAdd);
                 if (newVal >= TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES
                         && newVal - toAdd < TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES) {
-                    log.warn("A single transaction has put quite a few bytes: " + newVal, new RuntimeException(
+                    log.warn("A single transaction has put quite a few bytes: {}", newVal, new RuntimeException(
                             "This exception and stack trace are provided for debugging purposes."));
                 }
                 if (newVal >= TransactionConstants.ERROR_LEVEL_FOR_QUEUED_BYTES
                         && newVal - toAdd < TransactionConstants.ERROR_LEVEL_FOR_QUEUED_BYTES) {
-                    log.warn("A single transaction has put too many bytes: " + newVal + ". This can potentially cause"
-                            + " out-of-memory errors.", new RuntimeException(
+                    log.warn("A single transaction has put too many bytes: {}. This can potentially cause"
+                            + " out-of-memory errors.", newVal, new RuntimeException(
                             "This exception and stack trace are provided for debugging purposes."));
                 }
             }
@@ -1438,8 +1437,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 conflictingCells.add(cell);
             } else if (log.isInfoEnabled()) {
                 log.info("Another transaction committed to the same cell before us but their value was the same."
-                        + " Cell: "  + cell
-                        + " Table: " + table);
+                        + " Cell: {}"
+                        + " Table: {}",
+                        cell, table);
             }
         }
         if (conflictingCells.isEmpty()) {
@@ -1525,7 +1525,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TransactionService transactionService) {
         for (long startTs : Sets.newHashSet(keysToDelete.values())) {
             if (commitTimestamps.get(startTs) == null) {
-                log.warn("Rolling back transaction: " + startTs);
+                log.warn("Rolling back transaction: {}", startTs);
                 if (!rollbackOtherTransaction(startTs, transactionService)) {
                     return false;
                 }
@@ -1535,8 +1535,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         try {
-            log.debug("For table: " + tableRef
-                    + " we are deleting values of an uncommitted transaction: " + keysToDelete);
+            log.debug("For table: {} we are deleting values of an uncommitted transaction: {}", tableRef, keysToDelete);
             keyValueService.delete(tableRef, Multimaps.forMap(keysToDelete));
         } catch (RuntimeException e) {
             String msg = "This isn't a bug but it should be infrequent if all nodes of your KV service are running. "
@@ -1564,7 +1563,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return true;
         } catch (KeyAlreadyExistsException e) {
             String msg = "Two transactions tried to roll back someone else's request with start: " + startTs;
-            log.error("This isn't a bug but it should be very infrequent. " + msg,
+            log.error("This isn't a bug but it should be very infrequent. {}", msg,
                     new TransactionFailedRetriableException(msg, e));
             return false;
         }
@@ -1770,7 +1769,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         } catch (TransactionFailedException e1) {
             throw e1;
         } catch (Exception e1) {
-            log.error("Failed to determine if we can retry this transaction. startTs: " + getStartTimestamp(), e1);
+            log.error("Failed to determine if we can retry this transaction. startTs: {}", getStartTimestamp(), e1);
         }
         String msg = "Our commit was already rolled back at commit time."
                 + " Locking should prevent this from happening, but our locks may have timed out."
