@@ -15,54 +15,106 @@
  */
 package com.palantir.atlasdb.performance.benchmarks.table;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 
-import com.google.common.base.Functions;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.performance.backend.AtlasDbServicesConnector;
+import com.palantir.atlasdb.performance.benchmarks.Benchmarks;
+import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 /**
  * State class for creating a single Atlas table with one wide row.
  */
 @State(Scope.Benchmark)
-public class WideRowTable extends AbstractWideRowsTable {
+public class WideRowTable {
     public static final int NUM_COLS = 50000;
 
-    public WideRowTable() {
-        super(1, NUM_COLS);
+    private AtlasDbServicesConnector connector;
+    private AtlasDbServices services;
+
+    private TableReference tableRef;
+
+    private Map<Cell, Long> allCellsAtMaxTimestamp;
+    private Map<Cell, Long> firstCellAtMaxTimestamp;
+
+    public TransactionManager getTransactionManager() {
+        return services.getTransactionManager();
     }
 
-    @Override
+    public KeyValueService getKvs() {
+        return services.getKeyValueService();
+    }
+
     public TableReference getTableRef() {
         return Tables.TABLE_REF;
     }
 
     public Map<Cell, Long> getAllCellsAtMaxTimestamp() {
-        return Maps.asMap(getAllCells(), Functions.constant(Long.MAX_VALUE));
+        return allCellsAtMaxTimestamp;
     }
 
     public Map<Cell, Long> getFirstCellAtMaxTimestampAsMap() {
-        return ImmutableMap.of(cell(0, 0), Long.MAX_VALUE);
+        return firstCellAtMaxTimestamp;
     }
 
     public Set<Cell> getAllCells() {
-        return IntStream.range(0, NUM_COLS).mapToObj(index -> cell(0, index)).collect(Collectors.toSet());
+        return allCellsAtMaxTimestamp.keySet();
     }
 
     public Set<Cell> getFirstCellAsSet() {
-        return ImmutableSet.of(cell(0, 0));
+        return firstCellAtMaxTimestamp.keySet();
     }
 
-    public static byte[] getRow() {
-        return getRow(0);
+    @Setup
+    public void setup(AtlasDbServicesConnector conn) throws UnsupportedEncodingException {
+        this.connector = conn;
+        services = conn.connect();
+        tableRef = Benchmarks.createTableWithDynamicColumns(
+                services.getKeyValueService(),
+                getTableRef(),
+                Tables.ROW_COMPONENT,
+                Tables.COLUMN_COMPONENT);
+        storeData();
     }
+
+    @TearDown
+    public void cleanup() throws Exception {
+        services.getKeyValueService().dropTables(Sets.newHashSet(tableRef));
+        connector.close();
+    }
+
+    private void storeData() {
+        services.getTransactionManager().runTaskThrowOnConflict(txn -> {
+            Map<Cell, byte[]> values = Maps.newHashMap();
+            allCellsAtMaxTimestamp = Maps.newHashMap();
+            firstCellAtMaxTimestamp = Maps.newHashMap();
+            firstCellAtMaxTimestamp.put(cell(0), Long.MAX_VALUE);
+            for (int i = 0; i < NUM_COLS; i++) {
+                Cell curCell = cell(i);
+                values.put(curCell, Ints.toByteArray(i));
+                allCellsAtMaxTimestamp.put(curCell, Long.MAX_VALUE);
+            }
+            txn.put(this.tableRef, values);
+            return null;
+        });
+    }
+
+    private Cell cell(int index) {
+        return Cell.create(Tables.ROW_BYTES.array(), ("col_" + index).getBytes(StandardCharsets.UTF_8));
+    }
+
 }
