@@ -162,12 +162,12 @@ public final class RetriableTransactions {
                     } catch (SQLException e) {
                         long now = System.currentTimeMillis();
                         if (log.isTraceEnabled()) {
-                            log.trace("Got exception for retriable write transaction, startTimeMs = " + startTimeMs + ", attemptTimeMs = " + attemptTimeMs + ", now = " + now, e);
+                            log.trace("Got exception for retriable write transaction, startTimeMs = {}, attemptTimeMs = {}, now = {}", startTimeMs, attemptTimeMs, now, e);
                         }
                         if (shouldStillRetry(startTimeMs, attemptTimeMs)) {
                             long attemptLengthMs = now - attemptTimeMs;
                             long totalLengthMs = now - startTimeMs;
-                            log.info("Swallowing possible transient exception for retriable transaction, last attempt took " + attemptLengthMs + " ms, total attempts have taken " + totalLengthMs, e);
+                            log.info("Swallowing possible transient exception for retriable transaction, last attempt took {} ms, total attempts have taken {}", attemptLengthMs, totalLengthMs, e);
                             continue;
                         }
                         if (pending) {
@@ -243,7 +243,7 @@ public final class RetriableTransactions {
             }
 
             private void squelch(SQLException e) {
-                log.warn("Squelching SQLException while trying to clean up retriable write transaction id " + id, e);
+                log.warn("Squelching SQLException while trying to clean up retriable write transaction id {}", id, e);
             }
         }
         return new LexicalHelper().run();

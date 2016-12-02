@@ -214,7 +214,7 @@ final class SchemaMutationLock {
                     // lock holder taking unreasonable amount of time, signal something's wrong
                     if (stopwatch.elapsed(TimeUnit.MILLISECONDS) > mutationTimeoutMillis) {
                         TimeoutException schemaLockTimeoutError = generateSchemaLockTimeoutException(stopwatch);
-                        log.error(schemaLockTimeoutError.getMessage(), schemaLockTimeoutError);
+                        log.error("Schema lock timeout", schemaLockTimeoutError);
                         throw Throwables.rewrapAndThrowUncheckedException(schemaLockTimeoutError);
                     }
 

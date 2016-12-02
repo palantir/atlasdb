@@ -19,11 +19,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
 public class AssertUtils {
+
+    private static final Logger log = LoggerFactory.getLogger(AssertUtils.class);
 
     public static <T> boolean nonNullItems(Collection<T> c) {
         for (T t : c) {
@@ -65,7 +68,7 @@ public class AssertUtils {
 
     public static void assertAndLogWithException(boolean cheapTest, String msg, Throwable t) {
         if (!cheapTest) {
-            LoggerFactory.getLogger(AssertUtils.class).error(msg, t);
+            log.error("Assertion {} with exception ", msg, t);
             assert false : msg;
         }
     }

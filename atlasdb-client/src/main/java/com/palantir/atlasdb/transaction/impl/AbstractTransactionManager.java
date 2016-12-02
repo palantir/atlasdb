@@ -46,9 +46,8 @@ public abstract class AbstractTransactionManager implements TransactionManager {
                 }
                 failureCount++;
                 if (shouldStopRetrying(failureCount)) {
-                    String msg = "Failing after " + failureCount + " tries";
-                    log.warn(msg, e);
-                    throw Throwables.rewrap(msg, e);
+                    log.warn("Failing after {} tries.", failureCount, e);
+                    throw Throwables.rewrap(String.format("Failing after %d tries.", failureCount), e);
                 }
                 log.info("retrying transaction", e);
             } catch (RuntimeException e) {

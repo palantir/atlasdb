@@ -27,7 +27,7 @@ import com.palantir.docker.compose.execution.DockerComposeRunOption;
 public class ThreeNodeCassandraClusterOperations {
     private static final Logger log = LoggerFactory.getLogger(ThreeNodeCassandraClusterOperations.class);
     private static final int NODETOOL_STATUS_TIMEOUT_SECONDS = 10;
-    private static final int NODETOOL_REPAIR_TIMEOUT_SECONDS = 999;
+    private static final int NODETOOL_REPAIR_TIMEOUT_SECONDS = 60;
 
     private final DockerComposeRule dockerComposeRule;
     private final CassandraCliParser cassandraCliParser;
