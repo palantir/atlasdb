@@ -47,6 +47,9 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.util.Pair;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public final class CassandraKeyValueServices {
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class); // did this on purpose
 
@@ -89,23 +92,23 @@ public final class CassandraKeyValueServices {
         while (System.currentTimeMillis() < start + schemaTimeoutMillis);
 
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("Cassandra cluster cannot come to agreement on schema versions,"
-                + " after attempting to modify table %s.", tableName));
+        String messageTemplate = "Cassandra cluster cannot come to agreement on schema versions,"
+                + " after attempting to modify table {}. {}"
+                + " \nFind the nodes above that diverge from the majority schema"
+                + " or have schema 'UNKNOWN', which likely means they are down/unresponsive"
+                + " and examine their logs to determine the issue."
+                + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
+                + " You can quick-check this with 'nodetool describecluster'.";
         for (Entry<String, List<String>> version : versions.entrySet()) {
             sb.append(String.format("%nAt schema version %s:", version.getKey()));
             for (String node : version.getValue()) {
                 sb.append(String.format("%n\tNode: %s", node));
             }
         }
-        sb.append("\nFind the nodes above that diverge from the majority schema")
-                .append(" (or have schema 'UNKNOWN', which likely means they are down/unresponsive)")
-                .append(" and examine their logs to determine the issue.")
-                .append(" Fixing the underlying issue and restarting Cassandra")
-                .append(" should resolve the problem. You can quick-check this with 'nodetool describecluster'.");
 
         if (allowUnresponsiveNode
                 && exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(versions)) {
-            log.error(sb.toString());
+            log.error(messageTemplate, tableName, sb.toString());
         } else {
             throw new IllegalStateException(sb.toString());
         }
