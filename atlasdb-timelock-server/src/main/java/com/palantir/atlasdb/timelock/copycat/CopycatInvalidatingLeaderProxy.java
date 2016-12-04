@@ -78,8 +78,9 @@ public class CopycatInvalidatingLeaderProxy<T> extends AbstractInvocationHandler
         clearDelegate();
         throw new ServiceUnavailableException(
                 String.format("This node (%s) is not the leader (%s)",
-                        copycatServer.name(),
-                        copycatServer.cluster().leader().id()),
+                        copycatServer.cluster().member().id(),
+                        copycatServer.cluster().leader() == null ? "none at the moment" :
+                                copycatServer.cluster().leader().id()),
                 0L);
     }
 
