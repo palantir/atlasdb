@@ -13,13 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock.atomix;
+package com.palantir.atlasdb.timelock.copycat;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -28,34 +27,27 @@ import javax.ws.rs.ServiceUnavailableException;
 import org.immutables.value.Value;
 
 import com.google.common.reflect.AbstractInvocationHandler;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 
-import io.atomix.group.LocalMember;
-import io.atomix.variables.DistributedValue;
+import io.atomix.copycat.server.CopycatServer;
 
-public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler {
-    private final LocalMember localMember;
-    private final DistributedValue<LeaderAndTerm> leaderInfo;
-    private final AtomicReference<TermWrapped<T>> delegateRef = new AtomicReference<>();
+public class CopycatInvalidatingLeaderProxy<T> extends AbstractInvocationHandler {
+    private final CopycatServer copycatServer;
+    private final AtomicReference<TermWrapped<T>> delegateRef;
     private final Supplier<T> delegateSupplier;
 
-    private InvalidatingLeaderProxy(
-            LocalMember localMember,
-            DistributedValue<LeaderAndTerm> leaderInfo,
+    private CopycatInvalidatingLeaderProxy(CopycatServer copycatServer,
             Supplier<T> delegateSupplier) {
-        this.localMember = localMember;
-        this.leaderInfo = leaderInfo;
+        this.copycatServer = copycatServer;
+        this.delegateRef = new AtomicReference<>();
         this.delegateSupplier = delegateSupplier;
     }
 
     public static <T> T create(
-            LocalMember localMember,
-            DistributedValue<LeaderAndTerm> leaderInfo,
+            CopycatServer server,
             Supplier<T> delegateSupplier,
             Class<T> interfaceClass) {
-        InvalidatingLeaderProxy<T> proxy = new InvalidatingLeaderProxy<>(
-                localMember,
-                leaderInfo,
+        CopycatInvalidatingLeaderProxy<T> proxy = new CopycatInvalidatingLeaderProxy<>(
+                server,
                 delegateSupplier);
 
         return (T) Proxy.newProxyInstance(
@@ -66,11 +58,11 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        LeaderAndTerm currentLeaderInfo = getLeaderInfo();
-        if (currentLeaderInfo != null && isLeader(currentLeaderInfo.leaderId())) {
+        long currentTerm = copycatServer.cluster().term();
+        if (isLeader()) {
             TermWrapped<T> delegate = delegateRef.get();
-            while (delegate == null || delegate.term() < currentLeaderInfo.term()) {
-                TermWrapped<T> newDelegate = ImmutableTermWrapped.of(currentLeaderInfo.term(), delegateSupplier.get());
+            while (delegate == null || delegate.term() < currentTerm) {
+                TermWrapped<T> newDelegate = ImmutableTermWrapped.of(currentTerm, delegateSupplier.get());
                 if (delegateRef.compareAndSet(delegate, newDelegate)) {
                     closeIfNecessary(delegate);
                 } else {
@@ -79,38 +71,20 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
                 delegate = delegateRef.get();
             }
 
-            if (delegate.term() == currentLeaderInfo.term()) {
+            if (delegate.term() == currentTerm) {
                 return method.invoke(delegate.delegate(), args);
             }
         }
         clearDelegate();
         throw new ServiceUnavailableException(
-                String.format("This node (%s) is not the leader (%s)", getLocalId(), currentLeaderInfo),
+                String.format("This node (%s) is not the leader (%s)",
+                        copycatServer.name(),
+                        copycatServer.cluster().leader().id()),
                 0L);
     }
 
-    private boolean isLeader(String leaderId) {
-        return Objects.equals(getLocalId(), leaderId);
-    }
-
-    private String getLocalId() {
-        return localMember.id();
-    }
-
-    private LeaderAndTerm getLeaderInfo() {
-        try {
-            return AtomixRetryer.getWithRetry(leaderInfo::get);
-        } catch (UncheckedExecutionException e) {
-            if (e.getCause() instanceof IOException) {
-                throw new ServiceUnavailableException(
-                        String.format(
-                                "Could not contact the cluster. Has this node (%s) been partitioned off?",
-                                getLocalId()),
-                        0L,
-                        e);
-            }
-            throw e;
-        }
+    private boolean isLeader() {
+        return copycatServer.state() == CopycatServer.State.LEADER;
     }
 
     private void clearDelegate() throws IOException {
@@ -123,6 +97,7 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
             ((Closeable) wrappedDelegate.delegate()).close();
         }
     }
+
 
     @Value.Immutable
     interface TermWrapped<U> {
