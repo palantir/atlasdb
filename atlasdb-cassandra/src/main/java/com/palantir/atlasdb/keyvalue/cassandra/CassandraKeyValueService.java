@@ -116,6 +116,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -1062,7 +1063,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
                 });
             } catch (UnavailableException e) {
-                throw new IllegalStateException("Truncating tables requires all Cassandra nodes"
+                throw new PalantirRuntimeException("Truncating tables requires all Cassandra nodes"
                         + " to be up and available.");
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
@@ -1166,7 +1167,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 }
             });
         } catch (UnavailableException e) {
-            throw new IllegalStateException("Deleting requires all Cassandra nodes to be up and available.");
+            throw new PalantirRuntimeException("Deleting requires all Cassandra nodes to be up and available.");
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -1213,13 +1214,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     rangeRequest,
                     timestampsGetterBatchSize.get(),
                     timestamp,
-                    readConsistency);
+                    deleteConsistency);
         } else {
             return getRangeWithPageCreator(
                     tableRef,
                     rangeRequest,
                     timestamp,
-                    readConsistency,
+                    deleteConsistency,
                     TimestampExtractor.SUPPLIER);
         }
     }
@@ -1304,9 +1305,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 for (TableReference table : tablesToDrop) {
                     CassandraVerifier.sanityCheckTableName(table);
                     if (existingTables.contains(table)) {
-                        if (client.describe_schema_versions().containsKey("UNREACHABLE")) {
-                            throw new UnavailableException();
-                        }
                         client.system_drop_column_family(internalTableName(table));
                         putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
                     } else {
@@ -1320,7 +1318,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 return null;
             });
         } catch (UnavailableException e) {
-            throw new IllegalStateException("Dropping tables requires all Cassandra nodes to be up and available.");
+            throw new PalantirRuntimeException("Dropping tables requires all Cassandra nodes to be up and available.");
         }
     }
 
@@ -1429,15 +1427,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         clientPool.runWithRetry(client -> {
             for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
                 try {
-                    if (client.describe_schema_versions().containsKey("UNREACHABLE")) {
-                        throw new UnavailableException();
-                    }
                     client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
                             configManager.getConfig().keyspace(),
                             tableEntry.getKey(),
                             tableEntry.getValue()));
                 } catch (UnavailableException e) {
-                    throw new IllegalStateException(
+                    throw new PalantirRuntimeException(
                             "Creating tables requires all Cassandra nodes to be up and available.");
                 } catch (TException thriftException) {
                     if (thriftException.getMessage() != null
@@ -1675,7 +1670,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts) {
         AllTimestampsCollector collector = new AllTimestampsCollector();
-        loadWithTs(tableRef, cells, ts, true, collector, readConsistency);
+        loadWithTs(tableRef, cells, ts, true, collector, deleteConsistency);
         return collector.collectedResults;
     }
 

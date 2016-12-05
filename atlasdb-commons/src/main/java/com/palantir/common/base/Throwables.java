@@ -82,8 +82,7 @@ public final class Throwables {
      * If Throwable is a RuntimeException or Error, rethrow it. If not, throw a
      * new PalantirRuntimeException(ex)
      */
-    public static RuntimeException
-    throwUncheckedException(Throwable ex) {
+    public static RuntimeException throwUncheckedException(Throwable ex) {
         throwIfInstance(ex, RuntimeException.class);
         throwIfInstance(ex, Error.class);
         throw createPalantirRuntimeException(ex);
