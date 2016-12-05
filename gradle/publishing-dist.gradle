@@ -3,7 +3,7 @@ apply plugin: 'maven-publish'
 publishing {
     repositories {
         maven {
-            url System.env.ARTIFACTORY_URL + (project.version ==~ releaseVersionRegex ? System.env.ARTIFACTORY_DIST_RELEASE_REPO : System.env.ARTIFACTORY_DIST_SNAPSHOT_REPO)
+            url System.env.ARTIFACTORY_URL + (project.version ==~ releaseVersionRegex ? "" : System.env.ARTIFACTORY_DIST_SNAPSHOT_REPO)
 
             credentials {
                 username System.env.ARTIFACTORY_USERNAME

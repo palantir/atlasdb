@@ -23,6 +23,11 @@ publishing {
             artifact(testJar) {
                 classifier 'tests'
             }
+            if (project.hasProperty('distTar')) {
+                artifact(distTar) {
+                    classifier 'dist'
+                }
+            }
             pom.withXml {
                 def scm = asNode().appendNode('scm')
                 scm.appendNode('url', 'https://github.com/palantir/atlasdb')
