@@ -47,6 +47,28 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 20;
     }
 
+    /**
+     * The proportion of {@link #poolSize()} connections that are checked approximately
+     * every {@link #timeBetweenConnectionEvictionRunsSeconds()} seconds to see if has been idle at least
+     * {@link #idleConnectionTimeoutSeconds()} seconds and evicts it from the pool if so. For example, given the
+     * the default values, 0.1 * 30 = 3 connections will be checked approximately every 20 seconds and will
+     * be evicted from the pool if it has been idle for at least 10 minutes.
+     */
+    @Value.Default
+    public double proportionConnectionsToCheckPerEvictionRun() {
+        return 0.1;
+    }
+
+    @Value.Default
+    public int idleConnectionTimeoutSeconds() {
+        return 10 * 60;
+    }
+
+    @Value.Default
+    public int timeBetweenConnectionEvictionRunsSeconds() {
+        return 20;
+    }
+
     @Value.Default
     public int poolRefreshIntervalSeconds() {
         return 5 * 60;
