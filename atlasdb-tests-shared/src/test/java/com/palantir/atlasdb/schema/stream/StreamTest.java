@@ -250,6 +250,7 @@ public class StreamTest extends AtlasDbTestCase {
     private void assertStreamHasBytes(InputStream stream, byte[] bytes) throws IOException {
         byte[] streamAsBytes = IOUtils.toByteArray(stream);
         Assert.assertArrayEquals(bytes, streamAsBytes);
+        stream.close();
     }
 
     @Test
