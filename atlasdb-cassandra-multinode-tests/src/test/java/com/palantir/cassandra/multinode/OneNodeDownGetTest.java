@@ -38,11 +38,13 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.exception.PalantirRuntimeException;
 
 public class OneNodeDownGetTest {
 
@@ -110,17 +112,17 @@ public class OneNodeDownGetTest {
     @Test
     public void getRangeOfTimestampsThrows() {
         RangeRequest range = RangeRequest.builder().endRowExclusive(OneNodeDownTestSuite.SECOND_ROW).build();
-        assertThatThrownBy(() ->  OneNodeDownTestSuite.db.getRangeOfTimestamps(
-                OneNodeDownTestSuite.TEST_TABLE, range, Long.MAX_VALUE))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("This operation requires all nodes to be up and available.");
+        ClosableIterator<RowResult<Set<Long>>> it = OneNodeDownTestSuite.db.getRangeOfTimestamps(
+                OneNodeDownTestSuite.TEST_TABLE, range, Long.MAX_VALUE);
+        assertThatThrownBy(() -> it.next())
+                .isInstanceOf(InsufficientConsistencyException.class)
+                .hasMessage("This operation requires all Cassandra nodes to be up and available.");
     }
 
     @Test
     public void getAllTimestampsThrows() {
         assertThatThrownBy( () -> OneNodeDownTestSuite.db.getAllTimestamps(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableSet.of(OneNodeDownTestSuite.CELL_1_1), Long.MAX_VALUE))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("This operation requires all nodes to be up and available.");
+                .isInstanceOf(PalantirRuntimeException.class);
     }
 }

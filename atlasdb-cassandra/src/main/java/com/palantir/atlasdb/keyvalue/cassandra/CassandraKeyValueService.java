@@ -116,6 +116,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -1152,7 +1153,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      *
      * @param tableRef the name of the table to truncate.
      *
-     * @throws IllegalStateException if not all hosts respond successfully.
+     * @throws PalantirRuntimeException if not all hosts respond successfully.
      * @throws (? extends RuntimeException) if the table does not exist.
      */
     @Override
@@ -1169,7 +1170,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      *
      * @param tablesToTruncate set od tables to truncate.
      *
-     * @throws IllegalStateException if not all hosts respond successfully.
+     * @throws PalantirRuntimeException if not all hosts respond successfully.
      * @throws (? extends RuntimeException) if the table does not exist.
      */
     @Override
@@ -1191,7 +1192,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
                 });
             } catch (UnavailableException e) {
-                throw new IllegalStateException("Truncating tables requires all Cassandra nodes"
+                throw new PalantirRuntimeException("Truncating tables requires all Cassandra nodes"
                         + " to be up and available.");
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
@@ -1237,7 +1238,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      * @param tableRef the name of the table to delete values from.
      * @param keys map containing the keys to delete values for.
      *
-     * @throws IllegalStateException if not all hosts respond successfully.
+     * @throws PalantirRuntimeException if not all hosts respond successfully.
      */
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
@@ -1304,8 +1305,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             + numVersions + " total versions of " + cellVersionsMap.size() + " keys)";
                 }
             });
-        } catch (UnavailableException e) {
-            throw new IllegalStateException("Deleting requires all Cassandra nodes to be up and available.");
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -1355,14 +1354,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      * timestamps &lt; given_ts.
      * <p>
      * This method has stronger consistency guarantees than regular read requests. This must return
-     * all timestamps stored anywhere in the system. Unless all nodes are up and available, this
-     * method will throw an IllegalStateException.
+     * all timestamps stored anywhere in the system. Unless all nodes are up and available, the
+     * iterator will throw an InsufficientConsistencyException when accessed.
      *
      * @param tableRef the name of the table to read from.
      * @param rangeRequest the range to load.
      * @param timestamp the maximum timestamp to load.
-     *
-     * @throws IllegalStateException if not all hosts respond successfully.
      */
     @Override
     @Idempotent
@@ -1371,16 +1368,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             RangeRequest rangeRequest,
             long timestamp) {
         Optional<Integer> timestampsGetterBatchSize = configManager.getConfig().timestampsGetterBatchSize();
-                clientPool.runWithRetry(client -> {
-                    try {
-                        if (client.describe_schema_versions().containsKey("UNREACHABLE"))
-                            throw new IllegalStateException("This operation requires all nodes to be up and available.");
-                    }
-                    catch (TException e) {
-                        throw new IllegalStateException("This operation requires all nodes to be up and available.");
-                    }
-                    return null;
-                });
         if (timestampsGetterBatchSize.isPresent()) {
             return getTimestampsInBatchesWithPageCreator(
                     tableRef,
@@ -1966,21 +1953,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      * @param ts maximum timestamp to get (exclusive).
      * @return multimap of timestamps by cell
      *
-     * @throws IllegalStateException if not all hosts respond successfully.
+     * @throws PalantirRuntimeException if not all hosts respond successfully.
      */
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts) {
         AllTimestampsCollector collector = new AllTimestampsCollector();
-                clientPool.runWithRetry(client -> {
-                    try {
-                        if (client.describe_schema_versions().containsKey("UNREACHABLE"))
-                            throw new IllegalStateException("This operation requires all nodes to be up and available.");
-                    }
-                    catch (TException e) {
-                        throw new IllegalStateException("This operation requires all nodes to be up and available.");
-                    }
-                    return null;
-                });
         loadWithTs(tableRef, cells, ts, true, collector, deleteConsistency);
         return collector.collectedResults;
     }
