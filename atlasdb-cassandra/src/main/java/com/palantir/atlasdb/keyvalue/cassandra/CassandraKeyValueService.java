@@ -1555,7 +1555,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      *
      * @throws IllegalStateException if not all hosts respond successfully.
      */
-
     @Override
     public void createTables(final Map<TableReference, byte[]> tableNamesToTableMetadata) {
         Map<TableReference, byte[]> tablesToActuallyCreate = filterOutExistingTables(tableNamesToTableMetadata);
