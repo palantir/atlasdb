@@ -116,7 +116,6 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -179,9 +178,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     protected CassandraKeyValueService(Logger log,
-            CassandraKeyValueServiceConfigManager configManager,
-            Optional<CassandraJmxCompactionManager> compactionManager,
-            Optional<LeaderConfig> leaderConfig) {
+                                       CassandraKeyValueServiceConfigManager configManager,
+                                       Optional<CassandraJmxCompactionManager> compactionManager,
+                                       Optional<LeaderConfig> leaderConfig) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
@@ -308,24 +307,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    /**
-     * Gets values from the key-value store.
-     * <p>
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     *
-     * @param tableRef the name of the table to retrieve values from.
-     * @param rows set containing the rows to retrieve values for.
-     * @param selection specifies the set of columns to fetch.
-     * @param startTs specifies the maximum timestamp (exclusive) at which to
-     *        retrieve each rows's value.
-     *
-     * @return map of retrieved values. Values which do not exist (either
-     *         because they were deleted or never created in the first place)
-     *         are simply not returned.
-     *
-     * @throws IllegalArgumentException if any of the requests were invalid
-     *         (e.g., attempting to retrieve values from a non-existent table).
-     */
     @Override
     public Map<Cell, Value> getRows(
             TableReference tableRef,
@@ -353,9 +334,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private Map<Cell, Value> getRowsForSingleHost(final InetSocketAddress host,
-            final TableReference tableRef,
-            final List<byte[]> rows,
-            final long startTs) {
+                                                  final TableReference tableRef,
+                                                  final List<byte[]> rows,
+                                                  final long startTs) {
         try {
             int rowCount = 0;
             final Map<Cell, Value> result = Maps.newHashMap();
@@ -399,7 +380,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             }
             if (rowCount > fetchBatchCount) {
                 log.warn("Rebatched in getRows a call to {} that attempted to multiget {} rows; "
-                                + "this may indicate overly-large batching on a higher level.\n{}",
+                        + "this may indicate overly-large batching on a higher level.\n{}",
                         tableRef.getQualifiedName(),
                         rowCount,
                         CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
@@ -419,9 +400,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private Map<Cell, Value> getRowsForSpecificColumns(final TableReference tableRef,
-            final Iterable<byte[]> rows,
-            ColumnSelection selection,
-            final long startTs) {
+                                                       final Iterable<byte[]> rows,
+                                                       ColumnSelection selection,
+                                                       final long startTs) {
         Preconditions.checkArgument(!selection.allColumnsSelected(), "Must select specific columns");
 
         Collection<byte[]> selectedColumns = selection.getSelectedColumns();
@@ -437,22 +418,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return collector.collectedResults;
     }
 
-    /**
-     * Gets values from the key-value store.
-     * <p>
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     *
-     * @param tableRef the name of the table to retrieve values from.
-     * @param timestampByCell specifies, for each row, the maximum timestamp (exclusive) at which to
-     *        retrieve that rows's value.
-     *
-     * @return map of retrieved values. Values which do not exist (either
-     *         because they were deleted or never created in the first place)
-     *         are simply not returned.
-     *
-     * @throws IllegalArgumentException if any of the requests were invalid
-     *         (e.g., attempting to retrieve values from a non-existent table).
-     */
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         if (timestampByCell.isEmpty()) {
@@ -483,11 +448,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private void loadWithTs(TableReference tableRef,
-            Set<Cell> cells,
-            long startTs,
-            boolean loadAllTs,
-            ThreadSafeResultVisitor visitor,
-            ConsistencyLevel consistency) {
+                            Set<Cell> cells,
+                            long startTs,
+                            boolean loadAllTs,
+                            ThreadSafeResultVisitor visitor,
+                            ConsistencyLevel consistency) {
         Map<InetSocketAddress, List<Cell>> hostsAndCells =  partitionByHost(cells, Cells.getRowFunction());
         int totalPartitions = hostsAndCells.keySet().size();
 
@@ -520,12 +485,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     // TODO: after cassandra api change: handle different column select per row
     private List<Callable<Void>> getLoadWithTsTasksForSingleHost(final InetSocketAddress host,
-            final TableReference tableRef,
-            final Collection<Cell> cells,
-            final long startTs,
-            final boolean loadAllTs,
-            final ThreadSafeResultVisitor visitor,
-            final ConsistencyLevel consistency) {
+                                                                 final TableReference tableRef,
+                                                                 final Collection<Cell> cells,
+                                                                 final long startTs,
+                                                                 final boolean loadAllTs,
+                                                                 final ThreadSafeResultVisitor visitor,
+                                                                 final ConsistencyLevel consistency) {
         final ColumnParent colFam = new ColumnParent(internalTableName(tableRef));
         Multimap<byte[], Cell> cellsByCol =
                 TreeMultimap.create(UnsignedBytes.lexicographicalComparator(), Ordering.natural());
@@ -591,28 +556,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return tasks;
     }
 
-    /**
-     * Gets values from the key-value store for the specified rows and column range
-     * as separate iterators for each row.
-     * <p>
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     *
-     * @param tableRef the name of the table to retrieve values from.
-     * @param rows set containing the rows to retrieve values for. Behavior is undefined if {@code rows}
-     *        contains duplicates (as defined by {@link java.util.Arrays#equals(byte[], byte[])}).
-     * @param batchColumnRangeSelection specifies the column range and the per-row batchSize to fetch.
-     * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each rows's value.
-     *
-     * @return map of row names to {@link RowColumnRangeIterator}. Each {@link RowColumnRangeIterator} can iterate over
-     *         the values that are spanned by the {@code batchColumnRangeSelection} in increasing order by column name.
-     *
-     * @throws IllegalArgumentException if {@code rows} contains duplicates.
-     */
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef,
-            Iterable<byte[]> rows,
-            BatchColumnRangeSelection batchColumnRangeSelection,
-            long timestamp) {
+                                                                  Iterable<byte[]> rows,
+                                                                  BatchColumnRangeSelection batchColumnRangeSelection,
+                                                                  long timestamp) {
         Set<Entry<InetSocketAddress, List<byte[]>>> rowsByHost =
                 partitionByHost(rows, Functions.<byte[]>identity()).entrySet();
         List<Callable<Map<byte[], RowColumnRangeIterator>>> tasks = Lists.newArrayListWithCapacity(rowsByHost.size());
@@ -698,10 +646,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private RowColumnRangeExtractor.RowColumnRangeResult getRowsColumnRangeForSingleHost(InetSocketAddress host,
-            TableReference tableRef,
-            List<byte[]> rows,
-            BatchColumnRangeSelection batchColumnRangeSelection,
-            long startTs) {
+                                                             TableReference tableRef,
+                                                             List<byte[]> rows,
+                                                             BatchColumnRangeSelection batchColumnRangeSelection,
+                                                             long startTs) {
         try {
             return clientPool.runWithRetryOnHost(host,
                     new FunctionCheckedException<Client, RowColumnRangeExtractor.RowColumnRangeResult, Exception>() {
@@ -824,13 +772,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private boolean isEndOfColumnRange(boolean completedCell, byte[] lastCol, int numRawResults,
-            BatchColumnRangeSelection columnRangeSelection) {
+                                       BatchColumnRangeSelection columnRangeSelection) {
         return (numRawResults < columnRangeSelection.getBatchHint())
                 || (completedCell
-                && (RangeRequests.isLastRowName(lastCol)
-                || Arrays.equals(
-                RangeRequests.nextLexicographicName(lastCol),
-                columnRangeSelection.getEndCol())));
+                    && (RangeRequests.isLastRowName(lastCol)
+                        || Arrays.equals(
+                            RangeRequests.nextLexicographicName(lastCol),
+                            columnRangeSelection.getEndCol())));
     }
 
     private byte[] getNextColumnRangeColumn(boolean completedCell, byte[] lastCol) {
@@ -841,41 +789,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    /**
-     * Gets timestamp values from the key-value store.
-     * <p>
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     *
-     * @param tableRef the name of the table to retrieve values from.
-     * @param timestampByCell map containing the cells to retrieve timestamps for. The map
-     *        specifies, for each key, the maximum timestamp (exclusive) at which to
-     *        retrieve that key's value.
-     *
-     * @return map of retrieved values. cells which do not exist (either
-     *         because they were deleted or never created in the first place)
-     *         are simply not returned.
-     *
-     * @throws IllegalArgumentException if any of the requests were invalid
-     *         (e.g., attempting to retrieve values from a non-existent table).
-     */
     @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         // TODO: optimize by only getting column name after cassandra api change
         return super.getLatestTimestamps(tableRef, timestampByCell);
     }
 
-    /**
-     * Puts values into the key-value store. This call <i>does not</i> guarantee
-     * atomicity across cells. On failure, it is possible
-     * that some of the requests will have succeeded (without having been rolled
-     * back). Similarly, concurrent batched requests may interleave.
-     * <p>
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     *
-     * @param tableRef the name of the table to put values into.
-     * @param values map containing the key-value entries to put.
-     * @param timestamp must be non-negative and not equal to {@link Long#MAX_VALUE}
-     */
     @Override
     public void put(final TableReference tableRef, final Map<Cell, byte[]> values, final long timestamp) {
         try {
@@ -885,18 +804,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    /**
-     * Puts values into the key-value store with individually specified timestamps.
-     * This call <i>does not</i> guarantee atomicity across cells. On failure, it is possible
-     * that some of the requests will have succeeded (without having been rolled
-     * back). Similarly, concurrent batched requests may interleave.
-     * <p>
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     *
-     * @param tableRef the name of the table to put values into.
-     * @param values map containing the key-value entries to put with
-     *               non-negative timestamps less than {@link Long#MAX_VALUE}.
-     */
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
         try {
@@ -912,13 +819,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private void putInternal(final TableReference tableRef,
-            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
+                             final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
         putInternal(tableRef, values, CassandraConstants.NO_TTL);
     }
 
     protected void putInternal(final TableReference tableRef,
-            Iterable<Map.Entry<Cell, Value>> values,
-            final int ttl) throws Exception {
+                               Iterable<Map.Entry<Cell, Value>> values,
+                               final int ttl) throws Exception {
         Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = partitionMapByHost(values);
         List<Callable<Void>> tasks = Lists.newArrayListWithCapacity(cellsByHost.size());
         for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
@@ -934,9 +841,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private void putForSingleHostInternal(final InetSocketAddress host,
-            final TableReference tableRef,
-            final Iterable<Map.Entry<Cell, Value>> values,
-            final int ttl) throws Exception {
+                                          final TableReference tableRef,
+                                          final Iterable<Map.Entry<Cell, Value>> values,
+                                          final int ttl) throws Exception {
         clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
             @Override
             public Void apply(Client client) throws Exception {
@@ -984,19 +891,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         });
     }
 
-    /**
-     * Puts values into the key-value store. This call <i>does not</i> guarantee
-     * atomicity across cells. On failure, it is possible
-     * that some of the requests will have succeeded (without having been rolled
-     * back). Similarly, concurrent batched requests may interleave.
-     * <p>
-     * Overridden to batch more intelligently than the default implementation.
-     * <p>
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     *
-     * @param valuesByTable map containing the key-value entries to put by table.
-     * @param timestamp must be non-negative and not equal to {@link Long#MAX_VALUE}
-     */
+    // Overridden to batch more intelligently than the default implementation.
     @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
             throws KeyAlreadyExistsException {
@@ -1017,8 +912,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private List<Callable<Void>> getMultiPutTasksForSingleHost(final InetSocketAddress host,
-            Collection<TableCellAndValue> values,
-            final long timestamp) {
+                                                               Collection<TableCellAndValue> values,
+                                                               final long timestamp) {
         Iterable<List<TableCellAndValue>> partitioned =
                 partitionByCountAndBytes(values,
                         getMultiPutBatchCount(),
@@ -1045,9 +940,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private Void multiPutForSingleHostInternal(final InetSocketAddress host,
-            final Set<TableReference> tableRefs,
-            final List<TableCellAndValue> batch,
-            long timestamp) throws Exception {
+                                               final Set<TableReference> tableRefs,
+                                               final List<TableCellAndValue> batch,
+                                               long timestamp) throws Exception {
         final Map<ByteBuffer, Map<String, List<Mutation>>> map = convertToMutations(batch, timestamp);
         return clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
             @Override
@@ -1063,7 +958,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private Map<ByteBuffer, Map<String, List<Mutation>>> convertToMutations(List<TableCellAndValue> batch,
-            long timestamp) {
+                                                                            long timestamp) {
         Map<ByteBuffer, Map<String, List<Mutation>>> map = Maps.newHashMap();
         for (TableCellAndValue tableCellAndValue : batch) {
             Cell cell = tableCellAndValue.cell;
@@ -1117,16 +1012,16 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private void batchMutateInternal(Client client,
-            TableReference tableRef,
-            Map<ByteBuffer, Map<String, List<Mutation>>> map,
-            ConsistencyLevel consistency) throws TException {
+                                     TableReference tableRef,
+                                     Map<ByteBuffer, Map<String, List<Mutation>>> map,
+                                     ConsistencyLevel consistency) throws TException {
         batchMutateInternal(client, ImmutableSet.of(tableRef), map, consistency);
     }
 
     private Void batchMutateInternal(Client client,
-            Set<TableReference> tableRefs,
-            Map<ByteBuffer, Map<String, List<Mutation>>> map,
-            ConsistencyLevel consistency) throws TException {
+                                     Set<TableReference> tableRefs,
+                                     Map<ByteBuffer, Map<String, List<Mutation>>> map,
+                                     ConsistencyLevel consistency) throws TException {
         return queryRunner.run(client, tableRefs, () -> {
             client.batch_mutate(map, consistency);
             return null;
@@ -1143,36 +1038,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return queryRunner.run(client, tableRef, () -> client.multiget_slice(rowNames, colFam, pred, consistency));
     }
 
-    /**
-     * Truncate a table in the key-value store.
-     * <p>
-     * This is preferred to dropping and re-adding a table, as live schema changes can
-     * be a complicated topic for distributed databases.
-     * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException.
-     *
-     * @param tableRef the name of the table to truncate.
-     *
-     * @throws PalantirRuntimeException if not all hosts respond successfully.
-     * @throws (? extends RuntimeException) if the table does not exist.
-     */
     @Override
     public void truncateTable(final TableReference tableRef) {
         truncateTables(ImmutableSet.of(tableRef));
     }
 
-    /**
-     * Truncates tables in the key-value store.
-     * <p>
-     * This can be slightly faster than repeatedly truncating individual tables.
-     * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException.
-     *
-     * @param tablesToTruncate set od tables to truncate.
-     *
-     * @throws PalantirRuntimeException if not all hosts respond successfully.
-     * @throws (? extends RuntimeException) if the table does not exist.
-     */
     @Override
     public void truncateTables(final Set<TableReference> tablesToTruncate) {
         if (!tablesToTruncate.isEmpty()) {
@@ -1192,7 +1062,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
                 });
             } catch (UnavailableException e) {
-                throw new PalantirRuntimeException("Truncating tables requires all Cassandra nodes"
+                throw new IllegalStateException("Truncating tables requires all Cassandra nodes"
                         + " to be up and available.");
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
@@ -1210,7 +1080,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 });
             } catch (TException e) {
                 log.error("Cluster was unavailable while we attempted a truncate for table "
-                                + "{}; we will try {} additional time(s).",
+                        + "{}; we will try {} additional time(s).",
                         tableRef.getQualifiedName(),
                         CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries, e);
                 if (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries == 0) {
@@ -1230,16 +1100,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    /**
-     * Deletes values from the key-value store.
-     * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException.
-     *
-     * @param tableRef the name of the table to delete values from.
-     * @param keys map containing the keys to delete values for.
-     *
-     * @throws PalantirRuntimeException if not all hosts respond successfully.
-     */
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         Map<InetSocketAddress, Map<Cell, Collection<Long>>> keysByHost = partitionMapByHost(keys.asMap().entrySet());
@@ -1249,8 +1109,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     private void deleteOnSingleHost(final InetSocketAddress host,
-            final TableReference tableRef,
-            final Map<Cell, Collection<Long>> cellVersionsMap) {
+                                    final TableReference tableRef,
+                                    final Map<Cell, Collection<Long>> cellVersionsMap) {
         try {
             clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
                 int numVersions = 0;
@@ -1305,6 +1165,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             + numVersions + " total versions of " + cellVersionsMap.size() + " keys)";
                 }
             });
+        } catch (UnavailableException e) {
+            throw new IllegalStateException("Deleting requires all Cassandra nodes to be up and available.");
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -1329,17 +1191,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     // TODO: after cassandra change: handle reverse ranges
     // TODO: after cassandra change: handle column filtering
-    /**
-     * For each row in the specified range, returns the most recent version strictly before
-     * timestamp.
-     * <p>
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     *
-     * Remember to close any {@link ClosableIterator}s you get in a finally block.
-     *
-     * @param rangeRequest the range to load.
-     * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each row's value.
-     */
     @Override
     @Idempotent
     public ClosableIterator<RowResult<Value>> getRange(
@@ -1349,18 +1200,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return getRangeWithPageCreator(tableRef, rangeRequest, timestamp, readConsistency, ValueExtractor.SUPPLIER);
     }
 
-    /**
-     * Gets timestamp values from the key-value store. For each row, this returns all associated
-     * timestamps &lt; given_ts.
-     * <p>
-     * This method has stronger consistency guarantees than regular read requests. This must return
-     * all timestamps stored anywhere in the system. Unless all nodes are up and available, the
-     * iterator will throw an InsufficientConsistencyException when accessed.
-     *
-     * @param tableRef the name of the table to read from.
-     * @param rangeRequest the range to load.
-     * @param timestamp the maximum timestamp to load.
-     */
     @Override
     @Idempotent
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
@@ -1435,43 +1274,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return ClosableIterators.wrap(rowResults.iterator());
     }
 
-    /**
-     * Drop the table, and also delete its table metadata.
-     * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException. In the
-     * unlikely case where a node becomes unavailable during the execution of this method, or the schema versions
-     * of do not come to agreement in 1 minute, it is possible for the table to be dropped from the KVS without
-     * the schema being modified. In this case, the method is guaranteed to throw an IllegalStateException.
-     *
-     * @param tableRef the name of the table to drop.
-     *
-     * @throws IllegalStateException if not all hosts respond successfully, or if their schema versions do
-     * not come to agreement in 1 minute.
-     */
     @Override
     public void dropTable(final TableReference tableRef) {
         dropTables(ImmutableSet.of(tableRef));
     }
 
     /**
-     * Drop the tables, and also delete their table metadata.
-     * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException.
-     * In the unlikely case where a node becomes unavailable during the execution of this method, or the schema
-     * versions of do not come to agreement in 1 minute, it is possible for some of the tables to be dropped
-     * from the KVS without the schema being modified. In this case, the method is guaranteed to throw
-     * an IllegalStateException.
-     * <p>
      * Main gains here vs. dropTable:
      *    - problems excepting, we will basically be serializing a rapid series of schema changes
      *      through a single host checked out from the client pool, so reduced chance of schema disagreement issues
      *    - client-side in-memory lock to prevent misbehaving callers from shooting themselves in the foot
      *    - one less round trip
-     *
-     * @param tablesToDrop the set of tables to drop.
-     *
-     * @throws IllegalStateException if not all hosts respond successfully, or if their schema versions do
-     * not come to agreement in 1 minute.
      */
     @Override
     public void dropTables(final Set<TableReference> tablesToDrop) {
@@ -1515,44 +1328,18 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return fromInternalTableName(cf.getName());
     }
 
-    /**
-     * Creates a table with the specified name. If the table already exists, no action is performed
-     * (the table is left in its current state).
-     * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException.
-     *
-     * @param tableRef the name of the table to create.
-     * @param tableMetadata the metadata of the table to create.
-     *
-     * @throws IllegalStateException if not all hosts respond successfully.
-     */
     @Override
     public void createTable(final TableReference tableRef, final byte[] tableMetadata) {
         createTables(ImmutableMap.of(tableRef, tableMetadata));
     }
 
     /**
-     * Creates a table with the specified name. If the table already exists, no action is performed
-     * (the table is left in its current state).
-     * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException.
-     * <p>
      * Main gains here vs. createTable:
      *    - problems excepting, we will basically be serializing a rapid series of schema changes
      *      through a single host checked out from the client pool, so reduced chance of schema disagreement issues
      *    - client-side in-memory lock to prevent misbehaving callers from shooting themselves in the foot
      *    - one less round trip
-     * <p>
-     * createTables(existingTable, newMetadata) can perform a metadata-only update. Additionally, it is possible
-     * that this metadata-only update performs a schema mutation by altering the CFDef (e. g., user changes metadata
-     * of existing table to have new compression block size). This does not require the schema mutation lock, as it
-     * does not alter the CfId
-     *
-     * @param tableNamesToTableMetadata a mapping of names of tables to create to their respective metadata.
-     *
-     * @throws IllegalStateException if not all hosts respond successfully.
      */
-
     @Override
     public void createTables(final Map<TableReference, byte[]> tableNamesToTableMetadata) {
         Map<TableReference, byte[]> tablesToActuallyCreate = filterOutExistingTables(tableNamesToTableMetadata);
@@ -1567,6 +1354,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 createTablesInternal(tablesToActuallyCreate);
             });
         }
+
+        // createTables(existingTable, newMetadata) can perform a metadata-only update.
+        // additionally it is possible that this metadata-only update performs a schema mutation
+        // by altering the CFDef (ex. user changes metadata of existing table to have new compression block size)
+        // This does not require the schema mutation lock, however, as it does not alter the CfId
         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
     }
 
@@ -1663,15 +1455,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         });
     }
 
-    /**
-     * Return the list of tables stored in this key value service.
-     * <p>
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     * <p>
-     * This will not contain the names of any hidden tables (e. g., the _metadata table).
-     *
-     * @return a set of TableReferences (table names) for all the visible tables
-     */
     @Override
     public Set<TableReference> getAllTableNames() {
         return getTableReferencesWithoutFiltering()
@@ -1679,16 +1462,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 .collect(Collectors.toSet());
     }
 
-    /**
-     * Gets the metadata for a given table. Also useful for checking to see if a table exists.
-     * <p>
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     *
-     * @param tableRef the name of the table to get metadatafor.
-     *
-     * @return a byte array representing the metadata for the table. Array is empty if no table
-     * with the given name exists. Consider {@link TableMetadata#BYTES_HYDRATOR} for hydrating.
-     */
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
         // This can be turned into not-a-full-table-scan if someone makes an upgrade task
@@ -1697,7 +1470,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         java.util.Optional<Entry<TableReference, byte[]>> match =
                 getMetadataForTables().entrySet().stream().filter(
                         entry -> matchingIgnoreCase(entry.getKey(), tableRef))
-                        .findFirst();
+                .findFirst();
 
         if (!match.isPresent()) {
             log.debug("Couldn't find table metadata for {}", tableRef);
@@ -1719,14 +1492,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    /**
-     * Gets the metadata for all non-hidden tables.
-     * <p>
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     *
-     * @return a mapping of table names to their respective metadata in form of a byte array.  Consider
-     * {@link TableMetadata#BYTES_HYDRATOR} for hydrating.
-     */
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
         Map<TableReference, byte[]> tableToMetadataContents = Maps.newHashMap();
@@ -1788,31 +1553,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return tableRef.getQualifiedName().getBytes(Charset.defaultCharset());
     }
 
-    /**
-     * Records the specified metadata for a given table.
-     * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException.
-     *
-     * @param tableRef the name of the table to record metadata for.
-     * @param meta a byte array representing the metadata to record.
-     *
-     * @throws IllegalStateException if not all hosts respond successfully.
-     */
     @Override
     public void putMetadataForTable(final TableReference tableRef, final byte[] meta) {
         putMetadataForTables(ImmutableMap.of(tableRef, meta));
     }
 
-    /**
-     * For each specified table records the respective metadata.
-     * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException.
-     *
-     * @param tableRefToMetadata a mapping from each table's name to the respective byte array representing
-     * the metadata to record.
-     *
-     * @throws IllegalStateException if not all hosts respond successfully.
-     */
     @Override
     public void putMetadataForTables(final Map<TableReference, byte[]> tableRefToMetadata) {
         internalPutMetadataForTables(tableRefToMetadata, true);
@@ -1903,9 +1648,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         delete(AtlasDbConstants.DEFAULT_METADATA_TABLE, oldVersions);
     }
 
-    /**
-     * Performs non-destructive cleanup when the KVS is no longer needed.
-     */
     @Override
     public void close() {
         clientPool.shutdown();
@@ -1915,16 +1657,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         super.close();
     }
 
-
-    /**
-     * Adds a value with timestamp = Value.INVALID_VALUE_TIMESTAMP to each of the given cells. If
-     * a value already exists at that time stamp, nothing is written for that cell.
-     * <p>
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     *
-     * @param tableRef the name of the table to add the value to.
-     * @param cells a set of cells to store the values in.
-     */
     @Override
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
         try {
@@ -1940,21 +1672,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    /**
-     * Gets timestamp values from the key-value store. For each cell, this returns all associated
-     * timestamps &lt; given_ts.
-     * <p>
-     * This method has stronger consistency guarantees than regular read requests. This must return
-     * all timestamps stored anywhere in the system. Unless all nodes are up and available, this
-     * method will throw an IllegalStateException.
-     *
-     * @param tableRef the name of the table to retrieve timestamps from.
-     * @param cells set containg cells to retrieve timestamps for.
-     * @param ts maximum timestamp to get (exclusive).
-     * @return multimap of timestamps by cell
-     *
-     * @throws PalantirRuntimeException if not all hosts respond successfully.
-     */
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts) {
         AllTimestampsCollector collector = new AllTimestampsCollector();
@@ -1962,20 +1679,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return collector.collectedResults;
     }
 
-    /**
-     * Puts values into the key-value store. This call <i>does not</i> guarantee
-     * atomicity across cells. On failure, it is possible that some of the requests will
-     * have succeeded (without having been rolled back). Similarly, concurrent batched requests may
-     * interleave.  However, concurrent writes to the same Cell will not both report success.
-     * One of them will throw {@link KeyAlreadyExistsException}.
-     * <p>
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     *
-     * @param tableRef the name of the table to put values into.
-     * @param values map containing the key-value entries to put.
-     *
-     * @throws KeyAlreadyExistsException If you are putting a Cell with the same timestamp as one that already exists.
-     */
     @Override
     public void putUnlessExists(final TableReference tableRef, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
@@ -2015,12 +1718,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    /**
-     * Does whatever can be done to compact or cleanup a table. Intended to be called after many
-     * deletions are performed.
-     *
-     * @param tableRef the name of the table to compact.
-     */
     @Override
     public void compactInternally(TableReference tableRef) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()),
@@ -2108,9 +1805,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         }
     }
 
-    /**
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     */
     public void cleanUpSchemaMutationLockTablesState() throws Exception {
         Set<TableReference> tables = lockTables.getAllLockTables();
         java.util.Optional<TableReference> tableToKeep = tables.stream().findFirst();
