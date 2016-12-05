@@ -1371,19 +1371,29 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             RangeRequest rangeRequest,
             long timestamp) {
         Optional<Integer> timestampsGetterBatchSize = configManager.getConfig().timestampsGetterBatchSize();
+        clientPool.runWithRetry(client -> {
+            try {
+                if (client.describe_schema_versions().containsKey("UNREACHABLE"))
+                    throw new IllegalStateException("This operation requires all nodes to be up and available.");
+            }
+            catch (TException e) {
+                throw new IllegalStateException("This operation requires all nodes to be up and available.");
+            }
+            return null;
+        });
         if (timestampsGetterBatchSize.isPresent()) {
             return getTimestampsInBatchesWithPageCreator(
                     tableRef,
                     rangeRequest,
                     timestampsGetterBatchSize.get(),
                     timestamp,
-                    readConsistency);
+                    deleteConsistency);
         } else {
             return getRangeWithPageCreator(
                     tableRef,
                     rangeRequest,
                     timestamp,
-                    readConsistency,
+                    deleteConsistency,
                     TimestampExtractor.SUPPLIER);
         }
     }
@@ -1961,7 +1971,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts) {
         AllTimestampsCollector collector = new AllTimestampsCollector();
-        loadWithTs(tableRef, cells, ts, true, collector, readConsistency);
+        clientPool.runWithRetry(client -> {
+            try {
+                if (client.describe_schema_versions().containsKey("UNREACHABLE"))
+                    throw new IllegalStateException("This operation requires all nodes to be up and available.");
+            }
+            catch (TException e) {
+                throw new IllegalStateException("This operation requires all nodes to be up and available.");
+            }
+            return null;
+        });
+        loadWithTs(tableRef, cells, ts, true, collector, deleteConsistency);
         return collector.collectedResults;
     }
 
