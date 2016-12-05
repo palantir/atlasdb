@@ -158,7 +158,8 @@ We are happy to accept pull requests and could use help
 implementing the AtlasDB API for more underlying physical stores.</p>
 <p>In order to ensure your pull request is merged please keep the following in mind:</p>
 <ul class="simple">
-<li>Assign a member of the team for review, if it is incorrect it will be triaged to the correct person</li>
+<li>Make sure checkstyle/findbugs pass. You can run this automatically at commit time by setting up a git hook using the script located at <code class="docutils literal"><span class="pre">scripts/setup-git-hooks.sh</span></code>.</li>
+<li>Assign a member of the team for review, if it is incorrect it will be triaged to the correct person.</li>
 <li>Update the <a class="reference internal" href="../release_notes/release-notes.html#change-log"><span class="std std-ref">Changelog</span></a> with the change if it is public facing.</li>
 <li>If you are updating logic the expectation is that new tests will be added for the functionality, a lack of testing will likely delay the PR.</li>
 </ul>
