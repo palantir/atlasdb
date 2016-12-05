@@ -87,6 +87,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -116,6 +117,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -1062,7 +1064,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
                 });
             } catch (UnavailableException e) {
-                throw new IllegalStateException("Truncating tables requires all Cassandra nodes"
+                throw new PalantirRuntimeException("Truncating tables requires all Cassandra nodes"
                         + " to be up and available.");
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
@@ -1166,7 +1168,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 }
             });
         } catch (UnavailableException e) {
-            throw new IllegalStateException("Deleting requires all Cassandra nodes to be up and available.");
+            throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be up and available.");
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -1304,9 +1306,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 for (TableReference table : tablesToDrop) {
                     CassandraVerifier.sanityCheckTableName(table);
                     if (existingTables.contains(table)) {
-                        if (client.describe_schema_versions().containsKey("UNREACHABLE")) {
-                            throw new UnavailableException();
-                        }
                         client.system_drop_column_family(internalTableName(table));
                         putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
                     } else {
@@ -1320,7 +1319,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 return null;
             });
         } catch (UnavailableException e) {
-            throw new IllegalStateException("Dropping tables requires all Cassandra nodes to be up and available.");
+            throw new PalantirRuntimeException("Dropping tables requires all Cassandra nodes to be up and available.");
         }
     }
 
@@ -1429,15 +1428,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         clientPool.runWithRetry(client -> {
             for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
                 try {
-                    if (client.describe_schema_versions().containsKey("UNREACHABLE")) {
-                        throw new UnavailableException();
-                    }
                     client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
                             configManager.getConfig().keyspace(),
                             tableEntry.getKey(),
                             tableEntry.getValue()));
                 } catch (UnavailableException e) {
-                    throw new IllegalStateException(
+                    throw new PalantirRuntimeException(
                             "Creating tables requires all Cassandra nodes to be up and available.");
                 } catch (TException thriftException) {
                     if (thriftException.getMessage() != null
