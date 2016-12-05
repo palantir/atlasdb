@@ -31,7 +31,7 @@
         (c/upload "resources/atlasdb/timelock.yml" "/atlasdb-timelock-server/var/conf")
         (c/exec :sed :-i (format "s/<HOSTNAME>/%s/" (name node)) "/atlasdb-timelock-server/var/conf/timelock.yml")
         (info node "Starting timelock server")
-        (c/exec "source" "/etc/profile" "&&" "/atlasdb-timelock-server/service/bin/init.sh" "start")
+        (c/exec :env "/usr/lib/jvm/java-8-oracle" "/atlasdb-timelock-server/service/bin/init.sh" "start")
         (info node "Waiting until timelock cluster is ready")
         (TimestampClient/waitUntilHostReady (name node))
         (TimestampClient/waitUntilTimestampClusterReady '("n1" "n2" "n3" "n4" "n5"))))
