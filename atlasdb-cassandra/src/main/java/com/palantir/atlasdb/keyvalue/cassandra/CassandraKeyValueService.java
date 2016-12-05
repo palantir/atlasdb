@@ -87,7 +87,6 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -1168,7 +1167,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 }
             });
         } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be up and available.");
+            throw new PalantirRuntimeException("Deleting requires all Cassandra nodes to be up and available.");
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
