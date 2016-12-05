@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.copycat.CopycatInvalidatingLeaderProxy;
 import com.palantir.atlasdb.timelock.copycat.CopycatTimestampService;
+import com.palantir.atlasdb.timelock.copycat.ImmutableUpdateLeaderCommand;
 import com.palantir.atlasdb.timelock.copycat.TimeLockStateMachine;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting1.config.ssl.SslConfiguration;
@@ -61,7 +62,18 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
                 .build();
 
         localNode.bootstrap(configuration.cluster().servers()).join();
-        localClient.connect();
+        localClient.connect().join();
+        localClient.submit(ImmutableUpdateLeaderCommand.builder()
+                .leader(localNode.cluster().leader().id())
+                .term(localNode.cluster().term())
+                .build()).join();
+
+        localNode.cluster().onLeaderElection(member -> {
+            localClient.submit(ImmutableUpdateLeaderCommand.builder()
+                    .leader(member.id())
+                    .term(localNode.cluster().term())
+                    .build()).join();
+        });
 
         Map<String, TimeLockServices> clientToServices = new HashMap<>();
         for (String client : configuration.clients()) {
@@ -70,6 +82,7 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
                     LockServiceImpl.create());
             TimeLockServices timeLockServices = createInvalidatingTimeLockServices(
                     localNode,
+                    localClient,
                     timeLockSupplier);
             clientToServices.put(client, timeLockServices);
         }
@@ -78,9 +91,11 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
         environment.jersey().register(new TimeLockResource(clientToServices));
     }
 
-    private static TimeLockServices createInvalidatingTimeLockServices(CopycatServer server,
+    private static TimeLockServices createInvalidatingTimeLockServices(
+            CopycatServer server,
+            CopycatClient client,
             Supplier<TimeLockServices> timeLockSupplier) {
-        return CopycatInvalidatingLeaderProxy.create(server, timeLockSupplier, TimeLockServices.class);
+        return CopycatInvalidatingLeaderProxy.create(server, client, timeLockSupplier, TimeLockServices.class);
     }
 
     private static Transport createTransport(Optional<SslConfiguration> optionalSecurity) {

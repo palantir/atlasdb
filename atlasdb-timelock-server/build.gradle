@@ -1,4 +1,5 @@
-apply from: "../gradle/shared.gradle"
+
+:atlasdb-jepsen-tests:findbugsTest UP-TO-DATEapply from: "../gradle/shared.gradle"
 
 apply plugin: 'com.palantir.java-distribution'
 apply plugin: 'org.inferred.processors'
@@ -21,7 +22,7 @@ dependencies {
     compile group: 'com.github.rholder', name: 'guava-retrying'
     compile group: 'com.palantir.remoting1', name: 'jersey-servers'
     compile group: 'com.palantir.remoting1', name: 'ssl-config'
-    compile group: 'io.atomix', name: 'copycat'
+    compile group: 'io.atomix.copycat', name: 'copycat-server'
     compile group: 'io.atomix', name: 'atomix-variables'
     compile group: 'io.atomix.catalyst', name: 'catalyst-netty'
     compile group: 'io.dropwizard', name: 'dropwizard-core'

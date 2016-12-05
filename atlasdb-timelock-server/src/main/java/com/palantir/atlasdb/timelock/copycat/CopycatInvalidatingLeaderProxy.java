@@ -19,6 +19,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -27,27 +28,35 @@ import javax.ws.rs.ServiceUnavailableException;
 import org.immutables.value.Value;
 
 import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.atlasdb.timelock.atomix.LeaderAndTerm;
 
+import io.atomix.copycat.client.CopycatClient;
 import io.atomix.copycat.server.CopycatServer;
 
 public class CopycatInvalidatingLeaderProxy<T> extends AbstractInvocationHandler {
     private final CopycatServer copycatServer;
+    private final CopycatClient copycatClient;
     private final AtomicReference<TermWrapped<T>> delegateRef;
     private final Supplier<T> delegateSupplier;
 
-    private CopycatInvalidatingLeaderProxy(CopycatServer copycatServer,
+    private CopycatInvalidatingLeaderProxy(
+            CopycatServer copycatServer,
+            CopycatClient copycatClient,
             Supplier<T> delegateSupplier) {
         this.copycatServer = copycatServer;
+        this.copycatClient = copycatClient;
         this.delegateRef = new AtomicReference<>();
         this.delegateSupplier = delegateSupplier;
     }
 
     public static <T> T create(
             CopycatServer server,
+            CopycatClient client,
             Supplier<T> delegateSupplier,
             Class<T> interfaceClass) {
         CopycatInvalidatingLeaderProxy<T> proxy = new CopycatInvalidatingLeaderProxy<>(
                 server,
+                client,
                 delegateSupplier);
 
         return (T) Proxy.newProxyInstance(
@@ -58,11 +67,11 @@ public class CopycatInvalidatingLeaderProxy<T> extends AbstractInvocationHandler
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        long currentTerm = copycatServer.cluster().term();
-        if (isLeader()) {
+        LeaderAndTerm currentLeaderInfo = getLeaderInfo();
+        if (currentLeaderInfo != null && isLeader(Integer.valueOf(currentLeaderInfo.leaderId()))) {
             TermWrapped<T> delegate = delegateRef.get();
-            while (delegate == null || delegate.term() < currentTerm) {
-                TermWrapped<T> newDelegate = ImmutableTermWrapped.of(currentTerm, delegateSupplier.get());
+            while (delegate == null || delegate.term() < currentLeaderInfo.term()) {
+                TermWrapped<T> newDelegate = ImmutableTermWrapped.of(currentLeaderInfo.term(), delegateSupplier.get());
                 if (delegateRef.compareAndSet(delegate, newDelegate)) {
                     closeIfNecessary(delegate);
                 } else {
@@ -71,7 +80,7 @@ public class CopycatInvalidatingLeaderProxy<T> extends AbstractInvocationHandler
                 delegate = delegateRef.get();
             }
 
-            if (delegate.term() == currentTerm) {
+            if (delegate.term() == currentLeaderInfo.term()) {
                 return method.invoke(delegate.delegate(), args);
             }
         }
@@ -79,13 +88,16 @@ public class CopycatInvalidatingLeaderProxy<T> extends AbstractInvocationHandler
         throw new ServiceUnavailableException(
                 String.format("This node (%s) is not the leader (%s)",
                         copycatServer.cluster().member().id(),
-                        copycatServer.cluster().leader() == null ? "none at the moment" :
-                                copycatServer.cluster().leader().id()),
+                        currentLeaderInfo),
                 0L);
     }
 
-    private boolean isLeader() {
-        return copycatServer.state() == CopycatServer.State.LEADER;
+    private LeaderAndTerm getLeaderInfo() {
+        return copycatClient.submit(ImmutableGetLeaderQuery.builder().build()).join();
+    }
+
+    private boolean isLeader(int leader) {
+        return Objects.equals(copycatServer.cluster().member().id(), leader);
     }
 
     private void clearDelegate() throws IOException {
