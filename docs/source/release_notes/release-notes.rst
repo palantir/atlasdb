@@ -76,6 +76,11 @@ develop
            This means that we won't, over time, fill up the temp folder without the user realising.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1332>`__)
 
+    *    - |improved|
+         - Increase default Cassandra ``poolSize`` to 30 connections, increase connection pool idle timeout to 10 minutes,
+           and reduce eviction check frequency to 20-30 seconds at 1/10 of connections.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1336>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

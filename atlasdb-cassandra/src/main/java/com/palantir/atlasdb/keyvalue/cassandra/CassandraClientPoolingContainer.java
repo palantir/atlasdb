@@ -195,8 +195,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
 
     /**
      * Pool size:
-     *    Always keep {@code config.poolSize()} (default 20) connections around, per host.
-     *    Allow bursting up to poolSize * 5 (default 100) connections per host under load.
+     *    Always keep {@code config.poolSize()} (default 30) connections around, per host.
+     *    Allow bursting up to poolSize * 5 (default 150) connections per host under load.
      *
      * Borrowing from pool:
      *    On borrow, check if the connection is actually open. If it is not,
@@ -208,9 +208,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
      *
      *
      * In an asynchronous thread:
-     *    Every approximately 1 minute, examine approximately a third of the connections in pool.
-     *    Discard any connections in this third of the pool whose TCP connections are closed.
-     *    Discard any connections in this third of the pool that have been idle for more than 3 minutes,
+     *    Every 20-30 seconds, examine approximately a tenth of the connections in pool.
+     *    Discard any connections in this tenth of the pool whose TCP connections are closed.
+     *    Discard any connections in this tenth of the pool that have been idle for more than 10 minutes,
      *       while still keeping a minimum number of idle connections around for fast borrows.
      *
      */
