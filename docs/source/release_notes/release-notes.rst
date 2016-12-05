@@ -42,8 +42,8 @@ develop
          - Change
 
     *    - |improved|
-         - Added Javadocs to CassandraKeyValueService.java, updated documentation.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+         - Added Javadocs to ``CassandraKeyValueService.java``, `documented <http://palantir.github.io/atlasdb/html/index.html>`__ the behaviour of ``CassandraKeyValueService`` when one or more nodes in the Cassandra cluster are down.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1329>`__)
 
     *    - |breaking|
          - Multinode Cassandra: ``createTable(s)`` and ``dropTable(s)`` now throw an IllegalStateException if a node is down in a multinode Cassandra cluster.

@@ -5,15 +5,15 @@ Multinode Cassandra HA Guarantees
 A multinode Cassandra cluster can generally be in one of three states:
 
     1. All nodes are up.
-    #. Nodes down, but there is a quorum of up nodes (more than half the nodes are up).
+    #. Some nodes are down, but there is a quorum of up nodes, i.e., the number of nodes that are down is fewer than half the replication factor (RF).
     #. Less than a quorum of the nodes are up.
 
-In the case where all nodes are up, the entire KVS API can be used. In the latter two cases, in order to guarantee consistency and correctness, usage of the KVS API is restricted as documented below.
+In the case where all nodes are up, the entire Cassandra Key Value Service (KVS) API can be used. In the latter two cases, in order to guarantee consistency and correctness, usage of the KVS API is restricted as documented below.
 
-A quorum (but not all) of nodes are up
-======================================
+A minority of nodes are down
+============================
 
-The following behaviour is guaranteed when interacting with a three node Cassandra cluster with one node down. More generally, this is the expected behaviour for a cluster that has one node down, but still has quorum.
+The following behaviour is guaranteed when interacting with a Cassandra cluster with three nodes, RF three, and one node down. More generally, this is the expected behaviour for a cluster that has at least one but fewer than RF / 2 nodes down.
 
 .. list-table::
     :widths: 40 40
@@ -59,7 +59,7 @@ The following behaviour is guaranteed when interacting with a three node Cassand
          - Same as when all nodes are up.
 
     *    - ``getAllTimestamps``
-         - Same as when all nodes are up.
+         - Throws ``IllegalStateException``
 
     *    - ``getLatestTimestamps``
          - Same as when all nodes are up.
@@ -74,7 +74,7 @@ The following behaviour is guaranteed when interacting with a three node Cassand
          - Same as when all nodes are up.
 
     *    - ``getRangeOfTimestamps``
-         - Same as when all nodes are up.
+         - Throws ``IllegalStateException``
 
     *    - ``getRows``
          - Same as when all nodes are up.
@@ -109,4 +109,4 @@ The following behaviour is guaranteed when interacting with a three node Cassand
 Less than a quorum of nodes are up
 ==================================
 
-Authentication will fail with a ``AuthenticationException``, since quorum is necessary for this operation. It is therefore guaranteed that the cluster is inaccessible in this case.
+Superuser authentication will fail with a ``AuthenticationException``, since quorum is necessary for this operation. A non-super user authentication may still succeed, but all of the above operations should fail. This is still being verified.
