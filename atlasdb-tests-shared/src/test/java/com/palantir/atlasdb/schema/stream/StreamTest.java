@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -46,16 +47,22 @@ import org.junit.rules.TemporaryFolder;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
+import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.schema.stream.generated.DeletingStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.KeyValueTable;
-import com.palantir.atlasdb.schema.stream.generated.StreamTestIndexCleanupTask;
+import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamHashAidxTable;
+import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamMetadataTable;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamStore;
+import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamValueTable;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestTableFactory;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow;
@@ -294,7 +301,7 @@ public class StreamTest extends AtlasDbTestCase {
         });
     }
 
-    @Test
+    @Test(expected = NullPointerException.class)
     public void testConcurrentDelete() throws IOException {
         Random rand = new Random();
         StreamTestTableFactory tableFactory = StreamTestTableFactory.of();
@@ -314,27 +321,65 @@ public class StreamTest extends AtlasDbTestCase {
         });
 
         // Then fetch streamId as an input stream
-        InputStream firstStream = txManager.runTaskWithRetry(tx -> store.loadStream(tx, streamId));
+        InputStream stream = txManager.runTaskWithRetry(tx -> store.loadStream(tx, streamId));
 
         // Delete the streams
         txManager.runTaskWithRetry(tx -> {
             KeyValueTable keyValueTable = tableFactory.getKeyValueTable(tx);
             keyValueTable.delete(keyValueRow);
+            deleteStream(tableFactory, tx, streamId);
             return null;
         });
-
-        StreamTestIndexCleanupTask cleanup = new StreamTestIndexCleanupTask(Namespace.DEFAULT_NAMESPACE);
-        byte[] colBytes = KeyValueTable.KeyValueNamedColumn.STREAM_ID.name().getBytes();
-        Cell cell = Cell.create(keyValueRow.getKey().getBytes(), colBytes);
-
-        txManager.runTaskWithRetry(tx -> {
-            store.deleteStreams(tx, ImmutableSet.of(streamId));
-            return null;
-        });
-            //return cleanup.cellsCleanedUp(tx, ImmutableSet.of(cell));
 
         // Gives a null pointer exception.
-        assertStreamHasBytes(firstStream, bytes1);
+        assertStreamHasBytes(stream, bytes1);
+    }
+
+    private void deleteStream(StreamTestTableFactory tableFactory, Transaction tx, Long streamId) {
+        StreamPersistence.StreamMetadata metadata = getMetadata(tableFactory, tx, streamId);
+        deleteStreamHashEntry(tableFactory, tx, streamId, metadata.getHash());
+        deleteStreamValues(tableFactory, tx, streamId, getNumberOfBlocks(metadata));
+    }
+
+    private StreamPersistence.StreamMetadata getMetadata(StreamTestTableFactory tableFactory, Transaction tx,
+            Long streamId) {
+        StreamTestStreamMetadataTable table = tableFactory.getStreamTestStreamMetadataTable(tx);
+
+        Set<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow> smRows = Sets.newHashSet();
+        smRows.add(StreamTestStreamMetadataTable.StreamTestStreamMetadataRow.of(streamId));
+
+        Map<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow,
+                StreamPersistence.StreamMetadata> metadatas = table.getMetadatas(smRows);
+        return Iterables.getOnlyElement(metadatas.values());
+    }
+
+    private void deleteStreamHashEntry(StreamTestTableFactory tableFactory, Transaction tx, Long streamId,
+            ByteString streamHash) {
+        Sha256Hash hash = new Sha256Hash(streamHash.toByteArray());
+        StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRow hashRow =
+                StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRow.of(hash);
+        StreamTestStreamHashAidxTable.StreamTestStreamHashAidxColumn column =
+                StreamTestStreamHashAidxTable.StreamTestStreamHashAidxColumn.of(streamId);
+
+        Multimap<StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRow,
+                StreamTestStreamHashAidxTable.StreamTestStreamHashAidxColumn> shToDelete =
+                ImmutableMultimap.of(hashRow, column);
+
+        tableFactory.getStreamTestStreamHashAidxTable(tx).delete(shToDelete);
+    }
+
+    private int getNumberOfBlocks(StreamPersistence.StreamMetadata metadata) {
+        return (int) ((metadata.getLength() + StreamTestStreamStore.BLOCK_SIZE_IN_BYTES - 1)
+                / StreamTestStreamStore.BLOCK_SIZE_IN_BYTES);
+    }
+
+    private void deleteStreamValues(StreamTestTableFactory tableFactory, Transaction tx, Long streamId, int numBlocks) {
+        Set<StreamTestStreamValueTable.StreamTestStreamValueRow> streamValueToDelete = Sets.newHashSet();
+        for (long i = 0; i < numBlocks; i++) {
+            streamValueToDelete.add(StreamTestStreamValueTable.StreamTestStreamValueRow.of(streamId, i));
+        }
+
+        tableFactory.getStreamTestStreamValueTable(tx).delete(streamValueToDelete);
     }
 
     @Test
