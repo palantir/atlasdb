@@ -44,15 +44,16 @@ import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
 import io.dropwizard.setup.Environment;
 
 public class TimeLockServerTest {
+    private static final Address LOCAL_ADDRESS = new Address("localhost:12345");
     private static final TimeLockServerConfiguration TIMELOCK_CONFIG = new TimeLockServerConfiguration(
             ImmutableAtomixConfiguration.builder()
                     .storageLevel(StorageLevel.MEMORY)
                     .build(),
             ImmutableClusterConfiguration.builder()
-                    .localServer(new Address("localhost:12345"))
-                    .addServers(new Address("localhost:12345"))
+                    .localServer(LOCAL_ADDRESS)
+                    .addServers(LOCAL_ADDRESS)
                     .build(),
-            ImmutableSet.of("localhost:12345"));
+            ImmutableSet.of(String.format("%s:%s", LOCAL_ADDRESS.host(), LOCAL_ADDRESS.port())));
 
     private final TimeLockServer server = new TimeLockServer();
     private final Environment environment = mock(Environment.class);
@@ -76,7 +77,7 @@ public class TimeLockServerTest {
     }
 
     @Test
-    public void atomixIsRunningAfter() throws IOException {
+    public void atomixIsRunningAfterSuccessfulStartup() throws IOException {
         server.run(TIMELOCK_CONFIG, environment);
         tryToConnectToAtomixPort();
     }
@@ -106,6 +107,6 @@ public class TimeLockServerTest {
     }
 
     private static void tryToConnectToAtomixPort() throws IOException {
-        new Socket("localhost", 12345);
+        new Socket(LOCAL_ADDRESS.host(), LOCAL_ADDRESS.port());
     }
 }
