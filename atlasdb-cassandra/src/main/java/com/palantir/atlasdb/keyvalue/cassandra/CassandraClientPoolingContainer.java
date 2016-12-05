@@ -237,7 +237,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         int delta = ThreadLocalRandom.current().nextInt(Math.min(timeBetweenEvictionsSeconds / 2, 10));
         poolConfig.setTimeBetweenEvictionRunsMillis(
                 TimeUnit.MILLISECONDS.convert(timeBetweenEvictionsSeconds + delta, TimeUnit.SECONDS));
-        poolConfig.setNumTestsPerEvictionRun(- (int) (1.0 / config.proportionConnectionsToCheckPerEvictionRun()));
+        poolConfig.setNumTestsPerEvictionRun(-(int) (1.0 / config.proportionConnectionsToCheckPerEvictionRun()));
         poolConfig.setTestWhileIdle(true);
 
         poolConfig.setJmxNamePrefix(host.getHostString());
