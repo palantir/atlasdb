@@ -71,6 +71,11 @@ develop
          - ``LockAwareTransactionManager.runTaskWithLocksWithRetry`` now fails faster if given lock tokens that time out in a way that cannot be recovered from.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1322>`__)
 
+    *    - |improved|
+         - ``MultipleRunningTimestampServicesError`` thread dumps: we now overwrite a hard-coded "thread dumps" file rather than saving to a new file each time.
+           This means that we won't, over time, fill up the temp folder without the user realising.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1332>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
