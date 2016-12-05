@@ -34,6 +34,7 @@
         (c/exec :env "JAVA_HOME=/usr/lib/jvm/java-8-oracle" "/atlasdb-timelock-server/service/bin/init.sh" "start")
         (info node "Waiting until timelock cluster is ready")
         (TimestampClient/waitUntilHostReady (name node))
+        (Thread/sleep (* 1000 10))
         (TimestampClient/waitUntilTimestampClusterReady '("n1" "n2" "n3" "n4" "n5"))))
 
     (teardown! [_ _ node]
