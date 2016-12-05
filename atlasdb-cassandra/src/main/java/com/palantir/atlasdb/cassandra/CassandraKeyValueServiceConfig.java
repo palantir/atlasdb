@@ -44,7 +44,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     @Value.Default
     public int poolSize() {
-        return 20;
+        return 30;
     }
 
     @Value.Default
