@@ -174,14 +174,6 @@
 Previously, the table(s) would be created, respectively dropped, followed by an exception due to inability to mutate schemas.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1317">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">BREAKING</span></td>
-<td>Multinode Cassandra: <code class="docutils literal"><span class="pre">truncateTable</span></code> and <code class="docutils literal"><span class="pre">delete</span></code> now throw an IllegalStateException if a node is down in a multinode Cassandra cluster instead of a PalantirRuntimeException.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1289">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Multinode Cassandra: <code class="docutils literal"><span class="pre">getAllTimestamps</span></code> and <code class="docutils literal"><span class="pre">getRangeOfTimestamps</span></code> now work on a multinode Cassandra cluster with one down node.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1289">Pull Request</a>)</td>
-</tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Substantially improved performance of the DbKvs implementation of the single-iterator version of getRowsColumnRange.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1132">Pull Request</a>)</td>
