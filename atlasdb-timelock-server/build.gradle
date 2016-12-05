@@ -1,5 +1,5 @@
 apply from: "../gradle/shared.gradle"
-apply from: "../gradle/publishing-dist.gradle"
+apply from: "../gradle/publish-dist.gradle"
 
 apply plugin: 'com.palantir.java-distribution'
 apply plugin: 'org.inferred.processors'
@@ -44,17 +44,6 @@ distribution {
     args 'server', 'var/conf/timelock.yml'
 }
 
-tasks.withType(Tar){
-    compression = Compression.GZIP
-    baseName = applicationName
-}
-
-publishing.publications {
-    artifactory(MavenPublication) {
-        artifact(distTar) {
-            classifier 'dist'
-        }
-        artifactId applicationName
-        groupId project.group
-    }
+tasks.getByName('distTar').doLast {
+    println "Distribution tarball is ready at $outputs.files.singleFile"
 }
