@@ -207,7 +207,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
      *          Try 3 times against this host, and then give up and try against different hosts 3 additional times.
      *
      *
-     * In an asynchronous thread:
+     * In an asynchronous thread (using default values):
      *    Every 20-30 seconds, examine approximately a tenth of the connections in pool.
      *    Discard any connections in this tenth of the pool whose TCP connections are closed.
      *    Discard any connections in this tenth of the pool that have been idle for more than 10 minutes,
@@ -229,13 +229,15 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         // this test is free/just checks a boolean and does not block; borrow is still fast
         poolConfig.setTestOnBorrow(true);
 
-        poolConfig.setMinEvictableIdleTimeMillis(TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES));
+        poolConfig.setMinEvictableIdleTimeMillis(
+                TimeUnit.MILLISECONDS.convert(config.idleConnectionTimeoutSeconds(), TimeUnit.SECONDS));
         // the randomness here is to prevent all of the pools for all of the hosts
         // evicting all at at once, which isn't great for C*.
+        int timeBetweenEvictionsSeconds = config.timeBetweenConnectionEvictionRunsSeconds();
+        int delta = ThreadLocalRandom.current().nextInt(Math.min(timeBetweenEvictionsSeconds / 2, 10));
         poolConfig.setTimeBetweenEvictionRunsMillis(
-                TimeUnit.MILLISECONDS.convert(20 + ThreadLocalRandom.current().nextInt(10), TimeUnit.SECONDS));
-        // test one tenth of objects per eviction run  // (Apache Commons Pool has the worst API)
-        poolConfig.setNumTestsPerEvictionRun(-10);
+                TimeUnit.MILLISECONDS.convert(timeBetweenEvictionsSeconds + delta, TimeUnit.SECONDS));
+        poolConfig.setNumTestsPerEvictionRun(- (int) (1.0 / config.proportionConnectionsToCheckPerEvictionRun()));
         poolConfig.setTestWhileIdle(true);
 
         poolConfig.setJmxNamePrefix(host.getHostString());
