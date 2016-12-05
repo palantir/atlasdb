@@ -51,7 +51,8 @@ public class OneNodeDownTableManipulationTest {
 
     @Test
     public void dropTablesThrows() {
-        assertThatThrownBy(() -> OneNodeDownTestSuite.db.dropTables(ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2)))
+        ImmutableSet<TableReference> tablesToDrop = ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2);
+        assertThatThrownBy(() -> OneNodeDownTestSuite.db.dropTables(tablesToDrop))
                 .isExactlyInstanceOf(IllegalStateException.class);
     }
 
