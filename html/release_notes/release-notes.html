@@ -204,6 +204,12 @@ See comments on the pull request for details.
 The full file path of the <code class="docutils literal"><span class="pre">atlas-timestamps-log</span></code> file will be outputted to the service logs.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1275">Pull Request 1</a>, <a class="reference external" href="https://github.com/palantir/atlasdb/pull/1332">Pull Request 2</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Increase connection pool idle timeout to 10 minutes, and reduce eviction check frequency to 20-30 seconds at 1/10 of connections.
+Note that there is now a configuration called <code class="docutils literal"><span class="pre">maxConnectionBurstSize</span></code>, which configures how large the pool is able to grow when
+receiving a large burst of requests. Previously this was hard-coded to 5x the <code class="docutils literal"><span class="pre">poolSize</span></code> (which is now the default for the parameter).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1336">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
