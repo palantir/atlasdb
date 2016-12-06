@@ -41,9 +41,24 @@ develop
     *    - Type
          - Change
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.25.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |breaking|
          - Multinode Cassandra: ``createTable(s)`` and ``dropTable(s)`` now throw an IllegalStateException if a node is down in a multinode Cassandra cluster.
-           Previously, the table(s) would be created, respectively dropped, followed by an exception due to inability to mutate schemas.
+           Previously we would successfully create/drop the specified table(s) in Cassandra but fail to update the AtlasDB table metadata.
+
+           This is because Cassandra throws an exception when creating or dropping tables, but only after it creates and deletes the tables on the up nodes.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1317>`__)
 
     *    - |breaking|
@@ -55,7 +70,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1289>`__)
 
     *    - |improved|
-         - Substantially improved performance of the DbKvs implementation of the single-iterator version of getRowsColumnRange.
+         - Substantially improved performance of the DBKVS implementation of the single-iterator version of getRowsColumnRange.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1132>`__)
 
     *    - |improved|
@@ -64,7 +79,9 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1294>`__)
 
     *    - |improved|
-         - Transaction perf improvement; commit timestamp lookups are now cached across transactions.
+         - Commit timestamp lookups are now cached across transactions.
+           This provided a near 2x improvement in our performance benchmark testing.
+           See comments on the pull request for details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1238>`__)
 
     *    - |improved|
@@ -72,9 +89,9 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1322>`__)
 
     *    - |improved|
-         - ``MultipleRunningTimestampServicesError`` thread dumps: we now overwrite a hard-coded "thread dumps" file rather than saving to a new file each time.
-           This means that we won't, over time, fill up the temp folder without the user realising.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1332>`__)
+         - When we hit the ``MultipleRunningTimestampServicesError`` issue, we now automatically log thread dumps to a separate file (file path specified in service logs).
+           The full file path of the ``atlas-timestamps-log`` file will be outputted to the service logs.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1275>`__, `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1332>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
