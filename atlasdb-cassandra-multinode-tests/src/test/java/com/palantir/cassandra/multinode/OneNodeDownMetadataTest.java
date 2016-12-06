@@ -51,7 +51,8 @@ public class OneNodeDownMetadataTest {
         TableMetadata newTableMetadata = new TableMetadata(new NameMetadataDescription(),
                 new ColumnMetadataDescription(), ConflictHandler.IGNORE_ALL);
         assertThatThrownBy(() -> OneNodeDownTestSuite.db.putMetadataForTable(OneNodeDownTestSuite.TEST_TABLE,
-                newTableMetadata.persistToBytes())).isInstanceOf(IllegalStateException.class);
+                newTableMetadata.persistToBytes())).isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("At schema version UNREACHABLE");
     }
 
     @Test
@@ -60,6 +61,7 @@ public class OneNodeDownMetadataTest {
                 new ColumnMetadataDescription(), ConflictHandler.IGNORE_ALL);
         assertThatThrownBy(() -> OneNodeDownTestSuite.db.putMetadataForTables(
                 ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, newTableMetadata.persistToBytes())))
-                .isInstanceOf(IllegalStateException.class);
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("At schema version UNREACHABLE");
     }
 }

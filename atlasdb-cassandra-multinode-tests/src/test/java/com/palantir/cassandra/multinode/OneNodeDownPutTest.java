@@ -74,8 +74,8 @@ public class OneNodeDownPutTest {
     @Test
     public void putUnlessExistsThrowsOnExists() {
         assertThatThrownBy(() -> OneNodeDownTestSuite.db.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_CONTENTS))).isInstanceOf(
-                KeyAlreadyExistsException.class);
+                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_CONTENTS)))
+                .isInstanceOf(KeyAlreadyExistsException.class);
     }
 
     @Test
