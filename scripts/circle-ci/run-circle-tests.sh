@@ -37,11 +37,11 @@ if ./scripts/circle-ci/check-only-docs-changes.sh; then
 fi
 
 case $CIRCLE_NODE_INDEX in
-    0) ./gradlew :atlasdb-jepsen-tests:jepsenTest ;;
-    1) ./gradlew :atlasdb-jepsen-tests:jepsenTest ;;
-    2) ./gradlew :atlasdb-jepsen-tests:jepsenTest ;;
-    3) ./gradlew :atlasdb-jepsen-tests:jepsenTest ;;
-    4) ./gradlew :atlasdb-jepsen-tests:jepsenTest ;;
-    5) ./gradlew :atlasdb-jepsen-tests:jepsenTest ;;
+    0) ./gradlew $TEST_CONTAINER_ARGS check $CONTAINER_0_EXCLUDE_ARGS ;;
+    1) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_1[@]} -x :atlasdb-cassandra-integration-tests:longTest ;;
+    2) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest ;;
+    3) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_3[@]} -x :atlasdb-jepsen-tests:jepsenTest ;;
+    4) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_4[@]} ;;
+    5) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_5[@]} ;;
     6) ./gradlew --profile --continue -x compileJava -x compileTestJava findbugsMain findbugsTest checkstyleMain checkstyleTest && checkDocsBuild ;;
 esac

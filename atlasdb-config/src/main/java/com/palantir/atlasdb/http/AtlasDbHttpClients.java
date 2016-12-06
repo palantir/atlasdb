@@ -43,7 +43,7 @@ public final class AtlasDbHttpClients {
 
     private static final int CONNECTION_POOL_SIZE = 100;
     private static final long KEEP_ALIVE_TIME_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
-    private static final int ONE_MILLISECOND = 1000;
+    private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 1000;
     private static final Request.Options DEFAULT_FEIGN_OPTIONS = new Request.Options();
 
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -124,12 +124,12 @@ public final class AtlasDbHttpClients {
     @VisibleForTesting
     static <T> T createProxyWithQuickFailoverForTesting(
             Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
-        Request.Options options = new Request.Options(ONE_MILLISECOND, ONE_MILLISECOND);
+        Request.Options options = new Request.Options(QUICK_FEIGN_TIMEOUT_MILLIS, QUICK_FEIGN_TIMEOUT_MILLIS);
         return createProxyWithFailover(
                 sslSocketFactory,
                 endpointUris,
                 options,
-                ONE_MILLISECOND,
+                QUICK_FEIGN_TIMEOUT_MILLIS,
                 type);
     }
 
