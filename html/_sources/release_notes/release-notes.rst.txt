@@ -90,12 +90,6 @@ v0.25.0
          - Change
 
     *    - |fixed|
-         - Worrying-looking thread dumps no longer appear in logs when we suspect that the
-           ``MultipleRunningTimestampServicesError`` may have been hit. Instead, we output them to a temporary file,
-           logging only its path to the user.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1275>`__)
-
-    *    - |fixed|
          - ``--config-root`` and other global parameters can now be passed into dropwizard CLIs.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1268>`__)
 
