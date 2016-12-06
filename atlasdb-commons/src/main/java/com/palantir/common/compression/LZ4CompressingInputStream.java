@@ -56,11 +56,9 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
     }
 
     public LZ4CompressingInputStream(InputStream delegate, int blockSize) throws IOException {
-        super(delegate);
+        super(delegate, Math.max(blockSize, COMPRESSOR.maxCompressedLength(blockSize)));
         this.blockSize = blockSize;
-        int compressedBufferSize = COMPRESSOR.maxCompressedLength(blockSize);
         Checksum checksum = XXHashFactory.fastestInstance().newStreamingHash32(DEFAULT_SEED).asChecksum();
-        allocateBuffer(Math.max(blockSize, compressedBufferSize));
         OutputStream delegateOutputStream = new InternalByteArrayOutputStream();
         this.compressingStream = new LZ4BlockOutputStream(delegateOutputStream, blockSize, COMPRESSOR, checksum, true);
         this.readInProgress = false;
@@ -116,7 +114,7 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
     private void write(byte b[], int off, int len) throws IOException {
         ensureSafeForWrite();
         if (b == null) {
-            throw new NullPointerException();
+            throw new NullPointerException("Provided byte array b cannot be null.");
         }
         if ((off < 0) || (len < 0) || (off + len > b.length)) {
             throw new IndexOutOfBoundsException();

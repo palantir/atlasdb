@@ -33,29 +33,19 @@ public abstract class BufferedDelegateInputStream extends InputStream {
     protected static final int BUFFER_START = 0;
 
     protected final InputStream delegate;
+    protected final byte[] buffer;
 
-    // Internal buffer from which data is read
-    protected byte[] buffer;
     // Current position in the buffer
     protected int position;
     // Size in bytes of the data in the buffer
     protected int bufferSize;
 
-    public BufferedDelegateInputStream(InputStream delegate, int bufferSize) {
+    public BufferedDelegateInputStream(InputStream delegate, int bufferLength) {
+        Preconditions.checkArgument(bufferLength >= 0, "buffer size must be greater than or equal to zero");
         this.delegate = delegate;
         this.position = 0;
         this.bufferSize = 0;
-        allocateBuffer(bufferSize);
-    }
-
-    public BufferedDelegateInputStream(InputStream delegate) {
-        this(delegate, 0);
-    }
-
-    public void allocateBuffer(int size) {
-        Preconditions.checkArgument(size >= 0, "buffer size must be greater than or equal to zero");
-        Preconditions.checkState(position == bufferSize, "cannot reallocate a buffer that has not been fully read");
-        this.buffer = new byte[size];
+        this.buffer = new byte[bufferLength];
     }
 
     @Override
@@ -63,7 +53,7 @@ public abstract class BufferedDelegateInputStream extends InputStream {
         if (!ensureBytesAvailable()) {
             return READ_FAILED;
         }
-        return buffer[position++] & 0xff;
+        return buffer[position++] & 0xFF;
     }
 
     // If all bytes in the buffer have been read, attempt to refill
@@ -94,7 +84,7 @@ public abstract class BufferedDelegateInputStream extends InputStream {
     @Override
     public final int read(byte[] b, int off, int len) throws IOException {
         if (b == null) {
-            throw new NullPointerException();
+            throw new NullPointerException("Provided byte array b cannot be null.");
         } else if (off < 0 || len < 0 || len > b.length - off) {
             throw new IndexOutOfBoundsException();
         } else if (len == 0) {
