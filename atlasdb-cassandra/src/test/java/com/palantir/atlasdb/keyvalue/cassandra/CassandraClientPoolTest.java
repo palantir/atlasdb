@@ -42,6 +42,7 @@ import com.palantir.common.base.FunctionCheckedException;
 
 public class CassandraClientPoolTest {
     public static final int POOL_REFRESH_INTERVAL_SECONDS = 10;
+    public static final int TIME_BETWEEN_EVICTION_RUNS_SECONDS = 20;
     public static final int DEFAULT_PORT = 5000;
     public static final int OTHER_PORT = 6000;
     public static final String HOSTNAME_1 = "1.0.0.0";
@@ -203,6 +204,7 @@ public class CassandraClientPoolTest {
             Optional<Exception> failureMode) {
         CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
         when(config.poolRefreshIntervalSeconds()).thenReturn(POOL_REFRESH_INTERVAL_SECONDS);
+        when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
         when(config.servers()).thenReturn(servers);
 
         CassandraClientPool cassandraClientPool = CassandraClientPool.createWithoutChecksForTesting(config);
