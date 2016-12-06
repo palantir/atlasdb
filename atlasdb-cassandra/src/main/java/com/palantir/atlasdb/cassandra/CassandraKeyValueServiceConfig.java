@@ -44,7 +44,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     @Value.Default
     public int poolSize() {
-        return 30;
+        return 20;
     }
 
     /**
@@ -54,7 +54,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      */
     @Value.Default
     public int maxConnectionBurstSize() {
-        return 100;
+        return 5 * poolSize();
     }
 
     /**
