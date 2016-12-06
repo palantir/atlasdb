@@ -61,14 +61,6 @@ v0.25.0
            This is because Cassandra throws an exception when creating or dropping tables, but only after it creates and deletes the tables on the up nodes.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1317>`__)
 
-    *    - |breaking|
-         - Multinode Cassandra: ``truncateTable`` and ``delete`` now throw an IllegalStateException if a node is down in a multinode Cassandra cluster instead of a PalantirRuntimeException.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1289>`__)
-
-    *    - |fixed|
-         - Multinode Cassandra: ``getAllTimestamps`` and ``getRangeOfTimestamps`` now work on a multinode Cassandra cluster with one down node.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1289>`__)
-
     *    - |improved|
          - Substantially improved performance of the DBKVS implementation of the single-iterator version of getRowsColumnRange.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1132>`__)
