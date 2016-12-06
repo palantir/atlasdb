@@ -56,7 +56,7 @@ public class OneNodeDownTableManipulationTest {
     public void dropTableThrows() {
         assertThat(OneNodeDownTestSuite.db.getAllTableNames()).contains(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
         assertThatThrownBy(() -> OneNodeDownTestSuite.db.dropTable(OneNodeDownTestSuite.TEST_TABLE_TO_DROP))
-                .isExactlyInstanceOf(StackOverflowError.class);
+                .isExactlyInstanceOf(IllegalStateException.class);
         // This documents and verifies the current behaviour, dropping the table in spite of the exception
         assertThat(OneNodeDownTestSuite.db.getAllTableNames()).doesNotContain(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
     }
@@ -66,7 +66,7 @@ public class OneNodeDownTableManipulationTest {
         assertThat(OneNodeDownTestSuite.db.getAllTableNames()).contains(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2);
         assertThatThrownBy(() -> OneNodeDownTestSuite.db.dropTables(
                 ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2)))
-                .isExactlyInstanceOf(StackOverflowError.class);
+                .isExactlyInstanceOf(IllegalStateException.class);
         // This documents and verifies the current behaviour, dropping the table in spite of the exception
         assertThat(OneNodeDownTestSuite.db.getAllTableNames())
                 .doesNotContain(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2);
