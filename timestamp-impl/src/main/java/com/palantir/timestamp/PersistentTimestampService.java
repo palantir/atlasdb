@@ -24,7 +24,7 @@ import com.palantir.common.concurrent.PTExecutors;
 
 @ThreadSafe
 public class PersistentTimestampService implements TimestampService {
-    private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
+    private static final int MAX_REQUEST_RANGE_SIZE = 1000 * 1000;
 
     private final ExecutorService executor;
     private final AvailableTimestamps availableTimestamps;

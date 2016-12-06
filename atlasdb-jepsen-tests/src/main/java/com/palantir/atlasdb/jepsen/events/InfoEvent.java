@@ -30,6 +30,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 public abstract class InfoEvent implements Event {
     public static final String TYPE = "info";
 
+    public abstract String message();
+
     @Override
     public void accept(EventVisitor visitor) {
         visitor.visit(this);

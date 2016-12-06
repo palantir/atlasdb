@@ -38,7 +38,7 @@ public class JepsenHistoryCheckerIntegrationTest {
     public void correctExampleHistoryShouldReturnValidAndNoErrors() throws IOException {
         List<Map<Keyword, ?>> convertedAllEvents = getClojureMapFromFile("history.json");
 
-        Map<Keyword, Object> results = JepsenHistoryChecker.createWithStandardCheckers()
+        Map<Keyword, Object> results = JepsenHistoryCheckers.createWithDefaultCheckers()
                 .checkClojureHistory(convertedAllEvents);
 
         assertThat(results).containsEntry(Keyword.intern("valid?"), true);

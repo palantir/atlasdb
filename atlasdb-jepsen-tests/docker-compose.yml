@@ -1,6 +1,42 @@
-jepsen:
-  image: tjake/jepsen:latest
-  volumes:
-    - ./:/jepsen/atlasdb
-    - /var/run/docker.sock:/var/run/docker.sock
-  command: "bash -lc 'cd /jepsen/atlasdb && lein test'"
+version: '2'
+
+services:
+  jepsen:
+    image: tjake/jepsen:latest
+    depends_on:
+      - cassandra
+    volumes:
+      - ./:/jepsen/atlasdb
+      - /var/run/docker.sock:/var/run/docker.sock
+    #command: "bash -lc 'cd /jepsen/atlasdb && lein test'"
+    command: "sleep 2147483647"
+
+  n1:
+    image: jepsennode
+    command: "/run.sh"
+    privileged: true
+  n2:
+    image: jepsennode
+    command: "/run.sh"
+    privileged: true
+  n3:
+    image: jepsennode
+    command: "/run.sh"
+    privileged: true
+  n4:
+    image: jepsennode
+    command: "/run.sh"
+    privileged: true
+  n5:
+    image: jepsennode
+    command: "/run.sh"
+    privileged: true
+
+  cassandra:
+    image: palantirtechnologies/docker-cassandra-atlasdb:2.2.8
+    ports:
+      - "9160"
+      - "9042"
+      - "7199"
+    environment:
+      - LOCAL_JMX=no

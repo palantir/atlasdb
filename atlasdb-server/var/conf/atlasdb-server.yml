@@ -1,10 +1,27 @@
 cluster:
-  quorumSize: 1
-  localServer: http://localhost:8080
+  localServer: http://<HOSTNAME>:8080
   servers:
-    - http://localhost:8080
+    - http://n1:8080
+    - http://n2:8080
+    - http://n3:8080
+    - http://n4:8080
+    - http://n5:8080
 
 clients:
-  - client: memory
+  - client: cassandra
     keyValueService:
-      type: memory
+      type: cassandra
+      servers:
+        - cassandra:9160
+      poolSize: 20
+      keyspace: test
+      credentials:
+        username: cassandra
+        password: cassandra
+      ssl: false
+      replicationFactor: 1
+      mutationBatchCount: 10000
+      mutationBatchSizeBytes: 10000000
+      fetchBatchCount: 1000
+      safetyDisabled: false
+      autoRefreshNodes: false

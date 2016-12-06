@@ -11,7 +11,7 @@
             [jepsen.util :refer [timeout]]
             [knossos.history :as history]
             [jepsen.tests :as tests])
-  (:import com.palantir.atlasdb.jepsen.JepsenHistoryChecker)
+  (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
   (:import com.palantir.atlasdb.http.TimestampClient))
 
 (defn create-server
@@ -22,16 +22,17 @@
   []
   (reify db/DB
     (setup! [_ _ node]
+      (info node "hi")
       (c/su
         (debian/install-jdk8!)
         (info node "Uploading and unpacking timelock server")
         (c/upload "resources/atlasdb/atlasdb-timelock-server.tgz" "/")
         (c/exec :mkdir "/atlasdb-timelock-server")
         (c/exec :tar :xf "/atlasdb-timelock-server.tgz" "-C" "/atlasdb-timelock-server" "--strip-components" "1")
-        (c/upload "resources/atlasdb/timelock.yml" "/atlasdb-timelock-server/var/conf")
-        (c/exec :sed :-i (format "s/<HOSTNAME>/%s/" (name node)) "/atlasdb-timelock-server/var/conf/timelock.yml")
+        (c/upload "resources/atlasdb/atlasdb-server.yml" "/atlasdb-timelock-server/var/conf")
+        (c/exec :sed :-i (format "s/<HOSTNAME>/%s/" (name node)) "/atlasdb-timelock-server/var/conf/atlasdb-server.yml")
         (info node "Starting timelock server")
-        (c/exec :env "/usr/lib/jvm/java-8-oracle" "/atlasdb-timelock-server/service/bin/init.sh" "start")
+        (c/exec "env" "JAVA_HOME=/usr/lib/jvm/java-8-oracle" "/atlasdb-timelock-server/service/bin/init.sh" "start")
         (info node "Waiting until timelock cluster is ready")
         (TimestampClient/waitUntilHostReady (name node))
         (TimestampClient/waitUntilTimestampClusterReady '("n1" "n2" "n3" "n4" "n5"))))
@@ -44,7 +45,7 @@
 
     db/LogFiles
     (log-files [_ test node]
-      ["/atlasdb-timelock-server/var/log/atlasdb-timelock-server-startup.log"])))
+      ["/atlasdb-timelock-server/var/log/atlasdb-server-startup.log"])))
 
 (defn read-operation [_ _] {:type :invoke, :f :read-operation, :value nil})
 
@@ -69,7 +70,7 @@
           (timeout (* 30 1000)
             (assoc op :type :fail :error :timeout)
             (try
-              (assoc op :type :ok :value (.getFreshTimestamp timestamp-client))
+              (assoc op :type :ok :value (.getLowerBound (.getFreshTimestamps timestamp-client 1000000)))
               (catch Exception e
                 (assoc op :type :fail :error (.toString e)))))))
 
@@ -78,7 +79,7 @@
 (def checker
   (reify checker/Checker
     (check [this test model history opts]
-      (.checkClojureHistory (JepsenHistoryChecker/createWithStandardCheckers) history))))
+      (.checkClojureHistory (JepsenHistoryCheckers/createWithDefaultCheckers) history))))
 
 (defn atlasdb-test
   []
@@ -87,12 +88,12 @@
     :client (create-client nil)
     :nemesis (nemesis/partition-random-halves)
     :generator (->> read-operation
-                    (gen/stagger 0.1)
+                    (gen/stagger 0.05)
                     (gen/nemesis
                     (gen/seq (cycle [(gen/sleep 5)
                                      {:type :info, :f :start}
-                                     (gen/sleep 20)
+                                     (gen/sleep 145)
                                      {:type :info, :f :stop}])))
-                    (gen/time-limit 300))
+                    (gen/time-limit 600))
     :db (create-server)
     :checker checker))

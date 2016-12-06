@@ -20,6 +20,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
+import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
@@ -45,7 +46,7 @@ public class PostgresContainer extends Container {
     }
 
     @Override
-    public SuccessOrFailure isReady() {
+    public SuccessOrFailure isReady(DockerComposeRule rule) {
         return SuccessOrFailure.onResultOf(() -> {
             ConnectionManagerAwareDbKvs.create(KVS_CONFIG);
             return true;
