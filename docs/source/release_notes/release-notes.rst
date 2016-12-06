@@ -34,6 +34,22 @@ Changelog
 develop
 =======
 
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new|
+         - We now publish a runnable distribution of AtlasCli that is available for download directly from Bintray
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1345>`__)
+
+    *    - |breaking|
+         - Multinode Cassandra: ``createTable(s)`` and ``dropTable(s)`` now throw an IllegalStateException if a node is down in a multinode Cassandra cluster.
+           Previously, the table(s) would be created, respectively dropped, followed by an exception due to inability to mutate schemas.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1317>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
