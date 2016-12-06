@@ -26,16 +26,19 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 
-public enum KeyValueServiceType {
+public enum KeyValueServiceType implements KeyValueServiceTypeInterface{
     POSTGRES(5432, "postgres-docker-compose.yml"),
-    CASSANDRA(9160, "cassandra-docker-compose.yml");
+    CASSANDRA(9160, "cassandra-docker-compose.yml"),
+    ORACLE(1521, "docker-compose.oracle.yml");
 
     private final int kvsPort;
     private final String dockerComposeFileName;
@@ -44,11 +47,12 @@ public enum KeyValueServiceType {
         this.kvsPort = kvsPort;
         this.dockerComposeFileName = dockerComposeFileName;
     }
-
+    @Override
     public String getDockerComposeResourceFileName() {
         return dockerComposeFileName;
     }
 
+    @Override
     public int getKeyValueServicePort() {
         return kvsPort;
     }
