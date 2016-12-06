@@ -158,6 +158,9 @@
 </div>
 <div class="section" id="develop">
 <h2>develop<a class="headerlink" href="#develop" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="v0-26-0">
+<h2>v0.26.0<a class="headerlink" href="#v0-26-0" title="Permalink to this headline">¶</a></h2>
 <table border="1" class="docutils">
 <colgroup>
 <col width="11%" />
@@ -169,32 +172,37 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-breaking">BREAKING</span></td>
-<td>Multinode Cassandra: <code class="docutils literal"><span class="pre">createTable(s)</span></code> and <code class="docutils literal"><span class="pre">dropTable(s)</span></code> now throw an IllegalStateException if a node is down in a multinode Cassandra cluster.
-Previously, the table(s) would be created, respectively dropped, followed by an exception due to inability to mutate schemas.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1317">Pull Request</a>)</td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td><p class="first">Substantially improved performance of the DBKVS implementation of the single-iterator version of getRowsColumnRange.
+Two new performance benchmarks were added as part of this PR:</p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal"><span class="pre">KvsGetRowsColumnRangeBenchmarks.getAllColumnsAligned</span></code></li>
+<li><code class="docutils literal"><span class="pre">KvsGetRowsColumnRangeBenchmarks.getAllColumnsUnaligned</span></code></li>
+</ul>
+</div></blockquote>
+<p class="last">These benchmarks show a 2x improvement on Postgres, and an AtlasDB client has observed an order of magnitude improvement experimentally.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1132">Pull Request</a>)</p>
+</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Substantially improved performance of the DbKvs implementation of the single-iterator version of getRowsColumnRange.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1132">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>OkHttpClient connection pool configured to have 100 idle connections with 10 minute keep-alive, reducing the number of connections
-that need to be created when a large number of transactions begin.
+<td>OkHttpClient connection pool configured to have 100 idle connections with 10 minute keep-alive, reducing the number of connections that need to be created when a large number of transactions begin.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1294">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Transaction perf improvement; commit timestamp lookups are now cached across transactions.
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Commit timestamp lookups are now cached across transactions.
+This provided a near 2x improvement in our performance benchmark testing.
+See comments on the pull request for details.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1238">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">LockAwareTransactionManager.runTaskWithLocksWithRetry</span></code> now fails faster if given lock tokens that time out in a way that cannot be recovered from.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1322">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td><code class="docutils literal"><span class="pre">MultipleRunningTimestampServicesError</span></code> thread dumps: we now overwrite a hard-coded &#8220;thread dumps&#8221; file rather than saving to a new file each time.
-This means that we won&#8217;t, over time, fill up the temp folder without the user realising.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1332">Pull Request</a>)</td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>When we hit the <code class="docutils literal"><span class="pre">MultipleRunningTimestampServicesError</span></code> issue, we now automatically log thread dumps to a separate file (file path specified in service logs).
+The full file path of the <code class="docutils literal"><span class="pre">atlas-timestamps-log</span></code> file will be outputted to the service logs.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1275">Pull Request 1</a>, <a class="reference external" href="https://github.com/palantir/atlasdb/pull/1332">Pull Request 2</a>)</td>
 </tr>
 </tbody>
 </table>
