@@ -19,6 +19,7 @@ dependencies {
     compile project(":commons-executors")
     compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
+    compile group: 'com.codahale.metrics', name: 'metrics-core'
 
     testCompile group: 'junit', name: 'junit'
     testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
