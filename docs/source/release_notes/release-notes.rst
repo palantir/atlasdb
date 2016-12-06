@@ -78,7 +78,10 @@ develop
 
     *    - |improved|
          - Increase default Cassandra ``poolSize`` to 30 connections, increase connection pool idle timeout to 10 minutes,
-           and reduce eviction check frequency to 20-30 seconds at 1/10 of connections.
+           and reduce eviction check frequency to 20-30 seconds at 1/10 of connections. Note that there is now a configuration called ``maxConnectionBurstSize``,
+           which configures how large the pool is able to grow when receiving a large burst of requests. Previously this was hard-coded to 5x the ``poolSize``.
+           So if you have a non-default ``poolSize`` much greater than the old default of 20, you may need to increase ``maxConnectionBurstSize`` as well to account
+           for fluctuations in your connection pool.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1336>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
