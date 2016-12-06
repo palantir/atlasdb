@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -27,7 +28,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.function.BiConsumer;
 
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -37,16 +37,16 @@ public class BlockConsumingInputStreamTest {
     private static final int DATA_SIZE_PLUS_ONE = 5;
 
     private final byte[] data = "data".getBytes();
-    private final BiConsumer<Integer, OutputStream> dataConsumer = (block, os) -> {
+    private final BlockGetter dataConsumer = (offset, numBlocks, os) -> {
         try {
             os.write(data);
         } catch (IOException e) {
             fail();
         }
     };
-    private final BiConsumer<Integer, OutputStream> singleByteConsumer = (block, os) -> {
+    private final BlockGetter singleByteConsumer = (offset, numBlocks, os) -> {
         try {
-            os.write(data[block]);
+            os.write(data, offset, numBlocks);
         } catch (IOException e) {
             fail();
         }
@@ -71,7 +71,7 @@ public class BlockConsumingInputStreamTest {
 
     @Test
     public void larger_arrays_than_data_get_partially_filled() throws IOException {
-        BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1,1 );
+        BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1, 1);
         byte[] result = new byte[DATA_SIZE_PLUS_ONE];
         int read = stream.read(result);
         assertEquals(DATA_SIZE, read);
@@ -96,7 +96,7 @@ public class BlockConsumingInputStreamTest {
         assertArrayEquals(data, Arrays.copyOf(result, DATA_SIZE));
     }
 
-    @Test(expected = ArrayIndexOutOfBoundsException.class)
+    @Test(expected = IndexOutOfBoundsException.class)
     public void passing_in_too_many_blocks_causes_an_exception() throws IOException {
         BlockConsumingInputStream stream = BlockConsumingInputStream.create(singleByteConsumer, DATA_SIZE_PLUS_ONE, 1);
         byte[] result = new byte[DATA_SIZE_PLUS_ONE];
@@ -116,27 +116,28 @@ public class BlockConsumingInputStreamTest {
 
     @Test
     public void can_load_multiple_blocks_at_once_and_also_fewer_blocks_at_end() throws IOException {
-        BiConsumer<Integer, OutputStream> spiedConsumer = Mockito.spy(new MockableBiConsumer<>(singleByteConsumer));
-        BlockConsumingInputStream stream = BlockConsumingInputStream.create(spiedConsumer, DATA_SIZE, 3);
+        BlockGetter spiedGetter = Mockito.spy(new MockableBlockGetter(singleByteConsumer));
+        BlockConsumingInputStream stream = BlockConsumingInputStream.create(spiedGetter, DATA_SIZE, 3);
+        //noinspection ResultOfMethodCallIgnored
         stream.read();
-        verify(spiedConsumer, times(3)).accept(anyInt(), any());
+        verify(spiedGetter, times(1)).get(anyInt(), eq(3), any());
 
         byte[] ata = new byte[3];
         int bytesRead = stream.read(ata);
         assertEquals(3, bytesRead);
-        verify(spiedConsumer, times(4)).accept(anyInt(), any());
+        verify(spiedGetter, times(1)).get(anyInt(), eq(1), any());
     }
 
-    private class MockableBiConsumer<T, U> implements BiConsumer<T, U> {
-        private BiConsumer<T, U> delegate;
+    private class MockableBlockGetter implements BlockGetter {
+        private BlockGetter delegate;
 
-        MockableBiConsumer(BiConsumer delegate) {
+        MockableBlockGetter(BlockGetter delegate) {
             this.delegate = delegate;
         }
 
         @Override
-        public void accept(T t, U u) {
-            delegate.accept(t, u);
+        public void get(Integer firstBlock, Integer numBlocks, OutputStream destination) {
+            delegate.get(firstBlock, numBlocks, destination);
         }
     }
 }

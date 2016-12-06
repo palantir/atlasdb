@@ -24,7 +24,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiConsumer;
 
 import javax.annotation.CheckForNull;
 
@@ -106,10 +105,12 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     }
 
     private InputStream makeStream(ID id, StreamMetadata metadata) {
-        BiConsumer<Integer, OutputStream> pageRefresher =
-                (block, outputStream) ->
+        BlockGetter pageRefresher =
+                (firstBlock, numBlocks, outputStream) ->
                     txnMgr.runTaskReadOnly(txn -> {
-                        loadSingleBlockToOutputStream(txn, id, block, outputStream);
+                        for (int i = 0; i < numBlocks; i++) {
+                            loadSingleBlockToOutputStream(txn, id, firstBlock + i, outputStream);
+                        }
                         return null;
                     });
         long numBlocks = getNumberOfBlocksFromMetadata(metadata);

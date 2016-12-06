@@ -18,16 +18,14 @@ package com.palantir.atlasdb.stream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.BiConsumer;
 
 import org.apache.commons.lang3.ArrayUtils;
 
 public final class BlockConsumingInputStream extends InputStream {
-    private final BiConsumer<Integer, OutputStream> blockGetter;
+    private final BlockGetter blockGetter;
     private final long numBlocks;
     private final int blocksInMemory;
 
@@ -35,7 +33,7 @@ public final class BlockConsumingInputStream extends InputStream {
     private Iterator<Byte> buffer;
 
     public static BlockConsumingInputStream create(
-            BiConsumer<Integer, OutputStream> blockGetter,
+            BlockGetter blockGetter,
             long numBlocks,
             int blocksInMemory) throws IOException {
         BlockConsumingInputStream stream = new BlockConsumingInputStream(blockGetter, numBlocks, blocksInMemory);
@@ -43,7 +41,7 @@ public final class BlockConsumingInputStream extends InputStream {
         return stream;
     }
 
-    private BlockConsumingInputStream(BiConsumer<Integer, OutputStream> blockGetter, long numBlocks, int blocksInMemory) {
+    private BlockConsumingInputStream(BlockGetter blockGetter, long numBlocks, int blocksInMemory) {
         this.blockGetter = blockGetter;
         this.numBlocks = numBlocks;
         this.blocksInMemory = blocksInMemory;
@@ -67,12 +65,11 @@ public final class BlockConsumingInputStream extends InputStream {
     private void getNextBlock() throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         int numBlocksToGet = Math.min(blocksLeft(), blocksInMemory);
-        for (int i = 0; i < numBlocksToGet; i++, nextBlockToRead++) {
-            this.blockGetter.accept(nextBlockToRead, outputStream);
-        }
+        blockGetter.get(nextBlockToRead, numBlocksToGet, outputStream);
+        nextBlockToRead += numBlocksToGet;
         byte[] bytes = outputStream.toByteArray();
         List<Byte> list = Arrays.asList(ArrayUtils.toObject(bytes));
-        this.buffer = list.iterator();
+        buffer = list.iterator();
         outputStream.close();
     }
 
