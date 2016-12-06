@@ -30,6 +30,10 @@ the id for each stored object. The in-memory threshold argument
 specifies the largest size object (in bytes) which AtlasDB will cache in
 memory in order to boost retrieval performance.
 
+.. note::
+
+    In some places, we load whole numbers of blocks into memory, so if the in-memory threshold is smaller than the block size (1MB), we will still load a whole block.
+
 Performance
 ===========
 

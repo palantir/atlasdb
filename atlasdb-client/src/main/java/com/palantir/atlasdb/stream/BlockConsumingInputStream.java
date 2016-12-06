@@ -29,20 +29,24 @@ import org.apache.commons.lang3.ArrayUtils;
 public final class BlockConsumingInputStream extends InputStream {
     private final BiConsumer<Integer, OutputStream> blockGetter;
     private final long numBlocks;
+    private final int blocksInMemory;
 
     private int nextBlockToRead;
     private Iterator<Byte> buffer;
 
-    public static BlockConsumingInputStream create(BiConsumer<Integer, OutputStream> blockGetter, long numBlocks)
-            throws IOException {
-        BlockConsumingInputStream stream = new BlockConsumingInputStream(blockGetter, numBlocks);
+    public static BlockConsumingInputStream create(
+            BiConsumer<Integer, OutputStream> blockGetter,
+            long numBlocks,
+            int blocksInMemory) throws IOException {
+        BlockConsumingInputStream stream = new BlockConsumingInputStream(blockGetter, numBlocks, blocksInMemory);
         stream.getNextBlock();
         return stream;
     }
 
-    private BlockConsumingInputStream(BiConsumer<Integer, OutputStream> blockGetter, long numBlocks) {
+    private BlockConsumingInputStream(BiConsumer<Integer, OutputStream> blockGetter, long numBlocks, int blocksInMemory) {
         this.blockGetter = blockGetter;
         this.numBlocks = numBlocks;
+        this.blocksInMemory = blocksInMemory;
         this.nextBlockToRead = 0;
     }
 
@@ -62,11 +66,17 @@ public final class BlockConsumingInputStream extends InputStream {
 
     private void getNextBlock() throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        this.blockGetter.accept(nextBlockToRead, outputStream);
+        int numBlocksToGet = Math.min(blocksLeft(), blocksInMemory);
+        for (int i = 0; i < numBlocksToGet; i++, nextBlockToRead++) {
+            this.blockGetter.accept(nextBlockToRead, outputStream);
+        }
         byte[] bytes = outputStream.toByteArray();
         List<Byte> list = Arrays.asList(ArrayUtils.toObject(bytes));
         this.buffer = list.iterator();
         outputStream.close();
-        nextBlockToRead++;
+    }
+
+    private int blocksLeft() {
+        return (int) numBlocks - nextBlockToRead;
     }
 }

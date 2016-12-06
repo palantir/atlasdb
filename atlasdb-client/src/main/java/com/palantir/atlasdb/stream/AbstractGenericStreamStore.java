@@ -113,11 +113,17 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
                         return null;
                     });
         long numBlocks = getNumberOfBlocksFromMetadata(metadata);
+        int blocksInMemory = numberOfBlocksThatFitInMemory();
         try {
-            return BlockConsumingInputStream.create(pageRefresher, numBlocks);
+            return BlockConsumingInputStream.create(pageRefresher, numBlocks, blocksInMemory);
         } catch (IOException e) {
             throw Throwables.throwUncheckedException(e);
         }
+    }
+
+    private int numberOfBlocksThatFitInMemory() {
+        long blocksInMemory = getInMemoryThreshold() / BLOCK_SIZE_IN_BYTES;
+        return Math.max(1, (int) blocksInMemory);
     }
 
     @Override

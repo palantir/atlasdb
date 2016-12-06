@@ -49,7 +49,7 @@ public class BlockConsumingInputStreamTest {
 
     @Test
     public void can_read_single_byte() throws IOException {
-        BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1);
+        BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1, 1);
         int byteAsInt = stream.read();
         byte[] readByte = { (byte) byteAsInt };
         assertEquals("d", new String(readByte, StandardCharsets.UTF_8));
@@ -57,7 +57,7 @@ public class BlockConsumingInputStreamTest {
 
     @Test
     public void can_read_block() throws IOException {
-        BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1);
+        BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1, 1);
         byte[] result = new byte[DATA_SIZE];
         int read = stream.read(result);
         assertEquals(DATA_SIZE, read);
@@ -66,7 +66,7 @@ public class BlockConsumingInputStreamTest {
 
     @Test
     public void larger_arrays_than_data_get_partially_filled() throws IOException {
-        BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1);
+        BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1,1 );
         byte[] result = new byte[DATA_SIZE_PLUS_ONE];
         int read = stream.read(result);
         assertEquals(DATA_SIZE, read);
@@ -75,7 +75,7 @@ public class BlockConsumingInputStreamTest {
 
     @Test
     public void can_read_multiple_blocks() throws IOException {
-        BlockConsumingInputStream stream = BlockConsumingInputStream.create(singleByteConsumer, DATA_SIZE);
+        BlockConsumingInputStream stream = BlockConsumingInputStream.create(singleByteConsumer, DATA_SIZE, 1);
         byte[] result = new byte[DATA_SIZE];
         int read = stream.read(result);
         assertEquals(DATA_SIZE, read);
@@ -84,7 +84,7 @@ public class BlockConsumingInputStreamTest {
 
     @Test
     public void can_read_multiple_blocks_and_partially_fill_result() throws IOException {
-        BlockConsumingInputStream stream = BlockConsumingInputStream.create(singleByteConsumer, DATA_SIZE);
+        BlockConsumingInputStream stream = BlockConsumingInputStream.create(singleByteConsumer, DATA_SIZE, 1);
         byte[] result = new byte[DATA_SIZE_PLUS_ONE];
         int read = stream.read(result);
         assertEquals(DATA_SIZE, read);
@@ -93,7 +93,7 @@ public class BlockConsumingInputStreamTest {
 
     @Test(expected = ArrayIndexOutOfBoundsException.class)
     public void passing_in_too_many_blocks_causes_an_exception() throws IOException {
-        BlockConsumingInputStream stream = BlockConsumingInputStream.create(singleByteConsumer, DATA_SIZE_PLUS_ONE);
+        BlockConsumingInputStream stream = BlockConsumingInputStream.create(singleByteConsumer, DATA_SIZE_PLUS_ONE, 1);
         byte[] result = new byte[DATA_SIZE_PLUS_ONE];
         //noinspection ResultOfMethodCallIgnored
         stream.read(result);
@@ -102,7 +102,7 @@ public class BlockConsumingInputStreamTest {
     @Test
     public void passing_in_too_few_blocks_causes_incomplete_output() throws IOException {
         int dataSizeMinusOne = 3;
-        BlockConsumingInputStream stream = BlockConsumingInputStream.create(singleByteConsumer, dataSizeMinusOne);
+        BlockConsumingInputStream stream = BlockConsumingInputStream.create(singleByteConsumer, dataSizeMinusOne, 1);
         byte[] result = new byte[DATA_SIZE];
         int read = stream.read(result);
         assertEquals(dataSizeMinusOne, read);

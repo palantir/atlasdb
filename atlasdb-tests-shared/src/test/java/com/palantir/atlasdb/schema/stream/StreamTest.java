@@ -307,7 +307,7 @@ public class StreamTest extends AtlasDbTestCase {
         StreamTestTableFactory tableFactory = StreamTestTableFactory.of();
 
         final byte[] reference = PtBytes.toBytes("ref");
-        final byte[] bytes1 = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
+        final byte[] bytes1 = new byte[2 * StreamTestStreamStore.IN_MEMORY_THRESHOLD];
         rand.nextBytes(bytes1);
 
         KeyValueTable.KeyValueRow keyValueRow = KeyValueTable.KeyValueRow.of("ref");
