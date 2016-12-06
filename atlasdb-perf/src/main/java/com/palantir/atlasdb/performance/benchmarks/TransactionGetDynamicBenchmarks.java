@@ -34,6 +34,7 @@ import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.performance.benchmarks.table.Tables;
 import com.palantir.atlasdb.performance.benchmarks.table.WideRowTable;
 
 /**
@@ -63,7 +64,7 @@ public class TransactionGetDynamicBenchmarks {
     public Object getAllColumnsImplicitly(WideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(table.getTableRef(),
-                    Collections.singleton(WideRowTable.getRow()),
+                    Collections.singleton(Tables.ROW_BYTES.array()),
                     ColumnSelection.all());
             int count = Iterables.getOnlyElement(result.values()).getColumns().size();
             Preconditions.checkState(count == WideRowTable.NUM_COLS,
@@ -92,7 +93,7 @@ public class TransactionGetDynamicBenchmarks {
     public Object getFirstColumnExplicitlyGetRows(WideRowTable table) {
         return table.getTransactionManager().runTaskThrowOnConflict(txn -> {
             SortedMap<byte[], RowResult<byte[]>> result = txn.getRows(table.getTableRef(),
-                    Collections.singleton(WideRowTable.getRow()),
+                    Collections.singleton(Tables.ROW_BYTES.array()),
                     ColumnSelection.create(
                             table.getFirstCellAsSet().stream().map(Cell::getColumnName).collect(Collectors.toList())
                     ));

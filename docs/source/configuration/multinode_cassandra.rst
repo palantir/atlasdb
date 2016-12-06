@@ -44,7 +44,7 @@ The following behaviour is guaranteed when interacting with a Cassandra cluster 
          - Throws ``IllegalStateException``
 
     *    - ``delete``
-         - Throws ``IllegalStateException``
+         - Throws ``PalantirRuntimeException``
 
     *    - ``dropTable``
          - Throws ``IllegalStateException``
@@ -59,7 +59,7 @@ The following behaviour is guaranteed when interacting with a Cassandra cluster 
          - Same as when all nodes are up.
 
     *    - ``getAllTimestamps``
-         - Throws ``IllegalStateException``
+         - Throws ``PalantirRuntimeException``
 
     *    - ``getLatestTimestamps``
          - Same as when all nodes are up.
@@ -74,7 +74,7 @@ The following behaviour is guaranteed when interacting with a Cassandra cluster 
          - Same as when all nodes are up.
 
     *    - ``getRangeOfTimestamps``
-         - Throws ``IllegalStateException``
+         - Throws ``InsufficientConsistencyException`` (`when the iterator is accessed`).
 
     *    - ``getRows``
          - Same as when all nodes are up.
@@ -101,12 +101,12 @@ The following behaviour is guaranteed when interacting with a Cassandra cluster 
          - Same as when all nodes are up.
 
     *    - ``truncateTable``
-         - Throws ``IllegalStateException``
+         - Throws ``PalantirRuntimeException``
 
     *    - ``truncateTables``
-         - Throws ``IllegalStateException``
+         - Throws ``PalantirRuntimeException``
 
 Less than a quorum of nodes are up
 ==================================
 
-Superuser authentication will fail with a ``AuthenticationException``, since quorum is necessary for this operation. A non-super user authentication may still succeed, but all of the above operations should fail. This is still being verified.
+Superuser authentication will fail with a ``AuthenticationException``, since quorum is necessary for this operation. A non-super user authentication may still succeed, but all of the above operations should fail. `Note that this behaviour is still being verified!`

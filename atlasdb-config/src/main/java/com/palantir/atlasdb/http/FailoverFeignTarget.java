@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -39,6 +40,9 @@ import feign.Target;
 
 public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private static final Logger log = LoggerFactory.getLogger(FailoverFeignTarget.class);
+
+    public static final int DEFAULT_MAX_BACKOFF_MILLIS = 3000;
+
     private static final double GOLDEN_RATIO = (Math.sqrt(5) + 1.0) / 2.0;
 
     private final ImmutableList<String> servers;
@@ -47,7 +51,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private final int failuresBeforeSwitching = 3;
     private final int numServersToTryBeforeFailing = 14;
     private final int fastFailoverTimeoutMillis = 10000;
-    private final int maxBackoffMillis = 3000;
+    private final int maxBackoffMillis;
 
     private final AtomicLong failuresSinceLastSwitch = new AtomicLong();
     private final AtomicLong numSwitches = new AtomicLong();
@@ -56,8 +60,14 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     final ThreadLocal<Integer> mostRecentServerIndex = new ThreadLocal<>();
 
     public FailoverFeignTarget(Collection<String> servers, Class<T> type) {
+        this(servers, DEFAULT_MAX_BACKOFF_MILLIS, type);
+    }
+
+    public FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type) {
+        Preconditions.checkArgument(maxBackoffMillis > 0);
         this.servers = ImmutableList.copyOf(ImmutableSet.copyOf(servers));
         this.type = type;
+        this.maxBackoffMillis = maxBackoffMillis;
     }
 
     public void sucessfulCall() {

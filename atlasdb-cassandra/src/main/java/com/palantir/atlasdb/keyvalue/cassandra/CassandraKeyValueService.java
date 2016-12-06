@@ -87,6 +87,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -116,6 +117,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -864,9 +866,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     /**
-     * Puts values into the key-value store. This call <i>does not</i> guarantee
-     * atomicity across cells. On failure, it is possible
-     * that some of the requests will have succeeded (without having been rolled
+     * Puts values into the key-value store. This call <i>does not</i> guarantee atomicity across cells.
+     * On failure, it is possible that some of the requests have succeeded (without having been rolled
      * back). Similarly, concurrent batched requests may interleave.
      * <p>
      * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
@@ -885,10 +886,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     /**
-     * Puts values into the key-value store with individually specified timestamps.
-     * This call <i>does not</i> guarantee atomicity across cells. On failure, it is possible
-     * that some of the requests will have succeeded (without having been rolled
-     * back). Similarly, concurrent batched requests may interleave.
+     * Puts values into the key-value store with individually specified timestamps. This call <i>does not</i>
+     * guarantee atomicity across cells. On failure, it is possible that some of the requests have succeeded
+     * (without having been rolled back). Similarly, concurrent batched requests may interleave.
      * <p>
      * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
      *
@@ -984,9 +984,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     /**
-     * Puts values into the key-value store. This call <i>does not</i> guarantee
-     * atomicity across cells. On failure, it is possible
-     * that some of the requests will have succeeded (without having been rolled
+     * Puts values into the key-value store. This call <i>does not</i> guarantee atomicity across cells.
+     * On failure, it is possible that some of the requests have succeeded (without having been rolled
      * back). Similarly, concurrent batched requests may interleave.
      * <p>
      * Overridden to batch more intelligently than the default implementation.
@@ -1148,11 +1147,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      * This is preferred to dropping and re-adding a table, as live schema changes can
      * be a complicated topic for distributed databases.
      * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException.
+     * Requires all Cassandra nodes to be up and available, otherwise throws an PalantirRuntimeException.
      *
      * @param tableRef the name of the table to truncate.
      *
-     * @throws IllegalStateException if not all hosts respond successfully.
+     * @throws PalantirRuntimeException if not all hosts respond successfully.
      * @throws (? extends RuntimeException) if the table does not exist.
      */
     @Override
@@ -1165,11 +1164,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      * <p>
      * This can be slightly faster than repeatedly truncating individual tables.
      * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException.
+     * Requires all Cassandra nodes to be up and available, otherwise throws an PalantirRuntimeException.
      *
      * @param tablesToTruncate set od tables to truncate.
      *
-     * @throws IllegalStateException if not all hosts respond successfully.
+     * @throws PalantirRuntimeException if not all hosts respond successfully.
      * @throws (? extends RuntimeException) if the table does not exist.
      */
     @Override
@@ -1191,7 +1190,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     }
                 });
             } catch (UnavailableException e) {
-                throw new IllegalStateException("Truncating tables requires all Cassandra nodes"
+                throw new PalantirRuntimeException("Truncating tables requires all Cassandra nodes"
                         + " to be up and available.");
             } catch (Exception e) {
                 throw Throwables.throwUncheckedException(e);
@@ -1232,12 +1231,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     /**
      * Deletes values from the key-value store.
      * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException.
+     * Requires all Cassandra nodes to be up and available, otherwise throws an PalantirRuntimeException.
      *
      * @param tableRef the name of the table to delete values from.
      * @param keys map containing the keys to delete values for.
      *
-     * @throws IllegalStateException if not all hosts respond successfully.
+     * @throws PalantirRuntimeException if not all hosts respond successfully.
      */
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
@@ -1305,7 +1304,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 }
             });
         } catch (UnavailableException e) {
-            throw new IllegalStateException("Deleting requires all Cassandra nodes to be up and available.");
+            throw new PalantirRuntimeException("Deleting requires all Cassandra nodes to be up and available.");
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -1331,8 +1330,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     // TODO: after cassandra change: handle reverse ranges
     // TODO: after cassandra change: handle column filtering
     /**
-     * For each row in the specified range, returns the most recent version strictly before
-     * timestamp.
+     * For each row in the specified range, returns the most recent version strictly before timestamp.
      * <p>
      * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
      *
@@ -1354,15 +1352,15 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      * Gets timestamp values from the key-value store. For each row, this returns all associated
      * timestamps &lt; given_ts.
      * <p>
-     * This method has stronger consistency guarantees than regular read requests. This must return
-     * all timestamps stored anywhere in the system. Unless all nodes are up and available, this
-     * method will throw an IllegalStateException.
+     * This method has stronger consistency guarantees than regular read requests. This must return all timestamps
+     * stored anywhere in the system. Unless all nodes are up and available, this method will throw an
+     * InsufficientConsistencyException.
      *
      * @param tableRef the name of the table to read from.
      * @param rangeRequest the range to load.
      * @param timestamp the maximum timestamp to load.
      *
-     * @throws IllegalStateException if not all hosts respond successfully.
+     * @throws InsufficientConsistencyException if not all hosts respond successfully.
      */
     @Override
     @Idempotent
@@ -1377,13 +1375,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     rangeRequest,
                     timestampsGetterBatchSize.get(),
                     timestamp,
-                    readConsistency);
+                    deleteConsistency);
         } else {
             return getRangeWithPageCreator(
                     tableRef,
                     rangeRequest,
                     timestamp,
-                    readConsistency,
+                    deleteConsistency,
                     TimestampExtractor.SUPPLIER);
         }
     }
@@ -1441,10 +1439,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     /**
      * Drop the table, and also delete its table metadata.
      * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException. In the
-     * unlikely case where a node becomes unavailable during the execution of this method, or the schema versions
-     * of do not come to agreement in 1 minute, it is possible for the table to be dropped from the KVS without
-     * the schema being modified. In this case, the method is guaranteed to throw an IllegalStateException.
+     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException. If a
+     * quorum of Cassandra nodes are up, the table will be dropped in the KVS before the exception is thrown, but
+     * the metadata table will not be updated.
      *
      * @param tableRef the name of the table to drop.
      *
@@ -1459,11 +1456,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     /**
      * Drop the tables, and also delete their table metadata.
      * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException.
-     * In the unlikely case where a node becomes unavailable during the execution of this method, or the schema
-     * versions of do not come to agreement in 1 minute, it is possible for some of the tables to be dropped
-     * from the KVS without the schema being modified. In this case, the method is guaranteed to throw
-     * an IllegalStateException.
+     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException. If a
+     * quorum of Cassandra nodes are up, the tables will be dropped in the KVS before the exception is thrown, but
+     * the metadata table will not be updated.
      * <p>
      * Main gains here vs. dropTable:
      *    - problems excepting, we will basically be serializing a rapid series of schema changes
@@ -1494,9 +1489,6 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 for (TableReference table : tablesToDrop) {
                     CassandraVerifier.sanityCheckTableName(table);
                     if (existingTables.contains(table)) {
-                        if (client.describe_schema_versions().containsKey("UNREACHABLE")) {
-                            throw new UnavailableException();
-                        }
                         client.system_drop_column_family(internalTableName(table));
                         putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
                     } else {
@@ -1510,7 +1502,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 return null;
             });
         } catch (UnavailableException e) {
-            throw new IllegalStateException("Dropping tables requires all Cassandra nodes to be up and available.");
+            throw new PalantirRuntimeException("Dropping tables requires all Cassandra nodes to be up and available.");
         }
     }
 
@@ -1522,7 +1514,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      * Creates a table with the specified name. If the table already exists, no action is performed
      * (the table is left in its current state).
      * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException.
+     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException. If a
+     * quorum of Cassandra nodes are up, the table will be created in the KVS before the exception is thrown, but
+     * the metadata table will not be updated.
      *
      * @param tableRef the name of the table to create.
      * @param tableMetadata the metadata of the table to create.
@@ -1538,7 +1532,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      * Creates a table with the specified name. If the table already exists, no action is performed
      * (the table is left in its current state).
      * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException.
+     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException. If a
+     * quorum of Cassandra nodes are up, the table will be created in the KVS before the exception is thrown, but
+     * the metadata table will not be updated.
      * <p>
      * Main gains here vs. createTable:
      *    - problems excepting, we will basically be serializing a rapid series of schema changes
@@ -1639,15 +1635,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         clientPool.runWithRetry(client -> {
             for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
                 try {
-                    if (client.describe_schema_versions().containsKey("UNREACHABLE")) {
-                        throw new UnavailableException();
-                    }
                     client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
                             configManager.getConfig().keyspace(),
                             tableEntry.getKey(),
                             tableEntry.getValue()));
                 } catch (UnavailableException e) {
-                    throw new IllegalStateException(
+                    throw new PalantirRuntimeException(
                             "Creating tables requires all Cassandra nodes to be up and available.");
                 } catch (TException thriftException) {
                     if (thriftException.getMessage() != null
@@ -1948,19 +1941,19 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      * <p>
      * This method has stronger consistency guarantees than regular read requests. This must return
      * all timestamps stored anywhere in the system. Unless all nodes are up and available, this
-     * method will throw an IllegalStateException.
+     * method will throw a PalantirRuntimeException.
      *
      * @param tableRef the name of the table to retrieve timestamps from.
      * @param cells set containg cells to retrieve timestamps for.
      * @param ts maximum timestamp to get (exclusive).
      * @return multimap of timestamps by cell
      *
-     * @throws IllegalStateException if not all hosts respond successfully.
+     * @throws PalantirRuntimeException if not all hosts respond successfully.
      */
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts) {
         AllTimestampsCollector collector = new AllTimestampsCollector();
-        loadWithTs(tableRef, cells, ts, true, collector, readConsistency);
+        loadWithTs(tableRef, cells, ts, true, collector, deleteConsistency);
         return collector.collectedResults;
     }
 

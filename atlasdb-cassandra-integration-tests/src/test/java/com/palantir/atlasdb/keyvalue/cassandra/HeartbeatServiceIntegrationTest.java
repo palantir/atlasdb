@@ -39,7 +39,7 @@ import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 
 public class HeartbeatServiceIntegrationTest {
-    private static final Logger log = LoggerFactory.getLogger(SchemaMutationLockIntegrationTest.class);
+    private static final Logger log = LoggerFactory.getLogger(HeartbeatServiceIntegrationTest.class);
 
     private static final int heartbeatTimePeriodMillis = 100;
 

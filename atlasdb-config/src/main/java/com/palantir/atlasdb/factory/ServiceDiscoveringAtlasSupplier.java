@@ -19,10 +19,14 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ServiceLoader;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -86,9 +90,19 @@ public class ServiceDiscoveringAtlasSupplier {
         }
     }
 
-    private String saveThreadDumps() throws IOException {
-        File file = File.createTempFile("atlas-timestamps-log", ".log");
+    @VisibleForTesting
+    String saveThreadDumps() throws IOException {
+        File file = getTempFile();
         return saveThreadDumpsToFile(file);
+    }
+
+    private static File getTempFile() throws IOException {
+        String tempDir = System.getProperty("java.io.tmpdir");
+        Path path = Paths.get(tempDir, "atlas-timestamp-service-creation.log");
+        if (!Files.exists(path)) {
+            Files.createFile(path);
+        }
+        return path.toFile();
     }
 
     private String saveThreadDumpsToFile(File file) throws IOException {

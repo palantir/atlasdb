@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -66,6 +67,8 @@ import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
     private static final long LOCK_ID = 123456789;
 
@@ -75,7 +78,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     private KeyValueService keyValueService;
     private ExecutorService executorService;
-    private Logger logger = mock(Logger.class);
+    private final Logger logger = mock(Logger.class);
 
     private TableReference testTable = TableReference.createFromFullyQualifiedName("ns.never_seen");
     private byte[] tableMetadata = new TableDefinition() {
@@ -164,9 +167,10 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 ColumnFamilyDefinitions.isMatchingCf(kvs.getCfForTable(testTable, tableMetadata), clusterSideCf));
     }
 
+    @SuppressFBWarnings("SLF4J_FORMAT_SHOULD_BE_CONST")
     @Test
     public void shouldNotErrorForTimestampTableWhenCreatingCassandraKvs() throws Exception {
-        verify(logger, never()).error(startsWith("Found a table " + AtlasDbConstants.TIMESTAMP_TABLE));
+        verify(logger, never()).error(startsWith("Found a table {} that did not have persisted"), anyString());
     }
 
     @Test

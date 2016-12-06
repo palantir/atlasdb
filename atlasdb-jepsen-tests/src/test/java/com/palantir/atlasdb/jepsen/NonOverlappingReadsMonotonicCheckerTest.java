@@ -30,7 +30,7 @@ public class NonOverlappingReadsMonotonicCheckerTest {
     private static final int PROCESS_1 = 1;
 
     @Test
-    public void shouldPassOnNoEvents() {
+    public void shouldSucceedOnNoEvents() {
         CheckerResult result = runChecker();
 
         assertThat(result.valid()).isTrue();

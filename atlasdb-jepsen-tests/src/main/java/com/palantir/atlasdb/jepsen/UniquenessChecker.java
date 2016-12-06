@@ -29,7 +29,7 @@ import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 
-public class MonotonicChecker implements Checker {
+public class UniquenessChecker implements Checker {
     @Override
     public CheckerResult check(List<Event> events) {
         Visitor visitor = new Visitor();
@@ -42,7 +42,7 @@ public class MonotonicChecker implements Checker {
 
     private static class Visitor implements EventVisitor {
         private final List<Event> errors = new ArrayList<>();
-        private final Map<Integer, OkEvent> latestEventPerProcess = new HashMap<>();
+        private final Map<Long, OkEvent> valuesAlreadySeen = new HashMap<>();
 
         @Override
         public void visit(InfoEvent event) {
@@ -54,16 +54,15 @@ public class MonotonicChecker implements Checker {
 
         @Override
         public void visit(OkEvent event) {
-            int process = event.process();
+            long value = event.value();
 
-            if (latestEventPerProcess.containsKey(process)) {
-                OkEvent previousEvent = latestEventPerProcess.get(process);
-                if (event.value() <= previousEvent.value()) {
-                    errors.add(previousEvent);
-                    errors.add(event);
-                }
+            if (valuesAlreadySeen.containsKey(value)) {
+                OkEvent previousEvent = valuesAlreadySeen.get(value);
+                errors.add(previousEvent);
+                errors.add(event);
             }
-            latestEventPerProcess.put(process, event);
+
+            valuesAlreadySeen.put(value, event);
         }
 
         @Override
