@@ -34,17 +34,10 @@ Changelog
 develop
 =======
 
-.. list-table::
-    :widths: 5 40
-    :header-rows: 1
-
-    *    - Type
-         - Change
-
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-v0.25.0
+v0.26.0
 =======
 
 .. list-table::
@@ -54,20 +47,18 @@ v0.25.0
     *    - Type
          - Change
 
-    *    - |breaking|
-         - Multinode Cassandra: ``createTable(s)`` and ``dropTable(s)`` now throw an IllegalStateException if a node is down in a multinode Cassandra cluster.
-           Previously we would successfully create/drop the specified table(s) in Cassandra but fail to update the AtlasDB table metadata.
-
-           This is because Cassandra throws an exception when creating or dropping tables, but only after it creates and deletes the tables on the up nodes.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1317>`__)
-
     *    - |improved|
          - Substantially improved performance of the DBKVS implementation of the single-iterator version of getRowsColumnRange.
+           Two new performance benchmarks were added as part of this PR:
+
+              - ``KvsGetRowsColumnRangeBenchmarks.getAllColumnsAligned``
+              - ``KvsGetRowsColumnRangeBenchmarks.getAllColumnsUnaligned``
+
+           These benchmarks show a 2x improvement on Postgres, and an AtlasDB client has observed an order of magnitude improvement experimentally.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1132>`__)
 
     *    - |improved|
-         - OkHttpClient connection pool configured to have 100 idle connections with 10 minute keep-alive, reducing the number of connections
-           that need to be created when a large number of transactions begin.
+         - OkHttpClient connection pool configured to have 100 idle connections with 10 minute keep-alive, reducing the number of connections that need to be created when a large number of transactions begin.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1294>`__)
 
     *    - |improved|
