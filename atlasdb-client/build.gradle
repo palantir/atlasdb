@@ -32,6 +32,7 @@ dependencies {
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
   compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
   testCompile group: 'junit', name: 'junit'
+  testCompile group: 'org.mockito', name: 'mockito-core', version: libVersions.mockito
   testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
   testCompile group: 'org.hamcrest', name: 'hamcrest-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'

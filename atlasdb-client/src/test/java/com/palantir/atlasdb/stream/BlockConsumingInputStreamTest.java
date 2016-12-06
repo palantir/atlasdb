@@ -18,6 +18,10 @@ package com.palantir.atlasdb.stream;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -26,6 +30,7 @@ import java.util.Arrays;
 import java.util.function.BiConsumer;
 
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class BlockConsumingInputStreamTest {
     private static final int DATA_SIZE = 4;
@@ -107,5 +112,31 @@ public class BlockConsumingInputStreamTest {
         int read = stream.read(result);
         assertEquals(dataSizeMinusOne, read);
         assertArrayEquals(Arrays.copyOf(data, dataSizeMinusOne), Arrays.copyOf(result, dataSizeMinusOne));
+    }
+
+    @Test
+    public void can_load_multiple_blocks_at_once_and_also_fewer_blocks_at_end() throws IOException {
+        BiConsumer<Integer, OutputStream> spiedConsumer = Mockito.spy(new MockableBiConsumer<>(singleByteConsumer));
+        BlockConsumingInputStream stream = BlockConsumingInputStream.create(spiedConsumer, DATA_SIZE, 3);
+        stream.read();
+        verify(spiedConsumer, times(3)).accept(anyInt(), any());
+
+        byte[] ata = new byte[3];
+        int bytesRead = stream.read(ata);
+        assertEquals(3, bytesRead);
+        verify(spiedConsumer, times(4)).accept(anyInt(), any());
+    }
+
+    private class MockableBiConsumer<T, U> implements BiConsumer<T, U> {
+        private BiConsumer<T, U> delegate;
+
+        MockableBiConsumer(BiConsumer delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void accept(T t, U u) {
+            delegate.accept(t, u);
+        }
     }
 }
