@@ -18,11 +18,6 @@ package com.palantir.atlasdb.stream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-
-import org.apache.commons.lang3.ArrayUtils;
 
 public final class BlockConsumingInputStream extends InputStream {
     private final BlockGetter blockGetter;
@@ -30,7 +25,9 @@ public final class BlockConsumingInputStream extends InputStream {
     private final int blocksInMemory;
 
     private int nextBlockToRead;
-    private Iterator<Byte> buffer;
+
+    private byte[] buffer;
+    private int positionInBuffer;
 
     public static BlockConsumingInputStream create(
             BlockGetter blockGetter,
@@ -46,17 +43,18 @@ public final class BlockConsumingInputStream extends InputStream {
         this.numBlocks = numBlocks;
         this.blocksInMemory = blocksInMemory;
         this.nextBlockToRead = 0;
+        this.positionInBuffer = 0;
     }
 
     @Override
     public int read() throws IOException {
-        if (buffer.hasNext()) {
-            return buffer.next() & 0xff;
+        if (positionInBuffer < buffer.length) {
+            return buffer[positionInBuffer++] & 0xff;
         }
 
         if (nextBlockToRead < numBlocks) {
             getNextBlock();
-            return buffer.next() & 0xff;
+            return buffer[positionInBuffer++] & 0xff;
         }
 
         return -1;
@@ -67,9 +65,8 @@ public final class BlockConsumingInputStream extends InputStream {
         int numBlocksToGet = Math.min(blocksLeft(), blocksInMemory);
         blockGetter.get(nextBlockToRead, numBlocksToGet, outputStream);
         nextBlockToRead += numBlocksToGet;
-        byte[] bytes = outputStream.toByteArray();
-        List<Byte> list = Arrays.asList(ArrayUtils.toObject(bytes));
-        buffer = list.iterator();
+        buffer = outputStream.toByteArray();
+        positionInBuffer = 0;
         outputStream.close();
     }
 
