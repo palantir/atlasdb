@@ -195,8 +195,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
 
     /**
      * Pool size:
-     *    Always keep {@code config.poolSize()} (default 30) connections around, per host.
-     *    Allow bursting up to poolSize * 5 (default 150) connections per host under load.
+     *    Always keep {@link CassandraKeyValueServiceConfig#poolSize()} connections around, per host. Allow bursting
+     *    up to {@link CassandraKeyValueServiceConfig#maxConnectionBurstSize()} connections per host under load.
      *
      * Borrowing from pool:
      *    On borrow, check if the connection is actually open. If it is not,
@@ -219,8 +219,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
 
         poolConfig.setMinIdle(config.poolSize());
-        poolConfig.setMaxIdle(5 * config.poolSize());
-        poolConfig.setMaxTotal(5 * config.poolSize());
+        poolConfig.setMaxIdle(config.maxConnectionBurstSize());
+        poolConfig.setMaxTotal(config.maxConnectionBurstSize());
 
         // immediately throw when we try and borrow from a full pool; dealt with at higher level
         poolConfig.setBlockWhenExhausted(false);

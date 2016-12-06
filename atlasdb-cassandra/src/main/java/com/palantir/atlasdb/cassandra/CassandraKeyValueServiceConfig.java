@@ -48,6 +48,16 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     }
 
     /**
+     * The cap at which the connection pool is able to grow over the {@link #poolSize()}
+     * given high request load. When load is depressed, the pool will shrink back to its
+     * idle {@link #poolSize()} value.
+     */
+    @Value.Default
+    public int maxConnectionBurstSize() {
+        return 100;
+    }
+
+    /**
      * The proportion of {@link #poolSize()} connections that are checked approximately
      * every {@link #timeBetweenConnectionEvictionRunsSeconds()} seconds to see if has been idle at least
      * {@link #idleConnectionTimeoutSeconds()} seconds and evicts it from the pool if so. For example, given the
@@ -197,5 +207,8 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
             Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
         }
         Preconditions.checkNotNull(keyspace(), "'keyspace' must be specified");
+        double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();
+        Preconditions.checkArgument(evictionCheckProportion > 0 && evictionCheckProportion <= 1,
+                "'proportionConnectionsToCheckPerEvictionRun' must be between 0 and 1");
     }
 }
