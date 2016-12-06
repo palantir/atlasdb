@@ -34,7 +34,10 @@ import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
 
 import io.atomix.catalyst.transport.Transport;
 import io.atomix.catalyst.transport.netty.NettyTransport;
+import io.atomix.copycat.client.ConnectionStrategies;
 import io.atomix.copycat.client.CopycatClient;
+import io.atomix.copycat.client.RecoveryStrategies;
+import io.atomix.copycat.client.ServerSelectionStrategies;
 import io.atomix.copycat.server.CopycatServer;
 import io.atomix.copycat.server.storage.Storage;
 import io.dropwizard.Application;
@@ -57,22 +60,36 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
                 .withTransport(createTransport(configuration.atomix().security()))
                 .withStateMachine(() -> new TimeLockStateMachine())
                 .build();
-        CopycatClient localClient = CopycatClient.builder(configuration.cluster().localServer())
+        CopycatClient localClient = CopycatClient.builder()
                 .withTransport(createTransport(configuration.atomix().security()))
+                .withRecoveryStrategy(RecoveryStrategies.CLOSE)
+                .withConnectionStrategy(ConnectionStrategies.FIBONACCI_BACKOFF)
+                .withServerSelectionStrategy(ServerSelectionStrategies.LEADER)
                 .build();
 
         localNode.bootstrap(configuration.cluster().servers()).join();
-        localClient.connect().join();
+        localClient.connect(configuration.cluster().servers()).join();
+
+        localClient.onStateChange(state -> {
+            if (state == CopycatClient.State.CLOSED) {
+                localClient.connect().join();
+            }
+        });
+
+        // This is to install the first leader correctly.
+        // Updating to an old term does nothing.
         localClient.submit(ImmutableUpdateLeaderCommand.builder()
                 .leader(localNode.cluster().leader().id())
                 .term(localNode.cluster().term())
                 .build()).join();
 
         localNode.cluster().onLeaderElection(member -> {
-            localClient.submit(ImmutableUpdateLeaderCommand.builder()
-                    .leader(member.id())
-                    .term(localNode.cluster().term())
-                    .build()).join();
+            if (member.equals(localNode.cluster().member())) {
+                localClient.submit(ImmutableUpdateLeaderCommand.builder()
+                        .leader(member.id())
+                        .term(localNode.cluster().term())
+                        .build());
+            }
         });
 
         Map<String, TimeLockServices> clientToServices = new HashMap<>();

@@ -19,6 +19,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.atomix.ImmutableLeaderAndTerm;
 import com.palantir.atlasdb.timelock.atomix.LeaderAndTerm;
@@ -28,6 +31,8 @@ import io.atomix.copycat.server.Commit;
 import io.atomix.copycat.server.StateMachine;
 
 public class TimeLockStateMachine extends StateMachine {
+    private static final Logger log = LoggerFactory.getLogger(TimeLockStateMachine.class);
+
     private final ConcurrentMap<String, AtomicLong> timestampBounds;
     private final AtomicReference<LeaderAndTerm> clusterLeader;
 
@@ -59,6 +64,9 @@ public class TimeLockStateMachine extends StateMachine {
                         ImmutableLeaderAndTerm.of(command.term(), String.valueOf(command.leader())))) {
                     return currentLeader;
                 }
+                log.warn("Failed to update the leader to {} from {} owing to contention. Retrying...",
+                        ImmutableLeaderAndTerm.of(command.term(), String.valueOf(command.leader())),
+                        currentLeader);
             }
         } finally {
             commit.release();

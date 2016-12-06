@@ -1,5 +1,4 @@
-
-:atlasdb-jepsen-tests:findbugsTest UP-TO-DATEapply from: "../gradle/shared.gradle"
+apply from: "../gradle/shared.gradle"
 
 apply plugin: 'com.palantir.java-distribution'
 apply plugin: 'org.inferred.processors'

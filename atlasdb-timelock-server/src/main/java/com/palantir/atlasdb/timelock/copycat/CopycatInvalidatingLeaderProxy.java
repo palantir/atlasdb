@@ -28,6 +28,7 @@ import javax.ws.rs.ServiceUnavailableException;
 import org.immutables.value.Value;
 
 import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.atlasdb.timelock.atomix.ImmutableLeaderAndTerm;
 import com.palantir.atlasdb.timelock.atomix.LeaderAndTerm;
 
 import io.atomix.copycat.client.CopycatClient;
@@ -92,8 +93,22 @@ public class CopycatInvalidatingLeaderProxy<T> extends AbstractInvocationHandler
                 0L);
     }
 
+//    private LeaderAndTerm getLeaderInfo() {
+//        try {
+//            return copycatClient.submit(ImmutableGetLeaderQuery.builder().build()).join();
+//        } catch (CompletionException e) {
+//            throw new ServiceUnavailableException("Couldn't seem to contact the cluster. We may be in a partition.");
+//        }
+//    }
+
     private LeaderAndTerm getLeaderInfo() {
-        return copycatClient.submit(ImmutableGetLeaderQuery.builder().build()).join();
+        // This is safe for Timestamp. NOT FOR LOCKS!
+        if (copycatServer.cluster().leader() == null) {
+            return null;
+        }
+        return ImmutableLeaderAndTerm.of(
+                copycatServer.cluster().term(),
+                String.valueOf(copycatServer.cluster().leader().id()));
     }
 
     private boolean isLeader(int leader) {
