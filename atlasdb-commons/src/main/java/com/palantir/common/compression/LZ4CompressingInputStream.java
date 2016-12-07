@@ -41,6 +41,7 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
     private static final LZ4Compressor COMPRESSOR = LZ4Factory.fastestInstance().fastCompressor();
     private static final int DEFAULT_SEED = 0x9747b28c;
     private static final int DEFAULT_BLOCK_SIZE = 1 << 16; // 64 KB
+    private static final int LZ4_HEADER_SIZE = 21;
 
     private final LZ4BlockOutputStream compressingStream;
     private final int blockSize;
@@ -56,16 +57,13 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
     }
 
     public LZ4CompressingInputStream(InputStream delegate, int blockSize) throws IOException {
-        super(delegate, Math.max(blockSize, COMPRESSOR.maxCompressedLength(blockSize)));
+        super(delegate, LZ4_HEADER_SIZE + COMPRESSOR.maxCompressedLength(blockSize));
         this.blockSize = blockSize;
         this.uncompressedBuffer = new byte[blockSize];
         Checksum checksum = XXHashFactory.fastestInstance().newStreamingHash32(DEFAULT_SEED).asChecksum();
         OutputStream delegateOutputStream = new InternalByteArrayOutputStream();
         this.compressingStream = new LZ4BlockOutputStream(delegateOutputStream, blockSize, COMPRESSOR, checksum, true);
         this.finished = false;
-
-        // Flush the LZ4 header
-        compressingStream.flush();
     }
 
     @Override
