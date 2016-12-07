@@ -61,26 +61,26 @@ import io.airlift.airline.SingleCommand;
 @Command(name = "atlasdb-perf", description = "The AtlasDB performance benchmark CLI.")
 public class AtlasDbPerfCli {
     @Inject
-    private HelpOption helpOption;
+    protected HelpOption helpOption;
 
     @Arguments(description = "The performance benchmarks to run. Leave blank to run all performance benchmarks.")
-    private Set<String> tests;
+    protected Set<String> tests;
 
     @Option(name = {"-b", "--backend"}, description = "Backing KVS stores to use. (e.g. POSTGRES or CASSANDRA)"
             + " Defaults to all backends if not specified.")
-    private Set<String> backends;
+    protected Set<String> backends;
 
     @Option(name = {"--db-uri"}, description = "Docker uri (e.g. POSTGRES@[phost:pport] or CASSANDRA@[chost:cport])."
             + "This is an alterative to specifying the --backend options that starts the docker containers locally.")
-    private List<String> dbUris;
+    protected List<String> dbUris;
 
     @Option(name = {"-l", "--list-tests"}, description = "Lists all available benchmarks.")
-    private boolean listTests;
+    protected boolean listTests;
 
     @Option(name = {"-o", "--output"},
             description = "The file in which to store the test results. "
                     + "Leave blank to only write results to the console.")
-    private String outputFile;
+    protected String outputFile;
 
     public static void main(String[] args) throws Exception {
         AtlasDbPerfCli cli = SingleCommand.singleCommand(AtlasDbPerfCli.class).parse(args);
@@ -101,7 +101,7 @@ public class AtlasDbPerfCli {
         }
     }
 
-    private static void run(AtlasDbPerfCli cli) throws Exception {
+    protected static void run(AtlasDbPerfCli cli) throws Exception {
         if (cli.dbUris != null) {
             runJmh(cli, getDockerUris(cli));
         } else {
@@ -118,7 +118,7 @@ public class AtlasDbPerfCli {
         }
     }
 
-    private static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris) throws Exception {
+    protected static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris) throws Exception {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
                 .forks(1)
                 .threads(1)
@@ -144,20 +144,20 @@ public class AtlasDbPerfCli {
         }
     }
 
-    private static DatabasesContainer startupDatabase(Set<String> backends) {
+    protected static DatabasesContainer startupDatabase(Set<String> backends) {
         return DatabasesContainer.startup(
                 backends.stream()
                         .map(KeyValueServiceType::valueOf)
                         .collect(Collectors.toList()));
     }
 
-    private static List<DockerizedDatabaseUri> getDockerUris(AtlasDbPerfCli cli) {
+    protected static List<DockerizedDatabaseUri> getDockerUris(AtlasDbPerfCli cli) {
         return cli.dbUris.stream()
                 .map(DockerizedDatabaseUri::fromUriString)
                 .collect(Collectors.toList());
     }
 
-    private static boolean hasValidArgs(AtlasDbPerfCli cli) {
+    protected static boolean hasValidArgs(AtlasDbPerfCli cli) {
         if (cli.backends != null && cli.dbUris != null) {
             throw new RuntimeException("Cannot specify both --backends and --db-uris");
         }
@@ -181,11 +181,11 @@ public class AtlasDbPerfCli {
         return true;
     }
 
-    private static void listAllBenchmarks() {
+    protected static void listAllBenchmarks() {
         getAllBenchmarks().forEach(System.out::println);
     }
 
-    private static Set<String> getAllBenchmarks() {
+    protected static Set<String> getAllBenchmarks() {
         Reflections reflections = new Reflections(
                 "com.palantir.atlasdb.performance.benchmarks",
                 new MethodAnnotationsScanner());
@@ -194,11 +194,10 @@ public class AtlasDbPerfCli {
                 .collect(Collectors.toSet());
     }
 
-    private static Set<String> getBackends(){
+    protected static Set<String> getBackends(){
         return EnumSet.allOf(KeyValueServiceType.class)
                 .stream()
                 .map(Enum::toString)
                 .collect(Collectors.toSet());
     }
-
 }
