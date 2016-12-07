@@ -7,9 +7,6 @@ apply plugin: 'com.github.hierynomus.license'
 
 apply from: "${rootDir}/gradle/versions.gradle"
 apply from: "${rootDir}/gradle/baseline.gradle"
-if (project.name != 'atlasdb-timelock-server') {
-    apply from: "${rootDir}/gradle/publish.gradle"
-}
 
 sourceCompatibility = 1.8
 
