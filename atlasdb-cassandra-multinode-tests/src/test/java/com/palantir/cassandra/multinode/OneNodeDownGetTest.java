@@ -16,6 +16,7 @@
 package com.palantir.cassandra.multinode;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -27,20 +28,20 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Multimap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.exception.PalantirRuntimeException;
 
 public class OneNodeDownGetTest {
 
@@ -106,32 +107,19 @@ public class OneNodeDownGetTest {
     }
 
     @Test
-    public void canGetRangeOfTimestamps() {
+    public void getRangeOfTimestampsThrows() {
         RangeRequest range = RangeRequest.builder().endRowExclusive(OneNodeDownTestSuite.SECOND_ROW).build();
         ClosableIterator<RowResult<Set<Long>>> it = OneNodeDownTestSuite.db.getRangeOfTimestamps(
                 OneNodeDownTestSuite.TEST_TABLE, range, Long.MAX_VALUE);
-
-        ImmutableMap<byte[], ImmutableSet<Long>> expectedTimestamps = ImmutableMap.of(
-                OneNodeDownTestSuite.FIRST_COLUMN,
-                ImmutableSet.of(OneNodeDownTestSuite.DEFAULT_TIMESTAMP, OneNodeDownTestSuite.OLD_TIMESTAMP),
-                OneNodeDownTestSuite.SECOND_COLUMN,
-                ImmutableSet.of(OneNodeDownTestSuite.DEFAULT_TIMESTAMP));
-        RowResult<Set<Long>> expectedRowResult = RowResult.create(OneNodeDownTestSuite.FIRST_ROW,
-                ImmutableSortedMap.copyOf(expectedTimestamps, UnsignedBytes.lexicographicalComparator()));
-
-        assertThat(it).containsExactly(expectedRowResult);
+        assertThatThrownBy(() -> it.next())
+                .isInstanceOf(InsufficientConsistencyException.class)
+                .hasMessage("This operation requires all Cassandra nodes to be up and available.");
     }
 
     @Test
-    public void canGetAllTimestamps() {
-        Multimap<Cell, Long> result = OneNodeDownTestSuite.db.getAllTimestamps(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableSet.of(OneNodeDownTestSuite.CELL_1_1), Long.MAX_VALUE);
-
-        ImmutableMultimap<Cell, Long> expectedResult = ImmutableMultimap.<Cell, Long>builder()
-                .put(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.OLD_TIMESTAMP)
-                .put(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_TIMESTAMP)
-                .build();
-
-        assertThat(result.entries()).containsExactlyElementsOf(expectedResult.entries());
+    public void getAllTimestampsThrows() {
+        assertThatThrownBy(() -> OneNodeDownTestSuite.db.getAllTimestamps(OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableSet.of(OneNodeDownTestSuite.CELL_1_1), Long.MAX_VALUE))
+                .isInstanceOf(PalantirRuntimeException.class);
     }
 }
