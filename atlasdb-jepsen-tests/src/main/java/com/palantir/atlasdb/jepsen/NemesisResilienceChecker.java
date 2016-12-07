@@ -32,6 +32,8 @@ import com.palantir.atlasdb.jepsen.events.OkEvent;
 
 public class NemesisResilienceChecker implements Checker{
     public static final String NEMESIS = "nemesis";
+    public static final String START = "start";
+    public static final String STOP = "stop";
 
     @Override
     public CheckerResult check(List<Event> events) {
@@ -52,18 +54,13 @@ public class NemesisResilienceChecker implements Checker{
 
         @Override
         public void visit(InfoEvent event) {
-            if (Objects.equals(event.process(), "nemesis") &&
-                    Objects.equals(event.function(), "start")) {
-                startEvent = event;
-                awaitingInvokeOkCycle = true;
-                processesPendingReads.clear();
-            } else if (Objects.equals(event.process(), "nemesis") &&
-                    Objects.equals(event.function(), "stop")) {
-                if (awaitingInvokeOkCycle) {
-                    // No successful cycle! BAD.
-                    unsurvivedEvents.add(startEvent);
-                    unsurvivedEvents.add(event);
-                    awaitingInvokeOkCycle = false;
+            if (isNemesisEvent(event)) {
+                if (isStartEvent(event)) {
+                    startAwaitingInvokeOkCycles(event);
+                } else if (isStopEvent(event)) {
+                    if (awaitingInvokeOkCycle) {
+                        handleUnsurvivedEvents(event);
+                    }
                 }
             }
         }
@@ -77,11 +74,8 @@ public class NemesisResilienceChecker implements Checker{
 
         @Override
         public void visit(OkEvent event) {
-            if (awaitingInvokeOkCycle) {
-                if (processesPendingReads.contains(event.process())) {
-                    processesPendingReads.clear();
-                    awaitingInvokeOkCycle = false;
-                }
+            if (awaitingInvokeOkCycle && processesPendingReads.contains(event.process())) {
+                awaitingInvokeOkCycle = false;
             }
         }
 
@@ -96,6 +90,30 @@ public class NemesisResilienceChecker implements Checker{
 
         public List<Event> errors() {
             return ImmutableList.copyOf(unsurvivedEvents);
+        }
+
+        private static boolean isNemesisEvent(InfoEvent event) {
+            return Objects.equals(event.process(), NEMESIS);
+        }
+
+        private static boolean isStartEvent(InfoEvent event) {
+            return Objects.equals(event.function(), START);
+        }
+
+        private static boolean isStopEvent(InfoEvent event) {
+            return Objects.equals(event.function(), STOP);
+        }
+
+        private void startAwaitingInvokeOkCycles(InfoEvent event) {
+            startEvent = event;
+            awaitingInvokeOkCycle = true;
+            processesPendingReads.clear();
+        }
+
+        private void handleUnsurvivedEvents(InfoEvent event) {
+            unsurvivedEvents.add(startEvent);
+            unsurvivedEvents.add(event);
+            awaitingInvokeOkCycle = false;
         }
     }
 }

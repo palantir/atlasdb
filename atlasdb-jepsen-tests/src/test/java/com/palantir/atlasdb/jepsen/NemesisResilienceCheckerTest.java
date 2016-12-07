@@ -32,8 +32,6 @@ public class NemesisResilienceCheckerTest {
     private static final int PROCESS_2 = 2;
 
     private static final String IMPOSTOR_PROCESS = "impostor";
-    private static final String START = "start";
-    private static final String STOP = "stop";
     private static final String VALUE_1 = "value1";
     private static final String VALUE_2 = "value2";
 
@@ -66,37 +64,37 @@ public class NemesisResilienceCheckerTest {
     private static final Event NEMESIS_START = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
             .process(NemesisResilienceChecker.NEMESIS)
-            .function(START)
+            .function(NemesisResilienceChecker.START)
             .value(VALUE_1)
             .build();
     private static final Event NEMESIS_START_2 = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
             .process(NemesisResilienceChecker.NEMESIS)
-            .function(START)
+            .function(NemesisResilienceChecker.START)
             .value(VALUE_2)
             .build();
     private static final Event NEMESIS_STOP = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
             .process(NemesisResilienceChecker.NEMESIS)
-            .function(STOP)
+            .function(NemesisResilienceChecker.STOP)
             .value(VALUE_1)
             .build();
     private static final Event NEMESIS_STOP_2 = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
             .process(NemesisResilienceChecker.NEMESIS)
-            .function(STOP)
+            .function(NemesisResilienceChecker.STOP)
             .value(VALUE_2)
             .build();
 
     private static final Event IMPOSTOR_START = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
             .process(IMPOSTOR_PROCESS)
-            .function(START)
+            .function(NemesisResilienceChecker.START)
             .build();
     private static final Event IMPOSTOR_STOP = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
             .process(IMPOSTOR_PROCESS)
-            .function(START)
+            .function(NemesisResilienceChecker.STOP)
             .build();
 
     @Test
