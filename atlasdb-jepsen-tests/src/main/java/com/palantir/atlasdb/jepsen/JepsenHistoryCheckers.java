@@ -20,6 +20,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Checker;
 
@@ -39,7 +40,8 @@ public class JepsenHistoryCheckers {
         return createWithAdditionalCheckers(LIVENESS_CHECKERS);
     }
 
-    private static JepsenHistoryChecker createWithAdditionalCheckers(List<Supplier<Checker>> additionalCheckers) {
+    @VisibleForTesting
+    static JepsenHistoryChecker createWithAdditionalCheckers(List<Supplier<Checker>> additionalCheckers) {
         return new JepsenHistoryChecker(
                 Stream.concat(STANDARD_CHECKERS.stream(), additionalCheckers.stream())
                         .map(Supplier::get)

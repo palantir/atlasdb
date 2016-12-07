@@ -79,7 +79,7 @@
 (def checker
   (reify checker/Checker
     (check [this test model history opts]
-      (.checkClojureHistory (JepsenHistoryChecker/createWithStandardCheckers) history))))
+      (.checkClojureHistory (JepsenHistoryCheckers/createWithLivenessCheckers) history))))
 
 (defn atlasdb-test
   []
@@ -88,11 +88,11 @@
     :client (create-client nil)
     :nemesis (nemesis/partition-random-halves)
     :generator (->> read-operation
-                    (gen/stagger 0.1)
+                    (gen/stagger 0.05)
                     (gen/nemesis
                     (gen/seq (cycle [(gen/sleep 5)
                                      {:type :info, :f :start}
-                                     (gen/sleep 20)
+                                     (gen/sleep 55)
                                      {:type :info, :f :stop}])))
                     (gen/time-limit 300))
     :db (create-server)
