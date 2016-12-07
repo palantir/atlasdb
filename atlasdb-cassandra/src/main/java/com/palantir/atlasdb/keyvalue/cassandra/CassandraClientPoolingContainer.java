@@ -195,8 +195,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
 
     /**
      * Pool size:
-     *    Always keep {@code config.poolSize()} (default 20) connections around, per host.
-     *    Allow bursting up to poolSize * 5 (default 100) connections per host under load.
+     *    Always keep {@link CassandraKeyValueServiceConfig#poolSize()} connections around, per host. Allow bursting
+     *    up to {@link CassandraKeyValueServiceConfig#maxConnectionBurstSize()} connections per host under load.
      *
      * Borrowing from pool:
      *    On borrow, check if the connection is actually open. If it is not,
@@ -207,10 +207,10 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
      *          Try 3 times against this host, and then give up and try against different hosts 3 additional times.
      *
      *
-     * In an asynchronous thread:
-     *    Every approximately 1 minute, examine approximately a third of the connections in pool.
-     *    Discard any connections in this third of the pool whose TCP connections are closed.
-     *    Discard any connections in this third of the pool that have been idle for more than 3 minutes,
+     * In an asynchronous thread (using default values):
+     *    Every 20-30 seconds, examine approximately a tenth of the connections in pool.
+     *    Discard any connections in this tenth of the pool whose TCP connections are closed.
+     *    Discard any connections in this tenth of the pool that have been idle for more than 10 minutes,
      *       while still keeping a minimum number of idle connections around for fast borrows.
      *
      */
@@ -219,8 +219,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
 
         poolConfig.setMinIdle(config.poolSize());
-        poolConfig.setMaxIdle(5 * config.poolSize());
-        poolConfig.setMaxTotal(5 * config.poolSize());
+        poolConfig.setMaxIdle(config.maxConnectionBurstSize());
+        poolConfig.setMaxTotal(config.maxConnectionBurstSize());
 
         // immediately throw when we try and borrow from a full pool; dealt with at higher level
         poolConfig.setBlockWhenExhausted(false);
@@ -229,13 +229,15 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         // this test is free/just checks a boolean and does not block; borrow is still fast
         poolConfig.setTestOnBorrow(true);
 
-        poolConfig.setMinEvictableIdleTimeMillis(TimeUnit.MILLISECONDS.convert(3, TimeUnit.MINUTES));
+        poolConfig.setMinEvictableIdleTimeMillis(
+                TimeUnit.MILLISECONDS.convert(config.idleConnectionTimeoutSeconds(), TimeUnit.SECONDS));
         // the randomness here is to prevent all of the pools for all of the hosts
         // evicting all at at once, which isn't great for C*.
+        int timeBetweenEvictionsSeconds = config.timeBetweenConnectionEvictionRunsSeconds();
+        int delta = ThreadLocalRandom.current().nextInt(Math.min(timeBetweenEvictionsSeconds / 2, 10));
         poolConfig.setTimeBetweenEvictionRunsMillis(
-                TimeUnit.MILLISECONDS.convert(60 + ThreadLocalRandom.current().nextInt(10), TimeUnit.SECONDS));
-        // test one third of objects per eviction run  // (Apache Commons Pool has the worst API)
-        poolConfig.setNumTestsPerEvictionRun(-3);
+                TimeUnit.MILLISECONDS.convert(timeBetweenEvictionsSeconds + delta, TimeUnit.SECONDS));
+        poolConfig.setNumTestsPerEvictionRun(-(int) (1.0 / config.proportionConnectionsToCheckPerEvictionRun()));
         poolConfig.setTestWhileIdle(true);
 
         poolConfig.setJmxNamePrefix(host.getHostString());

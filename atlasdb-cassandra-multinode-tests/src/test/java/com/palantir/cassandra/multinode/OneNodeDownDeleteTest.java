@@ -20,13 +20,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMultimap;
+import com.palantir.common.exception.PalantirRuntimeException;
 
 public class OneNodeDownDeleteTest {
 
     @Test
     public void deletingThrows() {
         assertThatThrownBy(() -> OneNodeDownTestSuite.db.delete(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_1,
-                        OneNodeDownTestSuite.DEFAULT_TIMESTAMP))).isInstanceOf(IllegalStateException.class);
+                ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_TIMESTAMP)))
+                .isInstanceOf(PalantirRuntimeException.class);
     }
 }

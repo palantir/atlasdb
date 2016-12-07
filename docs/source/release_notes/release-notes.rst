@@ -34,6 +34,12 @@ Changelog
 develop
 =======
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.26.0
+=======
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -41,22 +47,40 @@ develop
     *    - Type
          - Change
 
-    *    - |fixed|
-         - Multinode Cassandra: ``getAllTimestamps`` and ``getRangeOfTimestamps`` now work as long as quorum for reading is achieved.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1289>`__)
-
     *    - |improved|
-         - Substantially improved performance of the DbKvs implementation of the single-iterator version of getRowsColumnRange.
+         - Substantially improved performance of the DBKVS implementation of the single-iterator version of getRowsColumnRange.
+           Two new performance benchmarks were added as part of this PR:
+
+              - ``KvsGetRowsColumnRangeBenchmarks.getAllColumnsAligned``
+              - ``KvsGetRowsColumnRangeBenchmarks.getAllColumnsUnaligned``
+
+           These benchmarks show a 2x improvement on Postgres, and an AtlasDB client has observed an order of magnitude improvement experimentally.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1132>`__)
 
     *    - |improved|
-         - OkHttpClient connection pool configured to have 100 idle connections with 10 minute keep-alive, reducing the number of connections
-           that need to be created when a large number of transactions begin.
+         - OkHttpClient connection pool configured to have 100 idle connections with 10 minute keep-alive, reducing the number of connections that need to be created when a large number of transactions begin.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1294>`__)
 
     *    - |improved|
-         - Transaction perf improvement; commit timestamp lookups are now cached across transactions.
+         - Commit timestamp lookups are now cached across transactions.
+           This provided a near 2x improvement in our performance benchmark testing.
+           See comments on the pull request for details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1238>`__)
+
+    *    - |improved|
+         - ``LockAwareTransactionManager.runTaskWithLocksWithRetry`` now fails faster if given lock tokens that time out in a way that cannot be recovered from.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1322>`__)
+
+    *    - |improved|
+         - When we hit the ``MultipleRunningTimestampServicesError`` issue, we now automatically log thread dumps to a separate file (file path specified in service logs).
+           The full file path of the ``atlas-timestamps-log`` file will be outputted to the service logs.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1275>`__, `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1332>`__)
+
+    *    - |improved|
+         - Increase connection pool idle timeout to 10 minutes, and reduce eviction check frequency to 20-30 seconds at 1/10 of connections.
+           Note that there is now a configuration called ``maxConnectionBurstSize``, which configures how large the pool is able to grow when
+           receiving a large burst of requests. Previously this was hard-coded to 5x the ``poolSize`` (which is now the default for the parameter).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1336>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -70,12 +94,6 @@ v0.25.0
 
     *    - Type
          - Change
-
-    *    - |fixed|
-         - Worrying-looking thread dumps no longer appear in logs when we suspect that the
-           ``MultipleRunningTimestampServicesError`` may have been hit. Instead, we output them to a temporary file,
-           logging only its path to the user.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1275>`__)
 
     *    - |fixed|
          - ``--config-root`` and other global parameters can now be passed into dropwizard CLIs.

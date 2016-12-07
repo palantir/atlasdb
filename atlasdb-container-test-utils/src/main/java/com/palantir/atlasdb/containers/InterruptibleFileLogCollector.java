@@ -34,6 +34,9 @@ import com.palantir.docker.compose.execution.DockerCompose;
 import com.palantir.docker.compose.logging.FileLogCollector;
 import com.palantir.docker.compose.logging.LogCollector;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public class InterruptibleFileLogCollector implements LogCollector {
     private static final Logger log = LoggerFactory.getLogger(FileLogCollector.class);
 

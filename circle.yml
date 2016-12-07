@@ -1,6 +1,8 @@
 machine:
   pre:
-    - curl -sSL https://s3.amazonaws.com/circle-downloads/install-circleci-docker.sh | bash -s -- 1.10.0
+    - ./scripts/circle-ci/install-docker.sh:
+        pwd: $CIRCLE_PROJECT_REPONAME
+    - sudo pip install docker-compose
   java:
     version:
       oraclejdk8
@@ -13,15 +15,9 @@ machine:
 
 checkout:
   post:
-    - sudo service clamav-freshclam stop
-    - sudo service couchdb stop
-    - sudo service memcached stop
-    - sudo service mongodb stop
-    - sudo service mysql stop
-    - sudo service postgresql stop
-    - sudo service rabbitmq-server stop
-    - sudo service redis-server stop
-    - sudo service zookeeper stop
+    - ./scripts/circle-ci/pull-all-images.sh:
+        background: true
+    - ./scripts/circle-ci/stop-services.sh
 
 general:
   artifacts:
@@ -30,7 +26,6 @@ general:
 dependencies:
   pre:
     - ./scripts/circle-ci/download-moreutils.sh
-    - sudo pip install docker-compose
   override:
     - ./scripts/time-cmd.sh ./gradlew --profile --parallel resolveConfigurations
     - sudo pip install sphinx sphinx_rtd_theme
@@ -46,6 +41,7 @@ test:
         parallel: true
     - ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh:
         parallel: true
+        timeout: 300
   post:
     - ./scripts/time-cmd.sh ./scripts/circle-ci/ensure-repo-clean.sh
     - ./scripts/time-cmd.sh ./gradlew --profile jacocoFullReport -x classes:

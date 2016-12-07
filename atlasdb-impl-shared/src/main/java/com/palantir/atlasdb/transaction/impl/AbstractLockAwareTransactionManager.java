@@ -15,19 +15,24 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.Set;
+
 import org.apache.commons.lang3.Validate;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.transaction.api.LockAcquisitionException;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTasks;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
+import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.collect.IterableUtils;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 
 public abstract class AbstractLockAwareTransactionManager
@@ -53,7 +58,7 @@ public abstract class AbstractLockAwareTransactionManager
                     log.warn("Could not lock successfully", ex);
                     failureCount++;
                     if (shouldStopRetrying(failureCount)) {
-                        log.warn("Failing after " + failureCount + " tries", ex);
+                        log.warn("Failing after {} tries", failureCount, ex);
                         throw ex;
                     }
                     sleepForBackoff(failureCount);
@@ -75,8 +80,16 @@ public abstract class AbstractLockAwareTransactionManager
                 }
                 failureCount++;
                 if (shouldStopRetrying(failureCount)) {
-                    log.warn("Failing after " + failureCount + " tries", e);
+                    log.warn("Failing after {} tries", failureCount, e);
                     throw e;
+                }
+                if (e instanceof TransactionLockTimeoutException && !Iterables.isEmpty(lockTokens)) {
+                    Set<LockRefreshToken> refreshedTokens = getLockService().refreshLockRefreshTokens(
+                            Iterables.transform(lockTokens, HeldLocksToken::getLockRefreshToken));
+                    if (refreshedTokens.size() < Iterables.size(lockTokens)) {
+                        log.warn("Locks timed out while processing transaction.", e);
+                        throw e;
+                    }
                 }
                 log.info("retrying transaction", e);
             } catch (RuntimeException e) {

@@ -38,7 +38,7 @@ public class NonOverlappingReadsMonotonicChecker implements Checker {
         Visitor visitor = new Visitor();
         events.forEach(event -> event.accept(visitor));
         return ImmutableCheckerResult.builder()
-                .valid(visitor.valid)
+                .valid(visitor.valid())
                 .errors(visitor.errors())
                 .build();
     }
@@ -52,15 +52,6 @@ public class NonOverlappingReadsMonotonicChecker implements Checker {
                 (first, second) -> Long.compare(first.time(), second.time()));
 
         private final List<Event> errors = new ArrayList<>();
-        private boolean valid = true;
-
-        public boolean valid() {
-            return valid;
-        }
-
-        public List<Event> errors() {
-            return ImmutableList.copyOf(errors);
-        }
 
         @Override
         public void visit(InfoEvent event) {
@@ -91,10 +82,17 @@ public class NonOverlappingReadsMonotonicChecker implements Checker {
             pendingReadForProcess.remove(process);
         }
 
+        public boolean valid() {
+            return errors.isEmpty();
+        }
+
+        public List<Event> errors() {
+            return ImmutableList.copyOf(errors);
+        }
+
         private void validateTimestampHigherThanReadsCompletedBeforeInvoke(InvokeEvent invoke, OkEvent event) {
             OkEvent lastAcknowledgedRead = lastAcknowledgedReadBefore(invoke.time());
             if (lastAcknowledgedRead != null && lastAcknowledgedRead.value() >= event.value()) {
-                valid = false;
                 errors.add(lastAcknowledgedRead);
                 errors.add(invoke);
                 errors.add(event);

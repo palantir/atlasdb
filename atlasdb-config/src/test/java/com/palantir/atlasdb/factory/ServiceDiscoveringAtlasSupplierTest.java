@@ -17,8 +17,11 @@ package com.palantir.atlasdb.factory;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
+
+import java.io.IOException;
 
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -81,6 +84,16 @@ public class ServiceDiscoveringAtlasSupplierTest {
                 mock(TimestampService.class));
 
         assertThat(supplier.getTimestampService(), is(not(sameObjectAs(supplier.getTimestampService()))));
+    }
+
+    @Test
+    public void alwaysSaveThreadDumpsToTheSameFile() throws IOException {
+        ServiceDiscoveringAtlasSupplier supplier = new ServiceDiscoveringAtlasSupplier(kvsConfig, leaderConfig);
+
+        String firstPath = supplier.saveThreadDumps();
+        String secondPath = supplier.saveThreadDumps();
+
+        assertEquals(firstPath, secondPath);
     }
 
     private Matcher<Object> sameObjectAs(Object initial) {

@@ -12,7 +12,7 @@
             [knossos.history :as history]
             [jepsen.tests :as tests])
   (:import com.palantir.atlasdb.jepsen.JepsenHistoryChecker)
-  (:import com.palantir.atlasdb.jepsen.TimestampClient))
+  (:import com.palantir.atlasdb.http.TimestampClient))
 
 (defn create-server
   "Creates an object that implements the db/DB protocol.
@@ -31,9 +31,10 @@
         (c/upload "resources/atlasdb/timelock.yml" "/atlasdb-timelock-server/var/conf")
         (c/exec :sed :-i (format "s/<HOSTNAME>/%s/" (name node)) "/atlasdb-timelock-server/var/conf/timelock.yml")
         (info node "Starting timelock server")
-        (c/exec "source" "/etc/profile" "&&" "/atlasdb-timelock-server/service/bin/init.sh" "start")
+        (c/exec :env "JAVA_HOME=/usr/lib/jvm/java-8-oracle" "/atlasdb-timelock-server/service/bin/init.sh" "start")
         (info node "Waiting until timelock cluster is ready")
         (TimestampClient/waitUntilHostReady (name node))
+        (Thread/sleep (* 1000 10))
         (TimestampClient/waitUntilTimestampClusterReady '("n1" "n2" "n3" "n4" "n5"))))
 
     (teardown! [_ _ node]
