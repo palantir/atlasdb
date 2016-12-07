@@ -18,6 +18,19 @@ package com.palantir.atlasdb.stream;
 import java.io.OutputStream;
 
 interface BlockGetter {
+    /**
+     * Fills the OutputStream with data from some source.
+     * The source should be divisible into an ordered set of blocks.
+     * The behaviour when too many blocks are requested is unspecified (in practice, an exception should be thrown).
+     *
+     * @param firstBlock the first block (0-indexed) to put into the OutputStream.
+     * @param numBlocks the number of blocks to put into the OutputStream.
+     * @param destination the OutputStream to fill with blocks.
+     */
     void get(int firstBlock, int numBlocks, OutputStream destination);
+
+    /**
+     * @return the expected length of a block of data.
+     */
     int expectedLength();
 }
