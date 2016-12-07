@@ -52,6 +52,15 @@ public class BlockConsumingInputStreamTest {
         }
     };
 
+    private final byte[] stored = "divisible".getBytes();
+    private final BlockGetter threeByteConsumer = (offset, numBlocks, os) -> {
+        try {
+            os.write(stored, 3 * offset, 3 * numBlocks);
+        } catch (IOException e) {
+            fail();
+        }
+    };
+
     @Test
     public void can_read_single_byte() throws IOException {
         BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1, 1);
@@ -61,12 +70,62 @@ public class BlockConsumingInputStreamTest {
     }
 
     @Test
+    public void read_empty_array_returns_zero() throws IOException {
+        BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1, 1);
+        int read = stream.read(new byte[0]);
+        assertEquals(0, read);
+    }
+
+    @Test
     public void can_read_block() throws IOException {
         BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1, 1);
         byte[] result = new byte[DATA_SIZE];
         int read = stream.read(result);
         assertEquals(DATA_SIZE, read);
         assertArrayEquals(data, result);
+    }
+
+    @Test
+    public void can_read_across_blocks() throws IOException {
+        BlockConsumingInputStream stream = BlockConsumingInputStream.create(threeByteConsumer, 2, 1);
+        expectNextBytesFromStream(stream, "di");
+        expectNextBytesFromStream(stream, "vi");
+        expectNextBytesFromStream(stream, "si");
+    }
+
+    @Test
+    public void can_read_across_blocks_with_incomplete_final_block() throws IOException {
+        BlockConsumingInputStream stream = BlockConsumingInputStream.create(threeByteConsumer, 3, 2);
+        expectNextBytesFromStream(stream, "di");
+        expectNextBytesFromStream(stream, "vi");
+        expectNextBytesFromStream(stream, "si");
+        expectNextBytesFromStream(stream, "bl");
+
+        byte[] chunk = new byte[2];
+        int read = stream.read(chunk);
+        assertEquals(1, read);
+        assertArrayEquals("e".getBytes(), Arrays.copyOf(chunk, 1));
+    }
+
+    @Test
+    public void read_single_byte_when_stream_exhausted_returns_minus_one() throws IOException {
+        BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1, 1);
+        //noinspection ResultOfMethodCallIgnored
+        stream.read(new byte[DATA_SIZE]);
+
+        int read = stream.read();
+        assertEquals(-1, read);
+    }
+
+    @Test
+    public void read_when_stream_exhausted_returns_minus_one() throws IOException {
+        BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1, 1);
+        byte[] result = new byte[DATA_SIZE];
+        //noinspection ResultOfMethodCallIgnored
+        stream.read(result);
+
+        int read = stream.read(result);
+        assertEquals(-1, read);
     }
 
     @Test
@@ -126,6 +185,13 @@ public class BlockConsumingInputStreamTest {
         int bytesRead = stream.read(ata);
         assertEquals(3, bytesRead);
         verify(spiedGetter, times(1)).get(anyInt(), eq(1), any());
+    }
+
+    private void expectNextBytesFromStream(BlockConsumingInputStream stream, String expectedOutput) throws IOException {
+        byte[] chunk = new byte[2];
+        int read = stream.read(chunk);
+        assertEquals(2, read);
+        assertArrayEquals(expectedOutput.getBytes(), chunk);
     }
 
     private class MockableBlockGetter implements BlockGetter {

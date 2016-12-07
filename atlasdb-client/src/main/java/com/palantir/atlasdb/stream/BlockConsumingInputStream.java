@@ -60,14 +60,48 @@ public final class BlockConsumingInputStream extends InputStream {
         return -1;
     }
 
-    private void getNextBlock() throws IOException {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    @Override
+    public int read(byte[] b, int off, int len) throws IOException {
+        if (len == 0) {
+            return 0;
+        }
+
+        int bytesRead = 0;
+        while (bytesRead < len) {
+            int bytesLeftInBuffer = buffer.length - positionInBuffer;
+            int bytesToCopy = Math.min(bytesLeftInBuffer, len - bytesRead);
+            System.arraycopy(buffer, positionInBuffer, b, off + bytesRead, bytesToCopy);
+            positionInBuffer += bytesToCopy;
+            bytesRead += bytesToCopy;
+
+            if (positionInBuffer >= buffer.length) {
+                boolean reloaded = getNextBlock();
+                if (!reloaded) {
+                    break;
+                }
+            }
+        }
+
+        if (bytesRead == 0) {
+            return -1;
+        }
+
+        return bytesRead;
+    }
+
+    private boolean getNextBlock() throws IOException {
         int numBlocksToGet = Math.min(blocksLeft(), blocksInMemory);
+        if (numBlocksToGet <= 0) {
+            return false;
+        }
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         blockGetter.get(nextBlockToRead, numBlocksToGet, outputStream);
         nextBlockToRead += numBlocksToGet;
         buffer = outputStream.toByteArray();
         positionInBuffer = 0;
         outputStream.close();
+        return true;
     }
 
     private int blocksLeft() {
