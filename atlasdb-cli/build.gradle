@@ -17,3 +17,4 @@ dependencies {
     testCompile project(':atlasdb-rocksdb')
     testCompile group: 'org.assertj', name: 'assertj-core', version: libVersions.assertj
 }
+

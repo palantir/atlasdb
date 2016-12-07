@@ -1,10 +1,31 @@
 apply plugin: 'maven-publish'
-apply from: "$rootDir/gradle/artifactory-urls.gradle"
+apply plugin: 'com.jfrog.bintray'
 
+//Bintray publish
+bintray {
+    user = System.getenv('BINTRAY_USERNAME')
+    key = System.getenv('BINTRAY_PASSWORD')
+    publish = true
+    pkg {
+        userOrg = 'palantir'
+        repo = 'releases'
+        name = 'atlasdb'
+        licenses = ['BSD-3-Clause']
+        publications = ['artifactory']
+    }
+}
+
+bintrayUpload.onlyIf {
+    System.getenv('BINTRAY_USERNAME') && System.getenv('BINTRAY_PASSWORD') && project.version ==~ releaseVersionRegex
+}
+
+bintrayUpload.dependsOn 'distTar', 'build'
+
+//artifactory publish
 publishing {
     repositories {
         maven {
-            url artifactoryDistUrl()
+            url System.env.ARTIFACTORY_DIST_URL
 
             credentials {
                 username System.env.ARTIFACTORY_USERNAME
@@ -16,4 +37,10 @@ publishing {
 
 publish.onlyIf {
     System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD') && System.getenv('ARTIFACTORY_DIST_REPO') && System.getenv('ARTIFACTORY_URL') && !(project.version ==~ releaseVersionRegex)
+}
+
+publish.dependsOn 'distTar', 'build'
+
+ext {
+    releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta)?(\+\d{3})?/
 }
