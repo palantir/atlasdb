@@ -29,7 +29,8 @@ public class NemesisResilienceCheckerTest {
     private static final long ZERO_TIME = 0L;
     private static final int PROCESS_1 = 1;
     private static final int PROCESS_2 = 2;
-    private static final String PROCESS_NEMESIS = "nemesis";
+
+    private static final String IMPOSTOR_PROCESS = "impostor";
     private static final String START = "start";
     private static final String STOP = "stop";
     private static final String VALUE_1 = "value1";
@@ -57,27 +58,38 @@ public class NemesisResilienceCheckerTest {
 
     private static final Event NEMESIS_START = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
-            .process(PROCESS_NEMESIS)
+            .process(NemesisResilienceChecker.NEMESIS)
             .function(START)
             .value(VALUE_1)
             .build();
     private static final Event NEMESIS_START_2 = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
-            .process(PROCESS_NEMESIS)
+            .process(NemesisResilienceChecker.NEMESIS)
             .function(START)
             .value(VALUE_2)
             .build();
     private static final Event NEMESIS_STOP = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
-            .process(PROCESS_NEMESIS)
+            .process(NemesisResilienceChecker.NEMESIS)
             .function(STOP)
             .value(VALUE_1)
             .build();
     private static final Event NEMESIS_STOP_2 = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
-            .process(PROCESS_NEMESIS)
+            .process(NemesisResilienceChecker.NEMESIS)
             .function(STOP)
             .value(VALUE_2)
+            .build();
+
+    private static final Event IMPOSTOR_START = ImmutableInfoEvent.builder()
+            .time(ZERO_TIME)
+            .process(IMPOSTOR_PROCESS)
+            .function(START)
+            .build();
+    private static final Event IMPOSTOR_STOP = ImmutableInfoEvent.builder()
+            .time(ZERO_TIME)
+            .process(IMPOSTOR_PROCESS)
+            .function(START)
             .build();
 
     @Test
@@ -113,6 +125,11 @@ public class NemesisResilienceCheckerTest {
     @Test
     public void succeedsWithNoCycleInStopStartWindow() {
         assertNoErrors(NEMESIS_STOP, NEMESIS_START);
+    }
+
+    @Test
+    public void succeedsWithMultipleInvokeOksBetweenNemesisStartStop() {
+        assertNoErrors(NEMESIS_START, INVOKE_0, OK_0, INVOKE_1, OK_1, NEMESIS_STOP);
     }
 
     @Test
@@ -171,6 +188,47 @@ public class NemesisResilienceCheckerTest {
 
         assertThat(result.valid()).isFalse();
         assertThat(result.errors()).containsExactly(NEMESIS_START_2, NEMESIS_STOP);
+    }
+
+    @Test
+    public void reportsMultipleOffendingNemesisEvents() {
+        CheckerResult result = runNemesisResilienceChecker(
+                NEMESIS_START,
+                NEMESIS_STOP,
+                NEMESIS_START_2,
+                NEMESIS_STOP_2);
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).containsExactly(NEMESIS_START, NEMESIS_STOP, NEMESIS_START_2, NEMESIS_STOP_2);
+    }
+
+    @Test
+    public void onlyReportsRelevantOffendingEvents() {
+        CheckerResult result = runNemesisResilienceChecker(
+                NEMESIS_START,
+                INVOKE_0,
+                OK_0,
+                NEMESIS_STOP,
+                NEMESIS_START_2,
+                NEMESIS_STOP_2);
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).containsExactly(NEMESIS_START_2, NEMESIS_STOP_2);
+    }
+
+    @Test
+    public void ignoresNonNemesisRelatedInfoEvents() {
+        assertNoErrors(IMPOSTOR_START, IMPOSTOR_STOP);
+    }
+
+    @Test
+    public void ignoresNonNemesisRelatedInfoEventsMidstream() {
+        assertNoErrors(NEMESIS_START, INVOKE_0, IMPOSTOR_START, IMPOSTOR_STOP, OK_0, NEMESIS_STOP);
+    }
+
+    @Test
+    public void skipsNonNemesisRelatedInfoEvents() {
+        assertSimpleNemesisError(INVOKE_0, NEMESIS_START, IMPOSTOR_START, OK_0, NEMESIS_STOP, IMPOSTOR_STOP);
     }
 
     private static void assertNoErrors(Event... events) {

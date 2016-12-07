@@ -31,6 +31,8 @@ import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 
 public class NemesisResilienceChecker implements Checker{
+    public static final String NEMESIS = "nemesis";
+
     @Override
     public CheckerResult check(List<Event> events) {
         Visitor visitor = new NemesisResilienceChecker.Visitor();
