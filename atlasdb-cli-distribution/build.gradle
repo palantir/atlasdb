@@ -1,0 +1,15 @@
+apply from: "../gradle/publish-dists.gradle"
+apply from: "../gradle/shared.gradle"
+
+task distTar {}
+
+distTar.dependsOn tasks.getByPath(':atlasdb-cli:distTar')
+
+publishing.publications {
+    artifactory(MavenPublication) {
+        artifact tasks.getByPath(':atlasdb-cli:distTar').outputs.files.singleFile
+        artifactId 'atlasdb-cli'
+        groupId 'com.palantir.atlasdb'
+        version gitVersion()
+    }
+}
