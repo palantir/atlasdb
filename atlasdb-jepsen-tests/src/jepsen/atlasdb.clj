@@ -55,7 +55,7 @@
 (defn read-operation [_ _] {:type :invoke, :f :read-operation, :value nil})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Client creation and invokations (i.e. reading a timestamp)
+;; Client creation and invocations (i.e. reading a timestamp)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn create-client
   "Creates an object that implements the client/Client protocol.
