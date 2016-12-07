@@ -47,3 +47,11 @@ distribution {
 tasks.getByName('distTar').doLast {
     println "Distribution tarball is ready at $outputs.files.singleFile"
 }
+
+publishing.publications {
+    artifactory(MavenPublication) {
+        artifact distTar
+        artifactId applicationName
+        groupId 'com.palantir.atlasdb'
+    }
+}
