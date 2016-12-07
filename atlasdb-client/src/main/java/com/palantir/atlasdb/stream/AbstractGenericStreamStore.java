@@ -105,12 +105,12 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     }
 
     private InputStream makeStream(ID id, StreamMetadata metadata) {
-        long numBlocks = getNumberOfBlocksFromMetadata(metadata);
+        int numBlocks = (int) getNumberOfBlocksFromMetadata(metadata);
         int blocksInMemory = numberOfBlocksThatFitInMemory();
 
         BlockGetter pageRefresher = new BlockGetter() {
             @Override
-            public void get(Integer firstBlock, Integer numBlocks, OutputStream destination) {
+            public void get(int firstBlock, int numBlocks, OutputStream destination) {
                 txnMgr.runTaskReadOnly(txn -> {
                     for (int i = 0; i < numBlocks; i++) {
                         loadSingleBlockToOutputStream(txn, id, firstBlock + i, destination);

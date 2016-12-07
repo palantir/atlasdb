@@ -39,7 +39,7 @@ public class BlockConsumingInputStreamTest {
     private final byte[] data = "data".getBytes();
     private final BlockGetter dataConsumer = new BlockGetter() {
         @Override
-        public void get(Integer firstBlock, Integer numBlocks, OutputStream destination) {
+        public void get(int firstBlock, int numBlocks, OutputStream destination) {
             try {
                 destination.write(data);
             } catch (IOException e) {
@@ -55,7 +55,7 @@ public class BlockConsumingInputStreamTest {
 
     private final BlockGetter singleByteConsumer = new BlockGetter() {
         @Override
-        public void get(Integer offset, Integer numBlocks, OutputStream os) {
+        public void get(int offset, int numBlocks, OutputStream os) {
             try {
                 os.write(data, offset, numBlocks);
             } catch (IOException e) {
@@ -72,7 +72,7 @@ public class BlockConsumingInputStreamTest {
     private final byte[] stored = "divisible".getBytes();
     private final BlockGetter threeByteConsumer = new BlockGetter() {
         @Override
-        public void get(Integer offset, Integer numBlocks, OutputStream os) {
+        public void get(int offset, int numBlocks, OutputStream os) {
             try {
                 os.write(stored, 3 * offset, 3 * numBlocks);
             } catch (IOException e) {
@@ -227,7 +227,7 @@ public class BlockConsumingInputStreamTest {
         }
 
         @Override
-        public void get(Integer firstBlock, Integer numBlocks, OutputStream destination) {
+        public void get(int firstBlock, int numBlocks, OutputStream destination) {
             delegate.get(firstBlock, numBlocks, destination);
         }
 

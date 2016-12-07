@@ -21,7 +21,7 @@ import java.io.InputStream;
 
 public final class BlockConsumingInputStream extends InputStream {
     private final BlockGetter blockGetter;
-    private final long numBlocks;
+    private final int numBlocks;
     private final int blocksInMemory;
 
     private int nextBlockToRead;
@@ -31,14 +31,14 @@ public final class BlockConsumingInputStream extends InputStream {
 
     public static BlockConsumingInputStream create(
             BlockGetter blockGetter,
-            long numBlocks,
+            int numBlocks,
             int blocksInMemory) throws IOException {
         BlockConsumingInputStream stream = new BlockConsumingInputStream(blockGetter, numBlocks, blocksInMemory);
         stream.getNextBlock();
         return stream;
     }
 
-    private BlockConsumingInputStream(BlockGetter blockGetter, long numBlocks, int blocksInMemory) {
+    private BlockConsumingInputStream(BlockGetter blockGetter, int numBlocks, int blocksInMemory) {
         this.blockGetter = blockGetter;
         this.numBlocks = numBlocks;
         this.blocksInMemory = blocksInMemory;
@@ -106,6 +106,6 @@ public final class BlockConsumingInputStream extends InputStream {
     }
 
     private int blocksLeft() {
-        return (int) numBlocks - nextBlockToRead;
+        return numBlocks - nextBlockToRead;
     }
 }
