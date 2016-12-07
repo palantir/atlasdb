@@ -1,0 +1,15 @@
+apply plugin: 'maven-publish'
+apply from: "$rootDir/gradle/artifactory-urls.gradle"
+
+publishing {
+    repositories {
+        maven {
+            url artifactoryDistUrl()
+
+            credentials {
+                username System.env.ARTIFACTORY_USERNAME
+                password System.env.ARTIFACTORY_PASSWORD
+            }
+        }
+    }
+}
