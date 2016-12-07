@@ -21,6 +21,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Event;
+import com.palantir.atlasdb.jepsen.events.ImmutableFailEvent;
 import com.palantir.atlasdb.jepsen.events.ImmutableInfoEvent;
 import com.palantir.atlasdb.jepsen.events.ImmutableInvokeEvent;
 import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
@@ -54,6 +55,12 @@ public class NemesisResilienceCheckerTest {
             .time(ZERO_TIME)
             .process(PROCESS_2)
             .value(0L)
+            .build();
+
+    private static final Event ERROR_0 = ImmutableFailEvent.builder()
+            .time(ZERO_TIME)
+            .process(PROCESS_1)
+            .error("timeout")
             .build();
 
     private static final Event NEMESIS_START = ImmutableInfoEvent.builder()
@@ -123,6 +130,11 @@ public class NemesisResilienceCheckerTest {
     }
 
     @Test
+    public void succeedsWithAnySuccessfulInvokeOkCycle() {
+        assertNoErrors(NEMESIS_START, INVOKE_0, INVOKE_0, ERROR_0, OK_0, NEMESIS_STOP);
+    }
+
+    @Test
     public void succeedsWithNoCycleInStopStartWindow() {
         assertNoErrors(NEMESIS_STOP, NEMESIS_START);
     }
@@ -150,6 +162,11 @@ public class NemesisResilienceCheckerTest {
     @Test
     public void failsWithCycleNotInNemesisWindow() {
         assertSimpleNemesisError(INVOKE_0, NEMESIS_START, OK_0, INVOKE_0, NEMESIS_STOP, OK_0);
+    }
+
+    @Test
+    public void failsWithUnsuccessfulResponse() {
+        assertSimpleNemesisError(NEMESIS_START, INVOKE_0, ERROR_0, NEMESIS_STOP);
     }
 
     @Test
@@ -214,6 +231,20 @@ public class NemesisResilienceCheckerTest {
 
         assertThat(result.valid()).isFalse();
         assertThat(result.errors()).containsExactly(NEMESIS_START_2, NEMESIS_STOP_2);
+    }
+
+    @Test
+    public void failsOnDistributedCycle() {
+        CheckerResult result = runNemesisResilienceChecker(
+                NEMESIS_START,
+                INVOKE_0,
+                NEMESIS_STOP,
+                NEMESIS_START_2,
+                OK_0,
+                NEMESIS_STOP_2);
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).containsExactly(NEMESIS_START, NEMESIS_STOP, NEMESIS_START_2, NEMESIS_STOP_2);
     }
 
     @Test
