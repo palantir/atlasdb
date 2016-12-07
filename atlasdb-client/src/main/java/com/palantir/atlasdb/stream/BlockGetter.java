@@ -19,4 +19,5 @@ import java.io.OutputStream;
 
 interface BlockGetter {
     void get(Integer firstBlock, Integer numBlocks, OutputStream destination);
+    int expectedLength();
 }

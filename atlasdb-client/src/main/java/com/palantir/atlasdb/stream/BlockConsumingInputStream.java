@@ -95,13 +95,14 @@ public final class BlockConsumingInputStream extends InputStream {
             return false;
         }
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        blockGetter.get(nextBlockToRead, numBlocksToGet, outputStream);
-        nextBlockToRead += numBlocksToGet;
-        buffer = outputStream.toByteArray();
-        positionInBuffer = 0;
-        outputStream.close();
-        return true;
+        int expectedLength = blockGetter.expectedLength();
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream(expectedLength)) {
+            blockGetter.get(nextBlockToRead, numBlocksToGet, outputStream);
+            nextBlockToRead += numBlocksToGet;
+            buffer = outputStream.toByteArray();
+            positionInBuffer = 0;
+            return true;
+        }
     }
 
     private int blocksLeft() {

@@ -37,27 +37,52 @@ public class BlockConsumingInputStreamTest {
     private static final int DATA_SIZE_PLUS_ONE = 5;
 
     private final byte[] data = "data".getBytes();
-    private final BlockGetter dataConsumer = (offset, numBlocks, os) -> {
-        try {
-            os.write(data);
-        } catch (IOException e) {
-            fail();
+    private final BlockGetter dataConsumer = new BlockGetter() {
+        @Override
+        public void get(Integer firstBlock, Integer numBlocks, OutputStream destination) {
+            try {
+                destination.write(data);
+            } catch (IOException e) {
+                fail();
+            }
+        }
+
+        @Override
+        public int expectedLength() {
+            return data.length;
         }
     };
-    private final BlockGetter singleByteConsumer = (offset, numBlocks, os) -> {
-        try {
-            os.write(data, offset, numBlocks);
-        } catch (IOException e) {
-            fail();
+
+    private final BlockGetter singleByteConsumer = new BlockGetter() {
+        @Override
+        public void get(Integer offset, Integer numBlocks, OutputStream os) {
+            try {
+                os.write(data, offset, numBlocks);
+            } catch (IOException e) {
+                fail();
+            }
+        }
+
+        @Override
+        public int expectedLength() {
+            return data.length;
         }
     };
 
     private final byte[] stored = "divisible".getBytes();
-    private final BlockGetter threeByteConsumer = (offset, numBlocks, os) -> {
-        try {
-            os.write(stored, 3 * offset, 3 * numBlocks);
-        } catch (IOException e) {
-            fail();
+    private final BlockGetter threeByteConsumer = new BlockGetter() {
+        @Override
+        public void get(Integer offset, Integer numBlocks, OutputStream os) {
+            try {
+                os.write(stored, 3 * offset, 3 * numBlocks);
+            } catch (IOException e) {
+                fail();
+            }
+        }
+
+        @Override
+        public int expectedLength() {
+            return data.length;
         }
     };
 
@@ -204,6 +229,11 @@ public class BlockConsumingInputStreamTest {
         @Override
         public void get(Integer firstBlock, Integer numBlocks, OutputStream destination) {
             delegate.get(firstBlock, numBlocks, destination);
+        }
+
+        @Override
+        public int expectedLength() {
+            return delegate.expectedLength();
         }
     }
 }
