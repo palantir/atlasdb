@@ -27,29 +27,57 @@ import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
 
 public class NemesisResilienceCheckerTest {
     private static final long ZERO_TIME = 0L;
-    private static final int PROCESS_0 = 0;
+    private static final int PROCESS_1 = 1;
+    private static final int PROCESS_2 = 2;
     private static final String PROCESS_NEMESIS = "nemesis";
     private static final String START = "start";
     private static final String STOP = "stop";
+    private static final String VALUE_1 = "value1";
+    private static final String VALUE_2 = "value2";
 
     private static final Event INVOKE_0 = ImmutableInvokeEvent.builder()
             .time(ZERO_TIME)
-            .process(PROCESS_0)
+            .process(PROCESS_1)
             .build();
+    private static final Event INVOKE_1 = ImmutableInvokeEvent.builder()
+            .time(ZERO_TIME)
+            .process(PROCESS_2)
+            .build();
+
     private static final Event OK_0 = ImmutableOkEvent.builder()
             .time(ZERO_TIME)
-            .process(PROCESS_0)
+            .process(PROCESS_1)
             .value(0L)
             .build();
+    private static final Event OK_1 = ImmutableOkEvent.builder()
+            .time(ZERO_TIME)
+            .process(PROCESS_2)
+            .value(0L)
+            .build();
+
     private static final Event NEMESIS_START = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
             .process(PROCESS_NEMESIS)
             .function(START)
+            .value(VALUE_1)
+            .build();
+    private static final Event NEMESIS_START_2 = ImmutableInfoEvent.builder()
+            .time(ZERO_TIME)
+            .process(PROCESS_NEMESIS)
+            .function(START)
+            .value(VALUE_2)
             .build();
     private static final Event NEMESIS_STOP = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
             .process(PROCESS_NEMESIS)
             .function(STOP)
+            .value(VALUE_1)
+            .build();
+    private static final Event NEMESIS_STOP_2 = ImmutableInfoEvent.builder()
+            .time(ZERO_TIME)
+            .process(PROCESS_NEMESIS)
+            .function(STOP)
+            .value(VALUE_2)
             .build();
 
     @Test
@@ -78,11 +106,71 @@ public class NemesisResilienceCheckerTest {
     }
 
     @Test
+    public void succeedsWithOneProcessSuccessfulCycle() {
+        assertNoErrors(NEMESIS_START, INVOKE_0, INVOKE_1, OK_0, NEMESIS_STOP);
+    }
+
+    @Test
+    public void succeedsWithNoCycleInStopStartWindow() {
+        assertNoErrors(NEMESIS_STOP, NEMESIS_START);
+    }
+
+    @Test
     public void failsWithConsecutiveNemesisStartStop() {
-        CheckerResult result = runNemesisResilienceChecker(NEMESIS_START, NEMESIS_STOP);
+        assertSimpleNemesisError(NEMESIS_START, NEMESIS_STOP);
+    }
+
+    @Test
+    public void failsWithInvokeBeforeNemesisStart() {
+        assertSimpleNemesisError(INVOKE_0, NEMESIS_START, OK_0, NEMESIS_STOP);
+    }
+
+    @Test
+    public void failsWithOkAfterNemesisStop() {
+        assertSimpleNemesisError(NEMESIS_START, INVOKE_0, NEMESIS_STOP, OK_0);
+    }
+
+    @Test
+    public void failsWithCycleNotInNemesisWindow() {
+        assertSimpleNemesisError(INVOKE_0, NEMESIS_START, OK_0, INVOKE_0, NEMESIS_STOP, OK_0);
+    }
+
+    @Test
+    public void doesNotObserveCycleWithDifferentProcesses() {
+        assertSimpleNemesisError(NEMESIS_START, INVOKE_0, OK_1, NEMESIS_STOP);
+    }
+
+    @Test
+    public void reportsInnerEventsAsOffending() {
+        CheckerResult result = runNemesisResilienceChecker(
+                NEMESIS_START,
+                NEMESIS_START_2,
+                NEMESIS_STOP,
+                NEMESIS_STOP_2);
 
         assertThat(result.valid()).isFalse();
-        assertThat(result.errors()).containsExactly(NEMESIS_START, NEMESIS_STOP);
+        assertThat(result.errors()).containsExactly(NEMESIS_START_2, NEMESIS_STOP);
+    }
+
+    @Test
+    public void succeedsIfCycleBetweenInnermostEvents() {
+        assertNoErrors(NEMESIS_START, NEMESIS_START_2, INVOKE_0, OK_0, NEMESIS_STOP, NEMESIS_STOP_2);
+    }
+
+    @Test
+    public void failsIfCycleNotBetweenInnermostEvents() {
+        CheckerResult result = runNemesisResilienceChecker(
+                NEMESIS_START,
+                INVOKE_0,
+                NEMESIS_START_2,
+                OK_0,
+                INVOKE_1,
+                NEMESIS_STOP,
+                OK_1,
+                NEMESIS_STOP_2);
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).containsExactly(NEMESIS_START_2, NEMESIS_STOP);
     }
 
     private static void assertNoErrors(Event... events) {
@@ -90,6 +178,13 @@ public class NemesisResilienceCheckerTest {
 
         assertThat(result.valid()).isTrue();
         assertThat(result.errors()).isEmpty();
+    }
+
+    private static void assertSimpleNemesisError(Event... events) {
+        CheckerResult result = runNemesisResilienceChecker(events);
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).containsExactly(NEMESIS_START, NEMESIS_STOP);
     }
 
     private static CheckerResult runNemesisResilienceChecker(Event... events) {
