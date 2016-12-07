@@ -34,6 +34,10 @@ public class JepsenHistoryChecker {
         this.checkers = ImmutableList.copyOf(checkers);
     }
 
+    public JepsenHistoryChecker(List<Checker> checkers) {
+        this.checkers = ImmutableList.copyOf(checkers);
+    }
+
     public static JepsenHistoryChecker createWithStandardCheckers() {
         return new JepsenHistoryChecker(
                 new MonotonicChecker(),
