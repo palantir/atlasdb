@@ -37,8 +37,7 @@ import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 
 public enum KeyValueServiceType implements KeyValueServiceTypeInterface{
     POSTGRES(5432, "postgres-docker-compose.yml"),
-    CASSANDRA(9160, "cassandra-docker-compose.yml"),
-    ORACLE(1521, "docker-compose.oracle.yml");
+    CASSANDRA(9160, "cassandra-docker-compose.yml");
 
     private final int kvsPort;
     private final String dockerComposeFileName;
@@ -57,8 +56,9 @@ public enum KeyValueServiceType implements KeyValueServiceTypeInterface{
         return kvsPort;
     }
 
-    public static KeyValueServiceConfig getKeyValueServiceConfig(KeyValueServiceType type, InetSocketAddress addr) {
-        switch (type) {
+    @Override
+    public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr) {
+        switch (this) {
             case POSTGRES:
                 return ImmutableDbKeyValueServiceConfig.builder()
                         .ddl(ImmutablePostgresDdlConfig.builder().build())
@@ -89,19 +89,20 @@ public enum KeyValueServiceType implements KeyValueServiceTypeInterface{
                         .autoRefreshNodes(false)
                         .build();
             default:
-                throw new UnsupportedOperationException("Unable to get the KVS config for " + type);
+                throw new UnsupportedOperationException("Unable to get the KVS config for ");
         }
     }
 
-    public static boolean canConnect(KeyValueServiceType type, InetSocketAddress addr) {
-        switch (type) {
+    @Override
+    public boolean canConnect(InetSocketAddress addr) {
+        switch (this) {
             case POSTGRES:
                 return true;
             case CASSANDRA:
                 try {
                     CassandraKeyValueService.create(
                             CassandraKeyValueServiceConfigManager.createSimpleManager(
-                                    (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(type, addr)),
+                                    (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr)),
                             Optional.of(ImmutableLeaderConfig
                                     .builder()
                                     .quorumSize(1)
@@ -113,7 +114,7 @@ public enum KeyValueServiceType implements KeyValueServiceTypeInterface{
                     return false;
                 }
             default:
-                throw new UnsupportedOperationException("Trying to check connection for unknown KVS " + type);
+                throw new UnsupportedOperationException("Trying to check connection for unknown KVS ");
         }
     }
 

@@ -8,4 +8,5 @@ services:
        POSTGRES_PASSWORD: palantir
        POSTGRES_USER: palantir
        POSTGRES_DB: atlas
-    network_mode: host
+    ports:
+      - "5432:5432"

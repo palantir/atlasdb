@@ -42,6 +42,7 @@ import com.palantir.atlasdb.performance.backend.DatabasesContainer;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 import com.palantir.atlasdb.performance.backend.KeyValueServiceType;
+import com.palantir.atlasdb.performance.backend.KeyValueServiceTypeInterface;
 
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
@@ -106,10 +107,7 @@ public class AtlasDbPerfCli {
         } else {
             Set<String> backends = cli.backends != null
                     ? cli.backends
-                    : EnumSet.allOf(KeyValueServiceType.class)
-                            .stream()
-                            .map(Enum::toString)
-                            .collect(Collectors.toSet());
+                    : getBackends();
             try (DatabasesContainer container = startupDatabase(backends)) {
                 runJmh(cli,
                         container.getDockerizedDatabases()
@@ -193,6 +191,13 @@ public class AtlasDbPerfCli {
                 new MethodAnnotationsScanner());
         return reflections.getMethodsAnnotatedWith(Benchmark.class).stream()
                 .map(method -> method.getDeclaringClass().getSimpleName() + "." + method.getName())
+                .collect(Collectors.toSet());
+    }
+
+    private static Set<String> getBackends(){
+        return EnumSet.allOf(KeyValueServiceType.class)
+                .stream()
+                .map(Enum::toString)
                 .collect(Collectors.toSet());
     }
 

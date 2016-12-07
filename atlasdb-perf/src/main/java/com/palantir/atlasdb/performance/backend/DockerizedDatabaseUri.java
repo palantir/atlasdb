@@ -21,10 +21,10 @@ public class DockerizedDatabaseUri {
 
     private static final String DELIMITER = "@";
 
-    private final KeyValueServiceType type;
+    private final KeyValueServiceTypeInterface type;
     private final InetSocketAddress addr;
 
-    public DockerizedDatabaseUri(KeyValueServiceType type, InetSocketAddress addr) {
+    public DockerizedDatabaseUri(KeyValueServiceTypeInterface type, InetSocketAddress addr) {
         this.type = type;
         this.addr = addr;
     }
@@ -37,7 +37,7 @@ public class DockerizedDatabaseUri {
                 InetSocketAddress.createUnresolved(addrParts[0], Integer.parseInt(addrParts[1])));
     }
 
-    public KeyValueServiceType getKeyValueServiceType() {
+    public KeyValueServiceTypeInterface getKeyValueServiceType() {
         return type;
     }
 
