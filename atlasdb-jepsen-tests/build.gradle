@@ -29,6 +29,7 @@ dependencies {
 
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+    compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8'
     compile group: 'com.google.guava', name: 'guava'
     compile group: 'com.jayway.awaitility', name: 'awaitility'
     compile group: 'one.util', name: 'streamex'

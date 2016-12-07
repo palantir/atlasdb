@@ -34,6 +34,9 @@ public class EventTest {
     public void makeSureWeCanHaveNullValues() {
         Map<Keyword, Object> keywordMap = new HashMap<>();
         keywordMap.put(Keyword.intern("type"), Keyword.intern("info"));
+        keywordMap.put(Keyword.intern("f"), Keyword.intern("start"));
+        keywordMap.put(Keyword.intern("process"), Keyword.intern("nemesis"));
+        keywordMap.put(Keyword.intern("time"), SOME_TIME);
         keywordMap.put(Keyword.intern("value"), null);
 
         Event event = Event.fromKeywordMap(keywordMap);
@@ -42,12 +45,26 @@ public class EventTest {
     }
 
     @Test
-    public void canDeserialiseInfoRead() {
+    public void canDeserialiseInfoReadWithoutValue() {
         Map<Keyword, Object> keywordMap = new HashMap<>();
         keywordMap.put(Keyword.intern("type"), Keyword.intern("info"));
         keywordMap.put(Keyword.intern("f"), Keyword.intern("start"));
         keywordMap.put(Keyword.intern("process"), Keyword.intern("nemesis"));
         keywordMap.put(Keyword.intern("time"), SOME_TIME);
+
+        Event event = Event.fromKeywordMap(keywordMap);
+
+        assertThat(event).isInstanceOf(InfoEvent.class);
+    }
+
+    @Test
+    public void canDeserialiseInfoReadWithValue() {
+        Map<Keyword, Object> keywordMap = new HashMap<>();
+        keywordMap.put(Keyword.intern("type"), Keyword.intern("info"));
+        keywordMap.put(Keyword.intern("f"), Keyword.intern("start"));
+        keywordMap.put(Keyword.intern("process"), Keyword.intern("nemesis"));
+        keywordMap.put(Keyword.intern("time"), SOME_TIME);
+        keywordMap.put(Keyword.intern("value"), Keyword.intern(String.valueOf(SOME_VALUE)));
 
         Event event = Event.fromKeywordMap(keywordMap);
 
