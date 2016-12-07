@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.jepsen.events.Checker;
@@ -28,7 +29,8 @@ import clojure.lang.Keyword;
 
 public class JepsenHistoryChecker {
 
-    private final List<Checker> checkers;
+    @VisibleForTesting
+    final List<Checker> checkers;
 
     public JepsenHistoryChecker(Checker... checkers) {
         this.checkers = ImmutableList.copyOf(checkers);
@@ -36,13 +38,6 @@ public class JepsenHistoryChecker {
 
     public JepsenHistoryChecker(List<Checker> checkers) {
         this.checkers = ImmutableList.copyOf(checkers);
-    }
-
-    public static JepsenHistoryChecker createWithStandardCheckers() {
-        return new JepsenHistoryChecker(
-                new MonotonicChecker(),
-                new NonOverlappingReadsMonotonicChecker(),
-                new UniquenessChecker());
     }
 
     /**

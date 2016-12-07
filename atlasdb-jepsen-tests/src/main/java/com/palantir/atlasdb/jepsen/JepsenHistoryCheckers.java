@@ -24,8 +24,13 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Checker;
 
-public class JepsenHistoryCheckers {
-    private static List<Supplier<Checker>> STANDARD_CHECKERS = ImmutableList.of(
+public final class JepsenHistoryCheckers {
+    private JepsenHistoryCheckers() {
+        // utility
+    }
+
+    @VisibleForTesting
+    static List<Supplier<Checker>> STANDARD_CHECKERS = ImmutableList.of(
             MonotonicChecker::new,
             NonOverlappingReadsMonotonicChecker::new,
             UniquenessChecker::new);
