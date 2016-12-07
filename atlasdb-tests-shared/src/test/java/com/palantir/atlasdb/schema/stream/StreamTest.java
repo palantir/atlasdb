@@ -165,8 +165,13 @@ public class StreamTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void testStoreByteStreamThreeBlocksLong() throws IOException {
-        storeAndCheckByteStreams(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 3);
+    public void testStoreByteStreamExactlyAtInMemoryThreshold() throws IOException {
+        storeAndCheckByteStreams(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 4);
+    }
+
+    @Test
+    public void testStoreByteStreamJustAboveInMemoryThreshold() throws IOException {
+        storeAndCheckByteStreams(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 4 + 1);
     }
 
     @Test
