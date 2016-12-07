@@ -44,10 +44,10 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
 
     private final LZ4BlockOutputStream compressingStream;
     private final int blockSize;
+    private final byte[] uncompressedBuffer;
 
-    // Flag to prevent writes to the internal buffer while the
-    // compressing stream is reading from it.
-    private boolean readInProgress;
+    // Position in the compressed buffer while writing
+    private int writeBufferPosition;
     // Flag to indicate whether this stream has been exhausted.
     private boolean finished;
 
@@ -58,26 +58,25 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
     public LZ4CompressingInputStream(InputStream delegate, int blockSize) throws IOException {
         super(delegate, Math.max(blockSize, COMPRESSOR.maxCompressedLength(blockSize)));
         this.blockSize = blockSize;
+        this.uncompressedBuffer = new byte[blockSize];
         Checksum checksum = XXHashFactory.fastestInstance().newStreamingHash32(DEFAULT_SEED).asChecksum();
         OutputStream delegateOutputStream = new InternalByteArrayOutputStream();
         this.compressingStream = new LZ4BlockOutputStream(delegateOutputStream, blockSize, COMPRESSOR, checksum, true);
-        this.readInProgress = false;
         this.finished = false;
 
-        // Flush the LZ4 header so that the compression buffer is empty
-        delegateOutputStream.flush();
+        // Flush the LZ4 header
+        compressingStream.flush();
     }
 
     @Override
-    protected boolean refill() throws IOException {
+    protected int refill() throws IOException {
         if (finished) {
-            return false;
+            return 0;
         }
-        position = 0;
-        bufferSize = 0;
+        writeBufferPosition = 0;
 
         // Read a block of data from the delegate input stream.
-        int bytesRead = ByteStreams.read(delegate, buffer, BUFFER_START, blockSize);
+        int bytesRead = ByteStreams.read(delegate, uncompressedBuffer, BUFFER_START, blockSize);
         if (bytesRead == 0) {
             // The delegate input stream has been exhausted, so we notify
             // the compressing stream that there are no remaining bytes.
@@ -85,34 +84,22 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
             compressingStream.finish();
             compressingStream.flush();
             finished = true;
-            return true;
+        } else {
+            // Write the bytes to the compressing stream and flush it.
+            compressingStream.write(uncompressedBuffer, BUFFER_START, bytesRead);
+            compressingStream.flush();
         }
 
-        // Write the bytes to the compressing stream and flush it.
-        // The compressing stream flushes bytes when it contains more
-        // than blockSize bytes, so we manually flush after writing up to
-        // blockSize bytes to flush the compressed bytes to the internal
-        // buffer. The readInProgress flag protects against simultaneously
-        // reading and writing to the same buffer. The write call will read
-        // from the buffer but should not write to it - only the flush call
-        // should.
-        readInProgress = true;
-        compressingStream.write(buffer, BUFFER_START, bytesRead);
-        readInProgress = false;
-        compressingStream.flush();
-
-        return true;
+        return writeBufferPosition;
     }
 
     private void write(int b) throws IOException {
-        ensureSafeForWrite();
-        ensureCapacity(bufferSize + 1);
-        buffer[bufferSize] = (byte) b;
-        bufferSize++;
+        ensureCapacity(writeBufferPosition + 1);
+        buffer[writeBufferPosition] = (byte) b;
+        writeBufferPosition++;
     }
 
     private void write(byte b[], int off, int len) throws IOException {
-        ensureSafeForWrite();
         if (b == null) {
             throw new NullPointerException("Provided byte array b cannot be null.");
         }
@@ -122,13 +109,9 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
         if (len == 0) {
             return;
         }
-        ensureCapacity(bufferSize + len);
-        System.arraycopy(b, off, buffer, bufferSize, len);
-        bufferSize += len;
-    }
-
-    private void ensureSafeForWrite() {
-        Preconditions.checkState(!readInProgress, "Cannot simultaneously read and write from the buffer.");
+        ensureCapacity(writeBufferPosition + len);
+        System.arraycopy(b, off, buffer, writeBufferPosition, len);
+        writeBufferPosition += len;
     }
 
     // Since the internal buffer size doesn't change, we throw if

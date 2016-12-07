@@ -36,9 +36,9 @@ public abstract class BufferedDelegateInputStream extends InputStream {
     protected final byte[] buffer;
 
     // Current position in the buffer
-    protected int position;
+    private int position;
     // Size in bytes of the data in the buffer
-    protected int bufferSize;
+    private int bufferSize;
 
     public BufferedDelegateInputStream(InputStream delegate, int bufferLength) {
         Preconditions.checkArgument(bufferLength >= 0, "buffer size must be greater than or equal to zero");
@@ -61,10 +61,13 @@ public abstract class BufferedDelegateInputStream extends InputStream {
     // the end of the stream and return false.
     private boolean ensureBytesAvailable() throws IOException {
         if (position == bufferSize) {
-            boolean bufferRefilled = refill();
-            if (!bufferRefilled) {
+            position = BUFFER_START;
+            bufferSize = 0;
+            int bytesRefilled = refill();
+            if (bytesRefilled == 0) {
                 return false;
             }
+            bufferSize = bytesRefilled;
         }
         return true;
     }
@@ -119,9 +122,8 @@ public abstract class BufferedDelegateInputStream extends InputStream {
     /**
      * Refills the internal buffer from the delegate {@link InputStream}.
      *
-     * @return True if the buffer was refilled. False if the delegate
-     *         stream has been exhausted and the internal buffer is empty.
+     * @return The number of bytes written to the buffer while refilling it.
      */
-    protected abstract boolean refill() throws IOException;
+    protected abstract int refill() throws IOException;
 
 }
