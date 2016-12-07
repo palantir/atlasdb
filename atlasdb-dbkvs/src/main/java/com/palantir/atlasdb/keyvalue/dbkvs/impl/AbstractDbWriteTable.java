@@ -31,13 +31,13 @@ import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
-public class SimpleDbWriteTable implements DbWriteTable {
+public abstract class AbstractDbWriteTable implements DbWriteTable {
     protected final DdlConfig config;
     protected final ConnectionSupplier conns;
     protected final TableReference tableRef;
     private final PrefixedTableNames prefixedTableNames;
 
-    public SimpleDbWriteTable(
+    public AbstractDbWriteTable(
             DdlConfig config,
             ConnectionSupplier conns,
             TableReference tableRef,
