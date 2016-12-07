@@ -56,51 +56,37 @@ public class LZ4CompressionTests {
 
     @Test
     public void testSingleCharacterStream() throws IOException {
-        byte[] uncompressedData = new byte[] { SINGLE_VALUE };
-        initializeStreams(uncompressedData);
-        verifyStreamContents(uncompressedData);
+        testStream_incompressible(1); // 1 byte input will always be incompressible
     }
 
     @Test
-    public void testSingleCharacterSteam_singleByteRead() throws IOException {
+    public void testSingleCharacterStream_singleByteRead() throws IOException {
         byte[] uncompressedData = new byte[] { SINGLE_VALUE };
         initializeStreams(uncompressedData);
         int value = decompressingStream.read();
 
-        assertEquals(uncompressedData[0], value);
+        assertEquals(Byte.toUnsignedInt(uncompressedData[0]), value);
         assertStreamIsEmpty(decompressingStream);
     }
 
     @Test
-    public void testSingleBlock() throws IOException {
-        byte[] uncompressedData = new byte[BLOCK_SIZE];
-        fillWithCompressibleData(uncompressedData);
-        initializeStreams(uncompressedData);
-        verifyStreamContents(uncompressedData);
+    public void testSingleBlock_compressible() throws IOException {
+        testStream_compressible(BLOCK_SIZE);
     }
 
     @Test
     public void testSingleBlock_incompressible() throws IOException {
-        byte[] uncompressedData = new byte[BLOCK_SIZE];
-        fillWithIncompressibleData(uncompressedData);
-        initializeStreams(uncompressedData);
-        verifyStreamContents(uncompressedData);
+        testStream_incompressible(BLOCK_SIZE);
     }
 
     @Test
     public void testMultiBlock_compressible() throws IOException {
-        byte[] uncompressedData = new byte[16 * BLOCK_SIZE];
-        fillWithCompressibleData(uncompressedData);
-        initializeStreams(uncompressedData);
-        verifyStreamContents(uncompressedData);
+        testStream_compressible(16 * BLOCK_SIZE);
     }
 
     @Test
     public void testMultiBlock_incompressible() throws IOException {
-        byte[] uncompressedData = new byte[16 * BLOCK_SIZE];
-        fillWithIncompressibleData(uncompressedData);
-        initializeStreams(uncompressedData);
-        verifyStreamContents(uncompressedData);
+        testStream_incompressible(16 * BLOCK_SIZE);
     }
 
     @Test
@@ -126,6 +112,20 @@ public class LZ4CompressionTests {
         int bytesRead = ByteStreams.read(decompressingStream, decompressedData, 0, decompressedData.length);
         assertEquals(uncompressedData.length, bytesRead);
         assertArrayEquals(uncompressedData, Arrays.copyOf(decompressedData, bytesRead));
+    }
+
+    private void testStream_compressible(int streamSize) throws IOException {
+        byte[] uncompressedData = new byte[streamSize];
+        fillWithCompressibleData(uncompressedData);
+        initializeStreams(uncompressedData);
+        verifyStreamContents(uncompressedData);
+    }
+
+    private void testStream_incompressible(int streamSize) throws IOException {
+        byte[] uncompressedData = new byte[streamSize];
+        fillWithIncompressibleData(uncompressedData);
+        initializeStreams(uncompressedData);
+        verifyStreamContents(uncompressedData);
     }
 
     private void initializeStreams(byte[] uncompressedData) throws IOException {

@@ -62,12 +62,10 @@ public abstract class BufferedDelegateInputStream extends InputStream {
     private boolean ensureBytesAvailable() throws IOException {
         if (position == bufferSize) {
             position = BUFFER_START;
-            bufferSize = 0;
-            int bytesRefilled = refill();
-            if (bytesRefilled == 0) {
+            bufferSize = refill();
+            if (bufferSize == 0) {
                 return false;
             }
-            bufferSize = bytesRefilled;
         }
         return true;
     }
