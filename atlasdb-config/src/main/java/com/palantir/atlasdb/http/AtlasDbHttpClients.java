@@ -44,6 +44,7 @@ public final class AtlasDbHttpClients {
     private static final int CONNECTION_POOL_SIZE = 100;
     private static final long KEEP_ALIVE_TIME_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
     private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 1000;
+    private static final int QUICK_MAX_BACKOFF_MILLIS = 1000;
     private static final Request.Options DEFAULT_FEIGN_OPTIONS = new Request.Options();
 
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -129,7 +130,7 @@ public final class AtlasDbHttpClients {
                 sslSocketFactory,
                 endpointUris,
                 options,
-                QUICK_FEIGN_TIMEOUT_MILLIS,
+                QUICK_MAX_BACKOFF_MILLIS,
                 type);
     }
 
