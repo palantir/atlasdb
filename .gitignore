@@ -11,6 +11,7 @@ Thumbs.db
 *.iml
 *.ipr
 *.iws
+*.pyc
 fix-ivy.py
 .idea
 .checkstyle
@@ -30,8 +31,11 @@ generated_testSrc/
 out/
 atlasdb-cli/var/data/
 
-# Emacs temp files
+# Common text-editor temp files
+# emacs
 *~
+# opendiff et al
+*.orig
 
 # Rocksdb data
 var/data/rocksdb

@@ -20,10 +20,10 @@ import java.util.List;
 
 public interface AgnosticResultSet {
 
-    public List<? extends AgnosticResultRow> rows();
+    List<? extends AgnosticResultRow> rows();
 
-    public AgnosticResultRow get(int row);
+    AgnosticResultRow get(int row);
 
-    public int size();
+    int size();
 
 }

@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -30,17 +29,17 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbQueryFactory;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.AbstractDbQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.db.oracle.JdbcHandler.ArrayHandler;
 
-public abstract class OracleQueryFactory implements DbQueryFactory {
-    protected final String tableName;
+public abstract class OracleQueryFactory extends AbstractDbQueryFactory {
     protected final OracleDdlConfig config;
+    protected final String tableName;
 
-    public OracleQueryFactory(String tableName, OracleDdlConfig config) {
-        this.tableName = tableName;
+    public OracleQueryFactory(OracleDdlConfig config, String tableName) {
         this.config = config;
+        this.tableName = tableName;
     }
 
     @Override
@@ -50,9 +49,9 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
                                        boolean includeValue) {
         String query = " /* GET_LATEST_ONE_ROW_INNER (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + prefixedTableName() + ") */ "
+                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + tableName + ") */ "
                 + "   m.row_name, m.col_name, max(m.ts) as ts "
-                + " FROM " + prefixedTableName() + " m "
+                + " FROM " + tableName + " m "
                 + " WHERE m.row_name = ? "
                 + "   AND m.ts < ? "
                 + (columns.allColumnsSelected() ? "" :
@@ -77,9 +76,9 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
                                         boolean includeValue) {
         String query = " /* GET_LATEST_ROWS_SINGLE_BOUND_INNER (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + prefixedTableName() + ") */ "
+                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + tableName + ") */ "
                 + "   m.row_name, m.col_name, max(m.ts) as ts "
-                + " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
+                + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE m.row_name = t.row_name "
                 + "   AND m.ts < ? "
                 + (columns.allColumnsSelected() ? "" :
@@ -103,9 +102,9 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
                                         boolean includeValue) {
         String query = " /* GET_LATEST_ROWS_MANY_BOUNDS_INNER (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + prefixedTableName() + ") */ "
+                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + tableName + ") */ "
                 + "   m.row_name, m.col_name, max(m.ts) as ts "
-                + " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
+                + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE m.row_name = t.row_name "
                 + "   AND m.ts < t.max_ts "
                 + (columns.allColumnsSelected() ? "" :
@@ -130,9 +129,9 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
                                     boolean includeValue) {
         String query = " /* GET_ALL_ONE_ROW (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ INDEX(m pk_" + prefixedTableName() + ") */ "
+                + "   /*+ INDEX(m pk_" + tableName + ") */ "
                 + "   m.row_name, m.col_name, m.ts" + getValueSubselect("m", includeValue)
-                + " FROM " + prefixedTableName() + " m "
+                + " FROM " + tableName + " m "
                 + " WHERE m.row_name = ? "
                 + "   AND m.ts < ? "
                 + (columns.allColumnsSelected() ? "" :
@@ -155,9 +154,9 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
                                      boolean includeValue) {
         String query = " /* GET_ALL_ROWS_SINGLE_BOUND (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + prefixedTableName() + ") */ "
+                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + tableName + ") */ "
                 + "   m.row_name, m.col_name, m.ts" + getValueSubselect("m", includeValue)
-                + " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
+                + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE m.row_name = t.row_name "
                 + "   AND m.ts < ? "
                 + (columns.allColumnsSelected() ? "" :
@@ -179,9 +178,9 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
                                      boolean includeValue) {
         String query = " /* GET_ALL_ROWS_MANY_BOUNDS (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + prefixedTableName() + ") */ "
+                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + tableName + ") */ "
                 + "   m.row_name, m.col_name, m.ts" + getValueSubselect("m", includeValue)
-                + " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
+                + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE m.row_name = t.row_name "
                 + "   AND m.ts < t.max_ts "
                 + (columns.allColumnsSelected() ? "" :
@@ -201,9 +200,9 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
     public FullQuery getLatestCellQuery(Cell cell, long ts, boolean includeValue) {
         String query = " /* GET_LATEST_ONE_CELLS_INNER (" + tableName + ") */ "
                 + " SELECT "
-                + "   /*+ INDEX(m pk_" + prefixedTableName() + ") */ "
+                + "   /*+ INDEX(m pk_" + tableName + ") */ "
                 + "   m.row_name, m.col_name, max(m.ts) as ts "
-                + " FROM " + prefixedTableName() + " m "
+                + " FROM " + tableName + " m "
                 + " WHERE m.row_name = ? "
                 + "   AND m.col_name = ? "
                 + "   AND m.ts < ? "
@@ -216,9 +215,9 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
     public FullQuery getLatestCellsQuery(Iterable<Cell> cells, long ts, boolean includeValue) {
         String query = " /* GET_LATEST_CELLS_SINGLE_BOUND_INNER (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + prefixedTableName() + ") */ "
+                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + tableName + ") */ "
                 + "   m.row_name, m.col_name, max(m.ts) as ts "
-                + " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
+                + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE m.row_name = t.row_name "
                 + "   AND m.col_name = t.col_name "
                 + "   AND m.ts < ? "
@@ -231,9 +230,9 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
     public FullQuery getLatestCellsQuery(Collection<Map.Entry<Cell, Long>> cells, boolean includeValue) {
         String query = " /* GET_LATEST_CELLS_MANY_BOUNDS_INNER (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + prefixedTableName() + ") */ "
+                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + tableName + ") */ "
                 + "   m.row_name, m.col_name, max(m.ts) as ts "
-                + " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
+                + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE m.row_name = t.row_name "
                 + "   AND m.col_name = t.col_name "
                 + "   AND m.ts < t.max_ts "
@@ -246,9 +245,9 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
     public FullQuery getAllCellQuery(Cell cell, long ts, boolean includeValue) {
         String query = " /* GET_ALL_ONE_CELL (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ INDEX(m pk_" + prefixedTableName() + ") */ "
+                + "   /*+ INDEX(m pk_" + tableName + ") */ "
                 + "   m.row_name, m.col_name, m.ts" + getValueSubselect("m", includeValue)
-                + " FROM " + prefixedTableName() + " m "
+                + " FROM " + tableName + " m "
                 + " WHERE m.row_name = ? "
                 + "   AND m.col_name = ? "
                 + "   AND m.ts < ? ";
@@ -259,9 +258,9 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
     public FullQuery getAllCellsQuery(Iterable<Cell> cells, long ts, boolean includeValue) {
         String query = " /* GET_ALL_CELLS_SINGLE_BOUND (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + prefixedTableName() + ") */ "
+                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + tableName + ") */ "
                 + "   m.row_name, m.col_name, m.ts" + getValueSubselect("m", includeValue)
-                + " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
+                + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE m.row_name = t.row_name "
                 + "   AND m.col_name = t.col_name "
                 + "   AND m.ts < ? ";
@@ -272,9 +271,9 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
     public FullQuery getAllCellsQuery(Collection<Map.Entry<Cell, Long>> cells, boolean includeValue) {
         String query = " /* GET_ALL_CELLS_MANY_BOUNDS (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + prefixedTableName() + ") */ "
+                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m pk_" + tableName + ") */ "
                 + "   m.row_name, m.col_name, m.ts" + getValueSubselect("m", includeValue)
-                + " FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
+                + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE m.row_name = t.row_name "
                 + "   AND m.col_name = t.col_name "
                 + "   AND m.ts < t.max_ts ";
@@ -297,18 +296,18 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
         }
         if (maxRows == 1) {
             String query = " /* GET_RANGE_ONE_ROW (" + tableName + ") */ "
-                    + " SELECT /*+ INDEX(m pk_" + prefixedTableName() + ") */ "
+                    + " SELECT /*+ INDEX(m pk_" + tableName + ") */ "
                     + (range.isReverse() ? "max" : "min") + "(m.row_name) as row_name "
-                    + " FROM " + prefixedTableName() + " m "
+                    + " FROM " + tableName + " m "
                     + (bounds.isEmpty() ? "" : " WHERE  " + Joiner.on(" AND ").join(bounds));
             return new FullQuery(query).withArgs(args);
         }
 
         String query = " /* GET_RANGE_ROWS (" + tableName + ") */ "
                 + " SELECT inner.row_name FROM "
-                + "   ( SELECT /*+ INDEX(m pk_" + prefixedTableName() + ") */ "
+                + "   ( SELECT /*+ INDEX(m pk_" + tableName + ") */ "
                 + "       DISTINCT m.row_name "
-                + "     FROM " + prefixedTableName() + " m "
+                + "     FROM " + tableName + " m "
                 + (bounds.isEmpty() ? "" : " WHERE  " + Joiner.on(" AND ").join(bounds))
                 + "     ORDER BY m.row_name " + (range.isReverse() ? "DESC" : "ASC")
                 + "   ) inner WHERE rownum <= " + maxRows;
@@ -322,7 +321,7 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
             ColumnRangeSelection columnRangeSelection) {
         String query = " /* GET_ROWS_COLUMN_RANGE_COUNT(" + tableName + ") */"
                 + " SELECT m.row_name, COUNT(m.col_name) AS column_count "
-                + "   FROM " + prefixedTableName() + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
+                + "   FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + "  WHERE m.row_name = t.row_name "
                 + "    AND m.ts < ? "
                 + (columnRangeSelection.getStartCol().length > 0 ? " AND m.col_name >= ?" : "")
@@ -339,33 +338,13 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
     }
 
     @Override
-    public FullQuery getRowsColumnRangeQuery(
-            Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow,
-            long ts) {
-        List<String> subQueries = new ArrayList<>(columnRangeSelectionsByRow.size());
-        int totalArgs = 0;
-        for (BatchColumnRangeSelection columnRangeSelection : columnRangeSelectionsByRow.values()) {
-            totalArgs += 2
-                    + ((columnRangeSelection.getStartCol().length > 0) ? 1 : 0)
-                    + ((columnRangeSelection.getEndCol().length > 0) ? 1 : 0);
-        }
-        List<Object> args = new ArrayList<>(totalArgs);
-        for (Map.Entry<byte[], BatchColumnRangeSelection> entry : columnRangeSelectionsByRow.entrySet()) {
-            FullQuery query = getRowsColumnRangeSubQuery(entry.getKey(), ts, entry.getValue());
-            subQueries.add(query.getQuery());
-            for (Object arg : query.getArgs()) {
-                args.add(arg);
-            }
-        }
-        String query = Joiner.on(") UNION ALL (").appendTo(new StringBuilder("("), subQueries).append(")")
-                .append(" ORDER BY row_name ASC, col_name ASC").toString();
-        return new FullQuery(query).withArgs(args);
-    }
-
-    private FullQuery getRowsColumnRangeSubQuery(byte[] row, long ts, BatchColumnRangeSelection columnRangeSelection) {
+    protected FullQuery getRowsColumnRangeSubQuery(
+            byte[] row,
+            long ts,
+            BatchColumnRangeSelection columnRangeSelection) {
         String query = " /* GET_ROWS_COLUMN_RANGE (" + tableName + ") */ "
                 + "SELECT * FROM ( SELECT m.row_name, m.col_name, max(m.ts) as ts"
-                + "   FROM " + prefixedTableName() + " m"
+                + "   FROM " + tableName + " m"
                 + "  WHERE m.row_name = ?"
                 + "    AND m.ts < ? "
                 + (columnRangeSelection.getStartCol().length > 0 ? " AND m.col_name >= ?" : "")
@@ -384,6 +363,31 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
         return fullQuery;
     }
 
+    @Override
+    protected FullQuery getRowsColumnRangeFullyLoadedRowsSubQuery(
+            List<byte[]> rows,
+            long ts,
+            ColumnRangeSelection columnRangeSelection) {
+        String query = " /* GET_ROWS_COLUMN_RANGE_FULLY_LOADED_ROWS (" + tableName + ") */ "
+                + "SELECT * FROM ( SELECT m.row_name, m.col_name, max(m.ts) as ts"
+                + "   FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
+                + "  WHERE m.row_name = t.row_name "
+                + "    AND m.ts < ? "
+                + (columnRangeSelection.getStartCol().length > 0 ? " AND m.col_name >= ?" : "")
+                + (columnRangeSelection.getEndCol().length > 0 ? " AND m.col_name < ?" : "")
+                + " GROUP BY m.row_name, m.col_name"
+                + " ORDER BY m.row_name ASC, m.col_name ASC )";
+        String wrappedQuery = wrapQueryWithIncludeValue("GET_ROWS_COLUMN_RANGE_FULLY_LOADED_ROWS", query, true);
+        FullQuery fullQuery = new FullQuery(wrappedQuery).withArgs(rowsToOracleArray(rows), ts);
+        if (columnRangeSelection.getStartCol().length > 0) {
+            fullQuery = fullQuery.withArg(columnRangeSelection.getStartCol());
+        }
+        if (columnRangeSelection.getEndCol().length > 0) {
+            fullQuery = fullQuery.withArg(columnRangeSelection.getEndCol());
+        }
+        return fullQuery;
+    }
+
     private String wrapQueryWithIncludeValue(String wrappedName, String query, boolean includeValue) {
         if (!includeValue) {
             return query;
@@ -391,9 +395,9 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
         return " /* " + wrappedName + " (" + tableName + ") */ "
                 + " SELECT"
                 + "   /*+ USE_NL(i wrap) LEADING(i wrap) NO_MERGE(i) NO_PUSH_PRED(i)"
-                + "       INDEX(wrap pk_" + prefixedTableName() + ") */ "
+                + "       INDEX(wrap pk_" + tableName + ") */ "
                 + "   wrap.row_name, wrap.col_name, wrap.ts" + getValueSubselect("wrap", includeValue)
-                + " FROM " + prefixedTableName() + " wrap, ( " + query + " ) i "
+                + " FROM " + tableName + " wrap, ( " + query + " ) i "
                 + " WHERE wrap.row_name = i.row_name "
                 + "   AND wrap.col_name = i.col_name "
                 + "   AND wrap.ts = i.ts ";
@@ -436,10 +440,6 @@ public abstract class OracleQueryFactory implements DbQueryFactory {
         }
         return config.jdbcHandler().createStructArray(
                 structArrayPrefix() + "CELL_TS", "" + structArrayPrefix() + "CELL_TS_TABLE", oraRows);
-    }
-
-    private String prefixedTableName() {
-        return config.tablePrefix() + tableName;
     }
 
     private String structArrayPrefix() {

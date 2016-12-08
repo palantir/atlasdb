@@ -21,8 +21,6 @@ import java.util.Set;
 import javax.net.ssl.SSLSocketFactory;
 
 import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -49,6 +47,7 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.CellsSweeper;
+import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweepTaskRunnerImpl;
 import com.palantir.atlasdb.table.description.Schema;
@@ -72,11 +71,10 @@ import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting.ssl.SslConfiguration;
 import com.palantir.remoting.ssl.SslSocketFactories;
+import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.TimestampService;
 
 public final class TransactionManagers {
-    private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
-
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
 
@@ -105,6 +103,8 @@ public final class TransactionManagers {
             Set<Schema> schemas,
             Environment env,
             boolean allowHiddenTableAccess) {
+        DebugLogger.logger.info("Called TransactionManagers.create on thread {}. This should only happen once.",
+                Thread.currentThread().getName());
         return create(config, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
     }
 
@@ -192,7 +192,8 @@ public final class TransactionManagers {
                 Suppliers.ofInstance(config.getSweepPauseMillis()),
                 Suppliers.ofInstance(config.getSweepBatchSize()),
                 Suppliers.ofInstance(config.getSweepCellBatchSize()),
-                SweepTableFactory.of());
+                SweepTableFactory.of(),
+                new NoOpBackgroundSweeperPerformanceLogger());
         backgroundSweeper.runInBackground();
 
         return transactionManager;

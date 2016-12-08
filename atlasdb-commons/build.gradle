@@ -13,21 +13,16 @@ repositories {
 
 libsDirName = file('build/artifacts')
 dependencies {
-    compile group: 'com.google.code.findbugs', name: 'jsr305', version: libVersions.jsr305
-    compile group: 'com.google.guava', name: 'guava', version: libVersions.guava
-    compile group: 'org.slf4j', name: 'slf4j-api', version: libVersions.slf4j
-    compile(project(":commons-executors"))
+    compile group: 'com.google.code.findbugs', name: 'jsr305'
+    compile group: 'com.google.guava', name: 'guava'
+    compile group: 'org.slf4j', name: 'slf4j-api'
+    compile project(":commons-executors")
     compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
-    compile 'com.fasterxml.jackson.core:jackson-annotations:' + libVersions.jackson_annotation
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
+    compile group: 'net.jpountz.lz4', name: 'lz4'
 
-    testCompile(group: 'junit', name: 'junit', version: libVersions.junit) {
-        exclude group: 'org.hamcrest'
-    }
-    testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
-        exclude group: 'org.hamcrest'
-    }
-    testCompile 'org.hamcrest:hamcrest-core:' + libVersions.hamcrest
-    testCompile 'org.hamcrest:hamcrest-library:' + libVersions.hamcrest
-
+    testCompile group: 'junit', name: 'junit'
+    testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
+    testCompile group: 'org.hamcrest', name: 'hamcrest-core'
+    testCompile group: 'org.hamcrest', name: 'hamcrest-library'
 }
-

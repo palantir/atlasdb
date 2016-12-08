@@ -1,0 +1,31 @@
+version: '2'
+
+services:
+  cassandra1:
+    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
+    environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
+      - LOCAL_JMX=no
+
+  cassandra2:
+    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
+    depends_on:
+      - cassandra1
+    environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
+      - LOCAL_JMX=no
+
+  cassandra3:
+    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
+    depends_on:
+      - cassandra1
+    environment:
+      - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
+      - LOCAL_JMX=no
+
+  cli:
+    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
+    depends_on:
+      - cassandra1
+    entrypoint: [bash, -c, '"$$@"', --]
+    command: exit

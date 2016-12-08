@@ -1,69 +1,42 @@
-buildscript {
-    repositories { jcenter() }
-    dependencies {
-        classpath 'com.palantir.gradle.javadist:gradle-java-distribution:0.5.2'
-    }
-}
-
 apply from: "../gradle/shared.gradle"
 
 apply plugin: 'com.palantir.java-distribution'
 apply plugin: 'org.inferred.processors'
+apply plugin: 'org.unbroken-dome.test-sets'
 
+testSets {
+    integTest
+}
+
+jacocoTestReport {
+    executionData test, integTest
+}
+
+check.dependsOn integTest
 
 dependencies {
-    compile project(':lock-impl')
-    compile project(':leader-election-impl')
-    compile project(':atlasdb-config')
-    compile project(':atlasdb-hikari')
-    compile project(':atlasdb-rocksdb')
+    compile project(":timestamp-api")
+    compile project(":lock-impl")
 
-    compile "io.dropwizard:dropwizard-core:" + libVersions.dropwizard
-    compile 'com.google.dagger:dagger:' + libVersions.dagger
+    compile group: 'com.github.rholder', name: 'guava-retrying'
+    compile group: 'com.palantir.remoting1', name: 'jersey-servers'
+    compile group: 'com.palantir.remoting1', name: 'ssl-config'
+    compile group: 'io.atomix', name: 'atomix'
+    compile group: 'io.atomix.catalyst', name: 'catalyst-netty'
+    compile group: 'io.dropwizard', name: 'dropwizard-core'
 
-    compile "org.rocksdb:rocksdbjni:4.1.0"
-    compile 'org.postgresql:postgresql:' + libVersions.postgresql
+    processor group: 'org.immutables', name: 'value'
 
-    compile 'org.apache.thrift:libthrift:' + libVersions.libthrift
+    testCompile project(':atlasdb-config')
 
-    processor 'org.immutables:value:' + libVersions.immutables
-    processor('com.google.dagger:dagger-compiler:' + libVersions.dagger) {
-        // We need to explicitly exclude these so that intellij does not label them as provided
-        if(gradle.startParameter.taskNames.contains('idea')) {
-            exclude group: 'com.google.guava'
-            exclude group: 'com.google.dagger', module: 'dagger'
-        }
-    }
+    testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'org.mockito', name: 'mockito-core'
 
-    testCompile "io.dropwizard:dropwizard-testing:" + libVersions.dropwizard
-}
-
-
-configurations.matching({ it.name in ['compile', 'runtime'] }).all {
-    resolutionStrategy {
-        force 'com.google.code.findbugs:jsr305:' + libVersions.jsr305
-        force 'org.slf4j:slf4j-api:' + libVersions.slf4j
-        force 'com.fasterxml.jackson.core:jackson-databind:' + libVersions.jackson
-        force 'com.fasterxml.jackson.core:jackson-core:' + libVersions.jackson
-        force 'org.apache.commons:commons-lang3:' + libVersions.commons_lang3
-        force 'org.apache.thrift:libthrift:' + libVersions.libthrift
-        force 'commons-codec:commons-codec:' + libVersions.commons_codec
-        force 'org.hibernate:hibernate-validator:5.1.3.Final'
-    }
-}
-
-task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
-    from distTar.outputs
-    into 'build/docker/'
-
-    rename { filename -> 'atlasdb-timelock-server-snapshot.tgz' }
+    integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing'
 }
 
 distribution {
-    serviceName 'atlasdb-timelock'
-    mainClass 'com.palantir.atlasdb.timelock.server.TimeLockServer'
+    serviceName 'atlasdb-timelock-server'
+    mainClass 'com.palantir.atlasdb.timelock.TimeLockServer'
     args 'server', 'var/conf/timelock.yml'
 }
-
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'

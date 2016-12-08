@@ -4,4 +4,6 @@ dependencies {
     compile('org.apache.cassandra:cassandra-all:' + libVersions.cassandra) {
         transitive = false
     }
+    compile(group: 'org.apache.commons', name: 'commons-lang3', version: libVersions.commons_lang3)
+    compile(group: 'com.google.guava', name: 'guava', version: libVersions.guava)
 }

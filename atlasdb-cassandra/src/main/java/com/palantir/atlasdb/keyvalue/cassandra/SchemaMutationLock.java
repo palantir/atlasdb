@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -31,6 +32,7 @@ import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnPath;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,18 +50,18 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 
 final class SchemaMutationLock {
+    public static final long GLOBAL_DDL_LOCK_CLEARED_ID = Long.MAX_VALUE;
+    public static final int DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS = 60000;
+
     private static final Logger log = LoggerFactory.getLogger(SchemaMutationLock.class);
     private static final Pattern GLOBAL_DDL_LOCK_FORMAT_PATTERN = Pattern.compile(
             "^(?<lockId>\\d+)_(?<heartbeatCount>\\d+)$");
     private static final String GLOBAL_DDL_LOCK_FORMAT = "%1$d_%2$d";
-    private static final long GLOBAL_DDL_LOCK_CLEARED_ID = Long.MAX_VALUE;
     private static final String GLOBAL_DDL_LOCK_CLEARED_VALUE =
             lockValueFromIdAndHeartbeat(GLOBAL_DDL_LOCK_CLEARED_ID, 0);
     private static final int INITIAL_TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS = 1000;
     private static final int TIME_BETWEEN_LOCK_ATTEMPT_ROUNDS_MILLIS_CAP = 5000;
     private static final int MAX_UNLOCK_RETRY_COUNT = 5;
-
-    public static final int DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS = 60000;
 
     private final boolean supportsCas;
     private final CassandraKeyValueServiceConfigManager configManager;
@@ -92,6 +94,13 @@ final class SchemaMutationLock {
 
     public interface Action {
         void execute() throws Exception;
+    }
+
+    void cleanLockState() throws TException {
+        Optional<Column> existingColumn = clientPool.runWithRetry(this::queryExistingLockColumn);
+        if (existingColumn.isPresent()) {
+            schemaMutationUnlock(getLockIdFromColumn(existingColumn.get()));
+        }
     }
 
     void runWithLock(Action action) {
@@ -205,7 +214,7 @@ final class SchemaMutationLock {
                     // lock holder taking unreasonable amount of time, signal something's wrong
                     if (stopwatch.elapsed(TimeUnit.MILLISECONDS) > mutationTimeoutMillis) {
                         TimeoutException schemaLockTimeoutError = generateSchemaLockTimeoutException(stopwatch);
-                        log.error(schemaLockTimeoutError.getMessage(), schemaLockTimeoutError);
+                        log.error("Schema lock timeout", schemaLockTimeoutError);
                         throw Throwables.rewrapAndThrowUncheckedException(schemaLockTimeoutError);
                     }
 
@@ -304,7 +313,8 @@ final class SchemaMutationLock {
     private boolean trySchemaMutationUnlockOnce(long perOperationNodeId) {
         try {
             return clientPool.runWithRetry(client -> {
-                Column existingColumn = queryExistingLockColumn(client);
+                Column clearedLock = lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE);
+                Column existingColumn = queryExistingLockColumn(client).orElse(clearedLock);
                 long existingLockId = getLockIdFromColumn(existingColumn);
                 if (existingLockId == GLOBAL_DDL_LOCK_CLEARED_ID) {
                     return true;
@@ -315,7 +325,6 @@ final class SchemaMutationLock {
                         perOperationNodeId, existingLockId);
 
                 List<Column> ourExpectedLock = ImmutableList.of(existingColumn);
-                Column clearedLock = lockColumnWithValue(GLOBAL_DDL_LOCK_CLEARED_VALUE);
                 CASResult casResult = writeDdlLockWithCas(client, ourExpectedLock, clearedLock);
                 if (casResult.isSuccess()) {
                     log.info("Successfully released schema mutation lock with id [{}]", existingLockId);
@@ -327,13 +336,19 @@ final class SchemaMutationLock {
         }
     }
 
-    private Column queryExistingLockColumn(Client client) throws TException {
+    private Optional<Column> queryExistingLockColumn(Client client) throws TException {
         TableReference lockTableRef = lockTable.getOnlyTable();
         ColumnPath columnPath = new ColumnPath(lockTableRef.getQualifiedName());
         columnPath.setColumn(getGlobalDdlLockColumnName());
-        ColumnOrSuperColumn result = queryRunner.run(client, lockTableRef,
-                () -> client.get(getGlobalDdlLockRowName(), columnPath, ConsistencyLevel.LOCAL_QUORUM));
-        return result.getColumn();
+        Column existingColumn = null;
+        try {
+            ColumnOrSuperColumn result = queryRunner.run(client, lockTableRef,
+                    () -> client.get(getGlobalDdlLockRowName(), columnPath, ConsistencyLevel.LOCAL_QUORUM));
+            existingColumn = result.getColumn();
+        } catch (NotFoundException e) {
+            log.debug("No existing schema lock found in table [{}]", lockTableRef);
+        }
+        return Optional.ofNullable(existingColumn);
     }
 
     private void schemaMutationUnlockWithoutCas() {
@@ -386,7 +401,8 @@ final class SchemaMutationLock {
         return lockColumnWithValue(strValue.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static long getLockIdFromColumn(Column column) {
+    @VisibleForTesting
+    static long getLockIdFromColumn(Column column) {
         String columnStringValue = new String(column.getValue(), StandardCharsets.UTF_8);
         Matcher columnStringMatcher = GLOBAL_DDL_LOCK_FORMAT_PATTERN.matcher(columnStringValue);
         Preconditions.checkState(columnStringMatcher.matches(), "Invalid format for a lock column");

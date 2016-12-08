@@ -49,12 +49,12 @@ public class SchemaMutationLockTables {
         return client.describe_keyspace(config.keyspace()).getCf_defs().stream()
                 .map(CfDef::getName)
                 .filter(IS_LOCK_TABLE)
-                .map(TableReference::createUnsafe)
+                .map(TableReference::createWithEmptyNamespace)
                 .collect(Collectors.toSet());
     }
 
     public TableReference createLockTable() throws TException {
-        return clientPool.run(this::createLockTable);
+        return clientPool.runWithRetry(this::createLockTable);
     }
 
     private TableReference createLockTable(Cassandra.Client client) throws TException {
@@ -70,7 +70,7 @@ public class SchemaMutationLockTables {
     }
 
     private void createTableInternal(Cassandra.Client client, TableReference tableRef) throws TException {
-        CfDef cf = CassandraConstants.getStandardCfDef(
+        CfDef cf = ColumnFamilyDefinitions.getStandardCfDef(
                 config.keyspace(),
                 CassandraKeyValueService.internalTableName(tableRef));
         client.system_add_column_family(cf);

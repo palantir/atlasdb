@@ -22,13 +22,17 @@ import java.util.Arrays;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assume;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import com.google.common.base.Optional;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.containers.CassandraContainer;
+import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -36,6 +40,10 @@ import com.palantir.atlasdb.sweep.AbstractSweeperTest;
 
 @RunWith(Parameterized.class)
 public class CassandraKeyValueServiceSweeperIntegrationTest extends AbstractSweeperTest {
+    @ClassRule
+    public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceSweeperIntegrationTest.class)
+            .with(new CassandraContainer());
+
     @Parameterized.Parameter
     public boolean useColumnBatchSize;
 
@@ -47,12 +55,13 @@ public class CassandraKeyValueServiceSweeperIntegrationTest extends AbstractSwee
 
     @Override
     protected KeyValueService getKeyValueService() {
-        ImmutableCassandraKeyValueServiceConfig config = useColumnBatchSize
-                ? CassandraTestSuite.cassandraKvsConfig.withTimestampsGetterBatchSize(Optional.of(10))
-                : CassandraTestSuite.cassandraKvsConfig;
+        CassandraKeyValueServiceConfig config = useColumnBatchSize
+                ? ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
+                        .withTimestampsGetterBatchSize(Optional.of(10))
+                : CassandraContainer.KVS_CONFIG;
 
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config), CassandraTestSuite.leaderConfig);
+                CassandraKeyValueServiceConfigManager.createSimpleManager(config), CassandraContainer.LEADER_CONFIG);
     }
 
     @Test

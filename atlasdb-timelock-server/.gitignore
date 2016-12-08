@@ -1,6 +1,1 @@
-/learner-log/
-/acceptor-log/
-/paxosLog/
-/rocksdb/
-/.pt_kv_lock_rocksdb
-/var
+/var/data

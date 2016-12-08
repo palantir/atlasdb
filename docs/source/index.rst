@@ -19,5 +19,7 @@ Contents:
    configuration/index
    cluster_management/index
    services/index
+   performance/index
    miscellaneous/index
+   troubleshooting/index
    release_notes/index

@@ -3,12 +3,12 @@ apply plugin: 'org.inferred.processors'
 apply from: "${rootProject.projectDir}/gradle/shared.gradle"
 
 dependencies {
-    compile group: 'com.google.guava', name: 'guava', version: libVersions.guava
+    compile group: 'com.google.guava', name: 'guava'
     compile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: libVersions.dockerComposeRule
     compile group: 'net.amygdalum', name: 'xrayinterface', version: '0.3.0'
 
-    processor group: 'org.immutables', name: 'value', version: libVersions.immutables
+    processor group: 'org.immutables', name: 'value'
 
-    testCompile group: 'org.assertj', name: 'assertj-core', version: libVersions.assertj
-    testCompile group: 'org.mockito', name: 'mockito-core', version: libVersions.mockito
+    testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'org.mockito', name: 'mockito-core'
 }

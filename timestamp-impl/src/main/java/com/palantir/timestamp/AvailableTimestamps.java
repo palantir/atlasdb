@@ -28,6 +28,8 @@ public class AvailableTimestamps {
     private final PersistentUpperLimit upperLimit;
 
     public AvailableTimestamps(LastReturnedTimestamp lastReturnedTimestamp, PersistentUpperLimit upperLimit) {
+        DebugLogger.logger.info("Creating AvailableTimestamps object on thread {}. This should only happen once.",
+                Thread.currentThread().getName());
         this.lastReturnedTimestamp = lastReturnedTimestamp;
         this.upperLimit = upperLimit;
     }
@@ -38,14 +40,23 @@ public class AvailableTimestamps {
                 "Can only hand out %s timestamps at a time, but %s were requested",
                 MAX_TIMESTAMPS_TO_HAND_OUT, numberToHandOut);
 
-        return handOutTimestamp(lastHandedOut() + numberToHandOut);
+        long targetTimestamp = lastHandedOut() + numberToHandOut;
+        DebugLogger.logger.trace("Handing out {} timestamps, taking us to {}.", numberToHandOut, targetTimestamp);
+        return handOutTimestamp(targetTimestamp);
     }
 
     public synchronized void refreshBuffer() {
-        long buffer = upperLimit.get() - lastHandedOut();
+        long currentUpperLimit = upperLimit.get();
+        long buffer = currentUpperLimit - lastHandedOut();
 
         if (buffer < MINIMUM_BUFFER || !upperLimit.hasIncreasedWithin(1, MINUTES)) {
+            DebugLogger.logger.trace(
+                    "refreshBuffer: refreshing and allocating timestamps. Buffer {}, Current upper limit {}.",
+                    buffer,
+                    currentUpperLimit);
             allocateEnoughTimestampsToHandOut(lastHandedOut() + ALLOCATION_BUFFER_SIZE);
+        } else {
+            DebugLogger.logger.trace("refreshBuffer: refreshing, but not allocating");
         }
     }
 
@@ -73,7 +84,11 @@ public class AvailableTimestamps {
     }
 
     private void allocateEnoughTimestampsToHandOut(long timestamp) {
+        DebugLogger.logger.trace("Increasing limit to at least {}.", timestamp);
         upperLimit.increaseToAtLeast(timestamp);
+        if (DebugLogger.logger.isTraceEnabled()) {
+            DebugLogger.logger.trace("Increased to at least {}. Limit is now {}.", timestamp, getUpperLimit());
+        }
     }
 
     public long getUpperLimit() {

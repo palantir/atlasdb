@@ -25,6 +25,7 @@ import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KsDef;
+import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TokenRange;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
@@ -43,7 +44,6 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.collect.Maps2;
 
@@ -112,10 +112,9 @@ public final class CassandraVerifier {
     }
 
     static void logErrorOrThrow(String errorMessage, boolean safetyDisabled) {
-        String safetyMessage = " This would have normally resulted in Palantir exiting,"
-                + " however safety checks have been disabled.";
         if (safetyDisabled) {
-            log.error(errorMessage + safetyMessage);
+            log.error("{} This would have normally resulted in Palantir exiting however "
+                    + "safety checks have been disabled.", errorMessage);
         } else {
             throw new IllegalStateException(errorMessage);
         }
@@ -134,78 +133,76 @@ public final class CassandraVerifier {
 
     static void ensureKeyspaceExistsAndIsUpToDate(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config)
             throws TException {
-        try {
-            clientPool.run(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
-                @Override
-                public Void apply(Cassandra.Client client) throws TException {
-                    KsDef originalKsDef = client.describe_keyspace(config.keyspace());
-                    KsDef modifiedKsDef = originalKsDef.deepCopy();
-                    CassandraVerifier.checkAndSetReplicationFactor(
-                            client,
-                            modifiedKsDef,
-                            false,
-                            config.replicationFactor(),
-                            config.safetyDisabled());
+        createKeyspace(config);
+        updateExistingKeyspace(clientPool, config);
+    }
 
-                    if (!modifiedKsDef.equals(originalKsDef)) {
-                        // Can't call system_update_keyspace to update replication factor if CfDefs are set
-                        modifiedKsDef.setCf_defs(ImmutableList.of());
-                        client.system_update_keyspace(modifiedKsDef);
-                        CassandraKeyValueServices.waitForSchemaVersions(
-                                client,
-                                "(updating the existing keyspace)",
-                                config.schemaMutationTimeoutMillis());
-                    }
+    private static void createKeyspace(CassandraKeyValueServiceConfig config) throws TException {
+        // We can't use the pool yet because it does things like setting the connection's keyspace for us
+        if (!attemptToCreateKeyspace(config)) {
+            throw new TException("No host tried was able to create the keyspace requested.");
+        }
+    }
 
-                    return null;
+    // Returns true iff we successfully created the keyspace on some host.
+    private static boolean attemptToCreateKeyspace(CassandraKeyValueServiceConfig config)
+            throws InvalidRequestException {
+        for (InetSocketAddress host : config.servers()) { // try until we find a server that works
+            try {
+                if (!keyspaceAlreadyExists(host, config)) {
+                    attemptToCreateKeyspaceOnHost(host, config);
                 }
-            });
-        } catch (ClientCreationFailedException e) {
-            // We can't use the pool yet because it does things like setting the keyspace of that connection for us
-            boolean someHostWasAbleToCreateTheKeyspace = false;
-            for (InetSocketAddress host : config.servers()) { // try until we find a server that works
-                try {
-                    Client client = CassandraClientFactory.getClientInternal(host, config);
-                    KsDef ks = new KsDef(config.keyspace(), CassandraConstants.NETWORK_STRATEGY, ImmutableList.of());
-                    CassandraVerifier.checkAndSetReplicationFactor(
-                            client,
-                            ks,
-                            true,
-                            config.replicationFactor(),
-                            config.safetyDisabled());
-                    ks.setDurable_writes(true);
-                    log.info("Creating keyspace: {}", config.keyspace());
-                    client.system_add_keyspace(ks);
-                    CassandraKeyValueServices.waitForSchemaVersions(
-                            client,
-                            "(adding the initial empty keyspace)",
-                            config.schemaMutationTimeoutMillis());
 
+                // if we got this far, we're done, no need to continue on other hosts
+                return true;
+            } catch (InvalidRequestException ire) {
+                if (attemptedToCreateKeyspaceTwice(ire)) {
                     // if we got this far, we're done, no need to continue on other hosts
-                    someHostWasAbleToCreateTheKeyspace = true;
-                    break;
-                } catch (InvalidRequestException ire) {
-                    if (attemptedToCreateKeyspaceTwice(ire)) {
-                        log.info("Attempted to create keyspace {} on multiple hosts at once", config.keyspace());
-
-                        // if we got this far, we're done, no need to continue on other hosts
-                        someHostWasAbleToCreateTheKeyspace = true;
-                        break;
-                    } else {
-                        throw ire;
-                    }
-                } catch (Exception f) {
-                    log.warn("Couldn't use host {} to create keyspace."
-                            + " It returned exception \"{}\" during the attempt."
-                            + " We will retry on other nodes, so this shouldn't be a problem unless all nodes failed."
-                            + " See the debug-level log for the stack trace.", host, f.toString(), f);
-                    log.debug("Specifically, creating the keyspace failed with the following stack trace", f);
+                    return true;
+                } else {
+                    throw ire;
                 }
-            }
-            if (!someHostWasAbleToCreateTheKeyspace) {
-                throw new TException("No host tried was able to create the keyspace requested.");
+            } catch (Exception f) {
+                log.warn("Couldn't use host {} to create keyspace."
+                        + " It returned exception \"{}\" during the attempt."
+                        + " We will retry on other nodes, so this shouldn't be a problem unless all nodes failed."
+                        + " See the debug-level log for the stack trace.", host, f.toString(), f);
+                log.debug("Specifically, creating the keyspace failed with the following stack trace", f);
             }
         }
+        return false;
+    }
+
+    // swallows the expected TException subtype NotFoundException, throws connection problem related ones
+    private static boolean keyspaceAlreadyExists(InetSocketAddress host, CassandraKeyValueServiceConfig config)
+            throws TException {
+        try {
+            Client client = CassandraClientFactory.getClientInternal(host, config);
+            client.describe_keyspace(config.keyspace());
+            return true;
+        } catch (NotFoundException e) {
+            return false;
+        }
+    }
+
+    private static void attemptToCreateKeyspaceOnHost(InetSocketAddress host, CassandraKeyValueServiceConfig config)
+            throws TException {
+        Client client = CassandraClientFactory.getClientInternal(host, config);
+        KsDef ks = new KsDef(config.keyspace(), CassandraConstants.NETWORK_STRATEGY,
+                ImmutableList.of());
+        checkAndSetReplicationFactor(
+                client,
+                ks,
+                true,
+                config.replicationFactor(),
+                config.safetyDisabled());
+        ks.setDurable_writes(true);
+        client.system_add_keyspace(ks);
+        log.info("Created keyspace: {}", config.keyspace());
+        CassandraKeyValueServices.waitForSchemaVersions(
+                client,
+                "(adding the initial empty keyspace)",
+                config.schemaMutationTimeoutMillis());
     }
 
     private static boolean attemptedToCreateKeyspaceTwice(InvalidRequestException ex) {
@@ -219,14 +216,46 @@ public final class CassandraVerifier {
         return false;
     }
 
-    static void checkAndSetReplicationFactor(
+
+    private static void updateExistingKeyspace(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config)
+            throws TException {
+        clientPool.runWithRetry(new FunctionCheckedException<Cassandra.Client, Void, TException>() {
+            @Override
+            public Void apply(Cassandra.Client client) throws TException {
+                KsDef originalKsDef = client.describe_keyspace(config.keyspace());
+                // there was an existing keyspace
+                // check and make sure it's definition is up to date with our config
+                KsDef modifiedKsDef = originalKsDef.deepCopy();
+                checkAndSetReplicationFactor(
+                        client,
+                        modifiedKsDef,
+                        false,
+                        config.replicationFactor(),
+                        config.safetyDisabled());
+
+                if (!modifiedKsDef.equals(originalKsDef)) {
+                    // Can't call system_update_keyspace to update replication factor if CfDefs are set
+                    modifiedKsDef.setCf_defs(ImmutableList.of());
+                    client.system_update_keyspace(modifiedKsDef);
+                    CassandraKeyValueServices.waitForSchemaVersions(
+                            client,
+                            "(updating the existing keyspace)",
+                            config.schemaMutationTimeoutMillis());
+                }
+
+                return null;
+            }
+        });
+    }
+
+    private static void checkAndSetReplicationFactor(
             Cassandra.Client client,
             KsDef ks,
             boolean freshInstance,
             int desiredRf,
             boolean safetyDisabled) throws TException {
         if (freshInstance) {
-            Set<String> dcs = CassandraVerifier.sanityCheckDatacenters(client, desiredRf, safetyDisabled);
+            Set<String> dcs = sanityCheckDatacenters(client, desiredRf, safetyDisabled);
             // If RF exceeds # hosts, then Cassandra will reject writes
             ks.setStrategy_options(Maps2.createConstantValueMap(dcs, String.valueOf(desiredRf)));
             return;
@@ -245,7 +274,7 @@ public final class CassandraVerifier {
                 logErrorOrThrow(errorMessage, safetyDisabled);
             }
             // Automatically convert RF=1 to look like network partitioner.
-            dcs = CassandraVerifier.sanityCheckDatacenters(client, desiredRf, safetyDisabled);
+            dcs = sanityCheckDatacenters(client, desiredRf, safetyDisabled);
             if (dcs.size() > 1) {
                 logErrorOrThrow(errorMessage, safetyDisabled);
             }
@@ -254,7 +283,7 @@ public final class CassandraVerifier {
                 ks.setStrategy_options(ImmutableMap.of(dcs.iterator().next(), "1"));
             }
         } else {
-            dcs = CassandraVerifier.sanityCheckDatacenters(client, desiredRf, safetyDisabled);
+            dcs = sanityCheckDatacenters(client, desiredRf, safetyDisabled);
         }
 
         Map<String, String> strategyOptions = Maps.newHashMap(ks.getStrategy_options());
@@ -283,7 +312,7 @@ public final class CassandraVerifier {
             underlyingCassandraClusterSupportsCASOperations = client -> {
                 try {
                     CassandraApiVersion serverVersion = new CassandraApiVersion(client.describe_version());
-                    log.debug("Connected cassandra thrift version is: " + serverVersion);
+                    log.debug("Connected cassandra thrift version is: {}", serverVersion);
                     return serverVersion.supportsCheckAndSet();
                 } catch (TException ex) {
                     throw new UnsupportedOperationException("Couldn't determine underlying cassandra version;"

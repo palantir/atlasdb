@@ -25,7 +25,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.commons.lang3.Validate;
@@ -33,7 +32,6 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -49,6 +47,9 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.util.Pair;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public final class CassandraKeyValueServices {
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class); // did this on purpose
 
@@ -59,7 +60,19 @@ public final class CassandraKeyValueServices {
         // Utility class
     }
 
-    static void waitForSchemaVersions(Cassandra.Client client, String tableName, int schemaTimeoutMillis)
+    static void waitForSchemaVersions(
+            Cassandra.Client client,
+            String tableName,
+            int schemaTimeoutMillis)
+            throws TException {
+        waitForSchemaVersions(client, tableName, schemaTimeoutMillis, false);
+    }
+
+    static void waitForSchemaVersions(
+            Cassandra.Client client,
+            String tableName,
+            int schemaTimeoutMillis,
+            boolean allowUnresponsiveNode)
             throws TException {
         long start = System.currentTimeMillis();
         long sleepTime = INITIAL_SLEEP_TIME;
@@ -79,20 +92,32 @@ public final class CassandraKeyValueServices {
         while (System.currentTimeMillis() < start + schemaTimeoutMillis);
 
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("Cassandra cluster cannot come to agreement on schema versions,"
-                + " after attempting to modify table %s.", tableName));
+        String messageTemplate = "Cassandra cluster cannot come to agreement on schema versions,"
+                + " after attempting to modify table {}. {}"
+                + " \nFind the nodes above that diverge from the majority schema"
+                + " or have schema 'UNKNOWN', which likely means they are down/unresponsive"
+                + " and examine their logs to determine the issue."
+                + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
+                + " You can quick-check this with 'nodetool describecluster'.";
         for (Entry<String, List<String>> version : versions.entrySet()) {
             sb.append(String.format("%nAt schema version %s:", version.getKey()));
             for (String node : version.getValue()) {
                 sb.append(String.format("%n\tNode: %s", node));
             }
         }
-        sb.append("\nFind the nodes above that diverge from the majority schema")
-                .append(" (or have schema 'UNKNOWN', which likely means they are down/unresponsive)")
-                .append(" and examine their logs to determine the issue.")
-                .append(" Fixing the underlying issue and restarting Cassandra")
-                .append(" should resolve the problem. You can quick-check this with 'nodetool describecluster'.");
-        throw new IllegalStateException(sb.toString());
+
+        if (allowUnresponsiveNode
+                && exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(versions)) {
+            log.error(messageTemplate, tableName, sb.toString());
+        } else {
+            throw new IllegalStateException(sb.toString());
+        }
+    }
+
+    private static boolean exactlyOneNodeIsUnreachableAndOthersAgreeOnSchema(Map<String, List<String>> versions) {
+        return versions.entrySet().size() == 2
+                && versions.keySet().contains("UNREACHABLE")
+                && versions.get("UNREACHABLE").size() == 1;
     }
 
     /**
@@ -100,34 +125,23 @@ public final class CassandraKeyValueServices {
      * of failed patch upgrades, the majority of which requires schema mutations; they would find
      * it preferable to stop before starting the actual patch upgrade / setting APPLYING state.
      */
-    static void failQuickInInitializationIfClusterAlreadyInInconsistentState(
+    static void warnUserInInitializationIfClusterAlreadyInInconsistentState(
             CassandraClientPool clientPool,
             CassandraKeyValueServiceConfig config) {
-        if (config.safetyDisabled()) {
-            log.error("Skipped checking the cassandra cluster during initialization, because safety checks are"
-                    + " disabled. Please re-enable safety checks when you are outside of your unusual"
-                    + " migration period.");
-            return;
-        }
-        String errorMessage = "While checking the cassandra cluster during initialization, we noticed schema versions"
-                + " could not settle. Failing quickly to avoid getting into harder to fix states (i.e. partially"
-                + " applied patch upgrades, etc). This state is in rare cases the correct one to be in; for"
-                + " instance schema versions will be incapable of settling in a cluster of heterogenous"
-                + " Cassandra 1.2/2.0 nodes. If that is the case, disable safety checks in your Cassandra"
-                + " KVS preferences.";
+        String warnMessage = "While checking the cassandra cluster during initialization, we noticed schema versions"
+                + " could not settle. Be aware that some operations will not work while you are in your current"
+                + " cluster status.";
         try {
             clientPool.run(client -> {
                 waitForSchemaVersions(
                         client,
                         "(none, just an initialization check)",
-                        config.schemaMutationTimeoutMillis());
+                        config.schemaMutationTimeoutMillis(),
+                        true);
                 return null;
             });
-        } catch (TException e) {
-            throw new RuntimeException(errorMessage, e);
-        } catch (IllegalStateException e) {
-            log.error(errorMessage);
-            throw e;
+        } catch (Exception e) {
+            log.warn("Failed to retrieve current Cassandra cluster schema status.", e);
         }
     }
 
@@ -275,73 +289,6 @@ public final class CassandraKeyValueServices {
         Preconditions.checkArgument(ttlSeconds > 0 && ttlSeconds < Integer.MAX_VALUE,
                 "Expiration time must be between 0 and ~68 years");
         return (int) ttlSeconds;
-    }
-
-    // because unfortunately .equals takes into account if fields with defaults are populated or not
-    // also because compression_options after serialization / deserialization comes back as blank
-    // for the ones we set 4K chunk on... ?!
-    public static boolean isMatchingCf(CfDef clientSide, CfDef clusterSide) {
-        String tableName = clientSide.name;
-        if (!Objects.equal(clientSide.compaction_strategy_options, clusterSide.compaction_strategy_options)) {
-            logMismatch("compaction strategy",
-                    tableName,
-                    clientSide.compaction_strategy_options,
-                    clusterSide.compaction_strategy_options);
-            return false;
-        }
-        if (clientSide.gc_grace_seconds != clusterSide.gc_grace_seconds) {
-            logMismatch("gc_grace_seconds period",
-                    tableName,
-                    clientSide.gc_grace_seconds,
-                    clusterSide.gc_grace_seconds);
-            return false;
-        }
-        if (clientSide.bloom_filter_fp_chance != clusterSide.bloom_filter_fp_chance) {
-            logMismatch("bloom filter false positive chance",
-                    tableName,
-                    clientSide.bloom_filter_fp_chance,
-                    clusterSide.bloom_filter_fp_chance);
-            return false;
-        }
-        if (!(clientSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY).equals(
-                clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY)))) {
-            logMismatch("compression chunk length",
-                    tableName,
-                    clientSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY),
-                    clusterSide.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY));
-            return false;
-        }
-        if (!Objects.equal(clientSide.compaction_strategy, clusterSide.compaction_strategy)) {
-            // consider equal "com.whatever.LevelledCompactionStrategy" and "LevelledCompactionStrategy"
-            if (clientSide.compaction_strategy != null
-                    && clusterSide.compaction_strategy != null
-                    && !(clientSide.compaction_strategy.endsWith(clusterSide.compaction_strategy)
-                    || clusterSide.compaction_strategy.endsWith(clientSide.compaction_strategy))) {
-                logMismatch("compaction strategy",
-                        tableName,
-                        clientSide.compaction_strategy,
-                        clusterSide.compaction_strategy);
-                return false;
-            }
-        }
-        if (clientSide.isSetPopulate_io_cache_on_flush() != clusterSide.isSetPopulate_io_cache_on_flush()) {
-            logMismatch("populate_io_cache_on_flush",
-                    tableName,
-                    clientSide.isSetPopulate_io_cache_on_flush(),
-                    clusterSide.isSetPopulate_io_cache_on_flush());
-            return false;
-        }
-
-        return true;
-    }
-
-    private static void logMismatch(String fieldName, String tableName,
-            Object clientSideVersion, Object clusterSideVersion) {
-        log.info("Found client/server disagreement on {} for table {}. (client = ({}), server = ({}))",
-                fieldName,
-                tableName,
-                clientSideVersion,
-                clusterSideVersion);
     }
 
     public static boolean isEmptyOrInvalidMetadata(byte[] metadata) {

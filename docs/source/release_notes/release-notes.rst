@@ -31,6 +31,330 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
+develop
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new|
+         - Introduced the deletion lock.
+           This feature is motivated by the fact that running a backup and a KVS deletion (for example as part of sweeping) and
+           can corrupt the backup.
+           The sweep and scrub tasks now acquire a deletion lock before running. When performing a backup, users
+           should use the new :ref:`backup-lock CLI <clis>` to acquire the deletion lock before running a :ref:`backup <backup-restore>`,
+           and to release it after the backup completes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1011>`)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.26.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Substantially improved performance of the DBKVS implementation of the single-iterator version of getRowsColumnRange.
+           Two new performance benchmarks were added as part of this PR:
+
+              - ``KvsGetRowsColumnRangeBenchmarks.getAllColumnsAligned``
+              - ``KvsGetRowsColumnRangeBenchmarks.getAllColumnsUnaligned``
+
+           These benchmarks show a 2x improvement on Postgres, and an AtlasDB client has observed an order of magnitude improvement experimentally.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1132>`__)
+
+    *    - |improved|
+         - OkHttpClient connection pool configured to have 100 idle connections with 10 minute keep-alive, reducing the number of connections that need to be created when a large number of transactions begin.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1294>`__)
+
+    *    - |improved|
+         - Commit timestamp lookups are now cached across transactions.
+           This provided a near 2x improvement in our performance benchmark testing.
+           See comments on the pull request for details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1238>`__)
+
+    *    - |improved|
+         - ``LockAwareTransactionManager.runTaskWithLocksWithRetry`` now fails faster if given lock tokens that time out in a way that cannot be recovered from.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1322>`__)
+
+    *    - |improved|
+         - When we hit the ``MultipleRunningTimestampServicesError`` issue, we now automatically log thread dumps to a separate file (file path specified in service logs).
+           The full file path of the ``atlas-timestamps-log`` file will be outputted to the service logs.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1275>`__, `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1332>`__)
+
+    *    - |improved|
+         - Increase connection pool idle timeout to 10 minutes, and reduce eviction check frequency to 20-30 seconds at 1/10 of connections.
+           Note that there is now a configuration called ``maxConnectionBurstSize``, which configures how large the pool is able to grow when
+           receiving a large burst of requests. Previously this was hard-coded to 5x the ``poolSize`` (which is now the default for the parameter).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1336>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.25.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - ``--config-root`` and other global parameters can now be passed into dropwizard CLIs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1268>`__)
+
+    *    - |breaking|
+         - The migration ``--config-root`` shorthand (``-r``) can no longer be used as it conflicted with the timestamp command ``--row``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1268>`__)
+
+    *    - |new|
+         - Dbkvs: ConnectionSupplier consumers can now choose to receive a brand new unshared connection.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1258>`__)
+
+    *    - |new|
+         - AtlasDB now supports Cassandra 3.7 as well as Cassandra 2.2.8.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1206>`__)
+
+    *    - |improved|
+         - Oracle perf improvement; table names now cached, resulting in fewer round trips to the database.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1215>`__)
+
+    *    - |improved|
+         - ``SweepStatsKeyValueService`` will no longer flush a final batch of statistics during shutdown. This avoids
+           potentially long pauses that could previously occur when closing a ``Cleaner``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1232>`__)
+
+    *    - |improved|
+         - Better support for AtlasDB clients running behind load balancers. In particular, if an AtlasDB client falls down and
+           its load balancer responds with "503: Service Unavailable", the request will be attempted on other clients rather than aborting.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1175>`__)
+
+    *    - |fixed|
+         - Oracle will not drop a table that already exists on  ``createTable`` calls when multiple AtlasDB clients make the call to create the same table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1243>`__)
+
+    *    - |fixed|
+         - Certain Oracle KVS calls no longer attempt to leak connections created internally.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1215>`__)
+
+    *    - |fixed|
+         - OracleKVS: ``TableSizeCache`` now invalidates the cache on table delete.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1272>`__)
+
+    *    - |breaking|
+         - Our Jackson version has been updated from 2.5.1 to 2.6.7 and Dropwizard version from 0.8.2 to 0.9.3.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1209>`__)
+
+    *    - |improved|
+         - Additional debugging available for those receiving 'name must be no longer than 1500 bytes' errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
+
+    *    - |breaking|
+         - ``Cell.validateNameValid`` is now private; consider ``Cell.isNameValid`` instead
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.24.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |breaking|
+         - All Oracle table names will be truncated and be of the form: ``<prefix>_<2-letter-namespace>__<table-name>_<5-digit-int>``.
+           Previously we only truncated names that exceeded the character limit for Oracle table names.
+           This should improve legibility as all table names for a particular application will have identical formatting.
+
+           Oracle is in beta, and thus we have not built a migration path from old table names to new table names.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1187>`__)
+
+    *    - |fixed|
+         - The fetch timestamp CLI correctly handles ``--file`` inputs containing non-existent directories by creating any missing intermediate directories.
+           Previously, the CLI would throw an exception and fail in such cases.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1151>`__)
+
+    *    - |fixed|
+         - When using DBKVS with Oracle, ``TableRemappingKeyValueService`` does not throw a RuntimeException when performing ``getMetaData`` and ``dropTable`` operations on a non-existent table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1186>`__)
+
+    *    - |fixed|
+         - The KVS migration CLI will now decrypt encrypted values in your KVS configuration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1171>`__)
+
+    *    - |improved|
+         - If using the Dropwizard command to run a KVS migration, the Dropwizard config will be used as the ``--migrateConfig`` config if none is specified.
+           Running the KVS migration command as a deployable CLI still requires ``--migrateConfig``.
+
+           See the :ref:`documentation <clis-migrate>` for details on how to use the KVS migration command.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1171>`__)
+
+    *    - |fixed|
+         - The timestamp bound store now works with Oracle as a relational backing store.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1224>`__)
+
+    *    - |improved|
+         - CLIs now output to standard out, standard error, and the service logs, rather than only printing to the service logs.
+           This should greatly improve usability for service admins using the CLIs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1177>`__)
+
+    *    - |improved|
+         - Remove usage of ``createUnsafe`` in generated Schema code. You can regenerate your schema to get rid of the deprecation warnings.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1194>`__)
+
+    *    - |improved|
+         - ``atlasdb-cassandra`` now depends on ``cassandra-thrift`` instead of ``cassandra-all``.
+           This reduces our dependency footprint.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1222>`__)
+
+    *    - |new|
+         - Add support for generating schemas with Java8 Optionals instead of Guava Optionals.
+           To use Java8 optionals, supply ``OptionalType.JAVA8`` as an additional constructor argument when creating your ``Schema`` object.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1162>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.23.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |breaking|
+         - All KVSs now as a guarantee throw a RuntimeException on attempts to truncate a non-existing table, so services should check the existence of a table before attempting to truncate.
+           Previously we would only throw exceptions for the Cassandra KVS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1114>`__)
+
+    *    - |fixed|
+         - The KVS :ref:`migration <clis-migrate>` command now supports the ``--offline`` flag and can be run as an offline CLI.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1149>`__)
+
+    *    - |deprecated|
+         - ``TableReference.createUnsafe`` is now deprecated to prevent mishandling of table names.
+           ``createWithEmptyNamespace`` or ``createFromFullyQualifiedName`` should be used instead.
+
+           Schema generated code still contains use of ``TableReference.createUnsafe`` and is being tracked for removal on `#1172 <https://github.com/palantir/atlasdb/issues/1172>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1121>`__)
+
+    *    - |new|
+         - We now provide Oracle support (beta) for all valid schemas.
+           Oracle table names exceeding 30 characters are now mapped to shorter names by truncating and appending a sequence number.
+           Support for Oracle is currently in beta and services wishing to deploy against Oracle should contact the AtlasDB team.
+
+           See :ref:`oracle_table_mapping` for details on how table names are mapped.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1076>`__)
+
+    *    - |changed|
+         - We now test against Cassandra 2.2.8, rather than Cassandra 2.2.7.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1112>`__)
+
+    *    - |improved|
+         - Added a significant amount of logging aimed at tracking down the ``MultipleRunningTimestampServicesError``.
+           If clients are hitting this error, then they should add TRACE logging for ``com.palantir.timestamp``.
+           These logs can also be directed to a separate file, see the :ref:`documentation <logging-configuration>` for more details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1098>`__)
+
+    *    - |improved|
+         - Retrying a Cassandra operation now retries against distinct hosts.
+           Previously, this would independently select hosts randomly, meaning that we might unintentionally try the same operation on the same servers.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1139>`__)
+
+    *    - |fixed|
+         - AtlasDB clients can start when a single Cassandra node is unreachable.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1045>`__).
+
+    *    - |improved|
+         - Removed spurious error logging during first-time startup against a brand new Cassandra cluster.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1033>`__)
+
+    *    - |improved|
+         - Improved the reliability of starting up against a degraded Cassandra cluster.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1033>`__)
+
+    *    - |fixed|
+         - No longer publish a spurious junit dependency in atlasdb-client compile.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1176>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.22.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - The ``clean-cass-locks-state`` CLI clears the schema mutation lock by setting it to a special "cleared" value in the same way that normal lockholders clear the lock.
+           Previously the CLI would would drop the whole ``_locks`` table to clear the schema mutation lock.
+
+           See :ref:`schema-mutation-lock` for details on how the schema mutation lock works.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1056>`__)
+
+    *    - |fixed|
+         - Fixed an issue where some locks were not being tracked for continuous refreshing due to one of the lock methods not being overridden by the ``LockRefreshingLockService``.
+           This resulted in locks that appeared to be refreshed properly, but then would mysteriously time out at the end of a long-running operation.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1134>`__)
+
+    *    - |improved|
+         - Sweep no longer immediately falls back to a ``sweepBatchSize`` of 1 after receiving an error.
+
+           See :ref:`sweep tuning <sweep_tunable_parameters>` documentation for more information on sweep tuning parameters.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1093>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.21.1
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed a regression with Cassandra KVS where you could no longer create a table if it has the same name as another table in a different namespace.
+
+           To illustrate the issue, assume you have namespace ``namespace1`` and the table ``table1``, and you would like to add a column to ``table1`` and `version` the table by using the new namespace ``namespace2``.
+           On disk you already have the Cassandra table ``namespace1__table1``, and now you are trying to create ``namespace2__table1``.
+           Creating ``namespace2__table1`` would fail because Cassandra KVS believes that the table already exists.
+           This is relevant if you use multiple namespaces when performing schema migrations.
+
+           Note that namespace is an application level abstraction defined as part of a AtlasDB schema and is not the same as Cassandra keyspace.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1110>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
 v0.21.0
 =======
 
@@ -42,22 +366,15 @@ v0.21.0
          - Change
 
     *    - |new|
-         - Sweep now supports batching on a per-cell level, in addition to the previous per-row batching.
-           This is useful for keeping batch sizes small if the rows are wide.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/947>`__)
+         - Sweep now supports batching on a per-cell level via the ``sweepCellBatchSize`` parameter in your AtlasDB config.
+           This can decrease Sweep memory consumption on the client side if your tables have large cells or many columns (i.e. wide rows).
+           For information on how to configure Sweep batching, see the :ref:`sweep documentation <atlas-sweep-cli>`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1068>`__)
 
     *    - |fixed|
-         - Will not throw ``IllegalStateException`` on start-up due to hotspotting, if ``hashFirstRowComponent()`` is used in the schema.
+         - If ``hashFirstRowComponent()`` is used in a table or index definition, we no longer throw ``IllegalStateException`` when generating schema code.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1091>`__)
 
-    *    - |fixed|
-         - Introduced the deletion lock.
-           This feature is motivated by the fact that running a backup and a KVS deletion (for example as part of sweeping) and
-           can corrupt the backup.
-           The sweep and scrub tasks now acquire a deletion lock before running. When performing a backup, users
-           should use the new :ref:`backup-lock CLI <clis>` to acquire the deletion lock before running a :ref:`backup <backup-restore>`,
-           and to release it after the backup completes.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1011>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -73,30 +390,33 @@ v0.20.0
          - Change
 
     *    - |breaking|
-         - Hotspotting warnings, previously logged at ERROR, will now throw ``IllegalStateException`` on start-up.
-           Products who hit this warning will need to add ``ignoreHotspottingChecks()`` to the relevant tables of their schema.
+         - Hotspotting warnings, previously logged at ERROR, will now throw ``IllegalStateException`` when generating your schema code.
+           Products who hit this warning will need to add ``ignoreHotspottingChecks()`` to the relevant tables of their schema, or modify their schemas such that the first row component is not a VAR_STRING, a VAR_LONG, a VAR_SIGNED_LONG, or a SIZED_BLOB.
+
+           See documentation on :ref:`primitive value types <primitive-valuetypes>` and :ref:`partitioners <tables-and-indices-partitioners>` for information on how to address your schemas.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/947>`__)
 
     *    - |fixed|
-         - The dropwizard console no longer always starts up embedded timestamp and lock services.
-           This fixes the issue where running the console would cause the ``MultipleRunningTimestampServiceError``
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1063>`__).
+         - The AtlasDB Console included in the Dropwizard bundle can startup in an "online" mode, i.e. it can connect to a running cluster.
+
+           See :ref:`AtlasDB Console <console>` for information on how to use AtlasDB console.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1063>`__)
 
     *    - |fixed|
          - The ``atlasdb-dagger`` project now publishes a shadowed version so we do not rely on the version of dagger on the classpath.
-           This fixes the issue where running the CLIs would cause a ``ClassNotFoundException``
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1065>`__).
+           This fixes the issue where running the CLIs would cause a ``ClassNotFoundException`` if your application also makes use of dagger.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1065>`__)
 
     *    - |new|
          - Oracle is supported via DBKVS if you have runtime dependency on an Oracle driver that resolves the JsonType "jdbcHandler".
-           All table names in the schema must be less than 30 characters long if you wish to run against Oracle as a backing store.
+           Due to an Oracle limitation, all table names in the schema must be less than 30 characters long.
+
            See :ref:`Oracle KVS Configuration <oracle-configuration>` for details on how to configure your service to use Oracle.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
-    *    - |breaking|
+    *    - |fixed|
          - The DBKVS config now enforces that the namespace must always be empty for ``metadataTable`` in the ``ddl`` block.
-           The ``metadataTable`` parameter defaults to an empty name space, so no action is needed if this value is not configured.
-           See the :ref:`Oracle connection config <oracle-config-params>` documentation for more details.
+           The ``metadataTable`` parameter defaults to an empty name space, and if this was configured to be anything else previously, DBKVS would not start.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
     *    - |fixed|
@@ -110,9 +430,6 @@ v0.20.0
            This is due to Oracle's restriction of not allowing table names with a leading underscore.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
-    *    - |breaking|
-         - The ``overflowIds`` config parameter in ``OracleDdlConfig`` is now Optional and is overriden by a default sequence supplier if absent.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/985>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -126,7 +443,6 @@ v0.19.0
 
     *    - Type
          - Change
-
     *    - |breaking|
          - Removed KeyValueService ``initializeFromFreshInstance``, ``tearDown``, and ``getRangeWithHistory``.
            It is likely all callers of tearDown just want to call close, and getRangeWithHistory has been replaced with ``getRangeOfTimestamps``.

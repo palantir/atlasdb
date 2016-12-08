@@ -41,7 +41,7 @@ public abstract class PostgresDdlConfig extends DdlConfig {
     @Value.Default
     @Override
     public TableReference metadataTable() {
-        return AtlasDbConstants.METADATA_TABLE;
+        return AtlasDbConstants.DEFAULT_METADATA_TABLE;
     }
 
     @Override

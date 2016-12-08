@@ -89,22 +89,22 @@ public class ProtobufTest {
         PaxosPromiseProto persisted;
         PaxosPromise actual;
 
-        expected = new PaxosPromise(new PaxosProposalId(3, "unique"));
+        expected = PaxosPromise.reject(new PaxosProposalId(3, "unique"));
         persisted = PaxosPromises.toProto(expected);
         actual = PaxosPromises.fromProto(persisted);
         assertEquals(expected, actual);
 
-        expected = new PaxosPromise(new PaxosProposalId(20, "id"), new PaxosProposalId(6, "fire"), new PaxosValue("me", 5, new byte[]{8, 8, 100}));
+        expected = PaxosPromise.accept(new PaxosProposalId(20, "id"), new PaxosProposalId(6, "fire"), new PaxosValue("me", 5, new byte[]{8, 8, 100}));
         persisted = PaxosPromises.toProto(expected);
         actual = PaxosPromises.fromProto(persisted);
         assertEquals(expected, actual);
 
-        expected = new PaxosPromise(new PaxosProposalId(20, "id"), null, new PaxosValue("me", 5, new byte[]{8, 8, 100}));
+        expected = PaxosPromise.accept(new PaxosProposalId(20, "id"), null, new PaxosValue("me", 5, new byte[]{8, 8, 100}));
         persisted = PaxosPromises.toProto(expected);
         actual = PaxosPromises.fromProto(persisted);
         assertEquals(expected, actual);
 
-        expected = new PaxosPromise(new PaxosProposalId(20, "id"), null, null);
+        expected = PaxosPromise.accept(new PaxosProposalId(20, "id"), null, null);
         persisted = PaxosPromises.toProto(expected);
         actual = PaxosPromises.fromProto(persisted);
         assertEquals(expected, actual);

@@ -23,6 +23,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.containers.CassandraVersion;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -33,6 +34,10 @@ public class CassandraNoLeaderTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP =
-            EteSetup.setupComposition("cassandra-no-leader", "docker-compose.no-leader.cassandra.yml", CLIENTS);
+    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
+            CassandraNoLeaderTestSuite.class,
+            "docker-compose.no-leader.cassandra.yml",
+            CLIENTS,
+            CassandraVersion.getEnvironment());
+
 }

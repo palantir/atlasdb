@@ -49,13 +49,20 @@ public class ConnectionSupplier implements SqlConnectionSupplier {
         return delegate.get();
     }
 
+    /**
+     * Responsibility of the consumer to close this connection when finished.
+     */
+    public SqlConnection getNewUnsharedConnection() {
+        return delegate.get();
+    }
+
     @Override
     public synchronized void close() {
         if (sharedConnection != null) {
             try {
                 sharedConnection.getUnderlyingConnection().close();
             } catch (SQLException e) {
-                log.error(e.getMessage(), e);
+                log.error("Error occurred closing the underlying connection", e);
             } finally {
                 sharedConnection = null;
             }

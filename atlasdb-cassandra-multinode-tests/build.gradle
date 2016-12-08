@@ -5,17 +5,19 @@ apply from: "../gradle/shared.gradle"
 dependencies {
     testCompile project(":atlasdb-cassandra")
     testCompile project(":atlasdb-tests-shared")
+    testCompile project(":atlasdb-container-test-utils")
     testCompile project(":atlasdb-docker-test-utils")
     testCompile project(":atlasdb-ete-test-utils")
 
-    testCompile 'org.apache.cassandra:cassandra-all:' + libVersions.cassandra
+    testCompile 'org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra
     testCompile 'com.datastax.cassandra:cassandra-driver-core:' + libVersions.cassandra_driver_core
 
     testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
-    testCompile group: 'com.google.code.findbugs', name: 'annotations', version: libVersions.findbugsAnnotations
-}
+    testCompile group: 'com.google.code.findbugs', name: 'annotations'
+    testCompile group: 'org.assertj', name: 'assertj-core'
 
-test {
-    include '**/CassandraSchemaLockTest.class'
-    dependsOn ':atlasdb-ete-test-utils:buildCassandraImage'
+    test {
+        include '**/CassandraSchemaLockTest.class'
+        include '**/OneNodeDownTestSuite.class'
+    }
 }

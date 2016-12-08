@@ -27,6 +27,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 
 import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
@@ -40,6 +41,7 @@ public final class DockerizedDatabase implements Closeable {
                 .file(getDockerComposeFileAbsolutePath(type.getDockerComposeResourceFileName()))
                 .waitingForHostNetworkedPort(type.getKeyValueServicePort(), toBeOpen())
                 .saveLogsTo(DOCKER_LOGS_DIR)
+                .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
                 .build();
         InetSocketAddress addr = connect(docker, type.getKeyValueServicePort());
         return new DockerizedDatabase(docker, new DockerizedDatabaseUri(type, addr));

@@ -22,13 +22,13 @@ import java.nio.file.Files;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cli.command.SingleBackendCommand;
+import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.services.AtlasDbServices;
 
 import io.airlift.airline.Option;
@@ -36,7 +36,7 @@ import io.airlift.airline.OptionType;
 
 public abstract class AbstractTimestampCommand extends SingleBackendCommand {
 
-    private static final Logger log = LoggerFactory.getLogger(AbstractTimestampCommand.class);
+    private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(AbstractTimestampCommand.class));
 
     @Option(name = {"-f", "--file"},
             title = "TIMESTAMP_FILE",
@@ -71,30 +71,33 @@ public abstract class AbstractTimestampCommand extends SingleBackendCommand {
         }
     }
 
-	private long readTimestampFromFile() {
-        String timestamp;
+    private long readTimestampFromFile() {
+        String timestampString;
         try {
-            timestamp = StringUtils.strip(Iterables.getOnlyElement(Files.readAllLines(file.toPath())));
+            timestampString = StringUtils.strip(Iterables.getOnlyElement(Files.readAllLines(file.toPath())));
         } catch (IOException e) {
-            log.error("IOException thrown reading timestamp from file: {}", file.getPath());
+            printer.error("IOException thrown reading timestamp from file: {}", file.getPath());
             throw Throwables.propagate(e);
         }
-        return Long.parseLong(timestamp);
+        return Long.parseLong(timestampString);
     }
 
-	private void writeTimestampToFile() {
+    private void writeTimestampToFile() {
         Set<String> lines = Sets.newHashSet(Long.toString(timestamp));
         try {
+            if (file.getParentFile() != null && !file.getParentFile().exists()) {
+                Files.createDirectories(file.getParentFile().toPath());
+            }
             Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            log.error("IOException thrown writing timestamp to file: {}", file.getPath());
+            printer.error("IOException thrown writing timestamp to file: {}", file.getPath());
             Throwables.propagate(e);
         }
-	}
+    }
 
-	protected void writeTimestampToFileIfSpecified() {
-	    if (file != null) {
-	        writeTimestampToFile();
-	    }
-	}
+    protected void writeTimestampToFileIfSpecified() {
+        if (file != null) {
+            writeTimestampToFile();
+        }
+    }
 }

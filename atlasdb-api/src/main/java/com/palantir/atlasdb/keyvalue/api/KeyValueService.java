@@ -326,6 +326,7 @@ public interface KeyValueService extends AutoCloseable {
      * @param tableRef the name of the table to truncate.
      *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
+     * @throws (? extends RuntimeException) if the table does not exist
      */
     @POST
     @Path("truncate-table")
@@ -336,11 +337,12 @@ public interface KeyValueService extends AutoCloseable {
     /**
      * Truncate tables in the key-value store.
      * <p>
-     * This can be slightly faster than truncating a single table.
+     * This can be slightly faster than repeatedly truncating individual tables.
      *
      * @param tableRefs the name of the tables to truncate.
      *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
+     * @throws (? extends RuntimeException) if the table does not exist
      */
     @POST
     @Path("truncate-tables")
@@ -534,7 +536,7 @@ public interface KeyValueService extends AutoCloseable {
      * a Quorum of hosts. However this call MUST be implemented by talking to ALL the nodes where a
      * value could be stored.
      *
-     * @param tableRef the name of the table to delete values from.
+     * @param tableRef the name of the table to retrieve timestamps from.
      * @param cells set containg cells to retrieve timestamps for.
      * @param timestamp maximum timestamp to get (exclusive)
      * @return multimap of timestamps by cell

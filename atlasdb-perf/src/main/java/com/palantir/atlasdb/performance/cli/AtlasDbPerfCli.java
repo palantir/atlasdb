@@ -56,6 +56,7 @@ import io.airlift.airline.SingleCommand;
  *
  * @author mwakerman, bullman
  */
+
 @Command(name = "atlasdb-perf", description = "The AtlasDB performance benchmark CLI.")
 public class AtlasDbPerfCli {
     @Inject
@@ -127,6 +128,7 @@ public class AtlasDbPerfCli {
                 .measurementIterations(1)
                 .mode(Mode.SampleTime)
                 .timeUnit(TimeUnit.MICROSECONDS)
+                .shouldFailOnError(true)
                 .param(BenchmarkParam.URI.getKey(),
                         uris.stream()
                                 .map(DockerizedDatabaseUri::toString)
