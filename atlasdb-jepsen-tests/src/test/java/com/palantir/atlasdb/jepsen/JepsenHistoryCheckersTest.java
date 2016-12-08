@@ -48,6 +48,15 @@ public class JepsenHistoryCheckersTest {
     }
 
     @Test
+    public void canCreateWithLivenessCheckers() {
+        JepsenHistoryChecker checker = JepsenHistoryCheckers.createWithLivenessCheckers();
+
+        JepsenHistoryCheckers.STANDARD_CHECKERS.forEach(
+                supplier -> assertThat(checker.checkers).hasAtLeastOneElementOfType(supplier.get().getClass()));
+        assertThat(checker.checkers).hasAtLeastOneElementOfType(NemesisResilienceChecker.class);
+    }
+
+    @Test
     public void createWithAdditionalCheckersStillIncludesDefaultCheckers() {
         JepsenHistoryChecker checker = JepsenHistoryCheckers.createWithAdditionalCheckers(
                 ImmutableList.of(NemesisResilienceChecker::new));
