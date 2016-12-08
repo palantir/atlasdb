@@ -263,6 +263,8 @@ public final class StackTraceUtils {
     }
 
     private static class StackTraceComparator implements Comparator<String>, Serializable {
+        private static final long serialVersionUID = 1L;
+
         // higher scores come earlier
         @Override
         public int compare(String s1, String s2) {

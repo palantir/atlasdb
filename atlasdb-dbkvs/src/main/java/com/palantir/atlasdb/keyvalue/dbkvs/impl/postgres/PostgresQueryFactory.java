@@ -261,7 +261,7 @@ public class PostgresQueryFactory extends AbstractDbQueryFactory {
 
     private String groupOfNumParams(int numParams, int numEntries) {
         String params = numParams(numParams);
-        return Joiner.on(',').join(Iterables.limit(Iterables.cycle(params.toString()), numEntries));
+        return Joiner.on(',').join(Iterables.limit(Iterables.cycle(params), numEntries));
     }
 
     private String wrapQueryWithIncludeValue(String wrappedName, String query, boolean includeValue) {
