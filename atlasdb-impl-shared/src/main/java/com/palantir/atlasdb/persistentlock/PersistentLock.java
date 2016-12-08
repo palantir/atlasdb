@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.common.base.Throwables;
@@ -99,14 +100,14 @@ public final class PersistentLock {
                 .filter(lockEntry -> lockEntry.lockName().equals(lockName))
                 .collect(Collectors.toSet());
 
-        if (matchingLockEntries.size() != 1) {
-            throw new IllegalArgumentException("Expected to find only one lock with name " + lockName
-                    + " but the set of matching entries is " + matchingLockEntries);
-        }
-
-        LockEntry onlyLock = matchingLockEntries.iterator().next();
+        LockEntry onlyLock = Iterables.getOnlyElement(matchingLockEntries);
         releaseLock(onlyLock);
         return onlyLock;
+    }
+
+
+    public Set<LockEntry> allLockEntries() {
+        return lockStore.allLockEntries();
     }
 
     private LockEntry generateUniqueLockEntry(PersistentLockName lockName, String reason, boolean exclusive) {
@@ -121,10 +122,8 @@ public final class PersistentLock {
         return verifyLockDoesNotConflict(desiredLock, relevantLocks);
     }
 
-    private Set<LockEntry> retainExclusiveLocks(Set<LockEntry> conflictingLocks) {
-        return conflictingLocks.stream()
-                .filter(LockEntry::exclusive)
-                .collect(Collectors.toSet());
+    private Set<LockEntry> allRelevantLockEntries(PersistentLockName lock) {
+        return Sets.filter(allLockEntries(), lockEntry -> lockEntry.lockName().equals(lock));
     }
 
     private LockEntry verifyLockDoesNotConflict(
@@ -151,13 +150,7 @@ public final class PersistentLock {
         return conflictingLocks;
     }
 
-    private Set<LockEntry> allRelevantLockEntries(PersistentLockName lock) {
-        return allLockEntries().stream()
-                .filter(lockEntry -> lockEntry.lockName().equals(lock))
-                .collect(Collectors.toSet());
-    }
-
-    public Set<LockEntry> allLockEntries() {
-        return lockStore.allLockEntries();
+    private Set<LockEntry> retainExclusiveLocks(Set<LockEntry> conflictingLocks) {
+        return Sets.filter(conflictingLocks, LockEntry::exclusive);
     }
 }
