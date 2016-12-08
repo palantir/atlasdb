@@ -57,7 +57,7 @@ jooq {
     timestamp(sourceSets.main) {
         jdbc {
             driver = 'org.sqlite.JDBC'
-            url = "jdbc:sqlite:$projectDir/var/data/timestamps.sqlite"
+            url = "jdbc:sqlite:$projectDir/timestamps.sqlite"
             user = ''
             password = ''
         }
