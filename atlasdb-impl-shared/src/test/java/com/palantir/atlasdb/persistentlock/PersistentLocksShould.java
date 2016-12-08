@@ -15,7 +15,10 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
@@ -56,6 +59,8 @@ public class PersistentLocksShould {
 
         persistentLock.runWithExclusiveLock(NO_ACTION, PersistentLockName.of("deletionLock"), REASON);
         persistentLock.runWithExclusiveLock(NO_ACTION, PersistentLockName.of("deletionLock"), REASON);
+
+        assertThat(persistentLock.allLockEntries(), empty());
     }
 
     @Test
@@ -134,16 +139,20 @@ public class PersistentLocksShould {
     public void allowDifferentLocksToBeTakenOutConcurrently() throws PersistentLockIsTakenException {
         PersistentLock persistentLock = makeInMemoryPersistentLock();
 
-        persistentLock.acquireLock(PersistentLockName.of("firstLock"), REASON, true);
-        persistentLock.acquireLock(PersistentLockName.of("otherLock"), REASON, true);
+        LockEntry first = persistentLock.acquireLock(PersistentLockName.of("firstLock"), REASON, true);
+        LockEntry second = persistentLock.acquireLock(PersistentLockName.of("otherLock"), REASON, true);
+
+        assertThat(persistentLock.allLockEntries(), containsInAnyOrder(first, second));
     }
 
     @Test
     public void allowNonExclusiveLocksToBeTakenOutConcurrently() throws PersistentLockIsTakenException {
         PersistentLock persistentLock = makeInMemoryPersistentLock();
 
-        persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, false);
-        persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, false);
+        LockEntry first = persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, false);
+        LockEntry second = persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, false);
+
+        assertThat(persistentLock.allLockEntries(), containsInAnyOrder(first, second));
     }
 
     @Test
@@ -157,7 +166,7 @@ public class PersistentLocksShould {
     }
 
     @Test
-    public void forbidExclusiveLockIfNonExlusiveLockIsTaken() throws PersistentLockIsTakenException {
+    public void forbidExclusiveLockIfNonExclusiveLockIsTaken() throws PersistentLockIsTakenException {
         PersistentLock persistentLock = makeInMemoryPersistentLock();
 
         persistentLock.acquireLock(PersistentLockName.of("deletionLock"), REASON, false);
@@ -183,6 +192,8 @@ public class PersistentLocksShould {
         persistentLock.acquireLock(onlyLockName, REASON, true);
 
         persistentLock.releaseOnlyLock(onlyLockName);
+
+        assertThat(persistentLock.allLockEntries(), empty());
     }
 
     @Test
@@ -194,6 +205,18 @@ public class PersistentLocksShould {
 
         expectedException.expect(IllegalArgumentException.class);
         persistentLock.releaseOnlyLock(onlyLockName);
+    }
+
+    @Test
+    public void releaseLockIfItIsNotUnique() throws PersistentLockIsTakenException {
+        PersistentLock persistentLock = makeInMemoryPersistentLock();
+        PersistentLockName onlyLockName = PersistentLockName.of("onlyLock");
+        LockEntry firstEntry = persistentLock.acquireLock(onlyLockName, REASON, false);
+        LockEntry secondEntry = persistentLock.acquireLock(onlyLockName, REASON, false);
+
+        persistentLock.releaseLock(firstEntry);
+
+        assertThat(persistentLock.allLockEntries(), contains(secondEntry));
     }
 
     private PersistentLock makeInMemoryPersistentLock() {

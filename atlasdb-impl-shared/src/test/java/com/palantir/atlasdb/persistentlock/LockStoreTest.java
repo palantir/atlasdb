@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.not;
@@ -42,7 +43,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.common.base.ClosableIterator;
 
-public class LockStoreShould {
+public class LockStoreTest {
     private LockStore lockStore;
     private KeyValueService keyValueService;
 
@@ -55,7 +56,7 @@ public class LockStoreShould {
     }
 
     @Test
-    public void createPersistedLocksTable() {
+    public void canCreatePersistedLocksTable() {
         LockStore.create(keyValueService);
 
         verify(keyValueService, atLeastOnce())
@@ -106,7 +107,7 @@ public class LockStoreShould {
     }
 
     @Test
-    public void cleanupTombstonedEntriesOnLookup() throws InterruptedException {
+    public void shouldCleanupTombstonedEntriesOnLookup() throws InterruptedException {
         lockStore.insertLockEntry(lockEntry);
         lockStore.releaseLockEntry(lockEntry);
 

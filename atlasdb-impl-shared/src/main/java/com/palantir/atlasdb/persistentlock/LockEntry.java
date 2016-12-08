@@ -86,8 +86,7 @@ public abstract class LockEntry {
     }
 
     public Map<Cell, byte[]> writeTombstoneMap() {
-        return ImmutableMap.of(
-                tombstoneCell(), asUtf8Bytes(Boolean.toString(true)));
+        return ImmutableMap.of(tombstoneCell(), asUtf8Bytes(Boolean.toString(true)));
     }
 
     public Multimap<Cell, Long> deletionMapWithTimestamp(long timestamp) {
