@@ -120,7 +120,7 @@ public class AtlasDbPerfCli {
 
     protected static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris) throws Exception {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
-                .forks(1)
+                .forks(0)
                 .threads(1)
                 .warmupIterations(1)
                 .measurementIterations(1)
@@ -163,11 +163,9 @@ public class AtlasDbPerfCli {
         }
         if (cli.backends != null) {
             cli.backends.forEach(backend -> {
-                try {
-                    KeyValueServiceType.valueOf(backend.toUpperCase());
-                } catch (IllegalArgumentException e) {
+                if (isInvalidBackend(backend)) {
                     throw new RuntimeException("Invalid backend specified. Valid options: "
-                            + EnumSet.allOf(KeyValueServiceType.class) + " You provided: " + backend, e);
+                            + getBackends() + " You provided: " + backend);
                 }
             });
         }
@@ -192,6 +190,10 @@ public class AtlasDbPerfCli {
         return reflections.getMethodsAnnotatedWith(Benchmark.class).stream()
                 .map(method -> method.getDeclaringClass().getSimpleName() + "." + method.getName())
                 .collect(Collectors.toSet());
+    }
+
+    protected static boolean isInvalidBackend(String backend){
+        return !getBackends().contains(backend);
     }
 
     protected static Set<String> getBackends(){

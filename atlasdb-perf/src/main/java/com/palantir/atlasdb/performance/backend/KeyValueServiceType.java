@@ -18,6 +18,8 @@
 package com.palantir.atlasdb.performance.backend;
 
 import java.net.InetSocketAddress;
+import java.util.Map;
+import java.util.TreeMap;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
@@ -115,6 +117,26 @@ public enum KeyValueServiceType implements KeyValueServiceTypeInterface{
                 }
             default:
                 throw new UnsupportedOperationException("Trying to check connection for unknown KVS ");
+        }
+    }
+
+
+    private static Map< String, KeyValueServiceTypeInterface > map =
+            new TreeMap< String, KeyValueServiceTypeInterface >();
+
+    static {
+        for (KeyValueServiceType backend : values()) {
+            map.put(backend.toString(), backend);
+        }
+    }
+
+    public static KeyValueServiceTypeInterface KeyValueServiceTypeFor(String backend) {
+        return map.get(backend);
+    }
+
+    public static void addNewBackendType(KeyValueServiceTypeInterface backend) {
+        if (!map.containsKey(backend.toString())) {
+            map.put(backend.toString(), backend);
         }
     }
 
