@@ -34,7 +34,7 @@ public final class BlockConsumingInputStream extends InputStream {
             int numBlocks,
             int blocksInMemory) throws IOException {
         BlockConsumingInputStream stream = new BlockConsumingInputStream(blockGetter, numBlocks, blocksInMemory);
-        stream.getNextBlock();
+        stream.refillBuffer();
         return stream;
     }
 
@@ -53,7 +53,11 @@ public final class BlockConsumingInputStream extends InputStream {
         }
 
         if (nextBlockToRead < numBlocks) {
-            getNextBlock();
+            boolean reloaded = refillBuffer();
+            if (!reloaded) {
+                return -1;
+            }
+
             return buffer[positionInBuffer++] & 0xff;
         }
 
@@ -75,7 +79,7 @@ public final class BlockConsumingInputStream extends InputStream {
             bytesRead += bytesToCopy;
 
             if (positionInBuffer >= buffer.length) {
-                boolean reloaded = getNextBlock();
+                boolean reloaded = refillBuffer();
                 if (!reloaded) {
                     break;
                 }
@@ -89,7 +93,7 @@ public final class BlockConsumingInputStream extends InputStream {
         return bytesRead;
     }
 
-    private boolean getNextBlock() throws IOException {
+    private boolean refillBuffer() throws IOException {
         int numBlocksToGet = Math.min(blocksLeft(), blocksInMemory);
         if (numBlocksToGet <= 0) {
             return false;
@@ -106,6 +110,6 @@ public final class BlockConsumingInputStream extends InputStream {
     }
 
     private int blocksLeft() {
-        return numBlocks - nextBlockToRead;
+        return Math.max(0, numBlocks - nextBlockToRead);
     }
 }

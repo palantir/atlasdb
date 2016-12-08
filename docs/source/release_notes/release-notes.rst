@@ -45,7 +45,7 @@ develop
          - ``StreamStore.loadStream`` now actually streams the data, if the data does not fit in memory.
            This means that getting the first byte of the stream now has constant-time performance, compared to being
            linear in terms of stream length, as it was previously.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1335>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1341>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

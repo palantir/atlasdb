@@ -36,7 +36,7 @@ public class BlockConsumingInputStreamTest {
     private static final int DATA_SIZE = 4;
     private static final int DATA_SIZE_PLUS_ONE = 5;
 
-    private final byte[] data = "data".getBytes();
+    private final byte[] data = "data".getBytes(StandardCharsets.UTF_8);
     private final BlockGetter dataConsumer = new BlockGetter() {
         @Override
         public void get(int firstBlock, int numBlocks, OutputStream destination) {
@@ -69,7 +69,7 @@ public class BlockConsumingInputStreamTest {
         }
     };
 
-    private final byte[] stored = "divisible".getBytes();
+    private final byte[] stored = "divisible".getBytes(StandardCharsets.UTF_8);
     private final BlockGetter threeByteConsumer = new BlockGetter() {
         @Override
         public void get(int offset, int numBlocks, OutputStream os) {
@@ -129,7 +129,7 @@ public class BlockConsumingInputStreamTest {
         byte[] chunk = new byte[2];
         int read = stream.read(chunk);
         assertEquals(1, read);
-        assertArrayEquals("e".getBytes(), Arrays.copyOf(chunk, 1));
+        assertArrayEquals("e".getBytes(StandardCharsets.UTF_8), Arrays.copyOf(chunk, 1));
     }
 
     @Test
@@ -200,7 +200,7 @@ public class BlockConsumingInputStreamTest {
 
     @Test
     public void can_load_multiple_blocks_at_once_and_also_fewer_blocks_at_end() throws IOException {
-        BlockGetter spiedGetter = Mockito.spy(new MockableBlockGetter(singleByteConsumer));
+        BlockGetter spiedGetter = Mockito.spy(singleByteConsumer);
         BlockConsumingInputStream stream = BlockConsumingInputStream.create(spiedGetter, DATA_SIZE, 3);
         //noinspection ResultOfMethodCallIgnored
         stream.read();
@@ -216,24 +216,7 @@ public class BlockConsumingInputStreamTest {
         byte[] chunk = new byte[2];
         int read = stream.read(chunk);
         assertEquals(2, read);
-        assertArrayEquals(expectedOutput.getBytes(), chunk);
+        assertArrayEquals(expectedOutput.getBytes(StandardCharsets.UTF_8), chunk);
     }
 
-    private class MockableBlockGetter implements BlockGetter {
-        private BlockGetter delegate;
-
-        MockableBlockGetter(BlockGetter delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public void get(int firstBlock, int numBlocks, OutputStream destination) {
-            delegate.get(firstBlock, numBlocks, destination);
-        }
-
-        @Override
-        public int expectedLength() {
-            return delegate.expectedLength();
-        }
-    }
 }

@@ -51,7 +51,7 @@ When you call ``loadStream(transaction, id)``, only the first section of the str
 The amount loaded is determined by the block size (1MB) and the in-memory threshold (4MiB by default); we load at least one block,
 a whole number of blocks, and (if the in-memory threshold is at least the block size) as many blocks as fit inside the in-memory threshold.
 So by default, we load 4 blocks (``4*10^6`` bytes, slightly less than the default in-memory threshold of ``4*2^20`` bytes).
-If your stream does not inside the in-memory threshold, then the remainder of the data will be buffered in separate transactions.
+If your stream does not fit inside the in-memory threshold, then the remainder of the data will be buffered in separate transactions.
 
 This has some subtle transactionality implications.
 Suppose you store a mapping of keys to stream IDs, and at ``start_timestamp``, ``key`` maps to ``stream_id_1``.
