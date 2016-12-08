@@ -196,7 +196,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final Timer.Context transactionTimerContext = getTimer("transactionMillis").time();
     protected final Stopwatch transactionTimer = Stopwatch.createStarted();
     protected final TimestampCache timestampValidationReadCache;
-    private final MetricRegistry metricRegistry = AtlasDbMetrics.getOrDefaultMetricRegistry();
+    private final MetricRegistry metricRegistry = AtlasDbMetrics.getOrInitializeDefaultRegistry();
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
