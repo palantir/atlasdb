@@ -33,24 +33,46 @@ public class AtlasDbMetrics {
     private static volatile AtlasDbMetrics instance = null;
 
     private MetricRegistry metricRegistry;
-    private final Logger metricsLogger;
-    private final Slf4jReporter metricsLogReporter;
+    private Logger metricsLogger;
+    private Slf4jReporter metricsLogReporter;
 
-    private AtlasDbMetrics(String logDomain, String registryName) {
+    private AtlasDbMetrics(String registryName) {
         this.metricRegistry = SharedMetricRegistries.getOrCreate(registryName);
-        JmxReporter.forRegistry(metricRegistry).inDomain(logDomain).convertDurationsTo(
-                TimeUnit.MILLISECONDS).convertRatesTo(TimeUnit.SECONDS).build().start();
+    }
+
+    private AtlasDbMetrics(MetricRegistry metricRegistry) {
+        this.metricRegistry = metricRegistry;
+    }
+
+    public synchronized static void initializeReporting(String logDomain) {
+        getInstance().setMetricsLogger(logDomain);
+    }
+
+    private void setMetricsLogger(String logDomain) {
         this.metricsLogger = LoggerFactory.getLogger(logDomain);
-        this.metricsLogReporter = Slf4jReporter.forRegistry(metricRegistry).outputTo(metricsLogger).convertRatesTo(
-                TimeUnit.SECONDS).convertDurationsTo(TimeUnit.MILLISECONDS).build();
+        this.metricsLogReporter = Slf4jReporter.forRegistry(getInstance().metricRegistry).outputTo(metricsLogger)
+                .convertRatesTo(TimeUnit.SECONDS).convertDurationsTo(TimeUnit.MILLISECONDS).build();
         metricsLogger.info("Starting metrics recording for AtlasDb metrics");
     }
 
-    public synchronized static AtlasDbMetrics createAndSetInstance(String logDomain, String registryName) {
+    public static void startJmxReporter(String logDomain, MetricRegistry metricRegistry) {
+        JmxReporter.forRegistry(metricRegistry).inDomain(logDomain).convertDurationsTo(
+                TimeUnit.MILLISECONDS).convertRatesTo(TimeUnit.SECONDS).build().start();
+    }
+
+    public synchronized static AtlasDbMetrics createAndSetInstance(String registryName) {
         if (instance != null) {
-            throw new IllegalStateException("AtlasDbMetrics instance already exists!");
+            throw new IllegalStateException("AtlasDbMetrics instance already set!");
         }
-        instance = new AtlasDbMetrics(logDomain, registryName);
+        instance = new AtlasDbMetrics(registryName);
+        return instance;
+    }
+
+    public synchronized static AtlasDbMetrics createAndSetInstance(MetricRegistry metricRegistry) {
+        if (instance != null) {
+            throw new IllegalStateException("AtlasDbMetrics instance already set!");
+        }
+        instance = new AtlasDbMetrics(metricRegistry);
         return instance;
     }
 
@@ -68,6 +90,10 @@ public class AtlasDbMetrics {
     }
 
     public static Slf4jReporter getMetricLogReporter() {
+        if (getInstance().metricsLogReporter == null) {
+            throw new IllegalStateException("Metrics log reporter was not initialized, please call "
+                    + "initializeReporting first");
+        }
         return getInstance().metricsLogReporter;
     }
 
@@ -76,15 +102,21 @@ public class AtlasDbMetrics {
     }
 
     public static Logger getMetricsLogger() {
+        if (getInstance().metricsLogger == null) {
+            throw new IllegalStateException("Metrics logger was not initialized, please call "
+                    + "initializeReporting first");
+        }
         return getInstance().metricsLogger;
     }
 
     // Using this means that all atlasdb clients will report to the same registry, which may give confusing stats
-    public synchronized static MetricRegistry getOrDefaultMetricRegistry() {
+    public synchronized static MetricRegistry getOrInitializeDefaultRegistry() {
         if (instance == null) {
+            instance = new AtlasDbMetrics(DEFAULT_REGISTRY_NAME);
+            startJmxReporter(DEFAULT_LOG_DOMAIN, getInstance().metricRegistry);
+            initializeReporting(DEFAULT_LOG_DOMAIN);
             getMetricsLogger().info("Metric Registry was not set, setting to default log domain of "
                     + DEFAULT_LOG_DOMAIN + " and default registry name of " + DEFAULT_REGISTRY_NAME);
-            instance = new AtlasDbMetrics(DEFAULT_LOG_DOMAIN, DEFAULT_REGISTRY_NAME);
         }
         return getInstance().metricRegistry;
     }
