@@ -65,7 +65,7 @@ public class LZ4CompressionTests {
         initializeStreams(uncompressedData);
         int value = decompressingStream.read();
 
-        assertEquals(Byte.toUnsignedInt(uncompressedData[0]), value);
+        assertEquals(uncompressedData[0] & 0xFF, value);
         assertStreamIsEmpty(decompressingStream);
     }
 
@@ -97,7 +97,7 @@ public class LZ4CompressionTests {
 
         for (int i = 0; i < uncompressedData.length; ++i) {
             int value = decompressingStream.read();
-            assertEquals(Byte.toUnsignedInt(uncompressedData[i]), value);
+            assertEquals(uncompressedData[i] & 0xFF, value);
         }
         assertStreamIsEmpty(decompressingStream);
     }
