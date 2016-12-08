@@ -1,18 +1,14 @@
 cluster:
-  localServer: http://<HOSTNAME>:8080
+  localServer: http://localhost:8080
   servers:
-    - http://n1:8080
-    - http://n2:8080
-    - http://n3:8080
-    - http://n4:8080
-    - http://n5:8080
+    - http://localhost:8080
 
 clients:
   - client: cassandra
     keyValueService:
       type: cassandra
       servers:
-        - cassandra:9160
+        - localhost:9160
       poolSize: 20
       keyspace: test
       credentials:
