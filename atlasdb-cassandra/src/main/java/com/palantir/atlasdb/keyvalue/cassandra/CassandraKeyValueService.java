@@ -1353,8 +1353,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      * timestamps &lt; given_ts.
      * <p>
      * This method has stronger consistency guarantees than regular read requests. This must return all timestamps
-     * stored anywhere in the system. Unless all nodes are up and available, this method will throw an
-     * InsufficientConsistencyException.
+     * stored anywhere in the system (because of sweep). Unless all nodes are up and available, this method will
+     * throw an InsufficientConsistencyException.
      *
      * @param tableRef the name of the table to read from.
      * @param rangeRequest the range to load.
@@ -1940,7 +1940,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
      * timestamps &lt; given_ts.
      * <p>
      * This method has stronger consistency guarantees than regular read requests. This must return
-     * all timestamps stored anywhere in the system. Unless all nodes are up and available, this
+     * all timestamps stored anywhere in the system (because of sweep). Unless all nodes are up and available, this
      * method will throw a PalantirRuntimeException.
      *
      * @param tableRef the name of the table to retrieve timestamps from.

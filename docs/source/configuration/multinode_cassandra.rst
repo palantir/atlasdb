@@ -13,7 +13,7 @@ In the case where all nodes are up, the entire Cassandra Key Value Service (KVS)
 A minority of nodes are down
 ============================
 
-The following behaviour is guaranteed when interacting with a Cassandra cluster with three nodes, RF three, and one node down. More generally, this is the expected behaviour for a cluster that has at least one but fewer than RF / 2 nodes down.
+The following behaviour is guaranteed when interacting with a Cassandra cluster with three nodes, RF three, and one node down. More generally, this is the expected behaviour for a cluster that has nodes down, but can still always satisfy QUORUM requests (i.e. fewer than RF/2 nodes are down).
 
 .. list-table::
     :widths: 40 40
@@ -89,10 +89,10 @@ The following behaviour is guaranteed when interacting with a Cassandra cluster 
          - Same as when all nodes are up.
 
     *    - ``putMetadataForTable``
-         - Throws ``IllegalStateException`` after 1 minute.
+         - Throws ``IllegalStateException``
 
     *    - ``putMetadataForTables``
-         - Throws ``IllegalStateException`` after 1 minute.
+         - Throws ``IllegalStateException``
 
     *    - ``putUnlessExists``
          - Same as when all nodes are up.
@@ -109,4 +109,9 @@ The following behaviour is guaranteed when interacting with a Cassandra cluster 
 Less than a quorum of nodes are up
 ==================================
 
-Superuser authentication will fail with a ``AuthenticationException``, since quorum is necessary for this operation. A non-super user authentication may still succeed, but all of the above operations should fail. `Note that this behaviour is still being verified!`
+All of the above operations should fail.
+
+.. warning::
+
+    This behaviour has not been fully tested yet!
+
