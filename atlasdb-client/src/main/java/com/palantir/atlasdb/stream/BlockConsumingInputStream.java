@@ -19,6 +19,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import com.google.common.base.Preconditions;
+
 public final class BlockConsumingInputStream extends InputStream {
     private final BlockGetter blockGetter;
     private final int numBlocks;
@@ -33,9 +35,20 @@ public final class BlockConsumingInputStream extends InputStream {
             BlockGetter blockGetter,
             int numBlocks,
             int blocksInMemory) throws IOException {
+        ensureExpectedArraySizeDoesNotOverflow(blockGetter, blocksInMemory);
         BlockConsumingInputStream stream = new BlockConsumingInputStream(blockGetter, numBlocks, blocksInMemory);
         stream.refillBuffer();
         return stream;
+    }
+
+    private static void ensureExpectedArraySizeDoesNotOverflow(BlockGetter blockGetter, int blocksInMemory) {
+        int expectedLength = blockGetter.expectedLength();
+        Preconditions.checkArgument(blocksInMemory < Integer.MAX_VALUE / expectedLength,
+                "Promised to load too many blocks into memory. The underlying buffer is stored as a byte array, "
+                        + "so can only fit Integer.MAX_VALUE bytes. The supplied BlockGetter expected to produce "
+                        + "blocks of %s bytes, so %s of them would cause the array to overflow.",
+                blockGetter.expectedLength(),
+                blocksInMemory);
     }
 
     private BlockConsumingInputStream(BlockGetter blockGetter, int numBlocks, int blocksInMemory) {

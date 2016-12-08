@@ -198,6 +198,24 @@ public class BlockConsumingInputStreamTest {
         assertArrayEquals(Arrays.copyOf(data, dataSizeMinusOne), Arrays.copyOf(result, dataSizeMinusOne));
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void buffer_length_should_not_exceed_int_max_value() throws IOException {
+        BlockGetter bigGetter = new BlockGetter() {
+            @Override
+            public void get(int firstBlock, int numBlocks, OutputStream destination) {
+                // do nothing
+            }
+
+            @Override
+            public int expectedLength() {
+                return 1_000_000;
+            }
+        };
+
+        // Should fail, because bigGetter.expectedLength() * blocksInMemory > Integer.MAX_VALUE.
+        BlockConsumingInputStream.create(bigGetter, 9001, 2148);
+    }
+
     @Test
     public void can_load_multiple_blocks_at_once_and_also_fewer_blocks_at_end() throws IOException {
         BlockGetter spiedGetter = Mockito.spy(singleByteConsumer);
