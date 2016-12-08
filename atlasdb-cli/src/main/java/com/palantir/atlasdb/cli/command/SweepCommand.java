@@ -128,7 +128,7 @@ public class SweepCommand extends SingleBackendCommand {
             while (startRow.isPresent()) {
                 Stopwatch watch = Stopwatch.createStarted();
                 SweepResults results = sweepRunner.run(table, batchSize, cellBatchSize, startRow.get());
-                printer.info("Swept from {} to {} in table {} in {} ms, examined {} unique cells, deleted {} stale values.",
+                printer.info("Swept from {} to {} in table {} in {} ms, examined {} unique cells, deleted {} stale versions of those cells.",
                         encodeStartRow(startRow), encodeEndRow(results.getNextStartRow()),
                         table, watch.elapsed(TimeUnit.MILLISECONDS),
                         results.getCellsExamined(), results.getCellsDeleted());
@@ -146,7 +146,7 @@ public class SweepCommand extends SingleBackendCommand {
                 priorityTable.putCellsExamined(row1, cellsExamined.get());
                 priorityTable.putLastSweepTime(row1, System.currentTimeMillis());
 
-                printer.info("Finished sweeping {}, examined {} unique cells, deleted {} stale values.",
+                printer.info("Finished sweeping {}, examined {} unique cells, deleted {} stale versions of those cells.",
                         table, cellsExamined.get(), cellsDeleted.get());
 
                 if (cellsDeleted.get() > 0) {

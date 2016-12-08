@@ -97,7 +97,7 @@ public class TestSweepCommand {
 
             Scanner scanner = new Scanner(stdout);
             final long uniqueCells = Long.parseLong(scanner.findInLine("\\d+ unique cells").split(" ")[0]);
-            final long deletedCells = Long.parseLong(scanner.findInLine("deleted \\d+ stale values").split(" ")[1]);
+            final long deletedCells = Long.parseLong(scanner.findInLine("deleted \\d+ stale versions of those cells").split(" ")[1]);
             Assert.assertEquals(1, uniqueCells);
             Assert.assertEquals(1, deletedCells);
 
