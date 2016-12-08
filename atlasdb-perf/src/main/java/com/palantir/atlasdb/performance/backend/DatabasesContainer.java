@@ -29,8 +29,8 @@ public final class DatabasesContainer implements AutoCloseable {
             for (KeyValueServiceTypeInterface backend : backends) {
                 DockerizedDatabase db = DockerizedDatabase.start(backend);
                 Awaitility.await()
-                        .atMost(Duration.ONE_MINUTE)
-                        .pollInterval(Duration.ONE_SECOND)
+                        .atMost(Duration.FIVE_MINUTES)
+                        .pollInterval(Duration.ONE_MINUTE)
                         .until(() -> backend.canConnect(db.getUri().getAddress()));
                 dbs.add(db);
             }
