@@ -36,13 +36,23 @@ import one.util.streamex.EntryStream;
 public class JepsenHistoryCheckerIntegrationTest {
     @Test
     public void correctExampleHistoryShouldReturnValidAndNoErrors() throws IOException {
-        List<Map<Keyword, ?>> convertedAllEvents = getClojureMapFromFile("history.json");
+        List<Map<Keyword, ?>> convertedAllEvents = getClojureMapFromFile("correct_history.json");
 
         Map<Keyword, Object> results = JepsenHistoryCheckers.createWithStandardCheckers()
                 .checkClojureHistory(convertedAllEvents);
 
         assertThat(results).containsEntry(Keyword.intern("valid?"), true);
         assertThat(results).containsEntry(Keyword.intern("errors"), ImmutableList.of());
+    }
+
+    @Test
+    public void livenessFailingHistoryShouldReturnInvalidWithNemesisErrors() throws IOException {
+        List<Map<Keyword, ?>> convertedAllEvents = getClojureMapFromFile("liveness_failing_history.json");
+
+        Map<Keyword, Object> results = JepsenHistoryCheckers.createWithLivenessCheckers()
+                .checkClojureHistory(convertedAllEvents);
+
+        assertThat(results).containsEntry(Keyword.intern("valid?"), false);
     }
 
     private static List<Map<Keyword, ?>> getClojureMapFromFile(String resourcePath) throws IOException {
