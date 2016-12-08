@@ -19,7 +19,6 @@ package com.palantir.atlasdb.performance.cli;
 
 import java.io.File;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -42,7 +41,6 @@ import com.palantir.atlasdb.performance.backend.DatabasesContainer;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 import com.palantir.atlasdb.performance.backend.KeyValueServiceType;
-import com.palantir.atlasdb.performance.backend.KeyValueServiceTypeInterface;
 
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
@@ -107,7 +105,7 @@ public class AtlasDbPerfCli {
         } else {
             Set<String> backends = cli.backends != null
                     ? cli.backends
-                    : getBackends();
+                    : KeyValueServiceType.getBackends();
             try (DatabasesContainer container = startupDatabase(backends)) {
                 runJmh(cli,
                         container.getDockerizedDatabases()
@@ -165,7 +163,7 @@ public class AtlasDbPerfCli {
             cli.backends.forEach(backend -> {
                 if (isInvalidBackend(backend)) {
                     throw new RuntimeException("Invalid backend specified. Valid options: "
-                            + getBackends() + " You provided: " + backend);
+                            + KeyValueServiceType.getBackends() + " You provided: " + backend);
                 }
             });
         }
@@ -193,13 +191,6 @@ public class AtlasDbPerfCli {
     }
 
     protected static boolean isInvalidBackend(String backend){
-        return !getBackends().contains(backend);
-    }
-
-    protected static Set<String> getBackends(){
-        return EnumSet.allOf(KeyValueServiceType.class)
-                .stream()
-                .map(Enum::toString)
-                .collect(Collectors.toSet());
+        return !KeyValueServiceType.getBackends().contains(backend);
     }
 }

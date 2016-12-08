@@ -17,28 +17,11 @@ package com.palantir.atlasdb.performance.backend;
 
 import java.net.InetSocketAddress;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.config.ImmutableLeaderConfig;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
-import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 
-/**
- * Created by gmaretic on 06/12/2016.
- */
 public interface KeyValueServiceTypeInterface {
     public String getDockerComposeResourceFileName();
     public int getKeyValueServicePort();
-
     public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr);
-
     public boolean canConnect(InetSocketAddress addr);
 }

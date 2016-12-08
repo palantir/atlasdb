@@ -19,6 +19,7 @@ package com.palantir.atlasdb.performance.backend;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import com.google.common.base.Optional;
@@ -28,11 +29,9 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
@@ -48,6 +47,7 @@ public enum KeyValueServiceType implements KeyValueServiceTypeInterface{
         this.kvsPort = kvsPort;
         this.dockerComposeFileName = dockerComposeFileName;
     }
+
     @Override
     public String getDockerComposeResourceFileName() {
         return dockerComposeFileName;
@@ -120,25 +120,26 @@ public enum KeyValueServiceType implements KeyValueServiceTypeInterface{
         }
     }
 
-
-    private static Map< String, KeyValueServiceTypeInterface > map =
+    private static Map< String, KeyValueServiceTypeInterface > backendMap =
             new TreeMap< String, KeyValueServiceTypeInterface >();
 
     static {
         for (KeyValueServiceType backend : values()) {
-            map.put(backend.toString(), backend);
+            backendMap.put(backend.toString(), backend);
         }
     }
 
     public static KeyValueServiceTypeInterface KeyValueServiceTypeFor(String backend) {
-        return map.get(backend);
+        return backendMap.get(backend);
     }
 
     public static void addNewBackendType(KeyValueServiceTypeInterface backend) {
-        if (!map.containsKey(backend.toString())) {
-            map.put(backend.toString(), backend);
+        if (!backendMap.containsKey(backend.toString())) {
+            backendMap.put(backend.toString(), backend);
         }
     }
 
-
+    public static Set<String> getBackends(){
+        return backendMap.keySet();
+    }
 }
