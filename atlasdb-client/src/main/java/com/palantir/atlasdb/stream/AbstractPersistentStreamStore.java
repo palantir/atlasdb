@@ -49,7 +49,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         super(txManager);
     }
 
-    private final void storeMetadataAndIndex(final long streamId, final StreamMetadata metadata){
+    protected final void storeMetadataAndIndex(final long streamId, final StreamMetadata metadata) {
         Preconditions.checkNotNull(txnMgr);
         txnMgr.runTaskThrowOnConflict(new TxTask() {
             @Override
@@ -97,7 +97,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         markStreamsAsUsedInternal(t, streamIdsToReference);
     }
 
-    private long storeEmptyMetadata() {
+    protected long storeEmptyMetadata() {
         Preconditions.checkNotNull(txnMgr);
         return txnMgr.runTaskThrowOnConflict(new TransactionTask<Long, RuntimeException>() {
             @Override
@@ -109,11 +109,11 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
     }
 
     @Override
-    public final Pair<Long, Sha256Hash> storeStream(InputStream stream) {
+    public Pair<Long, Sha256Hash> storeStream(InputStream stream) {
         // Store empty metadata before doing anything
         long id = storeEmptyMetadata();
 
-        StreamMetadata metadata = storeBlocksAndGetFinalMetadata(null, id, stream);
+        StreamMetadata metadata = storeBlocksAndGetFinalMetadata(null, id, stream, true);
         storeMetadataAndIndex(id, metadata);
         return Pair.create(id, new Sha256Hash(metadata.getHash().toByteArray()));
     }
@@ -130,7 +130,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         Map<Long, StreamMetadata> idsToMetadata = Maps.transformEntries(streams, new Maps.EntryTransformer<Long, InputStream, StreamMetadata>() {
             @Override
             public StreamMetadata transformEntry(Long id, InputStream stream) {
-                return storeBlocksAndGetFinalMetadata(t, id, stream);
+                return storeBlocksAndGetFinalMetadata(t, id, stream, true);
             }
         });
         putMetadataAndHashIndexTask(t, idsToMetadata);
@@ -144,10 +144,14 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         return hashes;
     }
 
-    protected final StreamMetadata storeBlocksAndGetFinalMetadata(@Nullable Transaction t, long id, InputStream stream) {
+    protected final StreamMetadata storeBlocksAndGetFinalMetadata(@Nullable Transaction t, long id, InputStream stream, boolean computeHash) {
         // Set up for finding hash and length
-        MessageDigest digest = Sha256Hash.getMessageDigest();
-        stream = new DigestInputStream(stream, digest);
+        ByteString hashByteString = com.google.protobuf.ByteString.EMPTY;
+        MessageDigest digest = null;
+        if (computeHash) {
+            digest = Sha256Hash.getMessageDigest();
+            stream = new DigestInputStream(stream, digest);
+        }
         CountingInputStream countingStream = new CountingInputStream(stream);
 
         // Try to store the bytes to the stream and get length
@@ -166,7 +170,9 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         }
 
         // Get hash and length
-        ByteString hashByteString = ByteString.copyFrom(digest.digest());
+        if (computeHash) {
+            hashByteString = ByteString.copyFrom(digest.digest());
+        }
         long length = countingStream.getCount();
 
         // Return the final metadata.

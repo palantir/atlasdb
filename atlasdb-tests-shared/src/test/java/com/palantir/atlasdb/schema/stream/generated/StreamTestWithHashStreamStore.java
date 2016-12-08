@@ -24,6 +24,7 @@ import javax.annotation.Generated;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -36,6 +37,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
+import com.google.common.io.ByteStreams;
 import com.google.common.io.CountingInputStream;
 import com.google.common.primitives.Ints;
 import com.google.protobuf.ByteString;
@@ -52,12 +54,16 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.compression.LZ4CompressingInputStream;
 import com.palantir.common.io.ConcatenatedInputStream;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.ByteArrayIOStream;
+import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.file.DeleteOnCloseFileInputStream;
 import com.palantir.util.file.TempFileUtils;
+
+import net.jpountz.lz4.LZ4BlockInputStream;
 
 @Generated("com.palantir.atlasdb.table.description.render.StreamStoreRenderer")
 public final class StreamTestWithHashStreamStore extends AbstractPersistentStreamStore {
@@ -176,6 +182,84 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
     private byte[] getBlock(Transaction t, StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow row) {
         StreamTestWithHashStreamValueTable valueTable = tables.getStreamTestWithHashStreamValueTable(t);
         return valueTable.getValues(ImmutableSet.of(row)).get(row);
+    }
+
+    @Override
+    public Pair<Long, Sha256Hash> storeStream(InputStream stream) {
+        long id = storeEmptyMetadata();
+
+        MessageDigest digest = Sha256Hash.getMessageDigest();
+        InputStream compressedStream;
+        try {
+            // Hash the data before compression
+            compressedStream = new LZ4CompressingInputStream(new DigestInputStream(stream, digest));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        StreamMetadata metadata = storeBlocksAndGetFinalMetadata(null, id, compressedStream, false);
+
+        ByteString hashByteString = ByteString.copyFrom(digest.digest());
+        StreamMetadata correctedMetadata = StreamMetadata.newBuilder(metadata)
+                .setHash(hashByteString)
+                .build();
+        // Store the corrected metadata with the correct hash
+        storeMetadataAndIndex(id, correctedMetadata);
+
+        return Pair.create(id, new Sha256Hash(correctedMetadata.getHash().toByteArray()));
+    }
+
+    @Override
+    public Map<Long, Sha256Hash> storeStreams(final Transaction t, final Map<Long, InputStream> streams) {
+        if (streams.isEmpty()) {
+            return ImmutableMap.of();
+        }
+
+        Map<Long, StreamMetadata> idsToEmptyMetadata = Maps.transformValues(streams, Functions.constant(getEmptyMetadata()));
+        putMetadataAndHashIndexTask(t, idsToEmptyMetadata);
+
+        Map<Long, StreamMetadata> idsToMetadata = Maps.transformEntries(streams, (id, stream) -> {
+            MessageDigest digest = Sha256Hash.getMessageDigest();
+            InputStream compressedStream;
+            try {
+                // Hash the data before compression
+                compressedStream = new LZ4CompressingInputStream(new DigestInputStream(stream, digest));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            StreamMetadata metadata = storeBlocksAndGetFinalMetadata(t, id, compressedStream, false);
+            ByteString hashByteString = ByteString.copyFrom(digest.digest());
+            return StreamMetadata.newBuilder(metadata)
+                    .setHash(hashByteString)
+                    .build();
+        });
+        // Store the corrected metadata with the correct hashes
+        putMetadataAndHashIndexTask(t, idsToMetadata);
+
+        Map<Long, Sha256Hash> hashes = Maps.transformValues(idsToMetadata,
+                metadata -> new Sha256Hash(metadata.getHash().toByteArray()));
+        return hashes;
+    }
+
+    @Override
+    public InputStream loadStream(Transaction t, final Long id) {
+        return new LZ4BlockInputStream(super.loadStream(t, id));
+    }
+
+    @Override
+    public Map<Long, InputStream> loadStreams(Transaction t, Set<Long> ids) {
+        Map<Long, InputStream> compressedStreams = super.loadStreams(t, ids);
+        return Maps.transformValues(compressedStreams, stream -> {
+            return new LZ4BlockInputStream(stream);
+        });
+    }
+
+    @Override
+    protected void tryWriteStreamToFile(Transaction transaction, Long id, StreamMetadata metadata, FileOutputStream fos) throws IOException {
+        try (InputStream blockStream = makeStream(id, metadata);
+                InputStream decompressingStream = new LZ4BlockInputStream(blockStream);
+                OutputStream fileStream = fos;) {
+            ByteStreams.copy(decompressingStream, fileStream);
+        }
     }
 
     @Override
@@ -365,6 +449,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
      * {@link Builder}
      * {@link ByteArrayIOStream}
      * {@link ByteArrayInputStream}
+     * {@link ByteStreams}
      * {@link ByteString}
      * {@link Cell}
      * {@link CheckForNull}
@@ -378,6 +463,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
      * {@link File}
      * {@link FileNotFoundException}
      * {@link FileOutputStream}
+     * {@link Functions}
      * {@link Generated}
      * {@link HashMultimap}
      * {@link IOException}
@@ -385,6 +471,8 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
      * {@link ImmutableSet}
      * {@link InputStream}
      * {@link Ints}
+     * {@link LZ4BlockInputStream}
+     * {@link LZ4CompressingInputStream}
      * {@link List}
      * {@link Lists}
      * {@link Logger}
@@ -395,6 +483,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
      * {@link Multimap}
      * {@link Multimaps}
      * {@link OutputStream}
+     * {@link Pair}
      * {@link PersistentStreamStore}
      * {@link Preconditions}
      * {@link Set}
