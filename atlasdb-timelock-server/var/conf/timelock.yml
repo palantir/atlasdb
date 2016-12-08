@@ -6,3 +6,9 @@ cluster:
   localServer: localhost:8700
   servers:
     - localhost:8700
+
+atomix:
+  security:
+    keyStorePassword: ABCD
+    keyStorePath: keystore.jks
+    trustStorePath: truststore.jks
