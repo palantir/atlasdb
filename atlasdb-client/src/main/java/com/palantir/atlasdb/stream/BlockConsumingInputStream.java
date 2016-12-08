@@ -23,17 +23,17 @@ import com.google.common.base.Preconditions;
 
 public final class BlockConsumingInputStream extends InputStream {
     private final BlockGetter blockGetter;
-    private final int numBlocks;
+    private final long numBlocks;
     private final int blocksInMemory;
 
-    private int nextBlockToRead;
+    private long nextBlockToRead;
 
     private byte[] buffer;
     private int positionInBuffer;
 
     public static BlockConsumingInputStream create(
             BlockGetter blockGetter,
-            int numBlocks,
+            long numBlocks,
             int blocksInMemory) throws IOException {
         ensureExpectedArraySizeDoesNotOverflow(blockGetter, blocksInMemory);
         BlockConsumingInputStream stream = new BlockConsumingInputStream(blockGetter, numBlocks, blocksInMemory);
@@ -51,11 +51,11 @@ public final class BlockConsumingInputStream extends InputStream {
                 blocksInMemory);
     }
 
-    private BlockConsumingInputStream(BlockGetter blockGetter, int numBlocks, int blocksInMemory) {
+    private BlockConsumingInputStream(BlockGetter blockGetter, long numBlocks, int blocksInMemory) {
         this.blockGetter = blockGetter;
         this.numBlocks = numBlocks;
         this.blocksInMemory = blocksInMemory;
-        this.nextBlockToRead = 0;
+        this.nextBlockToRead = 0L;
         this.positionInBuffer = 0;
     }
 
@@ -107,7 +107,7 @@ public final class BlockConsumingInputStream extends InputStream {
     }
 
     private boolean refillBuffer() throws IOException {
-        int numBlocksToGet = Math.min(blocksLeft(), blocksInMemory);
+        long numBlocksToGet = Math.min(blocksLeft(), blocksInMemory);
         if (numBlocksToGet <= 0) {
             return false;
         }
@@ -122,7 +122,7 @@ public final class BlockConsumingInputStream extends InputStream {
         }
     }
 
-    private int blocksLeft() {
-        return Math.max(0, numBlocks - nextBlockToRead);
+    private long blocksLeft() {
+        return Math.max(0L, numBlocks - nextBlockToRead);
     }
 }

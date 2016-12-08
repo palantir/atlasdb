@@ -39,7 +39,7 @@ public class BlockConsumingInputStreamTest {
     private final byte[] data = "data".getBytes(StandardCharsets.UTF_8);
     private final BlockGetter dataConsumer = new BlockGetter() {
         @Override
-        public void get(int firstBlock, int numBlocks, OutputStream destination) {
+        public void get(long firstBlock, long numBlocks, OutputStream destination) {
             try {
                 destination.write(data);
             } catch (IOException e) {
@@ -55,9 +55,9 @@ public class BlockConsumingInputStreamTest {
 
     private final BlockGetter singleByteConsumer = new BlockGetter() {
         @Override
-        public void get(int offset, int numBlocks, OutputStream os) {
+        public void get(long offset, long numBlocks, OutputStream os) {
             try {
-                os.write(data, offset, numBlocks);
+                os.write(data, (int) offset, (int) numBlocks);
             } catch (IOException e) {
                 fail();
             }
@@ -72,9 +72,9 @@ public class BlockConsumingInputStreamTest {
     private final byte[] stored = "divisible".getBytes(StandardCharsets.UTF_8);
     private final BlockGetter threeByteConsumer = new BlockGetter() {
         @Override
-        public void get(int offset, int numBlocks, OutputStream os) {
+        public void get(long offset, long numBlocks, OutputStream os) {
             try {
-                os.write(stored, 3 * offset, 3 * numBlocks);
+                os.write(stored, 3 * (int) offset, 3 * (int) numBlocks);
             } catch (IOException e) {
                 fail();
             }
@@ -202,7 +202,7 @@ public class BlockConsumingInputStreamTest {
     public void bufferLengthShouldNotExceedIntMaxValue() throws IOException {
         BlockGetter bigGetter = new BlockGetter() {
             @Override
-            public void get(int firstBlock, int numBlocks, OutputStream destination) {
+            public void get(long firstBlock, long numBlocks, OutputStream destination) {
                 // do nothing
             }
 

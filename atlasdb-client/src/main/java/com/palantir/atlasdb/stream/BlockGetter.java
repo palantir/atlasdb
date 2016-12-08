@@ -27,7 +27,7 @@ interface BlockGetter {
      * @param numBlocks the number of blocks to put into the OutputStream.
      * @param destination the OutputStream to fill with blocks.
      */
-    void get(int firstBlock, int numBlocks, OutputStream destination);
+    void get(long firstBlock, long numBlocks, OutputStream destination);
 
     /**
      * @return the expected length of a block of data.
