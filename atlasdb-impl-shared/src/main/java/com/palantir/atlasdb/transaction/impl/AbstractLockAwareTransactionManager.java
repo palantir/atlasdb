@@ -88,14 +88,6 @@ public abstract class AbstractLockAwareTransactionManager
                     log.warn("Failing after {} tries", failureCount, e);
                     throw e;
                 }
-                if (e instanceof TransactionLockTimeoutException && !Iterables.isEmpty(lockTokens)) {
-                    Set<LockRefreshToken> refreshedTokens = getLockService().refreshLockRefreshTokens(
-                            Iterables.transform(lockTokens, HeldLocksToken::getLockRefreshToken));
-                    if (refreshedTokens.size() < Iterables.size(lockTokens)) {
-                        log.warn("Locks timed out while processing transaction.", e);
-                        throw e;
-                    }
-                }
                 log.info("retrying transaction", e);
             } catch (RuntimeException e) {
                 log.warn("RuntimeException while processing transaction.", e);
