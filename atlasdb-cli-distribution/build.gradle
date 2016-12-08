@@ -1,14 +1,21 @@
+apply plugin: 'com.palantir.java-distribution'
+
 apply from: "../gradle/publish-dists.gradle"
 apply from: "../gradle/shared.gradle"
 
-publishing.publications {
-    artifactory(MavenPublication) {
-        artifact tasks.getByPath(':atlasdb-cli:distTar').outputs.files.singleFile
-        artifactId 'atlasdb-cli'
-        groupId 'com.palantir.atlasdb'
-        version gitVersion()
-    }
+dependencies {
+  runtime project(':atlasdb-cli')
+
+  // Supported KVSs
+  runtime project(':atlasdb-cassandra')
+  runtime project(':atlasdb-dbkvs')
+
+  // Unsupported KVSs (included for migration purposes)
+  runtime project(':atlasdb-jdbc')
+  runtime project(':atlasdb-rocksdb')
 }
 
-publish.dependsOn.remove('distTar')
-publish.dependsOn tasks.getByPath(':atlasdb-cli:distTar')
+distribution {
+  serviceName 'atlasdb-cli'
+  mainClass 'com.palantir.atlasdb.cli.AtlasCli'
+}

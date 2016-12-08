@@ -3,6 +3,8 @@ apply plugin: 'com.jfrog.bintray'
 apply plugin: 'maven-publish'
 apply plugin: 'nebula.maven-resolved-dependencies'
 
+// If you modify bintray or artifactory publishing you also need to modify publish-dists.gradle
+
 task sourceJar(type: Jar) {
     from project.sourceSets.main.allSource
     classifier 'sources'
@@ -34,7 +36,8 @@ publishing {
         }
     }
 }
-//Bintray publish
+
+// Bintray publish
 bintray {
     user = System.getenv('BINTRAY_USERNAME')
     key = System.getenv('BINTRAY_PASSWORD')
@@ -54,7 +57,7 @@ bintrayUpload.onlyIf {
 
 bintrayUpload.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
 
-//artifactory publish
+// Artifactory publish
 artifactory {
     publish {
         contextUrl = System.env.ARTIFACTORY_URL
