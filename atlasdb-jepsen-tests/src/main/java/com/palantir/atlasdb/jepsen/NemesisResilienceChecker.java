@@ -30,7 +30,7 @@ import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 
-public class NemesisResilienceChecker implements Checker{
+public class NemesisResilienceChecker implements Checker {
     public static final String NEMESIS = "nemesis";
     public static final String START = "start";
     public static final String STOP = "stop";
@@ -45,7 +45,7 @@ public class NemesisResilienceChecker implements Checker{
                 .build();
     }
 
-    private static class Visitor implements EventVisitor{
+    private static class Visitor implements EventVisitor {
         private final List<Event> unsurvivedEvents = Lists.newArrayList();
         private final Set<Integer> processesPendingReads = Sets.newHashSet();
 
@@ -57,10 +57,8 @@ public class NemesisResilienceChecker implements Checker{
             if (isNemesisEvent(event)) {
                 if (isStartEvent(event)) {
                     startAwaitingInvokeOkCycles(event);
-                } else if (isStopEvent(event)) {
-                    if (awaitingInvokeOkCycle) {
-                        handleUnsurvivedEvents(event);
-                    }
+                } else if (isStopEvent(event) && awaitingInvokeOkCycle) {
+                    handleUnsurvivedEvents(event);
                 }
             }
         }

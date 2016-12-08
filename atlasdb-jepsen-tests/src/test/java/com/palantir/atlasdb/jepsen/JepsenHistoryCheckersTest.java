@@ -17,17 +17,20 @@ package com.palantir.atlasdb.jepsen;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+import java.util.function.Supplier;
+
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.jepsen.events.Checker;
 
 public class JepsenHistoryCheckersTest {
     @Test
     public void canCreateWithStandardCheckers() {
         JepsenHistoryChecker checker = JepsenHistoryCheckers.createWithStandardCheckers();
 
-        JepsenHistoryCheckers.STANDARD_CHECKERS.forEach(
-                supplier -> assertThat(checker.checkers).hasAtLeastOneElementOfType(supplier.get().getClass()));
+        assertCheckerHasMatchingCheckers(JepsenHistoryCheckers.STANDARD_CHECKERS, checker);
         assertThat(checker.checkers).hasSize(JepsenHistoryCheckers.STANDARD_CHECKERS.size());
     }
 
@@ -51,9 +54,8 @@ public class JepsenHistoryCheckersTest {
     public void canCreateWithLivenessCheckers() {
         JepsenHistoryChecker checker = JepsenHistoryCheckers.createWithLivenessCheckers();
 
-        JepsenHistoryCheckers.STANDARD_CHECKERS.forEach(
-                supplier -> assertThat(checker.checkers).hasAtLeastOneElementOfType(supplier.get().getClass()));
-        assertThat(checker.checkers).hasAtLeastOneElementOfType(NemesisResilienceChecker.class);
+        assertCheckerHasMatchingCheckers(JepsenHistoryCheckers.STANDARD_CHECKERS, checker);
+        assertCheckerHasMatchingCheckers(JepsenHistoryCheckers.LIVENESS_CHECKERS, checker);
     }
 
     @Test
@@ -61,7 +63,11 @@ public class JepsenHistoryCheckersTest {
         JepsenHistoryChecker checker = JepsenHistoryCheckers.createWithAdditionalCheckers(
                 ImmutableList.of(NemesisResilienceChecker::new));
 
-        JepsenHistoryCheckers.STANDARD_CHECKERS.forEach(
+        assertCheckerHasMatchingCheckers(JepsenHistoryCheckers.STANDARD_CHECKERS, checker);
+    }
+
+    private void assertCheckerHasMatchingCheckers(List<Supplier<Checker>> checkerList, JepsenHistoryChecker checker) {
+        checkerList.forEach(
                 supplier -> assertThat(checker.checkers).hasAtLeastOneElementOfType(supplier.get().getClass()));
     }
 }

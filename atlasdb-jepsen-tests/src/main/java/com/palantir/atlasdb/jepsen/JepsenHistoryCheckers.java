@@ -30,11 +30,13 @@ public final class JepsenHistoryCheckers {
     }
 
     @VisibleForTesting
-    static List<Supplier<Checker>> STANDARD_CHECKERS = ImmutableList.of(
+    static final List<Supplier<Checker>> STANDARD_CHECKERS = ImmutableList.of(
             MonotonicChecker::new,
             NonOverlappingReadsMonotonicChecker::new,
             UniquenessChecker::new);
-    private static List<Supplier<Checker>> LIVENESS_CHECKERS = ImmutableList.of(
+
+    @VisibleForTesting
+    static final List<Supplier<Checker>> LIVENESS_CHECKERS = ImmutableList.of(
             NemesisResilienceChecker::new);
 
     public static JepsenHistoryChecker createWithStandardCheckers() {
