@@ -67,12 +67,10 @@ public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
     @Override
     public void run(AtlasDbServerConfiguration config, Environment environment) {
         Map<String, ServiceDiscoveringAtlasSupplier> clientToAtlasInstance = getClientToAtlasInstanceMapping(config);
-        LeaderElectionService leader = Leaders.create(
-                environment.jersey()::register,
-                config.cluster().toLeaderConfig());
 
         clientToAtlasInstance.forEach((client, atlasFactory) -> {
-            LockAndTimestampServices services = constructServicesFromAtlasInstance(atlasFactory, leader,
+            LockAndTimestampServices services = constructServicesFromAtlasInstance(environment,
+                    Leaders.create(environment.jersey()::register, config.cluster().toLeaderConfig()),
                     config.cluster().toLeaderConfig());
 
             Resource builtResource = Resources.getInstancedResourceAtPath(client, new ClientResource(services));
@@ -92,11 +90,11 @@ public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
     }
 
     private static LockAndTimestampServices constructServicesFromAtlasInstance(
-            ServiceDiscoveringAtlasSupplier atlasFactory,
-            LeaderElectionService leader,
+            Environment env,
+            LeaderElectionService les,
             LeaderConfig leaderConfig) {
-        PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor(leaderConfig.acceptorLogDir().getPath());
-        PaxosLearner ourLearner = PaxosLearnerImpl.newLearner(leaderConfig.learnerLogDir().getPath());
+        PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor(leaderConfig.acceptorLogDir().getPath() + "/foo");
+        PaxosLearner ourLearner = PaxosLearnerImpl.newLearner(leaderConfig.learnerLogDir().getPath() + "/foo");
         Optional<SSLSocketFactory> sslSocketFactory =
                 TransactionManagers.createSslSocketFactory(leaderConfig.sslConfiguration());
         Set<String> remoteLeaderUris = Sets.newHashSet(leaderConfig.leaders());
@@ -124,22 +122,24 @@ public class AtlasDbServer extends Application<AtlasDbServerConfiguration> {
                 leaderConfig.quorumSize(),
                 executor);
 
+        PersistentTimestampService service = PersistentTimestampService.create(
+                new PaxosTimestampBoundStore(
+                        proposer,
+                        ourLearner,
+                        ImmutableList.copyOf(acceptors),
+                        ImmutableList.copyOf(learners)
+                )
+        );
+
         return ImmutableLockAndTimestampServices.builder()
                 .lock(AwaitingLeadershipProxy.newProxyInstance(
                         RemoteLockService.class,
                         LockServiceImpl::create,
-                        leader))
+                        les))
                 .time(AwaitingLeadershipProxy.newProxyInstance(
                         TimestampService.class,
-                        () -> PersistentTimestampService.create(
-                                new PaxosTimestampBoundStore(
-                                        proposer,
-                                        ourLearner,
-                                        acceptors,
-                                        learners
-                                )
-                        ),
-                        leader))
+                        () -> service,
+                        les))
                 .build();
     }
 }
