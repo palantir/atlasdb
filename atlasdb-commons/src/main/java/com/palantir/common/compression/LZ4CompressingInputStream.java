@@ -98,9 +98,7 @@ public final class LZ4CompressingInputStream extends BufferedDelegateInputStream
     }
 
     private void write(byte b[], int off, int len) throws IOException {
-        if (b == null) {
-            throw new NullPointerException("Provided byte array b cannot be null.");
-        }
+        Preconditions.checkNotNull(b, "Provided byte array b cannot be null.");
         if ((off < 0) || (len < 0) || (off + len > b.length)) {
             throw new IndexOutOfBoundsException();
         }

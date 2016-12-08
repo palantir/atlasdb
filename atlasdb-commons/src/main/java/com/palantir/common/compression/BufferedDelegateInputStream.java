@@ -84,9 +84,8 @@ public abstract class BufferedDelegateInputStream extends InputStream {
      */
     @Override
     public final int read(byte[] b, int off, int len) throws IOException {
-        if (b == null) {
-            throw new NullPointerException("Provided byte array b cannot be null.");
-        } else if (off < 0 || len < 0 || len > b.length - off) {
+        Preconditions.checkNotNull(b, "Provided byte array b cannot be null.");
+        if (off < 0 || len < 0 || len > b.length - off) {
             throw new IndexOutOfBoundsException();
         } else if (len == 0) {
             return 0;
