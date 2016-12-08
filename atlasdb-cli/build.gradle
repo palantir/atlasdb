@@ -4,7 +4,6 @@ apply plugin: 'org.inferred.processors'
 apply from: '../gradle/shared.gradle'
 
 apply plugin: 'org.inferred.processors'
-apply plugin: 'com.palantir.java-distribution'
 
 dependencies {
     compile project(':atlasdb-cassandra')
@@ -15,13 +14,4 @@ dependencies {
 
     testCompile project(':atlasdb-rocksdb')
     testCompile group: 'org.assertj', name: 'assertj-core', version: libVersions.assertj
-}
-
-tasks.getByName('distTar').doLast {
-    println "Distribution tarball is ready at $outputs.files.singleFile"
-}
-
-distribution {
-  serviceName 'atlasdb-cli'
-  mainClass 'com.palantir.atlasdb.cli.AtlasCli'
 }

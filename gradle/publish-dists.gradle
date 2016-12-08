@@ -1,7 +1,18 @@
 apply plugin: 'maven-publish'
+apply plugin: 'com.jfrog.artifactory'
 apply plugin: 'com.jfrog.bintray'
 
-//Bintray publish
+// If you modify bintray or artifactory publishing you also need to modify publish-jars.gradle
+
+publishing {
+  publications {
+    dists(MavenPublication) {
+      artifact distTar
+    }
+  }
+}
+
+// Bintray publish
 bintray {
     user = System.getenv('BINTRAY_USERNAME')
     key = System.getenv('BINTRAY_PASSWORD')
@@ -11,7 +22,7 @@ bintray {
         repo = 'releases'
         name = 'atlasdb'
         licenses = ['BSD-3-Clause']
-        publications = ['artifactory']
+        publications = ['dists']
     }
 }
 
@@ -21,26 +32,33 @@ bintrayUpload.onlyIf {
 
 bintrayUpload.dependsOn 'distTar', 'build'
 
-//artifactory publish
-publishing {
-    repositories {
-        maven {
-            url System.env.ARTIFACTORY_DIST_URL
-
-            credentials {
-                username System.env.ARTIFACTORY_USERNAME
-                password System.env.ARTIFACTORY_PASSWORD
-            }
-        }
+// Artifactory publish
+artifactory {
+  publish {
+    contextUrl = System.env.ARTIFACTORY_URL
+    repository {
+      repoKey = System.env.ARTIFACTORY_DIST_REPO
+      username = System.env.ARTIFACTORY_USERNAME
+      password = System.env.ARTIFACTORY_PASSWORD
+      maven = true
     }
+    defaults {
+      publications ('dists')
+      properties = ['git': project.version.toString()]
+    }
+  }
 }
 
-publish.onlyIf {
+artifactoryPublish.onlyIf {
     System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD') && System.getenv('ARTIFACTORY_DIST_REPO') && System.getenv('ARTIFACTORY_URL') && !(project.version ==~ releaseVersionRegex)
 }
 
-publish.dependsOn 'distTar', 'build'
+artifactoryPublish.dependsOn 'distTar', 'build'
 
 ext {
     releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta)?(\+\d{3})?/
+}
+
+tasks.getByName('distTar').doLast {
+    println "Distribution tarball is ready at $outputs.files.singleFile"
 }
