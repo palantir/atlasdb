@@ -59,26 +59,26 @@ import io.airlift.airline.SingleCommand;
 @Command(name = "atlasdb-perf", description = "The AtlasDB performance benchmark CLI.")
 public class AtlasDbPerfCli {
     @Inject
-    protected HelpOption helpOption;
+    private HelpOption helpOption;
 
     @Arguments(description = "The performance benchmarks to run. Leave blank to run all performance benchmarks.")
-    protected Set<String> tests;
+    private Set<String> tests;
 
     @Option(name = {"-b", "--backend"}, description = "Backing KVS stores to use. (e.g. POSTGRES or CASSANDRA)"
             + " Defaults to all backends if not specified.")
-    protected Set<String> backends;
+    private Set<String> backends;
 
     @Option(name = {"--db-uri"}, description = "Docker uri (e.g. POSTGRES@[phost:pport] or CASSANDRA@[chost:cport])."
             + "This is an alterative to specifying the --backend options that starts the docker containers locally.")
-    protected List<String> dbUris;
+    private List<String> dbUris;
 
     @Option(name = {"-l", "--list-tests"}, description = "Lists all available benchmarks.")
-    protected boolean listTests;
+    private boolean listTests;
 
     @Option(name = {"-o", "--output"},
             description = "The file in which to store the test results. "
                     + "Leave blank to only write results to the console.")
-    protected String outputFile;
+    private String outputFile;
 
     public static void main(String[] args) throws Exception {
         AtlasDbPerfCli cli = SingleCommand.singleCommand(AtlasDbPerfCli.class).parse(args);
@@ -99,7 +99,7 @@ public class AtlasDbPerfCli {
         }
     }
 
-    protected static void run(AtlasDbPerfCli cli) throws Exception {
+    private static void run(AtlasDbPerfCli cli) throws Exception {
         if (cli.dbUris != null) {
             runJmh(cli, getDockerUris(cli));
         } else {
@@ -116,7 +116,7 @@ public class AtlasDbPerfCli {
         }
     }
 
-    protected static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris) throws Exception {
+    private static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris) throws Exception {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
                 .forks(0)
                 .threads(1)
@@ -142,20 +142,20 @@ public class AtlasDbPerfCli {
         }
     }
 
-    protected static DatabasesContainer startupDatabase(Set<String> backends) {
+    private static DatabasesContainer startupDatabase(Set<String> backends) {
         return DatabasesContainer.startup(
                 backends.stream()
                         .map(KeyValueServiceType::valueOf)
                         .collect(Collectors.toList()));
     }
 
-    protected static List<DockerizedDatabaseUri> getDockerUris(AtlasDbPerfCli cli) {
+    private static List<DockerizedDatabaseUri> getDockerUris(AtlasDbPerfCli cli) {
         return cli.dbUris.stream()
                 .map(DockerizedDatabaseUri::fromUriString)
                 .collect(Collectors.toList());
     }
 
-    protected static boolean hasValidArgs(AtlasDbPerfCli cli) {
+    private static boolean hasValidArgs(AtlasDbPerfCli cli) {
         if (cli.backends != null && cli.dbUris != null) {
             throw new RuntimeException("Cannot specify both --backends and --db-uris");
         }
@@ -177,11 +177,11 @@ public class AtlasDbPerfCli {
         return true;
     }
 
-    protected static void listAllBenchmarks() {
+    private static void listAllBenchmarks() {
         getAllBenchmarks().forEach(System.out::println);
     }
 
-    protected static Set<String> getAllBenchmarks() {
+    private static Set<String> getAllBenchmarks() {
         Reflections reflections = new Reflections(
                 "com.palantir.atlasdb.performance.benchmarks",
                 new MethodAnnotationsScanner());
@@ -190,7 +190,7 @@ public class AtlasDbPerfCli {
                 .collect(Collectors.toSet());
     }
 
-    protected static boolean isInvalidBackend(String backend) {
+    private static boolean isInvalidBackend(String backend) {
         return !KeyValueServiceType.getBackends().contains(backend);
     }
 }
