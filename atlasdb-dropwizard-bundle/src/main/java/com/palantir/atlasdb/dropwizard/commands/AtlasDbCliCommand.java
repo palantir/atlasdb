@@ -80,7 +80,7 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
                         .add(subCommand.getName())
                         .build());
 
-        for (OptionMetadata option : subCommand.getAllOptions()) {
+        for (OptionMetadata option : Iterables.concat(subCommand.getCommandOptions(), subCommand.getGroupOptions())) {
             addOptionToParser(parser, option);
         }
 
@@ -129,7 +129,10 @@ public class AtlasDbCliCommand<T extends Configuration & AtlasDbConfigurationPro
         Iterable<String> groups = Iterables.limit(namespace.getList(COMMAND_NAME_ATTR), 1);
         Iterable<String> commands = Iterables.skip(namespace.getList(COMMAND_NAME_ATTR), 1);
 
+        List<String> offlineArg = isCliRunningOffline(namespace) ? ImmutableList.of("--offline") : ImmutableList.of();
+
         List<String> allArgs = ImmutableList.<String>builder()
+                .addAll(offlineArg)
                 .add("--inline-config")
                 .add(AtlasDbCommandUtils.serialiseConfiguration(cliConfiguration))
                 .addAll(AtlasDbCommandUtils.gatherPassedInArguments(globalAttrs))

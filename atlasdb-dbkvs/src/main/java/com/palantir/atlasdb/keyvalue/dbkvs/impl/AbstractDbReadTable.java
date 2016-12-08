@@ -254,17 +254,6 @@ public abstract class AbstractDbReadTable implements DbReadTable {
     }
 
     @Override
-    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(
-             RowsColumnRangeBatchRequest rowsColumnRangeBatch,
-             long ts) {
-        FullQuery query = queryFactory.getRowsColumnRangeQuery(rowsColumnRangeBatch, ts);
-        AgnosticLightResultSet results =
-                conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
-        results.setFetchSize(MAX_ROW_COLUMN_RANGES_FETCH_SIZE);
-        return ClosableIterators.wrap(results.iterator(), results);
-    }
-
-    @Override
     public boolean hasOverflowValues() {
         return queryFactory.hasOverflowValues();
     }

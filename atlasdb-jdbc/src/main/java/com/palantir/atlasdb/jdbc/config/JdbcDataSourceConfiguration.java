@@ -20,8 +20,12 @@ import javax.sql.DataSource;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
+import com.google.auto.service.AutoService;
 
-@JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "type")
+import io.dropwizard.jackson.Discoverable;
+
+@AutoService(Discoverable.class)
+@JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "type", visible = false)
 public interface JdbcDataSourceConfiguration {
 
     String getType();

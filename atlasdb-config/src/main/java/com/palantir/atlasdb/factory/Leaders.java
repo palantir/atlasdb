@@ -29,7 +29,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.TransactionManagers.Environment;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -76,10 +75,7 @@ public final class Leaders {
 
         Map<PingableLeader, HostAndPort> otherLeaders = generatePingables(remoteLeaderUris, sslSocketFactory);
 
-        ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
-                .setNameFormat("atlas-leaders-%d")
-                .setDaemon(true)
-                .build());
+        ExecutorService executor = Executors.newCachedThreadPool();
 
         PaxosProposer proposer = PaxosProposerImpl.newProposer(
                 ourLearner,

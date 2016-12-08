@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,27 +42,25 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 
-public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
+public final class AwaitingLeadershipProxy extends AbstractInvocationHandler {
 
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
     private static final Logger leaderLog = LoggerFactory.getLogger("leadership");
 
-    public static <U> U newProxyInstance(Class<U> interfaceClass,
-                                         Supplier<U> delegateSupplier,
+    @SuppressWarnings("unchecked")
+    public static <T> T newProxyInstance(Class<T> interfaceClass,
+                                         Supplier<T> delegateSupplier,
                                          LeaderElectionService leaderElectionService) {
-        AwaitingLeadershipProxy<U> proxy = new AwaitingLeadershipProxy<>(
+        AwaitingLeadershipProxy proxy = new AwaitingLeadershipProxy(
                 delegateSupplier,
                 leaderElectionService,
                 interfaceClass);
         proxy.tryToGainLeadership();
-
-        return (U) Proxy.newProxyInstance(
-                interfaceClass.getClassLoader(),
-                new Class<?>[] { interfaceClass, Closeable.class },
-                proxy);
+        return (T) Proxy.newProxyInstance(interfaceClass.getClassLoader(), new Class<?>[] {
+                interfaceClass, Closeable.class }, proxy);
     }
 
-    final Supplier<T> delegateSupplier;
+    final Supplier<?> delegateSupplier;
     final LeaderElectionService leaderElectionService;
     final ExecutorService executor;
     /**
@@ -70,26 +69,31 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
      * It is cleared out by invoke which will close the delegate and spawn a new blocking task.
      */
     final AtomicReference<LeadershipToken> leadershipTokenRef;
-    final AtomicReference<T> delegateRef;
-    final Class<T> interfaceClass;
+    final AtomicReference<Object> delegateRef;
+    final Class<?> interfaceClass;
     volatile boolean isClosed;
 
-    private AwaitingLeadershipProxy(Supplier<T> delegateSupplier,
+    private AwaitingLeadershipProxy(Supplier<?> delegateSupplier,
                                     LeaderElectionService leaderElectionService,
-                                    Class<T> interfaceClass) {
-        Preconditions.checkNotNull(delegateSupplier, "Unable to create an AwaitingLeadershipProxy with no supplier");
+                                    Class<?> interfaceClass) {
+        Validate.notNull(delegateSupplier);
         this.delegateSupplier = delegateSupplier;
         this.leaderElectionService = leaderElectionService;
         this.executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true));
-        this.leadershipTokenRef = new AtomicReference<>();
-        this.delegateRef = new AtomicReference<>();
+        this.leadershipTokenRef = new AtomicReference<LeadershipToken>();
+        this.delegateRef = new AtomicReference<Object>();
         this.interfaceClass = interfaceClass;
         this.isClosed = false;
     }
 
     private void tryToGainLeadership() {
         try {
-            executor.submit(this::gainLeadership);
+            executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    gainLeadership();
+                }
+            });
         } catch (RejectedExecutionException e) {
             if (!isClosed) {
                 throw new IllegalStateException("failed to submit task but proxy not closed", e);
@@ -101,7 +105,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         try {
             LeadershipToken leadershipToken = leaderElectionService.blockOnBecomingLeader();
             // We are now the leader, we should create a delegate so we can service calls
-            T delegate = null;
+            Object delegate = null;
             while (delegate == null) {
                 try {
                     delegate = delegateSupplier.get();
@@ -120,7 +124,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 clearDelegate();
             } else {
                 leadershipTokenRef.set(leadershipToken);
-                leaderLog.info("Gained leadership for {}", leadershipToken);
+                leaderLog.warn("Gained leadership for {}", leadershipToken);
             }
         } catch (InterruptedException e) {
             log.warn("attempt to gain leadership interrupted", e);

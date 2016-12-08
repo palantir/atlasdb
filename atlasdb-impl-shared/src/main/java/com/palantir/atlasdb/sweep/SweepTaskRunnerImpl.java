@@ -33,7 +33,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.cache.CacheBuilder;
@@ -181,13 +180,7 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
 
             byte[] nextRow = rowResultTimestamps.size() < rowBatchSize ? null :
                     RangeRequests.getNextStartRow(false, rowResultTimestamps.lastItem().getRowName());
-            return SweepResults.builder()
-                    .previousStartRow(Optional.fromNullable(startRow))
-                    .nextStartRow(Optional.fromNullable(nextRow))
-                    .cellsExamined(rowResultTimestamps.size())
-                    .cellsDeleted(totalCellsSwept.get())
-                    .sweptTimestamp(sweepTs)
-                    .build();
+            return new SweepResults(nextRow, rowResultTimestamps.size(), totalCellsSwept.get(), sweepTs);
         }
     }
 

@@ -3,12 +3,24 @@ apply plugin: 'groovy'
 
 dependencies {
     compile project(':atlasdb-service')
-    compile 'org.fusesource.jansi:jansi:1.11'
-    compile group: 'commons-cli', name:'commons-cli'
-    compile 'jline:jline:2.12'
-    compile group: 'org.codehaus.groovy', name: 'groovy-all'
+    compile('org.fusesource.jansi:jansi:1.11')
+    compile('commons-cli:commons-cli:1.2')
+    compile('jline:jline:2.12')
+    compile('org.codehaus.groovy:groovy-all:' + libVersions.groovy)
 
-    testCompile 'org.jmock:jmock-legacy:' + libVersions.jmock
-    testCompile 'org.jmock:jmock:' + libVersions.jmock
-    testCompile 'org.gmock:gmock:0.8.3'
+    testCompile('org.jmock:jmock-legacy:' + libVersions.jmock) {
+      exclude(module: 'jmock')
+    }
+    testCompile('org.jmock:jmock:' + libVersions.jmock)
+    testCompile('org.gmock:gmock:0.8.3')
+}
+
+configurations.matching({ it.name in ['compile', 'runtime'] }).all {
+    resolutionStrategy {
+        force 'com.google.code.findbugs:jsr305:' + libVersions.jsr305
+        force 'org.slf4j:slf4j-api:' + libVersions.slf4j
+        force 'org.apache.commons:commons-lang3:' + libVersions.commons_lang3
+        force 'org.apache.thrift:libthrift:' + libVersions.libthrift
+        force 'commons-codec:commons-codec:' + libVersions.commons_codec
+    }
 }

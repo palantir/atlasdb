@@ -16,10 +16,10 @@
 package com.palantir.atlasdb.jdbc;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
+import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.jdbc.JdbcKeyValueService;
 
-public class JdbcKeyValueSharedTest extends AbstractKeyValueServiceTest {
+public class JdbcKeyValueSharedTest extends AbstractAtlasDbKeyValueServiceTest {
     private JdbcKeyValueService db = null;
 
 

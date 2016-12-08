@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -85,6 +86,7 @@ import com.palantir.common.persist.Persistables;
 import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
+
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class StreamTestStreamValueTable implements
@@ -731,5 +733,5 @@ public final class StreamTestStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "QKcLUySpgG4UCchkSoGqXQ==";
+    static String __CLASS_HASH = "uDA0sZ/iDPfqbIt8bhviww==";
 }

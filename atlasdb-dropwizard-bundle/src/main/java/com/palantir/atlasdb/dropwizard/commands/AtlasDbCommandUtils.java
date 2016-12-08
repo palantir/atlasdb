@@ -32,7 +32,6 @@ import com.palantir.atlasdb.config.ServerListConfig;
 
 public final class AtlasDbCommandUtils {
     public static final Object ZERO_ARITY_ARG_CONSTANT = "<ZERO ARITY ARG CONSTANT>";
-    public static final String OFFLINE_COMMAND_ARG_NAME = "--offline";
 
     private AtlasDbCommandUtils() {
         // Static utility class

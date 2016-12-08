@@ -1,0 +1,31 @@
+server:
+  #rootPath: /api/*
+  #applicationContextPath: /
+  #adminContextPath: /
+  applicationConnectors:
+    - type: http
+      port: 3828
+  adminConnectors:
+    - type: http
+      port: 3829
+
+atlasdb:
+  keyValueService:
+    type: jdbc
+    dataSourceConfig:
+      type: hikari
+      sqlDialect: POSTGRES
+      properties:
+        jdbcUrl: jdbc:postgresql://db/atlas
+        username: palantir
+        password: palantir
+
+  leader:
+    quorumSize: 2
+    learnerLogDir: var/data/paxosLog/learner1
+    acceptorLogDir: var/data/paxosLog/acceptor1
+    localServer: http://${HOSTNAME}:3828
+    leaders:
+      - http://timelock1:3828
+      - http://timelock2:3828
+      - http://timelock3:3828

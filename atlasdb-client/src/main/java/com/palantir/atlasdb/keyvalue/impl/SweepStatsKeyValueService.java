@@ -17,10 +17,12 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,6 +43,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -142,8 +145,44 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
 
     @Override
     public void close() {
-        flushExecutor.shutdownNow();
-        delegate.close();
+        terminateExecutor(new Runnable() {
+            @Override
+            public void run() {
+                delegate.close();
+            }
+        });
+    }
+
+    private void forceFlush() {
+        recordModifications(WRITE_THRESHOLD);
+        if (flushExecutor.isShutdown()) {
+            log.warn("Cannot flush stats while shutting down");
+        } else {
+            flushExecutor.execute(createFlushTask());
+        }
+    }
+
+    private void terminateExecutor(Runnable cleanupTask) {
+        forceFlush();
+        flushExecutor.shutdown();
+        try {
+            if (flushExecutor.awaitTermination(1, TimeUnit.MINUTES)) {
+                log.debug("Successfully terminated flush executor");
+            } else {
+                log.warn("Timed out while waiting for flush executor termination");
+                List<Runnable> pendingTasks = flushExecutor.shutdownNow();
+                log.info("Attempting to complete flushing {} pending tasks", pendingTasks.size());
+                Executor directExecutor = MoreExecutors.directExecutor();
+                for (Runnable pendingTask : pendingTasks) {
+                    directExecutor.execute(pendingTask);
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted while terminating flush executor", e);
+        } finally {
+            cleanupTask.run();
+        }
     }
 
     // This way of recording the number of writes to tables is obviously not
@@ -179,9 +218,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
                         }
                     }
                 } catch (Throwable t) {
-                    if (!Thread.interrupted()) {
-                        log.error("Error occurred while flushing sweep stats: {}", t, t);
-                    }
+                    log.error("Error occurred while flushing sweep stats: {}", t, t);
                 }
             }
         };
@@ -225,17 +262,14 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
             commit(timestamp);
             delegate().put(SWEEP_PRIORITY_TABLE, newWriteCounts, timestamp);
         } catch (RuntimeException e) {
-            if (Thread.interrupted()) {
-                return;
-            }
             Set<TableReference> allTableNames = delegate().getAllTableNames();
             if (!allTableNames.contains(SWEEP_PRIORITY_TABLE)
                     || !allTableNames.contains(TransactionConstants.TRANSACTION_TABLE)) {
                 // ignore problems when sweep or transaction tables don't exist
-                log.warn("Ignoring failed sweep stats flush due to ", e);
+                log.warn("Ignoring failed sweep stats flush due to {}", e.getMessage(), e);
             }
-            log.error("Unable to flush sweep stats for writes {} and clears {}: ",
-                    writes, clears, e);
+            log.error("Unable to flush sweep stats for writes {} and clears {}: {}",
+                    writes, clears, e.getMessage(), e);
             throw e;
         }
     }

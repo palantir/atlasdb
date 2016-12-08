@@ -219,7 +219,7 @@ public class StreamStoreRenderer {
                         line("touchMetadataWhileStoringForConflicts(t, row.getId(), row.getBlockId());");
                         line("tables.get", StreamValueTable, "(t).putValue(row, block);");
                     } line("} catch (RuntimeException e) {"); {
-                        line("log.error(\"Error storing block {} for stream id {}\", row.getBlockId(), row.getId(), e);");
+                        line("log.error(\"Error storing block \" + row.getBlockId() + \" for stream id \" + row.getId(), e);");
                         line("throw e;");
                     } line("}");
                 } line("}");
@@ -302,10 +302,10 @@ public class StreamStoreRenderer {
                     line("try {"); {
                         line("os.write(getBlock(t, row));");
                     } line("} catch (RuntimeException e) {"); {
-                        line("log.error(\"Error storing block {} for stream id {}\", row.getBlockId(), row.getId(), e);");
+                        line("log.error(\"Error getting block \" + row.getBlockId() + \" of stream \" + row.getId(), e);");
                         line("throw e;");
                     } line("} catch (IOException e) {"); {
-                        line("log.error(\"Error writing block {} to file when getting stream id {}\", row.getBlockId(), row.getId(), e);");
+                        line("log.error(\"Error writing block \" + row.getBlockId() + \" to file when getting stream id \" + row.getId(), e);");
                         line("throw Throwables.rewrapAndThrowUncheckedException(\"Error writing blocks to file when creating stream.\", e);");
                     } line("}");
                 } line("}");
@@ -444,7 +444,7 @@ public class StreamStoreRenderer {
                         line("if (streamHash != com.google.protobuf.ByteString.EMPTY) {"); {
                             line("hash = new Sha256Hash(streamHash.toByteArray());");
                         } line("} else {"); {
-                            line("log.error(\"Empty hash for stream {}\", streamId);");
+                            line("log.error(\"Empty hash for stream \" + streamId);");
                         } line("}");
                         line(StreamHashAidxRow, " hashRow = ", StreamHashAidxRow, ".of(hash);");
                         line(StreamHashAidxColumn, " column = ", StreamHashAidxColumn, ".of(streamId);");

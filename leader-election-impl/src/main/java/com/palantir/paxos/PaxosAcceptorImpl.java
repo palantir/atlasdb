@@ -54,32 +54,34 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
         try {
             checkLogIfNeeded(seq);
         } catch (Exception e) {
-            logger.error("log read failed for request: {}", seq, e);
-            return PaxosPromise.reject(pid);
+            logger.error("log read failed for request: " + seq, e);
+            return new PaxosPromise(pid); // nack
         }
 
         for (;;) {
             PaxosAcceptorState oldState = state.get(seq);
 
+            // nack
             if (oldState != null && pid.compareTo(oldState.lastPromisedId) < 0) {
-                return PaxosPromise.reject(oldState.lastPromisedId);
+                return new PaxosPromise(oldState.lastPromisedId);
             }
 
             // allow for the same propose to be repeated and return the same result.
             if (oldState != null && pid.compareTo(oldState.lastPromisedId) == 0) {
-                return PaxosPromise.accept(
+                return new PaxosPromise(
                         oldState.lastPromisedId,
                         oldState.lastAcceptedId,
                         oldState.lastAcceptedValue);
             }
 
+            // ack
             PaxosAcceptorState newState = oldState != null
                     ? oldState.withPromise(pid)
                     : PaxosAcceptorState.newState(pid);
             if ((oldState == null && state.putIfAbsent(seq, newState) == null)
                     || (oldState != null && state.replace(seq, oldState, newState))) {
                 log.writeRound(seq, newState);
-                return PaxosPromise.accept(
+                return new PaxosPromise(
                         newState.lastPromisedId,
                         newState.lastAcceptedId,
                         newState.lastAcceptedValue);
@@ -92,7 +94,7 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
         try {
             checkLogIfNeeded(seq);
         } catch (Exception e) {
-            logger.error("log read failed for request: {}", seq, e);
+            logger.error("log read failed for request: " + seq, e);
             return new BooleanPaxosResponse(false); // nack
         }
 

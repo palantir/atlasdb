@@ -6,14 +6,13 @@ dependencies {
   compile project(":atlasdb-api")
   compile project(":atlasdb-client")
   compile project(":atlasdb-dbkvs-hikari")
-  compile project(":atlasdb-impl-shared")
   compile project(':timestamp-impl')
   compile project(':commons-db')
   compile project(':commons-api')
 
   testCompile project(':atlasdb-config')
-  testCompile group: 'org.mockito', name: 'mockito-core'
+  testCompile 'org.mockito:mockito-core:' + libVersions.mockito
 
-  processor group: 'org.immutables', name: 'value'
+  processor 'org.immutables:value:' + libVersions.immutables
   processor "com.google.auto.service:auto-service:1.0-rc2"
 }

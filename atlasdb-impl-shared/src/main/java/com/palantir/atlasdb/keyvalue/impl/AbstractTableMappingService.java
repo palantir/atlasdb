@@ -47,7 +47,7 @@ public abstract class AbstractTableMappingService implements TableMappingService
     }
 
     @Override
-    public TableReference getMappedTableName(TableReference tableRef) throws TableMappingNotFoundException {
+    public TableReference getMappedTableName(TableReference tableRef) {
         if (tableRef.getNamespace().isEmptyNamespace()) {
             return tableRef;
         }
@@ -57,11 +57,9 @@ public abstract class AbstractTableMappingService implements TableMappingService
             return tableMap.get().get(tableRef);
         } else {
             updateTableMap();
-            TableReference shortTableName = tableMap.get().get(tableRef);
-            if (shortTableName != null) {
-                return shortTableName;
-            }
-            throw new TableMappingNotFoundException("Unable to resolve full name for table reference " + tableRef);
+            Validate.isTrue(tableMap.get().containsKey(tableRef),
+                    "Unable to resolve full name for table reference " + tableRef);
+            return tableMap.get().get(tableRef);
         }
     }
 
@@ -82,8 +80,7 @@ public abstract class AbstractTableMappingService implements TableMappingService
     }
 
     @Override
-    public <T> Map<TableReference, T> mapToShortTableNames(Map<TableReference, T> toMap)
-            throws TableMappingNotFoundException {
+    public <T> Map<TableReference, T> mapToShortTableNames(Map<TableReference, T> toMap) {
         Map<TableReference, T> newMap = Maps.newHashMap();
         for (Entry<TableReference, T> e : toMap.entrySet()) {
             newMap.put(getMappedTableName(e.getKey()), e.getValue());

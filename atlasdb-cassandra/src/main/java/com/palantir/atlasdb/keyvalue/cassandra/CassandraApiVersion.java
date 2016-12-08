@@ -44,11 +44,9 @@ public class CassandraApiVersion {
     public boolean supportsCheckAndSet() {
         boolean supportsCheckAndSet = majorVersion > 19 || (majorVersion == 19 && minorVersion >= 37);
 
-        if (supportsCheckAndSet) {
-            LOGGER.info("Your cassandra api version ({}) supports check and set.", versionString);
-        } else {
-            LOGGER.info("Your cassandra api version ({}) does not support check and set.", versionString);
-        }
+        String supportMessage = supportsCheckAndSet ? "supports check and set." : "does not support check and set.";
+
+        LOGGER.info("Your cassandra api version ({}) " + supportMessage, versionString);
 
         return supportsCheckAndSet;
     }

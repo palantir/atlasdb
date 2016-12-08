@@ -16,12 +16,12 @@
 package com.palantir.cassandra.multinode;
 
 import static org.hamcrest.Matchers.everyItem;
-import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -37,42 +37,95 @@ import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.jayway.awaitility.Awaitility;
+import com.jayway.awaitility.Duration;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
-import com.palantir.atlasdb.containers.Containers;
-import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.config.ImmutableLeaderConfig;
+import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.ete.Gradle;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.atlasdb.testing.DockerProxyRule;
+import com.palantir.docker.compose.DockerComposeRule;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CassandraSchemaLockTest {
+    private static final String LOCAL_SERVER_ADDRESS = "http://localhost:3828";
+    private static final int THRIFT_PORT = 9160;
     private static final int THREAD_COUNT = 4;
 
+    private static final String CONTAINER_LOGS_DIRECTORY = "container-logs";
+    private static final DockerComposeRule CASSANDRA_DOCKER_SETUP = DockerComposeRule.builder()
+            .file("src/test/resources/docker-compose-multinode.yml")
+            .saveLogsTo(CONTAINER_LOGS_DIRECTORY)
+            .build();
+
+    private static final Gradle GRADLE_PREPARE_TASK =
+            Gradle.ensureTaskHasRun(":atlasdb-ete-test-utils:buildCassandraImage");
+
+    private static final DockerProxyRule DOCKER_PROXY_RULE = new DockerProxyRule(CASSANDRA_DOCKER_SETUP.projectName());
+
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraSchemaLockTest.class)
-            .with(new ThreeNodeCassandraCluster());
+    public static final RuleChain ALL_RULES = RuleChain
+            .outerRule(GRADLE_PREPARE_TASK)
+            .around(CASSANDRA_DOCKER_SETUP)
+            .around(DOCKER_PROXY_RULE);
+
+    private static final CassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
+            .addServers(InetSocketAddress.createUnresolved("cassandra1", THRIFT_PORT))
+            .addServers(InetSocketAddress.createUnresolved("cassandra2", THRIFT_PORT))
+            .addServers(InetSocketAddress.createUnresolved("cassandra3", THRIFT_PORT))
+            .keyspace("atlasdb")
+            .replicationFactor(1)
+            .credentials(ImmutableCassandraCredentialsConfig.builder()
+                    .username("cassandra")
+                    .password("cassandra")
+                    .build())
+            .build();
+
+    private static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig.builder()
+            .quorumSize(1)
+            .localServer(LOCAL_SERVER_ADDRESS)
+            .leaders(ImmutableSet.of(LOCAL_SERVER_ADDRESS))
+            .build());
+
+    private static final CassandraKeyValueServiceConfigManager CONFIG_MANAGER = CassandraKeyValueServiceConfigManager
+            .createSimpleManager(KVS_CONFIG);
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
+
+    @BeforeClass
+    public static void waitUntilCassandraIsUp() throws IOException, InterruptedException {
+        Awaitility.await()
+                .atMost(Duration.TWO_MINUTES)
+                .pollInterval(Duration.ONE_SECOND)
+                .until(canCreateKeyValueService());
+    }
 
     @Test
     public void shouldCreateTablesConsistentlyWithMultipleCassandraNodes() throws Exception {
         TableReference table1 = TableReference.createFromFullyQualifiedName("ns.table1");
-        CassandraKeyValueServiceConfigManager configManager = CassandraKeyValueServiceConfigManager
-                .createSimpleManager(ThreeNodeCassandraCluster.KVS_CONFIG);
 
         try {
             CyclicBarrier barrier = new CyclicBarrier(THREAD_COUNT);
             for (int i = 0; i < THREAD_COUNT; i++) {
                 async(() -> {
                     CassandraKeyValueService keyValueService =
-                            CassandraKeyValueService.create(configManager, Optional.absent());
+                            CassandraKeyValueService.create(CONFIG_MANAGER, Optional.absent());
                     barrier.await();
                     keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
                     return null;
@@ -82,12 +135,7 @@ public class CassandraSchemaLockTest {
             executorService.shutdown();
             assertTrue(executorService.awaitTermination(4, TimeUnit.MINUTES));
         }
-
-        CassandraKeyValueService kvs =
-                CassandraKeyValueService.create(configManager, Optional.absent());
-        assertThat(kvs.getAllTableNames(), hasItem(table1));
-
-        assertThat(new File(CONTAINERS.getLogDirectory()),
+        assertThat(new File(CONTAINER_LOGS_DIRECTORY),
                 containsFiles(everyItem(doesNotContainTheColumnFamilyIdMismatchError())));
     }
 
@@ -130,6 +178,19 @@ public class CassandraSchemaLockTest {
             @Override
             public void describeTo(Description description) {
                 description.appendText("a file with no column family ID mismatch errors");
+            }
+        };
+    }
+
+    private static Callable<Boolean> canCreateKeyValueService() {
+        return () -> {
+            try {
+                CassandraKeyValueService.create(
+                        CassandraKeyValueServiceConfigManager.createSimpleManager(KVS_CONFIG),
+                        LEADER_CONFIG);
+                return true;
+            } catch (Exception e) {
+                return false;
             }
         };
     }

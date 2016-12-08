@@ -24,25 +24,13 @@ auth = (sys.argv[2], sys.argv[3])
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
-def getAtlasVersion(repo, tag, filePaths):
-    for filePath in filePaths:
-        versionFile = requestFile(repo, tag, filePath)
-        if (versionFile.status_code == requests.codes.ok):
-            versionString = parseAtlasVersion(versionFile)
-            if versionString is not None:
-                return repo + '-' + tag + ': ' + versionString
-        else:
-            eprint(repo + ': no version file found at ' + filePath)
-
-    return repo + '-' + tag + ': no AtlasDB version found'
-
-def parseAtlasVersion(res):
+def getAtlasVersion(res):
     jsonRes = json.loads(res.text)
     decodedContent = base64.b64decode(jsonRes['content'])
-    match = re.search('atlasVersion|atlasDbVersion|com.palantir.atlasdb', decodedContent)
+    match = re.search('atlasVersion|atlasDbVersion', decodedContent)
     if match == None:
         eprint("Couldn't find version in <" + decodedContent + ">")
-        return
+        return "No AtlasDB version found"
     return decodedContent[match.start():].splitlines()[0]
 
 def requestFile(repo, tag, filePath):
@@ -52,28 +40,27 @@ def getReleases(repo):
     res = requests.get(repoUrl + repo + '/releases', auth=auth)
     jsonRes = json.loads(res.text)
     if len(jsonRes) == 0:
-        print(repo + ': has no releases')
+        print(repo + ' has no releases')
     return jsonRes
 
 def getProducts(searchTerms):
-    res = requests.get(githubUrl + 'search/code?q=' + searchTerms + '&per_page=100', auth=auth);
+    res = requests.get(githubUrl + 'search/code?q=' + searchTerms, auth=auth);
     jsonRes = json.loads(res.text)
-    print('Found ' + str(jsonRes['total_count']) + ' repos referencing ' + searchTerms);
+    print('Found ' + str(jsonRes['total_count']) + ' repos referencing ' + searchTerms + ':');
     repos = []
     for searchResult in jsonRes['items']:
-        repos.append(searchResult['repository']['full_name'])
+        repo = searchResult['repository']['full_name'];
+        print(repo)
+        repos.append(repo)
     return repos
 
 print('Fetching products using AtlasDB')
 
-products = frozenset(getProducts('atlas+extension:properties') + getProducts('atlasdb+extension:props'))
+products = getProducts('atlas+extension:properties');
 
-print('Found the following products:')
-for product in products:
-    print(product)
-
-print('Fetching AtlasDB versions:')
+print('Fetching atlas versions:')
 
 for productInfo in products:
     for release in getReleases(productInfo):
-        print(getAtlasVersion(productInfo, release['tag_name'], ['gradle.properties', 'versions.props']))
+        versionFile = requestFile(productInfo, release['tag_name'], 'gradle.properties')
+        print(productInfo + ':' + release['tag_name'] + ':' + getAtlasVersion(versionFile))

@@ -39,10 +39,10 @@ public class RegenerateCodeForSchemas {
 
         for (AtlasSchema schema : schemas) {
             try {
-                log.info("Attempting to generate source code for schema: {}", schema.getClass().getCanonicalName());
+                log.info("Attempting to generate source code for schema: " + schema.getClass().getCanonicalName());
 
                 Path location = Paths.get(schema.getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
-                log.info("Generating source directory related to classes in {}", location);
+                log.info("Generating source directory related to classes in " + location);
                 if (location.toString().endsWith("jar")) {
                     log.error("You need to set your classpaths to not come from jars / ivy / whatever.");
                     System.exit(1);
@@ -54,14 +54,14 @@ public class RegenerateCodeForSchemas {
                 }
 
                 if (!Files.exists(sourceDirLocation)) {
-                    log.info("Didn't find anything at {}, trying another directory...", sourceDirLocation);
+                    log.info("Didn't find anything at " + sourceDirLocation + ", trying another directory...");
                     sourceDirLocation = resolveIdeaSourceLocation(sourceDirLocation);
                     if (!Files.exists(sourceDirLocation)) {
                         log.error("Could not find a matching source code directory for this project.");
                         continue;
                     }
                 }
-                log.info("Placing source in: {}", sourceDirLocation);
+                log.info("Placing source in: " + sourceDirLocation + "\n");
                 schema.getLatestSchema().renderTables(sourceDirLocation.toFile());
             } catch (IOException e) {
                 e.printStackTrace();

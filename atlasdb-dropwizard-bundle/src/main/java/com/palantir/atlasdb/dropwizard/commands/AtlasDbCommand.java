@@ -40,18 +40,19 @@ public abstract class AtlasDbCommand<T extends Configuration & AtlasDbConfigurat
         return configurationClass;
     }
 
-    protected void addOfflineParameter(Subparser subparser) {
-        subparser.addArgument(AtlasDbCommandUtils.OFFLINE_COMMAND_ARG_NAME)
+    @Override
+    public void configure(Subparser subparser) {
+        super.configure(subparser);
+
+        subparser.addArgument("--offline")
                 .help("run this cli offline")
-                .dest(AtlasDbCommandUtils.OFFLINE_COMMAND_ARG_NAME)
+                .dest("runCliOffline")
                 .required(false)
                 .action(Arguments.storeConst())
                 .setConst(AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT);
     }
 
     protected boolean isCliRunningOffline(Namespace namespace) {
-        return Objects.equals(
-                namespace.getString(AtlasDbCommandUtils.OFFLINE_COMMAND_ARG_NAME),
-                AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT);
+        return Objects.equals(namespace.getString("runCliOffline"), AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT);
     }
 }

@@ -28,13 +28,9 @@ public final class TableReference {
     private final Namespace namespace;
     private final String tablename;
 
-    /**
-     * Creates a table reference based on fullTableName.
-     * fullTableName is assumed to be of the format namespace.tableName, and must contain a dot.
-     */
     public static TableReference createFromFullyQualifiedName(String fullTableName) {
         int index = fullTableName.indexOf('.');
-        Preconditions.checkArgument(index > 0, "Table name %s is not a fully qualified table name.", fullTableName);
+        Preconditions.checkArgument(index > 0, "Table name %s is not a fully qualified table name.");
         return create(
                 Namespace.create(fullTableName.substring(0, index), Namespace.UNCHECKED_NAME),
                 fullTableName.substring(index + 1));
@@ -44,27 +40,10 @@ public final class TableReference {
         return new TableReference(namespace, tablename);
     }
 
-    /**
-     * Creates a table reference with an empty namespace, based on tablename.
-     * This should only be used when creating a TableReference for a system table.
-     */
     public static TableReference createWithEmptyNamespace(String tablename) {
         return new TableReference(Namespace.EMPTY_NAMESPACE, tablename);
     }
 
-    public static TableReference createLowerCased(TableReference table) {
-        String name = table.namespace.getName().toLowerCase();
-        Namespace namespace = name.isEmpty() ? Namespace.EMPTY_NAMESPACE : Namespace.create(name);
-        return create(
-                namespace,
-                table.tablename.toLowerCase());
-    }
-
-    /**
-     * @deprecated please use createFromFullyQualifiedName, if fullTableName includes the namespace,
-     * or createWithEmptyNamespace, if you're passing in a system table name.
-     */
-    @Deprecated
     public static TableReference createUnsafe(String fullTableName) {
         return fullTableName.indexOf('.') < 0
                 ? createWithEmptyNamespace(fullTableName)
@@ -136,4 +115,5 @@ public final class TableReference {
             throw new IllegalArgumentException(tableReferenceAsString + " is not a valid table reference.");
         }
     }
+
 }

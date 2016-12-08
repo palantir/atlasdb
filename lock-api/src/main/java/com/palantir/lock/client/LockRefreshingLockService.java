@@ -57,11 +57,11 @@ public class LockRefreshingLockService extends ForwardingLockService {
                     long elapsed = System.currentTimeMillis() - startTime;
 
                     if (elapsed > LockRequest.DEFAULT_LOCK_TIMEOUT.toMillis()/2) {
-                        log.error("Refreshing locks took {} milliseconds" +
-                                " for tokens: {}", elapsed, ret.toRefresh);
+                        log.error("Refreshing locks took " + elapsed + " milliseconds" +
+                                " for tokens: " + ret.toRefresh);
                     } else if (elapsed > ret.refreshFrequencyMillis) {
-                        log.warn("Refreshing locks took {} milliseconds" +
-                                " for tokens: {}", elapsed, ret.toRefresh);
+                        log.warn("Refreshing locks took " + elapsed + " milliseconds" +
+                                " for tokens: " + ret.toRefresh);
                     }
                 }
             }
@@ -85,16 +85,6 @@ public class LockRefreshingLockService extends ForwardingLockService {
         LockResponse lock = super.lockWithFullLockResponse(client, request);
         if (lock.getToken() != null) {
             toRefresh.add(lock.getToken().getLockRefreshToken());
-        }
-        return lock;
-    }
-
-    @Override
-    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request)
-            throws InterruptedException {
-        HeldLocksToken lock = super.lockAndGetHeldLocks(client, request);
-        if (lock != null) {
-            toRefresh.add(lock.getLockRefreshToken());
         }
         return lock;
     }
@@ -124,7 +114,7 @@ public class LockRefreshingLockService extends ForwardingLockService {
         for (LockRefreshToken token : refreshCopy) {
             if (!refreshedTokens.contains(token)
                     && toRefresh.contains(token)) {
-                log.error("failed to refresh lock: {}", token);
+                log.error("failed to refresh lock: " + token);
                 toRefresh.remove(token);
             }
         }
@@ -140,12 +130,6 @@ public class LockRefreshingLockService extends ForwardingLockService {
     public boolean unlockSimple(SimpleHeldLocksToken token) {
         toRefresh.remove(token.asLockRefreshToken());
         return super.unlockSimple(token);
-    }
-
-    @Override
-    public boolean unlockAndFreeze(HeldLocksToken token) {
-        toRefresh.remove(token.getLockRefreshToken());
-        return super.unlockAndFreeze(token);
     }
 
     @Override

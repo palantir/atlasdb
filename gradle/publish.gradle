@@ -1,7 +1,6 @@
 apply plugin: 'com.jfrog.bintray'
 apply plugin: 'com.jfrog.artifactory'
 apply plugin: 'maven-publish'
-apply plugin: 'nebula.maven-resolved-dependencies'
 
 task sourceJar(type: Jar) {
     from project.sourceSets.main.allSource
@@ -23,6 +22,7 @@ publishing {
             artifact(testJar) {
                 classifier 'tests'
             }
+            version project.version.replaceAll(/-\d+.*/, (circleBuildNum ? '.b' + circleBuildNum : '') + '-SNAPSHOT')
             pom.withXml {
                 def scm = asNode().appendNode('scm')
                 scm.appendNode('url', 'https://github.com/palantir/atlasdb')
@@ -61,9 +61,9 @@ bintrayUpload.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar',
 
 artifactory {
     publish {
-        contextUrl = System.env.ARTIFACTORY_URL
+        contextUrl = 'https://oss.jfrog.org/artifactory/'
         repository {
-            repoKey = System.env.ARTIFACTORY_REPO
+            repoKey = 'oss-snapshot-local'
             username = System.env.ARTIFACTORY_USERNAME
             password = System.env.ARTIFACTORY_PASSWORD
             maven = true
@@ -76,6 +76,6 @@ artifactory {
 }
 
 artifactoryPublish.onlyIf {
-  System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD') && System.getenv('ARTIFACTORY_REPO') && System.getenv('ARTIFACTORY_URL') && !(project.version ==~ releaseVersionRegex)
+  System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD') && !(project.version ==~ releaseVersionRegex)
 }
 artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'

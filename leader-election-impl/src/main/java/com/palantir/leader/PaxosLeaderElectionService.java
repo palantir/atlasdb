@@ -341,7 +341,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 seq = Defaults.defaultValue(long.class);
             }
 
-            leaderLog.info("Proposing leadership with sequence number {}", seq);
+            leaderLog.info("Proposing leadership with sequence number " + seq);
             proposer.propose(seq, null);
         } catch (PaxosRoundFailureException e) {
             // We have failed trying to become the leader.

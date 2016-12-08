@@ -26,6 +26,7 @@ import com.palantir.common.time.SystemClock;
 import com.palantir.exception.PalantirInterruptedException;
 
 public class PersistentUpperLimit {
+
     private final TimestampBoundStore tbs;
     private final Clock clock;
     private final TimestampAllocationFailures allocationFailures;
@@ -35,8 +36,6 @@ public class PersistentUpperLimit {
     private volatile long lastIncreasedTime;
 
     public PersistentUpperLimit(TimestampBoundStore tbs, Clock clock, TimestampAllocationFailures allocationFailures) {
-        DebugLogger.logger.info("Creating PersistentUpperLimit object on thread {}. This should only happen once.",
-                Thread.currentThread().getName());
         this.tbs = tbs;
         this.clock = clock;
         this.allocationFailures = checkNotNull(allocationFailures);
@@ -54,13 +53,8 @@ public class PersistentUpperLimit {
     }
 
     public synchronized void increaseToAtLeast(long minimum) {
-        if (cachedValue < minimum) {
+        if(cachedValue < minimum) {
             store(minimum);
-        } else {
-            DebugLogger.logger.trace(
-                    "Not storing upper limit of {}, as the cached value {} was higher.",
-                    minimum,
-                    cachedValue);
         }
     }
 
@@ -72,13 +66,11 @@ public class PersistentUpperLimit {
     }
 
     private synchronized void store(long upperLimit) {
-        DebugLogger.logger.trace("Storing new upper limit of {}.", upperLimit);
         checkWeHaveNotBeenInterrupted();
         allocationFailures.verifyWeShouldTryToAllocateMoreTimestamps();
         persistNewUpperLimit(upperLimit);
         cachedValue = upperLimit;
         lastIncreasedTime = clock.getTimeMillis();
-        DebugLogger.logger.trace("Stored; upper limit is now {}.", upperLimit);
     }
 
     private void checkWeHaveNotBeenInterrupted() {

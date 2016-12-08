@@ -48,7 +48,6 @@ import com.google.common.collect.Ordering;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -82,7 +81,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
-    protected final TimestampCache timestampCache = new TimestampCache();
     protected boolean supportsReverse() {
         return true;
     }
@@ -101,8 +99,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                         TransactionConstants.TRANSACTION_TABLE,
                         ConflictHandler.IGNORE_ALL),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                timestampCache);
+                TransactionReadSentinelBehavior.THROW_EXCEPTION);
     }
 
     @Test

@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import com.google.common.base.Supplier;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 
 public final class OverflowSequenceSupplier implements Supplier<Long> {
@@ -42,8 +41,7 @@ public final class OverflowSequenceSupplier implements Supplier<Long> {
             return currentBatchStartId + currentIdIndex++;
         }
         currentBatchStartId = conns.get()
-                .selectIntegerUnregisteredQuery(
-                        "SELECT " + tablePrefix + AtlasDbConstants.ORACLE_OVERFLOW_SEQUENCE + ".NEXTVAL FROM DUAL");
+                .selectIntegerUnregisteredQuery("SELECT " + tablePrefix + "OVERFLOW_SEQ.NEXTVAL FROM DUAL");
         currentIdIndex = 0;
         return currentBatchStartId + currentIdIndex++;
     }

@@ -43,7 +43,7 @@ public class PaxosPromises {
         boolean ack = proto.getAck();
         PaxosProposalId promisedId = PaxosProposalId.hydrateFromProto(proto.getPromisedId());
         if (!ack) {
-            return PaxosPromise.reject(promisedId);
+            return new PaxosPromise(promisedId);
         } else {
             @Nullable PaxosProposalId lastAcceptedId = null;
             @Nullable PaxosValue lastAcceptedValue = null;
@@ -53,7 +53,7 @@ public class PaxosPromises {
             if (proto.hasLastAcceptedValue()) {
                 lastAcceptedValue = PaxosValue.hydrateFromProto(proto.getLastAcceptedValue());
             }
-            return PaxosPromise.accept(promisedId, lastAcceptedId, lastAcceptedValue);
+            return new PaxosPromise(promisedId, lastAcceptedId, lastAcceptedValue);
         }
     }
 

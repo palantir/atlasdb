@@ -23,7 +23,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.containers.CassandraVersion;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -34,9 +33,6 @@ public class CassandraMultinodeTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");
 
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
-            CassandraMultinodeTestSuite.class,
-            "docker-compose.cassandra.yml",
-            CLIENTS,
-            CassandraVersion.getEnvironment());
+    public static final RuleChain COMPOSITION_SETUP =
+            EteSetup.setupComposition("cassandra-ha", "docker-compose.cassandra.yml", CLIENTS);
 }

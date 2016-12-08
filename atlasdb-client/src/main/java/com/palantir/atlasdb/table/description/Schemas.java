@@ -62,14 +62,14 @@ public final class Schemas {
         kvs.createTables(tableRefToMetadata);
     }
 
-    public static String getTableReferenceString(String tableName, Namespace namespace) {
+    public static String getFullTableName(String tableName, Namespace namespace) {
         Preconditions.checkArgument(isTableNameValid(tableName), "%s is not a valid table name", tableName);
         String namespaceName = namespace.getName();
         // Hacks for schemas that were created before namespaces were created.
         if (namespace.isEmptyNamespace() || namespaceName.equals("met")) {
-            return "TableReference.createWithEmptyNamespace(\"" + tableName + "\")";
+            return tableName;
         } else {
-            return "TableReference.createFromFullyQualifiedName(\"" + namespace.getName() + "." + tableName + "\")";
+            return namespace.getName() + "." + tableName;
         }
     }
 

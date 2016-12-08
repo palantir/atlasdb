@@ -66,13 +66,9 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
 
     @Override
     public void addGarbageCollectionSentinelValues(TableReference tableRef, Set<Cell> cells) {
-        try {
-            delegate().addGarbageCollectionSentinelValues(
-                    tableMapper.getMappedTableName(tableRef),
-                    cells);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        delegate().addGarbageCollectionSentinelValues(
+                tableMapper.getMappedTableName(tableRef),
+                cells);
     }
 
     @Override
@@ -100,11 +96,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
 
     @Override
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
-        try {
-            delegate().delete(tableMapper.getMappedTableName(tableRef), keys);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        delegate().delete(tableMapper.getMappedTableName(tableRef), keys);
     }
 
     @Override
@@ -114,38 +106,27 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
 
     @Override
     public void dropTables(Set<TableReference> tableRefs) {
-        Set<TableReference> tableNames = getShortTableReferencesForExistingTables(tableRefs);
+        Set<TableReference> tableNames = Sets.newHashSetWithExpectedSize(tableRefs.size());
+        for (TableReference tableRef : tableRefs) {
+            tableNames.add(tableMapper.getMappedTableName(tableRef));
+            delegate().dropTables(tableNames);
+        }
         delegate().dropTables(tableNames);
 
         // We're purposely updating the table mappings after all drops are complete
         for (TableReference tableRef : tableRefs) {
             // Handles the edge case of deleting _namespace when clearing the kvs
-            if (tableRef.equals(AtlasDbConstants.NAMESPACE_TABLE)) {
+            if (tableRef.getNamespace().isEmptyNamespace()
+                    && tableRef.equals(AtlasDbConstants.NAMESPACE_TABLE)) {
                 break;
             }
             tableMapper.removeTable(tableRef);
         }
     }
 
-    private Set<TableReference> getShortTableReferencesForExistingTables(Set<TableReference> tableRefs) {
-        Set<TableReference> tableNames = Sets.newHashSetWithExpectedSize(tableRefs.size());
-        for (TableReference tableRef : tableRefs) {
-            try {
-                tableNames.add(tableMapper.getMappedTableName(tableRef));
-            } catch (TableMappingNotFoundException e) {
-                // Table does not exist - do nothing
-            }
-        }
-        return tableNames;
-    }
-
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        try {
-            return delegate().get(tableMapper.getMappedTableName(tableRef), timestampByCell);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        return delegate().get(tableMapper.getMappedTableName(tableRef), timestampByCell);
     }
 
     @Override
@@ -157,11 +138,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef,
                                                  Set<Cell> keys,
                                                  long timestamp) {
-        try {
-            return delegate().getAllTimestamps(tableMapper.getMappedTableName(tableRef), keys, timestamp);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        return delegate().getAllTimestamps(tableMapper.getMappedTableName(tableRef), keys, timestamp);
     }
 
     @Override
@@ -174,35 +151,23 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
             long timestamp) {
-        try {
-            return delegate().getFirstBatchForRanges(
-                    tableMapper.getMappedTableName(tableRef),
-                    rangeRequests,
-                    timestamp);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        return delegate().getFirstBatchForRanges(
+                tableMapper.getMappedTableName(tableRef),
+                rangeRequests,
+                timestamp);
     }
 
     @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef,
                                                Map<Cell, Long> timestampByCell) {
-        try {
-            return delegate().getLatestTimestamps(
-                    tableMapper.getMappedTableName(tableRef),
-                    timestampByCell);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        return delegate().getLatestTimestamps(
+                tableMapper.getMappedTableName(tableRef),
+                timestampByCell);
     }
 
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
-        try {
-            return delegate().getMetadataForTable(tableMapper.getMappedTableName(tableRef));
-        } catch (TableMappingNotFoundException e) { // table does not exist.
-            return AtlasDbConstants.EMPTY_TABLE_METADATA;
-        }
+        return delegate().getMetadataForTable(tableMapper.getMappedTableName(tableRef));
     }
 
     @Override
@@ -220,25 +185,17 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
                                                        RangeRequest rangeRequest,
                                                        long timestamp) {
-        try {
-            return delegate().getRange(tableMapper.getMappedTableName(tableRef), rangeRequest, timestamp);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        return delegate().getRange(tableMapper.getMappedTableName(tableRef), rangeRequest, timestamp);
     }
 
     @Override
     public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
                                                                        RangeRequest rangeRequest,
                                                                        long timestamp) {
-        try {
-            return delegate().getRangeOfTimestamps(
-                    tableMapper.getMappedTableName(tableRef),
-                    rangeRequest,
-                    timestamp);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        return delegate().getRangeOfTimestamps(
+                tableMapper.getMappedTableName(tableRef),
+                rangeRequest,
+                timestamp);
     }
 
     @Override
@@ -246,15 +203,11 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
                                     Iterable<byte[]> rows,
                                     ColumnSelection columnSelection,
                                     long timestamp) {
-        try {
-            return delegate().getRows(
-                    tableMapper.getMappedTableName(tableRef),
-                    rows,
-                    columnSelection,
-                    timestamp);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        return delegate().getRows(
+                tableMapper.getMappedTableName(tableRef),
+                rows,
+                columnSelection,
+                timestamp);
     }
 
     @Override
@@ -263,14 +216,10 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection,
             long timestamp) {
-        try {
-            return delegate().getRowsColumnRange(tableMapper.getMappedTableName(tableRef),
-                    rows,
-                    columnRangeSelection,
-                    timestamp);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        return delegate().getRowsColumnRange(tableMapper.getMappedTableName(tableRef),
+                rows,
+                columnRangeSelection,
+                timestamp);
     }
 
     @Override
@@ -279,43 +228,27 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
                                                      ColumnRangeSelection columnRangeSelection,
                                                      int cellBatchHint,
                                                      long timestamp) {
-        try {
-            return delegate().getRowsColumnRange(tableMapper.getMappedTableName(tableRef),
-                                                 rows,
-                                                 columnRangeSelection,
-                                                 cellBatchHint,
-                                                 timestamp);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        return delegate().getRowsColumnRange(tableMapper.getMappedTableName(tableRef),
+                                             rows,
+                                             columnRangeSelection,
+                                             cellBatchHint,
+                                             timestamp);
     }
 
     @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
                          long timestamp) {
-        try {
-            delegate().multiPut(tableMapper.mapToShortTableNames(valuesByTable), timestamp);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        delegate().multiPut(tableMapper.mapToShortTableNames(valuesByTable), timestamp);
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
-        try {
-            delegate().put(tableMapper.getMappedTableName(tableRef), values, timestamp);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        delegate().put(tableMapper.getMappedTableName(tableRef), values, timestamp);
     }
 
     @Override
     public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
-        try {
-            delegate().putMetadataForTable(tableMapper.getMappedTableName(tableRef), metadata);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        delegate().putMetadataForTable(tableMapper.getMappedTableName(tableRef), metadata);
     }
 
     @Override
@@ -323,13 +256,9 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         Map<TableReference, byte[]> tableNameToMetadata =
                 Maps.newHashMapWithExpectedSize(tableReferencesToMetadata.size());
         for (Entry<TableReference, byte[]> tableEntry : tableReferencesToMetadata.entrySet()) {
-            try {
-                tableNameToMetadata.put(
-                        tableMapper.getMappedTableName(tableEntry.getKey()),
-                        tableEntry.getValue());
-            } catch (TableMappingNotFoundException e) {
-                throw new IllegalArgumentException(e);
-            }
+            tableNameToMetadata.put(
+                    tableMapper.getMappedTableName(tableEntry.getKey()),
+                    tableEntry.getValue());
         }
         delegate().putMetadataForTables(tableNameToMetadata);
     }
@@ -337,20 +266,12 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        try {
-            delegate().putUnlessExists(tableMapper.getMappedTableName(tableRef), values);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        delegate().putUnlessExists(tableMapper.getMappedTableName(tableRef), values);
     }
 
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        try {
-            delegate().putWithTimestamps(tableMapper.getMappedTableName(tableRef), values);
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        delegate().putWithTimestamps(tableMapper.getMappedTableName(tableRef), values);
     }
 
     @Override
@@ -360,33 +281,21 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
 
     @Override
     public void truncateTable(TableReference tableRef) {
-        try {
-            delegate().truncateTable(tableMapper.getMappedTableName(tableRef));
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        delegate().truncateTable(tableMapper.getMappedTableName(tableRef));
     }
 
     @Override
     public void truncateTables(Set<TableReference> tableRefs) {
         Set<TableReference> tablesToTruncate = Sets.newHashSet();
         for (TableReference tableRef : tableRefs) {
-            try {
-                tablesToTruncate.add(tableMapper.getMappedTableName(tableRef));
-            } catch (TableMappingNotFoundException e) {
-                throw new IllegalArgumentException(e);
-            }
+            tablesToTruncate.add(tableMapper.getMappedTableName(tableRef));
         }
         delegate().truncateTables(tablesToTruncate);
     }
 
     @Override
     public void compactInternally(TableReference tableRef) {
-        try {
-            delegate().compactInternally(tableMapper.getMappedTableName(tableRef));
-        } catch (TableMappingNotFoundException e) {
-            throw new IllegalArgumentException(e);
-        }
+        delegate().compactInternally(tableMapper.getMappedTableName(tableRef));
     }
 
 }

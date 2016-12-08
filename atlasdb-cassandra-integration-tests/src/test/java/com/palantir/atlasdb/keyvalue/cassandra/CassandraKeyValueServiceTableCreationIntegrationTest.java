@@ -27,7 +27,6 @@ import java.util.stream.IntStream;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
@@ -37,8 +36,6 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.containers.CassandraContainer;
-import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -51,29 +48,22 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
     public static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
     public static final TableReference BAD_TABLE = TableReference.createFromFullyQualifiedName("foo.b@r");
 
-    @ClassRule
-    public static final Containers CONTAINERS =
-            new Containers(CassandraKeyValueServiceTableCreationIntegrationTest.class)
-                    .with(new CassandraContainer());
-
     protected CassandraKeyValueService kvs;
     protected CassandraKeyValueService slowTimeoutKvs;
 
     @Before
     public void setUp() {
-        ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = ImmutableCassandraKeyValueServiceConfig
-                .copyOf(CassandraContainer.KVS_CONFIG)
+        ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = CassandraTestSuite.cassandraKvsConfig
                 .withSchemaMutationTimeoutMillis(500);
         kvs = CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(quickTimeoutConfig),
-                CassandraContainer.LEADER_CONFIG);
+                CassandraTestSuite.leaderConfig);
 
-        ImmutableCassandraKeyValueServiceConfig slowTimeoutConfig = ImmutableCassandraKeyValueServiceConfig
-                .copyOf(CassandraContainer.KVS_CONFIG)
+        ImmutableCassandraKeyValueServiceConfig slowTimeoutConfig = CassandraTestSuite.cassandraKvsConfig
                 .withSchemaMutationTimeoutMillis(6 * 1000);
         slowTimeoutKvs = CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(slowTimeoutConfig),
-                CassandraContainer.LEADER_CONFIG);
+                CassandraTestSuite.leaderConfig);
 
         kvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
@@ -83,7 +73,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         kvs.close();
     }
 
-    @Test(timeout = 10 * 1000)
+    @Test (timeout = 10 * 1000)
     public void testTableCreationCanOccurAfterError() {
         try {
             kvs.createTable(BAD_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -96,7 +86,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
 
     @Test
     public void testCreatingMultipleTablesAtOnce() throws InterruptedException {
-        int threadCount = 16;
+        int threadCount =  16;
         CyclicBarrier barrier = new CyclicBarrier(threadCount);
         ForkJoinPool threadPool = new ForkJoinPool(threadCount);
 
@@ -151,9 +141,8 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
                 missingMetadataTable.getQualifiedName().getBytes(StandardCharsets.UTF_8),
                 "m".getBytes(StandardCharsets.UTF_8));
         Value persistedMetadata = Iterables.getLast(
-                kvs.get(AtlasDbConstants.DEFAULT_METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE)).values());
-        kvs.delete(AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableMultimap.of(cell, persistedMetadata.getTimestamp()));
+                kvs.get(AtlasDbConstants.METADATA_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE)).values());
+        kvs.delete(AtlasDbConstants.METADATA_TABLE, ImmutableMultimap.of(cell, persistedMetadata.getTimestamp()));
 
         // pretend we started up again and did a createTable() for our existing table, that no longer has metadata
         kvs.createTable(missingMetadataTable, initialMetadata);

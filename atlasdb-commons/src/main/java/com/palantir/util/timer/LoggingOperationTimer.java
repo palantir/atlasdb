@@ -54,7 +54,7 @@ public class LoggingOperationTimer implements OperationTimer {
         @Override
         public void end() {
             if (delegate.isTraceEnabled()) {
-                delegate.trace("Duration [{}] ms : {}", System.currentTimeMillis() - tBegin,  msg);
+                delegate.trace("Duration [" + (System.currentTimeMillis() - tBegin) + "] ms : " + msg);
             }
         }
     }

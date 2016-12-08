@@ -32,12 +32,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
-import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
@@ -92,7 +92,6 @@ import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.IndexMetadata;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
-import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -120,12 +119,10 @@ import com.palantir.util.crypto.Sha256Hash;
 public class TableRenderer {
     private final String packageName;
     private final Namespace namespace;
-    private final OptionalType optionalType;
 
-    public TableRenderer(String packageName, Namespace namespace, OptionalType optionalType) {
+    public TableRenderer(String packageName, Namespace namespace) {
         this.packageName = Preconditions.checkNotNull(packageName);
         this.namespace = Preconditions.checkNotNull(namespace);
-        this.optionalType = Preconditions.checkNotNull(optionalType, "Must specify optionalType");
     }
 
     public String getClassName(String rawTableName, TableDefinition table) {
@@ -194,7 +191,8 @@ public class TableRenderer {
 
         @Override
         protected void run() {
-            ImportRenderer importRenderer = new ImportRenderer(this, getImports(optionalType));
+            ImportRenderer importRenderer = new ImportRenderer(this,
+                    Arrays.asList(IMPORTS));
             if (!isNestedIndex) {
                 line("package ", packageName, ";");
                 line();
@@ -852,7 +850,7 @@ public class TableRenderer {
                         } line("}");
                     } line("}");
                 } line("}");
-                line("t.delete(", Schemas.getTableReferenceString(index.getIndexName(), namespace), ", indexCells.build());");
+                line("t.delete(TableReference.createUnsafe(\"", Schemas.getFullTableName(index.getIndexName(), namespace), "\"), indexCells.build());");
             } line("}");
         }
 
@@ -926,7 +924,7 @@ public class TableRenderer {
                         line("}");
                     }
                 }  line("}");
-                line("t.delete(", Schemas.getTableReferenceString(index.getIndexName(), namespace), ", indexCells);");
+                line("t.delete(TableReference.createUnsafe(\"", Schemas.getFullTableName(index.getIndexName(), namespace), "\"), indexCells);");
             } line("}");
         }
 
@@ -1045,28 +1043,20 @@ public class TableRenderer {
 
         private void renderNamedGetRow() {
             line("@Override");
-            line("public ", "Optional<", RowResult, ">", " getRow(", Row, " row) {"); {
+            line("public Optional<", RowResult, "> getRow(", Row, " row) {"); {
                 line("return getRow(row, allColumns);");
             } line("}");
             line();
             line("@Override");
-            line("public ", "Optional<", RowResult, ">", " getRow(", Row, " row, ColumnSelection columns) {"); {
+            line("public Optional<", RowResult, "> getRow(", Row, " row, ColumnSelection columns) {"); {
                 line("byte[] bytes = row.persistToBytes();");
                 line("RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);");
                 line("if (rowResult == null) {"); {
-                    renderOptionalReturnValue(null);
+                    line("return Optional.absent();");
                 } line("} else {"); {
-                    renderOptionalReturnValue("rowResult");
+                    line("return Optional.of(", RowResult, ".of(rowResult));");
                 } line("}");
             } line("}");
-        }
-
-        private void renderOptionalReturnValue(@Nullable String value) {
-            if (value != null) {
-                line("return Optional.of(", RowResult, ".of(rowResult));");
-            } else {
-                line("return Optional.", optionalType.nullMethod(), "();");
-            }
         }
 
         private void renderNamedGetRows() {
@@ -1306,23 +1296,7 @@ public class TableRenderer {
         });
     }
 
-    private static List<Class<?>> getImports(OptionalType optionalType) {
-        List<Class<?>> classes = Lists.newArrayList();
-        classes.addAll(Arrays.asList(IMPORTS_WITHOUT_OPTIONAL));
-        switch (optionalType) {
-            case GUAVA:
-                classes.add(com.google.common.base.Optional.class);
-                break;
-            case JAVA8:
-                classes.add(java.util.Optional.class);
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown optionalType!");
-        }
-        return classes;
-    }
-
-    private static final Class<?>[] IMPORTS_WITHOUT_OPTIONAL = {
+    private static final Class<?>[] IMPORTS = {
         Set.class,
         List.class,
         Map.class,
@@ -1389,6 +1363,7 @@ public class TableRenderer {
         Throwables.class,
         ImmutableList.class,
         UnsignedBytes.class,
+        Optional.class,
         Collections2.class,
         Arrays.class,
         Bytes.class,

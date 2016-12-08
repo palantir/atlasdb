@@ -24,7 +24,4 @@
 
     <!-- Temporarily suppress abbreviations. -->
     <suppress files="[/\\](.*KV.*|CQL.*KeyValueServices?|CQLStatementCache|StorageServiceMBean)\.java$" checks="AbbreviationAsWordInName" />
-
-    <!-- Temporarily suppress CassandraKeyValueService being longer than 2000 lines -->
-    <suppress files="CassandraKeyValueService.java" checks="FileLengthCheck" />
 </suppressions>

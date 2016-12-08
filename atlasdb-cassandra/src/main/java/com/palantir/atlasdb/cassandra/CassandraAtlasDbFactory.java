@@ -25,12 +25,12 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampBoundStore;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
-import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 @AutoService(AtlasDbFactory.class)
 public class CassandraAtlasDbFactory implements AtlasDbFactory {
+
     @Override
     public KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
@@ -52,9 +52,6 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public TimestampService createTimestampService(KeyValueService rawKvs) {
-        DebugLogger.logger.info("Creating timestamp service on thread {}. This should only happen once.",
-                Thread.currentThread().getName());
-
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(rawKvs instanceof CassandraKeyValueService,
                 "TimestampService must be created from an instance of"

@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -85,6 +86,7 @@ import com.palantir.common.persist.Persistables;
 import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
+
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class TwoColumnsTable implements
@@ -634,7 +636,7 @@ public final class TwoColumnsTable implements
             FooToIdCondIdxTable.FooToIdCondIdxColumn indexCol = FooToIdCondIdxTable.FooToIdCondIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete(TableReference.createFromFullyQualifiedName("default.foo_to_id_cond_idx"), indexCells);
+        t.delete(TableReference.createUnsafe("default.foo_to_id_cond_idx"), indexCells);
     }
 
     private void deleteFooToIdIdxRaw(Map<Cell, byte[]> results) {
@@ -648,7 +650,7 @@ public final class TwoColumnsTable implements
             FooToIdIdxTable.FooToIdIdxColumn indexCol = FooToIdIdxTable.FooToIdIdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete(TableReference.createFromFullyQualifiedName("default.foo_to_id_idx"), indexCells);
+        t.delete(TableReference.createUnsafe("default.foo_to_id_idx"), indexCells);
     }
 
     public void deleteBar(TwoColumnsRow row) {
@@ -845,7 +847,7 @@ public final class TwoColumnsTable implements
                 }
             }
         }
-        t.delete(TableReference.createFromFullyQualifiedName("default.foo_to_id_cond_idx"), indexCells.build());
+        t.delete(TableReference.createUnsafe("default.foo_to_id_cond_idx"), indexCells.build());
     }
 
     private void deleteFooToIdIdx(Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> result) {
@@ -862,7 +864,7 @@ public final class TwoColumnsTable implements
                 }
             }
         }
-        t.delete(TableReference.createFromFullyQualifiedName("default.foo_to_id_idx"), indexCells.build());
+        t.delete(TableReference.createUnsafe("default.foo_to_id_idx"), indexCells.build());
     }
 
     public BatchingVisitableView<TwoColumnsRowResult> getAllRowsUnordered() {
@@ -2293,5 +2295,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "CoGTujrSWASTbNC1oi69+w==";
+    static String __CLASS_HASH = "66SlMxZFOkyB9LuOCDm9hQ==";
 }

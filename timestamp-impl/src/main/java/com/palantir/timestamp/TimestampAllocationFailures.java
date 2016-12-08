@@ -58,12 +58,11 @@ public class TimestampAllocationFailures {
     }
 
     private void logNewFailure(Throwable newFailure) {
+        String message = "We encountered an error while trying to allocate more timestamps. ";
         if(isSameAsPreviousFailure(newFailure)) {
-            log.info("We encountered an error while trying to allocate more timestamps. "
-                    + "This is a repeat of the previous failure", newFailure);
+            log.info(message + "This is a repeat of the previous failure", newFailure);
         } else {
-            log.error("We encountered an error while trying to allocate more timestamps. "
-                    + "If this failure repeats it will be logged at the INFO level", newFailure);
+            log.error(message + "If this failure repeats it will be logged at the INFO level", newFailure);
         }
     }
 

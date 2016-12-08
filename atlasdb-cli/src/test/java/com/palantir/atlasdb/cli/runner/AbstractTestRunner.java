@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.cli.runner;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -70,12 +72,18 @@ public abstract class AbstractTestRunner <S extends AtlasDbServices> implements 
 
     @Override
     public String run(boolean failOnNonZeroExit, boolean singleLine) {
-        return StandardStreamUtilities.wrapSystemOut(() -> {
+        PrintStream ps = System.out;
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(baos));
+        try {
             int ret = cmd.execute(services);
             if (ret != 0 && failOnNonZeroExit) {
                 throw new RuntimeException("CLI returned with nonzero exit code");
             }
-        }, singleLine);
+        } finally {
+            System.setOut(ps);
+        }
+        return singleLine ? baos.toString().replace("\n", " ").replace("\r", " ") : baos.toString();
     }
 
     @Override

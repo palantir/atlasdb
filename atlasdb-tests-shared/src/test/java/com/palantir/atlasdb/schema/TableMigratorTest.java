@@ -37,7 +37,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespaceMappingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StaticTableMappingService;
-import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.atlasdb.keyvalue.impl.TableRemappingKeyValueService;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -66,7 +65,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void testMigrationToDifferentKvs() throws TableMappingNotFoundException {
+    public void testMigrationToDifferentKvs() {
         final TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, "table");
         final TableReference namespacedTableRef = TableReference.createFromFullyQualifiedName("namespace." + tableRef.getTablename());
         TableDefinition definition = new TableDefinition() {{

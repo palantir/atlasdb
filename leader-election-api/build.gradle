@@ -9,9 +9,11 @@ repositories {
 
 libsDirName = file('build/artifacts')
 dependencies {
-  compile project(":atlasdb-commons")
-  compile project(":leader-election-api-protobufs")
-  compile group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang
+  compile(project(":atlasdb-commons"))
+  compile(project(":leader-election-api-protobufs"))
+  compile(group: "commons-lang",
+          name: "commons-lang",
+          version: libVersions.commons_lang)
   compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
+  compile 'com.fasterxml.jackson.core:jackson-annotations:' + libVersions.jackson_annotation
 }

@@ -17,9 +17,9 @@ package com.palantir.atlasdb.keyvalue.rocksdb.impl;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
+import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 
-public class RocksDbKeyValueSharedTest extends AbstractKeyValueServiceTest {
+public class RocksDbKeyValueSharedTest extends AbstractAtlasDbKeyValueServiceTest {
     private RocksDbKeyValueService db = null;
 
     @Override

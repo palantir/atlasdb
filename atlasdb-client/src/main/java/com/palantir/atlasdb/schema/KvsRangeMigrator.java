@@ -135,9 +135,7 @@ public class KvsRangeMigrator implements RangeMigrator {
         }
         RangeRequest rangeToUse = builder.build();
         if (log.isTraceEnabled()) {
-            log.trace("Copying table {} range {} from {}  to {}", srcTable, rangeId,
-                    BaseEncoding.base16().lowerCase().encode(rangeToUse.getStartInclusive()),
-                    BaseEncoding.base16().lowerCase().encode(rangeToUse.getEndExclusive()));
+            log.trace("Copying table " + srcTable + " range " + rangeId + " from "+ BaseEncoding.base16().lowerCase().encode(rangeToUse.getStartInclusive()) + "  to " + BaseEncoding.base16().lowerCase().encode(rangeToUse.getEndExclusive()));
         }
 
         BatchingVisitable<RowResult<byte[]>> bv = readT.getRange(srcTable, rangeToUse);
@@ -145,7 +143,7 @@ public class KvsRangeMigrator implements RangeMigrator {
         Map<Cell, byte[]> writeMap = Maps.newHashMap();
         byte[] lastRow = internalCopyRange(bv, maxBytes, writeMap);
         if (log.isTraceEnabled() && (lastRow != null)) {
-            log.trace("Copying {} bytes for range {} on table {}", lastRow.length, rangeId, srcTable);
+            log.trace("Copying " + lastRow.length + " bytes for range " + rangeId + " on table " + srcTable);
         }
         writeToKvs(writeMap);
 

@@ -7,8 +7,8 @@ Leader Configuration
 Overview
 ========
 
-The leader block is where you specify configurations related to leadership election of your AtlasDB clients.
-It's good practice to always specify a leader configuration, even if there is a single AtlasDB client in your cluster.
+The leader block is where you specify configurations related to leadership election.
+It's good practice to always specify a leader configuration, even in the single client case.
 If no leader configuration is specified, then AtlasDB clients will create an embedded timestamp and lock service.
 
 .. warning::
@@ -29,8 +29,8 @@ Required parameters:
          - Description
 
     *    - quorumSize
-         - Number of AtlasDB clients in your cluster that form a majority.
-           This number must be greater than half of the total number of clients.
+         - Number of hosts that form a majority.
+           This number must be greater than half of the total number of hosts.
 
     *    - leaders
          - A list of all hosts.
@@ -77,7 +77,6 @@ Leader Configuration Examples
 =============================
 
 Some example leader block configurations are listed below.
-The use of `cluster` and `nodes` are in reference to AtlasDB clients and are unrelated to your ``keyValueService`` config block.
 
 .. contents::
    :local:

@@ -102,7 +102,7 @@ public final class JMXUtils {
             server.registerMBean(mbean, on);
         } catch (InstanceAlreadyExistsException e) {
             //The bean was registered concurrently; log an error, but don't fail tests
-            log.error("Failed to register mbean for name {}", objectName, e);
+            log.error("Failed to register mbean for name " + objectName, e);
         } catch (Exception e) {
             AssertUtils.assertAndLogWithException(false, "Failed to register mbean for name " + objectName, e);
         }

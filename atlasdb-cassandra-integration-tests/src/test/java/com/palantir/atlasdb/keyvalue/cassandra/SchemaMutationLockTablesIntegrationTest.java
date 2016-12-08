@@ -35,28 +35,20 @@ import java.util.stream.IntStream;
 
 import org.apache.thrift.TException;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.containers.CassandraContainer;
-import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class SchemaMutationLockTablesIntegrationTest {
-    @ClassRule
-    public static final Containers CONTAINERS = new Containers(SchemaMutationLockTablesIntegrationTest.class)
-            .with(new CassandraContainer());
-
     private SchemaMutationLockTables lockTables;
     private CassandraKeyValueServiceConfig config;
     private CassandraClientPool clientPool;
 
     @Before
     public void setupKvs() throws TException, InterruptedException {
-        config = ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
+        config = CassandraTestSuite.cassandraKvsConfig
                 .withKeyspace(UUID.randomUUID().toString().replace('-', '_')); // Hyphens not allowed in C* schema
         clientPool = new CassandraClientPool(config);
         clientPool.runOneTimeStartupChecks();

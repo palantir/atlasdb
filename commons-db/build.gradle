@@ -6,13 +6,12 @@ dependencies {
   compile project(":commons-api")
   compile project(":commons-proxy")
 
-  compile group: 'commons-dbutils', name: 'commons-dbutils', version: libVersions.commons_dbutils
-  compile group: 'org.apache.commons', name: 'commons-lang3'
-  compile group: 'commons-io', name: 'commons-io'
-  compile(group: 'log4j', name: 'log4j', version: libVersions.log4j) {
-    transitive = false
-  }
-  compile group: 'com.mchange', name: 'c3p0', version: libVersions.c3p0
+  compile(group: 'commons-dbutils', name: 'commons-dbutils', version: libVersions.commons_dbutils)
+  compile(group: 'org.apache.commons', name: 'commons-lang3', version: libVersions.commons_lang3)
+  compile(group: 'commons-io', name: 'commons-io', version: libVersions.commons_io)
+  compile(group: 'log4j', name: 'log4j', version: libVersions.log4j)
+  { transitive = false }
+  compile(group: 'com.mchange', name: 'c3p0', version: libVersions.c3p0)
 
   // Danger, Will Robinson!
   //
@@ -20,10 +19,14 @@ dependencies {
   // Severe performance regressions in 1202,3,4.
   // Severe correctness issues in 1204,5,6.
   // Update with care and caution.
-  compile group: 'org.postgresql', name: 'postgresql', version: libVersions.postgresql
+  compile(group: 'org.postgresql', name: 'postgresql', version: libVersions.postgresql)
+  { exclude( module: 'waffle-jna', ) }
 
-  compile group: 'com.zaxxer', name: 'HikariCP', version: libVersions.hikariCP
-  compile group: 'joda-time', name: 'joda-time'
+  compile(group: 'com.zaxxer', name: 'HikariCP', version: libVersions.hikariCP)
+  { exclude( group: 'org.slf4j', ) }
+  compile(group: 'joda-time', name: 'joda-time', version: libVersions.joda_time)
+  compile "io.dropwizard:dropwizard-jackson:" + libVersions.dropwizard
+  processor 'com.google.auto.service:auto-service:1.0-rc2'
 
-  testCompile group: 'junit', name: 'junit'
+  testCompile(group: 'junit', name: 'junit', version: libVersions.junit)
 }

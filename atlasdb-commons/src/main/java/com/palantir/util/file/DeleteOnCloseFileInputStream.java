@@ -45,9 +45,9 @@ public class DeleteOnCloseFileInputStream extends FileInputStream {
         } finally {
             if (!closed) {
                 if (!file.delete()) {
-                    log.warn("Failed to delete file {}", file.getAbsolutePath());
+                    log.warn("Failed to delete file " + file.getAbsolutePath());
                 } else if (log.isDebugEnabled()) {
-                    log.debug("Successfully deleted file {}", file.getAbsolutePath());
+                    log.debug("Successfully deleted file " + file.getAbsolutePath());
                 }
                 closed = true;
             }

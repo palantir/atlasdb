@@ -22,7 +22,7 @@ import javax.validation.constraints.Size;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Optional;
@@ -53,6 +53,7 @@ public abstract class LeaderConfig {
 
     public abstract Optional<SslConfiguration> sslConfiguration();
 
+    @JsonProperty("lockCreator")
     @Value.Default
     public String lockCreator() {
         return leaders().stream()
@@ -92,7 +93,6 @@ public abstract class LeaderConfig {
                 "Acceptor log directory '%s' does not exist and cannot be created.", acceptorLogDir());
     }
 
-    @JsonIgnore
     @Value.Derived
     public LockLeader whoIsTheLockLeader() {
         return LockLeader.fromBoolean(lockCreator().equals(localServer()));

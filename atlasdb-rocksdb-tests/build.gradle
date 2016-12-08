@@ -1,6 +1,7 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-  testCompile project(":atlasdb-rocksdb")
+  testCompile(project(":atlasdb-rocksdb"))
   testCompile project(":atlasdb-tests-shared")
 }
+

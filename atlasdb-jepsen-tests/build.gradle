@@ -1,5 +1,3 @@
-apply from: "${rootProject.projectDir}/gradle/shared.gradle"
-
 buildscript {
     repositories {
         jcenter()
@@ -9,59 +7,21 @@ buildscript {
     }
 }
 
-apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'docker-compose'
-apply plugin: 'org.inferred.processors'
-apply plugin: 'org.unbroken-dome.test-sets'
 
-testSets {
-    integTest
-}
-
-jacocoTestReport {
-    executionData test, integTest
-}
-
-check.dependsOn integTest
-
-dependencies {
-    compile project(':atlasdb-config')
-
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-    compile group: 'com.google.guava', name: 'guava'
-    compile group: 'com.jayway.awaitility', name: 'awaitility'
-    compile group: 'one.util', name: 'streamex'
-    compile group: 'org.clojure', name: 'clojure'
-    compile group: 'org.slf4j', name: 'slf4j-api'
-
-    processor group: 'org.immutables', name: 'value'
-
-    testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile group: 'org.mockito', name: 'mockito-core'
-}
-
-shadowJar {
-    dependencies {
-        exclude(dependency(group: 'org.clojure', name: 'clojure'))
-    }
-}
-
-task copyShadowJar(type: Copy, dependsOn: 'shadowJar') {
-    from tasks.getByPath('shadowJar').outputs
+task prepareForJepsen(type: Copy, dependsOn: ':atlasdb-ete-tests:distTar') {
+    from project(':atlasdb-ete-tests').distTar.outputs
     into 'resources/atlasdb/'
-    rename { filename -> 'atlasdb-jepsen-tests-all.jar' }
+
+    rename { filename -> 'atlasdb-ete.tgz' }
 }
 
-task copyTimelockServer(type: Copy, dependsOn: ':atlasdb-timelock-server:distTar') {
-    from tasks.getByPath(':atlasdb-timelock-server:distTar').outputs
-    into 'resources/atlasdb/'
-    rename { filename -> 'atlasdb-timelock-server.tgz' }
+task composeBuild(type: Exec, dependsOn: 'prepareForJepsen') {
+    environment = project.dockerCompose.environment
+    commandLine project.dockerCompose.composeCommand('build', '--force-rm')
 }
 
-task jepsenTest(type: Exec, dependsOn: ['copyShadowJar', 'copyTimelockServer']) {
+task test(type: Exec, dependsOn: 'composeBuild') {
     environment = project.dockerCompose.environment
     commandLine project.dockerCompose.composeCommand('run', '--rm', 'jepsen')
 }
-
-check.dependsOn jepsenTest

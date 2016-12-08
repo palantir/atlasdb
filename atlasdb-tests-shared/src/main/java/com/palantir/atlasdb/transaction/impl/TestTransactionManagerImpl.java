@@ -91,7 +91,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 timestampService.getFreshTimestamp(),
                 conflictDetectionManager.get(),
                 constraintModeSupplier.get(),
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                timestampValidationReadCache);
+                TransactionReadSentinelBehavior.THROW_EXCEPTION);
     }
 }

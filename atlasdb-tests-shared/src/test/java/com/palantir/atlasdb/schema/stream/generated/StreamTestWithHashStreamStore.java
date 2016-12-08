@@ -59,6 +59,7 @@ import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.file.DeleteOnCloseFileInputStream;
 import com.palantir.util.file.TempFileUtils;
 
+
 @Generated("com.palantir.atlasdb.table.description.render.StreamStoreRenderer")
 public final class StreamTestWithHashStreamStore extends AbstractPersistentStreamStore {
     public static final int BLOCK_SIZE_IN_BYTES = 1000000; // 1MB. DO NOT CHANGE THIS WITHOUT AN UPGRADE TASK
@@ -100,7 +101,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
             touchMetadataWhileStoringForConflicts(t, row.getId(), row.getBlockId());
             tables.getStreamTestWithHashStreamValueTable(t).putValue(row, block);
         } catch (RuntimeException e) {
-            log.error("Error storing block {} for stream id {}", row.getBlockId(), row.getId(), e);
+            log.error("Error storing block " + row.getBlockId() + " for stream id " + row.getId(), e);
             throw e;
         }
     }
@@ -165,10 +166,10 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
         try {
             os.write(getBlock(t, row));
         } catch (RuntimeException e) {
-            log.error("Error storing block {} for stream id {}", row.getBlockId(), row.getId(), e);
+            log.error("Error getting block " + row.getBlockId() + " of stream " + row.getId(), e);
             throw e;
         } catch (IOException e) {
-            log.error("Error writing block {} to file when getting stream id {}", row.getBlockId(), row.getId(), e);
+            log.error("Error writing block " + row.getBlockId() + " to file when getting stream id " + row.getId(), e);
             throw Throwables.rewrapAndThrowUncheckedException("Error writing blocks to file when creating stream.", e);
         }
     }
@@ -290,7 +291,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
             if (streamHash != com.google.protobuf.ByteString.EMPTY) {
                 hash = new Sha256Hash(streamHash.toByteArray());
             } else {
-                log.error("Empty hash for stream {}", streamId);
+                log.error("Empty hash for stream " + streamId);
             }
             StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow hashRow = StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow.of(hash);
             StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxColumn column = StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxColumn.of(streamId);

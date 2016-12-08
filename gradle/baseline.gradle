@@ -16,6 +16,8 @@ List<String> blacklistedBaselineProjects = [
         'atlasdb-service',
         'atlasdb-service-server',
         'atlasdb-tests-shared',
+        'atlasdb-timelock-ete',
+        'atlasdb-timelock-server',
         'cassandra-partitioner',
         'commons-annotations',
         'commons-api',
@@ -36,9 +38,6 @@ List<String> blacklistedBaselineProjects = [
 if (!blacklistedBaselineProjects.contains(project.name)) {
     apply plugin: 'com.palantir.baseline-checkstyle'
     apply plugin: 'com.palantir.baseline-findbugs'
-    dependencies {
-        findbugsPlugins group: 'jp.skypencil.findbugs.slf4j', name: 'bug-pattern', ext: 'jar'
-    }
 }
 
 apply plugin: 'com.palantir.baseline-eclipse'

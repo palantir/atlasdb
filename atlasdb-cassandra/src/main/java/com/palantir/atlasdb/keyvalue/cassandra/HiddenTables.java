@@ -24,7 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 public class HiddenTables {
     private static final Set<TableReference> HIDDEN_TABLES = ImmutableSet.of(
             AtlasDbConstants.TIMESTAMP_TABLE,
-            AtlasDbConstants.DEFAULT_METADATA_TABLE);
+            AtlasDbConstants.METADATA_TABLE);
 
     public boolean isHidden(TableReference tableReference) {
         return HIDDEN_TABLES.contains(tableReference)

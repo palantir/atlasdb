@@ -33,7 +33,7 @@ sweep
 Sweep old table rows.
 This can be useful for improving performance if having too many dead cells is impacting read times.
 The command allows you to specify a namespace or a specific set of tables.
-For more information, check out :ref:`the sweep CLI documentation <atlas-sweep-cli>`, or run ``./bin/atlasdb help sweep``.
+For more information, check out :ref:`the sweep CLI documentation <atlas_sweep_cli>`, or run ``./bin/atlasdb help sweep``.
 
 
 timestamp
@@ -51,23 +51,19 @@ cannot run; this is useful while taking a backup, to prevent concurrent deletion
 Run ``./bin/atlasdb help deletion-lock`` for more information.
 
 
-.. _clis-migrate:
-
 migrate
 -------
 
-This CLI can help you migrate your AtlasDB client product from one KVS to another.
+This cli can help you migrate your AtlasDB client product from one KVS to another.
 You will need to supply two different KVS configurations to the script.
 In the general case you first call ``–-setup``, then ``-–migrate``, then ``-–validate`` each time supplying the old and new configurations.
-
-We currently only support doing KVS migrations offline (using the ``--offline`` flag), so you must shut down your AtlasDB backed service to perform the migration.
 For more information run ``./bin/atlasdb help migrate`` for more information.
  
 .. code-block:: bash
 
-     ./bin/atlasdb migrate --offline –-fromConfig from.yml --migrateConfig to.yml –-setup
-     ./bin/atlasdb migrate --offline –-fromConfig from.yml --migrateConfig to.yml --migrate
-     ./bin/atlasdb migrate --offline –-fromConfig from.yml --migrateConfig to.yml --validate
+     ./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
+     ./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml --migrate
+     ./bin/atlasdb migrate –-fromConfig from.yml --migrateConfig to.yml --validate
 
 .. _offline-clis:
 
@@ -77,7 +73,6 @@ Offline CLIs
 Due to their potentially destructive nature if run concurrently with active AtlasDB services, there a number of CLIs which can only be run when AtlasDB is offline. These are:
 
   - ``clean-cass-locks-state``
-  - ``migrate``
   - ``timestamp clean-transactions``
   - ``timestamp fast-forward``
 

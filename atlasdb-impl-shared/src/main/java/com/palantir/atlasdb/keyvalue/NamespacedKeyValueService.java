@@ -39,7 +39,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 /**
  * Version of KeyValueService using TableReference (namespace plus tablename) instead of tableName.
  */
-public interface NamespacedKeyValueService extends KeyValueService {
+public interface NamespacedKeyValueService {
     Collection<? extends KeyValueService> getDelegates();
 
     void close();

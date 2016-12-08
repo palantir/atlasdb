@@ -76,7 +76,7 @@ public class PostgresDbTableFactory implements DbTableFactory {
 
     @Override
     public DbWriteTable createWrite(TableReference tableRef, ConnectionSupplier conns) {
-        return new SimpleDbWriteTable(config, conns, tableRef);
+        return new SimpleDbWriteTable(DbKvs.internalTableName(tableRef), conns, config);
     }
 
     @Override

@@ -91,8 +91,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                allowHiddenTableAccess,
-                timestampValidationReadCache);
+                allowHiddenTableAccess);
     }
 
 }

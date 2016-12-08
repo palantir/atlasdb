@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -85,6 +86,7 @@ import com.palantir.common.persist.Persistables;
 import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
+
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class SweepProgressTable implements
@@ -1275,5 +1277,5 @@ public final class SweepProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "/I2gV/xLpiGWuzDf+9UF1g==";
+    static String __CLASS_HASH = "l7F97+c9eg+A3wd/jO0jhQ==";
 }

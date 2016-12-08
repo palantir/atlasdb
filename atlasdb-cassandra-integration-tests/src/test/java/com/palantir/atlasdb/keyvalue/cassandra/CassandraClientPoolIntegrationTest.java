@@ -39,7 +39,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -48,23 +47,18 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
-import com.palantir.atlasdb.containers.CassandraContainer;
-import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.LightweightOppToken;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool.WeightedHosts;
 import com.palantir.common.base.FunctionCheckedException;
 
 public class CassandraClientPoolIntegrationTest {
-    @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraClientPoolIntegrationTest.class)
-            .with(new CassandraContainer());
-
-    private CassandraKeyValueService kv = CassandraKeyValueService.create(
-            CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
-            CassandraContainer.LEADER_CONFIG);
+    private CassandraKeyValueService kv;
 
     @Before
     public void setUp() {
+        kv = CassandraKeyValueService.create(
+                CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraTestSuite.cassandraKvsConfig),
+                CassandraTestSuite.leaderConfig);
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
 

@@ -18,9 +18,9 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
-import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
+import com.palantir.atlasdb.keyvalue.impl.AbstractAtlasDbKeyValueServiceTest;
 
-public class DbkvsPostgresKeyValueServiceTest extends AbstractKeyValueServiceTest {
+public class DbkvsPostgresKeyValueServiceTest extends AbstractAtlasDbKeyValueServiceTest {
     @Override
     protected KeyValueService getKeyValueService() {
         KeyValueService kvs = ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());

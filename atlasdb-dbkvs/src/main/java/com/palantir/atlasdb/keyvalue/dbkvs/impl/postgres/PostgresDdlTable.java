@@ -86,7 +86,7 @@ public class PostgresDdlTable implements DbDdlTable {
 
     @Override
     public void truncate() {
-        conns.get().executeUnregisteredQuery("TRUNCATE TABLE " + prefixedTableName());
+        executeIgnoringError("TRUNCATE TABLE " + prefixedTableName(), "does not exist");
     }
 
     @Override
@@ -94,10 +94,10 @@ public class PostgresDdlTable implements DbDdlTable {
         AgnosticResultSet result = conns.get().selectResultSetUnregisteredQuery("SHOW server_version");
         String version = result.get(0).getString("server_version");
         if (!version.matches("^[\\.0-9]+$") || VersionStrings.compareVersions(version, MIN_POSTGRES_VERSION) < 0) {
-            log.error("Your key value service currently uses version {} of postgres."
-                    + " The minimum supported version is {}."
+            log.error("Your key value service currently uses version " + version + " of postgres."
+                    + " The minimum supported version is " + MIN_POSTGRES_VERSION + "."
                     + " If you absolutely need to use an older version of postgres,"
-                    + " please contact Palantir support for assistance.", version, MIN_POSTGRES_VERSION);
+                    + " please contact Palantir support for assistance.");
         }
     }
 
@@ -120,7 +120,7 @@ public class PostgresDdlTable implements DbDdlTable {
             fn.run();
         } catch (PalantirSqlException e) {
             if (!shouldIgnoreException.test(e)) {
-                log.error("Error occurred trying to run function", e);
+                log.error(e.getMessage(), e);
                 throw e;
             }
         }

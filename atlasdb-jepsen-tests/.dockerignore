@@ -1,0 +1,5 @@
+/Dockerfile
+/build.gradle
+/docker-compose.yml
+/store
+/target

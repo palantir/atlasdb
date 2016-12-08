@@ -2,10 +2,6 @@
 Tables and Indices
 ==================
 
-.. contents::
-   :local:
-   :depth: 1
-
 Tables
 ======
 
@@ -64,12 +60,10 @@ never tested to see if it actually works.
 Indices
 =======
 
-.. role:: strike
-
 A common pattern in database schemas is to define an index table whose
 values are derived from and kept in sync with values from a base table.
 In standard RDBMS's these are user-defined and db-managed, but AtlasDB
-:strike:`is not so full-featured` requires you to think more carefully
+[STRIKEOUT:is not so full-featured] requires you to think more carefully
 about performance.
 
 There are two kinds of indices which can be defined in AtlasDB: additive
@@ -111,7 +105,7 @@ then the following variant can be used:
 The AtlasDB Developers however strongly recommend against usage of this
 form, since they have not found it to be particularly useful in making
 AtlasDB queries, and thus have never used it themselves, and thus have
-never tested to see if it actually works.
+never tested to so if it actually works.
 
 Additive
 --------

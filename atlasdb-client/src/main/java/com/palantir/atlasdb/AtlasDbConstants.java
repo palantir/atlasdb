@@ -33,16 +33,10 @@ public class AtlasDbConstants {
     public static final TableReference SCRUB_TABLE = TableReference.createWithEmptyNamespace("_scrub");
     public static final TableReference NAMESPACE_TABLE = TableReference.createWithEmptyNamespace("_namespace");
     public static final TableReference TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("_timestamp");
-
-    public static final TableReference PERSISTED_LOCKS_TABLE = TableReference.createWithEmptyNamespace("_persisted_locks");
-
-        public static final TableReference DEFAULT_METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
-    public static final TableReference DEFAULT_ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace("atlasdb_metadata");
-
-    public static final String ORACLE_NAME_MAPPING_TABLE = "atlasdb_table_names";
-    public static final String ORACLE_NAME_MAPPING_PK_CONSTRAINT = "pk_" + ORACLE_NAME_MAPPING_TABLE;
-    public static final String ORACLE_OVERFLOW_SEQUENCE = "overflow_seq";
-
+    public static final TableReference METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
+    public static final TableReference PERSISTED_LOCKS_TABLE =
+            TableReference.createWithEmptyNamespace("_persisted_locks");
+    public static final TableReference ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace("atlasdb_metadata");
     public static final String NAMESPACE_PREFIX = "_n_";
     public static final String NAMESPACE_SHORT_COLUMN_NAME = "s";
     public static final byte[] NAMESPACE_SHORT_COLUMN_BYTES = PtBytes.toBytes(NAMESPACE_SHORT_COLUMN_NAME);
@@ -93,6 +87,4 @@ public class AtlasDbConstants {
     public static final int DEFAULT_SWEEP_BATCH_SIZE = 1000;
     public static final int DEFAULT_SWEEP_CELL_BATCH_SIZE = 10_000;
     public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;
-    public static final int MAX_TABLE_PREFIX_LENGTH = 7;
-    public static final int MAX_OVERFLOW_TABLE_PREFIX_LENGTH = 6;
 }

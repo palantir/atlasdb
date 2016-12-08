@@ -9,8 +9,3 @@
     max-width: 100%;
     overflow: visible;
 }
-
-/* Adding strikethrough command */
-.strike {
-    text-decoration: line-through;
-}

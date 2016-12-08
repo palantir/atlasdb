@@ -19,16 +19,16 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.cli.output.OutputPrinter;
-import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
 import com.palantir.atlasdb.schema.KeyValueServiceValidator;
 import com.palantir.atlasdb.schema.TaskProgress;
@@ -39,11 +39,11 @@ import com.palantir.common.base.Throwables;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
-import io.airlift.airline.OptionType;
 
 @Command(name = "migrate", description = "Migrate your data from one key value service to another.")
 public class KvsMigrationCommand implements Callable<Integer> {
-    private static final OutputPrinter printer = new OutputPrinter(LoggerFactory.getLogger(KvsMigrationCommand.class));
+
+    private static final Logger log = LoggerFactory.getLogger(KvsMigrationCommand.class);
 
     @Option(name = {"-fc", "--fromConfig"},
             title = "CONFIG PATH",
@@ -54,12 +54,11 @@ public class KvsMigrationCommand implements Callable<Integer> {
     @Option(name = {"-mc", "--migrateConfig"},
             title = "CONFIG PATH",
             description = "path to yaml configuration file for the KVS you're migrating to",
-            required = false)
+            required = true)
     private File toConfigFile;
 
-    @Option(name = {"--config-root"},
+    @Option(name = {"-r", "--config-root"},
             title = "CONFIG ROOT",
-            type = OptionType.GLOBAL,
             description = "field in the config yaml file that contains the atlasdb configuration root")
     private String configRoot = AtlasDbConfigs.ATLASDB_CONFIG_OBJECT_PATH;
 
@@ -89,36 +88,18 @@ public class KvsMigrationCommand implements Callable<Integer> {
             description = "Validate migration.")
     private boolean validate = false;
 
-    @Option(name = {"--offline"},
-            title = "OFFLINE",
-            type = OptionType.GLOBAL,
-            description = "run this cli offline")
-    private boolean offline = false;
-
-    // TODO: Hide this argument once https://github.com/airlift/airline/issues/51 is fixed
-    @Option(name = {"--inline-config"},
-            title = "INLINE CONFIG",
-            type = OptionType.GLOBAL,
-            description = "inline configuration file for atlasdb")
-    private String inlineConfig;
-
     private static final Namespace CHECKPOINT_NAMESPACE = Namespace.create("kvs_migrate");
 
     @Override
     public Integer call() throws Exception {
-        if (inlineConfig == null && toConfigFile == null) {
-            printer.error("Argument -mc/--migrateConfig is required when not running as a dropwizard CLI");
-            return 1;
-        }
-
         AtlasDbServices fromServices = connectFromServices();
         AtlasDbServices toServices = connectToServices();
         return execute(fromServices, toServices);
     }
 
-    public int execute(AtlasDbServices fromServices, AtlasDbServices toServices) {
+	public int execute(AtlasDbServices fromServices, AtlasDbServices toServices) {
         if (!setup && !migrate && !validate) {
-            printer.error("At least one of --setup, --migrate, or --validate should be specified.");
+            log.error("At least one of --setup, --migrate, or --validate should be specified.");
             return 1;
         }
         KeyValueServiceMigrator migrator;
@@ -139,47 +120,30 @@ public class KvsMigrationCommand implements Callable<Integer> {
                     fromServices.getKeyValueService(),
                     threads,
                     batchSize,
-                    ImmutableMap.of(),
+                    ImmutableMap.<TableReference, Integer>of(),
                     (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) -> {
-                        printer.info(level.toString() + ": " + message);
+                        log.info(level.toString() + ": " + message);
                     },
-                    ImmutableSet.of());
+                    ImmutableSet.<TableReference>of());
             validator.validate(true);
         }
         return 0;
-    }
-
-    private AtlasDbConfig makeOfflineIfNecessary(AtlasDbConfig atlasDbConfig) {
-        if (offline) {
-            return atlasDbConfig.toOfflineConfig();
-        } else {
-            return atlasDbConfig;
-        }
-    }
+	}
 
     public AtlasDbServices connectFromServices() throws IOException {
-        AtlasDbConfig fromConfig = AtlasDbConfigs.load(fromConfigFile, configRoot);
-        ServicesConfigModule scm = ServicesConfigModule.create(makeOfflineIfNecessary(fromConfig));
+        ServicesConfigModule scm = ServicesConfigModule.create(fromConfigFile, configRoot);
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
     public AtlasDbServices connectToServices() throws IOException {
-        AtlasDbConfig toConfig = toConfigFile != null
-                ? AtlasDbConfigs.load(toConfigFile, configRoot)
-                : AtlasDbConfigs.loadFromString(inlineConfig, null);
-        ServicesConfigModule scm = ServicesConfigModule.create(makeOfflineIfNecessary(toConfig));
+        ServicesConfigModule scm = ServicesConfigModule.create(toConfigFile, configRoot);
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
-    private KeyValueServiceMigrator getMigrator(AtlasDbServices fromServices, AtlasDbServices toServices)
-            throws IOException {
+    private KeyValueServiceMigrator getMigrator(AtlasDbServices fromServices, AtlasDbServices toServices) throws IOException {
         //TODO: this timestamp will have to be stored for online migration
-        Supplier<Long> migrationTimestampSupplier = Suppliers.ofInstance(toServices
-                .getTimestampService()
-                .getFreshTimestamp());
-        toServices.getTransactionService().putUnlessExists(migrationTimestampSupplier.get(), toServices
-                .getTimestampService()
-                .getFreshTimestamp());
+        Supplier<Long> migrationTimestampSupplier = Suppliers.ofInstance(toServices.getTimestampService().getFreshTimestamp());
+        toServices.getTransactionService().putUnlessExists(migrationTimestampSupplier.get(), toServices.getTimestampService().getFreshTimestamp());
         return new KeyValueServiceMigrator(
                 CHECKPOINT_NAMESPACE,
                 fromServices.getTransactionManager(),
@@ -189,14 +153,14 @@ public class KvsMigrationCommand implements Callable<Integer> {
                 migrationTimestampSupplier,
                 threads,
                 batchSize,
-                ImmutableMap.of(),
+                ImmutableMap.<TableReference, Integer>of(),
                 (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) -> {
-                    printer.info(level.toString() + ": " + message);
+                    log.info(level.toString() + ": " + message);
                 },
                 new TaskProgress() {
                     @Override
                     public void beginTask(String message, int tasks) {
-                        printer.info(message);
+                        log.info(message);
                     }
 
                     @Override
@@ -209,6 +173,6 @@ public class KvsMigrationCommand implements Callable<Integer> {
                         //
                     }
                 },
-                ImmutableSet.of());
+                ImmutableSet.<TableReference>of());
     }
 }

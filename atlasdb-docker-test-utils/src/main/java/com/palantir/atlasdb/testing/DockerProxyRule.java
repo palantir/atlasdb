@@ -29,10 +29,8 @@ import com.google.common.io.Files;
 import com.google.common.io.Resources;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ProjectName;
-import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.execution.DockerExecutionException;
-import com.palantir.docker.compose.logging.LogDirectory;
 
 import net.amygdalum.xrayinterface.XRayInterface;
 
@@ -42,19 +40,16 @@ public class DockerProxyRule extends ExternalResource {
 
     private ProxySelector originalProxySelector;
 
-    public DockerProxyRule(ProjectName projectName, Class<?> classToLogFor) {
-        String logDirectory = DockerProxyRule.class.getSimpleName() + "-" + classToLogFor.getSimpleName();
+    public DockerProxyRule(ProjectName projectName) {
         this.dockerComposeRule = DockerComposeRule.builder()
                 .file(getDockerComposeFile(projectName).getPath())
                 .waitingForService("proxy", Container::areAllPortsOpen)
-                .saveLogsTo(LogDirectory.circleAwareLogDirectory(logDirectory))
-                .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
                 .build();
         this.projectName = projectName;
     }
 
     @Override
-    public void before() throws Throwable {
+    protected void before() throws Throwable {
         try {
             originalProxySelector = ProxySelector.getDefault();
             dockerComposeRule.before();
@@ -72,7 +67,7 @@ public class DockerProxyRule extends ExternalResource {
     }
 
     @Override
-    public void after() {
+    protected void after() {
         ProxySelector.setDefault(originalProxySelector);
         getNameServices().remove(0);
         dockerComposeRule.after();

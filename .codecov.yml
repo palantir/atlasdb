@@ -6,4 +6,3 @@ ignore:
   - "atlasdb-ete-tests/" # these run in docker containers so they're not tracked
   - "atlasdb-exec/src/main/java/com/palantir/atlasdb/clis/RegenerateCodeForSchemas.java" # only run by devs in IDE
   - "cassandra-partitioner/src/main/java/com/palantir/atlasdb/keyvalue/cassandra/dht/AtlasDbOrderedPartitioner.java" # only here for documentation
-  - "atlasdb-perf/" # benchmarks that are run separately

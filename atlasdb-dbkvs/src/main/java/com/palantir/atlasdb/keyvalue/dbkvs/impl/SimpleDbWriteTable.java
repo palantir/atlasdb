@@ -25,23 +25,22 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
 public class SimpleDbWriteTable implements DbWriteTable {
-    protected final DdlConfig config;
+    protected final String tableName;
     protected final ConnectionSupplier conns;
-    protected final TableReference tableRef;
-    private final PrefixedTableNames prefixedTableNames;
+    protected final DdlConfig config;
 
-    public SimpleDbWriteTable(DdlConfig config, ConnectionSupplier conns, TableReference tableRef) {
-        this.config = config;
+    public SimpleDbWriteTable(String tableName,
+                              ConnectionSupplier conns,
+                              DdlConfig config) {
+        this.tableName = tableName;
         this.conns = conns;
-        this.tableRef = tableRef;
-        this.prefixedTableNames = new PrefixedTableNames(config, conns);
+        this.config = config;
     }
 
     @Override
@@ -68,9 +67,8 @@ public class SimpleDbWriteTable implements DbWriteTable {
 
     private void put(List<Object[]> args) {
         try {
-            String prefixedTableName = prefixedTableNames.get(tableRef);
-            conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + prefixedTableName + ") */"
-                    + " INSERT INTO " + prefixedTableName + " (row_name, col_name, ts, val) "
+            conns.get().insertManyUnregisteredQuery("/* INSERT_ONE (" + tableName + ") */"
+                    + " INSERT INTO " + prefixedTableName() + " (row_name, col_name, ts, val) "
                     + " VALUES (?, ?, ?, ?) ",
                     args);
         } catch (PalantirSqlException e) {
@@ -93,11 +91,10 @@ public class SimpleDbWriteTable implements DbWriteTable {
             }
             while (true) {
                 try {
-                    String prefixedTableName = prefixedTableNames.get(tableRef);
-                    conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + prefixedTableName + ") */"
-                            + " INSERT INTO " + prefixedTableName + " (row_name, col_name, ts, val) "
+                    conns.get().insertManyUnregisteredQuery("/* INSERT_WHERE_NOT_EXISTS (" + tableName + ") */"
+                            + " INSERT INTO " + prefixedTableName() + " (row_name, col_name, ts, val) "
                             + " SELECT ?, ?, ?, ? FROM DUAL"
-                            + " WHERE NOT EXISTS (SELECT * FROM " + prefixedTableName + " WHERE"
+                            + " WHERE NOT EXISTS (SELECT * FROM " + prefixedTableName() + " WHERE"
                             + " row_name = ? AND"
                             + " col_name = ? AND"
                             + " ts = ?)",
@@ -121,14 +118,16 @@ public class SimpleDbWriteTable implements DbWriteTable {
             Cell cell = entry.getKey();
             args.add(new Object[] {cell.getRowName(), cell.getColumnName(), entry.getValue()});
         }
-
-        String prefixedTableName = prefixedTableNames.get(tableRef);
-        conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE (" + prefixedTableName + ") */ "
-                + " DELETE /*+ INDEX(m pk_" + prefixedTableName + ") */ "
-                + " FROM " + prefixedTableName + " m "
+        conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE (" + tableName + ") */ "
+                + " DELETE /*+ INDEX(m pk_" + prefixedTableName() + ") */ "
+                + " FROM " + prefixedTableName() + " m "
                 + " WHERE m.row_name = ? "
                 + "  AND m.col_name = ? "
                 + "  AND m.ts = ?",
                 args);
+    }
+
+    private String prefixedTableName() {
+        return config.tablePrefix() + tableName;
     }
 }

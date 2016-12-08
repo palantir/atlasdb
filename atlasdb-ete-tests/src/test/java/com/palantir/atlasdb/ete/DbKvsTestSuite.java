@@ -33,8 +33,5 @@ public class DbKvsTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");
 
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
-            DbKvsTestSuite.class,
-            "docker-compose.dbkvs.yml",
-            CLIENTS);
+    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition("dbkvs", "docker-compose.dbkvs.yml", CLIENTS);
 }

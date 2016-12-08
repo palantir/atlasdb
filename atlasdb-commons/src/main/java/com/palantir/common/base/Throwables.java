@@ -165,7 +165,7 @@ public final class Throwables {
      */
     public static <T extends Throwable> T rewrap(final String newMessage, final T throwable) {
         Preconditions.checkNotNull(throwable);
-        log.info("Rewrapping throwable {} with newMessage {}", throwable, newMessage);
+        log.info("Rewrapping throwable " + throwable + " with newMessage " + newMessage);
         try {
             Constructor<?>[] constructors = throwable.getClass().getConstructors();
             // First see if we can create the exception in a way that lets us preserve the message text
@@ -186,7 +186,8 @@ public final class Throwables {
         } catch (Exception e) {
             // If something goes wrong when we try to rewrap the exception,
             // we should log and throw a runtime exception.
-            log.error("Unexpected error encountered while rewrapping throwable of class {}", throwable.getClass(), e);
+            log.error("Unexpected error encountered while rewrapping throwable of class "
+                    + throwable.getClass(), e);
             throw createPalantirRuntimeException(newMessage, throwable);
         }
     }

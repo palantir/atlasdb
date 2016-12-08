@@ -44,14 +44,6 @@ public final class Benchmarks {
             TableReference tableRef,
             String rowComponent,
             String columnName) {
-        createTable(kvs, tableRef, rowComponent, columnName, TableMetadataPersistence.SweepStrategy.NOTHING);
-    }
-
-    public static void createTable(KeyValueService kvs,
-            TableReference tableRef,
-            String rowComponent,
-            String columnName,
-            TableMetadataPersistence.SweepStrategy sweepStrategy) {
         TableDefinition tableDef = new TableDefinition() {
             {
                 rowName();
@@ -59,7 +51,7 @@ public final class Benchmarks {
                 columns();
                 column(columnName, columnName, ValueType.BLOB);
                 conflictHandler(ConflictHandler.IGNORE_ALL);
-                sweepStrategy(sweepStrategy);
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
             }
         };
         kvs.createTable(tableRef, tableDef.toTableMetadata().persistToBytes());

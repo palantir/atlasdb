@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.DBType;
@@ -49,7 +48,6 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
 
     private final ConnectionManager connManager;
     private final TableReference timestampTable;
-    private final String tablePrefix;
 
     @GuardedBy("this") // lazy init to avoid db connections in constructors
     private DBType dbType;
@@ -57,31 +55,17 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     @GuardedBy("this")
     private Long currentLimit = null;
 
-    /**
-     * Use only if you have already initialized the timestamo table. This exists for legacy support.
-     */
-    public InDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable) {
-        this(connManager, timestampTable, "");
-    }
-
-    public static InDbTimestampBoundStore create(
-            ConnectionManager connManager,
-            TableReference timestampTable,
-            String tablePrefixString) {
-        InDbTimestampBoundStore inDbTimestampBoundStore = new InDbTimestampBoundStore(
-                connManager,
-                timestampTable,
-                tablePrefixString);
+    public static InDbTimestampBoundStore create(ConnectionManager connManager, TableReference timestampTable) {
+        InDbTimestampBoundStore inDbTimestampBoundStore = new InDbTimestampBoundStore(connManager, timestampTable);
 
         inDbTimestampBoundStore.init();
 
         return inDbTimestampBoundStore;
     }
 
-    private InDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable, String tablePrefix) {
+    public InDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable) {
         this.connManager = Preconditions.checkNotNull(connManager, "connectionManager is required");
         this.timestampTable = Preconditions.checkNotNull(timestampTable, "timestampTable is required");
-        this.tablePrefix = tablePrefix;
     }
 
     private void init() {
@@ -182,7 +166,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     }
 
     private Long readLimit(Connection connection) throws SQLException {
-        String sql = "SELECT last_allocated FROM " + prefixedTimestampTableName() + " FOR UPDATE";
+        String sql = "SELECT last_allocated FROM " + timestampTable.getQualifiedName() + " FOR UPDATE";
         QueryRunner run = new QueryRunner();
         return run.query(connection, sql, new ResultSetHandler<Long>() {
             @Override
@@ -197,7 +181,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     }
 
     private void writeLimit(Connection connection, long limit) throws SQLException {
-        String updateTs = "UPDATE " + prefixedTimestampTableName() + " SET last_allocated = ?";
+        String updateTs = "UPDATE " + timestampTable.getQualifiedName() + " SET last_allocated = ?";
         try (PreparedStatement statement = connection.prepareStatement(updateTs)) {
             statement.setLong(1, limit);
             statement.executeUpdate();
@@ -207,35 +191,15 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     private void createLimit(Connection connection, long limit) throws SQLException {
         QueryRunner run = new QueryRunner();
         run.update(connection,
-                String.format("INSERT INTO %s (last_allocated) VALUES (?)", prefixedTimestampTableName()),
+                String.format("INSERT INTO %s (last_allocated) VALUES (?)", timestampTable.getQualifiedName()),
                 limit);
     }
 
     private void createTimestampTable(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement()) {
-            if (getDbType(connection).equals(DBType.ORACLE)) {
-                createTimestampTableIgnoringAlreadyExistsError(statement);
-            } else {
-                statement.execute(String.format("CREATE TABLE IF NOT EXISTS %s ( last_allocated int8 NOT NULL )",
-                        prefixedTimestampTableName()));
-            }
+            statement.execute(String.format("CREATE TABLE IF NOT EXISTS %s ( last_allocated int8 NOT NULL )",
+                    timestampTable.getQualifiedName()));
         }
-    }
-
-    private void createTimestampTableIgnoringAlreadyExistsError(Statement statement) throws SQLException {
-        try {
-            statement.execute(String.format("CREATE TABLE %s ( last_allocated NUMBER(38) NOT NULL )",
-                    prefixedTimestampTableName()));
-        } catch (SQLException e) {
-            if (!e.getMessage().contains(OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR)) {
-                log.error("Error occurred creating the Oracle timestamp table", e);
-                throw e;
-            }
-        }
-    }
-
-    private String prefixedTimestampTableName() {
-        return tablePrefix + timestampTable.getQualifiedName();
     }
 
     private DBType getDbType(Connection connection) {

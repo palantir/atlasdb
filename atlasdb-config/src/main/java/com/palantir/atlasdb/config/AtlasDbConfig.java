@@ -17,7 +17,6 @@ package com.palantir.atlasdb.config;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Optional;
@@ -169,15 +168,5 @@ public abstract class AtlasDbConfig {
 
         Preconditions.checkState(lock().isPresent() == timestamp().isPresent(),
                 "Lock and timestamp server blocks must either both be present or both be absent.");
-    }
-
-    @JsonIgnore
-    public AtlasDbConfig toOfflineConfig() {
-        return ImmutableAtlasDbConfig.builder()
-                .from(this)
-                .leader(Optional.absent())
-                .lock(Optional.absent())
-                .timestamp(Optional.absent())
-                .build();
     }
 }

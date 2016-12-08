@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Generated;
 
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -85,6 +86,7 @@ import com.palantir.common.persist.Persistables;
 import com.palantir.common.proxy.AsyncProxy;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
+
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 public final class DataTable implements
@@ -542,7 +544,7 @@ public final class DataTable implements
             Index1IdxTable.Index1IdxColumn indexCol = Index1IdxTable.Index1IdxColumn.of(row.persistToBytes(), col.persistColumnName(), id);
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete(TableReference.createFromFullyQualifiedName("default.index1_idx"), indexCells);
+        t.delete(TableReference.createUnsafe("default.index1_idx"), indexCells);
     }
 
     private void deleteIndex2IdxRaw(Map<Cell, byte[]> results) {
@@ -556,7 +558,7 @@ public final class DataTable implements
             Index2IdxTable.Index2IdxColumn indexCol = Index2IdxTable.Index2IdxColumn.of(row.persistToBytes(), col.persistColumnName());
             indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
         }
-        t.delete(TableReference.createFromFullyQualifiedName("default.index2_idx"), indexCells);
+        t.delete(TableReference.createUnsafe("default.index2_idx"), indexCells);
     }
 
     private void deleteIndex3IdxRaw(Map<Cell, byte[]> results) {
@@ -571,7 +573,7 @@ public final class DataTable implements
                 indexCells.add(Cell.create(indexRow.persistToBytes(), indexCol.persistToBytes()));
             }
         }
-        t.delete(TableReference.createFromFullyQualifiedName("default.index3_idx"), indexCells);
+        t.delete(TableReference.createUnsafe("default.index3_idx"), indexCells);
     }
 
     private void deleteIndex4IdxRaw(Map<Cell, byte[]> results) {
@@ -589,7 +591,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete(TableReference.createFromFullyQualifiedName("default.index4_idx"), indexCells);
+        t.delete(TableReference.createUnsafe("default.index4_idx"), indexCells);
     }
 
     @Override
@@ -776,7 +778,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete(TableReference.createFromFullyQualifiedName("default.index1_idx"), indexCells.build());
+        t.delete(TableReference.createUnsafe("default.index1_idx"), indexCells.build());
     }
 
     private void deleteIndex2Idx(Multimap<DataRow, DataNamedColumnValue<?>> result) {
@@ -793,7 +795,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete(TableReference.createFromFullyQualifiedName("default.index2_idx"), indexCells.build());
+        t.delete(TableReference.createUnsafe("default.index2_idx"), indexCells.build());
     }
 
     private void deleteIndex3Idx(Multimap<DataRow, DataNamedColumnValue<?>> result) {
@@ -811,7 +813,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete(TableReference.createFromFullyQualifiedName("default.index3_idx"), indexCells.build());
+        t.delete(TableReference.createUnsafe("default.index3_idx"), indexCells.build());
     }
 
     private void deleteIndex4Idx(Multimap<DataRow, DataNamedColumnValue<?>> result) {
@@ -832,7 +834,7 @@ public final class DataTable implements
                 }
             }
         }
-        t.delete(TableReference.createFromFullyQualifiedName("default.index4_idx"), indexCells.build());
+        t.delete(TableReference.createUnsafe("default.index4_idx"), indexCells.build());
     }
 
     public BatchingVisitableView<DataRowResult> getAllRowsUnordered() {
@@ -3638,5 +3640,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6v6D3OWztYAGUBd3y4QSBw==";
+    static String __CLASS_HASH = "J1lrlfw1eHZmiWP26V5pTA==";
 }

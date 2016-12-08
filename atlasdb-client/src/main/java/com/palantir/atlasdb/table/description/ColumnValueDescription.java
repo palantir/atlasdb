@@ -338,7 +338,7 @@ public class ColumnValueDescription {
             builder.setProtoMessageName(protoDescriptor.getName());
             builder.setProtoFileDescriptorTree(persistFileDescriptorTree(protoDescriptor.getFile()));
             if (protoDescriptor.getContainingType() != null) {
-                log.error("proto descriptors should be top level types: {}", protoDescriptor.getName());
+                log.error("proto descriptors should be top level types: " + protoDescriptor.getName());
             }
         }
         return builder;

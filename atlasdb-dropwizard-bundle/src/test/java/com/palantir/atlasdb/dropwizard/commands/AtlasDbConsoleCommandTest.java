@@ -51,9 +51,9 @@ public class AtlasDbConsoleCommandTest {
             .build();
 
     private static final Map<String, Object> ONLINE_PARAMS = Collections
-            .singletonMap(AtlasDbCommandUtils.OFFLINE_COMMAND_ARG_NAME, null);
+            .singletonMap("runCliOffline", null);
     private static final Map<String, Object> OFFLINE_PARAMS = Collections
-            .singletonMap(AtlasDbCommandUtils.OFFLINE_COMMAND_ARG_NAME, AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT);
+            .singletonMap("runCliOffline", AtlasDbCommandUtils.ZERO_ARITY_ARG_CONSTANT);
 
     @Test
     public void lockAndTimestampFieldsShouldBeSetWhenRunningOnline() throws JsonProcessingException {

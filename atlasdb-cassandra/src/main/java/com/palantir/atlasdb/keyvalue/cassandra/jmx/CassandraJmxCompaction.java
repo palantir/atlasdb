@@ -78,10 +78,6 @@ public final class CassandraJmxCompaction {
         // NOTE: RMI timeout to avoid hanging tcp connection
         System.setProperty("sun.rmi.transport.tcp.responseTimeout", String.valueOf(rmiTimeoutMillis));
 
-        if (!jmxConfig.ssl()) {
-            return;
-        }
-
         String keyStoreFile = jmxConfig.keystore();
         String keyStorePassword = jmxConfig.keystorePassword();
         String trustStoreFile = jmxConfig.truststore();

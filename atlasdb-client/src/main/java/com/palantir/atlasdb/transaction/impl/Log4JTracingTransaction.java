@@ -34,6 +34,6 @@ public class Log4JTracingTransaction extends TracingTransaction {
 
     @Override
     protected void trace(String format, Object... args) {
-        logger.trace("Transaction trace: {}", String.format(format, args));
+        logger.trace(String.format(format, args));
     }
 }

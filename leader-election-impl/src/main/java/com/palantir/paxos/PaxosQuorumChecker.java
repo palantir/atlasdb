@@ -32,6 +32,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.palantir.util.Pair;
 
 public final class PaxosQuorumChecker {
 
@@ -81,7 +82,7 @@ public final class PaxosQuorumChecker {
             }));
         }
 
-        List<Throwable> toLog = Lists.newArrayList();
+        List<Pair<String, Throwable>> toLog = Lists.newArrayList();
         boolean interrupted = false;
         List<RESPONSE> receivedResponses = new ArrayList<RESPONSE>();
         int acksRecieved = 0;
@@ -122,7 +123,7 @@ public final class PaxosQuorumChecker {
                 } catch (ExecutionException e) {
                     nacksRecieved++;
                     if (onlyLogOnQuorumFailure) {
-                        toLog.add(e.getCause());
+                        toLog.add(Pair.create(PAXOS_MESSAGE_ERROR, e.getCause()));
                     } else {
                         log.warn(PAXOS_MESSAGE_ERROR, e.getCause());
                     }
@@ -155,8 +156,8 @@ public final class PaxosQuorumChecker {
             }
 
             if (onlyLogOnQuorumFailure && acksRecieved < quorumSize) {
-                for (Throwable throwable : toLog) {
-                    log.warn(PAXOS_MESSAGE_ERROR, throwable);
+                for (Pair<String, Throwable> p : toLog) {
+                    log.warn(p.lhSide, p.rhSide);
                 }
             }
         }

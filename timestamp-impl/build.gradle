@@ -4,11 +4,14 @@ dependencies {
   compile(project(":timestamp-api"))
   compile(project(":atlasdb-commons"))
 
-  compile group: 'org.hamcrest', name: 'hamcrest-core'
-  compile group: 'org.hamcrest', name: 'hamcrest-library'
-
-  testCompile group: 'junit', name: 'junit'
-  testCompile group: 'org.jmock', name: 'jmock', version: libVersions.jmock
-  testCompile group: 'com.jayway.awaitility', name: 'awaitility'
-  testCompile group: 'org.mockito', name: 'mockito-core'
+  testCompile(group: 'junit', name: 'junit', version: libVersions.junit) {
+    exclude group: 'org.hamcrest'
+  }
+  testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
+    exclude group: 'org.hamcrest'
+  }
+  testCompile 'com.jayway.awaitility:awaitility:1.6.5'
+  testCompile 'org.mockito:mockito-core:' + libVersions.mockito
+  compile 'org.hamcrest:hamcrest-core:' + libVersions.hamcrest
+  compile 'org.hamcrest:hamcrest-library:' + libVersions.hamcrest
 }

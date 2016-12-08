@@ -59,7 +59,6 @@ import com.palantir.common.visitor.Visitor;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public final class CQLKeyValueServices {
     private static final Logger log = LoggerFactory.getLogger(CQLKeyValueService.class); // not a typo
 
@@ -101,7 +100,7 @@ public final class CQLKeyValueServices {
                     continue;
                 }
                 final UUID traceId = info.getQueryTrace().getTraceId();
-                log.info("Traced query {} with trace uuid {}", tracedQuery, traceId);
+                log.info("Traced query " + tracedQuery + " with trace uuid " + traceId);
                 traceRetrievalExec.submit(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
@@ -153,7 +152,7 @@ public final class CQLKeyValueServices {
                         if (!success) {
                             sb.append(" (retrieval timed out)");
                         }
-                        log.info("Query trace: {}", sb);
+                        log.info(sb.toString());
                         return null;
                     }
                 });

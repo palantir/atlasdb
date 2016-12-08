@@ -18,9 +18,6 @@ package com.palantir.nexus.db.sql.monitoring.logger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-@SuppressFBWarnings("SLF4J_LOGGER_SHOULD_BE_PRIVATE")
 public class SqlLoggers {
     public static final Logger LOGGER = LoggerFactory.getLogger("com.palantir.nexus.db.SQL");
     public static final Logger CANCEL_LOGGER = LoggerFactory.getLogger("com.palantir.nexus.db.SQL.cancel");

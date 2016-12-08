@@ -60,9 +60,6 @@ import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-@SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public abstract class AbstractKeyValueService implements KeyValueService {
     private static final Logger log = LoggerFactory.getLogger(KeyValueService.class);
 
@@ -236,15 +233,14 @@ public abstract class AbstractKeyValueService implements KeyValueService {
                         runningSize += sizingFunction.apply(firstEntry);
                         entries.add(firstEntry);
                         if (runningSize > maximumBytesPerPartition && log.isWarnEnabled()) {
-                            String message = "Encountered an entry of approximate size {} bytes, "
-                                    + "larger than maximum size of {} defined per entire batch, "
-                                    + "while doing a write to {}. Attempting to batch anyways.";
-                            if (AtlasDbConstants.TABLES_KNOWN_TO_BE_POORLY_DESIGNED.contains(
-                                    TableReference.createWithEmptyNamespace(tableName))) {
-                                log.warn(message, sizingFunction.apply(firstEntry), maximumBytesPerPartition, tableName);
+                            String message = "Encountered an entry of approximate size " + sizingFunction.apply(firstEntry) +
+                                    " bytes, larger than maximum size of " + maximumBytesPerPartition +
+                                    " defined per entire batch, while doing a write to " + tableName +
+                                    ". Attempting to batch anyways.";
+                            if (AtlasDbConstants.TABLES_KNOWN_TO_BE_POORLY_DESIGNED.contains(TableReference.createUnsafe(tableName))) {
+                                log.warn(message);
                             } else {
-                                String longerMessage = message + " This can potentially cause out-of-memory errors.";
-                                log.warn(longerMessage, sizingFunction.apply(firstEntry), maximumBytesPerPartition, tableName);
+                                log.warn(message + " This can potentially cause out-of-memory errors.");
                             }
                         }
 
@@ -302,13 +298,9 @@ public abstract class AbstractKeyValueService implements KeyValueService {
         return tableName.replaceFirst("\\.", "__");
     }
 
-    /** @deprecated uses TableReference.createUnsafe, which is itself deprecated.
-     *
-     */
-    @Deprecated
-    protected static TableReference fromInternalTableName(String tableName) {
+    protected TableReference fromInternalTableName(String tableName) {
         if (tableName.startsWith("_")) {
-            return TableReference.createWithEmptyNamespace(tableName);
+            return TableReference.createUnsafe(tableName);
         }
         return TableReference.createUnsafe(tableName.replaceFirst("__", "."));
     }
