@@ -1,6 +1,5 @@
 (ns jepsen.atlasdb
-  (:require [clj-http.client :as http]
-            [clojure.tools.logging :refer :all]
+  (:require [clojure.tools.logging :refer :all]
             [jepsen.checker :as checker]
             [jepsen.client :as client]
             [jepsen.control :as c]
@@ -11,13 +10,17 @@
             [jepsen.util :refer [timeout]]
             [knossos.history :as history]
             [jepsen.tests :as tests])
-  (:import com.palantir.atlasdb.jepsen.JepsenHistoryChecker)
-  (:import com.palantir.atlasdb.http.TimestampClient))
+    ;; We can import any Java objects, since Clojure runs on the JVM
+    (:import com.palantir.atlasdb.jepsen.JepsenHistoryChecker)
+    (:import com.palantir.atlasdb.http.TimestampClient))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Server setup, teardown, and log files
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn create-server
   "Creates an object that implements the db/DB protocol.
-   This object defines how to setup and teardown a timelock server on a given
-   node, and specifies where the log files can be found.
+   This object defines how to setup and teardown a timelock server on a given node, and specifies where the log files
+   can be found.
   "
   []
   (reify db/DB
@@ -47,13 +50,18 @@
     (log-files [_ test node]
       ["/atlasdb-timelock-server/var/log/atlasdb-timelock-server-startup.log"])))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Defining the set of of operations that you can do with a client
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn read-operation [_ _] {:type :invoke, :f :read-operation, :value nil})
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Client creation and invocations (i.e. reading a timestamp)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn create-client
   "Creates an object that implements the client/Client protocol.
-   The object defines how you create a timestamp client, and how to request
-   timestamps from it. The first call to this function will return an invalid
-   object: you should call 'setup' on the returned object to get a valid one.
+   The object defines how you create a timestamp client, and how to request timestamps from it. The first call to this
+   function will return an invalid object: you should call 'setup' on the returned object to get a valid one.
   "
   [timestamp-client]
   (reify client/Client
@@ -76,11 +84,17 @@
 
     (teardown! [_ test])))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; How to check the validity of a run of the Jepsen test: we hand off to JepsenHistoryChecker
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def checker
   (reify checker/Checker
     (check [this test model history opts]
       (.checkClojureHistory (JepsenHistoryChecker/createWithStandardCheckers) history))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Defining the Jepsen test
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn atlasdb-test
   []
   (assoc tests/noop-test
