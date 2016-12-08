@@ -17,6 +17,7 @@ package com.palantir.atlasdb.jepsen.events;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -49,6 +50,7 @@ public interface Event {
     static Map<Keyword, Object> toKeywordMap(Event event) {
         Map<String, Object> rawStringMap = OBJECT_MAPPER.convertValue(event, new TypeReference<Map<String, ?>>() {});
         return EntryStream.of(rawStringMap)
+                .filterValues(Objects::nonNull)
                 .mapKeys(Keyword::intern)
                 .toMap();
     }

@@ -23,6 +23,8 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
+
 import clojure.lang.Keyword;
 
 public class EventTest {
@@ -155,5 +157,41 @@ public class EventTest {
         keywordMap.put(Keyword.intern("time"), SOME_TIME);
 
         assertThatThrownBy(() -> Event.fromKeywordMap(keywordMap)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void canSerialiseInfoEventWithValue() {
+        Event infoEvent = ImmutableInfoEvent.builder()
+                .function("foo")
+                .process(String.valueOf(SOME_PROCESS))
+                .time(SOME_TIME)
+                .value("bar")
+                .build();
+
+        Map<Keyword, Object> expected = ImmutableMap.of(
+                Keyword.intern("type"), "info",
+                Keyword.intern("f"), "foo",
+                Keyword.intern("process"), String.valueOf(SOME_PROCESS),
+                Keyword.intern("time"), SOME_TIME,
+                Keyword.intern("value"), "bar");
+
+        assertThat(Event.toKeywordMap(infoEvent)).isEqualTo(expected);
+    }
+
+    @Test
+    public void canSerialiseInfoEventWithoutValue() {
+        Event infoEvent = ImmutableInfoEvent.builder()
+                .function("foo")
+                .process(String.valueOf(SOME_PROCESS))
+                .time(SOME_TIME)
+                .build();
+
+        Map<Keyword, Object> expected = ImmutableMap.of(
+                Keyword.intern("type"), "info",
+                Keyword.intern("f"), "foo",
+                Keyword.intern("process"), String.valueOf(SOME_PROCESS),
+                Keyword.intern("time"), SOME_TIME);
+
+        assertThat(Event.toKeywordMap(infoEvent)).isEqualTo(expected);
     }
 }
