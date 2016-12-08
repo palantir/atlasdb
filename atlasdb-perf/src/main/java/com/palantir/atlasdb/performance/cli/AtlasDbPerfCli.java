@@ -190,7 +190,7 @@ public class AtlasDbPerfCli {
                 .collect(Collectors.toSet());
     }
 
-    protected static boolean isInvalidBackend(String backend){
+    protected static boolean isInvalidBackend(String backend) {
         return !KeyValueServiceType.getBackends().contains(backend);
     }
 }

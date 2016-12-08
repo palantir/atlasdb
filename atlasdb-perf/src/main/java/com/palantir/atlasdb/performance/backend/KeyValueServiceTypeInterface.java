@@ -20,8 +20,8 @@ import java.net.InetSocketAddress;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 public interface KeyValueServiceTypeInterface {
-    public String getDockerComposeResourceFileName();
-    public int getKeyValueServicePort();
-    public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr);
-    public boolean canConnect(InetSocketAddress addr);
+    String getDockerComposeResourceFileName();
+    int getKeyValueServicePort();
+    KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr);
+    boolean canConnect(InetSocketAddress addr);
 }

@@ -36,7 +36,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 
-public enum KeyValueServiceType implements KeyValueServiceTypeInterface{
+public enum KeyValueServiceType implements KeyValueServiceTypeInterface {
     POSTGRES(5432, "postgres-docker-compose.yml"),
     CASSANDRA(9160, "cassandra-docker-compose.yml");
 
@@ -120,8 +120,8 @@ public enum KeyValueServiceType implements KeyValueServiceTypeInterface{
         }
     }
 
-    private static Map< String, KeyValueServiceTypeInterface > backendMap =
-            new TreeMap< String, KeyValueServiceTypeInterface >();
+    private static Map<String, KeyValueServiceTypeInterface> backendMap =
+            new TreeMap<String, KeyValueServiceTypeInterface>();
 
     static {
         for (KeyValueServiceType backend : values()) {
@@ -129,7 +129,7 @@ public enum KeyValueServiceType implements KeyValueServiceTypeInterface{
         }
     }
 
-    public static KeyValueServiceTypeInterface KeyValueServiceTypeFor(String backend) {
+    public static KeyValueServiceTypeInterface keyValueServiceTypeFor(String backend) {
         return backendMap.get(backend);
     }
 
@@ -139,7 +139,7 @@ public enum KeyValueServiceType implements KeyValueServiceTypeInterface{
         }
     }
 
-    public static Set<String> getBackends(){
+    public static Set<String> getBackends() {
         return backendMap.keySet();
     }
 }
