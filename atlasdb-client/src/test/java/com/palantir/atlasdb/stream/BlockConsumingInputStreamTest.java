@@ -19,7 +19,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -29,9 +29,11 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 public class BlockConsumingInputStreamTest {
     private static final int DATA_SIZE = 4;
     private static final int DATA_SIZE_PLUS_ONE = 5;
@@ -86,26 +88,50 @@ public class BlockConsumingInputStreamTest {
         }
     };
 
+    private BlockConsumingInputStream dataStream;
+
+    @Before
+    public void setUp() throws Exception {
+        dataStream = BlockConsumingInputStream.create(dataConsumer, 1, 1);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void cantReadToNullArray() throws IOException {
+        dataStream.read(null, 1, 1);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void cantReadToNegativePlace() throws IOException {
+        dataStream.read(data, -1, 1);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void cantReadNegativeAmount() throws IOException {
+        dataStream.read(data, 0, -1);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void cantReadMoreThanArrayLength() throws IOException {
+        dataStream.read(data, 0, 10);
+    }
+
     @Test
     public void canReadSingleByte() throws IOException {
-        BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1, 1);
-        int byteAsInt = stream.read();
+        int byteAsInt = dataStream.read();
         byte[] readByte = { (byte) byteAsInt };
         assertEquals("d", new String(readByte, StandardCharsets.UTF_8));
     }
 
     @Test
     public void readEmptyArrayReturnsZero() throws IOException {
-        BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1, 1);
-        int read = stream.read(new byte[0]);
+        int read = dataStream.read(new byte[0]);
         assertEquals(0, read);
     }
 
     @Test
     public void canReadBlock() throws IOException {
-        BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1, 1);
         byte[] result = new byte[DATA_SIZE];
-        int read = stream.read(result);
+        int read = dataStream.read(result);
         assertEquals(DATA_SIZE, read);
         assertArrayEquals(data, result);
     }
@@ -134,30 +160,25 @@ public class BlockConsumingInputStreamTest {
 
     @Test
     public void readSingleByteWhenStreamExhaustedReturnsMinusOne() throws IOException {
-        BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1, 1);
-        //noinspection ResultOfMethodCallIgnored
-        stream.read(new byte[DATA_SIZE]);
+        dataStream.read(new byte[DATA_SIZE]);
 
-        int read = stream.read();
+        int read = dataStream.read();
         assertEquals(-1, read);
     }
 
     @Test
     public void readWhenStreamExhaustedReturnsMinusOne() throws IOException {
-        BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1, 1);
         byte[] result = new byte[DATA_SIZE];
-        //noinspection ResultOfMethodCallIgnored
-        stream.read(result);
+        dataStream.read(result);
 
-        int read = stream.read(result);
+        int read = dataStream.read(result);
         assertEquals(-1, read);
     }
 
     @Test
     public void largerArraysThanDataGetPartiallyFilled() throws IOException {
-        BlockConsumingInputStream stream = BlockConsumingInputStream.create(dataConsumer, 1, 1);
         byte[] result = new byte[DATA_SIZE_PLUS_ONE];
-        int read = stream.read(result);
+        int read = dataStream.read(result);
         assertEquals(DATA_SIZE, read);
         assertArrayEquals(data, Arrays.copyOf(result, DATA_SIZE));
     }
@@ -184,7 +205,6 @@ public class BlockConsumingInputStreamTest {
     public void passingInTooManyBlocksCausesAnException() throws IOException {
         BlockConsumingInputStream stream = BlockConsumingInputStream.create(singleByteConsumer, DATA_SIZE_PLUS_ONE, 1);
         byte[] result = new byte[DATA_SIZE_PLUS_ONE];
-        //noinspection ResultOfMethodCallIgnored
         stream.read(result);
     }
 
@@ -220,14 +240,13 @@ public class BlockConsumingInputStreamTest {
     public void canLoadMultipleBlocksAtOnceAndAlsoFewerBlocksAtEnd() throws IOException {
         BlockGetter spiedGetter = Mockito.spy(singleByteConsumer);
         BlockConsumingInputStream stream = BlockConsumingInputStream.create(spiedGetter, DATA_SIZE, 3);
-        //noinspection ResultOfMethodCallIgnored
         stream.read();
-        verify(spiedGetter, times(1)).get(anyInt(), eq(3), any());
+        verify(spiedGetter, times(1)).get(anyLong(), eq(3L), any());
 
         byte[] ata = new byte[3];
         int bytesRead = stream.read(ata);
         assertEquals(3, bytesRead);
-        verify(spiedGetter, times(1)).get(anyInt(), eq(1), any());
+        verify(spiedGetter, times(1)).get(anyLong(), eq(1L), any());
     }
 
     private void expectNextBytesFromStream(BlockConsumingInputStream stream, String expectedOutput) throws IOException {
