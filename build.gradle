@@ -14,7 +14,7 @@ buildscript {
     dependencies {
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.3.1'
         classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.4.4'
-        classpath 'com.palantir.gradle.javadist:gradle-java-distribution:1.0.1'
+        classpath 'com.palantir.gradle.javadist:gradle-java-distribution:1.2.0'
         classpath 'com.palantir:gradle-baseline-java:0.7.1'
         classpath 'com.palantir:jacoco-coverage:0.4.0'
         classpath 'com.netflix.nebula:nebula-dependency-recommender:3.6.3'
