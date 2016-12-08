@@ -13,20 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.dbkvs.impl;
+package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.AbstractDbWriteTable;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.OraclePrefixedTableNames;
 
-public class PrefixedTableNames {
-    private DdlConfig config;
-
-    public PrefixedTableNames(DdlConfig config) {
-        this.config = config;
+public class OracleWriteTable extends AbstractDbWriteTable {
+    public OracleWriteTable(
+            DdlConfig config,
+            ConnectionSupplier conns,
+            OracleTableNameGetter oracleTableNameGetter,
+            TableReference tableRef) {
+        super(config, conns, tableRef, new OraclePrefixedTableNames(config, conns, oracleTableNameGetter));
     }
-
-    public String get(TableReference tableRef) {
-        return config.tablePrefix() + DbKvs.internalTableName(tableRef);
-    }
-
 }
