@@ -92,6 +92,44 @@ public class EventTest {
     }
 
     @Test
+    public void canDeserialiseFailEventWithStacktrace() {
+        String exceptionString = new RuntimeException("Error").toString();
+
+        Map<Keyword, Object> keywordMap = new HashMap<>();
+        keywordMap.put(Keyword.intern("type"), Keyword.intern("fail"));
+        keywordMap.put(Keyword.intern("process"), SOME_PROCESS);
+        keywordMap.put(Keyword.intern("time"), SOME_TIME);
+        keywordMap.put(Keyword.intern("error"), exceptionString);
+
+        Event event = Event.fromKeywordMap(keywordMap);
+
+        FailEvent expectedEvent = ImmutableFailEvent.builder()
+                .process(SOME_PROCESS)
+                .time(SOME_TIME)
+                .error(exceptionString)
+                .build();
+        assertThat(event).isEqualTo(expectedEvent);
+    }
+
+    @Test
+    public void canDeserialiseFailEventWithTimeoutKeyword() {
+        Map<Keyword, Object> keywordMap = new HashMap<>();
+        keywordMap.put(Keyword.intern("type"), Keyword.intern("fail"));
+        keywordMap.put(Keyword.intern("process"), SOME_PROCESS);
+        keywordMap.put(Keyword.intern("time"), SOME_TIME);
+        keywordMap.put(Keyword.intern("error"), Keyword.intern("timeout"));
+
+        Event event = Event.fromKeywordMap(keywordMap);
+
+        FailEvent expectedEvent = ImmutableFailEvent.builder()
+                .process(SOME_PROCESS)
+                .time(SOME_TIME)
+                .error("timeout")
+                .build();
+        assertThat(event).isEqualTo(expectedEvent);
+    }
+
+    @Test
     public void cannotDeserialiseOkReadWhenValueIsMissing() {
         Map<Keyword, Object> keywordMap = new HashMap<>();
         keywordMap.put(Keyword.intern("type"), Keyword.intern("ok"));

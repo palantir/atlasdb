@@ -19,13 +19,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 
 import clojure.lang.Keyword;
 
-public final class TimestampChecker {
-    private TimestampChecker() {
+public class JepsenHistoryChecker {
+
+    private final List<Checker> checkers;
+
+    public JepsenHistoryChecker(Checker... checkers) {
+        this.checkers = ImmutableList.copyOf(checkers);
+    }
+
+    public static JepsenHistoryChecker createWithStandardCheckers() {
+        return new JepsenHistoryChecker(
+                new MonotonicChecker(),
+                new NonOverlappingReadsMonotonicChecker(),
+                new UniquenessChecker());
     }
 
     /**
@@ -37,14 +50,13 @@ public final class TimestampChecker {
      *     [{":type": "invoke", "process": 0, "time", 0L},
      *      {":type": "ok",     "process": 0, "time": 0L, "value", 10L}]
      * @return A map of
-     *     :valid      A boolean of whether the check passes
+     *     :valid?     A boolean of whether the check passes
      *     :errors     A list of events that failed the check, or an empty list if the check passed
-     * @throws Exception if the parsing of the history fails.
+     * @throws RuntimeException if the parsing of the history fails.
      */
-    public static Map<Keyword, Object> checkClojureHistory(List<Map<Keyword, ?>> clojureHistory) {
+    public Map<Keyword, Object> checkClojureHistory(List<Map<Keyword, ?>> clojureHistory) {
         List<Event> events = convertClojureHistoryToEventList(clojureHistory);
         return checkHistory(events);
-
     }
 
     private static List<Event> convertClojureHistoryToEventList(List<Map<Keyword, ?>> clojureHistory) {
@@ -53,15 +65,24 @@ public final class TimestampChecker {
                 .collect(Collectors.toList());
     }
 
-    private static Map<Keyword, Object> checkHistory(List<Event> events) {
-        MonotonicChecker monotonicChecker = new MonotonicChecker();
-        events.forEach(event -> event.accept(monotonicChecker));
-        return createMapFromCompletedChecker(monotonicChecker);
+    private Map<Keyword, Object> checkHistory(List<Event> events) {
+        List<CheckerResult> allResults = checkers.stream()
+                .map(checker -> checker.check(events))
+                .collect(Collectors.toList());
+        return createClojureMapFromResults(CheckerResult.combine(allResults));
     }
 
-    private static Map<Keyword, Object> createMapFromCompletedChecker(MonotonicChecker monotonicChecker) {
-        return ImmutableMap.of(Keyword.intern("valid"), monotonicChecker.valid(),
-                Keyword.intern("errors"), monotonicChecker.errors());
+    private static Map<Keyword, Object> createClojureMapFromResults(CheckerResult results) {
+        List<Map<Keyword, Object>> errorsAsClojureHistory = convertEventListToClojureHistory(results.errors());
+        return ImmutableMap.of(
+                Keyword.intern("valid?"), results.valid(),
+                Keyword.intern("errors"), errorsAsClojureHistory);
+    }
+
+    private static List<Map<Keyword, Object>> convertEventListToClojureHistory(List<Event> events) {
+        return events.stream()
+                .map(Event::toKeywordMap)
+                .collect(Collectors.toList());
     }
 
 }

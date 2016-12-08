@@ -152,6 +152,11 @@ public final class OracleDdlTable implements DbDdlTable {
             // If table does not exist, do nothing
         }
 
+        clearTableSizeCacheAndDropTableMetadata();
+    }
+
+    private void clearTableSizeCacheAndDropTableMetadata() {
+        TableSizeCache.clearCacheForTable(tableRef);
         conns.get().executeUnregisteredQuery(
                 "DELETE FROM " + config.metadataTable().getQualifiedName() + " WHERE table_name = ?",
                 tableRef.getQualifiedName());
@@ -182,7 +187,8 @@ public final class OracleDdlTable implements DbDdlTable {
 
     private void truncateOverflowTableIfItExists() {
         TableSize tableSize = TableSizeCache.getTableSize(conns, tableRef, config.metadataTable());
-        if (tableSize.equals(TableSize.OVERFLOW)) {
+        if (tableSize.equals(TableSize.OVERFLOW)
+                && config.overflowMigrationState() != OverflowMigrationState.UNSTARTED) {
             try {
                 conns.get().executeUnregisteredQuery(
                         "TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortOverflowTableName());
@@ -203,12 +209,10 @@ public final class OracleDdlTable implements DbDdlTable {
                 "SELECT version FROM product_component_version where lower(product) like '%oracle%'");
         String version = result.get(0).getString("version");
         if (VersionStrings.compareVersions(version, MIN_ORACLE_VERSION) < 0) {
-            log.error("Your key value service currently uses version "
-                    + version
-                    + " of oracle. The minimum supported version is "
-                    + MIN_ORACLE_VERSION
+            log.error("Your key value service currently uses version {}"
+                    + " of oracle. The minimum supported version is {}"
                     + ". If you absolutely need to use an older version of oracle,"
-                    + " please contact Palantir support for assistance.");
+                    + " please contact Palantir support for assistance.", version, MIN_ORACLE_VERSION);
         }
     }
 
@@ -217,7 +221,7 @@ public final class OracleDdlTable implements DbDdlTable {
             conns.get().executeUnregisteredQuery(sql);
         } catch (PalantirSqlException e) {
             if (!e.getMessage().contains(errorToIgnore)) {
-                log.error("Error occurred trying to execute the query {}.", sql, e);
+                log.error("Error occurred trying to execute the Oracle query {}.", sql, e);
                 throw e;
             }
         }
@@ -230,13 +234,13 @@ public final class OracleDdlTable implements DbDdlTable {
                 conns.get().executeUnregisteredQuery(
                         "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName() + " MOVE ONLINE");
             } catch (PalantirSqlException e) {
-                log.error("Tried to clean up " + tableRef + " bloat after a sweep operation,"
+                log.error("Tried to clean up {} bloat after a sweep operation,"
                         + " but underlying Oracle database or configuration does not support this"
                         + " (Enterprise Edition that requires this user to be able to perform DDL operations)"
                         + " feature online. Since this can't be automated in your configuration,"
                         + " good practice would be do to occasional offline manual maintenance of rebuilding"
                         + " IOT tables to compensate for bloat. You can contact Palantir Support if you'd"
-                        + " like more information. Underlying error was: " + e.getMessage());
+                        + " like more information. Underlying error was: {}", tableRef, e.getMessage());
             } catch (TableMappingNotFoundException e) {
                 throw Throwables.propagate(e);
             }

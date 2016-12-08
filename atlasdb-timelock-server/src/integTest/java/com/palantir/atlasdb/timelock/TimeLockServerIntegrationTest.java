@@ -34,6 +34,8 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.atomix.DistributedValues;
+import com.palantir.atlasdb.timelock.atomix.ImmutableLeaderAndTerm;
+import com.palantir.atlasdb.timelock.atomix.LeaderAndTerm;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -50,7 +52,7 @@ import io.atomix.variables.DistributedValue;
 import io.dropwizard.testing.ResourceHelpers;
 import io.dropwizard.testing.junit.DropwizardAppRule;
 
-public class TimeLockServerTest {
+public class TimeLockServerIntegrationTest {
     private static final String NOT_FOUND_CODE = "404";
     private static final String SERVICE_NOT_AVAILABLE_CODE = "503";
 
@@ -102,16 +104,16 @@ public class TimeLockServerTest {
 
         assertThat(token).isNotNull();
 
-        String serverLeaderId = getLeaderId();
+        String serverLeaderId = getLeader();
         try {
-            setLeaderId(null);
+            setLeader(null);
             assertThatThrownBy(lockService::currentTimeMillis).hasMessageContaining(SERVICE_NOT_AVAILABLE_CODE);
 
-            setLeaderId(serverLeaderId);
+            setLeader(serverLeaderId);
             Set<LockRefreshToken> refreshedLocks = lockService.refreshLockRefreshTokens(Collections.singleton(token));
             assertThat(refreshedLocks).isEmpty();
         } finally {
-            setLeaderId(serverLeaderId);
+            setLeader(serverLeaderId);
         }
     }
 
@@ -156,46 +158,55 @@ public class TimeLockServerTest {
 
     @Test
     public void timestampServiceShouldNotIssueTimestampsIfNotLeader() {
-        String leader = getLeaderId();
+        String leader = getLeader();
         TimestampService timestampService = getTimestampService(CLIENT_1);
         try {
-            setLeaderId(null);
+            setLeader(null);
             assertThatThrownBy(timestampService::getFreshTimestamp)
                     .hasMessageContaining(SERVICE_NOT_AVAILABLE_CODE);
         } finally {
-            setLeaderId(leader);
+            setLeader(leader);
         }
     }
 
     @Test
     public void timestampServiceShouldIssueTimestampsAgainAfterRegainingLeadership() {
-        String leader = getLeaderId();
+        String leader = getLeader();
         TimestampService timestampService = getTimestampService(CLIENT_1);
         try {
             long ts1 = timestampService.getFreshTimestamp();
 
-            setLeaderId(null);
+            setLeader(null);
             assertThatThrownBy(timestampService::getFreshTimestamp)
                     .hasMessageContaining(SERVICE_NOT_AVAILABLE_CODE);
 
-            setLeaderId(leader);
+            setLeader(leader);
             long ts2 = timestampService.getFreshTimestamp();
 
             assertThat(ts1).isLessThan(ts2);
         } finally {
-            setLeaderId(leader);
+            setLeader(leader);
         }
     }
 
     @Nullable
-    private String getLeaderId() {
-        DistributedValue<String> currentLeaderId = DistributedValues.getLeaderId(atomixClient);
-        return Futures.getUnchecked(currentLeaderId.get());
+    private String getLeader() {
+        DistributedValue<LeaderAndTerm> leaderInfo = DistributedValues.getLeaderInfo(atomixClient);
+        LeaderAndTerm currentLeaderInfo = Futures.getUnchecked(leaderInfo.get());
+        return currentLeaderInfo != null ? currentLeaderInfo.leaderId() : null;
     }
 
-    private void setLeaderId(@Nullable String leaderId) {
-        DistributedValue<String> currentLeaderId = DistributedValues.getLeaderId(atomixClient);
-        Futures.getUnchecked(currentLeaderId.set(leaderId));
+    private void setLeader(@Nullable String newLeader) {
+        DistributedValue<LeaderAndTerm> leaderInfo = DistributedValues.getLeaderInfo(atomixClient);
+        if (newLeader == null) {
+            Futures.getUnchecked(leaderInfo.set(null));
+        } else {
+            LeaderAndTerm currentLeaderInfo = Futures.getUnchecked(leaderInfo.get());
+            LeaderAndTerm newLeaderInfo = ImmutableLeaderAndTerm.of(
+                    currentLeaderInfo != null ? currentLeaderInfo.term() : 0,
+                    newLeader);
+            Futures.getUnchecked(leaderInfo.set(newLeaderInfo));
+        }
     }
 
     private static RemoteLockService getLockService(String client) {

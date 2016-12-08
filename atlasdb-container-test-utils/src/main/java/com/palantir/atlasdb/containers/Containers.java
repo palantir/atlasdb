@@ -39,6 +39,7 @@ import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.DockerComposeFiles;
 import com.palantir.docker.compose.configuration.ProjectName;
+import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.DockerMachine;
 import com.palantir.docker.compose.logging.LogCollector;
 import com.palantir.docker.compose.logging.LogDirectory;
@@ -124,6 +125,7 @@ public class Containers extends ExternalResource {
                 .projectName(PROJECT_NAME)
                 .machine(machine)
                 .logCollector(currentLogCollector)
+                .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
                 .build();
 
         dockerComposeRule.before();
@@ -147,7 +149,7 @@ public class Containers extends ExternalResource {
     private static void waitForContainersToStart() {
         for (Container container : Sets.difference(containersToStart, containersStarted)) {
             Awaitility.await()
-                    .atMost(Duration.TWO_MINUTES)
+                    .atMost(Duration.FIVE_MINUTES)
                     .pollInterval(Duration.ONE_SECOND)
                     .until(() -> container.isReady(dockerComposeRule).succeeded());
         }

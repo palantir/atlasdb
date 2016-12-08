@@ -107,10 +107,14 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                 try {
                     log.trace(
                             "HikariCP: "
-                                    + "numBusyConnections = " + poolProxy.getActiveConnections() + ", "
-                                    + "numIdleConnections = " + poolProxy.getIdleConnections() + ", "
-                                    + "numConnections = " + poolProxy.getTotalConnections() + ", "
-                                    + "numThreadsAwaitingCheckout = " + poolProxy.getThreadsAwaitingConnection());
+                                    + "numBusyConnections = {}, "
+                                    + "numIdleConnections = {}, "
+                                    + "numConnections = {}, "
+                                    + "numThreadsAwaitingCheckout = {}",
+                            poolProxy.getActiveConnections(),
+                            poolProxy.getIdleConnections(),
+                            poolProxy.getTotalConnections(),
+                            poolProxy.getThreadsAwaitingConnection());
                 } catch (Exception e) {
                     log.error("Unable to log pool statistics.", e);
                 }
@@ -154,9 +158,9 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
     private void logConnectionFailure() {
         log.error("Failed to get connection from the datasource "
-                + "db-pool-" + connConfig.getConnId() + "-" + connConfig.getDbLogin()
-                + ". Please check the jdbc url (" + (connConfig.getUrl()) + ")"
-                + ", the password, and that the secure server key is correct for the hashed password.");
+                + "db-pool-{}-{}. Please check the jdbc url ({}), the password, "
+                + "and that the secure server key is correct for the hashed password.",
+                connConfig.getConnId(), connConfig.getDbLogin(), connConfig.getUrl());
     }
 
     /**

@@ -258,11 +258,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 } else if (!hiddenTables.isHidden(tableRef)) {
                     // Possible to get here from a race condition with another service starting up
                     // and performing schema upgrades concurrent with us doing this check
-                    log.error("Found a table " + tableRef.getQualifiedName() + " that did not have persisted"
+                    log.error("Found a table {} that did not have persisted"
                             + " AtlasDB metadata. If you recently did a Palantir update, try waiting until"
                             + " schema upgrades are completed on all backend CLIs/services etc and restarting"
                             + " this service. If this error re-occurs on subsequent attempted startups, please"
-                            + " contact Palantir support.");
+                            + " contact Palantir support.", tableRef.getQualifiedName());
                 }
             }
 
@@ -380,10 +380,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                         }));
             }
             if (rowCount > fetchBatchCount) {
-                log.warn("Rebatched in getRows a call to " + tableRef.getQualifiedName()
-                        + " that attempted to multiget " + rowCount
-                        + " rows; this may indicate overly-large batching on a higher level.\n"
-                        + CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
+                log.warn("Rebatched in getRows a call to {} that attempted to multiget {} rows; "
+                        + "this may indicate overly-large batching on a higher level.\n{}",
+                        tableRef.getQualifiedName(),
+                        rowCount,
+                        CassandraKeyValueServices.getFilteredStackTrace("com.palantir"));
             }
             return ImmutableMap.copyOf(result);
         } catch (Exception e) {
@@ -775,10 +776,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                        BatchColumnRangeSelection columnRangeSelection) {
         return (numRawResults < columnRangeSelection.getBatchHint())
                 || (completedCell
-                        && (RangeRequests.isLastRowName(lastCol)
-                                || Arrays.equals(
-                                        RangeRequests.nextLexicographicName(lastCol),
-                                        columnRangeSelection.getEndCol())));
+                    && (RangeRequests.isLastRowName(lastCol)
+                        || Arrays.equals(
+                            RangeRequests.nextLexicographicName(lastCol),
+                            columnRangeSelection.getEndCol())));
     }
 
     private byte[] getNextColumnRangeColumn(boolean completedCell, byte[] lastCol) {
@@ -1080,8 +1081,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 });
             } catch (TException e) {
                 log.error("Cluster was unavailable while we attempted a truncate for table "
-                        + tableRef.getQualifiedName() + "; we will try "
-                        + (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries) + " additional time(s).", e);
+                        + "{}; we will try {} additional time(s).",
+                        tableRef.getQualifiedName(),
+                        CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries, e);
                 if (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries == 0) {
                     throw e;
                 }
@@ -1112,8 +1114,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                                     final Map<Cell, Collection<Long>> cellVersionsMap) {
         try {
             clientPool.runWithRetryOnHost(host, new FunctionCheckedException<Client, Void, Exception>() {
-
                 int numVersions = 0;
+
                 @Override
                 public Void apply(Client client) throws Exception {
                     // Delete must delete in the order of timestamp and we don't trust batch_mutate to do it
@@ -1164,6 +1166,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             + numVersions + " total versions of " + cellVersionsMap.size() + " keys)";
                 }
             });
+        } catch (UnavailableException e) {
+            throw new PalantirRuntimeException("Deleting requires all Cassandra nodes to be up and available.");
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
@@ -1290,32 +1294,28 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     private void dropTablesInternal(final Set<TableReference> tablesToDrop) throws Exception {
         try {
-            clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
-                @Override
-                public Void apply(Client client) throws Exception {
-                    KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
-                    Set<TableReference> existingTables = Sets.newHashSet();
+            clientPool.runWithRetry((FunctionCheckedException<Client, Void, Exception>) client -> {
+                KsDef ks = client.describe_keyspace(configManager.getConfig().keyspace());
+                Set<TableReference> existingTables = Sets.newHashSet();
 
-                    existingTables.addAll(ks.getCf_defs().stream()
-                            .map(cf -> tableReferenceFromCfDef(cf))
-                            .collect(Collectors.toList()));
+                existingTables.addAll(ks.getCf_defs().stream()
+                        .map(this::tableReferenceFromCfDef)
+                        .collect(Collectors.toList()));
 
-                    for (TableReference table : tablesToDrop) {
-                        CassandraVerifier.sanityCheckTableName(table);
-
-                        if (existingTables.contains(table)) {
-                            client.system_drop_column_family(internalTableName(table));
-                            putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
-                        } else {
-                            log.warn("Ignored call to drop a table ({}) that did not exist.", table);
-                        }
+                for (TableReference table : tablesToDrop) {
+                    CassandraVerifier.sanityCheckTableName(table);
+                    if (existingTables.contains(table)) {
+                        client.system_drop_column_family(internalTableName(table));
+                        putMetadataWithoutChangingSettings(table, PtBytes.EMPTY_BYTE_ARRAY);
+                    } else {
+                        log.warn("Ignored call to drop a table ({}) that did not exist.", table);
                     }
-                    CassandraKeyValueServices.waitForSchemaVersions(
-                            client,
-                            "(all tables in a call to dropTables)",
-                            configManager.getConfig().schemaMutationTimeoutMillis());
-                    return null;
                 }
+                CassandraKeyValueServices.waitForSchemaVersions(
+                        client,
+                        "(all tables in a call to dropTables)",
+                        configManager.getConfig().schemaMutationTimeoutMillis());
+                return null;
             });
         } catch (UnavailableException e) {
             throw new PalantirRuntimeException("Dropping tables requires all Cassandra nodes to be up and available.");
@@ -1381,13 +1381,13 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                     if (Arrays.equals(
                             existingTableMetadata.get(Iterables.getOnlyElement(matchingTables)), newMetadata)) {
                         log.debug("Case-insensitive matched table already existed with same metadata,"
-                                + " skipping update to " + tableReference);
+                                + " skipping update to {}", tableReference);
                     } else { // existing table has different metadata, so we should perform an update
                         tableMetadataUpdates.put(tableReference, newMetadata);
                     }
                 }
             } else {
-                log.debug("Table already existed with same metadata, skipping update to " + tableReference);
+                log.debug("Table already existed with same metadata, skipping update to {}", tableReference);
             }
         }
 
@@ -1468,10 +1468,10 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 .findFirst();
 
         if (!match.isPresent()) {
-            log.debug("Couldn't find table metadata for " + tableRef);
+            log.debug("Couldn't find table metadata for {}", tableRef);
             return AtlasDbConstants.EMPTY_TABLE_METADATA;
         } else {
-            log.debug("Found table metadata for " + tableRef + " at matching name " + match.get().getKey());
+            log.debug("Found table metadata for {} at matching name {}", tableRef, match.get().getKey());
             return match.get().getValue();
         }
     }
@@ -1722,7 +1722,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             log.error("No compaction client was configured, but compact was called."
                     + " If you actually want to clear deleted data immediately"
                     + " from Cassandra, lower your gc_grace_seconds setting and"
-                    + " run `nodetool compact {} {}`.", config.keyspace(), tableRef);
+                    + " run `nodetool compact {} {}`.", config.keyspace(), internalTableName(tableRef));
             return;
         }
         long timeoutInSeconds = config.jmx().get().compactionTimeoutSeconds();
@@ -1732,7 +1732,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
             compactionManager.get().performTombstoneCompaction(timeoutInSeconds, keyspace, tableRef);
         } catch (TimeoutException e) {
             log.error("Compaction for {}.{} could not finish in {} seconds.", keyspace, tableRef, timeoutInSeconds, e);
-            log.error(compactionManager.get().getCompactionStatus());
+            log.error("Compaction status: {}", compactionManager.get().getCompactionStatus());
         } catch (InterruptedException e) {
             log.error("Compaction for {}.{} was interrupted.", keyspace, tableRef);
         } finally {

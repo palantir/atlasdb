@@ -97,7 +97,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                true) {
+                true,
+                timestampCache) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, new Function<byte[], byte[]>() {

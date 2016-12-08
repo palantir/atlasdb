@@ -17,9 +17,9 @@ runtime dependency. In gradle this looks like:
 
 e.g.
 
-.. code-block:: groovy
+.. code-block-with-version-replacement:: groovy
 
-  runtime 'com.palantir.atlasdb:atlasdb-dbkvs:0.19.0'
+  runtime 'com.palantir.atlasdb:atlasdb-dbkvs:|latest|'
   runtime 'com.palantir.atlasdb:dbkvs-oracle-driver:0.3.0'
 
 .. oracle-kvs-config:
@@ -36,14 +36,14 @@ A minimal AtlasDB configuration for running against Oracle will look like the be
         type: relational
         ddl:
           type: oracle
-          overflowMigrationState: 3
+          overflowMigrationState: FINISHED
           jdbcHandler:
             type: oracle
         connection:
           type: oracle
-          host: localhost
+          host: oracle
           port: 1521
-          sid: oracle
+          sid: palantir
           dbLogin: palantir
           dbPassword: palpal
 

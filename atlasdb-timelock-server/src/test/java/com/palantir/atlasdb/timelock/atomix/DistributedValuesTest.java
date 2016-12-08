@@ -36,8 +36,8 @@ public class DistributedValuesTest {
 
     @Test
     public void sameKeyShouldBeUsedEveryTimeForGettingTheLeaderId() {
-        String leaderKey1 = getAtomixKey(DistributedValues::getLeaderId);
-        String leaderKey2 = getAtomixKey(DistributedValues::getLeaderId);
+        String leaderKey1 = getAtomixKey(DistributedValues::getLeaderInfo);
+        String leaderKey2 = getAtomixKey(DistributedValues::getLeaderInfo);
 
         assertThat(leaderKey1).isEqualTo(leaderKey2);
     }

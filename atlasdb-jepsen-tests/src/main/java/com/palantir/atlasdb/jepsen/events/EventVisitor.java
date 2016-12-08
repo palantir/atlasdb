@@ -19,4 +19,5 @@ public interface EventVisitor {
     void visit(InfoEvent event);
     void visit(InvokeEvent event);
     void visit(OkEvent event);
+    void visit(FailEvent event);
 }

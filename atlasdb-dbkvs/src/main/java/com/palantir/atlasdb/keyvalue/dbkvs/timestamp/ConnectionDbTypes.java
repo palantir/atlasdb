@@ -42,7 +42,7 @@ public final class ConnectionDbTypes {
             } else if (driverName.contains("h2")) {
                 return DBType.H2_MEMORY;
             } else {
-                log.error("Could not determine database type from connection with driver name " + driverName);
+                log.error("Could not determine database type from connection with driver name {}", driverName);
                 return null;
             }
         } catch (SQLException e) {

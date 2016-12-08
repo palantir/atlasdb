@@ -15,41 +15,71 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
+import java.sql.SQLException;
 import java.util.concurrent.ExecutionException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.common.base.Throwables;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
+import com.palantir.nexus.db.sql.SqlConnection;
 
 public final class TableSizeCache {
+    private static final Logger log = LoggerFactory.getLogger(TableSizeCache.class);
+
     private static final Cache<TableReference, TableSize> tableSizeByTableRef = CacheBuilder.newBuilder().build();
 
     private TableSizeCache() {
-        //Utility class
+        // Utility class
     }
 
     public static TableSize getTableSize(
-            final ConnectionSupplier conns,
+            final ConnectionSupplier connectionSupplier,
             final TableReference tableRef,
             TableReference metadataTable) {
         try {
             return tableSizeByTableRef.get(tableRef, () -> {
-                AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
-                        String.format(
-                                "SELECT table_size FROM %s WHERE table_name = ?",
-                                metadataTable.getQualifiedName()),
-                        tableRef.getQualifiedName());
-                Preconditions.checkArgument(
-                        !results.rows().isEmpty(),
-                        "table %s not found",
-                        tableRef.getQualifiedName());
-                return TableSize.byId(results.get(0).getInteger("table_size"));
+                SqlConnection conn = null;
+                try {
+                    conn = connectionSupplier.getNewUnsharedConnection();
+                    AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
+                            String.format(
+                                    "SELECT table_size FROM %s WHERE table_name = ?",
+                                    metadataTable.getQualifiedName()),
+                            tableRef.getQualifiedName());
+                    Preconditions.checkArgument(
+                            !results.rows().isEmpty(),
+                            "table %s not found",
+                            tableRef.getQualifiedName());
+
+                    return TableSize.byId(Iterables.getOnlyElement(results.rows()).getInteger("table_size"));
+                } finally {
+                    closeUnderlyingConnection(conn);
+                }
             });
         } catch (ExecutionException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+            log.error("TableSize for the table {} could not be retrieved.", tableRef.getQualifiedName());
+            throw Throwables.propagate(e);
         }
+    }
+
+    private static void closeUnderlyingConnection(SqlConnection connection) {
+        if (connection != null) {
+            try {
+                connection.getUnderlyingConnection().close();
+            } catch (SQLException e) {
+                log.error("Couldn't cleanup SQL connection while retrieving table size.", e);
+            }
+        }
+    }
+
+    public static void clearCacheForTable(TableReference tableRef) {
+        tableSizeByTableRef.invalidate(tableRef);
     }
 }
