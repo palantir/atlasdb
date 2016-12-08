@@ -48,7 +48,7 @@ v0.26.0
          - Change
 
     *    - |improved|
-         - Added Javadocs to ``CassandraKeyValueService.java``, `documented <http://palantir.github.io/atlasdb/html/index.html>`__ the behaviour of ``CassandraKeyValueService`` when one or more nodes in the Cassandra cluster are down.
+         - Added Javadocs to ``CassandraKeyValueService.java``, `documented <http://palantir.github.io/atlasdb/html/configuration/multinode_cassandra.html>`__ the behaviour of ``CassandraKeyValueService`` when one or more nodes in the Cassandra cluster are down.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1329>`__)
 
     *    - |improved|
