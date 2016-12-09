@@ -58,7 +58,7 @@ public class NemesisResilienceChecker implements Checker {
                 if (isStartEvent(event)) {
                     startAwaitingInvokeOkCycles(event);
                 } else if (isStopEvent(event) && awaitingInvokeOkCycle) {
-                    handleUnsurvivedEvents(event);
+                    addUnsurvivedEvents(event);
                 }
             }
         }
@@ -108,7 +108,7 @@ public class NemesisResilienceChecker implements Checker {
             processesPendingReads.clear();
         }
 
-        private void handleUnsurvivedEvents(InfoEvent event) {
+        private void addUnsurvivedEvents(InfoEvent event) {
             unsurvivedEvents.add(startEvent);
             unsurvivedEvents.add(event);
             awaitingInvokeOkCycle = false;

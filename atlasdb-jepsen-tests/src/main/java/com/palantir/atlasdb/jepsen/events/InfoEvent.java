@@ -40,7 +40,6 @@ public abstract class InfoEvent implements Event {
 
     public abstract long time();
 
-    @JsonProperty("value")
     public abstract Optional<String> value();
 
     @Override

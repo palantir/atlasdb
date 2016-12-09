@@ -35,27 +35,27 @@ public class NemesisResilienceCheckerTest {
     private static final String VALUE_1 = "value1";
     private static final String VALUE_2 = "value2";
 
-    private static final Event INVOKE_0 = ImmutableInvokeEvent.builder()
-            .time(ZERO_TIME)
-            .process(PROCESS_1)
-            .build();
     private static final Event INVOKE_1 = ImmutableInvokeEvent.builder()
             .time(ZERO_TIME)
+            .process(PROCESS_1)
+            .build();
+    private static final Event INVOKE_2 = ImmutableInvokeEvent.builder()
+            .time(ZERO_TIME)
             .process(PROCESS_2)
             .build();
 
-    private static final Event OK_0 = ImmutableOkEvent.builder()
+    private static final Event OK_1 = ImmutableOkEvent.builder()
             .time(ZERO_TIME)
             .process(PROCESS_1)
             .value(0L)
             .build();
-    private static final Event OK_1 = ImmutableOkEvent.builder()
+    private static final Event OK_2 = ImmutableOkEvent.builder()
             .time(ZERO_TIME)
             .process(PROCESS_2)
             .value(0L)
             .build();
 
-    private static final Event ERROR_0 = ImmutableFailEvent.builder()
+    private static final Event ERROR_1 = ImmutableFailEvent.builder()
             .time(ZERO_TIME)
             .process(PROCESS_1)
             .error("timeout")
@@ -104,32 +104,32 @@ public class NemesisResilienceCheckerTest {
 
     @Test
     public void succeedsWithNoNemesisAction() {
-        assertNoErrors(INVOKE_0, OK_0);
+        assertNoErrors(INVOKE_1, OK_1);
     }
 
     @Test
     public void succeedsWithNemesisStartWithoutStop() {
-        assertNoErrors(OK_0, NEMESIS_START);
+        assertNoErrors(OK_1, NEMESIS_START);
     }
 
     @Test
     public void succeedsWithNemesisStopWithoutStart() {
-        assertNoErrors(OK_0, NEMESIS_STOP);
+        assertNoErrors(OK_1, NEMESIS_STOP);
     }
 
     @Test
     public void succeedsWithInvokeOkBetweenNemesisStartStop() {
-        assertNoErrors(NEMESIS_START, INVOKE_0, OK_0, NEMESIS_STOP);
+        assertNoErrors(NEMESIS_START, INVOKE_1, OK_1, NEMESIS_STOP);
     }
 
     @Test
     public void succeedsWithOneProcessSuccessfulCycle() {
-        assertNoErrors(NEMESIS_START, INVOKE_0, INVOKE_1, OK_0, NEMESIS_STOP);
+        assertNoErrors(NEMESIS_START, INVOKE_1, INVOKE_2, OK_1, NEMESIS_STOP);
     }
 
     @Test
     public void succeedsWithAnySuccessfulInvokeOkCycle() {
-        assertNoErrors(NEMESIS_START, INVOKE_0, INVOKE_0, ERROR_0, OK_0, NEMESIS_STOP);
+        assertNoErrors(NEMESIS_START, INVOKE_1, INVOKE_1, ERROR_1, OK_1, NEMESIS_STOP);
     }
 
     @Test
@@ -139,7 +139,7 @@ public class NemesisResilienceCheckerTest {
 
     @Test
     public void succeedsWithMultipleInvokeOksBetweenNemesisStartStop() {
-        assertNoErrors(NEMESIS_START, INVOKE_0, OK_0, INVOKE_1, OK_1, NEMESIS_STOP);
+        assertNoErrors(NEMESIS_START, INVOKE_1, OK_1, INVOKE_2, OK_2, NEMESIS_STOP);
     }
 
     @Test
@@ -149,27 +149,27 @@ public class NemesisResilienceCheckerTest {
 
     @Test
     public void failsWithInvokeBeforeNemesisStart() {
-        assertSimpleNemesisError(INVOKE_0, NEMESIS_START, OK_0, NEMESIS_STOP);
+        assertSimpleNemesisError(INVOKE_1, NEMESIS_START, OK_1, NEMESIS_STOP);
     }
 
     @Test
     public void failsWithOkAfterNemesisStop() {
-        assertSimpleNemesisError(NEMESIS_START, INVOKE_0, NEMESIS_STOP, OK_0);
+        assertSimpleNemesisError(NEMESIS_START, INVOKE_1, NEMESIS_STOP, OK_1);
     }
 
     @Test
     public void failsWithCycleNotInNemesisWindow() {
-        assertSimpleNemesisError(INVOKE_0, NEMESIS_START, OK_0, INVOKE_0, NEMESIS_STOP, OK_0);
+        assertSimpleNemesisError(INVOKE_1, NEMESIS_START, OK_1, INVOKE_1, NEMESIS_STOP, OK_1);
     }
 
     @Test
     public void failsWithUnsuccessfulResponse() {
-        assertSimpleNemesisError(NEMESIS_START, INVOKE_0, ERROR_0, NEMESIS_STOP);
+        assertSimpleNemesisError(NEMESIS_START, INVOKE_1, ERROR_1, NEMESIS_STOP);
     }
 
     @Test
     public void doesNotObserveCycleWithDifferentProcesses() {
-        assertSimpleNemesisError(NEMESIS_START, INVOKE_0, OK_1, NEMESIS_STOP);
+        assertSimpleNemesisError(NEMESIS_START, INVOKE_1, OK_2, NEMESIS_STOP);
     }
 
     @Test
@@ -186,19 +186,19 @@ public class NemesisResilienceCheckerTest {
 
     @Test
     public void succeedsIfCycleBetweenInnermostEvents() {
-        assertNoErrors(NEMESIS_START, NEMESIS_START_2, INVOKE_0, OK_0, NEMESIS_STOP, NEMESIS_STOP_2);
+        assertNoErrors(NEMESIS_START, NEMESIS_START_2, INVOKE_1, OK_1, NEMESIS_STOP, NEMESIS_STOP_2);
     }
 
     @Test
     public void failsIfCycleNotBetweenInnermostEvents() {
         CheckerResult result = runNemesisResilienceChecker(
                 NEMESIS_START,
-                INVOKE_0,
-                NEMESIS_START_2,
-                OK_0,
                 INVOKE_1,
-                NEMESIS_STOP,
+                NEMESIS_START_2,
                 OK_1,
+                INVOKE_2,
+                NEMESIS_STOP,
+                OK_2,
                 NEMESIS_STOP_2);
 
         assertThat(result.valid()).isFalse();
@@ -221,8 +221,8 @@ public class NemesisResilienceCheckerTest {
     public void onlyReportsRelevantOffendingEvents() {
         CheckerResult result = runNemesisResilienceChecker(
                 NEMESIS_START,
-                INVOKE_0,
-                OK_0,
+                INVOKE_1,
+                OK_1,
                 NEMESIS_STOP,
                 NEMESIS_START_2,
                 NEMESIS_STOP_2);
@@ -235,10 +235,10 @@ public class NemesisResilienceCheckerTest {
     public void failsOnDistributedCycle() {
         CheckerResult result = runNemesisResilienceChecker(
                 NEMESIS_START,
-                INVOKE_0,
+                INVOKE_1,
                 NEMESIS_STOP,
                 NEMESIS_START_2,
-                OK_0,
+                OK_1,
                 NEMESIS_STOP_2);
 
         assertThat(result.valid()).isFalse();
@@ -252,12 +252,12 @@ public class NemesisResilienceCheckerTest {
 
     @Test
     public void ignoresNonNemesisRelatedInfoEventsMidstream() {
-        assertNoErrors(NEMESIS_START, INVOKE_0, IMPOSTOR_START, IMPOSTOR_STOP, OK_0, NEMESIS_STOP);
+        assertNoErrors(NEMESIS_START, INVOKE_1, IMPOSTOR_START, IMPOSTOR_STOP, OK_1, NEMESIS_STOP);
     }
 
     @Test
     public void skipsNonNemesisRelatedInfoEvents() {
-        assertSimpleNemesisError(INVOKE_0, NEMESIS_START, IMPOSTOR_START, OK_0, NEMESIS_STOP, IMPOSTOR_STOP);
+        assertSimpleNemesisError(INVOKE_1, NEMESIS_START, IMPOSTOR_START, OK_1, NEMESIS_STOP, IMPOSTOR_STOP);
     }
 
     private static void assertNoErrors(Event... events) {
