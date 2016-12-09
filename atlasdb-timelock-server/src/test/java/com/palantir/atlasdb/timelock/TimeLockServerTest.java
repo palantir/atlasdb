@@ -44,7 +44,8 @@ import io.dropwizard.jersey.setup.JerseyEnvironment;
 import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
 import io.dropwizard.setup.Environment;
 
-@Ignore("Observed ConcurrentModificationException-related flakes (e.g. build #5407 on CircleCI).")
+@Ignore("Observed ConcurrentModificationException-related flakes (e.g. build #5407 on CircleCI)."
+        + "Fixed in atomix/copycat#231, but not part of Copycat 1.1.4 which we use.")
 public class TimeLockServerTest {
     private static final Address LOCAL_ADDRESS = new Address("localhost:12345");
     private static final TimeLockServerConfiguration TIMELOCK_CONFIG = new TimeLockServerConfiguration(
