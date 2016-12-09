@@ -32,7 +32,7 @@ public class JepsenHistoryCheckersTest {
         JepsenHistoryChecker checker = JepsenHistoryCheckers.createWithTimestampCheckers();
 
         assertCheckerHasMatchingCheckers(JepsenHistoryCheckers.TIMESTAMP_CHECKERS, checker);
-        assertThat(checker.checkers).hasSize(JepsenHistoryCheckers.TIMESTAMP_CHECKERS.size());
+        assertThat(checker.getCheckers()).hasSize(JepsenHistoryCheckers.TIMESTAMP_CHECKERS.size());
     }
 
     @Test
@@ -40,8 +40,8 @@ public class JepsenHistoryCheckersTest {
         JepsenHistoryChecker checker1 = JepsenHistoryCheckers.createWithTimestampCheckers();
         JepsenHistoryChecker checker2 = JepsenHistoryCheckers.createWithTimestampCheckers();
 
-        for (Checker checkerFromCheckerOne : checker1.checkers) {
-            for (Checker checkerFromCheckerTwo : checker2.checkers) {
+        for (Checker checkerFromCheckerOne : checker1.getCheckers()) {
+            for (Checker checkerFromCheckerTwo : checker2.getCheckers()) {
                 assertThat(checkerFromCheckerOne).isNotSameAs(checkerFromCheckerTwo);
             }
         }
@@ -54,11 +54,11 @@ public class JepsenHistoryCheckersTest {
                 ImmutableList.of(() -> dummyChecker)
         );
 
-        assertThat(checker.checkers).containsExactly(dummyChecker);
+        assertThat(checker.getCheckers()).containsExactly(dummyChecker);
     }
 
     private void assertCheckerHasMatchingCheckers(List<Supplier<Checker>> checkerList, JepsenHistoryChecker checker) {
         checkerList.forEach(
-                supplier -> assertThat(checker.checkers).hasAtLeastOneElementOfType(supplier.get().getClass()));
+                supplier -> assertThat(checker.getCheckers()).hasAtLeastOneElementOfType(supplier.get().getClass()));
     }
 }
