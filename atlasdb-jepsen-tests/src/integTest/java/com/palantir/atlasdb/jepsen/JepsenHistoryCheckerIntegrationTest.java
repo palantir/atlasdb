@@ -28,6 +28,7 @@ import org.junit.Test;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
 
 import clojure.lang.Keyword;
@@ -52,7 +53,22 @@ public class JepsenHistoryCheckerIntegrationTest {
         Map<Keyword, Object> results = JepsenHistoryCheckers.createWithLivenessCheckers()
                 .checkClojureHistory(convertedAllEvents);
 
+        Map<Keyword, ?> nemesisStartEventMap = ImmutableMap.of(
+                Keyword.intern("f"), "start",
+                Keyword.intern("process"), "nemesis",
+                Keyword.intern("type"), "info",
+                Keyword.intern("value"), "start!",
+                Keyword.intern("time"), 18784227842L);
+        Map<Keyword, ?> nemesisStopEventMap = ImmutableMap.of(
+                Keyword.intern("f"), "stop",
+                Keyword.intern("process"), "nemesis",
+                Keyword.intern("type"), "info",
+                Keyword.intern("value"), "stop!",
+                Keyword.intern("time"), 18805796986L);
+        List<Map<Keyword, ?>> expected = ImmutableList.of(nemesisStartEventMap, nemesisStopEventMap);
+
         assertThat(results).containsEntry(Keyword.intern("valid?"), false);
+        assertThat(results).containsEntry(Keyword.intern("errors"), expected);
     }
 
     private static List<Map<Keyword, ?>> getClojureMapFromFile(String resourcePath) throws IOException {
