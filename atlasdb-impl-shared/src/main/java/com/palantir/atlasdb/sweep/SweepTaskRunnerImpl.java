@@ -134,7 +134,11 @@ public class SweepTaskRunnerImpl implements SweepTaskRunner {
         }
     }
 
-    private SweepResults runSweepInternal(TableReference tableRef, int rowBatchSize, int cellBatchSize, @Nullable byte[] nullableStartRow) {
+    private SweepResults runSweepInternal(
+            TableReference tableRef,
+            int rowBatchSize,
+            int cellBatchSize,
+            @Nullable byte[] nullableStartRow) {
         // Earliest start timestamp of any currently open transaction, with two caveats:
         // (1) unreadableTimestamps are calculated via wall-clock time, and so may not be correct
         //     under pathological clock conditions

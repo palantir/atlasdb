@@ -19,6 +19,7 @@ import java.util.function.Supplier;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
+@SuppressWarnings("checkstyle:FinalClass")
 public class DeletionLock {
     private final PersistentLock persistentLock;
     public static final PersistentLockName DELETION_LOCK_NAME = PersistentLockName.of("DeletionLock");
