@@ -54,6 +54,13 @@ public class PersistentLocksShould {
     public ExpectedException expectedException = ExpectedException.none();
 
     @Test
+    public void returnEmptySetWhenNoLocksEverSaved() {
+        PersistentLock persistentLock = makeInMemoryPersistentLock();
+
+        assertThat(persistentLock.allLockEntries(), empty());
+    }
+
+    @Test
     public void successfullyGrabLockAfterItWasReleased() throws PersistentLockIsTakenException {
         PersistentLock persistentLock = makeInMemoryPersistentLock();
 

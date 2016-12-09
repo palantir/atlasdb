@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import org.junit.BeforeClass;
@@ -31,6 +32,7 @@ import com.palantir.atlasdb.persistentlock.DeletionLock;
 import com.palantir.atlasdb.persistentlock.LockEntry;
 import com.palantir.atlasdb.persistentlock.PersistentLock;
 import com.palantir.atlasdb.persistentlock.PersistentLockIsTakenException;
+import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.services.test.DaggerTestAtlasDbServices;
@@ -73,6 +75,18 @@ public class BackupLockCommandTest {
     }
 
     @Test
+    public void acquireLockTwiceShouldFail() throws Exception {
+        try (SingleBackendCliTestRunner runner = makeRunner(LOCK_COMMAND_NAME, "--acquire")) {
+            AtlasDbServices services = runner.connect(moduleFactory);
+            runner.run();
+            String stdout = runner.run();
+
+            assertThat(stdout, containsString("Could not acquire the lock because it was already taken"));
+            assertThat(getAllLocks(services.getKeyValueService()).size(), equalTo(1));
+        }
+    }
+
+    @Test
     public void releaseLock() throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner(LOCK_COMMAND_NAME, "--release")) {
             TestAtlasDbServices services = runner.connect(moduleFactory);
@@ -84,6 +98,16 @@ public class BackupLockCommandTest {
             assertThat(stdout, containsString("This persistent lock is now released:"));
             assertThat(stdout, containsString("lockId="));
             assertThat(getAllLocks(keyValueService).size(), equalTo(0));
+        }
+    }
+
+    @Test(expected = NoSuchElementException.class)
+    public void releaseLockWhenNoLockIsPresentShouldThrow() throws Exception {
+        try (SingleBackendCliTestRunner runner = makeRunner(LOCK_COMMAND_NAME, "--release")) {
+            runner.connect(moduleFactory);
+
+            // TODO - this should catch NoSuchElementException and throw a nicer error
+            runner.run();
         }
     }
 

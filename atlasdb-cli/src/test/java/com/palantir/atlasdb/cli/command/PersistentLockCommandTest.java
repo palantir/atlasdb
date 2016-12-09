@@ -24,6 +24,7 @@ import static com.palantir.atlasdb.persistentlock.LockStore.LOCKS_TIMESTAMP;
 import java.util.Set;
 
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -33,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.persistentlock.LockEntry;
 import com.palantir.atlasdb.persistentlock.PersistentLock;
 import com.palantir.atlasdb.persistentlock.PersistentLockName;
+import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.services.test.DaggerTestAtlasDbServices;
@@ -75,6 +77,18 @@ public class PersistentLockCommandTest {
     }
 
     @Test
+    public void acquireLockTwiceShouldFail() throws Exception {
+        try (SingleBackendCliTestRunner runner = makeRunner(LOCK_COMMAND_NAME, "--acquire", LOCK_NAME.name())) {
+            AtlasDbServices services = runner.connect(moduleFactory);
+            runner.run();
+            String stdout = runner.run();
+
+            assertThat(stdout, containsString("Could not acquire the lock because it was already taken"));
+            assertThat(getAllLocks(services.getKeyValueService()).size(), equalTo(1));
+        }
+    }
+
+    @Test
     public void releaseLock() throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner(
                 LOCK_COMMAND_NAME, "--release", LOCK_NAME.name(), "--lockId", String.valueOf(CUSTOM_LOCK_ID))) {
@@ -88,6 +102,36 @@ public class PersistentLockCommandTest {
         }
     }
 
+    // TODO there's a NoSuchElementException here
+    @Ignore
+    @Test
+    public void releaseWrongLockId() throws Exception {
+        try (SingleBackendCliTestRunner runner = makeRunner(
+                LOCK_COMMAND_NAME, "--release", LOCK_NAME.name(), "--lockId", String.valueOf(CUSTOM_LOCK_ID + 1))) {
+            TestAtlasDbServices services = runner.connect(moduleFactory);
+            KeyValueService keyValueService = services.getKeyValueService();
+            insertLockWithId(keyValueService, CUSTOM_LOCK_ID);
+
+            runner.run();
+
+            assertThat(getAllLocks(keyValueService).size(), equalTo(0));
+        }
+    }
+
+    // TODO this doesn't fail...
+    @Ignore
+    @Test
+    public void releaseLockWhenNoLockPresent() throws Exception {
+        try (SingleBackendCliTestRunner runner = makeRunner(
+                LOCK_COMMAND_NAME, "--release", LOCK_NAME.name(), "--lockId", String.valueOf(CUSTOM_LOCK_ID))) {
+            TestAtlasDbServices services = runner.connect(moduleFactory);
+
+            String stdout = runner.run();
+
+            assertThat(stdout, containsString("Could not release the lock because it was not taken"));
+        }
+    }
+
     @Test
     public void listLocks() throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner(LOCK_COMMAND_NAME, "--list")) {
@@ -97,6 +141,17 @@ public class PersistentLockCommandTest {
             String stdout = runner.run();
 
             assertThat(stdout, containsString(LOCK_NAME.name()));
+        }
+    }
+
+    @Test
+    public void listLocksWhenNoLocksPresent() throws Exception {
+        try (SingleBackendCliTestRunner runner = makeRunner(LOCK_COMMAND_NAME, "--list")) {
+            runner.connect(moduleFactory);
+
+            String stdout = runner.run();
+
+            assertThat(stdout, containsString("(total 0)"));
         }
     }
 

@@ -73,6 +73,16 @@ public class LockStoreTest {
     }
 
     @Test
+    public void insertTwice_works_butProbablyShouldFail() {
+        lockStore.insertLockEntry(lockEntry);
+        lockStore.insertLockEntry(lockEntry);
+
+        Set<LockEntry> lockEntries = lockStore.allLockEntries();
+
+        assertThat(lockEntries, contains(lockEntry));
+    }
+
+    @Test
     public void deletedEntriesShouldNotBeVisible() {
         lockStore.insertLockEntry(lockEntry);
         lockStore.releaseLockEntry(lockEntry);
