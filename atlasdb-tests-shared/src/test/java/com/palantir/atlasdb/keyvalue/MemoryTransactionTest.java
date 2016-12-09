@@ -15,16 +15,23 @@
  */
 package com.palantir.atlasdb.keyvalue;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class MemoryTransactionTest extends AbstractTransactionTest {
-
     @Override
     protected KeyValueService getKeyValueService() {
-        return new InMemoryKeyValueService(false, PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true)));
+        return new InMemoryKeyValueService(false, PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(false)));
     }
 
+    @Override
+    public void tearDown() {
+        keyValueService.dropTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
+        keyValueService.close();
+        keyValueService = null;
+    }
 }
