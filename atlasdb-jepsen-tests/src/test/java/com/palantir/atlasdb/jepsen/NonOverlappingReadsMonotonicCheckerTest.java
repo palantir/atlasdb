@@ -80,7 +80,7 @@ public class NonOverlappingReadsMonotonicCheckerTest {
     }
 
     @Test
-    public void shouldSuceedOnOverlappingReadsOnTwoProcesses() {
+    public void shouldSucceedOnOverlappingReadsOnTwoProcesses() {
         long time = 0;
         Event event1 = createInvokeEvent(time++, PROCESS_0);
         Event event2 = createInvokeEvent(time++, PROCESS_1);
