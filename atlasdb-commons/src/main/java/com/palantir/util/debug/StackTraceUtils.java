@@ -16,6 +16,7 @@
 package com.palantir.util.debug;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryUsage;
 import java.lang.management.ThreadInfo;
@@ -261,7 +262,9 @@ public final class StackTraceUtils {
         return score;
     }
 
-    private static class StackTraceComparator implements Comparator<String> {
+    private static class StackTraceComparator implements Comparator<String>, Serializable {
+        private static final long serialVersionUID = 1L;
+
         // higher scores come earlier
         @Override
         public int compare(String s1, String s2) {
@@ -289,7 +292,7 @@ public final class StackTraceUtils {
     public static String processTrace(String serverName, String[] traces, boolean abridged) {
         StackTraceBuilder stackTraceBuilder = new StackTraceBuilder(serverName, abridged);
         if (traces == null) {
-            stackTraceBuilder.getStackTraceForNoIncorporatedTraces();
+            return stackTraceBuilder.getStackTraceForNoIncorporatedTraces();
         }
         Arrays.sort(traces, new StackTraceComparator());
         for (String trace : traces) {

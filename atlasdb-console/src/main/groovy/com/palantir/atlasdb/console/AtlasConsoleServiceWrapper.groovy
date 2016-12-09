@@ -131,10 +131,6 @@ class AtlasConsoleServiceWrapper {
         slurper.parseText(input)
     }
 
-    private slurp(InputStreamReader input) {
-        slurper.parse(input)
-    }
-
     private String spit(obj) {
        JsonOutput.toJson(obj)
     }

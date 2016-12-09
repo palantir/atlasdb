@@ -23,55 +23,55 @@ import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 public class OracleTableNameGetter {
     private final String tablePrefix;
     private final String overflowTablePrefix;
-    private final TableReference tableRef;
     private final OracleTableNameMapper oracleTableNameMapper;
     private final OracleTableNameUnmapper oracleTableNameUnmapper;
     private final boolean useTableMapping;
 
-    public OracleTableNameGetter(OracleDdlConfig config, ConnectionSupplier conns, TableReference tableRef) {
+    public OracleTableNameGetter(OracleDdlConfig config) {
         this.tablePrefix = config.tablePrefix();
         this.overflowTablePrefix = config.overflowTablePrefix();
         this.useTableMapping = config.useTableMapping();
 
-        this.oracleTableNameMapper = new OracleTableNameMapper(conns);
-        this.oracleTableNameUnmapper = new OracleTableNameUnmapper(conns);
-
-        this.tableRef = tableRef;
+        this.oracleTableNameMapper = new OracleTableNameMapper();
+        this.oracleTableNameUnmapper = new OracleTableNameUnmapper();
     }
 
-    public String generateShortTableName() {
+    public String generateShortTableName(ConnectionSupplier connectionSupplier, TableReference tableRef) {
         if (useTableMapping) {
-            return oracleTableNameMapper.getShortPrefixedTableName(tablePrefix, tableRef);
+            return oracleTableNameMapper.getShortPrefixedTableName(connectionSupplier, tablePrefix, tableRef);
         }
-        return getPrefixedTableName();
+        return getPrefixedTableName(tableRef);
     }
 
-    public String generateShortOverflowTableName() {
+    public String generateShortOverflowTableName(ConnectionSupplier connectionSupplier, TableReference tableRef) {
         if (useTableMapping) {
-            return oracleTableNameMapper.getShortPrefixedTableName(overflowTablePrefix, tableRef);
+            return oracleTableNameMapper.getShortPrefixedTableName(connectionSupplier, overflowTablePrefix, tableRef);
         }
-        return getPrefixedOverflowTableName();
+        return getPrefixedOverflowTableName(tableRef);
     }
 
-    public String getInternalShortTableName() throws TableMappingNotFoundException {
+    public String getInternalShortTableName(ConnectionSupplier connectionSupplier, TableReference tableRef)
+            throws TableMappingNotFoundException {
         if (useTableMapping) {
-            return oracleTableNameUnmapper.getShortTableNameFromMappingTable(tablePrefix, tableRef);
+            return oracleTableNameUnmapper.getShortTableNameFromMappingTable(connectionSupplier, tablePrefix, tableRef);
         }
-        return getPrefixedTableName();
+        return getPrefixedTableName(tableRef);
     }
 
-    public String getInternalShortOverflowTableName() throws TableMappingNotFoundException {
+    public String getInternalShortOverflowTableName(ConnectionSupplier connectionSupplier, TableReference tableRef)
+            throws TableMappingNotFoundException {
         if (useTableMapping) {
-            return oracleTableNameUnmapper.getShortTableNameFromMappingTable(overflowTablePrefix, tableRef);
+            return oracleTableNameUnmapper
+                    .getShortTableNameFromMappingTable(connectionSupplier, overflowTablePrefix, tableRef);
         }
-        return getPrefixedOverflowTableName();
+        return getPrefixedOverflowTableName(tableRef);
     }
 
-    public String getPrefixedTableName() {
+    public String getPrefixedTableName(TableReference tableRef) {
         return tablePrefix + DbKvs.internalTableName(tableRef);
     }
 
-    public String getPrefixedOverflowTableName() {
+    public String getPrefixedOverflowTableName(TableReference tableRef) {
         return overflowTablePrefix + DbKvs.internalTableName(tableRef);
     }
 

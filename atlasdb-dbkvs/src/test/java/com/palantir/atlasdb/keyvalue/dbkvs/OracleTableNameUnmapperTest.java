@@ -55,14 +55,15 @@ public class OracleTableNameUnmapperTest {
 
     private OracleTableNameUnmapper oracleTableNameUnmapper;
     private AgnosticResultSet resultSet;
+    private ConnectionSupplier connectionSupplier;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setup() {
-        ConnectionSupplier connectionSupplier = mock(ConnectionSupplier.class);
-        oracleTableNameUnmapper =  new OracleTableNameUnmapper(connectionSupplier);
+        connectionSupplier = mock(ConnectionSupplier.class);
+        oracleTableNameUnmapper =  new OracleTableNameUnmapper();
         SqlConnection sqlConnection = mock(SqlConnection.class);
         Connection connection = mock(Connection.class);
         when(sqlConnection.getUnderlyingConnection()).thenReturn(connection);
@@ -81,7 +82,7 @@ public class OracleTableNameUnmapperTest {
 
         expectedException.expect(TableMappingNotFoundException.class);
         expectedException.expectMessage("The table a_test_namespace__ThisIsAVeryLongTableNameThatWillExceed");
-        oracleTableNameUnmapper.getShortTableNameFromMappingTable(TEST_PREFIX, TABLE_REF);
+        oracleTableNameUnmapper.getShortTableNameFromMappingTable(connectionSupplier, TEST_PREFIX, TABLE_REF);
     }
 
     @Test
@@ -92,7 +93,8 @@ public class OracleTableNameUnmapperTest {
         when(row.getString(eq("short_table_name"))).thenReturn(SHORT_TABLE_NAME);
         doReturn(ImmutableList.of(row)).when(resultSet).rows();
 
-        String shortName = oracleTableNameUnmapper.getShortTableNameFromMappingTable(TEST_PREFIX, TABLE_REF);
+        String shortName = oracleTableNameUnmapper
+                .getShortTableNameFromMappingTable(connectionSupplier, TEST_PREFIX, TABLE_REF);
         assertThat(shortName, is(SHORT_TABLE_NAME));
     }
 
@@ -105,14 +107,15 @@ public class OracleTableNameUnmapperTest {
         when(row.getString(eq("short_table_name"))).thenReturn(SHORT_TABLE_NAME);
         doReturn(ImmutableList.of(row)).when(resultSet).rows();
 
-        String shortName = oracleTableNameUnmapper.getShortTableNameFromMappingTable(TEST_PREFIX, TABLE_REF_2);
+        String shortName = oracleTableNameUnmapper
+                .getShortTableNameFromMappingTable(connectionSupplier, TEST_PREFIX, TABLE_REF_2);
         assertThat(shortName, is(SHORT_TABLE_NAME));
 
         // verify that underlying datastore was called once instead of hitting the cache
         verify(row, times(1)).getString("short_table_name");
 
         // read again looking for the same table
-        oracleTableNameUnmapper.getShortTableNameFromMappingTable(TEST_PREFIX, TABLE_REF_2);
+        oracleTableNameUnmapper.getShortTableNameFromMappingTable(connectionSupplier, TEST_PREFIX, TABLE_REF_2);
 
         // verify that cache was hit and underlying datastore was _still_ only called once
         verify(row, times(1)).getString("short_table_name");
