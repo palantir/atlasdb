@@ -34,6 +34,6 @@ public final class DistributedValues {
     }
 
     public static DistributedGroup getTimeLockGroup(Atomix atomix) {
-        return AtomixRetryer.getWithRetry(() -> atomix.getGroup("atlasdb/timelock"));
+        return AtomixRetryer.getWithRetry(() -> atomix.getGroup("atlasdb/timestamp"));
     }
 }

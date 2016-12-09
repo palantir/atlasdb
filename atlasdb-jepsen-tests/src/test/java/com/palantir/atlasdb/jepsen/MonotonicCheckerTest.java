@@ -104,7 +104,7 @@ public class MonotonicCheckerTest {
     }
 
     private static CheckerResult runMonotonicChecker(Event... events) {
-        MonotonicChecker monotonicChecker = new MonotonicChecker();
+        com.palantir.atlasdb.jepsen.timestamp.MonotonicChecker monotonicChecker = new com.palantir.atlasdb.jepsen.timestamp.MonotonicChecker();
         return monotonicChecker.check(ImmutableList.copyOf(events));
     }
 }

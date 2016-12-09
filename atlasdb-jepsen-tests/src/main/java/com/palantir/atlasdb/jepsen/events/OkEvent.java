@@ -36,6 +36,10 @@ public abstract class OkEvent implements Event {
 
     public abstract long value();
 
+    public abstract RequestType requestType();
+
+    public abstract String resourceName();
+
     @Override
     public void accept(EventVisitor visitor) {
         visitor.visit(this);

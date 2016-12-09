@@ -159,7 +159,7 @@ public class NonOverlappingReadsMonotonicCheckerTest {
     }
 
     private static CheckerResult runChecker(Event... events) {
-        NonOverlappingReadsMonotonicChecker checker = new NonOverlappingReadsMonotonicChecker();
+        com.palantir.atlasdb.jepsen.timestamp.NonOverlappingReadsMonotonicChecker checker = new com.palantir.atlasdb.jepsen.timestamp.NonOverlappingReadsMonotonicChecker();
         return checker.check(ImmutableList.copyOf(events));
     }
 }

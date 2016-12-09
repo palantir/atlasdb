@@ -53,10 +53,10 @@ task copyShadowJar(type: Copy, dependsOn: 'shadowJar') {
     rename { filename -> 'atlasdb-jepsen-tests-all.jar' }
 }
 
-task copyTimelockServer(type: Copy, dependsOn: ':atlasdb-timelock-server:distTar') {
-    from tasks.getByPath(':atlasdb-timelock-server:distTar').outputs
+task copyTimelockServer(type: Copy, dependsOn: ':atlasdb-timestamp-server:distTar') {
+    from tasks.getByPath(':atlasdb-timestamp-server:distTar').outputs
     into 'resources/atlasdb/'
-    rename { filename -> 'atlasdb-timelock-server.tgz' }
+    rename { filename -> 'atlasdb-timestamp-server.tgz' }
 }
 
 task jepsenTest(type: Exec, dependsOn: ['copyShadowJar', 'copyTimelockServer']) {

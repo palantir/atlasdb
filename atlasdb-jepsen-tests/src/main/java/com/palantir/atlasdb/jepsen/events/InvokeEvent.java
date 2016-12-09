@@ -34,6 +34,10 @@ public abstract class InvokeEvent implements Event {
 
     public abstract int process();
 
+    public abstract RequestType requestType();
+
+    public abstract String resourceName();
+
     @Override
     public void accept(EventVisitor visitor) {
         visitor.visit(this);

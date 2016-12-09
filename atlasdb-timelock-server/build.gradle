@@ -36,7 +36,7 @@ dependencies {
 }
 
 distribution {
-    serviceName 'atlasdb-timelock-server'
-    mainClass 'com.palantir.atlasdb.timelock.TimeLockServer'
-    args 'server', 'var/conf/timelock.yml'
+    serviceName 'atlasdb-timestamp-server'
+    mainClass 'com.palantir.atlasdb.timestamp.TimeLockServer'
+    args 'server', 'var/conf/timestamp.yml'
 }

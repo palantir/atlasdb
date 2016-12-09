@@ -13,23 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.jepsen;
+package com.palantir.atlasdb.jepsen.timestamp;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
+import java.util.TreeSet;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.jepsen.CheckerResult;
+import com.palantir.atlasdb.jepsen.ImmutableCheckerResult;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.EventVisitor;
 import com.palantir.atlasdb.jepsen.events.FailEvent;
+import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
 import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 
-public class MonotonicChecker implements Checker {
+public class NonOverlappingReadsMonotonicChecker implements Checker {
     @Override
     public CheckerResult check(List<Event> events) {
         Visitor visitor = new Visitor();
@@ -41,8 +46,14 @@ public class MonotonicChecker implements Checker {
     }
 
     private static class Visitor implements EventVisitor {
+        private static final long DUMMY_VALUE = -1L;
+        private static final int DUMMY_PROCESS = -1;
+
+        private final Map<Integer, InvokeEvent> pendingReadForProcess = new HashMap<>();
+        private final NavigableSet<OkEvent> acknowledgedReadsOverTime = new TreeSet<>(
+                (first, second) -> Long.compare(first.time(), second.time()));
+
         private final List<Event> errors = new ArrayList<>();
-        private final Map<Integer, OkEvent> latestEventPerProcess = new HashMap<>();
 
         @Override
         public void visit(InfoEvent event) {
@@ -50,24 +61,27 @@ public class MonotonicChecker implements Checker {
 
         @Override
         public void visit(InvokeEvent event) {
+            Integer process = event.process();
+            pendingReadForProcess.put(process, event);
         }
 
         @Override
         public void visit(OkEvent event) {
             int process = event.process();
 
-            if (latestEventPerProcess.containsKey(process)) {
-                OkEvent previousEvent = latestEventPerProcess.get(process);
-                if (event.value() <= previousEvent.value()) {
-                    errors.add(previousEvent);
-                    errors.add(event);
-                }
+            InvokeEvent invoke = pendingReadForProcess.get(process);
+            if (invoke != null) {
+                validateTimestampHigherThanReadsCompletedBeforeInvoke(invoke, event);
             }
-            latestEventPerProcess.put(process, event);
+
+            pendingReadForProcess.remove(process);
+            acknowledgedReadsOverTime.add(event);
         }
 
         @Override
         public void visit(FailEvent event) {
+            Integer process = event.process();
+            pendingReadForProcess.remove(process);
         }
 
         public boolean valid() {
@@ -76,6 +90,24 @@ public class MonotonicChecker implements Checker {
 
         public List<Event> errors() {
             return ImmutableList.copyOf(errors);
+        }
+
+        private void validateTimestampHigherThanReadsCompletedBeforeInvoke(InvokeEvent invoke, OkEvent event) {
+            OkEvent lastAcknowledgedRead = lastAcknowledgedReadBefore(invoke.time());
+            if (lastAcknowledgedRead != null && lastAcknowledgedRead.value() >= event.value()) {
+                errors.add(lastAcknowledgedRead);
+                errors.add(invoke);
+                errors.add(event);
+            }
+        }
+
+        private OkEvent lastAcknowledgedReadBefore(long time) {
+            OkEvent dummyOkEvent = ImmutableOkEvent.builder()
+                    .time(time)
+                    .process(DUMMY_PROCESS)
+                    .value(DUMMY_VALUE)
+                    .build();
+            return acknowledgedReadsOverTime.floor(dummyOkEvent);
         }
     }
 }
