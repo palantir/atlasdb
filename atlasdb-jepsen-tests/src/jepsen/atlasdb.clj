@@ -90,7 +90,7 @@
 (def checker
   (reify checker/Checker
     (check [this test model history opts]
-      (.checkClojureHistory (JepsenHistoryCheckers/createWithLivenessCheckers) history))))
+      (.checkClojureHistory (JepsenHistoryCheckers/createWithTimestampCheckers) history))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Defining the Jepsen test
