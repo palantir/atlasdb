@@ -42,14 +42,15 @@ public class OracleTableNameMapperTest {
 
     private OracleTableNameMapper oracleTableNameMapper;
     private AgnosticResultSet resultSet;
+    private ConnectionSupplier connectionSupplier;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setup() {
-        ConnectionSupplier connectionSupplier = mock(ConnectionSupplier.class);
-        oracleTableNameMapper =  new OracleTableNameMapper(connectionSupplier);
+        connectionSupplier = mock(ConnectionSupplier.class);
+        oracleTableNameMapper =  new OracleTableNameMapper();
         SqlConnection sqlConnection = mock(SqlConnection.class);
         when(connectionSupplier.get()).thenReturn(sqlConnection);
         resultSet = mock(AgnosticResultSet.class);
@@ -66,7 +67,8 @@ public class OracleTableNameMapperTest {
         when(resultSet.size()).thenReturn(0);
 
         TableReference tableRef = TableReference.create(Namespace.create("ns1"), "short");
-        String shortPrefixedTableName = oracleTableNameMapper.getShortPrefixedTableName(TEST_PREFIX, tableRef);
+        String shortPrefixedTableName = oracleTableNameMapper
+                .getShortPrefixedTableName(connectionSupplier, TEST_PREFIX, tableRef);
         assertThat(shortPrefixedTableName, is("a_ns__short_00000"));
     }
 
@@ -82,7 +84,7 @@ public class OracleTableNameMapperTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
                 "Cannot create any more tables with name starting with a_te__ThisIsAVeryLongTab");
-        oracleTableNameMapper.getShortPrefixedTableName(TEST_PREFIX, tableRef);
+        oracleTableNameMapper.getShortPrefixedTableName(connectionSupplier, TEST_PREFIX, tableRef);
     }
 
     private String getTableNameWithNumber(int tableNum) {
