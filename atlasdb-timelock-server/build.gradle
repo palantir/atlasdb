@@ -25,7 +25,6 @@ dependencies {
     compile group: 'io.atomix', name: 'atomix'
     compile group: 'io.atomix.catalyst', name: 'catalyst-netty'
     compile group: 'io.dropwizard', name: 'dropwizard-core'
-    compile group: 'io.dropwizard', name: 'dropwizard-core'
 
     processor group: 'org.immutables', name: 'value'
 
