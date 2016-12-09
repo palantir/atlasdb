@@ -15,13 +15,13 @@
  */
 package com.palantir.atlasdb.jepsen;
 
-public final class JepsenTestConstants {
+public final class JepsenConstants {
     public static final String NEMESIS_PROCESS = "nemesis";
 
     public static final String START_FUNCTION = "start";
     public static final String STOP_FUNCTION = "stop";
 
-    private JepsenTestConstants() {
+    private JepsenConstants() {
         // utility class
     }
 }

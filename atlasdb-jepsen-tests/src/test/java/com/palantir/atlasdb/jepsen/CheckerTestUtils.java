@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 
-public class CheckerTestUtils {
+public final class CheckerTestUtils {
     private CheckerTestUtils() {
         // utility class
     }
