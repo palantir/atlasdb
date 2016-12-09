@@ -1,0 +1,21 @@
+apply plugin: 'com.palantir.java-distribution'
+
+apply from: "../gradle/publish-dists.gradle"
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+  runtime project(':atlasdb-console')
+
+  // Supported KVSs
+  runtime project(':atlasdb-cassandra')
+  runtime project(':atlasdb-dbkvs')
+
+  // Unsupported KVSs (included for migration purposes)
+  runtime project(':atlasdb-jdbc')
+  runtime project(':atlasdb-rocksdb')
+}
+
+distribution {
+  serviceName 'atlasdb-console'
+  mainClass 'com.palantir.atlasdb.console.AtlasConsoleMain'
+}
