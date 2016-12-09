@@ -40,7 +40,7 @@ import com.palantir.atlasdb.performance.PerformanceResults;
 import com.palantir.atlasdb.performance.backend.DatabasesContainer;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
-import com.palantir.atlasdb.performance.backend.KeyValueServiceType;
+import com.palantir.atlasdb.performance.backend.KeyValueServiceTypeInterface;
 
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
@@ -105,7 +105,7 @@ public class AtlasDbPerfCli {
         } else {
             Set<String> backends = cli.backends != null
                     ? cli.backends
-                    : KeyValueServiceType.getBackends();
+                    : KeyValueServiceTypeInterface.getBackends();
             try (DatabasesContainer container = startupDatabase(backends)) {
                 runJmh(cli,
                         container.getDockerizedDatabases()
@@ -145,7 +145,7 @@ public class AtlasDbPerfCli {
     private static DatabasesContainer startupDatabase(Set<String> backends) {
         return DatabasesContainer.startup(
                 backends.stream()
-                        .map(KeyValueServiceType::valueOf)
+                        .map(KeyValueServiceTypeInterface::keyValueServiceTypeFor)
                         .collect(Collectors.toList()));
     }
 
@@ -163,7 +163,7 @@ public class AtlasDbPerfCli {
             cli.backends.forEach(backend -> {
                 if (isInvalidBackend(backend)) {
                     throw new RuntimeException("Invalid backend specified. Valid options: "
-                            + KeyValueServiceType.getBackends() + " You provided: " + backend);
+                            + KeyValueServiceTypeInterface.getBackends() + " You provided: " + backend);
                 }
             });
         }
@@ -191,6 +191,6 @@ public class AtlasDbPerfCli {
     }
 
     private static boolean isInvalidBackend(String backend) {
-        return !KeyValueServiceType.getBackends().contains(backend);
+        return !KeyValueServiceTypeInterface.getBackends().contains(backend);
     }
 }

@@ -33,7 +33,7 @@ public class DockerizedDatabaseUri {
         String[] parts = uri.trim().split(DELIMITER);
         String[] addrParts = parts[1].split(":");
         return new DockerizedDatabaseUri(
-                KeyValueServiceType.keyValueServiceTypeFor(parts[0]),
+                KeyValueServiceTypeInterface.keyValueServiceTypeFor(parts[0]),
                 InetSocketAddress.createUnresolved(addrParts[0], Integer.parseInt(addrParts[1])));
     }
 

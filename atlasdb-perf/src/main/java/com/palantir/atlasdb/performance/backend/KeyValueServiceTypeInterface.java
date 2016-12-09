@@ -16,12 +16,53 @@
 package com.palantir.atlasdb.performance.backend;
 
 import java.net.InetSocketAddress;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
-public interface KeyValueServiceTypeInterface {
-    String getDockerComposeResourceFileName();
-    int getKeyValueServicePort();
-    KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr);
-    boolean canConnect(InetSocketAddress addr);
+public abstract class KeyValueServiceTypeInterface {
+
+    private final int kvsPort;
+    private final String dockerComposeFileName;
+
+    KeyValueServiceTypeInterface(int kvsPort, String dockerComposeFileName) {
+        this.kvsPort = kvsPort;
+        this.dockerComposeFileName = dockerComposeFileName;
+    }
+
+    public String getDockerComposeResourceFileName() {
+        return dockerComposeFileName;
+    }
+
+    public int getKeyValueServicePort() {
+        return kvsPort;
+    }
+
+    abstract KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr);
+    abstract boolean canConnect(InetSocketAddress addr);
+
+    private static Map<String, KeyValueServiceTypeInterface> backendMap =
+            new TreeMap<String, KeyValueServiceTypeInterface>();
+
+    static {
+        backendMap.put("CASSANDRA", new CassandraKeyValueServiceInstrumentation());
+        backendMap.put("POSTGRES", new PostgresKeyValueServiceInstrumentation());
+    }
+
+    public static KeyValueServiceTypeInterface keyValueServiceTypeFor(String backend) {
+        return backendMap.get(backend);
+    }
+
+    public static void addNewBackendType(KeyValueServiceTypeInterface backend) {
+        if (!backendMap.containsKey(backend.toString())) {
+            backendMap.put(backend.toString(), backend);
+        }
+    }
+
+    public static Set<String> getBackends() {
+        return backendMap.keySet();
+    }
 }
