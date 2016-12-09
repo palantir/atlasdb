@@ -30,6 +30,7 @@ import java.util.List;
 import org.eclipse.jetty.util.component.LifeCycle;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -43,6 +44,7 @@ import io.dropwizard.jersey.setup.JerseyEnvironment;
 import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
 import io.dropwizard.setup.Environment;
 
+@Ignore("Observed ConcurrentModificationException-related flakes (e.g. build #5407 on CircleCI).")
 public class TimeLockServerTest {
     private static final Address LOCAL_ADDRESS = new Address("localhost:12345");
     private static final TimeLockServerConfiguration TIMELOCK_CONFIG = new TimeLockServerConfiguration(
