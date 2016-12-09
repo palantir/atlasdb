@@ -17,6 +17,10 @@ package com.palantir.atlasdb.jepsen;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import static com.palantir.atlasdb.jepsen.JepsenTestConstants.NEMESIS_PROCESS;
+import static com.palantir.atlasdb.jepsen.JepsenTestConstants.START_FUNCTION;
+import static com.palantir.atlasdb.jepsen.JepsenTestConstants.STOP_FUNCTION;
+
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -63,38 +67,38 @@ public class NemesisResilienceCheckerTest {
 
     private static final Event NEMESIS_START = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
-            .process(NemesisResilienceChecker.NEMESIS)
-            .function(NemesisResilienceChecker.START)
+            .process(NEMESIS_PROCESS)
+            .function(START_FUNCTION)
             .value(VALUE_1)
             .build();
     private static final Event NEMESIS_START_2 = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
-            .process(NemesisResilienceChecker.NEMESIS)
-            .function(NemesisResilienceChecker.START)
+            .process(NEMESIS_PROCESS)
+            .function(START_FUNCTION)
             .value(VALUE_2)
             .build();
     private static final Event NEMESIS_STOP = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
-            .process(NemesisResilienceChecker.NEMESIS)
-            .function(NemesisResilienceChecker.STOP)
+            .process(NEMESIS_PROCESS)
+            .function(STOP_FUNCTION)
             .value(VALUE_1)
             .build();
     private static final Event NEMESIS_STOP_2 = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
-            .process(NemesisResilienceChecker.NEMESIS)
-            .function(NemesisResilienceChecker.STOP)
+            .process(NEMESIS_PROCESS)
+            .function(STOP_FUNCTION)
             .value(VALUE_2)
             .build();
 
     private static final Event IMPOSTOR_START = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
             .process(IMPOSTOR_PROCESS)
-            .function(NemesisResilienceChecker.START)
+            .function(START_FUNCTION)
             .build();
     private static final Event IMPOSTOR_STOP = ImmutableInfoEvent.builder()
             .time(ZERO_TIME)
             .process(IMPOSTOR_PROCESS)
-            .function(NemesisResilienceChecker.STOP)
+            .function(STOP_FUNCTION)
             .build();
 
     @Test

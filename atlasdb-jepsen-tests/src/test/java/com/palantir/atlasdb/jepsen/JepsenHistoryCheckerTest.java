@@ -21,6 +21,8 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import static com.palantir.atlasdb.jepsen.JepsenTestConstants.NEMESIS_PROCESS;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -37,7 +39,7 @@ import clojure.lang.Keyword;
 public class JepsenHistoryCheckerTest {
     private static final Map<Keyword, ?> INFO_EVENT = ImmutableMap.of(
             Keyword.intern("type"), "info",
-            Keyword.intern("process"), "nemesis",
+            Keyword.intern("process"), NEMESIS_PROCESS,
             Keyword.intern("f"), "function",
             Keyword.intern("time"), 12345L);
     private static final Map<Keyword, ?> INVOKE_EVENT = ImmutableMap.of(

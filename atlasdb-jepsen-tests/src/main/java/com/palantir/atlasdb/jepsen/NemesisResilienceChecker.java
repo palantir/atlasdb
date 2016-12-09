@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.jepsen;
 
+import static com.palantir.atlasdb.jepsen.JepsenTestConstants.NEMESIS_PROCESS;
+import static com.palantir.atlasdb.jepsen.JepsenTestConstants.START_FUNCTION;
+import static com.palantir.atlasdb.jepsen.JepsenTestConstants.STOP_FUNCTION;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -30,10 +34,6 @@ import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 
 public class NemesisResilienceChecker implements Checker {
-    public static final String NEMESIS = "nemesis";
-    public static final String START = "start";
-    public static final String STOP = "stop";
-
     @Override
     public CheckerResult check(List<Event> events) {
         Visitor visitor = new NemesisResilienceChecker.Visitor();
@@ -85,15 +85,15 @@ public class NemesisResilienceChecker implements Checker {
         }
 
         private static boolean isNemesisEvent(InfoEvent event) {
-            return Objects.equals(event.process(), NEMESIS);
+            return Objects.equals(event.process(), NEMESIS_PROCESS);
         }
 
         private static boolean isStartEvent(InfoEvent event) {
-            return Objects.equals(event.function(), START);
+            return Objects.equals(event.function(), START_FUNCTION);
         }
 
         private static boolean isStopEvent(InfoEvent event) {
-            return Objects.equals(event.function(), STOP);
+            return Objects.equals(event.function(), STOP_FUNCTION);
         }
 
         private void startAwaitingInvokeOkCycles(InfoEvent event) {

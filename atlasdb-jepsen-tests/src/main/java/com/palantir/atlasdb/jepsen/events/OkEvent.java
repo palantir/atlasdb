@@ -18,7 +18,6 @@ package com.palantir.atlasdb.jepsen.events;
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -35,7 +34,6 @@ public abstract class OkEvent implements Event {
 
     public abstract int process();
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public abstract long value();
 
     @Override
