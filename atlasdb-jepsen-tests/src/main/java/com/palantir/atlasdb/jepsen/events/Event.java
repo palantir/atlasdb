@@ -22,6 +22,7 @@ import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 
@@ -36,7 +37,9 @@ import one.util.streamex.EntryStream;
         @JsonSubTypes.Type(FailEvent.class)
         })
 public interface Event {
-    ObjectMapper OBJECT_MAPPER = new ObjectMapper().registerModule(new Jdk8Module());
+    ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+            .registerModule(new Jdk8Module())
+            .enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);
 
     static Event fromKeywordMap(Map<Keyword, ?> map) {
         Map<String, Object> convertedMap = new HashMap<>();

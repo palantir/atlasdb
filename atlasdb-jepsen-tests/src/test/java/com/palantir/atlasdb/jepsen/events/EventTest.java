@@ -160,6 +160,18 @@ public class EventTest {
     }
 
     @Test
+    public void cannotDeserialiseOkReadWhenValueIsNull() {
+        Map<Keyword, Object> keywordMap = new HashMap<>();
+        keywordMap.put(Keyword.intern("type"), Keyword.intern("ok"));
+        keywordMap.put(Keyword.intern("f"), Keyword.intern("read-operation"));
+        keywordMap.put(Keyword.intern("process"), SOME_PROCESS);
+        keywordMap.put(Keyword.intern("time"), SOME_TIME);
+        keywordMap.put(Keyword.intern("value"), null);
+
+        assertThatThrownBy(() -> Event.fromKeywordMap(keywordMap)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     public void canSerialiseInfoEventWithValue() {
         Event infoEvent = ImmutableInfoEvent.builder()
                 .function("foo")
