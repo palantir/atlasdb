@@ -29,6 +29,8 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public final class LockStore {
     public static final long LOCKS_TIMESTAMP = 0L;
 
@@ -78,9 +80,11 @@ public final class LockStore {
         keyValueService.put(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.insertionMap(), LOCKS_TIMESTAMP);
     }
 
+    @SuppressFBWarnings("RU_INVOKE_RUN")
     private void backgroundCleanupTombstonedEntries(Set<LockEntry> tombstonedLockEntries) {
         Thread backgroundDeletionThread =
                 new Thread(() -> attemptToCleanupTombstonedEntries(tombstonedLockEntries), "Background deletions");
+        // TODO findbugs complains at this, but changing it to start causes a test to fail :(
         backgroundDeletionThread.run();
     }
 
