@@ -59,7 +59,6 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
 
     @Override
     public void initialize(Bootstrap<TimeLockServerConfiguration> bootstrap) {
-        super.initialize(bootstrap);
         bootstrap.addBundle(new Java8Bundle());
     }
 
