@@ -50,6 +50,10 @@ develop
            which could have in extremely rare cases caused issues for users in odd configurations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1235>`__)
 
+    *    - |new|
+         - We now publish a runnable distribution of AtlasCli that is available for download directly from Bintray
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1345>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
