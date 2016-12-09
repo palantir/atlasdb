@@ -51,10 +51,8 @@ public class UniquenessCheckerTest {
                 .value(VALUE_B)
                 .build();
 
-        CheckerResult result = runUniquenessChecker(event1, event2);
-
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        JepsenHistoryCheckerTestUtils.assertNoErrors(UniquenessChecker::new,
+                event1, event2);
     }
 
     @Test

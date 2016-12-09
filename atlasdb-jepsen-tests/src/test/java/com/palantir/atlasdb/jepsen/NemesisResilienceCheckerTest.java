@@ -265,10 +265,7 @@ public class NemesisResilienceCheckerTest {
     }
 
     private static void assertNoErrors(Event... events) {
-        CheckerResult result = runNemesisResilienceChecker(events);
-
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        JepsenHistoryCheckerTestUtils.assertNoErrors(NemesisResilienceChecker::new, events);
     }
 
     private static void assertSimpleNemesisError(Event... events) {

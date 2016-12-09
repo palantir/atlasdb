@@ -87,10 +87,8 @@ public class NonOverlappingReadsMonotonicCheckerTest {
         Event event3 = createOkEvent(time++, PROCESS_0, 1L);
         Event event4 = createOkEvent(time++, PROCESS_1, 0L);
 
-        CheckerResult result = runChecker(event1, event2, event3, event4);
-
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        JepsenHistoryCheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new,
+                event1, event2, event3, event4);
     }
 
     @Test
@@ -101,10 +99,8 @@ public class NonOverlappingReadsMonotonicCheckerTest {
         Event event3 = createInvokeEvent(time++, PROCESS_0);
         Event event4 = createOkEvent(time++, PROCESS_0, 1L);
 
-        CheckerResult result = runChecker(event1, event2, event3, event4);
-
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        JepsenHistoryCheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new,
+                event1, event2, event3, event4);
     }
 
     @Test
@@ -115,10 +111,8 @@ public class NonOverlappingReadsMonotonicCheckerTest {
         Event event3 = createInvokeEvent(time++, PROCESS_1);
         Event event4 = createOkEvent(time++, PROCESS_1, 1L);
 
-        CheckerResult result = runChecker(event1, event2, event3, event4);
-
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        JepsenHistoryCheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new,
+                event1, event2, event3, event4);
     }
 
     @Test
@@ -129,10 +123,8 @@ public class NonOverlappingReadsMonotonicCheckerTest {
         Event event2 = createFailEvent(time++, PROCESS_0);
         Event event4 = createOkEvent(time++, PROCESS_1, 1L);
 
-        CheckerResult result = runChecker(event1, event2, event3, event4);
-
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        JepsenHistoryCheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new,
+                event1, event2, event3, event4);
     }
 
     private ImmutableInvokeEvent createInvokeEvent(long time, int process) {
