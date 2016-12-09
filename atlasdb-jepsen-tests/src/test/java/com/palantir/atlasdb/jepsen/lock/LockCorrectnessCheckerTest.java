@@ -39,7 +39,7 @@ public class LockCorrectnessCheckerTest {
     }
 
     @Test
-    public void shouldSuceedWhenNoRefreshes(){
+    public void shouldSucceedWhenNoRefreshes(){
         long time = 0;
         Event event1 = createInvokeEvent(time++, 0, RequestType.LOCK, LOCK1);
         Event event2 = createInvokeEvent(time++, 1, RequestType.LOCK, LOCK1);
@@ -47,6 +47,76 @@ public class LockCorrectnessCheckerTest {
         Event event4 = createOkEvent(time++, 0, SUCCESS, RequestType.LOCK, LOCK1);
 
         CheckerResult result = runLockCorrectnessChecker(event1, event2, event3, event4);
+
+        assertThat(result.valid()).isTrue();
+        assertThat(result.errors()).isEmpty();
+    }
+
+    @Test
+    public void shouldSucceedWhenNoLocks(){
+        long time = 0;
+        Event event1 = createInvokeEvent(time++, 0, RequestType.REFRESH, LOCK1);
+        Event event2 = createOkEvent(time++, 0, SUCCESS, RequestType.REFRESH, LOCK1);
+        Event event3 = createInvokeEvent(time++, 1, RequestType.UNLOCK, LOCK1);
+        Event event4 = createOkEvent(time++, 1, SUCCESS, RequestType.UNLOCK, LOCK1);
+
+        CheckerResult result = runLockCorrectnessChecker(event1, event2, event3, event4);
+
+        assertThat(result.valid()).isTrue();
+        assertThat(result.errors()).isEmpty();
+    }
+
+    @Test
+    public void shouldFailWhenLockIsGrantedWhenNotFree(){
+        long time = 0;
+        Event event1 = createInvokeEvent(time++, 0, RequestType.LOCK, LOCK1);
+        Event event2 = createOkEvent(time++, 0, SUCCESS, RequestType.LOCK, LOCK1);
+        Event event3 = createInvokeEvent(time++, 1, RequestType.LOCK, LOCK1);
+        Event event4 = createOkEvent(time++, 1, SUCCESS, RequestType.LOCK, LOCK1);
+        Event event5 = createInvokeEvent(time++, 0, RequestType.REFRESH, LOCK1);
+        Event event6 = createOkEvent(time++, 0, SUCCESS, RequestType.REFRESH, LOCK1);
+
+        CheckerResult result = runLockCorrectnessChecker(event1, event2, event3, event4, event5, event6);
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).containsExactly(event3, event4);
+    }
+
+    @Test
+    public void shouldSucceedWhenThereIsASmallWindow(){
+        long time = 0;
+        Event event1 = createInvokeEvent(0, 0, RequestType.LOCK, LOCK1);
+        Event event2 = createOkEvent(1, 0, SUCCESS, RequestType.LOCK, LOCK1);
+        Event event3 = createInvokeEvent(2, 1, RequestType.LOCK, LOCK1);
+        Event event4 = createInvokeEvent(2, 2, RequestType.LOCK, LOCK1);
+        Event event5 = createInvokeEvent(3, 0, RequestType.REFRESH, LOCK1);
+        Event event6 = createOkEvent(3, 0, SUCCESS, RequestType.REFRESH, LOCK1);
+        Event event7 = createOkEvent(3, 2, SUCCESS, RequestType.LOCK, LOCK1);
+//        Event event6 = createInvokeEvent(time++, 0, RequestType.LOCK, LOCK1);
+//        Event event7 = createOkEvent(time++, 0, SUCCESS, RequestType.LOCK, LOCK1);
+        Event event8 = createOkEvent(4, 1, SUCCESS, RequestType.LOCK, LOCK1);
+        Event event9 = createInvokeEvent(5, 2, RequestType.REFRESH, LOCK1);
+        Event eventA = createOkEvent(6, 2, SUCCESS, RequestType.REFRESH, LOCK1);
+
+        CheckerResult result = runLockCorrectnessChecker(event1, event2, event3, event4, event5,event6, event7, event8, event9, eventA );
+
+        assertThat(result.valid()).isTrue();
+        assertThat(result.errors()).isEmpty();
+    }
+
+    @Test
+    public void shouldSucceedForIntervalEdgeCases(){
+        long time = 0;
+        Event event1 = createInvokeEvent(time++, 0, RequestType.LOCK, LOCK1);
+        Event event2 = createOkEvent(time, 0, SUCCESS, RequestType.LOCK, LOCK1);
+        Event event3 = createInvokeEvent(time++, 1, RequestType.LOCK, LOCK1);
+        Event event4 = createOkEvent(time++, 1, SUCCESS, RequestType.LOCK, LOCK1);
+        Event event5 = createInvokeEvent(time++, 2, RequestType.LOCK, LOCK1);
+        Event event6 = createOkEvent(time, 2, SUCCESS, RequestType.LOCK, LOCK1);
+        Event event7 = createInvokeEvent(time++, 0, RequestType.REFRESH, LOCK1);
+        Event event8 = createOkEvent(time++, 0, SUCCESS, RequestType.REFRESH, LOCK1);
+
+        CheckerResult result = runLockCorrectnessChecker(event1, event2, event3, event4, event5, event6, event7, event8);
 
         assertThat(result.valid()).isTrue();
         assertThat(result.errors()).isEmpty();

@@ -96,16 +96,16 @@ public class LockCorrectnessChecker implements Checker {
         public void visit(InvokeEvent event) {
             Integer process = event.process();
             String lockName = event.resourceName();
-            switch (event.requestType()){
-                case LOCK:
+//            switch (event.requestType()){
+//                case LOCK:
                     pendingForProcessAndLock.put(new Pair(process,lockName), event);
-                case REFRESH:
+//                case REFRESH:
                     if (!allLockNames.contains(lockName)){
                         allLockNames.add(lockName);
                         locksHeld.put(lockName, TreeRangeSet.create());
                         locksAtSomePoint.put(lockName, new ArrayList<>());
                     }
-            }
+//            }
         }
 
         @Override
@@ -113,6 +113,7 @@ public class LockCorrectnessChecker implements Checker {
             Integer process = event.process();
             String lockName = event.resourceName();
             Pair processLock = new Pair(process, lockName);
+            InvokeEvent invokeEvent = pendingForProcessAndLock.get(processLock);
 
             switch(event.requestType()) {
                 /**
@@ -121,7 +122,6 @@ public class LockCorrectnessChecker implements Checker {
                  * 2) Remember the new value for the most recent successful lock
                  */
                 case LOCK:
-                    InvokeEvent invokeEvent = pendingForProcessAndLock.get(processLock);
                     locksAtSomePoint.get(lockName).add(new Pair(invokeEvent, event));
                     lastHeldLock.put(processLock, event);
                     break;
@@ -133,7 +133,9 @@ public class LockCorrectnessChecker implements Checker {
                  */
                 case REFRESH:
                 case UNLOCK:
-                    locksHeld.get(processLock).add(Range.open(lastHeldLock.get(processLock).time(), event.time()));
+                    if(lastHeldLock.containsKey(processLock)) {
+                        locksHeld.get(lockName).add(Range.open(lastHeldLock.get(processLock).time(), invokeEvent.time()));
+                    }
             }
         }
 
