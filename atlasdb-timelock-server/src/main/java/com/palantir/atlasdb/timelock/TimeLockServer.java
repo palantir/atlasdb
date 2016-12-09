@@ -25,7 +25,6 @@ import org.eclipse.jetty.util.component.LifeCycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.timelock.atomix.AtomixRetryer;
 import com.palantir.atlasdb.timelock.atomix.AtomixTimestampService;
@@ -47,6 +46,7 @@ import io.atomix.group.LocalMember;
 import io.atomix.variables.DistributedLong;
 import io.atomix.variables.DistributedValue;
 import io.dropwizard.Application;
+import io.dropwizard.java8.Java8Bundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
@@ -58,8 +58,9 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
     }
 
     @Override
-    public void initialize(Bootstrap<TimeLockServerConfiguration> config) {
-        config.getObjectMapper().registerModule(new Jdk8Module());
+    public void initialize(Bootstrap<TimeLockServerConfiguration> bootstrap) {
+        super.initialize(bootstrap);
+        bootstrap.addBundle(new Java8Bundle());
     }
 
     @Override
