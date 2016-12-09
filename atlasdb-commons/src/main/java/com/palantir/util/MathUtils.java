@@ -254,7 +254,7 @@ public class MathUtils {
      * For Example if you put in .099 with one sig fig, you will get .1
      */
     public static double keepSignificantFigures(double input, int sigfigs) {
-        return new Double(getSignificant(input, sigfigs));
+        return Double.valueOf(getSignificant(input, sigfigs));
     }
 
     private MathUtils() {/**/}
