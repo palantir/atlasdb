@@ -25,7 +25,6 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.EventVisitor;
-import com.palantir.atlasdb.jepsen.events.FailEvent;
 import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
@@ -75,11 +74,6 @@ public class NemesisResilienceChecker implements Checker {
             if (awaitingInvokeOkCycle && processesPendingReads.contains(event.process())) {
                 awaitingInvokeOkCycle = false;
             }
-        }
-
-        @Override
-        public void visit(FailEvent event) {
-            // do nothing
         }
 
         public boolean valid() {

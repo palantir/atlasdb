@@ -25,8 +25,6 @@ import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.EventVisitor;
 import com.palantir.atlasdb.jepsen.events.FailEvent;
-import com.palantir.atlasdb.jepsen.events.InfoEvent;
-import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 
 public class UniquenessChecker implements Checker {
@@ -43,14 +41,6 @@ public class UniquenessChecker implements Checker {
     private static class Visitor implements EventVisitor {
         private final List<Event> errors = new ArrayList<>();
         private final Map<Long, OkEvent> valuesAlreadySeen = new HashMap<>();
-
-        @Override
-        public void visit(InfoEvent event) {
-        }
-
-        @Override
-        public void visit(InvokeEvent event) {
-        }
 
         @Override
         public void visit(OkEvent event) {
