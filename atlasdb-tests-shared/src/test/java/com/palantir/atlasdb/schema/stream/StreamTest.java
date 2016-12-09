@@ -195,37 +195,6 @@ public class StreamTest extends AtlasDbTestCase {
         return id;
     }
 
-    @Test
-    public void shouldQuicklyGetFirstByte() throws IOException {
-        long millisFor100mb = measureMillisToGetFirstByteFromStreamStoreWithMbs(100);
-        long millisFor1mb = measureMillisToGetFirstByteFromStreamStoreWithMbs(1);
-
-        assertTrue("Loading the first byte of a stream should perform better than log(size). "
-                + "We actually expect constant time, but are being permissive. "
-                + "Fetching 1MB took " + millisFor1mb + "ms, but 100 MB took " + millisFor100mb + "ms.",
-                millisFor100mb < (millisFor1mb * 10));
-    }
-
-    private long measureMillisToGetFirstByteFromStreamStoreWithMbs(int megabytes) throws IOException {
-        final int size = megabytes * 1024 * 1024;
-        byte[] bytesToStore = new byte[size];
-        Random rand = new Random();
-        rand.nextBytes(bytesToStore);
-
-        final long id = storeStream(bytesToStore, PtBytes.toBytes(megabytes));
-
-        Stopwatch timer = Stopwatch.createStarted();
-        InputStream stream = txManager.runTaskThrowOnConflict(t -> store.loadStream(t, id));
-        byte[] sample = new byte[1];
-        //noinspection ResultOfMethodCallIgnored
-        stream.read(sample);
-        timer.stop();
-        Assert.assertEquals(bytesToStore[0], sample[0]);
-        long millis = timer.elapsed(TimeUnit.MILLISECONDS);
-        System.out.println(String.format("Getting first byte of %dMB took %d milliseconds.", megabytes, millis));
-        return millis;
-    }
-
     private long storeStream(byte[] bytesToStore, byte[] reference) {
         final long id = timestampService.getFreshTimestamp();
         txManager.runTaskWithRetry(t -> {
