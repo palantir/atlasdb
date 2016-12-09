@@ -106,8 +106,8 @@
                     (gen/nemesis
                     (gen/seq (cycle [(gen/sleep 5)
                                      {:type :info, :f :start}
-                                     (gen/sleep 55)
+                                     (gen/sleep 85)
                                      {:type :info, :f :stop}])))
-                    (gen/time-limit 300))
+                    (gen/time-limit 360))
     :db (create-server)
     :checker checker))
