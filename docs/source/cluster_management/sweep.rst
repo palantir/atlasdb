@@ -5,10 +5,6 @@ AtlasDB Sweep Job
 
 .. warning::
 
-   AtlasDB sweep is currently an experimental feature, and is disabled by default. If you are interested in testing it, please contact the AtlasDB team.
-
-.. warning::
-
    Running the Sweep Job while taking a Backup can cause **SEVERE DATA CORRUPTION** to your Backup.
 
 Under normal usage, the data written to the key value service backing AtlasDB is never updated or deleted.
