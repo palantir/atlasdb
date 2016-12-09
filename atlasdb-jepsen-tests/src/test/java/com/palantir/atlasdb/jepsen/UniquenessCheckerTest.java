@@ -51,7 +51,7 @@ public class UniquenessCheckerTest {
                 .value(VALUE_B)
                 .build();
 
-        JepsenHistoryCheckerTestUtils.assertNoErrors(UniquenessChecker::new,
+        CheckerTestUtils.assertNoErrors(UniquenessChecker::new,
                 event1, event2);
     }
 

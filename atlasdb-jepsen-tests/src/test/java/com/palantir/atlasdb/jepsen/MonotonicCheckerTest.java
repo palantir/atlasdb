@@ -97,7 +97,7 @@ public class MonotonicCheckerTest {
                 .value(3L)
                 .build();
 
-        JepsenHistoryCheckerTestUtils.assertNoErrors(MonotonicChecker::new,
+        CheckerTestUtils.assertNoErrors(MonotonicChecker::new,
                 event1, event2, event3, event4);
     }
 
