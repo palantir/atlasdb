@@ -39,7 +39,7 @@ public class JepsenHistoryCheckerIntegrationTest {
     public void correctExampleHistoryShouldReturnValidAndNoErrors() throws IOException {
         List<Map<Keyword, ?>> convertedAllEvents = getClojureMapFromFile("correct_history.json");
 
-        Map<Keyword, Object> results = JepsenHistoryCheckers.createWithStandardCheckers()
+        Map<Keyword, Object> results = JepsenHistoryCheckers.createWithTimestampCheckers()
                 .checkClojureHistory(convertedAllEvents);
 
         assertThat(results).containsEntry(Keyword.intern("valid?"), true);
@@ -50,7 +50,7 @@ public class JepsenHistoryCheckerIntegrationTest {
     public void livenessFailingHistoryShouldReturnInvalidWithNemesisErrors() throws IOException {
         List<Map<Keyword, ?>> convertedAllEvents = getClojureMapFromFile("liveness_failing_history.json");
 
-        Map<Keyword, Object> results = JepsenHistoryCheckers.createWithLivenessCheckers()
+        Map<Keyword, Object> results = JepsenHistoryCheckers.createWithTimestampCheckers()
                 .checkClojureHistory(convertedAllEvents);
 
         Map<Keyword, ?> nemesisStartEventMap = ImmutableMap.of(

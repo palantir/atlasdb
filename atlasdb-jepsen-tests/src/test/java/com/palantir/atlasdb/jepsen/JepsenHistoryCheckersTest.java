@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.jepsen;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -27,43 +28,33 @@ import com.palantir.atlasdb.jepsen.events.Checker;
 
 public class JepsenHistoryCheckersTest {
     @Test
-    public void canCreateWithStandardCheckers() {
-        JepsenHistoryChecker checker = JepsenHistoryCheckers.createWithStandardCheckers();
+    public void canCreateWithTimestampCheckers() {
+        JepsenHistoryChecker checker = JepsenHistoryCheckers.createWithTimestampCheckers();
 
-        assertCheckerHasMatchingCheckers(JepsenHistoryCheckers.STANDARD_CHECKERS, checker);
-        assertThat(checker.checkers).hasSize(JepsenHistoryCheckers.STANDARD_CHECKERS.size());
+        assertCheckerHasMatchingCheckers(JepsenHistoryCheckers.TIMESTAMP_CHECKERS, checker);
+        assertThat(checker.checkers).hasSize(JepsenHistoryCheckers.TIMESTAMP_CHECKERS.size());
     }
 
     @Test
     public void createsDistinctCheckerInstances() {
-        JepsenHistoryChecker checker1 = JepsenHistoryCheckers.createWithStandardCheckers();
-        JepsenHistoryChecker checker2 = JepsenHistoryCheckers.createWithStandardCheckers();
+        JepsenHistoryChecker checker1 = JepsenHistoryCheckers.createWithTimestampCheckers();
+        JepsenHistoryChecker checker2 = JepsenHistoryCheckers.createWithTimestampCheckers();
 
-        assertThat(checker1.checkers).allMatch(checker -> !checker2.checkers.contains(checker));
+        for (Checker checkerFromCheckerOne : checker1.checkers) {
+            for (Checker checkerFromCheckerTwo : checker2.checkers) {
+                assertThat(checkerFromCheckerOne).isNotSameAs(checkerFromCheckerTwo);
+            }
+        }
     }
 
     @Test
-    public void canCreateWithAdditionalCheckers() {
-        JepsenHistoryChecker checker = JepsenHistoryCheckers.createWithAdditionalCheckers(
-                ImmutableList.of(NemesisResilienceChecker::new));
+    public void canCreateWithAlternativeCheckers() {
+        Checker dummyChecker = mock(Checker.class);
+        JepsenHistoryChecker checker = JepsenHistoryCheckers.createWithCheckers(
+                ImmutableList.of(() -> dummyChecker)
+        );
 
-        assertThat(checker.checkers).hasAtLeastOneElementOfType(NemesisResilienceChecker.class);
-    }
-
-    @Test
-    public void canCreateWithLivenessCheckers() {
-        JepsenHistoryChecker checker = JepsenHistoryCheckers.createWithLivenessCheckers();
-
-        assertCheckerHasMatchingCheckers(JepsenHistoryCheckers.STANDARD_CHECKERS, checker);
-        assertCheckerHasMatchingCheckers(JepsenHistoryCheckers.LIVENESS_CHECKERS, checker);
-    }
-
-    @Test
-    public void createWithAdditionalCheckersStillIncludesDefaultCheckers() {
-        JepsenHistoryChecker checker = JepsenHistoryCheckers.createWithAdditionalCheckers(
-                ImmutableList.of(NemesisResilienceChecker::new));
-
-        assertCheckerHasMatchingCheckers(JepsenHistoryCheckers.STANDARD_CHECKERS, checker);
+        assertThat(checker.checkers).containsExactly(dummyChecker);
     }
 
     private void assertCheckerHasMatchingCheckers(List<Supplier<Checker>> checkerList, JepsenHistoryChecker checker) {
