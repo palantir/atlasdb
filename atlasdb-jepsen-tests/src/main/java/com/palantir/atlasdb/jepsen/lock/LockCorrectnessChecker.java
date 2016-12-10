@@ -41,20 +41,18 @@ import com.palantir.util.Pair;
  * acknowledge when the lock was actually free to be granted. This is tricky due to the existence of refreshes
  * and the uncertainty of the exact times due to the latency between requests and replies.
  *
- * A successful refresh means the lock was held in the interval
- * (a, b) U [c, b)
+ * A successful refresh means the lock was held in the (open) interval
+ * (a, b)
  * where a is the OkEvent.time() of the last successful lock,
- * b is the InvokeEvent.time() of the refresh, and
- * c is the OkEvent.time() of the refresh.
- *
- * Assuming a successful refresh guarantees holding the lock since the last time the lock was granted, the above
- * can be simplified to (a, b). The interval is open to allow for non-atomicity of time.
+ * b is the InvokeEvent.time() of the refresh,
+ * assuming a successful refresh guarantees holding the lock since the last time the lock was granted. This will
+ * be verified by another checker.
  *
  *
  * A successful unlock can be treated the same as a refresh, except that it has implications for further refreshes
  * and unlocks (that we will check by other checkers).
  *
- * A successful lock means the lock was held <i>at some point</i> in the interval
+ * A successful lock means the lock was held <i>at some point</i> in the (closed) interval
  * [a, b]
  * where a is the InvokeEvent.time() of the lock request, and b is its OkEvent.time()
  *

@@ -30,6 +30,9 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 public abstract class OkEvent implements Event {
     public static final String TYPE = "ok";
 
+    public static final long SUCCESS = 1;
+    public static final long FAILURE = -1;
+
     public abstract long time();
 
     public abstract int process();
