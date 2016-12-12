@@ -30,6 +30,10 @@ the id for each stored object. The in-memory threshold argument
 specifies the largest size object (in bytes) which AtlasDB will cache in
 memory in order to boost retrieval performance.
 
+.. note::
+
+    In some places, we load whole numbers of blocks into memory, so if the in-memory threshold is smaller than the block size (1MB), we will still load a whole block.
+
 Performance
 ===========
 
@@ -39,6 +43,23 @@ stored on different media than regular tables. One simple way to handle
 this is to write a ``KeyValueService`` implementation that just
 delegates to 2 other ``KeyValueService`` impls and sends COLD tables to
 one and other tables to another.
+
+Transactionality
+================
+
+When you call ``loadStream(transaction, id)``, only the first section of the stream data is pre-loaded as part of that transaction.
+The amount loaded is determined by the block size (1MB) and the in-memory threshold (4MiB by default); we load at least one block,
+a whole number of blocks, and (if the in-memory threshold is at least the block size) as many blocks as fit inside the in-memory threshold.
+So by default, we load 4 blocks (``4*10^6`` bytes, slightly less than the default in-memory threshold of ``4*2^20`` bytes).
+If your stream does not fit inside the in-memory threshold, then the remainder of the data will be buffered in separate transactions.
+
+This has some subtle transactionality implications.
+Suppose you store a mapping of keys to stream IDs, and at ``start_timestamp``, ``key`` maps to ``stream_id_1``.
+You then call ``loadStream(transaction,stream_id_1)``, and keep the resulting ``InputStream`` open.
+Before you reach the end of the stream, another thread stores a mapping from ``key`` to ``stream_id_2``.
+In this case, streaming of the original stream will continue and complete successfully, even though the data being streamed is out of date.
+
+If you wish to guard against this case, you should kick off another read transaction after closing the stream, to verify that ``key`` still maps to ``stream_id_1``.
 
 Non-Duplication
 ===============
