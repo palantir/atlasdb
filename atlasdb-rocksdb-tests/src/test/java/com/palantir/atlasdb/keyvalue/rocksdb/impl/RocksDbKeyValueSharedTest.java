@@ -15,21 +15,23 @@
  */
 package com.palantir.atlasdb.keyvalue.rocksdb.impl;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 
 public class RocksDbKeyValueSharedTest extends AbstractKeyValueServiceTest {
-    private RocksDbKeyValueService db = null;
+    private static RocksDbKeyValueService db = null;
 
     @Override
     public void setUp() throws Exception {
-        db = RocksDbKeyValueService.create("testdb");
-        for (TableReference table : db.getAllTableNames()) {
-            if (!table.getQualifiedName().equals("default") && !table.getQualifiedName().equals("_metadata")) {
-                db.dropTable(table);
-            }
+        if (db == null) {
+            db = RocksDbKeyValueService.create("testdb");
         }
+        cleanup();
+
         super.setUp();
     }
 
@@ -40,15 +42,21 @@ public class RocksDbKeyValueSharedTest extends AbstractKeyValueServiceTest {
 
 	@Override
 	protected KeyValueService getKeyValueService() {
-	    return db;
+        if (db == null) {
+            db = RocksDbKeyValueService.create("testdb");
+        }
+        return db;
 	}
 
     @Override
     public void tearDown() throws Exception {
-        super.tearDown();
-        if (db != null) {
-            db.close();
-            db = null;
-        }
+        cleanup();
+    }
+
+    public static void cleanup() {
+        Set<TableReference> nonMetadataTables = db.getAllTableNames().stream().filter(
+                tableRef -> !tableRef.getNamespace().getName().equals("default") || !tableRef.getTablename().equals(
+                        "_metadata")).collect(Collectors.toSet());
+        db.dropTables(nonMetadataTables);
     }
 }

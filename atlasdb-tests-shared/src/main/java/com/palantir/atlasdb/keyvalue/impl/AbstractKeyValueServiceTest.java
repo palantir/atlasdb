@@ -88,8 +88,6 @@ public abstract class AbstractKeyValueServiceTest {
     protected static final byte[] value0_t1 = "value1_t1".getBytes();
     protected static final byte[] value0_t5 = "value5_t5".getBytes();
 
-    protected static final byte[] metadata0 = "metadata0".getBytes();
-
     protected static final long TEST_TIMESTAMP = 1000000l;
     private static final long MAX_TIMESTAMP = Long.MAX_VALUE;
 
@@ -103,8 +101,8 @@ public abstract class AbstractKeyValueServiceTest {
     public void setUp() throws Exception {
         if (keyValueService == null) {
             keyValueService = getKeyValueService();
-            keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         }
+        keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
     @After
