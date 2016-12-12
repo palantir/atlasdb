@@ -2,4 +2,5 @@ apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
 dependencies {
+    compile group: 'org.apache.calcite', name: 'calcite-core'
 }
