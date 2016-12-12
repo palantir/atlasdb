@@ -1,6 +1,12 @@
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
+repositories {
+    maven {
+        url "http://conjars.org/repo"
+    }
+}
+
 dependencies {
     compile group: 'org.apache.calcite', name: 'calcite-core'
 }

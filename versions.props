@@ -16,6 +16,7 @@ com.palantir.remoting1:* = 1.0.3
 commons-cli:commons-cli = 1.2
 commons-codec:commons-codec = 1.10
 commons-io:commons-io = 2.1
+commons-logging:commons-logging = 1.2
 io.atomix:* = 1.0.0-rc9
 io.atomix.catalyst:* = 1.1.1
 io.atomix.copycat:* = 1.1.4
