@@ -112,7 +112,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
             @Override
             public void get(long firstBlock, long numBlocks, OutputStream destination) {
                 txnMgr.runTaskReadOnly(txn -> {
-                    for (int i = 0; i < numBlocks; i++) {
+                    for (long i = 0; i < numBlocks; i++) {
                         loadSingleBlockToOutputStream(txn, id, firstBlock + i, destination);
                     }
                     return null;
