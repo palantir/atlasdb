@@ -60,11 +60,13 @@ task generateSchemas {
 
 afterEvaluate {
     schemas.each { schema ->
-        generateSchemas << {
-            logger.info "Processing schemas for ${schema}"
-            javaexec {
-                main schema
-                classpath sourceSets.test.runtimeClasspath
+        generateSchemas {
+            doLast {
+                logger.info "Processing schemas for ${schema}"
+                javaexec {
+                    main schema
+                    classpath sourceSets.test.runtimeClasspath
+                }
             }
         }
     }
