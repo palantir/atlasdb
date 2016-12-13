@@ -115,6 +115,10 @@ develop
            See gradle-java-distribution `release notes <https://github.com/palantir/gradle-java-distribution/releases>`__ for details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1361>`__)
 
+    *    - |improved|
+         - AtlasDB timestamp and lock HTTP communication now use JVM optimized cipher suite CBC over the slower GCM
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1378>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
