@@ -18,8 +18,6 @@ package com.palantir.atlasdb.keyvalue.rocksdb.impl;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.junit.AfterClass;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -29,42 +27,20 @@ import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class RocksTransactionTest extends AbstractTransactionTest {
-    private static RocksDbKeyValueService db = null;
-
-    @Override
-    public void setUp() throws Exception {
-        if (db == null) {
-            db = RocksDbKeyValueService.create("testdb");
-            Set<TableReference> nonMetadataTables = db.getAllTableNames().stream().filter(
-                    tableRef -> !tableRef.getNamespace().getName().equals("default") && !tableRef.getTablename().equals(
-                            "_metadata")).collect(Collectors.toSet());
-            db.dropTables(nonMetadataTables);
-        }
-
-        Set<TableReference> nonMetadataTables = db.getAllTableNames().stream().filter(
-                tableRef -> !tableRef.getNamespace().getName().equals("default") && !tableRef.getTablename().equals(
-                        "_metadata")).collect(Collectors.toSet());
-        db.truncateTables(nonMetadataTables);
-
-        super.setUp();
-    }
-
     @Override
     protected KeyValueService getKeyValueService() {
+        KeyValueService db = RocksDbKeyValueService.create("testdb");
+        Set<TableReference> nonMetadataTables = db.getAllTableNames().stream()
+                .filter(tableRef -> !tableRef.getNamespace().getName().equals("default")
+                        || !tableRef.getTablename().equals("_metadata"))
+                .collect(Collectors.toSet());
+        db.dropTables(nonMetadataTables);
         return db;
     }
 
     @Override
     protected boolean supportsReverse() {
         return false;
-    }
-
-    @AfterClass
-    public static void tearDownKvs() {
-        if (db != null) {
-            db.close();
-            db = null;
-        }
     }
 
     @Override

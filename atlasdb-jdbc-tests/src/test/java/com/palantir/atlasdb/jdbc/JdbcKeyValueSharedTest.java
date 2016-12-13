@@ -15,37 +15,17 @@
  */
 package com.palantir.atlasdb.jdbc;
 
-import org.junit.AfterClass;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
-import com.palantir.atlasdb.keyvalue.jdbc.JdbcKeyValueService;
 
 public class JdbcKeyValueSharedTest extends AbstractKeyValueServiceTest {
-    private static JdbcKeyValueService db = null;
-
-
     @Override
-    public void setUp() throws Exception {
-        db = JdbcTests.createEmptyKvs();
-        super.setUp();
+    protected KeyValueService getKeyValueService() {
+        return JdbcTests.createEmptyKvs();
     }
 
     @Override
     protected boolean reverseRangesSupported() {
         return true;
-    }
-
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return db;
-    }
-
-    @AfterClass
-    public static void tearDownKvs() {
-        if (db != null) {
-            db.close();
-            db = null;
-        }
     }
 }

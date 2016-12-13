@@ -40,7 +40,6 @@ import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlRow;
 import org.apache.thrift.TException;
-import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -73,7 +72,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
             .with(new CassandraContainer());
 
-    private KeyValueService keyValueService;
     private final Logger logger = mock(Logger.class);
 
     private TableReference testTable = TableReference.createFromFullyQualifiedName("ns.never_seen");
@@ -92,11 +90,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             cachePriority(TableMetadataPersistence.CachePriority.COLD);
         }
     }.toTableMetadata().persistToBytes();
-
-    @Before
-    public void setupKvs() {
-        keyValueService = getKeyValueService();
-    }
 
     @Override
     protected KeyValueService getKeyValueService() {
