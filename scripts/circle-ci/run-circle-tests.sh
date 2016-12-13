@@ -5,8 +5,9 @@ set -x
 BASE_GRADLE_ARGS="--profile --continue"
 
 function checkDocsBuild {
-  cd docs/
-  make html
+    sudo pip install sphinx sphinx_rtd_theme
+    cd docs/
+    make html
 }
 
 CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
