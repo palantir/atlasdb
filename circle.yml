@@ -18,10 +18,6 @@ checkout:
         background: true
     - ./scripts/circle-ci/stop-services.sh
 
-general:
-  artifacts:
-    - "build/reports/profile"
-
 dependencies:
   pre:
     - ./scripts/circle-ci/download-moreutils.sh
@@ -57,6 +53,7 @@ test:
         parallel: true
     - find . -type d -regex ".*/build/reports/findbugs" | sed 's#\./\(\(.*\)/build/reports/findbugs\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/findbugs/\2#' | bash:
         parallel: true
+    - rsync -uav "build/reports/profile" "$CIRCLE_ARTIFACTS/"
 
 deployment:
   publish-docs:
