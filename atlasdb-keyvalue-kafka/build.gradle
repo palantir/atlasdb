@@ -1,0 +1,27 @@
+apply from: "../gradle/shared.gradle"
+
+apply plugin: 'org.inferred.processors'
+apply plugin: 'org.unbroken-dome.test-sets'
+
+testSets {
+    integTest
+}
+
+jacocoTestReport {
+    executionData test, integTest
+}
+
+check.dependsOn integTest
+
+dependencies {
+    compile project(":atlasdb-api")
+    compile project(":atlasdb-client")
+
+    compile group: 'org.apache.kafka', name: 'kafka-clients'
+
+    testCompile project(':atlasdb-container-test-utils')
+    testCompile project(':atlasdb-tests-shared')
+
+    processor group: 'org.immutables', name: 'value'
+    processor group: 'com.google.auto.service', name: 'auto-service', version: '1.0-rc2'
+}
