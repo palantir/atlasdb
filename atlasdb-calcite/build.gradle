@@ -22,7 +22,6 @@ dependencies {
 
     testCompile project(':atlasdb-config')
     testCompile project(':atlasdb-dbkvs')
-    testCompile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: libVersions.dockerComposeRule
     testCompile group: 'com.jayway.awaitility', name: 'awaitility'
 }

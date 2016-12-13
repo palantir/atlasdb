@@ -16,14 +16,19 @@
 package com.palantir.atlasdb.calcite;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 
+import com.google.common.base.Throwables;
+import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
+import com.palantir.atlasdb.impl.AtlasDbServiceImpl;
+import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
@@ -33,14 +38,21 @@ public class AtlasSchemaFactory implements SchemaFactory {
 
     @Override
     public Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand) {
-        AtlasDbServices services = connectToAtlas(new File((String) operand.get(ATLAS_CONFIG_FILE_KEY));
-        return new AtlasSchema(services);
+        AtlasDbService service = connectToAtlas(new File((String) operand.get(ATLAS_CONFIG_FILE_KEY)));
+        return new AtlasSchema(service);
     }
 
-    private AtlasDbServices connectToAtlas(String configFile) {
-        AtlasDbConfig config = AtlasDbConfigs.load(configFile);
-        ServicesConfigModule scm = ServicesConfigModule.create(config);
-        AtlasDbServices services = DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
-        new AtlasService
+    private AtlasDbService connectToAtlas(File configFile) {
+        try {
+            AtlasDbConfig config = AtlasDbConfigs.load(configFile);
+            ServicesConfigModule scm = ServicesConfigModule.create(config);
+            AtlasDbServices services = DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
+            return new AtlasDbServiceImpl(
+                    services.getKeyValueService(),
+                    services.getTransactionManager(),
+                    new TableMetadataCache(services.getKeyValueService()));
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
     }
 }

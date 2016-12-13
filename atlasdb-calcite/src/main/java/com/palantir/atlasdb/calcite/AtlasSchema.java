@@ -16,15 +16,26 @@
 package com.palantir.atlasdb.calcite;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 
-import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.api.AtlasDbService;
 
 public class AtlasSchema extends AbstractSchema {
+    private final AtlasDbService service;
+
+    public AtlasSchema(AtlasDbService service) {
+        this.service = service;
+    }
+
     @Override
     protected Map<String, Table> getTableMap() {
-        return ImmutableMap.of("test_table", new AtlasTable());
+        return service.getAllTableNames().stream()
+                .collect(Collectors.toMap(
+                        name -> name,
+                        name -> new AtlasTable(service.getTableMetadata(name))
+                ));
     }
 }

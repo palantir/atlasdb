@@ -25,8 +25,15 @@ import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.table.description.TableMetadata;
 
 public class AtlasTable extends AbstractTable implements ScannableTable {
+    private final TableMetadata metadata;
+
+    public AtlasTable(TableMetadata metadata) {
+        this.metadata = metadata;
+    }
+
     @Override
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.createStructType(
