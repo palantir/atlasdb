@@ -5,7 +5,7 @@ set -x
 BASE_GRADLE_ARGS="--profile --continue"
 
 function checkDocsBuild {
-    sudo pip install sphinx sphinx_rtd_theme
+    sudo -H pip install --upgrade sphinx sphinx_rtd_theme requests
     cd docs/
     make html
 }
