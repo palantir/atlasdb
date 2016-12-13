@@ -21,10 +21,8 @@ import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class MemoryTransactionTest extends AbstractTransactionTest {
-
     @Override
     protected KeyValueService getKeyValueService() {
-        return new InMemoryKeyValueService(false, PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true)));
+        return new InMemoryKeyValueService(false, PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(false)));
     }
-
 }

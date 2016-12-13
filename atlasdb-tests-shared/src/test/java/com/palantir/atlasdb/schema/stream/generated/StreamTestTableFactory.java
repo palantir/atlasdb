@@ -38,6 +38,10 @@ public final class StreamTestTableFactory {
         return of(ImmutableList.<Function<? super Transaction, SharedTriggers>>of(), defaultNamespace);
     }
 
+    public KeyValueTable getKeyValueTable(Transaction t, KeyValueTable.KeyValueTrigger... triggers) {
+        return KeyValueTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
     public StreamTestStreamHashAidxTable getStreamTestStreamHashAidxTable(Transaction t, StreamTestStreamHashAidxTable.StreamTestStreamHashAidxTrigger... triggers) {
         return StreamTestStreamHashAidxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
@@ -71,6 +75,7 @@ public final class StreamTestTableFactory {
     }
 
     public interface SharedTriggers extends
+            KeyValueTable.KeyValueTrigger,
             StreamTestStreamHashAidxTable.StreamTestStreamHashAidxTrigger,
             StreamTestStreamIdxTable.StreamTestStreamIdxTrigger,
             StreamTestStreamMetadataTable.StreamTestStreamMetadataTrigger,
@@ -83,6 +88,11 @@ public final class StreamTestTableFactory {
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
+        @Override
+        public void putKeyValue(Multimap<KeyValueTable.KeyValueRow, ? extends KeyValueTable.KeyValueNamedColumnValue<?>> newRows) {
+            // do nothing
+        }
+
         @Override
         public void putStreamTestStreamHashAidx(Multimap<StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRow, ? extends StreamTestStreamHashAidxTable.StreamTestStreamHashAidxColumnValue> newRows) {
             // do nothing

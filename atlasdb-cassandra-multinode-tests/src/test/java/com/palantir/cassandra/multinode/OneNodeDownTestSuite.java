@@ -28,7 +28,9 @@ import org.junit.runners.Suite;
 import com.google.common.collect.ImmutableMap;
 import com.jayway.awaitility.Awaitility;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -106,8 +108,11 @@ public final class OneNodeDownTestSuite {
     }
 
     protected static CassandraKeyValueService createCassandraKvs() {
+        CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig
+                .copyOf(ThreeNodeCassandraCluster.KVS_CONFIG)
+                .withSchemaMutationTimeoutMillis(3_000);
         return CassandraKeyValueService.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(ThreeNodeCassandraCluster.KVS_CONFIG),
+                CassandraKeyValueServiceConfigManager.createSimpleManager(config),
                 ThreeNodeCassandraCluster.LEADER_CONFIG);
     }
 
