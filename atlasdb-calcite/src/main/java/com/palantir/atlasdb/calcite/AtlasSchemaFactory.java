@@ -15,15 +15,32 @@
  */
 package com.palantir.atlasdb.calcite;
 
+import java.io.File;
 import java.util.Map;
 
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 
+import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbConfigs;
+import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.atlasdb.services.DaggerAtlasDbServices;
+import com.palantir.atlasdb.services.ServicesConfigModule;
+
 public class AtlasSchemaFactory implements SchemaFactory {
+    public static final String ATLAS_CONFIG_FILE_KEY = "configFile";
+
     @Override
     public Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand) {
-        return new AtlasSchema();
+        AtlasDbServices services = connectToAtlas(new File((String) operand.get(ATLAS_CONFIG_FILE_KEY));
+        return new AtlasSchema(services);
+    }
+
+    private AtlasDbServices connectToAtlas(String configFile) {
+        AtlasDbConfig config = AtlasDbConfigs.load(configFile);
+        ServicesConfigModule scm = ServicesConfigModule.create(config);
+        AtlasDbServices services = DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
+        new AtlasService
     }
 }

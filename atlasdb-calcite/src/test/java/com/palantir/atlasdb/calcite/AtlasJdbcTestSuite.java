@@ -87,10 +87,12 @@ public final class AtlasJdbcTestSuite {
     public static Connection connect() {
         try {
             String uri = String.format(
-                    "jdbc:calcite:schemaFactory=%s;lex=JAVA;schema=atlas",
-                    AtlasSchemaFactory.class.getName());
+                    "jdbc:calcite:schemaFactory=%s;schema.%s=%s;lex=JAVA;schema=atlas",
+                    AtlasSchemaFactory.class.getName(),
+                    AtlasSchemaFactory.ATLAS_CONFIG_FILE_KEY,
+                    getAtlasConfigFile(ATLAS_CLIENT_CONFIG_TEMPLATE).getPath());
             return DriverManager.getConnection(uri);
-        } catch (SQLException e) {
+        } catch (IOException | SQLException e) {
             throw Throwables.propagate(e);
         }
     }

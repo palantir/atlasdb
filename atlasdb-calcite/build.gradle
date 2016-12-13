@@ -11,6 +11,7 @@ repositories {
 
 dependencies {
     compile project(':atlasdb-dagger')
+    compile project(':atlasdb-service')
     compile(group: 'org.apache.calcite', name: 'calcite-core') {
         exclude group: 'com.google.protobuf', module: 'protobuf-java'
         exclude group: 'commons-lang', module: 'commons-lang'
