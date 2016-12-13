@@ -15,7 +15,7 @@ fi
 
 for file in $FILES_CHANGED
 do
-    if [[ $file != ${DOCS_REPO}* ]]; then
+    if [[ $file != ${DOCS_REPO}* ]] && [[ $file != "README.md" ]]; then
         echo "No docs changes detected in $file" >&2
         exit 1;
     fi
