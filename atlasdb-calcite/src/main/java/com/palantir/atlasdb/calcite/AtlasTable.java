@@ -24,7 +24,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.table.description.TableMetadata;
 
 public class AtlasTable extends AbstractTable implements ScannableTable {
@@ -36,9 +35,7 @@ public class AtlasTable extends AbstractTable implements ScannableTable {
 
     @Override
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        return typeFactory.createStructType(
-                ImmutableList.of(typeFactory.createJavaType(String.class)),
-                ImmutableList.of("col1"));
+        return AtlasEnumerator.deduceRowType(typeFactory, metadata);
     }
 
     @Override
