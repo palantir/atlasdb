@@ -24,8 +24,12 @@ import javax.net.ssl.SSLSocketFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.squareup.okhttp.CipherSuite;
 import com.squareup.okhttp.ConnectionPool;
+import com.squareup.okhttp.ConnectionSpec;
+import com.squareup.okhttp.TlsVersion;
 
 import feign.Client;
 import feign.Contract;
@@ -52,6 +56,38 @@ public final class AtlasDbHttpClients {
     private static final Encoder encoder = new JacksonEncoder(mapper);
     private static final Decoder decoder = new TextDelegateDecoder(new JacksonDecoder(mapper));
     private static final ErrorDecoder errorDecoder = new AtlasDbErrorDecoder();
+
+    private static final ImmutableList<ConnectionSpec> CONNECTION_SPEC = ImmutableList.of(
+            new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
+                    .tlsVersions(TlsVersion.TLS_1_2)
+                    .cipherSuites(
+                            // In an ideal world, we'd use GCM suites, but they're an order of
+                            // magnitude slower than the CBC suites, which have JVM optimizations
+                            // already. We should revisit with JDK9.
+                            // See also:
+                            //  - http://openjdk.java.net/jeps/246
+                            //  - https://bugs.openjdk.java.net/secure/attachment/25422/GCM%20Analysis.pdf
+                            // CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+                            // CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+                            // CipherSuite.TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384,
+                            // CipherSuite.TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256,
+                            // CipherSuite.TLS_RSA_WITH_AES_256_GCM_SHA384,
+                            // CipherSuite.TLS_RSA_WITH_AES_128_GCM_SHA256,
+                            CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
+                            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+                            CipherSuite.TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384,
+                            CipherSuite.TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256,
+                            CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA256,
+                            CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA256,
+                            CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+                            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+                            CipherSuite.TLS_ECDH_RSA_WITH_AES_256_CBC_SHA,
+                            CipherSuite.TLS_ECDH_RSA_WITH_AES_128_CBC_SHA,
+                            CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA,
+                            CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA,
+                            CipherSuite.TLS_EMPTY_RENEGOTIATION_INFO_SCSV)
+                    .build(),
+            ConnectionSpec.CLEARTEXT);
 
     private AtlasDbHttpClients() {
         // Utility class
@@ -140,6 +176,10 @@ public final class AtlasDbHttpClients {
      */
     private static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory) {
         com.squareup.okhttp.OkHttpClient client = new com.squareup.okhttp.OkHttpClient();
+
+        // set up cipher suites
+        client.setConnectionSpecs(CONNECTION_SPEC);
+
         client.setConnectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS));
         client.setSslSocketFactory(sslSocketFactory.orNull());
         return new OkHttpClient(client);
