@@ -19,7 +19,10 @@ import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
 import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,6 +39,8 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -50,10 +55,15 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
     private final AtomicLong count = new AtomicLong();
     private final AtomicInteger openRequests = new AtomicInteger();
     private final GenericObjectPool<Client> clientPool;
+    private final Optional<MetricRegistry> metricRegistry;
+    private final Set<String> registeredMetrics;
 
-    public CassandraClientPoolingContainer(InetSocketAddress host, CassandraKeyValueServiceConfig config) {
+    public CassandraClientPoolingContainer(
+            InetSocketAddress host, CassandraKeyValueServiceConfig config, Optional<MetricRegistry> metricRegistry) {
         this.host = host;
         this.config = config;
+        this.metricRegistry = metricRegistry;
+        this.registeredMetrics = new HashSet<>();
         this.clientPool = createClientPool();
     }
 
@@ -176,6 +186,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
 
     @Override
     public void shutdownPooling() {
+        deregisterMetrics();
         clientPool.close();
     }
 
@@ -241,7 +252,44 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Client>
         poolConfig.setTestWhileIdle(true);
 
         poolConfig.setJmxNamePrefix(host.getHostString());
+        GenericObjectPool<Client> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
+        registerMetrics(pool, host.getHostString());
+        return pool;
+    }
 
-        return new GenericObjectPool<>(cassandraClientFactory, poolConfig);
+    private void registerMetrics(GenericObjectPool<Client> pool, String metricPrefix) {
+        registerMetric(pool, metricPrefix, "-mean-active-time-millis", pool::getMeanActiveTimeMillis);
+        registerMetric(pool, metricPrefix, "-mean-idle-time-millis", pool::getMeanIdleTimeMillis);
+        registerMetric(pool, metricPrefix, "-mean-borrow-wait-time-millis", pool::getMeanBorrowWaitTimeMillis);
+        registerMetric(pool, metricPrefix, "-proportion-destroyed-by-evictor",
+                () -> {
+                    long created = pool.getCreatedCount();
+                    long evicted = pool.getDestroyedByEvictorCount();
+                    return (double) evicted / (double) created;
+                });
+        registerMetric(pool, metricPrefix, "-proportion-destroyed-by-borrower",
+                () -> {
+                    long created = pool.getCreatedCount();
+                    long evicted = pool.getDestroyedByBorrowValidationCount();
+                    return (double) evicted / (double) created;
+                });
+    }
+
+    private void registerMetric(GenericObjectPool<Client> pool, String metricPrefix, String metricName, Gauge gauge) {
+        if (!metricRegistry.isPresent()) {
+            return;
+        }
+        String fullyQualifiedMetricName = MetricRegistry.name(
+                CassandraClientPoolingContainer.class, metricPrefix + metricName);
+        registeredMetrics.add(fullyQualifiedMetricName);
+        metricRegistry.get().register(fullyQualifiedMetricName, gauge);
+    }
+
+    private void deregisterMetrics() {
+        if (!metricRegistry.isPresent()) {
+            return;
+        }
+        registeredMetrics.forEach(metric -> metricRegistry.get().remove(metric));
+        registeredMetrics.clear();
     }
 }

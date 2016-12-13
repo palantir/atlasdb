@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.cassandra;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -34,20 +35,23 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     @Override
     public KeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
-            Optional<LeaderConfig> leaderConfig) {
+            Optional<LeaderConfig> leaderConfig,
+            Optional<MetricRegistry> metricRegistry) {
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(config instanceof CassandraKeyValueServiceConfig,
                 "CassandraAtlasDbFactory expects a configuration of type"
                 + " CassandraKeyValueServiceConfig, found %s", config.getClass());
-        return createKv((CassandraKeyValueServiceConfig) config, leaderConfig);
+        return createKv((CassandraKeyValueServiceConfig) config, leaderConfig, metricRegistry);
     }
 
     private static CassandraKeyValueService createKv(
             CassandraKeyValueServiceConfig config,
-            Optional<LeaderConfig> leaderConfig) {
+            Optional<LeaderConfig> leaderConfig,
+            Optional<MetricRegistry> metricRegistry) {
         return CassandraKeyValueService.create(
                 CassandraKeyValueServiceConfigManager.createSimpleManager(config),
-                leaderConfig);
+                leaderConfig,
+                metricRegistry);
     }
 
     @Override

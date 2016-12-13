@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.jmock.Mockery;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
@@ -44,7 +45,10 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
+    public KeyValueService createRawKeyValueService(
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig,
+            Optional<MetricRegistry> metricRegistry) {
         return keyValueService;
     }
 

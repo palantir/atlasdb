@@ -120,6 +120,8 @@ public abstract class ConnectionConfig {
 
         config.setPoolName("db-pool-" + getConnId() + "-" + getDbLogin());
         config.setRegisterMbeans(true);
+
+        // TODO: See if we can use the MetricRegistry passed in through the AtlasDbFactory
         config.setMetricRegistry(SharedMetricRegistries.getOrCreate("com.palantir.metrics"));
 
         config.setMinimumIdle(getMinConnections());

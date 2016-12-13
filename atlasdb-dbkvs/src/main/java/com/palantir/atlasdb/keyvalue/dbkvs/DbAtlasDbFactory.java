@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -38,7 +39,10 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
+    public KeyValueService createRawKeyValueService(
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig,
+            Optional<MetricRegistry> metricRegistry) {
         Preconditions.checkArgument(config instanceof DbKeyValueServiceConfig,
                 "DbAtlasDbFactory expects a configuration of type DbKeyValueServiceConfiguration, found %s",
                 config.getClass());

@@ -22,6 +22,7 @@ import javax.net.ssl.SSLSocketFactory;
 
 import org.immutables.value.Value;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
@@ -90,7 +91,20 @@ public final class TransactionManagers {
             Schema schema,
             Environment env,
             boolean allowHiddenTableAccess) {
-        return create(config, ImmutableSet.of(schema), env, allowHiddenTableAccess);
+        return create(config, ImmutableSet.of(schema), env, Optional.absent(), allowHiddenTableAccess);
+    }
+
+    /**
+     * Create a {@link SerializableTransactionManager} with provided configuration, {@link Schema},
+     * an environment in which to register HTTP server endpoints, and optional {@link MetricRegistry}.
+     */
+    public static SerializableTransactionManager create(
+            AtlasDbConfig config,
+            Schema schema,
+            Environment env,
+            Optional<MetricRegistry> metricRegistry,
+            boolean allowHiddenTableAccess) {
+        return create(config, ImmutableSet.of(schema), env, metricRegistry, allowHiddenTableAccess);
     }
 
     /**
@@ -102,23 +116,38 @@ public final class TransactionManagers {
             Set<Schema> schemas,
             Environment env,
             boolean allowHiddenTableAccess) {
-        DebugLogger.logger.info("Called TransactionManagers.create on thread {}. This should only happen once.",
-                Thread.currentThread().getName());
-        return create(config, schemas, env, LockServerOptions.DEFAULT, allowHiddenTableAccess);
+        return create(config, schemas, env, Optional.absent(), allowHiddenTableAccess);
     }
 
     /**
      * Create a {@link SerializableTransactionManager} with provided configuration, a set of
-     * {@link Schema}s, {@link LockServerOptions}, and an environment in which to register HTTP server endpoints.
+     * {@link Schema}s, an environment in which to register HTTP server endpoints , and optional {@link MetricRegistry}.
+     */
+    public static SerializableTransactionManager create(
+            AtlasDbConfig config,
+            Set<Schema> schemas,
+            Environment env,
+            Optional<MetricRegistry> metricRegistry,
+            boolean allowHiddenTableAccess) {
+        DebugLogger.logger.info("Called TransactionManagers.create on thread {}. This should only happen once.",
+                Thread.currentThread().getName());
+        return create(config, schemas, env, LockServerOptions.DEFAULT, metricRegistry, allowHiddenTableAccess);
+    }
+
+    /**
+     * Create a {@link SerializableTransactionManager} with provided configuration, a set of
+     * {@link Schema}s, {@link LockServerOptions}, an environment in which to register HTTP server endpoints,
+     * and optional {@link MetricRegistry}.
      */
     public static SerializableTransactionManager create(
             AtlasDbConfig config,
             Set<Schema> schemas,
             Environment env,
             LockServerOptions lockServerOptions,
+            Optional<MetricRegistry> metricRegistry,
             boolean allowHiddenTableAccess) {
         ServiceDiscoveringAtlasSupplier atlasFactory =
-                new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
+                new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader(), metricRegistry);
         KeyValueService rawKvs = atlasFactory.getKeyValueService();
 
         LockAndTimestampServices lts = createLockAndTimestampServices(

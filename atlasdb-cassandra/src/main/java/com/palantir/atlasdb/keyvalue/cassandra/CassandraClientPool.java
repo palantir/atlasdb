@@ -45,6 +45,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -102,6 +103,7 @@ public class CassandraClientPool {
     Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     final CassandraKeyValueServiceConfig config;
     final ScheduledThreadPoolExecutor refreshDaemon;
+    private final Optional<MetricRegistry> metricRegistry;
 
     public static class LightweightOppToken implements Comparable<LightweightOppToken> {
         final byte[] bytes;
@@ -145,17 +147,25 @@ public class CassandraClientPool {
 
     @VisibleForTesting
     static CassandraClientPool createWithoutChecksForTesting(CassandraKeyValueServiceConfig config) {
-        return new CassandraClientPool(config, StartupChecks.DO_NOT_RUN);
+        return new CassandraClientPool(config, StartupChecks.DO_NOT_RUN, Optional.empty());
     }
 
     public CassandraClientPool(CassandraKeyValueServiceConfig config) {
-        this(config, StartupChecks.RUN);
+        this(config, StartupChecks.RUN, Optional.empty());
     }
 
-    private CassandraClientPool(CassandraKeyValueServiceConfig config, StartupChecks startupChecks) {
+    public CassandraClientPool(CassandraKeyValueServiceConfig config, Optional<MetricRegistry> metricRegistry) {
+        this(config, StartupChecks.RUN, metricRegistry);
+    }
+
+    private CassandraClientPool(
+            CassandraKeyValueServiceConfig config,
+            StartupChecks startupChecks,
+            Optional<MetricRegistry> metricRegistry) {
         this.config = config;
+        this.metricRegistry = metricRegistry;
         config.servers().forEach(server ->
-                currentPools.put(server, new CassandraClientPoolingContainer(server, config)));
+                currentPools.put(server, new CassandraClientPoolingContainer(server, config, metricRegistry)));
 
         refreshDaemon = PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
@@ -205,7 +215,7 @@ public class CassandraClientPool {
         }
 
         for (InetSocketAddress newServer : serversToAdd) {
-            currentPools.put(newServer, new CassandraClientPoolingContainer(newServer, config));
+            currentPools.put(newServer, new CassandraClientPoolingContainer(newServer, config, metricRegistry));
         }
 
         for (InetSocketAddress removedServerAddress : serversToRemove) {

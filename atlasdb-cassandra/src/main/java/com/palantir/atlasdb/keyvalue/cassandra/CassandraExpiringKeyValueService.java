@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
@@ -51,13 +52,14 @@ public class CassandraExpiringKeyValueService extends CassandraKeyValueService i
 
     public static CassandraExpiringKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
-            Optional<LeaderConfig> leaderConfig) {
+            Optional<LeaderConfig> leaderConfig,
+            Optional<MetricRegistry> metricRegistry) {
         Preconditions.checkState(!configManager.getConfig().servers().isEmpty(), "address list was empty");
 
         Optional<CassandraJmxCompactionManager> compactionManager =
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
         CassandraExpiringKeyValueService kvs =
-                new CassandraExpiringKeyValueService(configManager, compactionManager, leaderConfig);
+                new CassandraExpiringKeyValueService(configManager, compactionManager, leaderConfig, metricRegistry);
         kvs.init();
         return kvs;
     }
@@ -66,8 +68,10 @@ public class CassandraExpiringKeyValueService extends CassandraKeyValueService i
     protected CassandraExpiringKeyValueService(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<CassandraJmxCompactionManager> compactionManager,
-            Optional<LeaderConfig> leaderConfig) {
-        super(LoggerFactory.getLogger(CassandraKeyValueService.class), configManager, compactionManager, leaderConfig);
+            Optional<LeaderConfig> leaderConfig,
+            Optional<MetricRegistry> metricRegistry) {
+        super(LoggerFactory.getLogger(
+                CassandraKeyValueService.class), configManager, compactionManager, leaderConfig, metricRegistry);
     }
 
     @Override

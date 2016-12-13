@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.memory;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Optional;
 import com.google.common.base.Suppliers;
@@ -71,7 +72,8 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     @Override
     public InMemoryKeyValueService createRawKeyValueService(
             KeyValueServiceConfig config,
-            Optional<LeaderConfig> leaderConfig) {
+            Optional<LeaderConfig> leaderConfig,
+            Optional<MetricRegistry> metricRegistry) {
         AtlasDbVersion.ensureVersionReported();
         return new InMemoryKeyValueService(false);
     }

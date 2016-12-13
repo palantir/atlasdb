@@ -53,6 +53,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
@@ -158,14 +159,33 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private final CassandraTables cassandraTables;
 
     public static CassandraKeyValueService create(
-            CassandraKeyValueServiceConfigManager configManager,
-            Optional<LeaderConfig> leaderConfig) {
-        return create(configManager, leaderConfig, LoggerFactory.getLogger(CassandraKeyValueService.class));
+            CassandraKeyValueServiceConfigManager configManager, Optional<LeaderConfig> leaderConfig) {
+        return create(
+                configManager,
+                leaderConfig,
+                Optional.absent(),
+                LoggerFactory.getLogger(CassandraKeyValueService.class));
     }
 
     public static CassandraKeyValueService create(
             CassandraKeyValueServiceConfigManager configManager,
             Optional<LeaderConfig> leaderConfig,
+            Optional<MetricRegistry> metricRegistry) {
+        return create(
+                configManager, leaderConfig, metricRegistry, LoggerFactory.getLogger(CassandraKeyValueService.class));
+    }
+
+    public static CassandraKeyValueService create(
+            CassandraKeyValueServiceConfigManager configManager,
+            Optional<LeaderConfig> leaderConfig,
+            Logger log) {
+        return create(configManager, leaderConfig, Optional.absent(), log);
+    }
+
+    public static CassandraKeyValueService create(
+            CassandraKeyValueServiceConfigManager configManager,
+            Optional<LeaderConfig> leaderConfig,
+            Optional<MetricRegistry> metricRegistry,
             Logger log) {
         Optional<CassandraJmxCompactionManager> compactionManager =
                 CassandraJmxCompaction.createJmxCompactionManager(configManager);
@@ -173,7 +193,8 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 log,
                 configManager,
                 compactionManager,
-                leaderConfig);
+                leaderConfig,
+                metricRegistry);
         ret.init();
         return ret;
     }
@@ -181,12 +202,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     protected CassandraKeyValueService(Logger log,
                                        CassandraKeyValueServiceConfigManager configManager,
                                        Optional<CassandraJmxCompactionManager> compactionManager,
-                                       Optional<LeaderConfig> leaderConfig) {
+                                       Optional<LeaderConfig> leaderConfig,
+                                       Optional<MetricRegistry> metricRegistry) {
         super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
                 configManager.getConfig().poolSize() * configManager.getConfig().servers().size()));
         this.log = log;
         this.configManager = configManager;
-        this.clientPool = new CassandraClientPool(configManager.getConfig());
+        this.clientPool = new CassandraClientPool(
+                configManager.getConfig(), java.util.Optional.of(metricRegistry.get()));
         this.compactionManager = compactionManager;
         this.leaderConfig = leaderConfig;
         this.hiddenTables = new HiddenTables();

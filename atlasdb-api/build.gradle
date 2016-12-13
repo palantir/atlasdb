@@ -11,6 +11,7 @@ dependencies {
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
   compile group: 'javax.validation', name: 'validation-api'
+  compile group: 'com.codahale.metrics', name: 'metrics-core'
 
   compile group: 'com.palantir.remoting', name: 'ssl-config'
 

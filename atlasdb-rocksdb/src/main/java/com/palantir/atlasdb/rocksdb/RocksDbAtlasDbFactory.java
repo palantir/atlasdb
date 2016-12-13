@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.rocksdb;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.auto.service.AutoService;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
@@ -40,7 +41,10 @@ public class RocksDbAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public RocksDbKeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
+    public RocksDbKeyValueService createRawKeyValueService(
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig,
+            Optional<MetricRegistry> metricRegistry) {
         AtlasDbVersion.ensureVersionReported();
         Preconditions.checkArgument(config instanceof RocksDbKeyValueServiceConfig,
                 "RocksDbAtlasDbFactory expects a configuration of type RocksDbKeyValueServiceConfig, found %s", config.getClass());

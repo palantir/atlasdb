@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.jdbc;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Optional;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -34,7 +35,10 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public KeyValueService createRawKeyValueService(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
+    public KeyValueService createRawKeyValueService(
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig,
+            Optional<MetricRegistry> metricRegistry) {
         AtlasDbVersion.ensureVersionReported();
         return JdbcKeyValueService.create((JdbcKeyValueConfiguration) config);
     }

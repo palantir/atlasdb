@@ -26,6 +26,7 @@ import java.util.ServiceLoader;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
@@ -48,7 +49,16 @@ public class ServiceDiscoveringAtlasSupplier {
     private final Supplier<KeyValueService> keyValueService;
     private final Supplier<TimestampService> timestampService;
 
-    public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
+    public ServiceDiscoveringAtlasSupplier(
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig) {
+        this(config, leaderConfig, Optional.absent());
+    }
+
+    public ServiceDiscoveringAtlasSupplier(
+            KeyValueServiceConfig config,
+            Optional<LeaderConfig> leaderConfig,
+            Optional<MetricRegistry> metricRegistry) {
         this.config = config;
         this.leaderConfig = leaderConfig;
 
@@ -59,7 +69,8 @@ public class ServiceDiscoveringAtlasSupplier {
                         "No atlas provider for KeyValueService type " + config.type() + " could be found."
                         + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
                 ));
-        keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(config, leaderConfig));
+        keyValueService = Suppliers.memoize(() ->
+                atlasFactory.createRawKeyValueService(config, leaderConfig, metricRegistry));
         timestampService = () -> atlasFactory.createTimestampService(getKeyValueService());
     }
 
