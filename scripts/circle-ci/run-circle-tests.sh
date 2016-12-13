@@ -43,9 +43,13 @@ if [[ $INTERNAL_BUILD != true ]]; then
     ./gradlew $BASE_GRADLE_ARGS --parallel compileJava compileTestJava
     BASE_GRADLE_ARGS+=" -x compileJava -x compileTestJava"
     GRADLE_OPTS="-Xss1024K -XX:+CMSClassUnloadingEnabled -XX:InitialCodeCacheSize=32M -XX:CodeCacheExpansionSize=1M -XX:CodeCacheMinimumFreeSpace=1M -XX:ReservedCodeCacheSize=150M -XX:MinMetaspaceExpansion=1M -XX:MaxMetaspaceExpansion=8M -XX:MaxMetaspaceSize=128M -XX:MaxDirectMemorySize=96M -XX:CompressedClassSpaceSize=32M"
+    CASSANDRA_MAX_HEAP_SIZE=180m
+    CASSANDRA_HEAP_NEWSIZE=24m
 else
     BASE_GRADLE_ARGS+=" --parallel"
     _JAVA_OPTIONS="-Xmx1024m"
+    CASSANDRA_MAX_HEAP_SIZE=512m
+    CASSANDRA_HEAP_NEWSIZE=64m
 fi
 
 case $CIRCLE_NODE_INDEX in
