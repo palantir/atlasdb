@@ -1,0 +1,20 @@
+atlasdb:
+  keyValueService:
+    type: relational
+    ddl:
+      type: postgres
+    connection:
+      type: postgres
+      host: %s
+      port: %s
+      dbName: atlas
+      dbLogin: palantir
+      dbPassword: palantir
+  leader:
+    quorumSize: 1
+    learnerLogDir: var/data/paxosLogs
+    acceptorLogDir: var/data/paxosLogs
+    localServer: http://localhost:3828
+    lockCreator: http://localhost:3828
+    leaders:
+      - http://localhost:3828

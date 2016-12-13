@@ -1,6 +1,8 @@
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
+apply plugin: 'java-library-distribution'
+
 repositories {
     maven {
         url "http://conjars.org/repo"
@@ -8,5 +10,24 @@ repositories {
 }
 
 dependencies {
-    compile group: 'org.apache.calcite', name: 'calcite-core'
+    compile project(':atlasdb-dagger')
+    compile(group: 'org.apache.calcite', name: 'calcite-core') {
+        exclude group: 'com.google.protobuf', module: 'protobuf-java'
+        exclude group: 'commons-lang', module: 'commons-lang'
+    }
+    compile group: "com.google.protobuf", name: "protobuf-java", version: libVersions.protobuf
+    compile group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang
+
+
+    testCompile project(':atlasdb-config')
+    testCompile project(':atlasdb-dbkvs')
+    testCompile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
+    testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: libVersions.dockerComposeRule
+    testCompile group: 'com.jayway.awaitility', name: 'awaitility'
+}
+
+distributions {
+    main{
+        baseName = 'atlasdb-calcite'
+    }
 }

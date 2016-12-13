@@ -1,0 +1,19 @@
+atlasdb:
+  keyValueService:
+    type: relational
+    ddl:
+      type: postgres
+    connection:
+      type: postgres
+      host: %s
+      port: %s
+      dbName: atlas
+      dbLogin: palantir
+      dbPassword: palantir
+  lock:
+    servers:
+      - "http://localhost:3828/api"
+  timestamp:
+    servers:
+      - "http://localhost:3828/api"
+

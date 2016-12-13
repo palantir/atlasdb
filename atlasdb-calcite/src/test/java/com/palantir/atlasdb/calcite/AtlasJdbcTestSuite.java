@@ -1,0 +1,137 @@
+/**
+ * Copyright 2016 Palantir Technologies
+ *
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.palantir.atlasdb.calcite;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.concurrent.Callable;
+
+import org.apache.commons.io.FileUtils;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
+
+import com.google.common.base.Throwables;
+import com.jayway.awaitility.Awaitility;
+import com.jayway.awaitility.Duration;
+import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.AtlasDbConfigs;
+import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
+import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.atlasdb.services.DaggerAtlasDbServices;
+import com.palantir.atlasdb.services.ServicesConfigModule;
+import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.configuration.ShutdownStrategy;
+import com.palantir.docker.compose.connection.Container;
+import com.palantir.docker.compose.connection.DockerPort;
+import com.palantir.docker.compose.logging.LogDirectory;
+
+@RunWith(Suite.class)
+@SuiteClasses({
+        ConnectionTest.class
+})
+public final class AtlasJdbcTestSuite {
+    private static final int POSTGRES_PORT_NUMBER = 5432;
+    private static final String ATLAS_LEADER_CONFIG_TEMPLATE = "src/test/resources/atlas-leader-config-template.yml";
+    private static final String ATLAS_CLIENT_CONFIG_TEMPLATE = "src/test/resources/atlas-client-config-template.yml";
+
+    private static AtlasDbServices services;
+
+    private AtlasJdbcTestSuite() {
+        // Test suite
+    }
+
+    @ClassRule
+    public static final DockerComposeRule docker = DockerComposeRule.builder()
+            .file("src/test/resources/docker-compose.yml")
+            .waitingForService("postgres", Container::areAllPortsOpen)
+            .saveLogsTo(LogDirectory.circleAwareLogDirectory(AtlasJdbcTestSuite.class))
+            .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
+            .build();
+
+    @BeforeClass
+    public static void startDatabaseAndAtlas() throws InterruptedException, IOException {
+        Awaitility.await()
+                .atMost(Duration.ONE_MINUTE)
+                .pollInterval(Duration.ONE_SECOND)
+                .until(canCreateKeyValueService());
+        services = initAtlasServices(getAtlasConfigFile(ATLAS_LEADER_CONFIG_TEMPLATE));
+    }
+
+    public static AtlasDbServices getAtlasDbServices() {
+        return services;
+    }
+
+    public static Connection connect() {
+        try {
+            String uri = String.format(
+                    "jdbc:calcite:schemaFactory=%s;lex=JAVA;schema=atlas",
+                    AtlasSchemaFactory.class.getName());
+            return DriverManager.getConnection(uri);
+        } catch (SQLException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    private static AtlasDbServices initAtlasServices(File configFile) throws IOException {
+        AtlasDbConfig config = AtlasDbConfigs.load(configFile);
+        ServicesConfigModule scm = ServicesConfigModule.create(config);
+        return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
+    }
+
+    private static File getAtlasConfigFile(String templateFileName) throws IOException {
+        InetSocketAddress postgresAddress = getPostgresAddress();
+        String configTemplate = FileUtils.readFileToString(new File(templateFileName));
+        File atlasConfig = File.createTempFile(templateFileName, ".tmp");
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(atlasConfig))) {
+            bw.write(String.format(configTemplate, postgresAddress.getHostName(), postgresAddress.getPort()));
+        }
+        return atlasConfig;
+    }
+
+    public static InetSocketAddress getPostgresAddress() {
+        DockerPort port = docker.containers()
+                .container("postgres")
+                .port(POSTGRES_PORT_NUMBER);
+        return new InetSocketAddress(port.getIp(), port.getExternalPort());
+    }
+
+    private static Callable<Boolean> canCreateKeyValueService() {
+        return () -> {
+            ConnectionManagerAwareDbKvs kvs = null;
+            try {
+                AtlasDbConfig config = AtlasDbConfigs.load(getAtlasConfigFile(ATLAS_CLIENT_CONFIG_TEMPLATE));
+                kvs = ConnectionManagerAwareDbKvs.create((DbKeyValueServiceConfig) config.keyValueService());
+                return kvs.getConnectionManager().getConnection().isValid(5);
+            } catch (Exception e) {
+                return false;
+            } finally {
+                if (kvs != null) {
+                    kvs.close();
+                }
+            }
+        };
+    }
+}
