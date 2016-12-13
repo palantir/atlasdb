@@ -3,7 +3,7 @@
 set -x
 
 BASE_GRADLE_ARGS="--profile --continue"
-TEST_CONTAINER_ARGS="-x findbugsMain -x findbugsTest -x checkstyleMain -x checkstyleTest"
+# TEST_CONTAINER_ARGS="-x findbugsMain -x findbugsTest -x checkstyleMain -x checkstyleTest"
 
 function checkDocsBuild {
   cd docs/
@@ -40,9 +40,10 @@ fi
 if [[ $INTERNAL_BUILD != true ]]; then
     ./gradlew $BASE_GRADLE_ARGS --parallel compileJava compileTestJava
     BASE_GRADLE_ARGS+=" -x compileJava -x compileTestJava"
+    GRADLE_OPTS="-Xss1024K -XX:+CMSClassUnloadingEnabled -XX:InitialCodeCacheSize=32M -XX:CodeCacheExpansionSize=1M -XX:CodeCacheMinimumFreeSpace=1M -XX:ReservedCodeCacheSize=150M -XX:MinMetaspaceExpansion=1M -XX:MaxMetaspaceExpansion=8M -XX:MaxMetaspaceSize=128M -XX:MaxDirectMemorySize=96M -XX:CompressedClassSpaceSize=32M"
 else
     BASE_GRADLE_ARGS+=" --parallel"
-    unset GRADLE_OPTS
+    _JAVA_OPTIONS="-Xmx1024m"
 fi
 
 case $CIRCLE_NODE_INDEX in
@@ -52,5 +53,5 @@ case $CIRCLE_NODE_INDEX in
     3) ./gradlew $BASE_GRADLE_ARGS $TEST_CONTAINER_ARGS ${CONTAINER_3[@]} -x :atlasdb-jepsen-tests:jepsenTest ;;
     4) ./gradlew $BASE_GRADLE_ARGS $TEST_CONTAINER_ARGS ${CONTAINER_4[@]} ;;
     5) ./gradlew $BASE_GRADLE_ARGS $TEST_CONTAINER_ARGS ${CONTAINER_5[@]} ;;
-    6) ./gradlew $BASE_GRADLE_ARGS findbugsMain findbugsTest checkstyleMain checkstyleTest && checkDocsBuild ;;
+    #6) ./gradlew $BASE_GRADLE_ARGS findbugsMain findbugsTest checkstyleMain checkstyleTest && checkDocsBuild ;;
 esac
