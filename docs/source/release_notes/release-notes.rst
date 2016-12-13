@@ -61,6 +61,12 @@ develop
          - We now publish a runnable distribution of AtlasCli that is available for download directly from Bintray
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1345>`__)
 
+    *    - |improved|
+         - Added metrics to the Cassandra client pools that better allow tracking checkouts and evictions from the pool.
+           With such, we now allow passing a custom ``MetricRegistry`` when creating a ``SerializableTransactionManager``
+           or in the respective KVS factories.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1380>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
