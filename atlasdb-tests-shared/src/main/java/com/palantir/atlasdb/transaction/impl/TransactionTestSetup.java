@@ -108,6 +108,7 @@ public abstract class TransactionTestSetup {
     public static void tearDownKvs() {
         if (keyValueService != null) {
             keyValueService.close();
+            keyValueService = null;
         }
     }
 
