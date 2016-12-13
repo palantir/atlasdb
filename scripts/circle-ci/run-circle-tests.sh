@@ -2,7 +2,8 @@
 
 set -x
 
-TEST_CONTAINER_ARGS="--profile --continue -x compileJava -x compileTestJava -x findbugsMain -x findbugsTest -x checkstyleMain -x checkstyleTest"
+BASE_GRADLE_ARGS="--profile --continue"
+TEST_CONTAINER_ARGS="-x findbugsMain -x findbugsTest -x checkstyleMain -x checkstyleTest"
 
 function checkDocsBuild {
   cd docs/
@@ -36,12 +37,20 @@ if ./scripts/circle-ci/check-only-docs-changes.sh; then
     exit 0
 fi
 
+if [[ $INTERNAL_BUILD != true ]]; then
+    ./gradlew $BASE_GRADLE_ARGS --parallel compileJava compileTestJava
+    BASE_GRADLE_ARGS+=" -x compileJava -x compileTestJava"
+else
+    BASE_GRADLE_ARGS+=" --parallel"
+    unset GRADLE_OPTS
+fi
+
 case $CIRCLE_NODE_INDEX in
-    0) ./gradlew $TEST_CONTAINER_ARGS check $CONTAINER_0_EXCLUDE_ARGS ;;
-    1) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_1[@]} -x :atlasdb-cassandra-integration-tests:longTest ;;
-    2) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest ;;
-    3) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_3[@]} -x :atlasdb-jepsen-tests:jepsenTest ;;
-    4) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_4[@]} ;;
-    5) ./gradlew $TEST_CONTAINER_ARGS ${CONTAINER_5[@]} ;;
-    6) ./gradlew --profile --continue -x compileJava -x compileTestJava findbugsMain findbugsTest checkstyleMain checkstyleTest && checkDocsBuild ;;
+    0) ./gradlew $BASE_GRADLE_ARGS $TEST_CONTAINER_ARGS check $CONTAINER_0_EXCLUDE_ARGS ;;
+    1) ./gradlew $BASE_GRADLE_ARGS $TEST_CONTAINER_ARGS ${CONTAINER_1[@]} -x :atlasdb-cassandra-integration-tests:longTest ;;
+    2) ./gradlew $BASE_GRADLE_ARGS $TEST_CONTAINER_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest ;;
+    3) ./gradlew $BASE_GRADLE_ARGS $TEST_CONTAINER_ARGS ${CONTAINER_3[@]} -x :atlasdb-jepsen-tests:jepsenTest ;;
+    4) ./gradlew $BASE_GRADLE_ARGS $TEST_CONTAINER_ARGS ${CONTAINER_4[@]} ;;
+    5) ./gradlew $BASE_GRADLE_ARGS $TEST_CONTAINER_ARGS ${CONTAINER_5[@]} ;;
+    6) ./gradlew $BASE_GRADLE_ARGS findbugsMain findbugsTest checkstyleMain checkstyleTest && checkDocsBuild ;;
 esac

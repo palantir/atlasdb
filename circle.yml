@@ -37,8 +37,6 @@ test:
         background: true
         parallel: true
   override:
-    - ./scripts/time-cmd.sh ./gradlew --profile --continue --parallel compileJava compileTestJava:
-        parallel: true
     - ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh:
         parallel: true
         timeout: 300
