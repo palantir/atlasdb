@@ -48,7 +48,8 @@ import com.palantir.docker.compose.logging.LogDirectory;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-        SmokeTests.class
+        SmokeTests.class,
+        SimpleQueryTests.class
 })
 public final class AtlasJdbcTestSuite {
     private static final int POSTGRES_PORT_NUMBER = 5432;

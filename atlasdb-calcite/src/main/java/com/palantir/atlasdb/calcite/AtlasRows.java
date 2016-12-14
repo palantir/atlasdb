@@ -81,7 +81,7 @@ public class AtlasRows {
             Preconditions.checkState(meta.isNamedColumn(), "metadata must be for named columns");
             ByteBuffer shortName = ByteBuffer.wrap(meta.getName().getBytes());
             if (wrappedCols.containsKey(shortName)) {
-                ret.add(ImmutableAtlasColumn.of(meta, meta.valueType().convertToJava(shortName.array(), 0)));
+                ret.add(ImmutableAtlasColumn.of(meta, meta.valueType().convertToJava(wrappedCols.get(shortName), 0)));
             } else {
                 ret.add(ImmutableAtlasColumn.of(meta, null));
             }

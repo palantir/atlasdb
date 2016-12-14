@@ -109,14 +109,6 @@ public abstract class AtlasTableMetadata {
         return  dynamicColumnComponents().size() != 0;
     }
 
-    @Value.Derived
-    public List<String> namedColumnNames() {
-        return columns().stream()
-                .filter(col -> col.column().isPresent())
-                .map(AtlasColumnMetdata::getName)
-                .collect(Collectors.toList());
-    }
-
     public RelDataType relDataType(RelDataTypeFactory factory) {
         Map<String, RelDataType> nameToType = columns().stream().collect(
                 Collectors.toMap(

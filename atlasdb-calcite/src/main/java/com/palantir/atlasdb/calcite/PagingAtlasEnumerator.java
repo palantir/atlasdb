@@ -54,7 +54,10 @@ public class PagingAtlasEnumerator implements Enumerator<AtlasRow> {
                 tableName,
                 PtBytes.EMPTY_BYTE_ARRAY,
                 PtBytes.EMPTY_BYTE_ARRAY,
-                metadata.namedColumnNames().stream().map(String::getBytes).collect(Collectors.toList()),
+                metadata.namedColumns().stream()
+                        .map(AtlasColumnMetdata::getName)
+                        .map(String::getBytes)
+                        .collect(Collectors.toList()),
                 BATCH_SIZE);
         RangeToken rangeToken = service.getRange(transactionToken, request);
         return new PagingAtlasEnumerator(service, metadata, transactionToken, rangeToken);

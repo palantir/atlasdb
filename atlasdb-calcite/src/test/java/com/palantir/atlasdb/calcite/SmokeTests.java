@@ -42,21 +42,17 @@ public class SmokeTests {
 
     private static final Namespace namespace = Namespace.create("testing");
     private static final TableReference table = TableReference.create(namespace, "newtable");
-    private static final String ROW_COMP1 = "comp1";
-    private static final String ROW_COMP2 = "comp2";
-    private static final String COL1_NAME = "col1";
-    private static final String COL2_NAME = "col2";
+    private static final String ROW_COMP = "comp";
+    private static final String COL_NAME = "col";
 
     @Before
     public void setup() {
         cleanup();
         TableDefinition tableDef = new TableDefinition() {{
             rowName();
-            rowComponent(ROW_COMP1, ValueType.FIXED_LONG);
-            rowComponent(ROW_COMP2, ValueType.STRING);
+            rowComponent(ROW_COMP, ValueType.FIXED_LONG);
             columns();
-            column(COL1_NAME, COL1_NAME, ValueType.STRING);
-            column(COL2_NAME, COL2_NAME, ValueType.STRING);
+            column(COL_NAME, COL_NAME, ValueType.STRING);
             conflictHandler(ConflictHandler.IGNORE_ALL);
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
         }};
@@ -103,6 +99,6 @@ public class SmokeTests {
                 allColumnNames.add(rsmd.getColumnName(i));
             }
         }
-        assertThat(allColumnNames, contains(ROW_COMP1, ROW_COMP2, COL1_NAME, COL2_NAME));
+        assertThat(allColumnNames, contains(ROW_COMP, COL_NAME));
     }
 }

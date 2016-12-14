@@ -26,6 +26,6 @@ public abstract class AtlasRow {
 
     @Value.Derived
     public Object[] toObjectArray() {
-        return new Object[0];
+        return columns().stream().map(AtlasColumn::value).toArray(Object[]::new);
     }
 }
