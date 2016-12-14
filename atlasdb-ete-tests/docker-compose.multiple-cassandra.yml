@@ -6,6 +6,8 @@ services:
     environment:
       - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
+      - MAX_HEAP_SIZE=$CASSANDRA_MAX_HEAP_SIZE
+      - HEAP_NEWSIZE=$CASSANDRA_HEAP_NEWSIZE
       - LOCAL_JMX=no
 
   cassandra2:
@@ -13,6 +15,8 @@ services:
     environment:
       - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
+      - MAX_HEAP_SIZE=$CASSANDRA_MAX_HEAP_SIZE
+      - HEAP_NEWSIZE=$CASSANDRA_HEAP_NEWSIZE
       - LOCAL_JMX=no
 
   cassandra3:
@@ -20,6 +24,8 @@ services:
     environment:
       - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
+      - MAX_HEAP_SIZE=$CASSANDRA_MAX_HEAP_SIZE
+      - HEAP_NEWSIZE=$CASSANDRA_HEAP_NEWSIZE
       - LOCAL_JMX=no
 
   ete1:

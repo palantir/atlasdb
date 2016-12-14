@@ -2,13 +2,13 @@ machine:
   pre:
     - ./scripts/circle-ci/install-docker.sh:
         pwd: $CIRCLE_PROJECT_REPONAME
-    - sudo pip install docker-compose
+    - sudo wget --retry-connrefused --waitretry=1 --read-timeout 20 --timeout 15 -t 10 -q -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.9.0/docker-compose-`uname -s`-`uname -m`
+    - sudo chmod +x /usr/local/bin/docker-compose
   java:
     version:
       oraclejdk8
   environment:
     _JAVA_OPTIONS: "-Xmx512M"
-    GRADLE_OPTS: '-Xss1024K -XX:+CMSClassUnloadingEnabled -XX:InitialCodeCacheSize=32M -XX:CodeCacheExpansionSize=1M -XX:CodeCacheMinimumFreeSpace=1M -XX:ReservedCodeCacheSize=150M -XX:MinMetaspaceExpansion=1M -XX:MaxMetaspaceExpansion=8M -XX:MaxMetaspaceSize=128M -XX:MaxDirectMemorySize=96M -XX:CompressedClassSpaceSize=32M'
     TERM: dumb
   services:
     - docker
@@ -17,18 +17,14 @@ checkout:
   post:
     - ./scripts/circle-ci/pull-all-images.sh:
         background: true
-    - ./scripts/circle-ci/stop-services.sh
-
-general:
-  artifacts:
-    - "build/reports/profile"
+    - ./scripts/circle-ci/stop-services.sh:
+        background: true
 
 dependencies:
   pre:
     - ./scripts/circle-ci/download-moreutils.sh
   override:
     - ./scripts/time-cmd.sh ./gradlew --profile --parallel resolveConfigurations
-    - sudo pip install sphinx sphinx_rtd_theme
     - scripts/circle-ci/pr-changelog-status-check.sh
 
 test:
@@ -37,8 +33,6 @@ test:
         background: true
         parallel: true
   override:
-    - ./scripts/time-cmd.sh ./gradlew --profile --continue --parallel compileJava compileTestJava:
-        parallel: true
     - ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh:
         parallel: true
         timeout: 300
@@ -59,6 +53,8 @@ test:
     - find . -type d -regex ".*/build/reports/checkstyle" | sed 's#\./\(\(.*\)/build/reports/checkstyle\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/checkstyle/\2#' | bash:
         parallel: true
     - find . -type d -regex ".*/build/reports/findbugs" | sed 's#\./\(\(.*\)/build/reports/findbugs\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/findbugs/\2#' | bash:
+        parallel: true
+    - rsync -uav "build/reports/profile" "$CIRCLE_ARTIFACTS/":
         parallel: true
 
 deployment:
