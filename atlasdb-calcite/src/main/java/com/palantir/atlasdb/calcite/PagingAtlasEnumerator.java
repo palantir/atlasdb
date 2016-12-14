@@ -34,6 +34,7 @@ public class PagingAtlasEnumerator implements Enumerator<AtlasRow> {
     private final AtlasDbService service;
     private final AtlasTableMetadata metadata;
     private final TransactionToken transactionToken;
+    private final RangeToken initRangeToken;
     private RangeToken rangeToken;
     private LocalAtlasEnumerator curIter;
 
@@ -44,8 +45,8 @@ public class PagingAtlasEnumerator implements Enumerator<AtlasRow> {
         this.service = service;
         this.metadata = metadata;
         this.transactionToken = transactionToken;
-        this.rangeToken = rangeToken;
-        this.curIter = null;
+        this.initRangeToken = rangeToken;
+        reset();
     }
 
     public static PagingAtlasEnumerator create(AtlasDbService service, AtlasTableMetadata metadata, String tableName) {
@@ -84,7 +85,8 @@ public class PagingAtlasEnumerator implements Enumerator<AtlasRow> {
 
     @Override
     public void reset() {
-        throw new UnsupportedOperationException();
+        this.rangeToken = initRangeToken;
+        this.curIter = null;
     }
 
     @Override

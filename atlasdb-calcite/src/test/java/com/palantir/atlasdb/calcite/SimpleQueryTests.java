@@ -177,6 +177,50 @@ public class SimpleQueryTests {
         }
     }
 
+    @Test
+    public void testSelectCount() {
+        try (Connection conn = AtlasJdbcTestSuite.connect()) {
+            Statement stmt = conn.createStatement();
+            ResultSet results = stmt.executeQuery(
+                    String.format("select count(*) as \"count\" from \"%s\"", TABLE.getQualifiedName()));
+            results.next();
+            assertThat(results.getLong("count"), equalTo(2L));
+            assertThat(results.next(), equalTo(false));
+        } catch (SQLException e) {
+            throw new RuntimeException("Failure running select.", e);
+        }
+    }
+
+    @Test
+    public void testSelectMax() {
+        try (Connection conn = AtlasJdbcTestSuite.connect()) {
+            Statement stmt = conn.createStatement();
+            ResultSet results = stmt.executeQuery(
+                    String.format("select max(%s) as \"max\" from \"%s\"", ROW_COMP1, TABLE
+                            .getQualifiedName()));
+            results.next();
+            assertThat(results.getLong("max"), equalTo(22L));
+            assertThat(results.next(), equalTo(false));
+        } catch (SQLException e) {
+            throw new RuntimeException("Failure running select.", e);
+        }
+    }
+
+    @Test
+    public void testSelectMin() {
+        try (Connection conn = AtlasJdbcTestSuite.connect()) {
+            Statement stmt = conn.createStatement();
+            ResultSet results = stmt.executeQuery(
+                    String.format("select min(%s) as \"min\" from \"%s\"", ROW_COMP1, TABLE
+                            .getQualifiedName()));
+            results.next();
+            assertThat(results.getLong("min"), equalTo(11L));
+            assertThat(results.next(), equalTo(false));
+        } catch (SQLException e) {
+            throw new RuntimeException("Failure running select.", e);
+        }
+    }
+
     public static void assertFails(Callable<?> c) {
         try {
             c.call();
