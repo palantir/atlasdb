@@ -23,6 +23,7 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -36,6 +37,13 @@ import com.palantir.atlasdb.services.ServicesConfigModule;
 public class AtlasSchemaFactory implements SchemaFactory {
     public static final String ATLAS_CONFIG_FILE_KEY = "configFile";
 
+    private static AtlasDbServices services;
+
+    @VisibleForTesting
+    public static AtlasDbServices getLastKnownAtlasServices() {
+        return services;
+    }
+
     @Override
     public Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand) {
         AtlasDbService service = connectToAtlas(new File((String) operand.get(ATLAS_CONFIG_FILE_KEY)));
@@ -44,9 +52,13 @@ public class AtlasSchemaFactory implements SchemaFactory {
 
     private AtlasDbService connectToAtlas(File configFile) {
         try {
-            AtlasDbConfig config = AtlasDbConfigs.load(configFile);
-            ServicesConfigModule scm = ServicesConfigModule.create(config);
-            AtlasDbServices services = DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
+            // TODO (bullman): this is a hack for testing that should be removed
+            if (services == null) {
+                AtlasDbConfig config = AtlasDbConfigs.load(configFile);
+                ServicesConfigModule scm = ServicesConfigModule.create(config);
+                AtlasDbServices services = DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
+                this.services = services;
+            }
             return new AtlasDbServiceImpl(
                     services.getKeyValueService(),
                     services.getTransactionManager(),

@@ -40,8 +40,6 @@ import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.services.AtlasDbServices;
-import com.palantir.atlasdb.services.DaggerAtlasDbServices;
-import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
@@ -54,8 +52,7 @@ import com.palantir.docker.compose.logging.LogDirectory;
 })
 public final class AtlasJdbcTestSuite {
     private static final int POSTGRES_PORT_NUMBER = 5432;
-    private static final String ATLAS_LEADER_CONFIG_TEMPLATE = "src/test/resources/atlas-leader-config-template.yml";
-    private static final String ATLAS_CLIENT_CONFIG_TEMPLATE = "src/test/resources/atlas-client-config-template.yml";
+    private static final String ATLAS_CONFIG_TEMPLATE = "src/test/resources/atlas-config-template.yml";
 
     private static AtlasDbServices services;
 
@@ -77,7 +74,8 @@ public final class AtlasJdbcTestSuite {
                 .atMost(Duration.ONE_MINUTE)
                 .pollInterval(Duration.ONE_SECOND)
                 .until(canCreateKeyValueService());
-        services = initAtlasServices(getAtlasConfigFile(ATLAS_LEADER_CONFIG_TEMPLATE));
+        connect();
+        services = AtlasSchemaFactory.getLastKnownAtlasServices();
     }
 
     public static AtlasDbServices getAtlasDbServices() {
@@ -90,23 +88,17 @@ public final class AtlasJdbcTestSuite {
                     "jdbc:calcite:schemaFactory=%s;schema.%s=%s;lex=MYSQL_ANSI;schema=atlas",
                     AtlasSchemaFactory.class.getName(),
                     AtlasSchemaFactory.ATLAS_CONFIG_FILE_KEY,
-                    getAtlasConfigFile(ATLAS_CLIENT_CONFIG_TEMPLATE).getPath());
+                    getAtlasConfigFile().getPath());
             return DriverManager.getConnection(uri);
         } catch (IOException | SQLException e) {
             throw Throwables.propagate(e);
         }
     }
 
-    private static AtlasDbServices initAtlasServices(File configFile) throws IOException {
-        AtlasDbConfig config = AtlasDbConfigs.load(configFile);
-        ServicesConfigModule scm = ServicesConfigModule.create(config);
-        return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
-    }
-
-    private static File getAtlasConfigFile(String templateFileName) throws IOException {
+    private static File getAtlasConfigFile() throws IOException {
         InetSocketAddress postgresAddress = getPostgresAddress();
-        String configTemplate = FileUtils.readFileToString(new File(templateFileName));
-        File atlasConfig = File.createTempFile(templateFileName, ".tmp");
+        String configTemplate = FileUtils.readFileToString(new File(ATLAS_CONFIG_TEMPLATE));
+        File atlasConfig = File.createTempFile(ATLAS_CONFIG_TEMPLATE, ".tmp");
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(atlasConfig))) {
             bw.write(String.format(configTemplate, postgresAddress.getHostName(), postgresAddress.getPort()));
         }
@@ -124,7 +116,7 @@ public final class AtlasJdbcTestSuite {
         return () -> {
             ConnectionManagerAwareDbKvs kvs = null;
             try {
-                AtlasDbConfig config = AtlasDbConfigs.load(getAtlasConfigFile(ATLAS_CLIENT_CONFIG_TEMPLATE));
+                AtlasDbConfig config = AtlasDbConfigs.load(getAtlasConfigFile());
                 kvs = ConnectionManagerAwareDbKvs.create((DbKeyValueServiceConfig) config.keyValueService());
                 return kvs.getConnectionManager().getConnection().isValid(5);
             } catch (Exception e) {

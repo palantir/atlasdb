@@ -10,10 +10,3 @@ atlasdb:
       dbName: atlas
       dbLogin: palantir
       dbPassword: palantir
-  lock:
-    servers:
-      - "http://localhost:3828/api"
-  timestamp:
-    servers:
-      - "http://localhost:3828/api"
-
