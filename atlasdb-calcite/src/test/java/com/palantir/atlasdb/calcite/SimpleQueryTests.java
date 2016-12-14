@@ -17,6 +17,7 @@ package com.palantir.atlasdb.calcite;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.isEmptyOrNullString;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -219,6 +220,84 @@ public class SimpleQueryTests {
         } catch (SQLException e) {
             throw new RuntimeException("Failure running select.", e);
         }
+    }
+
+    @Test
+    public void testSelectWhere() {
+        testSelectWhere(key(1), "value1");
+        testSelectWhere(key(2), "value2");
+    }
+
+    private void testSelectWhere(String row, String val) {
+        try (Connection conn = AtlasJdbcTestSuite.connect()) {
+            Statement stmt = conn.createStatement();
+            ResultSet results = stmt.executeQuery(
+                    String.format("select * from \"%s\" where %s = '%s'",
+                            TABLE.getQualifiedName(), COL1_DISPLAY_NAME, val));
+            results.next();
+            assertThat(results.getString(ROW_COMP2), equalTo(row));
+            assertThat(results.getString(COL1_DISPLAY_NAME), equalTo(val));
+            assertThat(results.next(), equalTo(false));
+        } catch (SQLException e) {
+            throw new RuntimeException("Failure running select.", e);
+        }
+    }
+
+    @Test
+    public void testSelectEmptyCol() {
+        try (Connection conn = AtlasJdbcTestSuite.connect()) {
+            Statement stmt = conn.createStatement();
+            ResultSet results = stmt.executeQuery(String.format("select * from \"%s\"", TABLE.getQualifiedName()));
+            results.next();
+            assertThat(results.getString(COL2_DISPLAY_NAME), equalTo("value3"));
+            results.next();
+            assertThat(results.getString(COL2_DISPLAY_NAME), isEmptyOrNullString());
+            assertThat(results.next(), equalTo(false));
+        } catch (SQLException e) {
+            throw new RuntimeException("Failure running select.", e);
+        }
+    }
+
+    @Test
+    public void testSelectWhereRowFiltering() {
+        countRowsFromRowFilteringQuery(key(1), "=", 1);
+        countRowsFromRowFilteringQuery(key(1), ">=", 2);
+        countRowsFromRowFilteringQuery(key(1), "<=", 1);
+        countRowsFromRowFilteringQuery(key(1), ">", 1);
+        countRowsFromRowFilteringQuery(key(1), "<", 0);
+        countRowsFromRowFilteringQuery(key(1), "<>", 1);
+
+        countRowsFromRowFilteringQuery(key(2), "=", 1);
+        countRowsFromRowFilteringQuery(key(2), ">=", 1);
+        countRowsFromRowFilteringQuery(key(2), "<=", 2);
+        countRowsFromRowFilteringQuery(key(2), ">", 0);
+        countRowsFromRowFilteringQuery(key(2), "<", 1);
+        countRowsFromRowFilteringQuery(key(2), "<>", 1);
+
+        countRowsFromRowFilteringQuery(key(0), ">", 2);
+        countRowsFromRowFilteringQuery(key(0), "<", 0);
+        countRowsFromRowFilteringQuery(key(50), "<", 2);
+        countRowsFromRowFilteringQuery(key(50), ">", 0);
+    }
+
+    private void countRowsFromRowFilteringQuery(String key, String op, int expectedCount) {
+        try (Connection conn = AtlasJdbcTestSuite.connect()) {
+            Statement stmt = conn.createStatement();
+            ResultSet results = stmt.executeQuery(
+                    String.format("select * from \"%s\" where %s %s '%s'",
+                            TABLE.getQualifiedName(), ROW_COMP2, op, key));
+            assertThat(count(results), equalTo(expectedCount));
+        } catch (SQLException e) {
+            throw new RuntimeException("Failure running select.", e);
+        }
+    }
+
+    public static int count(ResultSet results) throws SQLException {
+        int i = 0;
+        while (results.next()) {
+            i++;
+        }
+        return i;
     }
 
     public static void assertFails(Callable<?> c) {
