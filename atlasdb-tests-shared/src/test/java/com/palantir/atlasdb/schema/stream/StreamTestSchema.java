@@ -38,10 +38,8 @@ public class StreamTestSchema implements AtlasSchema {
             {
                 javaTableName("KeyValue");
 
-                rowName();
                 rowComponent("key", ValueType.STRING);
 
-                columns();
                 column("streamId", "s", ValueType.VAR_LONG);
             }
         });

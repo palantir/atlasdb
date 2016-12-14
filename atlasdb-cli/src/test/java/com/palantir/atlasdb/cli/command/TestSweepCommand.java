@@ -231,9 +231,8 @@ public class TestSweepCommand {
     private void createTable(KeyValueService kvs, TableReference table, final TableMetadataPersistence.SweepStrategy sweepStrategy) {
         kvs.createTable(table,
                 new TableDefinition() {{
-                    rowName();
                     rowComponent("row", ValueType.BLOB);
-                    columns();
+
                     column("col", COL, ValueType.BLOB);
                     conflictHandler(ConflictHandler.IGNORE_ALL);
                     sweepStrategy(sweepStrategy);

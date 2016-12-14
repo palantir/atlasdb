@@ -37,10 +37,9 @@ public class IndexTestSchema implements AtlasSchema {
                 Namespace.DEFAULT_NAMESPACE);
 
         schema.addTableDefinition("data", new TableDefinition() {{
-            rowName();
-                rowComponent("id", ValueType.FIXED_LONG);
-            columns();
-                column("value", "v", ValueType.FIXED_LONG);
+            rowComponent("id", ValueType.FIXED_LONG);
+
+            column("value", "v", ValueType.FIXED_LONG);
         }});
 
         schema.addIndexDefinition("index1", new IndexDefinition(IndexType.CELL_REFERENCING) {{
@@ -76,11 +75,10 @@ public class IndexTestSchema implements AtlasSchema {
         }});
 
         schema.addTableDefinition("two_columns", new TableDefinition() {{
-            rowName();
-                rowComponent("id", ValueType.FIXED_LONG);
-            columns();
-                column("foo", "f", ValueType.FIXED_LONG);
-                column("bar", "b", ValueType.FIXED_LONG);
+            rowComponent("id", ValueType.FIXED_LONG);
+
+            column("foo", "f", ValueType.FIXED_LONG);
+            column("bar", "b", ValueType.FIXED_LONG);
         }});
 
         schema.addIndexDefinition("foo_to_id", new IndexDefinition(IndexType.CELL_REFERENCING) {{

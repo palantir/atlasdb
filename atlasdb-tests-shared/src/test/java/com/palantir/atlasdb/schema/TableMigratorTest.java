@@ -70,10 +70,9 @@ public class TableMigratorTest extends AtlasDbTestCase {
         final TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, "table");
         final TableReference namespacedTableRef = TableReference.createFromFullyQualifiedName("namespace." + tableRef.getTablename());
         TableDefinition definition = new TableDefinition() {{
-                rowName();
-                rowComponent("r", ValueType.BLOB);
-            columns();
-                column("c", "c", ValueType.BLOB);
+            rowComponent("r", ValueType.BLOB);
+
+            column("c", "c", ValueType.BLOB);
         }};
         keyValueService.createTable(tableRef, definition.toTableMetadata().persistToBytes());
         keyValueService.createTable(namespacedTableRef, definition.toTableMetadata().persistToBytes());

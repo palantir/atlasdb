@@ -46,42 +46,23 @@ public class TableDefinition extends AbstractDefinition {
         return ConflictHandler.RETRY_ON_WRITE_WRITE;
     }
 
-    public void rowName() {
-        state = State.DEFINING_ROW_NAME;
-    }
-
-    public void columns() {
-        state = State.DEFINING_COLUMNS;
-    }
-
-    public void dynamicColumns() {
-        state = State.DEFINING_DYNAMIC_COLUMN;
-    }
-
-    public void constraints() {
-        state = State.DEFINING_CONSTRAINTS;
-    }
-
     public void column(String columnName, String shortName, Class<?> protoOrPersistable) {
         column(columnName, shortName, protoOrPersistable, Compression.NONE);
     }
 
     public void column(String columnName, String shortName, Class<?> protoOrPersistable, Compression compression) {
-        Preconditions.checkState(state == State.DEFINING_COLUMNS);
         Preconditions.checkState(!noColumns);
         checkUniqueColumnNames(columnName, shortName);
         fixedColumns.add(new NamedColumnDescription(shortName, columnName, getColumnValueDescription(protoOrPersistable, compression)));
     }
 
     public void column(String columnName, String shortName, ValueType valueType) {
-        Preconditions.checkState(state == State.DEFINING_COLUMNS);
         Preconditions.checkState(!noColumns);
         checkUniqueColumnNames(columnName, shortName);
         fixedColumns.add(new NamedColumnDescription(shortName, columnName, ColumnValueDescription.forType(valueType)));
     }
 
     public void noColumns() {
-        Preconditions.checkState(state != State.DEFINING_COLUMNS);
         Preconditions.checkState(fixedColumns.isEmpty());
         fixedColumns.add(new NamedColumnDescription("e", "exists", ColumnValueDescription.forType(ValueType.VAR_LONG)));
         noColumns = true;
@@ -104,8 +85,6 @@ public class TableDefinition extends AbstractDefinition {
      * end of the row
      */
     public void hashFirstRowComponent() {
-        Preconditions.checkState(state == State.DEFINING_ROW_NAME);
-        Preconditions.checkState(rowNameComponents.isEmpty(), "hashRowComponent must be the first row component");
         hashFirstRowComponent = true;
         ignoreHotspottingChecks = true;
     }
@@ -115,7 +94,6 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     public void rowComponent(String componentName, ValueType valueType, ValueByteOrder valueByteOrder) {
-        Preconditions.checkState(state == State.DEFINING_ROW_NAME);
         rowNameComponents.add(new NameComponentDescription(componentName, valueType, valueByteOrder));
     }
 
@@ -128,18 +106,15 @@ public class TableDefinition extends AbstractDefinition {
      * If no partition() is specified the default is to use a {@link UniformRowNamePartitioner}
      */
     public void partition(RowNamePartitioner... partitioners) {
-        Preconditions.checkState(state == State.DEFINING_ROW_NAME);
         NameComponentDescription last = rowNameComponents.get(rowNameComponents.size()-1);
         rowNameComponents.set(rowNameComponents.size()-1, last.withPartitioners(partitioners));
     }
 
     public ExplicitRowNamePartitioner explicit(String... componentValues) {
-        Preconditions.checkState(state == State.DEFINING_ROW_NAME);
         return new ExplicitRowNamePartitioner(rowNameComponents.get(rowNameComponents.size()-1).getType(), ImmutableSet.copyOf(componentValues));
     }
 
     public ExplicitRowNamePartitioner explicit(long... componentValues) {
-        Preconditions.checkState(state == State.DEFINING_ROW_NAME);
         Set<String> set = Sets.newHashSet();
         for (long l : componentValues) {
             set.add(Long.toString(l));
@@ -148,7 +123,6 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     public UniformRowNamePartitioner uniform() {
-        Preconditions.checkState(state == State.DEFINING_ROW_NAME);
         return new UniformRowNamePartitioner(rowNameComponents.get(rowNameComponents.size()-1).getType());
     }
 
@@ -157,7 +131,6 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     public void columnComponent(String componentName, ValueType valueType, ValueByteOrder valueByteOrder) {
-        Preconditions.checkState(state == State.DEFINING_DYNAMIC_COLUMN);
         dynamicColumnNameComponents.add(new NameComponentDescription(componentName, valueType, valueByteOrder));
     }
 
@@ -166,12 +139,10 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     public void value(Class<?> protoOrPersistable, Compression compression) {
-        Preconditions.checkState(state == State.DEFINING_DYNAMIC_COLUMN);
         dynamicColumnValue = getColumnValueDescription(protoOrPersistable, compression);
     }
 
     public void value(ValueType valueType) {
-        Preconditions.checkState(state == State.DEFINING_DYNAMIC_COLUMN);
         dynamicColumnValue = ColumnValueDescription.forType(valueType);
         if (maxValueSize == Integer.MAX_VALUE) {
             maxValueSize = valueType.getMaxValueSize();
@@ -179,17 +150,14 @@ public class TableDefinition extends AbstractDefinition {
     }
 
     public void tableConstraint(TableConstraint constraint) {
-        Preconditions.checkState(state == State.DEFINING_CONSTRAINTS);
         constraintBuilder.addTableConstraint(constraint);
     }
 
     public void rowConstraint(RowConstraintMetadata constraint) {
-        Preconditions.checkState(state == State.DEFINING_CONSTRAINTS);
         constraintBuilder.addRowConstraint(constraint);
     }
 
     public void foreignKeyConstraint(ForeignKeyConstraintMetadata constraint) {
-        Preconditions.checkState(state == State.DEFINING_CONSTRAINTS);
         constraintBuilder.addForeignKeyConstraint(constraint);
     }
 
@@ -224,15 +192,6 @@ public class TableDefinition extends AbstractDefinition {
         validateFirstRowComp(rowNameComponents.get(0));
     }
 
-    private enum State {
-        NONE,
-        DEFINING_ROW_NAME,
-        DEFINING_DYNAMIC_COLUMN,
-        DEFINING_COLUMNS,
-        DEFINING_CONSTRAINTS,
-    }
-
-    private State state = State.NONE;
     private int maxValueSize = Integer.MAX_VALUE;
     private String genericTableName = null;
     private String javaTableName = null;

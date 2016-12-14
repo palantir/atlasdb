@@ -44,22 +44,23 @@ public enum SweepSchema implements AtlasSchema {
         // This table tracks progress on a sweep job of a single table.
         schema.addTableDefinition("progress", new TableDefinition() {{
             javaTableName("SweepProgress");
-            rowName();
-                // This table has at most one row.
-                rowComponent("dummy", ValueType.VAR_LONG);
-            columns();
-                // The name of the table being swept.
-                column("full_table_name", "n", ValueType.STRING);
-                // The minimum swept timestamp, used to determine min
-                // timestamp for transaction table sweep
-                column("minimum_swept_timestamp", "m", ValueType.VAR_SIGNED_LONG);
-                // The row to start sweeping from if sweeping
-                // is paused and resumed.
-                column("start_row", "s", ValueType.BLOB);
-                // The number of cells deleted so far.
-                column("cells_deleted", "d", ValueType.VAR_LONG);
-                // The number of cells examined so far.
-                column("cells_examined", "e", ValueType.VAR_LONG);
+
+            // This table has at most one row.
+            rowComponent("dummy", ValueType.VAR_LONG);
+
+            // The name of the table being swept.
+            column("full_table_name", "n", ValueType.STRING);
+            // The minimum swept timestamp, used to determine min
+            // timestamp for transaction table sweep
+            column("minimum_swept_timestamp", "m", ValueType.VAR_SIGNED_LONG);
+            // The row to start sweeping from if sweeping
+            // is paused and resumed.
+            column("start_row", "s", ValueType.BLOB);
+            // The number of cells deleted so far.
+            column("cells_deleted", "d", ValueType.VAR_LONG);
+            // The number of cells examined so far.
+            column("cells_examined", "e", ValueType.VAR_LONG);
+
             conflictHandler(ConflictHandler.IGNORE_ALL);
             ignoreHotspottingChecks();
         }});
@@ -68,24 +69,25 @@ public enum SweepSchema implements AtlasSchema {
         // in determining when and in which order they should be swept.
         schema.addTableDefinition("priority", new TableDefinition() {{
             javaTableName("SweepPriority");
-            rowName();
-                rowComponent("full_table_name", ValueType.STRING);
-            columns();
-                // The (approximate) number of writes to this table
-                // since the last time it was swept.
-                column("write_count", "w", ValueType.VAR_LONG);
-                // The (wall clock) time of when this table was
-                // last swept.
-                column("last_sweep_time", "t", ValueType.VAR_LONG);
-                // The minimum swept timestamp, used to determine min
-                // timestamp for transaction table sweep
-                column("minimum_swept_timestamp", "m", ValueType.VAR_SIGNED_LONG);
-                // The number of cells deleted when this table was
-                // last swept.
-                column("cells_deleted", "d", ValueType.VAR_LONG);
-                // The number of cells in the table when this table
-                // was last swept.
-                column("cells_examined", "e", ValueType.VAR_LONG);
+
+            rowComponent("full_table_name", ValueType.STRING);
+
+            // The (approximate) number of writes to this table
+            // since the last time it was swept.
+            column("write_count", "w", ValueType.VAR_LONG);
+            // The (wall clock) time of when this table was
+            // last swept.
+            column("last_sweep_time", "t", ValueType.VAR_LONG);
+            // The minimum swept timestamp, used to determine min
+            // timestamp for transaction table sweep
+            column("minimum_swept_timestamp", "m", ValueType.VAR_SIGNED_LONG);
+            // The number of cells deleted when this table was
+            // last swept.
+            column("cells_deleted", "d", ValueType.VAR_LONG);
+            // The number of cells in the table when this table
+            // was last swept.
+            column("cells_examined", "e", ValueType.VAR_LONG);
+
             conflictHandler(ConflictHandler.IGNORE_ALL);
         }});
 

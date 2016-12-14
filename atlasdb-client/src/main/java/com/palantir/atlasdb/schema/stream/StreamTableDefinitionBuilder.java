@@ -77,11 +77,12 @@ public class StreamTableDefinitionBuilder {
         case HASH:
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
-                rowName();
-                    rowComponent("hash",            ValueType.SHA256HASH);
-                dynamicColumns();
-                    columnComponent("stream_id",    idType);
-                    value(ValueType.VAR_LONG);
+
+                rowComponent("hash",            ValueType.SHA256HASH);
+
+                columnComponent("stream_id",    idType);
+                value(ValueType.VAR_LONG);
+
                 conflictHandler(ConflictHandler.IGNORE_ALL);
                 maxValueSize(1);
                 explicitCompressionRequested();
@@ -96,13 +97,14 @@ public class StreamTableDefinitionBuilder {
         case INDEX:
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
-                rowName();
+
                 if (hashFirstRowComponent) {
                     hashFirstRowComponent();
                 }
                 rowComponent("id",            idType);
-                dynamicColumns();
+
                 columnComponent("reference", ValueType.SIZED_BLOB);
+
                 value(ValueType.VAR_LONG);
                 conflictHandler(ConflictHandler.IGNORE_ALL);
                 maxValueSize(1);
@@ -117,13 +119,14 @@ public class StreamTableDefinitionBuilder {
         case METADATA:
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
-                rowName();
-                    if (hashFirstRowComponent) {
-                        hashFirstRowComponent();
-                    }
-                    rowComponent("id", idType);
-                columns();
-                    column("metadata", "md", StreamPersistence.StreamMetadata.class);
+
+                if (hashFirstRowComponent) {
+                    hashFirstRowComponent();
+                }
+                rowComponent("id", idType);
+
+                column("metadata", "md", StreamPersistence.StreamMetadata.class);
+
                 maxValueSize(64);
                 conflictHandler(ConflictHandler.RETRY_ON_VALUE_CHANGED);
                 explicitCompressionRequested();
@@ -138,14 +141,15 @@ public class StreamTableDefinitionBuilder {
         case VALUE:
             return new TableDefinition() {{
                 javaTableName(streamTableType.getJavaClassName(prefix));
-                rowName();
-                    if (hashFirstRowComponent) {
-                        hashFirstRowComponent();
-                    }
-                    rowComponent("id",              idType);
-                    rowComponent("block_id",        ValueType.VAR_LONG);
-                columns();
-                    column("value", "v",            ValueType.BLOB);
+
+                if (hashFirstRowComponent) {
+                    hashFirstRowComponent();
+                }
+                rowComponent("id",              idType);
+                rowComponent("block_id",        ValueType.VAR_LONG);
+
+                column("value", "v",            ValueType.BLOB);
+
                 conflictHandler(ConflictHandler.IGNORE_ALL);
                 maxValueSize(GenericStreamStore.BLOCK_SIZE_IN_BYTES);
                 cachePriority(CachePriority.COLD);

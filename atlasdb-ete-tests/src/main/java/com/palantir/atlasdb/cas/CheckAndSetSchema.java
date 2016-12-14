@@ -35,10 +35,9 @@ public class CheckAndSetSchema implements AtlasSchema {
                 Namespace.DEFAULT_NAMESPACE);
 
         schema.addTableDefinition(CAS_TABLE, new TableDefinition() {{
-            rowName();
-                rowComponent("id", ValueType.FIXED_LONG);
-            columns();
-                column(VALUES_COLUMN, "v", ValueType.FIXED_LONG);
+            rowComponent("id", ValueType.FIXED_LONG);
+
+            column(VALUES_COLUMN, "v", ValueType.FIXED_LONG);
         }});
 
         return schema;

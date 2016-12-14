@@ -1177,9 +1177,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         byte[] bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(Arrays.equals(bytes, bytesRead));
         bytes = new TableDefinition() {{
-            rowName();
             rowComponent("row", ValueType.FIXED_LONG);
-            columns();
+
             column("col", "c", ValueType.VAR_STRING);
             conflictHandler(ConflictHandler.RETRY_ON_VALUE_CHANGED);
             negativeLookups();

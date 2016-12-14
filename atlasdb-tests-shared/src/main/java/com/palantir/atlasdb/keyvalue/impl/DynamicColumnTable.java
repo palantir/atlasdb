@@ -22,11 +22,10 @@ import com.palantir.atlasdb.table.description.ValueType;
 
 public class DynamicColumnTable {
     private static final TableDefinition DYNAMIC_COLUMNS_TABLE = new TableDefinition() {{
-        rowName();
-            rowComponent("id", ValueType.FIXED_LONG);
-        dynamicColumns();
-            columnComponent("column_id", ValueType.FIXED_LONG);
-            value(ValueType.FIXED_LONG);
+        rowComponent("id", ValueType.FIXED_LONG);
+
+        columnComponent("column_id", ValueType.FIXED_LONG);
+        value(ValueType.FIXED_LONG);
     }};
 
     public static TableReference reference() {
