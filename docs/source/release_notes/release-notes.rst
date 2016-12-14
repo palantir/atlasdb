@@ -173,7 +173,7 @@ v0.25.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
 
     *    - |devbreak|
-         - ``Cell.validateNameValid`` is now private; consider ``Cell.isNameValid`` instead
+         - ``Cell.validateNameValid`` is now private; consider ``Cell.isNameValid`` instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
@@ -232,7 +232,7 @@ v0.24.0
 
     *    - |improved|
          - ``atlasdb-cassandra`` now depends on ``cassandra-thrift`` instead of ``cassandra-all``.
-           This reduces our dependency footprint.
+           Applications that support :ref:`CassandraKVS <cassandra-configuration>` will see a 20MB (10%) decrease in their Cassandra dependency footprint.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1222>`__)
 
     *    - |new|
@@ -566,15 +566,13 @@ v0.16.0
          - Change
 
     *    - |devbreak|
-         - Removed ``TransactionManager`` implementations ``ShellAwareReadOnlyTransactionManager``
-           and ``AtlasDbBackendDebugTransactionManager``. These are no longer
-           supported by AtlasDB and products are not expected to use them.
+         - Removed ``TransactionManager`` implementations ``ShellAwareReadOnlyTransactionManager`` and ``AtlasDbBackendDebugTransactionManager``.
+           These are no longer supported by AtlasDB and products are not expected to use them.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/939>`__)
 
     *    - |improved|
-         - ``TransactionMangers.create()`` now accepts ``LockServerOptions`` which can be used to
-           apply configurations to the embedded LockServer instance running in the product.  The other
-           ``create()`` methods will continue to use ``LockServerOptions.DEFAULT``.
+         - ``TransactionMangers.create()`` now accepts ``LockServerOptions`` which can be used to apply configurations to the embedded LockServer instance running in the product.
+           The other ``create()`` methods will continue to use ``LockServerOptions.DEFAULT``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/984>`__)
 
     *    - |fixed|
@@ -768,7 +766,7 @@ v0.11.4
 
     *    - |fixed|
          - Correctly checks the Cassandra client version that determines if Cassandra supports Check And Set operations.
-           This is a critical bug fix that ensures we actually use our implementation from `#436 <https://github.com/palantir/atlasdb/pull/436>`__, which prevents the Cassandra concurrent table creation bug described in `#431 <https://github.com/palantir/atlasdb/issues/431>`__.
+           This is a critical bug fix that ensures we actually use our implementation from `#436 <https://github.com/palantir/atlasdb/pull/436>`__, which prevents data loss due to the Cassandra concurrent table creation bug described in `#431 <https://github.com/palantir/atlasdb/issues/431>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/751>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
@@ -784,9 +782,12 @@ v0.11.2
     *    - Type
          - Change
 
-    *    - |changed|
-         - The ``ssl`` property now takes precedence over the new ``sslConfiguration`` block to allow back-compatibility.
+    *    - |userbreak|
+         - Reverting behavior introduced in AtlasDB 0.11.0 so the ``ssl`` property continues to take precedence over the ``sslConfiguration`` block to allow back-compatibility when using SSL with CassandraKVS.
            This means that products can add default truststore and keystore configuration to their AtlasDB config without overriding previously made SSL decisions (setting ``ssl: false`` should cause SSL to not be used).
+
+           This only affects end users who have deployed products with AtlasDB 0.11.0 or 0.11.1; users upgrading from earlier versions will not see changed behavior.
+           See :ref:`Communicating Over SSL <cass-config-ssl>` for details on how to configure CassandraKVS with SSL.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/745>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
@@ -808,7 +809,8 @@ v0.11.1
            (`Pull Request <https://github.com/palantir/atlasdb/pull/741>`__)
 
     *    - |improved|
-         - Updated schema table generation to optimize reads with no ColumnSelection specified against tables with fixed columns.  To benefit from this improvement you will need to re-generate your schemas.
+         - Updated schema table generation to optimize reads with no ColumnSelection specified against tables with fixed columns.
+           To benefit from this improvement you will need to re-generate your schemas.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/713>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
@@ -858,7 +860,7 @@ v0.11.0
            To enable trace logging, see `Enabling Cassandra Tracing <https://palantir.github.io/atlasdb/html/configuration/enabling_cassandra_tracing.html#enabling-cassandra-tracing>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/700>`__)
 
-    *    - |deprecated|
+    *    - |new|
          - The Cassandra KVS now supports specifying SSL options via the new ``sslConfiguration`` block, which takes precedence over the now deprecated ``ssl`` property.
            The ``ssl`` property will be removed in a future release, and consumers leveraging the Cassandra KVS are encouraged to use the ``sslConfiguration`` block instead.
            See the `Cassandra SSL Configuration <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html#communicating-over-ssl>`__ documentation for more details.
@@ -895,9 +897,9 @@ v0.10.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/663>`__)
 
     *    - |improved|
-         - Cassandra client connection pooling will now evict idle connections over a longer period of time and has improved logic
-           for deciding whether or not a node should be blacklisted.  This should result in less connection churn
-           and therefore lower latency.  (`Pull Request <https://github.com/palantir/atlasdb/pull/667>`__)
+         - Cassandra client connection pooling will now evict idle connections over a longer period of time and has improved logic for deciding whether or not a node should be blacklisted.
+           This should result in less connection churn and therefore lower latency.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/667>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -1016,17 +1018,17 @@ v0.6.0
         - Change
 
     *   - |fixed|
-        - A potential race condition could cause timestamp allocation to never complete on a particular node (#462)
+        - A potential race condition could cause timestamp allocation to never complete on a particular node (#462).
 
     *   - |fixed|
-        - An innocuous error was logged once for each TransactionManager about not being able to allocate
-          enough timestamps. The error has been downgraded to INFO and made less scary.
+        - An innocuous error was logged once for each TransactionManager about not being able to allocate enough timestamps.
+          The error has been downgraded to INFO and made less scary.
 
     *   - |fixed|
         - Serializable Transactions that read a column selection could consistently report conflicts when there were none.
 
     *   - |fixed|
-        - An excessively long Cassandra related logline was sometimes printed (#501)
+        - An excessively long Cassandra related logline was sometimes printed (#501).
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -1042,7 +1044,7 @@ v0.5.0
         - Change
 
     *   - |changed|
-        - Only bumping double minor version in artifacts for long-term stability fixes
+        - Only bumping double minor version in artifacts for long-term stability fixes.
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -1058,10 +1060,10 @@ v0.4.1
         - Change
 
     *   - |fixed|
-        - Prevent _metadata tables from triggering the Cassandra 2.x schema mutation bug `431 <https://github.com/palantir/atlasdb/issues/431>`_ (`444 <https://github.com/palantir/atlasdb/issues/444>`_ not yet fixed)
+        - Prevent _metadata tables from triggering the Cassandra 2.x schema mutation bug `431 <https://github.com/palantir/atlasdb/issues/431>`_ (`444 <https://github.com/palantir/atlasdb/issues/444>`_ not yet fixed).
 
     *   - |fixed|
-        - Required projects are now Java 6 compliant
+        - Required projects are now Java 6 compliant.
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
