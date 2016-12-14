@@ -65,21 +65,20 @@ public class PagingAtlasEnumerator implements Enumerator<AtlasRow> {
 
     @Override
     public AtlasRow current() {
-        if (isClosed()) {
-            return null;
+        if (isClosed() || curIter == null) {
+            throw new NoSuchElementException();
         }
         return curIter.current();
     }
 
     @Override
     public boolean moveNext() {
-        if (isClosed()) {
-            throw new NoSuchElementException("Results iterator is closed.");
-        }
         if (hasNext()) {
             curIter.moveNext();
             return true;
         }
+        rangeToken = null;
+        curIter = null;
         return false;
     }
 
@@ -103,6 +102,9 @@ public class PagingAtlasEnumerator implements Enumerator<AtlasRow> {
 
         if (curIter == null) {
             curIter = nextIterator();
+            if (curIter == null) {
+                return false;
+            }
         }
 
         if (curIter.hasNext()) {
@@ -124,6 +126,9 @@ public class PagingAtlasEnumerator implements Enumerator<AtlasRow> {
     }
 
     private LocalAtlasEnumerator nextIterator() {
+        if (rangeToken == null) {
+            return null;
+        }
         List<AtlasRow> rows =
                 StreamSupport.stream(rangeToken.getResults().getResults().spliterator(), false)
                         .map(result -> AtlasRows.deserialize(metadata, result))

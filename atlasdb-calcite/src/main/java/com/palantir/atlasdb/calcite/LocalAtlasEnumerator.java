@@ -31,21 +31,19 @@ public class LocalAtlasEnumerator implements Enumerator<AtlasRow> {
 
     @Override
     public AtlasRow current() {
-        if (isClosed()) {
-            return null;
+        if (isClosed() || curResult == null) {
+            throw new NoSuchElementException();
         }
         return curResult;
     }
 
     @Override
     public boolean moveNext() {
-        if (isClosed()) {
-            throw new NoSuchElementException("Results iterator is closed.");
-        }
         if (hasNext()) {
             curResult = iter.next();
             return true;
         }
+        curResult = null;
         return false;
     }
 
