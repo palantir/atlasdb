@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.CachingTestTransactionManager;
@@ -111,8 +112,10 @@ public class AtlasDbTestCase {
     }
 
     protected KeyValueService getBaseKeyValueService() {
-        return NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(
-                new InMemoryKeyValueService(false, PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true))));
+        return TracingKeyValueService.create(
+                NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(
+                        new InMemoryKeyValueService(false,
+                                PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true)))));
     }
 
     @After

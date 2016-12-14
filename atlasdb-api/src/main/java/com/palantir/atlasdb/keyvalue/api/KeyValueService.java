@@ -535,7 +535,7 @@ public interface KeyValueService extends AutoCloseable {
     @Path("put-metadata-for-tables")
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
-    void putMetadataForTables(final Map<TableReference, byte[]> tableRefToMetadata);
+    void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata);
 
     ////////////////////////////////////////////////////////////
     // METHODS TO SUPPORT GARBAGE COLLECTION
