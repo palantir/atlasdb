@@ -39,6 +39,7 @@ if ./scripts/circle-ci/check-only-docs-changes.sh; then
     exit 0
 fi
 
+# External builds have a 4GB limit so we have to tune everything so it fits in memory (only just!)
 if [[ $INTERNAL_BUILD == true ]]; then
     BASE_GRADLE_ARGS+=" --parallel"
     export _JAVA_OPTIONS="-Xmx1024m"
