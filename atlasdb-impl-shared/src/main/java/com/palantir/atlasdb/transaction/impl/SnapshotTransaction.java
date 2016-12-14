@@ -310,7 +310,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return readSentinelBehavior;
     }
 
-    public Stopwatch getTrasactionTimer() {
+    public Stopwatch getTransactionTimer() {
         return transactionTimer;
     }
 
@@ -1188,7 +1188,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             commitWrites(transactionService);
             perfLogger.debug("Committed transaction {} in {}ms",
                     getStartTimestamp(),
-                    getTrasactionTimer().elapsed(TimeUnit.MILLISECONDS));
+                    getTransactionTimer().elapsed(TimeUnit.MILLISECONDS));
             success = true;
         } finally {
             // Once we are in state committing, we need to try/finally to set the state to a terminal state.

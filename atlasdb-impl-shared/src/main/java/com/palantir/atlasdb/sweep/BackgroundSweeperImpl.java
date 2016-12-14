@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.sweep;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -57,9 +59,12 @@ import com.palantir.atlasdb.schema.generated.SweepProgressTable;
 import com.palantir.atlasdb.schema.generated.SweepProgressTable.SweepProgressRow;
 import com.palantir.atlasdb.schema.generated.SweepProgressTable.SweepProgressRowResult;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
+import com.palantir.atlasdb.schema.generated.TransactionSweepTable;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.atlasdb.transaction.impl.UnmodifiableTransaction;
 import com.palantir.common.base.Throwables;
@@ -408,6 +413,142 @@ public class BackgroundSweeperImpl implements BackgroundSweeper {
             }
         });
     }
+
+    private void possiblySweepTransactionTable() {
+        if (allTablesAreSwept()) {
+            long minimumAllSweptTimestamp = getMinimumAllSweptTimestamp();
+
+            if (worthSweepingTransactionTable(minimumAllSweptTimestamp)) {
+                sweepTransactionTable(getLatestGoodTimestamp(), minimumAllSweptTimestamp);
+            }
+        }
+    }
+
+    @VisibleForTesting
+    // sweeps from previousTimestamp --> timestampToSweepUpTo
+    void sweepTransactionTable(long previousTimestamp, long timestampToSweepUpTo) {
+        // tell readers that they can safely read up to this point without consulting the transactions table
+        persistTransactionSweep(previousTimestamp, timestampToSweepUpTo, 0L);
+
+        RangeRequest deleteRange = RangeRequest.builder()
+                .startRowInclusive(TransactionConstants.getValueForTimestamp(previousTimestamp))
+                .endRowExclusive(TransactionConstants.getValueForTimestamp(timestampToSweepUpTo))
+                .build();
+
+        // todo impl kvs.deleteRange
+        // kvs.deleteRange(TransactionConstants.TRANSACTION_TABLE, deleteRange);
+
+        // mark run as finished so we don't attempt to retry it later
+        persistTransactionSweep(previousTimestamp, timestampToSweepUpTo, timestampToSweepUpTo);
+    }
+
+
+    @VisibleForTesting
+    long getLatestGoodTimestamp() {
+        return txManager.runTaskWithRetry(new TransactionTask<Long, RuntimeException>() {
+            @Override
+            public Long execute(Transaction tx) {
+                TransactionSweepTable transactionSweepTable = tableFactory.getTransactionSweepTable(tx);
+                TransactionSweepTable.TransactionSweepRowResult transactionSweepRowResult =
+                        txManager.runTaskReadOnly(t ->
+                                tableFactory.getTransactionSweepTable(t).getRow(
+                                        TransactionSweepTable.TransactionSweepRow.of(0L)).orNull());
+                return fromNullable(transactionSweepRowResult.getAllTransactionsGoodBefore());
+            }
+        });
+    }
+
+    private boolean worthSweepingTransactionTable(final long minimumAllSweptTimestamp) {
+        return txManager.runTaskWithRetry(new TransactionTask<Boolean, RuntimeException>() {
+            @Override
+            public Boolean execute(Transaction tx) {
+                TransactionSweepTable transactionSweepTable = tableFactory.getTransactionSweepTable(tx);
+                TransactionSweepTable.TransactionSweepRowResult transactionSweepRowResult =
+                        txManager.runTaskReadOnly(t ->
+                                tableFactory.getTransactionSweepTable(t).getRow(
+                                        TransactionSweepTable.TransactionSweepRow.of(0L)).orNull());
+                if (transactionSweepRowResult == null) {
+                    return true; // we've never swept txn table before; worth doing now!
+                } else {
+                    Long lastWallclockSweepTime = transactionSweepRowResult.getLastSweepTime();
+                    Long allTransactionsGoodBefore = transactionSweepRowResult.getAllTransactionsGoodBefore();
+
+                    Long wallclockTimeSinceLastTransactionSweep =
+                            System.currentTimeMillis() - lastWallclockSweepTime;
+                    Long cleanableTransactionsSinceLastTransactionSweep =
+                            minimumAllSweptTimestamp - allTransactionsGoodBefore;
+
+                    if (cleanableTransactionsSinceLastTransactionSweep > 0) {
+                        if (wallclockTimeSinceLastTransactionSweep > TimeUnit.DAYS.toMillis(180)) {
+                            return true; // we have some work to do and it's been 3 months since last swept
+                        } else if (cleanableTransactionsSinceLastTransactionSweep > 100_000_000) {
+                            return true; // hasn't been 3 months but it's still worth it, we have a _lot_ of work
+                        }
+                    }
+                    return false;
+                }
+            }
+        });
+    }
+
+    private void persistTransactionSweep(
+            long oldTransactionLowerBound,
+            long newTransactionLowerBound,
+            long currentlySweptUpTo) {
+        txManager.runTaskWithRetry(new TxTask() {
+            @Override
+            public Void execute(Transaction t) {
+                TransactionSweepTable transactionSweepTable = tableFactory.getTransactionSweepTable(t);
+                TransactionSweepTable.TransactionSweepRow onlyRow = TransactionSweepTable.TransactionSweepRow.of(0L);
+                transactionSweepTable.putAllTransactionsGoodBefore(onlyRow, newTransactionLowerBound);
+                transactionSweepTable.putLastSweepTime(onlyRow, System.currentTimeMillis());
+                transactionSweepTable.putCellsDeleted(onlyRow, newTransactionLowerBound - oldTransactionLowerBound);
+                transactionSweepTable.putCurrentlySweptUpTo(onlyRow, currentlySweptUpTo);
+                return null;
+            }
+        });
+    }
+
+
+    private boolean allTablesAreSwept() {
+        final Set<TableReference> allTableRefs = kvs.getAllTableNames();
+        return txManager.runTaskWithRetry(new TransactionTask<Boolean, RuntimeException>() {
+            @Override
+            public Boolean execute(Transaction tx) {
+                SweepPriorityTable priorityTable = tableFactory.getSweepPriorityTable(tx);
+                Set<TableReference> alreadySweptTables = Sets.newHashSet();
+                priorityTable.getAllRowsUnordered().forEach(row ->
+                        alreadySweptTables.add(
+                                TableReference.createFromFullyQualifiedName(row.getRowName().getFullTableName())));
+
+                Set<TableReference> tablesThatExistButAreNotSwept = Sets.difference(allTableRefs, alreadySweptTables);
+
+                if (tablesThatExistButAreNotSwept.isEmpty()) {
+                    return true;
+                } else {
+                    log.debug("Not all tables are swept; tables that exist but are not swept are: "
+                            + tablesThatExistButAreNotSwept);
+                    return false;
+                }
+            }
+        });
+    }
+
+    // Get the minimum of the minimum swept timestamps of all swept tables
+    private long getMinimumAllSweptTimestamp() {
+        final Set<TableReference> allTableRefs = kvs.getAllTableNames();
+        return txManager.runTaskWithRetry(new TransactionTask<Long, RuntimeException>() {
+            @Override
+            public Long execute(Transaction tx) {
+                SweepPriorityTable priorityTable = tableFactory.getSweepPriorityTable(tx);
+                List<Long> sweptTimestamps = Lists.newArrayList();
+                priorityTable.getAllRowsUnordered().forEach(row ->
+                        sweptTimestamps.add(row.getMinimumSweptTimestamp()));
+                return Collections.min(sweptTimestamps);
+            }
+        });
+    }
+
 
     /**
      * Check whether the table being swept was dropped. If so, stop sweeping it and move on.

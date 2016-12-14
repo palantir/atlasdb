@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.sweep;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -30,11 +31,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -57,6 +61,7 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
@@ -73,6 +78,7 @@ public abstract class AbstractSweeperTest {
     private static final String COL = "c";
     protected static final int DEFAULT_BATCH_SIZE = 1000;
     protected static final int DEFAULT_CELL_BATCH_SIZE = 1_000_000;
+    private static TableReference TRANSACTION_SWEEP_TABLE = TableReference.createFromFullyQualifiedName("sweep.transactionSweep");
 
     protected KeyValueService kvs;
     protected final AtomicLong sweepTimestamp = new AtomicLong();
@@ -540,6 +546,54 @@ public abstract class AbstractSweeperTest {
         SweepResults sweepResults = completeSweep(mixedCaseTable, 30);
 
         Assert.assertEquals(sweepResults.getCellsDeleted(), 1);
+    }
+
+    @Test
+    public void testGetLatestGoodTimestampFromBlankState() {
+        kvs.truncateTable(TRANSACTION_SWEEP_TABLE);
+        long latestGoodTimestamp = backgroundSweeper.getLatestGoodTimestamp();
+        Assert.assertEquals(latestGoodTimestamp, 0L);
+    }
+
+    @Test
+    public void testTransactionSweep() {
+        setupFreshTransactionTableWithSweepableContents();
+        kvs.truncateTable(TRANSACTION_SWEEP_TABLE);
+
+        backgroundSweeper.sweepTransactionTable(0L, 19L);
+
+        Assert.assertEquals(
+                getContentsOfTransactionTable(),
+                ImmutableMap.of(19L, 20L));
+        Assert.assertEquals(
+                backgroundSweeper.getLatestGoodTimestamp(),
+                19L);
+    }
+
+    private void setupFreshTransactionTableWithSweepableContents() {
+        kvs.truncateTable(TransactionConstants.TRANSACTION_TABLE);
+        Map<Cell, byte[]> fakeTransactions = Maps.newHashMap();
+        for (long i = 0L; i < 20L; i++) {
+            Cell key = Cell.create(
+                    TransactionConstants.getValueForTimestamp(i++),
+                    TransactionConstants.COMMIT_TS_COLUMN);
+            byte[] value = TransactionConstants.getValueForTimestamp(i);
+            fakeTransactions.put(key, value);
+        }
+        kvs.put(TransactionConstants.TRANSACTION_TABLE,
+                fakeTransactions,
+                AtlasDbConstants.TRANSACTION_TS);
+    }
+
+    private Map<Long, Long> getContentsOfTransactionTable() {
+        Map<Long, Long> contents = Maps.newHashMap();
+
+        kvs.getRange(TransactionConstants.TRANSACTION_TABLE, RangeRequest.all(), Long.MAX_VALUE)
+                .forEachRemaining(row -> contents.put(
+                        TransactionConstants.getTimestampForValue(row.getRowName()), // start
+                        TransactionConstants.getTimestampForValue(row.getOnlyColumnValue().getContents()))); // commit
+
+        return contents;
     }
 
     private void testSweepManyRows(SweepStrategy strategy) {

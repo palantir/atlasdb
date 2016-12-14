@@ -61,6 +61,10 @@ develop
          - We now publish a runnable distribution of AtlasCli that is available for download directly from Bintray
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1345>`__)
 
+    *    - |new|
+         - The transaction table is now sweepable, resulting in performance and space savings.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/####TODO####>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

@@ -46,9 +46,14 @@ public final class SweepTableFactory {
         return SweepProgressTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
+    public TransactionSweepTable getTransactionSweepTable(Transaction t, TransactionSweepTable.TransactionSweepTrigger... triggers) {
+        return TransactionSweepTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
     public interface SharedTriggers extends
             SweepPriorityTable.SweepPriorityTrigger,
-            SweepProgressTable.SweepProgressTrigger {
+            SweepProgressTable.SweepProgressTrigger,
+            TransactionSweepTable.TransactionSweepTrigger {
         /* empty */
     }
 
@@ -60,6 +65,11 @@ public final class SweepTableFactory {
 
         @Override
         public void putSweepProgress(Multimap<SweepProgressTable.SweepProgressRow, ? extends SweepProgressTable.SweepProgressNamedColumnValue<?>> newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putTransactionSweep(Multimap<TransactionSweepTable.TransactionSweepRow, ? extends TransactionSweepTable.TransactionSweepNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

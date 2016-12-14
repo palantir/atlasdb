@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.cache;
 
+import java.util.stream.Collectors;
+
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
@@ -23,6 +25,7 @@ import com.google.common.cache.CacheBuilder;
  */
 public class TimestampCache {
     final Cache<Long, Long> timestampCache;
+    long goodBeforeTimestamp = 0L;
 
     public TimestampCache() {
         timestampCache = CacheBuilder.newBuilder()
@@ -44,5 +47,26 @@ public class TimestampCache {
      */
     public void putAlreadyCommittedTransaction(Long startTimestamp, Long commitTimestamp) {
         timestampCache.put(startTimestamp, commitTimestamp);
+    }
+
+    public synchronized void setGoodBeforeTimestamp(long newGoodBeforeTimestamp) {
+        if (newGoodBeforeTimestamp > goodBeforeTimestamp) {
+            goodBeforeTimestamp = newGoodBeforeTimestamp;
+            evictUnnecessaryCacheMembers();
+        }
+    }
+
+    public long getGoodBeforeTimestamp() {
+        return goodBeforeTimestamp;
+    }
+
+    private void evictUnnecessaryCacheMembers() {
+        timestampCache.invalidateAll(
+                timestampCache.asMap().keySet().stream()
+                        .filter(startTs -> startTs < goodBeforeTimestamp)
+                        .collect(Collectors.toSet()));
+
+        // perform cache maintenance since we did a large invalidate action
+        timestampCache.cleanUp();
     }
 }

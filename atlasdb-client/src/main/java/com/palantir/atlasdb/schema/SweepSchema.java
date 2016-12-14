@@ -89,6 +89,27 @@ public enum SweepSchema implements AtlasSchema {
             conflictHandler(ConflictHandler.IGNORE_ALL);
         }});
 
+        // This table tracks the latest completion of the transaction sweeper
+        schema.addTableDefinition("transactionSweep", new TableDefinition() {{
+            javaTableName("TransactionSweep");
+            rowName();
+            // This table has at most one row.
+            rowComponent("dummy", ValueType.VAR_LONG);
+            columns();
+            // All transactions should be good / already cleaned before this timestamp
+            column("all_transactions_good_before", "a", ValueType.VAR_SIGNED_LONG);
+            // The (wall clock) time of when this table was last swept
+            column("last_sweep_time", "s", ValueType.VAR_LONG);
+            // Timestamp up to which the transaction sweeper has swept so far
+            // (used for resuming an interrupted transaction sweep)
+            // (also purposely could be used for intermediate resume by batch,
+            // though this is currently not implemented nor deemed necessary)
+            column("currentlySweptUpTo", "c", ValueType.VAR_SIGNED_LONG);
+
+            conflictHandler(ConflictHandler.IGNORE_ALL);
+            ignoreHotspottingChecks();
+        }});
+
         schema.validate();
         return schema;
     }
