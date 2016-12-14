@@ -24,25 +24,54 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 
-import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.api.AtlasDbService;
 
 public class AtlasTable extends AbstractTable implements ScannableTable {
-    private final TableMetadata metadata;
+    private final AtlasDbService service;
+    private final AtlasTableMetadata metadata;
+    private final String name;
 
-    public AtlasTable(TableMetadata metadata) {
+    public static AtlasTable create(AtlasDbService service, String name) {
+        return new AtlasTable(service, ImmutableAtlasTableMetadata.of(service.getTableMetadata(name)), name);
+    }
+
+    private AtlasTable(AtlasDbService service, AtlasTableMetadata metadata, String name) {
+        this.service = service;
         this.metadata = metadata;
+        this.name = name;
     }
 
     @Override
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        return AtlasEnumerator.deduceRowType(typeFactory, metadata);
+        return metadata.relDataType(typeFactory);
     }
 
     @Override
     public Enumerable<Object[]> scan(DataContext root) {
         return new AbstractEnumerable<Object[]>() {
             public Enumerator<Object[]> enumerator() {
-                return new AtlasEnumerator();
+                PagingAtlasEnumerator delegate = PagingAtlasEnumerator.create(service, metadata, name);
+                return new Enumerator<Object[]>() {
+                    @Override
+                    public Object[] current() {
+                        return delegate.current().toObjectArray();
+                    }
+
+                    @Override
+                    public boolean moveNext() {
+                        return delegate.moveNext();
+                    }
+
+                    @Override
+                    public void reset() {
+                        delegate.reset();
+                    }
+
+                    @Override
+                    public void close() {
+                        delegate.reset();
+                    }
+                };
             }
         };
     }

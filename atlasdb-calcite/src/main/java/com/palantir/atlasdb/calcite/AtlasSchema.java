@@ -35,7 +35,7 @@ public class AtlasSchema extends AbstractSchema {
         return service.getAllTableNames().stream()
                 .collect(Collectors.toMap(
                         name -> name,
-                        name -> new AtlasTable(service.getTableMetadata(name))
+                        name -> AtlasTable.create(service, name)
                 ));
     }
 }
