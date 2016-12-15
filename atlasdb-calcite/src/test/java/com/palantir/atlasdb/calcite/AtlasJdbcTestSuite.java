@@ -48,9 +48,10 @@ import com.palantir.docker.compose.logging.LogDirectory;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-        SmokeTests.class,
-        SimpleQueryTests.class,
-        DynamicColumnTests.class
+        SmokeTest.class,
+        SimpleQueryTest.class,
+        DynamicColumnTest.class,
+        ProtobufTest.class
 })
 public final class AtlasJdbcTestSuite {
     private static final int POSTGRES_PORT_NUMBER = 5432;
@@ -122,6 +123,7 @@ public final class AtlasJdbcTestSuite {
                 kvs = ConnectionManagerAwareDbKvs.create((DbKeyValueServiceConfig) config.keyValueService());
                 return kvs.getConnectionManager().getConnection().isValid(5);
             } catch (Exception e) {
+                e.printStackTrace();
                 return false;
             } finally {
                 if (kvs != null) {

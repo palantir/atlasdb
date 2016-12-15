@@ -19,7 +19,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 
-import static com.palantir.atlasdb.calcite.SimpleQueryTests.assertFails;
+import static com.palantir.atlasdb.calcite.QueryTests.assertFails;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -30,9 +30,9 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.palantir.atlasdb.calcite.proto.TestObject;
 import com.palantir.atlasdb.calcite.proto.TestProtobufs;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -49,7 +49,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 
-public class DynamicColumnTests {
+public class DynamicColumnTest {
     private static final String ROW_COMP1 = "rowComp1";  //long
     private static final String ROW_COMP2 = "rowComp2";  //string
     private static final String COL_COMP1 = "colComp1";  //long
@@ -77,11 +77,11 @@ public class DynamicColumnTests {
     private static void fillDynTable(TransactionManager txm, KeyValueService kvs) {
         TableDefinition tableDef = new TableDefinition() {{
             rowName();
-                rowComponent("rowComp1",    ValueType.FIXED_LONG);
-                rowComponent("rowComp2",    ValueType.STRING);
+                rowComponent(ROW_COMP1,    ValueType.FIXED_LONG);
+                rowComponent(ROW_COMP2,    ValueType.STRING);
             dynamicColumns();
-                columnComponent("colComp1", ValueType.FIXED_LONG);
-                columnComponent("colComp2", ValueType.STRING);
+                columnComponent(COL_COMP1, ValueType.FIXED_LONG);
+                columnComponent(COL_COMP2, ValueType.STRING);
             value(TestProtobufs.TestObject.class);
             conflictHandler(ConflictHandler.IGNORE_ALL);
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
@@ -91,9 +91,9 @@ public class DynamicColumnTests {
         kvs.createTable(TABLE, tableMetadata.persistToBytes());
         txm.runTaskThrowOnConflict((TransactionTask<Void, RuntimeException>) t -> {
             t.put(TABLE, ImmutableMap.of(
-                    Cell.create(row(1), col(1)), obj(1).toByteArray(),
-                    Cell.create(row(1), col(2)), obj(2).toByteArray()));
-            t.put(TABLE, ImmutableMap.of(Cell.create(row(2), col(3)), obj(3).toByteArray()));
+                    Cell.create(row(1), col(1)), TestObject.seededBy(1).toByteArray(),
+                    Cell.create(row(1), col(2)), TestObject.seededBy(2).toByteArray()));
+            t.put(TABLE, ImmutableMap.of(Cell.create(row(2), col(3)), TestObject.seededBy(3).toByteArray()));
             return null;
         });
     }
@@ -126,7 +126,7 @@ public class DynamicColumnTests {
             assertThat(results.getString(ROW_COMP2), equalTo(rowComp2(1)));
             assertFails(() -> results.getLong(COL_COMP1));
             assertFails(() -> results.getString(COL_COMP2));
-            assertThat(toObj(results.getBytes(DYN_VALUE_NAME)), equalTo(obj(1)));
+            assertThat(TestObject.from(results.getObject(DYN_VALUE_NAME)), equalTo(TestObject.seededBy(1)));
         }
     }
 
@@ -141,7 +141,7 @@ public class DynamicColumnTests {
             assertFails(() -> results.getString(ROW_COMP2));
             assertThat(results.getLong(COL_COMP1), equalTo(colComp1(1)));
             assertFails(() -> results.getString(COL_COMP2));
-            assertThat(toObj(results.getBytes(DYN_VALUE_NAME)), equalTo(obj(1)));
+            assertThat(TestObject.from(results.getObject(DYN_VALUE_NAME)), equalTo(TestObject.seededBy(1)));
         }
     }
 
@@ -171,7 +171,7 @@ public class DynamicColumnTests {
         assertThat(results.getString(ROW_COMP2), equalTo(rowComp2(row)));
         assertThat(results.getLong(COL_COMP1), equalTo(colComp1(col)));
         assertThat(results.getString(COL_COMP2), equalTo(colComp2(col)));
-        assertThat(toObj(results.getBytes(DYN_VALUE_NAME)), equalTo(obj(col)));
+        assertThat(TestObject.from(results.getObject(DYN_VALUE_NAME)), equalTo(TestObject.seededBy(col)));
     }
 
     private static byte[] row(int i) {
@@ -196,21 +196,5 @@ public class DynamicColumnTests {
 
     private static String colComp2(int i) {
         return "colComp" + i;
-    }
-
-    private TestProtobufs.TestObject toObj(byte[] bytes) {
-        try {
-            return TestProtobufs.TestObject.parseFrom(bytes);
-        } catch (InvalidProtocolBufferException e) {
-            throw Throwables.propagate(e);
-        }
-    }
-
-    private static TestProtobufs.TestObject obj(int i) {
-        return TestProtobufs.TestObject.newBuilder()
-                .setId(10L + i)
-                .setType(543L)
-                .setValid(i % 2 == 0)
-                .build();
     }
 }

@@ -108,6 +108,9 @@ abstract class AtlasColumnMetdata {
     public RelDataType relDataType(RelDataTypeFactory factory) {
         switch (format()) {
             case PROTO:
+                return factory.createMapType(
+                        factory.createJavaType(String.class),
+                        factory.createSqlType(SqlTypeName.ANY));
             case PERSISTABLE:
             case PERSISTER:
                 return factory.createSqlType(SqlTypeName.BINARY);
@@ -145,6 +148,17 @@ abstract class AtlasColumnMetdata {
     public Object deserialize(byte[] bytes, int index) {
         switch (format()) {
             case PROTO:
+                if (isComponent()) {
+                    throw new IllegalStateException("Row/column components cannot contain protobufs (invalid metadata).");
+                } else if (isNamedColumn()) {
+                    return ProtobufDeserializers.convertMessageToMap(
+                            column().get().getValue().hydrateProto(
+                                    Thread.currentThread().getContextClassLoader(), bytes));
+                } else if (isValue()) {
+                    return ProtobufDeserializers.convertMessageToMap(
+                            value().get().hydrateProto(
+                                    Thread.currentThread().getContextClassLoader(), bytes));
+                }
             case PERSISTABLE:
             case PERSISTER:
                 return bytes;

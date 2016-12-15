@@ -38,7 +38,7 @@ import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
-public class SmokeTests {
+public class SmokeTest {
     private static final TableReference TABLE = TableReference.create(Namespace.create("test"), "newtable");
     private static final String ROW_COMP = "comp";
     private static final String COL_NAME = "col";

@@ -27,7 +27,7 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.table.description.ValueType;
 
-public class AtlasRows {
+public final class AtlasRows {
     private AtlasRows() {
         // uninstantiable
     }

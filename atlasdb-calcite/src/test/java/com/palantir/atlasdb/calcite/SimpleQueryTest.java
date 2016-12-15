@@ -19,11 +19,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 
+import static com.palantir.atlasdb.calcite.QueryTests.assertFails;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.concurrent.Callable;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -44,7 +45,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 
-public class SimpleQueryTests {
+public class SimpleQueryTest {
     private static final String ROW_COMP1 = "row1";
     private static final String ROW_COMP2 = "row2";
     private static final String COL1_DISPLAY_NAME = "first";
@@ -294,26 +295,9 @@ public class SimpleQueryTests {
             ResultSet results = stmt.executeQuery(
                     String.format("select * from \"%s\" where %s %s '%s'",
                             TABLE.getQualifiedName(), ROW_COMP2, op, key));
-            assertThat(count(results), equalTo(expectedCount));
+            assertThat(QueryTests.count(results), equalTo(expectedCount));
         } catch (SQLException e) {
             throw new RuntimeException("Failure running select.", e);
         }
-    }
-
-    public static int count(ResultSet results) throws SQLException {
-        int i = 0;
-        while (results.next()) {
-            i++;
-        }
-        return i;
-    }
-
-    public static void assertFails(Callable<?> c) {
-        try {
-            c.call();
-        } catch (Exception e) {
-            return; // success
-        }
-        throw new RuntimeException("the call did not fail");
     }
 }
