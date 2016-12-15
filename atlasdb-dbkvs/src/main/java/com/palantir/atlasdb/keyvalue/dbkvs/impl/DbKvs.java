@@ -460,6 +460,17 @@ public class DbKvs extends AbstractKeyValueService {
     });
 
     @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        runWriteForceAutocommit(tableRef, new Function<DbWriteTable, Void>() {
+            @Override
+            public Void apply(DbWriteTable table) {
+                table.delete(range);
+                return null;
+            }
+        });
+    }
+
+    @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,

@@ -24,12 +24,14 @@ import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
@@ -39,6 +41,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.sql.BasicSQLUtils;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 import com.palantir.nexus.db.sql.SqlConnection;
 
@@ -222,6 +225,60 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                 args);
     }
 
+    @Override
+    public void delete(RangeRequest range) {
+        String shortTableName = getShortTableName();
+
+        switch (config.overflowMigrationState()) {
+            case UNSTARTED:
+                deleteOverflowRange(config.singleOverflowTable(), shortTableName, range);
+                break;
+            case IN_PROGRESS:
+                deleteOverflowRange(config.singleOverflowTable(), shortTableName, range);
+                deleteOverflowRange(getShortOverflowTableName(), shortTableName, range);
+                break;
+            case FINISHING:
+            case FINISHED:
+                deleteOverflowRange(getShortOverflowTableName(), shortTableName, range);
+                break;
+            default:
+                throw new EnumConstantNotPresentException(
+                        OverflowMigrationState.class, config.overflowMigrationState().name());
+        }
+
+        // delete from main table
+        StringBuilder query = new StringBuilder();
+        query.append(" /* DELETE_RANGE (").append(shortTableName).append(") */ ");
+        query.append(" DELETE /*+ INDEX(m pk_").append(shortTableName).append(") */ ");
+        query.append(" FROM ").append(shortTableName).append(" m ");
+
+        // add where clauses
+        byte[] start = range.getStartInclusive();
+        byte[] end = range.getEndExclusive();
+        Collection<byte[]> cols = range.getColumnNames();
+        List<Object> args = Lists.newArrayListWithCapacity(2 + cols.size());
+        List<String> whereClauses = Lists.newArrayListWithCapacity(3);
+        if (start.length > 0) {
+            whereClauses.add(range.isReverse() ? "m.row_name <= ?" : "m.row_name >= ?");
+            args.add(start);
+        }
+        if (end.length > 0) {
+            whereClauses.add(range.isReverse() ? "m.row_name > ?" : "m.row_name < ?");
+            args.add(end);
+        }
+        if (!cols.isEmpty()) {
+            whereClauses.add("m.col_name IN (" + BasicSQLUtils.nArguments(cols.size()) + ")");
+            args.addAll(cols);
+        }
+
+        if (!whereClauses.isEmpty()) {
+            query.append(" WHERE ");
+            Joiner.on(" AND ").appendTo(query, whereClauses);
+        }
+
+        conns.get().updateUnregisteredQuery(query.toString(), args.toArray());
+    }
+
     private void deleteOverflow(String overflowTable, List<Object[]> args) {
         String shortTableName = getShortTableName();
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE_OVERFLOW (" + overflowTable + ") */ "
@@ -235,6 +292,50 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                 + "                    AND i.ts = ? "
                 + "                    AND i.overflow IS NOT NULL)",
                 args);
+    }
+
+    private void deleteOverflowRange(String overflowTable, String shortTableName, RangeRequest range) {
+        StringBuilder query = new StringBuilder();
+        query.append(" /* DELETE_RANGE_OVERFLOW (").append(overflowTable).append(") */ ");
+        query.append(" DELETE /*+ INDEX(m pk_").append(overflowTable).append(") */ ");
+        query.append("   FROM ").append(overflowTable).append(" m ");
+        query.append(" WHERE m.id IN (");
+
+        // subquery for finding rows in the short table
+        query.append("SELECT /*+ INDEX(i pk_").append(shortTableName).append(") */ ");
+        query.append("       i.overflow ");
+        query.append("    FROM ").append(shortTableName).append(" i ");
+
+        // add where clauses
+        byte[] start = range.getStartInclusive();
+        byte[] end = range.getEndExclusive();
+        Collection<byte[]> cols = range.getColumnNames();
+        List<Object> args = Lists.newArrayListWithCapacity(2 + cols.size());
+        List<String> whereClauses = Lists.newArrayListWithCapacity(4);
+        if (start.length > 0) {
+            whereClauses.add(range.isReverse() ? "i.row_name <= ?" : "i.row_name >= ?");
+            args.add(start);
+        }
+        if (end.length > 0) {
+            whereClauses.add(range.isReverse() ? "i.row_name > ?" : "i.row_name < ?");
+            args.add(end);
+        }
+        if (!cols.isEmpty()) {
+            whereClauses.add("i.col_name IN (" + BasicSQLUtils.nArguments(cols.size()) + ")");
+            args.addAll(cols);
+        }
+
+        whereClauses.add("i.overflow IS NOT NULL");
+
+        if (!whereClauses.isEmpty()) {
+            query.append(" WHERE ");
+            Joiner.on(" AND ").appendTo(query, whereClauses);
+        }
+
+        query.append(")");
+
+        // execute the query
+        conns.get().updateUnregisteredQuery(query.toString(), args.toArray());
     }
 
     private String getShortTableName() {
