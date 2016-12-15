@@ -125,6 +125,12 @@ public class ThrowingKeyValueService implements KeyValueService {
 
     @Override
     @Idempotent
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        throw throwEx();
+    }
+
+    @Override
+    @Idempotent
     public void truncateTable(TableReference tableRef) {
         throw throwEx();
     }
