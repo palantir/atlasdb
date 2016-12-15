@@ -110,6 +110,12 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        delegate1.deleteRange(tableRef, range);
+        delegate2.deleteRange(tableRef, range);
+    }
+
+    @Override
     public void truncateTable(TableReference tableRef) {
         delegate1.truncateTable(tableRef);
         delegate2.truncateTable(tableRef);

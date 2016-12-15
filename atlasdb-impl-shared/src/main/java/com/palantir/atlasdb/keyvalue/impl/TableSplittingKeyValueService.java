@@ -126,6 +126,11 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        getDelegate(tableRef).deleteRange(tableRef, range);
+    }
+
+    @Override
     public void dropTable(TableReference tableRef) {
         getDelegate(tableRef).dropTable(tableRef);
     }
