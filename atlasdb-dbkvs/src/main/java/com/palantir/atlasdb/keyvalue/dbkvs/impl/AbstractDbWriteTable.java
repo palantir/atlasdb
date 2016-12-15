@@ -20,15 +20,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.sql.BasicSQLUtils;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
 public abstract class AbstractDbWriteTable implements DbWriteTable {
@@ -134,5 +137,40 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
                 + "  AND m.col_name = ? "
                 + "  AND m.ts = ?",
                 args);
+    }
+
+    @Override
+    public void delete(RangeRequest range) {
+        String prefixedTableName = prefixedTableNames.get(tableRef);
+        StringBuilder query = new StringBuilder();
+        query.append(" /* DELETE_RANGE (").append(prefixedTableName).append(") */ ");
+        query.append(" DELETE FROM ").append(prefixedTableName).append(" m ");
+
+        // add where clauses to the query
+        byte[] start = range.getStartInclusive();
+        byte[] end = range.getEndExclusive();
+        Collection<byte[]> cols = range.getColumnNames();
+        List<Object> args = Lists.newArrayListWithCapacity(2 + cols.size());
+        List<String> whereClauses = Lists.newArrayListWithCapacity(3);
+        if (start.length > 0) {
+            whereClauses.add(range.isReverse() ? "m.row_name <= ?" : "m.row_name >= ?");
+            args.add(start);
+        }
+        if (end.length > 0) {
+            whereClauses.add(range.isReverse() ? "m.row_name > ?" : "m.row_name < ?");
+            args.add(end);
+        }
+        if (!cols.isEmpty()) {
+            whereClauses.add("m.col_name IN (" + BasicSQLUtils.nArguments(cols.size()) + ")");
+            args.addAll(cols);
+        }
+
+        if (!whereClauses.isEmpty()) {
+            query.append(" WHERE ");
+            Joiner.on(" AND ").appendTo(query, whereClauses);
+        }
+
+        // execute the query
+        conns.get().updateUnregisteredQuery(query.toString(), args.toArray());
     }
 }
