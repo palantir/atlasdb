@@ -92,6 +92,11 @@ public class ProfilingKeyValueService implements KeyValueService {
                 method, tableCount, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
+    private static void logTimeAndTableRange(String method, String tableName, RangeRequest range, Stopwatch stopwatch) {
+        log.trace("Call to KVS.{} on table {} with range {} took {} ms.",
+                method, tableName, range, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+    }
+
     private final KeyValueService delegate;
 
     private ProfilingKeyValueService(KeyValueService delegate) {
@@ -140,6 +145,17 @@ public class ProfilingKeyValueService implements KeyValueService {
             logCellsAndSize("delete", tableRef.getQualifiedName(), keys.keySet().size(), byteSize(keys), stopwatch);
         } else {
             delegate.delete(tableRef, keys);
+        }
+    }
+
+    @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        if (log.isTraceEnabled()) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            delegate.deleteRange(tableRef, range);
+            logTimeAndTableRange("deleteRange", tableRef.getQualifiedName(), range, stopwatch);
+        } else {
+            delegate.deleteRange(tableRef, range);
         }
     }
 
