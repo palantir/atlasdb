@@ -56,7 +56,7 @@ public class AtlasRows {
             AtlasColumnMetdata meta = colsMeta.get(i);
             Preconditions.checkState(meta.isComponent(), "metadata must be for components");
             ValueType type = meta.valueType();
-            Object val = type.convertToJava(row, index);
+            Object val = meta.deserialize(row, index);
             int len = type.sizeOf(val);
             if (len == 0) {
                 Preconditions.checkArgument(type == ValueType.STRING || type == ValueType.BLOB,
@@ -81,7 +81,7 @@ public class AtlasRows {
             Preconditions.checkState(meta.isNamedColumn(), "metadata must be for named columns");
             ByteBuffer shortName = ByteBuffer.wrap(meta.getName().getBytes());
             if (wrappedCols.containsKey(shortName)) {
-                ret.add(ImmutableAtlasColumn.of(meta, meta.valueType().convertToJava(wrappedCols.get(shortName), 0)));
+                ret.add(ImmutableAtlasColumn.of(meta, meta.deserialize(wrappedCols.get(shortName))));
             } else {
                 ret.add(ImmutableAtlasColumn.of(meta, null));
             }
@@ -97,7 +97,7 @@ public class AtlasRows {
                         .addAll(parseComponents(colsMeta, e.getKey()))
                         .add(ImmutableAtlasColumn.of(
                                 valMeta,
-                                valMeta.valueType().convertToJava(e.getValue(), 0)))
+                                valMeta.deserialize(e.getValue())))
                         .build()
                 )
                 .collect(Collectors.toList());

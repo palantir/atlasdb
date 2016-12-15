@@ -20,6 +20,7 @@ import java.util.UUID;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.immutables.value.Value;
 
 import com.google.common.base.Preconditions;
@@ -91,7 +92,7 @@ abstract class AtlasColumnMetdata {
         } else if (isNamedColumn()) {
             return column().get().getLongName();
         } else if (isValue()) {
-            return "value";
+            return "val";
         }
         throw new IllegalStateException();
     }
@@ -109,7 +110,7 @@ abstract class AtlasColumnMetdata {
             case PROTO:
             case PERSISTABLE:
             case PERSISTER:
-                throw new UnsupportedOperationException("Cannot decode protobufs, persitables, or persisters yet!");
+                return factory.createSqlType(SqlTypeName.BINARY);
             case VALUE_TYPE:
                 switch (valueType()) {
                     case VAR_LONG:
@@ -132,6 +133,23 @@ abstract class AtlasColumnMetdata {
                     default:
                         throw new IllegalStateException("Unknown ValueType: " + valueType());
                 }
+            default:
+                throw new IllegalStateException("Unknown Format: " + format());
+        }
+    }
+
+    public Object deserialize(byte[] bytes) {
+        return deserialize(bytes, 0);
+    }
+
+    public Object deserialize(byte[] bytes, int index) {
+        switch (format()) {
+            case PROTO:
+            case PERSISTABLE:
+            case PERSISTER:
+                return bytes;
+            case VALUE_TYPE:
+                return valueType().convertToJava(bytes, index);
             default:
                 throw new IllegalStateException("Unknown Format: " + format());
         }

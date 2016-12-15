@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.Callable;
 
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -44,14 +45,12 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 
 public class SimpleQueryTests {
-
     private static final String ROW_COMP1 = "row1";
     private static final String ROW_COMP2 = "row2";
     private static final String COL1_DISPLAY_NAME = "first";
     private static final String COL2_DISPLAY_NAME = "col2";
     private static final String COL1_NAME = "col1";
     private static final String COL2_NAME = COL2_DISPLAY_NAME;
-
     private static final TableReference TABLE = TableReference.create(Namespace.create("test"), "table");
 
     @BeforeClass
@@ -79,6 +78,14 @@ public class SimpleQueryTests {
                     Cell.create(row(2), COL1_NAME.getBytes()), "value2".getBytes()));
             return null;
         });
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        AtlasJdbcTestSuite
+                .getAtlasDbServices()
+                .getKeyValueService()
+                .dropTable(TABLE);
     }
 
     private String key(int i) {

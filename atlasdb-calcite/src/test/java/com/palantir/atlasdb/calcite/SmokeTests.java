@@ -39,9 +39,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class SmokeTests {
-
-    private static final Namespace namespace = Namespace.create("testing");
-    private static final TableReference table = TableReference.create(namespace, "newtable");
+    private static final TableReference TABLE = TableReference.create(Namespace.create("test"), "newtable");
     private static final String ROW_COMP = "comp";
     private static final String COL_NAME = "col";
 
@@ -59,7 +57,7 @@ public class SmokeTests {
         AtlasJdbcTestSuite
                 .getAtlasDbServices()
                 .getKeyValueService()
-                .createTable(table, tableDef.toTableMetadata().persistToBytes());
+                .createTable(TABLE, tableDef.toTableMetadata().persistToBytes());
     }
 
     @After
@@ -67,7 +65,7 @@ public class SmokeTests {
         AtlasJdbcTestSuite
                 .getAtlasDbServices()
                 .getKeyValueService()
-                .dropTable(table);
+                .dropTable(TABLE);
     }
 
     @Test
@@ -85,7 +83,7 @@ public class SmokeTests {
                 allTableNames.add(rs.getString(3));
             }
         }
-        assertThat(allTableNames, hasItems(table.getQualifiedName()));
+        assertThat(allTableNames, hasItems(TABLE.getQualifiedName()));
     }
 
     @Test
@@ -93,7 +91,7 @@ public class SmokeTests {
         List<String> allColumnNames = Lists.newArrayList();
         try (Connection conn = AtlasJdbcTestSuite.connect()) {
             ResultSet rs = conn.createStatement().executeQuery(
-                    String.format("select * from \"%s\"", table.getQualifiedName()));
+                    String.format("select * from \"%s\"", TABLE.getQualifiedName()));
             ResultSetMetaData rsmd = rs.getMetaData();
             for (int i = 1; i <= rsmd.getColumnCount(); i++) {
                 allColumnNames.add(rsmd.getColumnName(i));

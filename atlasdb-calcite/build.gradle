@@ -4,6 +4,24 @@ apply from: "../gradle/shared.gradle"
 apply plugin: 'org.inferred.processors'
 apply plugin: 'java-library-distribution'
 
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.7.6'
+    }
+}
+
+apply plugin: 'com.google.protobuf'
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:2.6.1'
+    }
+    generatedFilesBaseDir = "$projectDir/src"
+}
+
 repositories {
     maven {
         url "http://conjars.org/repo"
@@ -26,6 +44,9 @@ dependencies {
     testCompile project(':atlasdb-dbkvs')
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: libVersions.dockerComposeRule
     testCompile group: 'com.jayway.awaitility', name: 'awaitility'
+    testCompile(group: "com.google.protobuf", name: "protobuf-java", version: "2.6.0") {
+        transitive = false
+    }
 }
 
 distributions {
