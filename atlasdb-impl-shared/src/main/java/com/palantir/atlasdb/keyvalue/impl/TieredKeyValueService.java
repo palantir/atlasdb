@@ -351,6 +351,22 @@ public final class TieredKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void deleteRange(final TableReference tableRef, final RangeRequest range) {
+        if (isNotTiered(tableRef)) {
+            primary.deleteRange(tableRef, range);
+            return;
+        }
+        Future<?> primaryFuture = executor.submit(new Runnable() {
+            @Override
+            public void run() {
+                primary.deleteRange(tableRef, range);
+            }
+        });
+        secondary.deleteRange(tableRef, range);
+        Futures.getUnchecked(primaryFuture);
+    }
+
+    @Override
     public ClosableIterator<RowResult<Value>> getRange(final TableReference tableRef,
                                                        final RangeRequest rangeRequest,
                                                        final long timestamp) {
