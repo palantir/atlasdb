@@ -7,7 +7,6 @@ apply plugin: 'com.github.hierynomus.license'
 
 apply from: "${rootDir}/gradle/versions.gradle"
 apply from: "${rootDir}/gradle/baseline.gradle"
-apply from: "${rootDir}/gradle/publish.gradle"
 
 sourceCompatibility = 1.8
 
@@ -61,11 +60,13 @@ task generateSchemas {
 
 afterEvaluate {
     schemas.each { schema ->
-        generateSchemas << {
-            logger.info "Processing schemas for ${schema}"
-            javaexec {
-                main schema
-                classpath sourceSets.test.runtimeClasspath
+        generateSchemas {
+            doLast {
+                logger.info "Processing schemas for ${schema}"
+                javaexec {
+                    main schema
+                    classpath sourceSets.test.runtimeClasspath
+                }
             }
         }
     }

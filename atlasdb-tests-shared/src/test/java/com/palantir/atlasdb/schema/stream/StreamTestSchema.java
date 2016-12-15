@@ -20,6 +20,7 @@ import java.io.File;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 
 public class StreamTestSchema implements AtlasSchema {
@@ -31,6 +32,19 @@ public class StreamTestSchema implements AtlasSchema {
         Schema schema = new Schema("StreamTest",
                 StreamTest.class.getPackage().getName() + ".generated",
                 Namespace.DEFAULT_NAMESPACE);
+
+        // stores a mapping from key to streamId
+        schema.addTableDefinition("lookup", new TableDefinition() {
+            {
+                javaTableName("KeyValue");
+
+                rowName();
+                rowComponent("key", ValueType.STRING);
+
+                columns();
+                column("streamId", "s", ValueType.VAR_LONG);
+            }
+        });
 
         // test defaults
         schema.addStreamStoreDefinition(new StreamStoreDefinitionBuilder("stream_test", "stream_test", ValueType.VAR_LONG).build());

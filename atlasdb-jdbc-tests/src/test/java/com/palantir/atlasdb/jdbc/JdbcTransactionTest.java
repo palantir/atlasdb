@@ -16,34 +16,16 @@
 package com.palantir.atlasdb.jdbc;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.jdbc.JdbcKeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 
 public class JdbcTransactionTest extends AbstractTransactionTest {
-    private JdbcKeyValueService db = null;
-
-    @Override
-    public void setUp() throws Exception {
-        db = JdbcTests.createEmptyKvs();
-        super.setUp();
-    }
-
     @Override
     protected KeyValueService getKeyValueService() {
-        return db;
+        return JdbcTests.createEmptyKvs();
     }
 
     @Override
     protected boolean supportsReverse() {
         return true;
-    }
-
-    @Override
-    public void tearDown() {
-        super.tearDown();
-        if (db != null) {
-            db.close();
-            db = null;
-        }
     }
 }

@@ -12,6 +12,3 @@ nginx:
 
 socks:
   image: vimagick/dante:latest
-
-jepsen:
-  image: tjake/jepsen:latest

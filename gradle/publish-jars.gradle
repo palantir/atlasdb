@@ -1,7 +1,9 @@
-apply plugin: 'com.jfrog.bintray'
 apply plugin: 'com.jfrog.artifactory'
+apply plugin: 'com.jfrog.bintray'
 apply plugin: 'maven-publish'
 apply plugin: 'nebula.maven-resolved-dependencies'
+
+// If you modify bintray or artifactory publishing you also need to modify publish-dists.gradle
 
 task sourceJar(type: Jar) {
     from project.sourceSets.main.allSource
@@ -35,6 +37,7 @@ publishing {
     }
 }
 
+// Bintray publish
 bintray {
     user = System.getenv('BINTRAY_USERNAME')
     key = System.getenv('BINTRAY_PASSWORD')
@@ -48,22 +51,18 @@ bintray {
     }
 }
 
-ext {
-    releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta)?(\+\d{3})?/
-    circleBuildNum = System.getenv('CIRCLE_BUILD_NUM')
-}
-
 bintrayUpload.onlyIf {
     System.getenv('BINTRAY_USERNAME') && System.getenv('BINTRAY_PASSWORD') && project.version ==~ releaseVersionRegex
 }
 
 bintrayUpload.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
 
+// Artifactory publish
 artifactory {
     publish {
         contextUrl = System.env.ARTIFACTORY_URL
         repository {
-            repoKey = System.env.ARTIFACTORY_REPO
+            repoKey = System.env.ARTIFACTORY_JAR_REPO
             username = System.env.ARTIFACTORY_USERNAME
             password = System.env.ARTIFACTORY_PASSWORD
             maven = true
@@ -76,6 +75,10 @@ artifactory {
 }
 
 artifactoryPublish.onlyIf {
-  System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD') && System.getenv('ARTIFACTORY_REPO') && System.getenv('ARTIFACTORY_URL') && !(project.version ==~ releaseVersionRegex)
+    System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD') && System.getenv('ARTIFACTORY_JAR_REPO') && System.getenv('ARTIFACTORY_URL') && !(project.version ==~ releaseVersionRegex)
 }
 artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
+
+ext {
+    releaseVersionRegex = /\d+\.\d+\.\d+(-alpha|-beta)?(\+\d{3})?/
+}

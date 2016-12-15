@@ -34,16 +34,12 @@ import static org.mockito.Mockito.verify;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlRow;
 import org.apache.thrift.TException;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -76,8 +72,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
             .with(new CassandraContainer());
 
-    private KeyValueService keyValueService;
-    private ExecutorService executorService;
     private final Logger logger = mock(Logger.class);
 
     private TableReference testTable = TableReference.createFromFullyQualifiedName("ns.never_seen");
@@ -96,17 +90,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             cachePriority(TableMetadataPersistence.CachePriority.COLD);
         }
     }.toTableMetadata().persistToBytes();
-
-    @Before
-    public void setupKvs() {
-        keyValueService = getKeyValueService();
-        executorService = Executors.newFixedThreadPool(4);
-    }
-
-    @After
-    public void cleanUp() {
-        executorService.shutdown();
-    }
 
     @Override
     protected KeyValueService getKeyValueService() {

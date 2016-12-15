@@ -40,7 +40,6 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.ByteArrayIOStream;
-import com.palantir.util.file.DeleteOnCloseFileInputStream;
 
 public abstract class AbstractGenericStreamStore<ID> implements GenericStreamStore<ID> {
     protected static final Logger log = LoggerFactory.getLogger(AbstractGenericStreamStore.class);
@@ -101,9 +100,42 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
             loadSingleBlockToOutputStream(transaction, id, 0, ios);
             return ios.getInputStream();
         } else {
-            File file = loadToNewTempFile(transaction, id, metadata);
-            return new DeleteOnCloseFileInputStream(file);
+            return makeStream(id, metadata);
         }
+    }
+
+    private InputStream makeStream(ID id, StreamMetadata metadata) {
+        long totalBlocks = getNumberOfBlocksFromMetadata(metadata);
+        int blocksInMemory = getNumberOfBlocksThatFitInMemory();
+
+        BlockGetter pageRefresher = new BlockGetter() {
+            @Override
+            public void get(long firstBlock, long numBlocks, OutputStream destination) {
+                txnMgr.runTaskReadOnly(txn -> {
+                    for (long i = 0; i < numBlocks; i++) {
+                        loadSingleBlockToOutputStream(txn, id, firstBlock + i, destination);
+                    }
+                    return null;
+                });
+            }
+
+            @Override
+            public int expectedLength() {
+                return BLOCK_SIZE_IN_BYTES * blocksInMemory;
+            }
+        };
+
+        try {
+            return BlockConsumingInputStream.create(pageRefresher, totalBlocks, blocksInMemory);
+        } catch (IOException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+    }
+
+    private int getNumberOfBlocksThatFitInMemory() {
+        int inMemoryThreshold = (int) getInMemoryThreshold(); // safe; actually defined as an int in generated code.
+        int blocksInMemory = inMemoryThreshold / BLOCK_SIZE_IN_BYTES;
+        return Math.max(1, blocksInMemory);
     }
 
     @Override
