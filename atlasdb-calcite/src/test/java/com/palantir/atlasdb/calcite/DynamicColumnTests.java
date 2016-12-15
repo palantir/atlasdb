@@ -26,6 +26,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -58,10 +59,19 @@ public class DynamicColumnTests {
 
     @BeforeClass
     public static void setup() throws SQLException, ClassNotFoundException {
+        cleanup();
         AtlasDbServices services = AtlasJdbcTestSuite.getAtlasDbServices();
         TransactionManager txm = services.getTransactionManager();
         KeyValueService kvs = services.getKeyValueService();
         fillDynTable(txm, kvs);
+    }
+
+    @AfterClass
+    public static void cleanup() {
+        AtlasJdbcTestSuite
+                .getAtlasDbServices()
+                .getKeyValueService()
+                .dropTable(TABLE);
     }
 
     private static void fillDynTable(TransactionManager txm, KeyValueService kvs) {

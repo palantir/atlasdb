@@ -55,6 +55,7 @@ public class SimpleQueryTests {
 
     @BeforeClass
     public static void setup() throws SQLException, ClassNotFoundException {
+        cleanup();
         AtlasDbServices services = AtlasJdbcTestSuite.getAtlasDbServices();
         TransactionManager txm = services.getTransactionManager();
         KeyValueService kvs = services.getKeyValueService();

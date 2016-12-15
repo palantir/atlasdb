@@ -26,8 +26,8 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -43,8 +43,8 @@ public class SmokeTests {
     private static final String ROW_COMP = "comp";
     private static final String COL_NAME = "col";
 
-    @Before
-    public void setup() {
+    @BeforeClass
+    public static void setup() {
         cleanup();
         TableDefinition tableDef = new TableDefinition() {{
             rowName();
@@ -60,8 +60,8 @@ public class SmokeTests {
                 .createTable(TABLE, tableDef.toTableMetadata().persistToBytes());
     }
 
-    @After
-    public void cleanup() {
+    @AfterClass
+    public static void cleanup() {
         AtlasJdbcTestSuite
                 .getAtlasDbServices()
                 .getKeyValueService()
