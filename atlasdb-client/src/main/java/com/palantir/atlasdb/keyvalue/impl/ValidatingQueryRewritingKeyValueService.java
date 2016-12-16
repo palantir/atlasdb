@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,6 +110,15 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             return;
         }
         delegate.delete(tableRef, keys);
+    }
+
+    @Override
+    public void deleteRange(TableReference tableRef, RangeRequest rangeRequest) {
+        if (!rangeRequest.getColumnNames().isEmpty()) {
+            throw new NotImplementedException(
+                    "We don't anticipate supporting deleting ranges with partial column selections.");
+        }
+        delegate.deleteRange(tableRef, rangeRequest);
     }
 
     @Override
