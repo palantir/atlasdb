@@ -120,6 +120,14 @@ abstract class AtlasColumnMetdata {
     }
 
     public RelDataType relDataType(RelDataTypeFactory factory) {
+        RelDataType type = valueTypeToDataType(factory);
+        if (isComponent() || type.isNullable()) {
+            return type;
+        }
+        return factory.createTypeWithNullability(type, true);
+    }
+
+    private RelDataType valueTypeToDataType(RelDataTypeFactory factory) {
         switch (format()) {
             case PROTO:
                 return factory.createMapType(
