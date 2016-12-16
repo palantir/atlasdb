@@ -61,6 +61,12 @@ develop
          - We now publish a runnable distribution of AtlasCli that is available for download directly from Bintray
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1345>`__)
 
+    *     - |new|
+          - Add KeyValueStore.deleteRange(); makes large swathes of row deletions faster,
+            like transaction sweeping. Also can be used as a fallback option for people
+            having issues with their backup solutions not allowing truncate() during a backup
+            (`Pull Request <https://github.com/palantir/atlasdb/pull/1391>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
