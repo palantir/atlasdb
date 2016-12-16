@@ -159,6 +159,11 @@ v0.27.1
            See gradle-java-distribution `release notes <https://github.com/palantir/gradle-java-distribution/releases>`__ for details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1361>`__)
 
+    *    - |improved|
+         - Added metrics to SnapshotTransaction to monitor durations of various operations such as get, getRows, commit,
+           etc. Atlas users should use AtlasDbMetrics.createAndSetInstance to create a MetricRegistry.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1356>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
