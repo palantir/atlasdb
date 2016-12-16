@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.calcite;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -24,18 +27,21 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.api.AtlasDbService;
 
 public class AtlasTable extends AbstractTable implements ScannableTable {
     private final AtlasDbService service;
-    private final AtlasTableMetadata metadata;
+    private final Supplier<AtlasTableMetadata> metadata;
     private final String name;
 
     public static AtlasTable create(AtlasDbService service, String name) {
-        return new AtlasTable(service, ImmutableAtlasTableMetadata.of(service.getTableMetadata(name)), name);
+        return new AtlasTable(service,
+                Suppliers.memoize(() -> ImmutableAtlasTableMetadata.of(service.getTableMetadata(name)))::get,
+                name);
     }
 
-    private AtlasTable(AtlasDbService service, AtlasTableMetadata metadata, String name) {
+    private AtlasTable(AtlasDbService service, Supplier<AtlasTableMetadata> metadata, String name) {
         this.service = service;
         this.metadata = metadata;
         this.name = name;
@@ -43,14 +49,16 @@ public class AtlasTable extends AbstractTable implements ScannableTable {
 
     @Override
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        return metadata.relDataType(typeFactory);
+        return metadata.get().relDataType(typeFactory);
     }
 
     @Override
     public Enumerable<Object[]> scan(DataContext root) {
+        AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
         return new AbstractEnumerable<Object[]>() {
             public Enumerator<Object[]> enumerator() {
-                PagingAtlasEnumerator delegate = PagingAtlasEnumerator.create(service, metadata, name);
+                PagingAtlasEnumerator delegate =
+                        PagingAtlasEnumerator.create(service, metadata.get(), name, cancelFlag);
                 return new Enumerator<Object[]>() {
                     @Override
                     public Object[] current() {

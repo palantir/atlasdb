@@ -17,16 +17,21 @@ package com.palantir.atlasdb.calcite;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.calcite.linq4j.Enumerator;
 
 public class LocalAtlasEnumerator implements Enumerator<AtlasRow> {
     private final Iterator<AtlasRow> iter;
+    private final AtomicBoolean cancelFlag;
     private AtlasRow curResult;
     private boolean closed;
 
-    public LocalAtlasEnumerator(Iterator<AtlasRow> iter) {
+    public LocalAtlasEnumerator(Iterator<AtlasRow> iter, AtomicBoolean cancelFlag) {
         this.iter = iter;
+        this.cancelFlag = cancelFlag;
+        this.curResult = null;
+        this.closed = false;
     }
 
     @Override
@@ -65,6 +70,9 @@ public class LocalAtlasEnumerator implements Enumerator<AtlasRow> {
     }
 
     public boolean isClosed() {
+        if (cancelFlag.get()) {
+            close();
+        }
         return closed;
     }
 }

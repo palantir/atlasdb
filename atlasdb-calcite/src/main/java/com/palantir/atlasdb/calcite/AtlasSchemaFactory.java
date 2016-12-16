@@ -47,7 +47,7 @@ public class AtlasSchemaFactory implements SchemaFactory {
     @Override
     public Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand) {
         AtlasDbService service = connectToAtlas(new File((String) operand.get(ATLAS_CONFIG_FILE_KEY)));
-        return new AtlasSchema(service);
+        return AtlasSchema.create(service);
     }
 
     private AtlasDbService connectToAtlas(File configFile) {

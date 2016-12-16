@@ -17,11 +17,20 @@ package com.palantir.atlasdb.calcite;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.calcite.linq4j.Enumerator;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.api.RangeToken;
 import com.palantir.atlasdb.api.TableRange;
@@ -30,28 +39,58 @@ import com.palantir.atlasdb.encoding.PtBytes;
 
 public class PagingAtlasEnumerator implements Enumerator<AtlasRow> {
     private static final int BATCH_SIZE = 500;
+    private static final int REQUEST_TIMEOUT_IN_SEC = 45;
+    private static final int REQUEST_POLLING_INTERVAL_IN_SEC = 1;
+
+    private enum State {
+        /**
+         *  The state when the enumerator has either just been initialized or has a current result.
+         */
+        ACTIVE,
+
+        /**
+         *  The state when the enumerator is out of results (or has been canceled), but not explicitly closed.
+         */
+        DONE,
+
+        /**
+         *  The state when the enumerator has been explicitly closed.
+         *  A closed enumerator cannot be reset() as it has release its underlying resources.
+         */
+        CLOSED;
+    }
 
     private final AtlasDbService service;
     private final AtlasTableMetadata metadata;
     private final TransactionToken transactionToken;
-    private final RangeToken initRangeToken;
+    private final TableRange initRangeRequest;
+    private final AtomicBoolean cancelFlag;
+    private final ExecutorService executor;
     private RangeToken rangeToken;
     private LocalAtlasEnumerator curIter;
+    private State state;
 
-    public PagingAtlasEnumerator(AtlasDbService service,
-            AtlasTableMetadata metadata,
-            TransactionToken transactionToken,
-            RangeToken rangeToken) {
+    private PagingAtlasEnumerator(AtlasDbService service,
+                                 AtlasTableMetadata metadata,
+                                 TransactionToken transactionToken,
+                                 AtomicBoolean cancelFlag,
+                                 TableRange initRangeRequest,
+                                 ExecutorService executor) {
         this.service = service;
         this.metadata = metadata;
         this.transactionToken = transactionToken;
-        this.initRangeToken = rangeToken;
+        this.cancelFlag = cancelFlag;
+        this.initRangeRequest = initRangeRequest;
+        this.executor = executor;
         reset();
     }
 
-    public static PagingAtlasEnumerator create(AtlasDbService service, AtlasTableMetadata metadata, String tableName) {
+    public static PagingAtlasEnumerator create(AtlasDbService service,
+                                               AtlasTableMetadata metadata,
+                                               String tableName,
+                                               AtomicBoolean cancelFlag) {
         TransactionToken transactionToken = TransactionToken.autoCommit();
-        TableRange request = new TableRange(
+        TableRange initRequest = new TableRange(
                 tableName,
                 PtBytes.EMPTY_BYTE_ARRAY,
                 PtBytes.EMPTY_BYTE_ARRAY,
@@ -60,13 +99,18 @@ public class PagingAtlasEnumerator implements Enumerator<AtlasRow> {
                         .map(String::getBytes)
                         .collect(Collectors.toList()),
                 BATCH_SIZE);
-        RangeToken rangeToken = service.getRange(transactionToken, request);
-        return new PagingAtlasEnumerator(service, metadata, transactionToken, rangeToken);
+        return new PagingAtlasEnumerator(
+                service,
+                metadata,
+                transactionToken,
+                cancelFlag,
+                initRequest,
+                Executors.newCachedThreadPool());
     }
 
     @Override
     public AtlasRow current() {
-        if (isClosed() || curIter == null) {
+        if (isClosed() || isDone() || curIter == null) {
             throw new NoSuchElementException();
         }
         return curIter.current();
@@ -74,19 +118,30 @@ public class PagingAtlasEnumerator implements Enumerator<AtlasRow> {
 
     @Override
     public boolean moveNext() {
-        if (hasNext()) {
-            curIter.moveNext();
-            return true;
+        if (!moveNextInternal()) {
+            rangeToken = null;
+            curIter = null;
+            switch (state) {
+                case ACTIVE:
+                    state = State.DONE;
+                case DONE:
+                case CLOSED:
+                default:
+                    return false;
+            }
         }
-        rangeToken = null;
-        curIter = null;
-        return false;
+        return true;
     }
 
     @Override
     public void reset() {
-        this.rangeToken = initRangeToken;
-        this.curIter = null;
+        if (state == State.CLOSED) {
+            throw new UnsupportedOperationException(
+                    "Cannot reset a closed iterator as the resources were already released.");
+        }
+        rangeToken = null;
+        curIter = null;
+        state = State.ACTIVE;
     }
 
     @Override
@@ -94,28 +149,43 @@ public class PagingAtlasEnumerator implements Enumerator<AtlasRow> {
         rangeToken = null;
         if (curIter != null) {
             curIter.close();
+            curIter = null;
         }
+        executor.shutdownNow();
+        state = State.CLOSED;
     }
 
-    private boolean hasNext() {
-        if (isClosed()) {
+    private boolean moveNextInternal() {
+        if (isClosed() || isDone()) {
             return false;
         }
 
-        if (curIter == null) {
-            curIter = nextIterator();
-            if (curIter == null) {
+        if (cancelFlag.get()) {
+            return false;
+        }
+
+        if (rangeToken == null) {
+            rangeToken = fetchNextRange(initRangeRequest);
+            if (rangeToken == null) {
                 return false;
             }
         }
 
+        if (curIter == null) {
+            curIter = nextIterator();
+        }
+
         if (curIter.hasNext()) {
+            curIter.moveNext();
             return true;
         } else { // page to the next range
             if (rangeToken.hasMoreResults()) {
-                rangeToken = service.getRange(transactionToken, rangeToken.getNextRange());
+                rangeToken = fetchNextRange(rangeToken.getNextRange());
+                if (rangeToken == null) {
+                    return false;
+                }
                 curIter = nextIterator();
-                return hasNext();
+                return moveNextInternal();
             } else { // all done
                 rangeToken = null;
                 return false;
@@ -123,19 +193,48 @@ public class PagingAtlasEnumerator implements Enumerator<AtlasRow> {
         }
     }
 
+    private boolean isDone() {
+        return state == State.DONE;
+    }
+
     private boolean isClosed() {
-        return rangeToken == null || (curIter != null && curIter.isClosed());
+        return state == State.CLOSED;
+    }
+
+    private RangeToken fetchNextRange(TableRange nextRange) {
+        Future<RangeToken> future = executor.submit(
+                () -> service.getRange(transactionToken, nextRange));
+
+        long startTime = System.currentTimeMillis();
+        while ((System.currentTimeMillis() - startTime) / 1000 <= REQUEST_TIMEOUT_IN_SEC) {
+            try {
+                if (cancelFlag.get()) {
+                    return null;
+                }
+                return future.get(REQUEST_POLLING_INTERVAL_IN_SEC, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException  e) {
+                close();
+                throw Throwables.propagate(e);
+            } catch (TimeoutException e) {
+                // ignore
+            }
+        }
+
+        try {
+            return future.get();
+        } catch (InterruptedException | ExecutionException e) {
+            close();
+            throw Throwables.propagate(e);
+        }
     }
 
     private LocalAtlasEnumerator nextIterator() {
-        if (rangeToken == null) {
-            return null;
-        }
+        Preconditions.checkNotNull(rangeToken, "You must have a range token before calling nextIterator().");
         List<AtlasRow> rows =
                 StreamSupport.stream(rangeToken.getResults().getResults().spliterator(), false)
                         .map(result -> AtlasRows.deserialize(metadata, result))
                         .flatMap(List::stream)
                         .collect(Collectors.toList());
-        return new LocalAtlasEnumerator(rows.iterator());
+        return new LocalAtlasEnumerator(rows.iterator(), cancelFlag);
     }
 }
