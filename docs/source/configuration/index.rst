@@ -9,6 +9,7 @@ Configuration
    :titlesonly:
 
    key_value_service_configs/index
+   external_timelock_service_configs/index
    cassandra_config
    enabling_cassandra_tracing
    leader_config

@@ -14,8 +14,6 @@ External Timelock Service
     :titlesonly:
 
     installation
-    server_configuration
-    client_configuration
     migration
 
 The AtlasDB Timelock Service is an external implementation of the Timestamp and Lock services. Running an external
