@@ -52,5 +52,7 @@ public interface Event {
                 .toMap();
     }
 
+    long time();
+
     void accept(EventVisitor visitor);
 }

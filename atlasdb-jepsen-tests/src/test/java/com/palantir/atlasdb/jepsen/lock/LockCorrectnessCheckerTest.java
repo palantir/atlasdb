@@ -22,124 +22,144 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.events.Event;
-import com.palantir.atlasdb.jepsen.events.ImmutableInvokeEvent;
-import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
-import com.palantir.atlasdb.jepsen.events.RequestType;
+import com.palantir.atlasdb.jepsen.events.TestEventUtil;
 
 public class LockCorrectnessCheckerTest {
-    private final long SUCCESS = 1L;
-    private final String LOCK1 = "lock_1";
+    private static final int process1 = 1;
+    private static final int process2 = 2;
+    private static final int process3 = 3;
 
     @Test
     public void shouldSucceedOnNoEvents() {
-        CheckerResult result = runLockCorrectnessChecker();
-
+        CheckerResult result = runLockCorrectnessChecker(ImmutableList.<Event>of());
         assertThat(result.valid()).isTrue();
         assertThat(result.errors()).isEmpty();
     }
 
     @Test
-    public void shouldSucceedWhenNoRefreshes(){
-        long time = 0;
-        Event event1 = createInvokeEvent(time++, 0, RequestType.LOCK, LOCK1);
-        Event event2 = createInvokeEvent(time++, 1, RequestType.LOCK, LOCK1);
-        Event event3 = createOkEvent(time++, 1, SUCCESS, RequestType.LOCK, LOCK1);
-        Event event4 = createOkEvent(time++, 0, SUCCESS, RequestType.LOCK, LOCK1);
-
-        CheckerResult result = runLockCorrectnessChecker(event1, event2, event3, event4);
-
+    public void shouldSucceedWhenNoRefreshes() {
+        ImmutableList<Event> eventList = ImmutableList.<Event>builder()
+                .add(TestEventUtil.invokeLock(0, process1))
+                .add(TestEventUtil.invokeLock(1, process2))
+                .add(TestEventUtil.lockSuccess(2, process2))
+                .add(TestEventUtil.lockSuccess(3, process1))
+                .build();
+        CheckerResult result = runLockCorrectnessChecker(eventList);
         assertThat(result.valid()).isTrue();
         assertThat(result.errors()).isEmpty();
     }
 
     @Test
-    public void shouldSucceedWhenNoLocks(){
-        long time = 0;
-        Event event1 = createInvokeEvent(time++, 0, RequestType.REFRESH, LOCK1);
-        Event event2 = createOkEvent(time++, 0, SUCCESS, RequestType.REFRESH, LOCK1);
-        Event event3 = createInvokeEvent(time++, 1, RequestType.UNLOCK, LOCK1);
-        Event event4 = createOkEvent(time++, 1, SUCCESS, RequestType.UNLOCK, LOCK1);
-
-        CheckerResult result = runLockCorrectnessChecker(event1, event2, event3, event4);
-
+    public void allowSimultaneousLockAndRefresh() {
+        ImmutableList<Event> eventList = ImmutableList.<Event>builder()
+                .add(TestEventUtil.invokeLock(0, process1))
+                .add(TestEventUtil.lockSuccess(0, process1))
+                .add(TestEventUtil.invokeRefresh(0, process1))
+                .add(TestEventUtil.refreshSuccess(0, process1))
+                .build();
+        CheckerResult result = runLockCorrectnessChecker(eventList);
         assertThat(result.valid()).isTrue();
         assertThat(result.errors()).isEmpty();
     }
 
     @Test
-    public void shouldFailWhenLockIsGrantedWhenNotFree(){
-        long time = 0;
-        Event event1 = createInvokeEvent(time++, 0, RequestType.LOCK, LOCK1);
-        Event event2 = createOkEvent(time++, 0, SUCCESS, RequestType.LOCK, LOCK1);
-        Event event3 = createInvokeEvent(time++, 1, RequestType.LOCK, LOCK1);
-        Event event4 = createOkEvent(time++, 1, SUCCESS, RequestType.LOCK, LOCK1);
-        Event event5 = createInvokeEvent(time++, 0, RequestType.REFRESH, LOCK1);
-        Event event6 = createOkEvent(time++, 0, SUCCESS, RequestType.REFRESH, LOCK1);
-
-        CheckerResult result = runLockCorrectnessChecker(event1, event2, event3, event4, event5, event6);
-
+    public void cannotRefreshWhenAnotherProcessHasLock() {
+        ImmutableList<Event> eventList = ImmutableList.<Event>builder()
+                .add(TestEventUtil.invokeLock(0, process1))
+                .add(TestEventUtil.lockSuccess(1, process1))
+                .add(TestEventUtil.invokeLock(2, process2))
+                .add(TestEventUtil.lockSuccess(3, process2))
+                .add(TestEventUtil.invokeRefresh(4, process1))
+                .add(TestEventUtil.refreshSuccess(5, process1))
+                .build();
+        CheckerResult result = runLockCorrectnessChecker(eventList);
         assertThat(result.valid()).isFalse();
-        assertThat(result.errors()).containsExactly(event3, event4);
+        assertThat(result.errors()).containsExactly(eventList.get(2), eventList.get(3));
     }
 
     @Test
-    public void shouldSucceedWhenThereIsASmallWindow(){
-        Event event1 = createInvokeEvent(0, 0, RequestType.LOCK, LOCK1);
-        Event event2 = createOkEvent(1, 0, SUCCESS, RequestType.LOCK, LOCK1);
-        Event event3 = createInvokeEvent(2, 1, RequestType.LOCK, LOCK1);
-        Event event4 = createInvokeEvent(2, 2, RequestType.LOCK, LOCK1);
-        Event event5 = createInvokeEvent(3, 0, RequestType.REFRESH, LOCK1);
-        Event event6 = createOkEvent(3, 0, SUCCESS, RequestType.REFRESH, LOCK1);
-        Event event7 = createOkEvent(3, 2, SUCCESS, RequestType.LOCK, LOCK1);
-        Event event8 = createOkEvent(4, 1, SUCCESS, RequestType.LOCK, LOCK1);
-        Event event9 = createInvokeEvent(5, 2, RequestType.REFRESH, LOCK1);
-        Event eventA = createOkEvent(6, 2, SUCCESS, RequestType.REFRESH, LOCK1);
+    public void cannotUnlockWhenAnotherProcessHasLock() {
+        ImmutableList<Event> eventList = ImmutableList.<Event>builder()
+                .add(TestEventUtil.invokeLock(0, process1))
+                .add(TestEventUtil.lockSuccess(1, process1))
+                .add(TestEventUtil.invokeLock(2, process2))
+                .add(TestEventUtil.lockSuccess(3, process2))
+                .add(TestEventUtil.invokeUnlock(4, process1))
+                .add(TestEventUtil.unlockSuccess(5, process1))
+                .build();
+        CheckerResult result = runLockCorrectnessChecker(eventList);
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).containsExactly(eventList.get(2), eventList.get(3));
+    }
 
-        CheckerResult result = runLockCorrectnessChecker(event1, event2, event3, event4, event5,event6, event7, event8, event9, eventA );
-
+    @Test
+    public void failedLockIntervalCoveredByAnotherProcessSucceeds() {
+        ImmutableList<Event> eventList = ImmutableList.<Event>builder()
+                .add(TestEventUtil.invokeLock(0, process1))
+                .add(TestEventUtil.lockSuccess(1, process1))
+                .add(TestEventUtil.invokeLock(2, process2))
+                .add(TestEventUtil.lockFailure(3, process2))
+                .add(TestEventUtil.invokeRefresh(4, process1))
+                .add(TestEventUtil.refreshSuccess(5, process1))
+                .build();
+        CheckerResult result = runLockCorrectnessChecker(eventList);
         assertThat(result.valid()).isTrue();
         assertThat(result.errors()).isEmpty();
     }
 
     @Test
-    public void shouldSucceedForIntervalEdgeCases(){
-        long time = 0;
-        Event event1 = createInvokeEvent(time++, 0, RequestType.LOCK, LOCK1);
-        Event event2 = createOkEvent(time, 0, SUCCESS, RequestType.LOCK, LOCK1);
-        Event event3 = createInvokeEvent(time++, 1, RequestType.LOCK, LOCK1);
-        Event event4 = createOkEvent(time++, 1, SUCCESS, RequestType.LOCK, LOCK1);
-        Event event5 = createInvokeEvent(time++, 2, RequestType.LOCK, LOCK1);
-        Event event6 = createOkEvent(time, 2, SUCCESS, RequestType.LOCK, LOCK1);
-        Event event7 = createInvokeEvent(time++, 0, RequestType.REFRESH, LOCK1);
-        Event event8 = createOkEvent(time++, 0, SUCCESS, RequestType.REFRESH, LOCK1);
+    public void failedLockIntervalNotCoveredByAnotherProcessFails() {
+        ImmutableList<Event> eventList = ImmutableList.<Event>builder()
+                .add(TestEventUtil.invokeLock(0, process1))
+                .add(TestEventUtil.lockSuccess(1, process1))
+                .add(TestEventUtil.invokeLock(2, process2))
+                .add(TestEventUtil.lockFailure(3, process2))
+                .add(TestEventUtil.invokeRefresh(3, process1))
+                .add(TestEventUtil.refreshSuccess(5, process1))
+                .build();
+        CheckerResult result = runLockCorrectnessChecker(eventList);
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).containsExactly(eventList.get(2), eventList.get(3));
+    }
 
-        CheckerResult result = runLockCorrectnessChecker(event1, event2, event3, event4, event5, event6, event7, event8);
-
+    @Test
+    public void shouldSucceedWhenThereIsASmallWindow() {
+        ImmutableList<Event> eventList = ImmutableList.<Event>builder()
+                .add(TestEventUtil.invokeLock(0, process1))
+                .add(TestEventUtil.lockSuccess(1, process1))
+                .add(TestEventUtil.invokeLock(2, process2))
+                .add(TestEventUtil.invokeLock(2, process3))
+                .add(TestEventUtil.invokeRefresh(3, process1))
+                .add(TestEventUtil.refreshSuccess(3, process1))
+                .add(TestEventUtil.lockSuccess(3, process3))
+                .add(TestEventUtil.lockSuccess(4, process2))
+                .add(TestEventUtil.invokeRefresh(5, process3))
+                .add(TestEventUtil.refreshSuccess(6, process3))
+                .build();
+        CheckerResult result = runLockCorrectnessChecker(eventList);
         assertThat(result.valid()).isTrue();
         assertThat(result.errors()).isEmpty();
     }
 
-    private ImmutableInvokeEvent createInvokeEvent(long time, int process, RequestType requestType, String resourceName) {
-        return ImmutableInvokeEvent.builder()
-                .time(time)
-                .process(process)
-                .requestType(requestType)
-                .resourceName(resourceName)
+    @Test
+    public void shouldSucceedForIntervalEdgeCases() {
+        ImmutableList<Event> eventList = ImmutableList.<Event>builder()
+                .add(TestEventUtil.invokeLock(0, process1))
+                .add(TestEventUtil.lockSuccess(1, process1))
+                .add(TestEventUtil.invokeLock(1, process2))
+                .add(TestEventUtil.lockSuccess(2, process2))
+                .add(TestEventUtil.invokeLock(3, process3))
+                .add(TestEventUtil.lockSuccess(4, process3))
+                .add(TestEventUtil.invokeRefresh(4, process1))
+                .add(TestEventUtil.refreshSuccess(5, process1))
                 .build();
+        CheckerResult result = runLockCorrectnessChecker(eventList);
+        assertThat(result.valid()).isTrue();
+        assertThat(result.errors()).isEmpty();
     }
 
-    private ImmutableOkEvent createOkEvent(long time, int process, long value, RequestType requestType, String resourceName) {
-        return ImmutableOkEvent.builder()
-                .time(time)
-                .process(process)
-                .value(value)
-                .requestType(requestType)
-                .resourceName(resourceName)
-                .build();
-    }
-
-    private static CheckerResult runLockCorrectnessChecker(Event... events) {
+    private static CheckerResult runLockCorrectnessChecker(ImmutableList<Event> events) {
         LockCorrectnessChecker lockCorrectnessChecker = new LockCorrectnessChecker();
-        return lockCorrectnessChecker.check(ImmutableList.copyOf(events));
+        return lockCorrectnessChecker.check(events);
     }
 }

@@ -33,6 +33,7 @@ public abstract class OkEvent implements Event {
     public static final long SUCCESS = 1;
     public static final long FAILURE = -1;
 
+    @Override
     public abstract long time();
 
     public abstract int process();

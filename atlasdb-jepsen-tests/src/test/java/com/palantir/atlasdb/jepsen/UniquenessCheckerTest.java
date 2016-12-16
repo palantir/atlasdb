@@ -127,7 +127,8 @@ public class UniquenessCheckerTest {
     }
 
     private static CheckerResult runUniquenessChecker(Event... events) {
-        com.palantir.atlasdb.jepsen.timestamp.UniquenessChecker uniquenessChecker = new com.palantir.atlasdb.jepsen.timestamp.UniquenessChecker();
+        com.palantir.atlasdb.jepsen.timestamp.UniquenessChecker uniquenessChecker =
+                new com.palantir.atlasdb.jepsen.timestamp.UniquenessChecker();
         return uniquenessChecker.check(ImmutableList.copyOf(events));
     }
 }

@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 public abstract class InvokeEvent implements Event {
     public static final String TYPE = "invoke";
 
+    @Override
     public abstract long time();
 
     public abstract int process();

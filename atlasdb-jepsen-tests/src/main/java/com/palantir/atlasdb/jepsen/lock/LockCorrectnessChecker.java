@@ -17,7 +17,6 @@ package com.palantir.atlasdb.jepsen.lock;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -33,28 +32,27 @@ import com.palantir.atlasdb.jepsen.events.FailEvent;
 import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
-import com.palantir.common.annotation.Immutable;
 import com.palantir.util.Pair;
 
 /**
  * Checker verifying that whenever a lock is granted, there was a time point between the request and the
  * acknowledge when the lock was actually free to be granted. This is tricky due to the existence of refreshes
- * and the uncertainty of the exact times due to the latency between requests and replies.
+ * and the uncertainty of the exact times because of the latency between requests and replies.
  *
  * A successful refresh means the lock was held in the (open) interval
- * (a, b)
- * where a is the OkEvent.time() of the last successful lock,
+ * (a, b), where
+ * a is the OkEvent.time() of the last successful lock,
  * b is the InvokeEvent.time() of the refresh,
- * assuming a successful refresh guarantees holding the lock since the last time the lock was granted. This will
+ * <i>>assuming</i> a successful refresh guarantees holding the lock since the last time the lock was granted. This will
  * be verified by another checker.
- *
  *
  * A successful unlock can be treated the same as a refresh, except that it has implications for further refreshes
  * and unlocks (that we will check by other checkers).
  *
  * A successful lock means the lock was held <i>at some point</i> in the (closed) interval
- * [a, b]
- * where a is the InvokeEvent.time() of the lock request, and b is its OkEvent.time()
+ * [a, b], where
+ * a is the InvokeEvent.time() of the lock request, and
+ * b is its OkEvent.time()
  *
  * We mantain a set L of all intervals where we know there was a lock, and a separate list U of all intervals where
  * there was a lock at some point. In the latter list, we purposefully do not merge intervals, to ensure no information
@@ -81,6 +79,7 @@ public class LockCorrectnessChecker implements Checker {
 
         private final Map<String, TreeRangeSet<Long>> locksHeld = new HashMap<>();
         private final Map<String, List<Pair<InvokeEvent, OkEvent>>> locksAtSomePoint = new HashMap<>();
+        private final Map<String, List<Pair<InvokeEvent, OkEvent>>> failedLocksAtSomePoint = new HashMap<>();
 
         private final ArrayList<String> allLockNames = new ArrayList<>();
 
@@ -94,16 +93,13 @@ public class LockCorrectnessChecker implements Checker {
         public void visit(InvokeEvent event) {
             Integer process = event.process();
             String lockName = event.resourceName();
-//            switch (event.requestType()){
-//                case LOCK:
-                    pendingForProcessAndLock.put(new Pair(process,lockName), event);
-//                case REFRESH:
-                    if (!allLockNames.contains(lockName)){
-                        allLockNames.add(lockName);
-                        locksHeld.put(lockName, TreeRangeSet.create());
-                        locksAtSomePoint.put(lockName, new ArrayList<>());
-                    }
-//            }
+            pendingForProcessAndLock.put(new Pair(process, lockName), event);
+            if (!allLockNames.contains(lockName)) {
+                allLockNames.add(lockName);
+                locksHeld.put(lockName, TreeRangeSet.create());
+                locksAtSomePoint.put(lockName, new ArrayList<>());
+                failedLocksAtSomePoint.put(lockName, new ArrayList<>());
+            }
         }
 
         @Override
@@ -113,38 +109,48 @@ public class LockCorrectnessChecker implements Checker {
             Pair processLock = new Pair(process, lockName);
             InvokeEvent invokeEvent = pendingForProcessAndLock.get(processLock);
 
-            switch(event.requestType()) {
+            switch (event.requestType()) {
                 /**
                  * Successful LOCK:
                  * 1) Add a new uncertain interval to verify at the end,
                  * 2) Remember the new value for the most recent successful lock
+                 * Failed LOCK:
+                 * 1) Add an interval that must completely be covered by existing locks
+                 * 2) remembering most recent successful lock not necessary, as the correctness of this is covered
+                 *    by IsolatedProcessCorrectnessChecker
                  */
                 case LOCK:
-                    locksAtSomePoint.get(lockName).add(new Pair(invokeEvent, event));
-                    lastHeldLock.put(processLock, event);
+                    if (event.value() == OkEvent.SUCCESS) {
+                        locksAtSomePoint.get(lockName).add(new Pair(invokeEvent, event));
+                        lastHeldLock.put(processLock, event);
+                    }
+                    if (event.value() == OkEvent.FAILURE) {
+                        failedLocksAtSomePoint.get(lockName).add(new Pair(invokeEvent, event));
+                    }
                     break;
                 /**
-                 * Successful REFRESH/LOCK:
+                 * Successful REFRESH/UNLOCK:
                  * Add the new interval (a, b) to the set of known locks, possibly absorbing a previously
                  * existing interval (a, b'). In this checker, we are assuming correctness of refreshes and unlocks
-                 * in order to check correctness of lock
+                 * which allows for somewhat simpler logic, and makes it unnecessary to verify the failed instances.
                  */
                 case REFRESH:
                 case UNLOCK:
-                    if(lastHeldLock.containsKey(processLock)) {
-                        locksHeld.get(lockName).add(Range.open(lastHeldLock.get(processLock).time(), invokeEvent.time()));
+                    if (event.value() == OkEvent.SUCCESS && lastHeldLock.containsKey(processLock)) {
+                        long lastLockTime = lastHeldLock.get(processLock).time();
+                        if (lastLockTime < invokeEvent.time()) {
+                            locksHeld.get(lockName).add(
+                                    Range.open(lastLockTime, invokeEvent.time()));
+                        }
                     }
+                    break;
+                default:
+                    break;
             }
         }
 
         @Override
         public void visit(FailEvent event) {
-            Integer process = event.process();
-            String lockName = event.resourceName();
-            switch (event.requestType()){
-                case LOCK:
-                    pendingForProcessAndLock.remove(new Pair(process,lockName));
-            }
         }
 
         public boolean valid() {
@@ -157,18 +163,23 @@ public class LockCorrectnessChecker implements Checker {
 
         private void verifyLockCorrectness() {
             locksAtSomePoint.entrySet().forEach(entry ->
-            {
-                entry.getValue().forEach( eventPair ->
-                {
-                    if (intervalCovered(entry.getKey(), eventPair)){
-                        errors.add(eventPair.getLhSide());
-                        errors.add(eventPair.getRhSide());
-                    };
-                });
-            });
+                    entry.getValue().forEach(eventPair -> {
+                        if (intervalCovered(entry.getKey(), eventPair)) {
+                            errors.add(eventPair.getLhSide());
+                            errors.add(eventPair.getRhSide());
+                        }
+                    }));
+            failedLocksAtSomePoint.entrySet().forEach(entry ->
+                    entry.getValue().forEach(eventPair -> {
+                        if (!intervalCovered(entry.getKey(), eventPair)) {
+                            errors.add(eventPair.getLhSide());
+                            errors.add(eventPair.getRhSide());
+                        }
+                    }));
         }
 
-        private boolean intervalCovered(String lockName, Pair<InvokeEvent, OkEvent> eventPair){
+
+        private boolean intervalCovered(String lockName, Pair<InvokeEvent, OkEvent> eventPair) {
             Range<Long> interval = Range.closed(eventPair.getLhSide().time(), eventPair.getRhSide().time());
             return locksHeld.get(lockName).encloses(interval);
         }

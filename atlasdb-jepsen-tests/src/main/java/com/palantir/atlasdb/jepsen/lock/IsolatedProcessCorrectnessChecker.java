@@ -23,8 +23,6 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Range;
-import com.google.common.collect.TreeRangeSet;
 import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.ImmutableCheckerResult;
 import com.palantir.atlasdb.jepsen.events.Checker;
@@ -37,11 +35,10 @@ import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.util.Pair;
 
 /**
- * This checker verifies that a refresh is only successful when that is allowed, considering events of each host
- * separately. Since we know that no process makes a new request before getting a reply from the old one, this is
- * much simpler -- we only need to consider the OkEvents.
+ * This checker verifies that the sequence of events is correct for each process in isolation. Since we know that no
+ * process makes a new request before getting a reply from the old one, we only need to consider the OkEvents.
  */
-public class IsolatedProcessRefreshSuccessChecker implements Checker {
+public class IsolatedProcessCorrectnessChecker implements Checker {
     @Override
     public CheckerResult check(List<Event> events) {
         Visitor visitor = new Visitor();
@@ -53,10 +50,9 @@ public class IsolatedProcessRefreshSuccessChecker implements Checker {
     }
 
     private static class Visitor implements EventVisitor {
-        private final Map<Integer, Boolean> refreshAllowed = new HashMap<>();
-        private final Map<Integer, OkEvent> lastEvent = new HashMap<>();
+        private final Map<Pair<Integer, String>, Boolean> refreshAllowed = new HashMap<>();
+        private final Map<Pair<Integer, String>, OkEvent> lastEvent = new HashMap<>();
         private final Set<Integer> processes = new HashSet<>();
-
         private final List<Event> errors = new ArrayList<>();
 
         @Override
@@ -68,52 +64,63 @@ public class IsolatedProcessRefreshSuccessChecker implements Checker {
         }
 
         /**
-         * Successful lock means that future refreshes are allowed, successful unlock means refreshes are forbidden,
-         * unsuccessful refresh means the same.
+         * LOCK:
+         *  - SUCCESS: held the lock at some point between request and reply.
+         *  - FAILURE: the lock was held by someone else at some point between request and reply.
          *
-         * I assume unlock should fail if you do not have a lock.
+         * UNLOCK:
+         *  - SUCCESS: was holding the lock, now does not hold it.
+         *  - FAILURE: was not holding the lock.
          *
-         * I assume lock is allowed to fail randomly, and unlock is allowed to fail randomly.
+         * REFRESH:
+         *  - SUCCESS: was holding the lock, still possibly does.
+         *  - FAILURE: was not holding the lock.
          */
         @Override
         public void visit(OkEvent event) {
             int currentProcess = event.process();
-            if (!processes.contains(currentProcess)){
+            String lockName = event.resourceName();
+            Pair processLock = new Pair(currentProcess, lockName);
+
+            if (!processes.contains(currentProcess)) {
                 processes.add(currentProcess);
-                refreshAllowed.put(currentProcess, false);
-                lastEvent.put(currentProcess, event);
+                refreshAllowed.put(processLock, false);
+                lastEvent.put(processLock, event);
             }
-            switch (event.requestType()){
+
+            switch (event.requestType()) {
                 case LOCK:
+                    if (event.value() == OkEvent.FAILURE) {
+                        refreshAllowed.put(processLock, false);
+                    }
                     if (event.value() == OkEvent.SUCCESS) {
-                        refreshAllowed.put(currentProcess, true);
-                        lastEvent.put(currentProcess, event);
+                        refreshAllowed.put(processLock, true);
                     }
                     break;
                 case REFRESH:
                     if (event.value() == OkEvent.FAILURE) {
-                        refreshAllowed.put(currentProcess, false);
-                        lastEvent.put(currentProcess, event);
+                        refreshAllowed.put(processLock, false);
                     }
-                    if (event.value() == OkEvent.SUCCESS){
-                        if (!refreshAllowed.get(currentProcess)) {
-                            errors.add(lastEvent.get(currentProcess));
+                    if (event.value() == OkEvent.SUCCESS) {
+                        if (!refreshAllowed.get(processLock)) {
+                            errors.add(lastEvent.get(processLock));
                             errors.add(event);
-                            refreshAllowed.put(currentProcess, true);
+                            refreshAllowed.put(processLock, true);
                         }
                     }
-                    lastEvent.put(currentProcess, event);
                     break;
                 case UNLOCK:
                     if (event.value() == OkEvent.SUCCESS) {
-                        if (!refreshAllowed.get(currentProcess)) {
-                            errors.add(lastEvent.get(currentProcess));
+                        if (!refreshAllowed.get(processLock)) {
+                            errors.add(lastEvent.get(processLock));
                             errors.add(event);
                         }
-                        refreshAllowed.put(currentProcess, false);
-                        lastEvent.put(currentProcess, event);
                     }
+                    refreshAllowed.put(processLock, false);
+                    break;
+                default: break;
             }
+            lastEvent.put(processLock, event);
         }
 
         @Override
@@ -127,8 +134,5 @@ public class IsolatedProcessRefreshSuccessChecker implements Checker {
         public List<Event> errors() {
             return ImmutableList.copyOf(errors);
         }
-
     }
-
-
 }
