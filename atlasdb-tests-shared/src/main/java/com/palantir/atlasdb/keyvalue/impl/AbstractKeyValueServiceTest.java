@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -47,6 +48,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -730,6 +732,62 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void testDeleteRangeStartRowInclusivity() {
+        putTestDataForMultipleRows(); // set up rows row0,row1,row2
+
+        RangeRequest range = RangeRequest.builder()
+                .startRowInclusive(row0)
+                .endRowExclusive("row1b".getBytes())
+                .build();
+        // should delete row0 and row1
+        keyValueService.deleteRange(TEST_TABLE, range);
+
+        List<byte[]> keys = Lists.newArrayList();
+        keyValueService.getRange(TEST_TABLE, RangeRequest.all(), Long.MAX_VALUE)
+                .forEachRemaining(row -> keys.add(row.getRowName()));
+        assertTrue(Arrays.deepEquals(keys.toArray(), ImmutableList.of(row2).toArray()));
+    }
+
+    @Test
+    public void testDeleteRangeEndRowExclusivity() {
+        putTestDataForMultipleRows(); // set up rows row0,row1,row2
+
+        RangeRequest range = RangeRequest.builder()
+                .startRowInclusive("row".getBytes())
+                .endRowExclusive("row1".getBytes())
+                .build();
+        // should delete row0 only
+        keyValueService.deleteRange(TEST_TABLE, range);
+
+        List<byte[]> keys = Lists.newArrayList();
+        keyValueService.getRange(TEST_TABLE, RangeRequest.all(), Long.MAX_VALUE)
+                .forEachRemaining(row -> keys.add(row.getRowName()));
+        assertTrue(Arrays.deepEquals(keys.toArray(), ImmutableList.of(row1, row2).toArray()));
+    }
+
+    @Test
+    public void testDeleteRangeAll() {
+        putTestDataForMultipleRows(); // set up rows row0,row1,row2
+        keyValueService.deleteRange(TEST_TABLE, RangeRequest.all());
+        assertFalse(keyValueService.getRange(TEST_TABLE, RangeRequest.all(), Long.MAX_VALUE).hasNext());
+    }
+
+    @Test
+    public void testDeleteRangeNone() {
+        putTestDataForMultipleRows(); // set up rows row0,row1,row2
+        RangeRequest range = RangeRequest.builder()
+                .startRowInclusive("a".getBytes())
+                .endRowExclusive("a".getBytes())
+                .build();
+        keyValueService.deleteRange(TEST_TABLE, range);
+
+        List<byte[]> keys = Lists.newArrayList();
+        keyValueService.getRange(TEST_TABLE, RangeRequest.all(), Long.MAX_VALUE)
+                .forEachRemaining(row -> keys.add(row.getRowName()));
+        assertTrue(Arrays.deepEquals(keys.toArray(), ImmutableList.of(row0, row1, row2).toArray()));
+    }
+
+    @Test
     public void testPutWithTimestamps() {
         putTestDataForMultipleTimestamps();
         final Cell cell = Cell.create(row0, column0);
@@ -1042,6 +1100,15 @@ public abstract class AbstractKeyValueServiceTest {
 
     private byte[] dynamicColumn(long columnId) {
         return PtBytes.toBytes(columnId);
+    }
+
+    protected void putTestDataForMultipleRows() {
+        keyValueService.put(TEST_TABLE,
+                ImmutableMap.of(Cell.create(row0, column0), value0_t0), TEST_TIMESTAMP);
+        keyValueService.put(TEST_TABLE,
+            ImmutableMap.of(Cell.create(row1, column0), value0_t0), TEST_TIMESTAMP);
+        keyValueService.put(TEST_TABLE,
+                ImmutableMap.of(Cell.create(row2, column0), value0_t0), TEST_TIMESTAMP);
     }
 
     protected void putTestDataForMultipleTimestamps() {
