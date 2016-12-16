@@ -24,6 +24,10 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.immutables.value.Value;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
@@ -69,6 +73,16 @@ abstract class AtlasColumnMetdata {
             return column().get().getValue().getValueType();
         } else if (isValue()) {
             return value().get().getValueType();
+        }
+        throw new IllegalStateException();
+    }
+
+    @Value.Derived
+    public TableMetadataPersistence.ValueByteOrder byteOrder() {
+        if (isComponent()) {
+            return component().get().getOrder();
+        } else if (isNamedColumn() || isValue()) {
+            return TableMetadataPersistence.ValueByteOrder.ASCENDING;
         }
         throw new IllegalStateException();
     }
@@ -142,10 +156,10 @@ abstract class AtlasColumnMetdata {
     }
 
     public Object deserialize(byte[] bytes) {
-        return deserialize(bytes, 0);
-    }
-
-    public Object deserialize(byte[] bytes, int index) {
+        if (isComponent()) {
+            throw new RuntimeException("Row/column components cannot be deserialized in isolation."
+                    + "Use EncodingUtils.fromBytes() instead.");
+        }
         switch (format()) {
             case PROTO:
                 if (isComponent()) {
@@ -163,7 +177,9 @@ abstract class AtlasColumnMetdata {
             case PERSISTER:
                 return bytes;
             case VALUE_TYPE:
-                return valueType().convertToJava(bytes, index);
+                return Iterables.getOnlyElement(
+                        EncodingUtils.fromBytes(bytes,
+                                ImmutableList.of(new EncodingUtils.EncodingType(valueType(), byteOrder()))));
             default:
                 throw new IllegalStateException("Unknown Format: " + format());
         }

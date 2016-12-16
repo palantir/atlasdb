@@ -20,12 +20,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
 
 public final class AtlasRows {
     private AtlasRows() {
@@ -50,24 +51,16 @@ public final class AtlasRows {
     }
 
     private static List<AtlasColumn> parseComponents(List<AtlasColumnMetdata> colsMeta, byte[] row) {
-        ImmutableList.Builder<AtlasColumn> ret = ImmutableList.builder();
-        int index = 0;
-        for (int i = 0; i < colsMeta.size(); i++) {
-            AtlasColumnMetdata meta = colsMeta.get(i);
-            Preconditions.checkState(meta.isComponent(), "metadata must be for components");
-            ValueType type = meta.valueType();
-            Object val = meta.deserialize(row, index);
-            int len = type.sizeOf(val);
-            if (len == 0) {
-                Preconditions.checkArgument(type == ValueType.STRING || type == ValueType.BLOB,
-                        "only BLOB and STRING can have unknown length");
-                Preconditions.checkArgument(i == colsMeta.size() - 1, "only terminal types can have unknown length");
-                len = row.length - index;
-            }
-            index += len;
-            ret.add(ImmutableAtlasColumn.of(meta, val));
-        }
-        return ret.build();
+        List<Object> decoded = EncodingUtils.fromBytes(row,
+                colsMeta.stream()
+                        .map(col -> new EncodingUtils.EncodingType(col.valueType(), col.byteOrder()))
+                        .collect(Collectors.toList()));
+        Preconditions.checkState(decoded.size() == colsMeta.size(),
+                "There were the wrong number of decoded row/column components. Excepted %s and found %s instead.",
+                colsMeta.size(), decoded.size());
+        return IntStream.range(0, decoded.size())
+                .mapToObj(i -> ImmutableAtlasColumn.of(colsMeta.get(i), decoded.get(i)))
+                .collect(Collectors.toList());
     }
 
     private static List<AtlasColumn> parseNamedColumns(List<AtlasColumnMetdata> colsMeta,
