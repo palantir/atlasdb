@@ -2,7 +2,6 @@ apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
 apply plugin: 'org.inferred.processors'
-apply plugin: 'java-library-distribution'
 
 buildscript {
     repositories {
@@ -22,6 +21,10 @@ protobuf {
     generatedFilesBaseDir = "$projectDir/src"
 }
 
+apply plugin: 'application'
+mainClassName = 'com.palantir.atlasdb.calcite.SqlShell'
+applicationName = 'asql'
+
 repositories {
     maven {
         url "http://conjars.org/repo"
@@ -31,12 +34,17 @@ repositories {
 dependencies {
     compile project(':atlasdb-dagger')
     compile project(':atlasdb-service')
+    compile group: 'io.airlift', name: 'airline', version: '0.7'
     compile(group: 'org.apache.calcite', name: 'calcite-core') {
         exclude group: 'com.google.protobuf', module: 'protobuf-java'
         exclude group: 'commons-lang', module: 'commons-lang'
     }
     compile group: "com.google.protobuf", name: "protobuf-java", version: libVersions.protobuf
     compile group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang
+    compile group: 'sqlline', name: 'sqlline', version: '1.1.9'
+
+    runtime project(':atlasdb-config')
+    runtime project(':atlasdb-dbkvs')
 
     processor group: 'org.immutables', name: 'value'
 
@@ -44,13 +52,4 @@ dependencies {
     testCompile project(':atlasdb-dbkvs')
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule', version: libVersions.dockerComposeRule
     testCompile group: 'com.jayway.awaitility', name: 'awaitility'
-    testCompile(group: "com.google.protobuf", name: "protobuf-java", version: "2.6.0") {
-        transitive = false
-    }
-}
-
-distributions {
-    main{
-        baseName = 'atlasdb-calcite'
-    }
 }
