@@ -4,8 +4,8 @@
 Transaction Protocol
 ====================
 
-NOTE: the AtlasDB transaction protocol is inspired by (but different
-from) google's percolator transaction protocol. For additional reading
+NOTE: The AtlasDB transaction protocol is inspired by (but different
+from) Google's Percolator transaction protocol. For additional reading
 please see
 `Percolator <http://research.google.com/pubs/pub36726.html>`__.
 
@@ -17,7 +17,7 @@ that committed at a timestamp between your start timestamp and your
 commit timestamp.
 
 Write Protocol
---------------
+==============
 
 1. We buffer writes in memory until commit time. At commit time we grab
    row locks for all the rows we are about to write (this is to detect
@@ -42,9 +42,9 @@ Write Protocol
 7. Unlock the locks
 
 Read Protocol
--------------
+=============
 
-Lets assume we are reading Cell c.
+Let's assume we are reading Cell c.
 
 1. Read from the KV store and get the most recent data with TS <
    startTs.
@@ -62,7 +62,7 @@ Lets assume we are reading Cell c.
    next highest TS for the cell.
 
 Immutable Timestamp
--------------------
+===================
 
 The point in time right before the oldest currently executing
 transaction is referred to as the Immutable timestamp. This is because
@@ -83,13 +83,13 @@ shard well because we have to get the global min. However we can just
 ask each lock server what its min is and take the global min. We can
 also cache this value for a bit and we don't have to recompute it each
 time. Normally clients don't need the absolute most recent
-Immutable\_TS, but just a relatively modern one.
+immutableTs, but just a relatively modern one.
 
 Tricky points regarding the immutable timestamp:
 
--  A transaction with start\_ts < immutable\_ts may be stuck on the
+-  A transaction with startTs < immutableTs may be stuck on the
    putUnlessExists part of its commit (its locks are timed out,
-   otherwise immutable\_ts < start\_ts). This is ok because if we read
+   otherwise immutableTs < startTs). This is ok because if we read
    any of its values we will try to roll back their transaction and we
    will either see it as committed or failed, but either way it will be
    complete.
@@ -98,14 +98,14 @@ Tricky points regarding the immutable timestamp:
    of locking it are not performed together atomically. This doesn't
    cause correctness issues, though, since we wait until we have locked
    PRE\_START\_TS before grabbing our start timestamp. For example, if
-   the current immutable timestamp is immutable\_ts\_1 and transaction T
-   locks in a lower value immutable\_ts\_0, then T's start\_ts must be
-   greater than immutable\_ts\_1, so any readers who grabbed
-   immutable\_ts\_1 will still grab locks when trying to read rows
+   the current immutable timestamp is immutableTs\_1 and transaction T
+   locks in a lower value immutableTs\_0, then T's startTs must be
+   greater than immutableTs\_1, so any readers who grabbed
+   immutableTs\_1 will still grab locks when trying to read rows
    written by T.
 
 Cleaning Up Old Values
-----------------------
+======================
 
 Since we are doing away with historical transactions, we can clean up
 old values. We are still allowing long running read transactions, but we
@@ -138,7 +138,7 @@ to hard delete and we may want to force a cleanup sooner and allow these
 long running reads to fail in the name of hard delete.
 
 Cleaning up old nonce values
-----------------------------
+============================
 
 Part of doing cleanup is writing an empty value at a negative timestamp
 for some cell. This works to prevent old read only transactions from
@@ -154,13 +154,13 @@ build indexes with status variables and be able to delete old values
 completely and still support range scans.
 
 Read/Write Conflicts
---------------------
+====================
 
 The transaction protocol has write/write conflicts built into it. If two
 transactions touch the same row, one will be rolled back (as long as the
-table does write/write conflict detection (which is the default)). What
-if a user wanted some way to set up read write locks. This can be built
-into the protocol fairly easily. Currently a table can be set up either
+table does write/write conflict detection (which is the default)).
+Building read-write locks into the protocol is not difficult.
+Currently a table can be set up either
 to ignore all conflicts or to have write/write conflicts. There is a
 third option we can do called read\_write\_conflicts. The semantics we
 want are if your transaction reads a value and a new (different) value
@@ -173,7 +173,7 @@ we are storing back the same value we read (read side of the
 read/write), then we are looking for transactions that committed after
 our start that wrote a different value to this cell. If we are writing a
 new value (write side) then we should roll back if we see any new
-commited rows regardless of if they are different than what was there
+committed rows regardless of if they are different than what was there
 before.
 
 This could be used to implement acl changes for objects that don't
@@ -183,7 +183,7 @@ for each object with a counter in it. Every time there is a security
 change to an object we increment this counter. Every time we do any
 other write operation to this object we read and touch this counter.
 
-The main problem with read/write conflicts if that you can't control the
+The main problem with read/write conflicts is that you can't control the
 fairness of these transactions. If read operations keep coming in and
 are fast then a write operation may keep retrying and get starved and
 never complete.
@@ -195,7 +195,7 @@ are basically checking that the last committer put the value that you
 are storing. This will work the same as a compare and swap check. This
 version is more scalable because you only have to check the most recent
 successful commit and not all commits after your start time. The
-downside if you don't get true read/write exclusion, you basically just
+downside is you don't get true read/write exclusion, you basically just
 get CAS semantics. This isn't a big deal because using a counter is the
 most common way to use this type of exclusion anyway.
 
@@ -240,7 +240,7 @@ Ignoring Writes Committed After Transaction Start
 We need to ensure that writes committed after our startTs are not read.
 If we get back a row from the KV store then we know that the txn that
 wrote it has a startTs less than ours, but it may still be in progress
-or committed. We postfilter on the transaction table. If we find that
+or committed. We post-filter on the transaction table. If we find that
 the locks for this txn are no longer held, but there still isn't a row
 in the transaction table, then we force it to be rolled back. This will
 ensure that when the txn tries to commit then it will fail and have to
@@ -273,7 +273,7 @@ have to make sure this transaction will be failed for sure before we can
 skip past it.
 
 Serializable Isolation
-======================
+----------------------
 
 AtlasDB can be extended to have serializable isolation semantics.
 Basically instead of looking at your write set and detecting writes that
