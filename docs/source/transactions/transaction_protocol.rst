@@ -26,7 +26,7 @@ Write Protocol
 
 2. Now that we have our locks we check for write/write conflicts. If any
    cell has been modified by a transaction that committed after our
-   startTS then we have a write conflict.
+   startTs then we have a write conflict.
 
 3. Write the data to the KV store with TS = startTs.
 
@@ -203,8 +203,12 @@ Proof of Correctness
 ====================
 
 If we want to prove that this protocol works this means that we need to
-show that if a transaction commits before our start timestamp then we
-will read that data.
+show that we will always read the data of the most recent transaction that
+commits before our start timestamp. It suffices to show that:
+
+1. all writes committed before the startTs are read,
+2. no writes committed after the startTs are read, and
+3. no writes that were never committed are read.
 
 Reading All Writes Before Transaction Start
 -------------------------------------------
