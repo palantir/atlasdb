@@ -39,7 +39,7 @@ Write Protocol
 6. Then we atomically do a "putUnlessExists" into the transaction table
    with our commit timestamp.
 
-7. Unlock the locks
+7. Unlock the locks.
 
 Read Protocol
 =============
@@ -120,7 +120,7 @@ impose a small relationship to "time" but we will mitigate it in the
 next paragraph.
 
 What if we have a reader that is still reading but is very old (before
-10 days ago (or so we think)). We solve this case by writing a dummy
+10 days ago (or so we think))? We solve this case by writing a dummy
 value for a Cell we are going to clean up with a negative timestamp and
 then cleaning up old rows from oldest to newest. This means that if you
 are still reading and stumble on a row that has been cleaned that you
@@ -137,7 +137,7 @@ for another day or so. Note this cleanup has implications with respect
 to hard delete and we may want to force a cleanup sooner and allow these
 long running reads to fail in the name of hard delete.
 
-Cleaning up old nonce values
+Cleaning Up Old Nonce Values
 ============================
 
 Part of doing cleanup is writing an empty value at a negative timestamp
@@ -208,19 +208,19 @@ commits before our start timestamp. It suffices to show that:
 
 1. all writes committed before the startTs are read,
 2. no writes committed after the startTs are read, and
-3. no writes that were never committed are read.
+3. no writes that were never committed (i.e. part of failed transactions) are read.
 
-Reading All Writes Before Transaction Start
--------------------------------------------
+Reading All Writes Committed Before Transaction Start
+-----------------------------------------------------
 
 We must ensure writes committed before our start are read. If we look at
-the write protocol then we know that all writes are complete to the KV
-store THEN get a commit timestamp and THEN verify our locks are still
-valid. Then it proceeds to putUnlessExists to the transaction table.
+the write protocol, we ensure that all writes are complete to the KV store
+before obtaining a commit timestamp. We then verify our locks are still valid
+and only then putUnlessExists to the transaction table.
 
-This means that if a commitTs is less than our startTs then the KV store
-will already have these rows written. We require that the underlying KV
-store has durable writes so these rows will be read.
+Thus, rows written by other transactions with commitTs less than our startTs
+must have been written to the KV store. Since we require that the underlying KV
+store has durable writes, these rows will be read.
 
 Lock Timeouts After Validation
 ------------------------------
