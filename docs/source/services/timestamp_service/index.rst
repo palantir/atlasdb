@@ -13,3 +13,4 @@ collaborate to elect a leader via the Paxos algorithm.
    :titlesonly:
 
    overview
+   clusters
