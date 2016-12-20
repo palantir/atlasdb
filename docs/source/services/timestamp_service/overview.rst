@@ -2,15 +2,12 @@
 Overview
 ========
 
-The Timestamp Service
----------------------
-
 The Timestamp Service exposes an API that allows for clients to request fresh timestamps, which are required by the
 AtlasDB transaction protocol. These timestamps are *logical timestamps* (that is, they have no relationship to actual
 wall-clock time), and are returned as signed 64-bit integers.
 
 Guarantees
-----------
+==========
 
 We guarantee that a request for a fresh timestamp will return a strictly greater timestamp than any other timestamp
 that may be observed before the request was initiated. In particular, this does *not* mean that the timestamps clients
@@ -30,7 +27,7 @@ Furthermore, there are also no guarantees that the timestamps issued will be con
 We guarantee the above ordering across system restarts as well.
 
 Contiguous Blocks
------------------
+=================
 
 Users are allowed to make requests for contiguous blocks of timestamps using the getFreshTimestamps endpoint.
 This may be useful if one knows it is the only client and/or wishes to have bespoke complex concurrency semantics.
@@ -41,7 +38,7 @@ timestamps requested for; the onus to check this is on the client. We do guarant
 consist of at least 1 timestamp.
 
 Caching
--------
+=======
 
 To guarantee that timestamps still increase across system restarts, we need to persist some kind of a record of
 what timestamps we've issued to stable storage. However, doing this on each timestamp request is unperformant, as
