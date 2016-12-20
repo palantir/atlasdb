@@ -81,6 +81,6 @@ done by running AtlasDbServiceServer in the atlasdb-service-server project.
 
     AtlasDbServiceServer server src/dist/atlasdb_standalone.yml
 
-This is Dropwizard service that runs all the needed parts and doesn't
+This is a Dropwizard service that runs all the needed parts and doesn't
 force you to use the Java client to get the benefits of AtlasDB. See the
 :ref:`atlasdb-service-api` for more details.
