@@ -4,7 +4,7 @@ Services
 
 AtlasDB relies on three distinct services. They are the Key Value Service, the Lock Service, and the Timestamp Service.
 Each of the services is described in detail below.  The intention of this documentation is to provide a high level overview of the architecture of
-each of the services as well as the guarentees they uphold.
+each of the services as well as the guarantees they uphold.
 
 .. toctree::
    :maxdepth: 2
@@ -12,3 +12,4 @@ each of the services as well as the guarentees they uphold.
 
    key_value_services/index
    lock_service/index
+   timestamp_service/index
