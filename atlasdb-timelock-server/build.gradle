@@ -18,6 +18,8 @@ check.dependsOn integTest
 dependencies {
     compile project(":timestamp-api")
     compile project(":lock-impl")
+    compile project(":leader-election-impl")
+    compile project(":atlasdb-config")
 
     compile group: 'com.github.rholder', name: 'guava-retrying'
     compile group: 'com.palantir.remoting1', name: 'jersey-servers'
