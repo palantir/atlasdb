@@ -74,7 +74,12 @@ public class StreamStoreDefinitionBuilder {
 
         Preconditions.checkArgument(valueType.getJavaClassName().equals("long"), "Stream ids must be a long");
 
-        return new StreamStoreDefinition(tablesToCreate, shortName, longName, valueType, inMemoryThreshold,
+        return new StreamStoreDefinition(
+                tablesToCreate,
+                shortName,
+                longName,
+                valueType,
+                inMemoryThreshold,
                 compressStream);
     }
 

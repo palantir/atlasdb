@@ -170,6 +170,8 @@ public class StreamStoreRenderer {
                         line();
                         storeStreamsWithCompression();
                         line();
+                        compressAndStoreStream();
+                        line();
                         loadStreamWithCompression();
                         line();
                         loadStreamsWithCompression();
@@ -541,25 +543,10 @@ public class StreamStoreRenderer {
                 line("@Override");
                 line("public Pair<", StreamId, ", Sha256Hash> storeStream(InputStream stream) {"); {
                     line("long id = storeEmptyMetadata();");
-                    line();
-                    line("MessageDigest digest = Sha256Hash.getMessageDigest();");
-                    line("InputStream compressedStream;");
-                    line("try {"); {
-                        line("// Hash the data before compression");
-                        line("compressedStream = new LZ4CompressingInputStream(new DigestInputStream(stream, digest));");
-                    } line("} catch (IOException e) {"); {
-                        line("throw new RuntimeException(e);");
-                    } line("}");
-                    line("StreamMetadata metadata = storeBlocksAndGetFinalMetadata(null, id, compressedStream, false);");
-                    line();
-                    line("ByteString hashByteString = ByteString.copyFrom(digest.digest());");
-                    line("StreamMetadata correctedMetadata = StreamMetadata.newBuilder(metadata)");
-                    line("        .setHash(hashByteString)");
-                    line("        .build();");
-                    line("// Store the corrected metadata with the correct hash");
-                    line("storeMetadataAndIndex(id, correctedMetadata);");
-                    line();
-                    line("return Pair.create(id, new Sha256Hash(correctedMetadata.getHash().toByteArray()));");
+                    line("StreamMetadata metadata = compressAndStoreStream(stream, id, null);");
+                    line("// Store the corrected metadata with the hash based on uncompressed data");
+                    line("storeMetadataAndIndex(id, metadata);");
+                    line("return Pair.create(id, new Sha256Hash(metadata.getHash().toByteArray()));");
                 } line("}");
             }
 
@@ -574,19 +561,7 @@ public class StreamStoreRenderer {
                     line("putMetadataAndHashIndexTask(t, idsToEmptyMetadata);");
                     line();
                     line("Map<", StreamId, ", StreamMetadata> idsToMetadata = Maps.transformEntries(streams, (id, stream) -> {"); {
-                        line("MessageDigest digest = Sha256Hash.getMessageDigest();");
-                        line("InputStream compressedStream;");
-                        line("try {"); {
-                            line("// Hash the data before compression");
-                            line("compressedStream = new LZ4CompressingInputStream(new DigestInputStream(stream, digest));");
-                        } line("} catch (IOException e) {"); {
-                            line("throw new RuntimeException(e);");
-                        } line("}");
-                        line("StreamMetadata metadata = storeBlocksAndGetFinalMetadata(t, id, compressedStream, false);");
-                        line("ByteString hashByteString = ByteString.copyFrom(digest.digest());");
-                        line("return StreamMetadata.newBuilder(metadata)");
-                        line("        .setHash(hashByteString)");
-                        line("        .build();");
+                        line("return compressAndStoreStream(stream, id, t);");
                     } line("});");
                     line("// Store the corrected metadata with the correct hashes");
                     line("putMetadataAndHashIndexTask(t, idsToMetadata);");
@@ -594,6 +569,25 @@ public class StreamStoreRenderer {
                     line("Map<", StreamId, ", Sha256Hash> hashes = Maps.transformValues(idsToMetadata,");
                     line("        metadata -> new Sha256Hash(metadata.getHash().toByteArray()));");
                     line("return hashes;");
+                } line("}");
+            }
+
+            private void compressAndStoreStream() {
+                line("private StreamMetadata compressAndStoreStream(InputStream stream, ", StreamId, " id, Transaction transaction) {"); {
+                    line("MessageDigest digest = Sha256Hash.getMessageDigest();");
+                    line("InputStream compressedStream;");
+                    line("try {"); {
+                        line("// Hash the data before compressing it");
+                        line("compressedStream = new LZ4CompressingInputStream(new DigestInputStream(stream, digest));");
+                    } line ("catch (IOException e) {"); {
+                        line("throw new RuntimeException(e);");
+                    } line("}");
+                    line("StreamMetadata metadata = storeBlocksAndGetFinalMetadata(transaction, id, compressedStream, false);");
+                    line();
+                    line("ByteString hashByteString = ByteString.copyFrom(digest.digest());");
+                    line("return StreamMetadata.newBuilder(metadata)");
+                    line("        .setHash(hashByteString)");
+                    line("        .build();");
                 } line("}");
             }
 

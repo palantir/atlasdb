@@ -104,7 +104,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         }
     }
 
-    private InputStream makeStream(ID id, StreamMetadata metadata) {
+    protected InputStream makeStream(ID id, StreamMetadata metadata) {
         long totalBlocks = getNumberOfBlocksFromMetadata(metadata);
         int blocksInMemory = getNumberOfBlocksThatFitInMemory();
 
@@ -139,7 +139,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     }
 
     @Override
-    public File loadStreamAsFile(Transaction transaction, ID id) {
+    public final File loadStreamAsFile(Transaction transaction, ID id) {
         StreamMetadata metadata = getMetadata(transaction, id);
         checkStreamStored(id, metadata);
         return loadToNewTempFile(transaction, id, metadata);
@@ -156,7 +156,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         }
     }
 
-    protected void checkStreamStored(ID id, StreamMetadata metadata) {
+    private void checkStreamStored(ID id, StreamMetadata metadata) {
         if (metadata == null) {
             log.error("Error loading stream {} because it was never stored.", id);
             throw new IllegalArgumentException("Unable to load stream " + id + " because it was never stored.");
@@ -183,6 +183,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         }
     }
 
+    // This method is overridden in generated code. Changes to this method may have unintended consequences.
     protected void tryWriteStreamToFile(Transaction transaction, ID id, StreamMetadata metadata, FileOutputStream fos)
             throws IOException {
         long numBlocks = getNumberOfBlocksFromMetadata(metadata);
@@ -198,7 +199,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
 
     protected abstract Map<ID, StreamMetadata> getMetadata(Transaction tx, Set<ID> streamIds);
 
-    protected StreamMetadata getMetadata(Transaction transaction, ID id) {
+    private StreamMetadata getMetadata(Transaction transaction, ID id) {
         return Iterables.getOnlyElement(getMetadata(transaction, Sets.newHashSet(id)).entrySet()).getValue();
     }
 }
