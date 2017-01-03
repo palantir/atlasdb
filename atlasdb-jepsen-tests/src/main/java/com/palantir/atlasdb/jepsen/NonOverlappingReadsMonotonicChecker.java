@@ -28,7 +28,6 @@ import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.EventVisitor;
 import com.palantir.atlasdb.jepsen.events.FailEvent;
 import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
-import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 
@@ -52,10 +51,6 @@ public class NonOverlappingReadsMonotonicChecker implements Checker {
                 (first, second) -> Long.compare(first.time(), second.time()));
 
         private final List<Event> errors = new ArrayList<>();
-
-        @Override
-        public void visit(InfoEvent event) {
-        }
 
         @Override
         public void visit(InvokeEvent event) {

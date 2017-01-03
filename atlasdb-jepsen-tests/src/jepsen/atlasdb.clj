@@ -11,7 +11,7 @@
             [knossos.history :as history]
             [jepsen.tests :as tests])
     ;; We can import any Java objects, since Clojure runs on the JVM
-    (:import com.palantir.atlasdb.jepsen.JepsenHistoryChecker)
+    (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
     (:import com.palantir.atlasdb.http.TimestampClient))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -85,12 +85,12 @@
     (teardown! [_ test])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; How to check the validity of a run of the Jepsen test: we hand off to JepsenHistoryChecker
+;; How to check the validity of a run of the Jepsen test: we hand off to a JepsenHistoryChecker
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def checker
   (reify checker/Checker
     (check [this test model history opts]
-      (.checkClojureHistory (JepsenHistoryChecker/createWithStandardCheckers) history))))
+      (.checkClojureHistory (JepsenHistoryCheckers/createWithTimestampCheckers) history))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Defining the Jepsen test
@@ -102,12 +102,12 @@
     :client (create-client nil)
     :nemesis (nemesis/partition-random-halves)
     :generator (->> read-operation
-                    (gen/stagger 0.1)
+                    (gen/stagger 0.05)
                     (gen/nemesis
                     (gen/seq (cycle [(gen/sleep 5)
                                      {:type :info, :f :start}
-                                     (gen/sleep 20)
+                                     (gen/sleep 85)
                                      {:type :info, :f :stop}])))
-                    (gen/time-limit 300))
+                    (gen/time-limit 360))
     :db (create-server)
     :checker checker))

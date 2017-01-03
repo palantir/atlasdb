@@ -97,10 +97,8 @@ public class MonotonicCheckerTest {
                 .value(3L)
                 .build();
 
-        CheckerResult result = runMonotonicChecker(event1, event2, event3, event4);
-
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        CheckerTestUtils.assertNoErrors(MonotonicChecker::new,
+                event1, event2, event3, event4);
     }
 
     private static CheckerResult runMonotonicChecker(Event... events) {

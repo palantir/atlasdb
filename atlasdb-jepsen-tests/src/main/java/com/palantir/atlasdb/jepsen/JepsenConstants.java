@@ -13,22 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.jepsen.events;
+package com.palantir.atlasdb.jepsen;
 
-public interface EventVisitor {
-    default void visit(InfoEvent event) {
-        // Do nothing
-    }
+public final class JepsenConstants {
+    public static final String NEMESIS_PROCESS = "nemesis";
 
-    default void visit(InvokeEvent event) {
-        // Do nothing
-    }
+    public static final String START_FUNCTION = "start";
+    public static final String STOP_FUNCTION = "stop";
 
-    default void visit(OkEvent event) {
-        // Do nothing
-    }
-
-    default void visit(FailEvent event) {
-        // Do nothing
+    private JepsenConstants() {
+        // utility class
     }
 }
