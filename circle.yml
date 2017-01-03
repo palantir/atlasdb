@@ -8,7 +8,7 @@ machine:
     version:
       oraclejdk8
   environment:
-    _JAVA_OPTIONS: "-Xmx512M"
+    _JAVA_OPTIONS: "-Xmx512M -XX:+PrintGCTimeStamps"
     TERM: dumb
   services:
     - docker
