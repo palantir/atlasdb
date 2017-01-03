@@ -52,6 +52,7 @@ import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 import io.atomix.catalyst.transport.Address;
+import io.dropwizard.setup.Environment;
 
 public class PaxosServerImplementation implements ServerImplementation {
     private Optional<SSLSocketFactory> sslSocketFactory = Optional.absent();
@@ -61,10 +62,16 @@ public class PaxosServerImplementation implements ServerImplementation {
 
     private LeaderElectionService leaderElectionService;
 
+    private final Environment environment;
+
+    public PaxosServerImplementation(Environment environment) {
+        this.environment = environment;
+    }
+
     @Override
     public void onStart(TimeLockServerConfiguration configuration) {
-        PaxosLearner ourLearner = PaxosLearnerImpl.newLearner("paxos");
-        PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor("paxossss");
+        PaxosLearner ourLearner = PaxosLearnerImpl.newLearner("var/data/leader/learner");
+        PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor("var/data/leader/acceptor");
 
         if (configuration.atomix().security().isPresent()) {
             sslSocketFactory = Optional.of(SslSocketFactories.createSslSocketFactory(
@@ -128,6 +135,7 @@ public class PaxosServerImplementation implements ServerImplementation {
                 5000L, // Wait before proposing
                 2000L); // Leader ping response wait
         leaderElectionService = leader;
+        environment.jersey().register(leaderElectionService);
     }
 
     @Override
@@ -143,7 +151,7 @@ public class PaxosServerImplementation implements ServerImplementation {
     @Override
     public TimeLockServices createInvalidatingTimeLockServices(String client) {
         // Establish a group of Paxos coordinators for THIS CLIENT that achieve consensus
-        PaxosLearner ourLearner = PaxosLearnerImpl.newLearner("paxos/timestamp/" + client + "/learner");
+        PaxosLearner ourLearner = PaxosLearnerImpl.newLearner("var/data/" + client + "/learner");
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
                 .setNameFormat("atlas-consensus-%d")
@@ -175,6 +183,7 @@ public class PaxosServerImplementation implements ServerImplementation {
                 LockServiceImpl::create,
                 leaderElectionService);
 
+        environment.jersey().register(proposer);
         return TimeLockServices.create(timestampService, lockService);
     }
 }

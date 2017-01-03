@@ -36,7 +36,7 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
 
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
-        ServerImplementation serverImpl = new PaxosServerImplementation();
+        ServerImplementation serverImpl = new PaxosServerImplementation(environment);
         try {
             serverImpl.onStart(configuration);
             run(configuration, environment, serverImpl);

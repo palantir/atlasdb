@@ -156,8 +156,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
 
     @Override
     public synchronized void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError {
-        Preconditions.checkArgument(limit >= agreedState.getBound());
-        long newSeq = agreedState.getSeqId() + 1;
+        Preconditions.checkArgument(agreedState == null || limit >= agreedState.getBound());
+        long newSeq = agreedState == null ? 0 : agreedState.getSeqId() + 1;
         while (true) {
             try {
                 proposer.propose(newSeq, PtBytes.toBytes(limit));
