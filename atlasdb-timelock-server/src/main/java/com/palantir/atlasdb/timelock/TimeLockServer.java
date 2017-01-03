@@ -159,7 +159,8 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
 
         SslConfiguration security = optionalSecurity.get();
         transport.withSsl()
-                .withTrustStorePath(security.trustStorePath().toString());
+                .withTrustStorePath(security.trustStorePath().toString())
+                .withTrustStorePassword("");
 
         if (security.keyStorePath().isPresent()) {
             transport.withKeyStorePath(security.keyStorePath().get().toString());
