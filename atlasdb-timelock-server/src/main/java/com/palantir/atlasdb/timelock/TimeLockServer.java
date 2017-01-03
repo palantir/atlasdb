@@ -23,7 +23,7 @@ import org.eclipse.jetty.util.component.LifeCycle;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
-import com.palantir.atlasdb.timelock.jsimpledb.JSimpleDbServerImplementation;
+import com.palantir.atlasdb.timelock.paxos.PaxosServerImplementation;
 import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
 
 import io.dropwizard.Application;
@@ -36,7 +36,7 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
 
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
-        ServerImplementation serverImpl = new JSimpleDbServerImplementation();
+        ServerImplementation serverImpl = new PaxosServerImplementation();
         try {
             serverImpl.onStart(configuration);
             run(configuration, environment, serverImpl);

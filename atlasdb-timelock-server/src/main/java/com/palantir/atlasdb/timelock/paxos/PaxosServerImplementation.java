@@ -54,12 +54,12 @@ import com.palantir.timestamp.TimestampService;
 import io.atomix.catalyst.transport.Address;
 
 public class PaxosServerImplementation implements ServerImplementation {
-    Optional<SSLSocketFactory> sslSocketFactory = Optional.absent();
+    private Optional<SSLSocketFactory> sslSocketFactory = Optional.absent();
 
-    List<PaxosLearner> learners;
-    List<PaxosAcceptor> acceptors;
+    private List<PaxosLearner> learners;
+    private List<PaxosAcceptor> acceptors;
 
-    LeaderElectionService leaderElectionService;
+    private LeaderElectionService leaderElectionService;
 
     @Override
     public void onStart(TimeLockServerConfiguration configuration) {
@@ -78,21 +78,26 @@ public class PaxosServerImplementation implements ServerImplementation {
         learners = configuration.cluster()
                 .servers()
                 .stream()
+                .filter(address -> !address.equals(configuration.cluster().localServer()))
                 .map(address -> address.toString() + "/leader")
                 .map(address -> AtlasDbHttpClients.createProxy(
                         sslSocketFactory,
                         address,
                         PaxosLearner.class))
                 .collect(Collectors.toList());
+        learners.add(ourLearner);
+
         acceptors = configuration.cluster()
                 .servers()
                 .stream()
+                .filter(address -> !address.equals(configuration.cluster().localServer()))
                 .map(address -> address.toString() + "/leader")
                 .map(address -> AtlasDbHttpClients.createProxy(
                         sslSocketFactory,
                         address,
                         PaxosAcceptor.class))
                 .collect(Collectors.toList());
+        acceptors.add(ourAcceptor);
 
         Map<PingableLeader, HostAndPort> otherLeaders = Leaders.generatePingables(
                 Sets.difference(configuration.cluster().servers().stream().map(Address::toString).collect(Collectors.toSet()),
