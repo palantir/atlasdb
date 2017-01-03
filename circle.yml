@@ -56,6 +56,8 @@ test:
         parallel: true
     - rsync -uav "build/reports/profile" "$CIRCLE_ARTIFACTS/":
         parallel: true
+    - find . -type f -regex ".*hprof" -exec cp {} $CIRCLE_ARTIFACTS/ \;:
+        parallel: true
 
 deployment:
   publish-docs:
