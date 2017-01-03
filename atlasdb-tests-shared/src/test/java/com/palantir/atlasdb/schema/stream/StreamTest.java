@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
+import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertNotNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.fail;
-
-import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -170,12 +169,12 @@ public class StreamTest extends AtlasDbTestCase {
 
     @Test
     public void testStoreByteStreamExactlyAtInMemoryThreshold() throws IOException {
-        storeAndCheckByteStreams(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 4);
+        storeAndCheckByteStreams(defaultStore, getIncompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 4));
     }
 
     @Test
     public void testStoreByteStreamJustAboveInMemoryThreshold() throws IOException {
-        storeAndCheckByteStreams(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 4 + 1);
+        storeAndCheckByteStreams(defaultStore, getIncompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 4 + 1));
     }
 
     @Test
@@ -233,7 +232,7 @@ public class StreamTest extends AtlasDbTestCase {
         return id;
     }
 
-    private long storeStream(byte[] bytesToStore, byte[] reference) {
+    private long storeStream(PersistentStreamStore store, byte[] bytesToStore, byte[] reference) {
         final long id = timestampService.getFreshTimestamp();
         txManager.runTaskWithRetry(t -> {
             store.storeStreams(t, ImmutableMap.of(id, new ByteArrayInputStream(bytesToStore)));
@@ -490,18 +489,22 @@ public class StreamTest extends AtlasDbTestCase {
     @Test
     public void testStreamCompression() throws IOException {
         int inputBlocks = 4;
+        int expectedBlocksUsed = 1;
         byte[] input = getCompressibleBytes(inputBlocks * StreamTestWithHashStreamStore.BLOCK_SIZE_IN_BYTES);
 
         long id = storeStream(compressedStore, input, PtBytes.toBytes("ref"));
-        StreamMetadata metadata = txManager.runTaskReadOnly(t -> {
+        long numBlocksUsed = getStreamBlockSize(getStreamMetadata(id));
+
+        assertEquals(expectedBlocksUsed, numBlocksUsed);
+    }
+
+    private StreamMetadata getStreamMetadata(long id) {
+        return txManager.runTaskReadOnly(t -> {
             StreamTestWithHashStreamMetadataTable table = StreamTestTableFactory.of()
                     .getStreamTestWithHashStreamMetadataTable(t);
             StreamTestWithHashStreamMetadataRow row = StreamTestWithHashStreamMetadataRow.of(id);
             return table.getRow(row).get().getMetadata();
         });
-        long numBlocksUsed = getStreamBlockSize(metadata);
-
-        assertTrue(numBlocksUsed < inputBlocks);
     }
 
     private long getStreamBlockSize(StreamMetadata metadata) {
