@@ -8,7 +8,7 @@ machine:
     version:
       oraclejdk8
   environment:
-    _JAVA_OPTIONS: "-Xmx512M -XX:+HeapDumpOnOutOfMemoryError"
+    _JAVA_OPTIONS: "-Xmx768M -XX:+HeapDumpOnOutOfMemoryError"
     TERM: dumb
   services:
     - docker
