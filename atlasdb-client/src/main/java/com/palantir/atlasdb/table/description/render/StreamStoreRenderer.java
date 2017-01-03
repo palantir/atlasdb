@@ -579,7 +579,7 @@ public class StreamStoreRenderer {
                     line("try {"); {
                         line("// Hash the data before compressing it");
                         line("compressedStream = new LZ4CompressingInputStream(new DigestInputStream(stream, digest));");
-                    } line ("catch (IOException e) {"); {
+                    } line ("} catch (IOException e) {"); {
                         line("throw new RuntimeException(e);");
                     } line("}");
                     line("StreamMetadata metadata = storeBlocksAndGetFinalMetadata(transaction, id, compressedStream, false);");
