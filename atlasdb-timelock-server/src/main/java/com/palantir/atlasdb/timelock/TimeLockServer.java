@@ -35,6 +35,7 @@ import com.palantir.atlasdb.timelock.atomix.LeaderAndTerm;
 import com.palantir.atlasdb.timelock.config.AtomixSslConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.remoting1.config.ssl.SslConfiguration;
 import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
 
 import io.atomix.AtomixReplica;
@@ -158,18 +159,20 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
         }
 
         AtomixSslConfiguration security = optionalSecurity.get();
+        SslConfiguration baseSslConfiguration = security.sslConfiguration();
         transport.withSsl()
-                .withTrustStorePath(security.sslConfiguration().trustStorePath().toString())
+                .withTrustStorePath(baseSslConfiguration.trustStorePath().toString())
                 .withTrustStorePassword(security.trustStorePassword());
 
-        if (security.sslConfiguration().keyStorePath().isPresent()) {
-            transport.withKeyStorePath(security.sslConfiguration().keyStorePath().get().toString());
-        }
-
-        if (security.sslConfiguration().keyStorePassword().isPresent()) {
-            transport.withKeyStorePassword(security.sslConfiguration().keyStorePassword().get());
+        if (isKeystoreSpecified(baseSslConfiguration)) {
+            transport.withKeyStorePath(baseSslConfiguration.keyStorePath().get().toString());
+            transport.withKeyStorePassword(baseSslConfiguration.keyStorePassword().get());
         }
 
         return transport.build();
+    }
+
+    private static boolean isKeystoreSpecified(SslConfiguration baseSslConfiguration) {
+        return baseSslConfiguration.keyStorePath().isPresent() && baseSslConfiguration.keyStorePassword().isPresent();
     }
 }
