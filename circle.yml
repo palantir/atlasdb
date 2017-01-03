@@ -8,7 +8,7 @@ machine:
     version:
       oraclejdk8
   environment:
-    _JAVA_OPTIONS: "-Xmx512M -XX:+PrintGCTimeStamps"
+    _JAVA_OPTIONS: "-Xmx512M -XX:+HeapDumpOnOutOfMemoryError"
     TERM: dumb
   services:
     - docker
