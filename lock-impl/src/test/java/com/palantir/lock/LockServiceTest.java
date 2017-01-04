@@ -17,6 +17,7 @@ package com.palantir.lock;
 
 import java.io.File;
 import java.util.List;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
@@ -35,6 +36,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.InterruptibleFuture;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
@@ -69,8 +71,17 @@ public abstract class LockServiceTest {
         barrier = new CyclicBarrier(2);
     }
 
+    private Set<String> set;
+
     /** Tests that RemoteLockService api (that internal forwards to LockService api) passes a sanity check. */
     @Test public void testRemoteLockServiceApi() throws InterruptedException {
+        /** Cause an OOM! */
+        set = Sets.newHashSet();
+        for (int i = 0; i < Integer.MAX_VALUE; i++) {
+            set.add(String.valueOf(i)); // should oom
+        }
+        System.out.println(set);
+
         LockRequest request = LockRequest.builder(ImmutableSortedMap.of(
                 lock1, LockMode.READ, lock2, LockMode.WRITE))
                 .withLockedInVersionId(10).doNotBlock().build();
