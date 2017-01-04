@@ -48,11 +48,15 @@ public final class LockStore {
     }
 
     public void releaseLock(LockEntry lockEntry) {
-        if (!allLockEntries().contains(lockEntry)) {
-            return;
+        Set<LockEntry> lockEntries = allLockEntries();
+        if (!lockEntries.contains(lockEntry)) {
+            String msg = "Failed to release the provided lock (%s), because it is not being held. "
+                    + "It is possible that this lock was cleaned up."
+                    + "Currently held locks: %s";
+            String formatted = String.format(msg, lockEntry, lockEntries);
+            throw new IllegalArgumentException(formatted);
         }
 
-        // TODO this seems to delete *all* lock entries, hence the line above. We should throw an exception if we don't have this lock out.
         keyValueService.delete(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.deletionMap());
     }
 

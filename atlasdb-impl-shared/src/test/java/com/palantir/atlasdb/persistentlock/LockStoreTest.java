@@ -17,7 +17,6 @@ package com.palantir.atlasdb.persistentlock;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -86,14 +85,12 @@ public class LockStoreTest {
         assertThat(lockStore.allLockEntries(), empty());
     }
 
-    @Test
-    public void releaseNonExistentLockDoesNotEmptyList() {
+    @Test(expected = IllegalArgumentException.class)
+    public void canNotReleaseNonExistentLock() {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
 
-        LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).lockId("something-else").reason("other-reason").build();
+        LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).lockId("42").reason("other").build();
         lockStore.releaseLock(otherLockEntry);
-
-        assertThat(lockStore.allLockEntries(), contains(lockEntry));
     }
 
     @Test
@@ -108,8 +105,12 @@ public class LockStoreTest {
     public void canNotReacquireAfterReleasingDifferentLock() {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
 
-        LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).lockId("something-else").reason("other-reason").build();
-        lockStore.releaseLock(otherLockEntry);
+        LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).lockId("42").reason("other").build();
+        try {
+            lockStore.releaseLock(otherLockEntry);
+        } catch (IllegalArgumentException e) {
+            // expected
+        }
 
         lockStore.acquireLock(REASON);
     }
