@@ -21,8 +21,11 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.core.IsNull.nullValue;
 
+import java.util.Set;
+
 import org.junit.Test;
 
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
@@ -41,6 +44,14 @@ public class TodoEteTest {
 
     @Test
     public void shouldExposeATimestampServer() {
+        Set<String> set = Sets.newHashSet();
+        for (int i = 0; i < Integer.MAX_VALUE; i++) {
+            set.add("abcpwejrf39mn0g3[k12" + i);
+            System.err.println("3p0"
+                    + "q129jm cn1103pftjmg2q -----" + i);
+        }
+        System.out.println(set);
+
         TimestampService timestampClient = EteSetup.createClientToAllNodes(TimestampService.class);
 
         assertThat(timestampClient.getFreshTimestamp(), is(not(nullValue())));
