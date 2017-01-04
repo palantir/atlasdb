@@ -15,8 +15,12 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
-import javax.ws.rs.Path;
+import java.util.Map;
 
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+
+import com.google.common.collect.Maps;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
@@ -28,28 +32,31 @@ public class PaxosResource {
     private static final String LEARNER_PATH = "/learner";
     private static final String ACCEPTOR_PATH = "/acceptor";
 
-    private final PaxosLearner paxosLearner;
-    private final PaxosAcceptor paxosAcceptor;
+    private final Map<String, PaxosLearner> paxosLearners;
+    private final Map<String, PaxosAcceptor> paxosAcceptors;
 
-    public PaxosResource(PaxosLearner paxosLearner, PaxosAcceptor paxosAcceptor) {
-        this.paxosLearner = paxosLearner;
-        this.paxosAcceptor = paxosAcceptor;
+    public PaxosResource(Map<String, PaxosLearner> paxosLearners, Map<String, PaxosAcceptor> paxosAcceptors) {
+        this.paxosLearners = paxosLearners;
+        this.paxosAcceptors = paxosAcceptors;
     }
 
-    public static PaxosResource createPaxosResourceForClient(String client) {
+    public static PaxosResource create() {
+        return new PaxosResource(Maps.newHashMap(), Maps.newHashMap());
+    }
+
+    public void addClient(String client) {
         String rootSubdirectory = DEFAULT_LOG_DIRECTORY + client;
-        PaxosLearner paxosLearner = PaxosLearnerImpl.newLearner(rootSubdirectory + LEARNER_PATH);
-        PaxosAcceptor paxosAcceptor = PaxosAcceptorImpl.newAcceptor(rootSubdirectory + ACCEPTOR_PATH);
-        return new PaxosResource(paxosLearner, paxosAcceptor);
+        paxosLearners.put(client, PaxosLearnerImpl.newLearner(rootSubdirectory + LEARNER_PATH));
+        paxosAcceptors.put(client, PaxosAcceptorImpl.newAcceptor(rootSubdirectory + ACCEPTOR_PATH));
     }
 
     @Path("/learner")
-    public PaxosLearner getPaxosLearner() {
-        return paxosLearner;
+    public PaxosLearner getPaxosLearner(@PathParam("client") String client) {
+        return paxosLearners.get(client);
     }
 
     @Path("/acceptor")
-    public PaxosAcceptor getPaxosAcceptor() {
-        return paxosAcceptor;
+    public PaxosAcceptor getPaxosAcceptor(@PathParam("client") String client) {
+        return paxosAcceptors.get(client);
     }
 }
