@@ -65,6 +65,10 @@ develop
          - Enable garbage collection logging for CircleCI builds.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1398>`__)
 
+    *    - |improved|
+         - Increase minimum Cassandra pool size to better handle bursts in requests.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
