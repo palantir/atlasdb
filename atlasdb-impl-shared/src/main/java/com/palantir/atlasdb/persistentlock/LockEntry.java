@@ -21,6 +21,9 @@ import java.util.Map;
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 
 @Value.Immutable
@@ -32,6 +35,11 @@ public abstract class LockEntry {
 
     public Map<Cell, byte[]> insertionMap() {
         return ImmutableMap.of(makeCell(REASON_FOR_LOCK_COLUMN), asUtf8Bytes(reason()));
+    }
+
+    public Multimap<Cell, Long> deletionMap() {
+        Long timestamp = AtlasDbConstants.TRANSACTION_TS;
+        return ImmutableMultimap.of(makeCell(REASON_FOR_LOCK_COLUMN), timestamp);
     }
 
     private Cell makeCell(String columnName) {

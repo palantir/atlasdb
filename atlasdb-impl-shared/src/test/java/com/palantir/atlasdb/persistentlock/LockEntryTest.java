@@ -17,6 +17,8 @@ package com.palantir.atlasdb.persistentlock;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -26,6 +28,9 @@ import java.util.stream.Collectors;
 
 import org.junit.Test;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 
 public class LockEntryTest {
@@ -33,14 +38,27 @@ public class LockEntryTest {
     public void insertionMapContainsReason() {
         LockEntry lockEntry = ImmutableLockEntry.builder().lockId(1L).reason("test").build();
 
-        Map<Cell, byte[]> cellMap = lockEntry.insertionMap();
+        Map<Cell, byte[]> insertionMap = lockEntry.insertionMap();
 
-        Set<String> reasonsInMap = cellMap.entrySet().stream()
-                .filter(entry -> Arrays.equals(entry.getKey().getColumnName(), "reasonForLock".getBytes(StandardCharsets.UTF_8)))
+        Set<String> reasonsInMap = insertionMap.entrySet().stream()
+                .filter(entry -> Arrays.equals(
+                        entry.getKey().getColumnName(),
+                        "reasonForLock".getBytes(StandardCharsets.UTF_8)))
                 .map(entry -> new String(entry.getValue(), StandardCharsets.UTF_8))
                 .collect(Collectors.toSet());
 
         assertThat(reasonsInMap, contains("test"));
+    }
+
+    @Test
+    public void deletionMapContainsReason() {
+        LockEntry lockEntry = ImmutableLockEntry.builder().lockId(1L).reason("test").build();
+
+        Multimap<Cell, Long> deletionMap = lockEntry.deletionMap();
+        Map.Entry<Cell, Long> entry = Iterables.getOnlyElement(deletionMap.entries());
+
+        assertArrayEquals("reasonForLock".getBytes(StandardCharsets.UTF_8), entry.getKey().getColumnName());
+        assertEquals(AtlasDbConstants.TRANSACTION_TS, (long) entry.getValue());
     }
 
 }

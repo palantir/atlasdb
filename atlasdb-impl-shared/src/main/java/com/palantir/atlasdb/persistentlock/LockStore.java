@@ -37,4 +37,8 @@ public final class LockStore {
 
         return lockEntry;
     }
+
+    public void releaseLock(LockEntry lockEntry) {
+        keyValueService.delete(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.deletionMap());
+    }
 }

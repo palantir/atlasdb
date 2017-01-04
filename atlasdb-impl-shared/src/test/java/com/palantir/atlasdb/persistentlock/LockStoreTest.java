@@ -67,4 +67,12 @@ public class LockStoreTest {
 
         lockStore.acquireLock(REASON);
     }
+
+    @Test
+    public void canReleaseLockAndReacquire() {
+        LockEntry lockEntry = lockStore.acquireLock(REASON);
+        lockStore.releaseLock(lockEntry);
+
+        lockStore.acquireLock(REASON);
+    }
 }
