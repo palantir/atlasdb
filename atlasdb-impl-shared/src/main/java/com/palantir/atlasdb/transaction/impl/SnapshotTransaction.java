@@ -129,7 +129,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.AssertUtils;
-import com.palantir.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -193,10 +193,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final TransactionReadSentinelBehavior readSentinelBehavior;
     private volatile long commitTsForScrubbing = TransactionConstants.FAILED_COMMIT_TS;
     protected final boolean allowHiddenTableAccess;
-    protected final Timer.Context transactionTimerContext = getTimer("transactionMillis").time();
     protected final Stopwatch transactionTimer = Stopwatch.createStarted();
     protected final TimestampCache timestampValidationReadCache;
     private final MetricRegistry metricRegistry = AtlasDbMetrics.getOrInitializeDefaultRegistry();
+    protected final Timer.Context transactionTimerContext = getTimer("transactionMillis").time();
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
