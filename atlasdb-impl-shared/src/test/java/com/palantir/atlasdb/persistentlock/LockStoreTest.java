@@ -65,6 +65,12 @@ public class LockStoreTest {
     }
 
     @Test(expected = KeyAlreadyExistsException.class)
+    public void canNotAcquireLockTwiceForDifferentReasons() {
+        lockStore.acquireLock(REASON);
+        lockStore.acquireLock("other-reason");
+    }
+
+    @Test(expected = KeyAlreadyExistsException.class)
     public void canNotAcquireLockThatWasTakenOutByAnotherStore() {
         LockStore otherLockStore = LockStore.create(kvs);
         otherLockStore.acquireLock("grabbed by other store");
