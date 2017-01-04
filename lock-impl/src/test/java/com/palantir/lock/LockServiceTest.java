@@ -79,6 +79,7 @@ public abstract class LockServiceTest {
         set = Sets.newHashSet();
         for (int i = 0; i < Integer.MAX_VALUE; i++) {
             set.add(String.valueOf(i)); // should oom
+            System.out.println(i);
         }
         System.out.println(set);
 
