@@ -8,7 +8,7 @@ machine:
     version:
       oraclejdk8
   environment:
-    _JAVA_OPTIONS: "-Xmx512M -XX:+HeapDumpOnOutOfMemoryError"
+    _JAVA_OPTIONS: "-Xmx512M -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
     TERM: dumb
   services:
     - docker
@@ -58,7 +58,7 @@ test:
         parallel: true
     - mkdir -p $CIRCLE_ARTIFACTS/heapdumps:
         parallel: true
-    - find . -type f -regex ".*\.hprof" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;:
+    - find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;:
         parallel: true
 
 deployment:
