@@ -17,6 +17,8 @@ package com.palantir.atlasdb.persistentlock;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Optional;
+import java.util.SortedMap;
 
 import org.immutables.value.Value;
 
@@ -25,6 +27,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 
 @Value.Immutable
 public abstract class LockEntry {
@@ -34,6 +37,18 @@ public abstract class LockEntry {
     public abstract String rowName();
     public abstract String lockId();
     public abstract String reason();
+
+    public static LockEntry fromRowResult(RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
+        String rowName = asString(rowResult.getRowName());
+        String lockId = valueOfColumnInRow(LOCK_ID_COLUMN, rowResult).get();
+        String reason = valueOfColumnInRow(REASON_FOR_LOCK_COLUMN, rowResult).get();
+
+        return ImmutableLockEntry.builder()
+                .rowName(rowName)
+                .lockId(lockId)
+                .reason(reason)
+                .build();
+    }
 
     public Map<Cell, byte[]> insertionMap() {
         return ImmutableMap.of(
@@ -48,13 +63,30 @@ public abstract class LockEntry {
                 makeCell(REASON_FOR_LOCK_COLUMN), timestamp);
     }
 
+    private static Optional<String> valueOfColumnInRow(
+            String columnName,
+            RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
+        byte[] columnNameBytes = asUtf8Bytes(columnName);
+        SortedMap<byte[], com.palantir.atlasdb.keyvalue.api.Value> columns = rowResult.getColumns();
+        if (columns.containsKey(columnNameBytes)) {
+            byte[] contents = columns.get(columnNameBytes).getContents();
+            return Optional.of(asString(contents));
+        } else {
+            return Optional.empty();
+        }
+    }
+
     private Cell makeCell(String columnName) {
-        byte[] rowBytes = String.valueOf(rowName()).getBytes(StandardCharsets.UTF_8);
-        byte[] columnBytes = columnName.getBytes(StandardCharsets.UTF_8);
+        byte[] rowBytes = asUtf8Bytes(rowName());
+        byte[] columnBytes = asUtf8Bytes(columnName);
         return Cell.create(rowBytes, columnBytes);
     }
 
-    private byte[] asUtf8Bytes(String value) {
+    private static byte[] asUtf8Bytes(String value) {
         return value.getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static String asString(byte[] value) {
+        return new String(value, StandardCharsets.UTF_8);
     }
 }

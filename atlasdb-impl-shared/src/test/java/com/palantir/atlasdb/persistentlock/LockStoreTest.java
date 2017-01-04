@@ -15,7 +15,10 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
@@ -51,7 +54,8 @@ public class LockStoreTest {
     @Test
     public void canAcquireLock() {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
-        assertEquals(REASON, lockEntry.reason());
+
+        assertThat(lockStore.allLockEntries(), contains(lockEntry));
     }
 
     @Test(expected = KeyAlreadyExistsException.class)
@@ -69,9 +73,37 @@ public class LockStoreTest {
     }
 
     @Test
+    public void releaseLockRemovesItFromEntryList() {
+        LockEntry lockEntry = lockStore.acquireLock(REASON);
+        lockStore.releaseLock(lockEntry);
+
+        assertThat(lockStore.allLockEntries(), empty());
+    }
+
+    @Test
+    public void releaseNonExistentLockDoesNotEmptyList() {
+        LockEntry lockEntry = lockStore.acquireLock(REASON);
+
+        LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).lockId("something-else").reason("other-reason").build();
+        lockStore.releaseLock(otherLockEntry);
+
+        assertThat(lockStore.allLockEntries(), contains(lockEntry));
+    }
+
+    @Test
     public void canReleaseLockAndReacquire() {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
         lockStore.releaseLock(lockEntry);
+
+        lockStore.acquireLock(REASON);
+    }
+
+    @Test(expected = KeyAlreadyExistsException.class)
+    public void canNotReacquireAfterReleasingDifferentLock() {
+        LockEntry lockEntry = lockStore.acquireLock(REASON);
+
+        LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).lockId("something-else").reason("other-reason").build();
+        lockStore.releaseLock(otherLockEntry);
 
         lockStore.acquireLock(REASON);
     }

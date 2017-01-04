@@ -15,10 +15,16 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.Value;
 
 public final class LockStore {
     private static final String ROW_NAME = "DeletionLock";
@@ -41,12 +47,26 @@ public final class LockStore {
         return lockEntry;
     }
 
+    public void releaseLock(LockEntry lockEntry) {
+        if (!allLockEntries().contains(lockEntry)) {
+            return;
+        }
+
+        // TODO this seems to delete *all* lock entries, hence the line above. We should throw an exception if we don't have this lock out.
+        keyValueService.delete(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.deletionMap());
+    }
+
+    public Set<LockEntry> allLockEntries() {
+        Set<RowResult<Value>> results = ImmutableSet.copyOf(keyValueService.getRange(
+                AtlasDbConstants.PERSISTED_LOCKS_TABLE,
+                RangeRequest.all(),
+                AtlasDbConstants.TRANSACTION_TS + 1));
+
+        return results.stream().map(LockEntry::fromRowResult).collect(Collectors.toSet());
+    }
+
     private LockEntry generateUniqueLockEntry(String reason) {
         UUID uuid = UUID.randomUUID();
         return ImmutableLockEntry.builder().rowName(ROW_NAME).lockId(uuid.toString()).reason(reason).build();
-    }
-
-    public void releaseLock(LockEntry lockEntry) {
-        keyValueService.delete(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.deletionMap());
     }
 }
