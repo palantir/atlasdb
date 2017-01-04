@@ -8,7 +8,7 @@ machine:
     version:
       oraclejdk8
   environment:
-    _JAVA_OPTIONS: "-Xmx512M"
+    _JAVA_OPTIONS: "-Xmx512M -XX:+HeapDumpOnOutOfMemoryError"
     TERM: dumb
   services:
     - docker
@@ -55,6 +55,10 @@ test:
     - find . -type d -regex ".*/build/reports/findbugs" | sed 's#\./\(\(.*\)/build/reports/findbugs\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/findbugs/\2#' | bash:
         parallel: true
     - rsync -uav "build/reports/profile" "$CIRCLE_ARTIFACTS/":
+        parallel: true
+    - mkdir -p $CIRCLE_ARTIFACTS/heapdumps:
+        parallel: true
+    - find . -type f -regex ".*\.hprof" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;:
         parallel: true
 
 deployment:
