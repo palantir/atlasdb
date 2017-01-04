@@ -28,7 +28,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
@@ -51,26 +50,26 @@ public class LockStoreTest {
     }
 
     @Test
-    public void canAcquireLock() {
+    public void canAcquireLock() throws Exception {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
 
         assertThat(lockStore.allLockEntries(), contains(lockEntry));
     }
 
-    @Test(expected = KeyAlreadyExistsException.class)
-    public void canNotAcquireLockTwice() {
+    @Test(expected = PersistentLockIsTakenException.class)
+    public void canNotAcquireLockTwice() throws Exception {
         lockStore.acquireLock(REASON);
         lockStore.acquireLock(REASON);
     }
 
-    @Test(expected = KeyAlreadyExistsException.class)
-    public void canNotAcquireLockTwiceForDifferentReasons() {
+    @Test(expected = PersistentLockIsTakenException.class)
+    public void canNotAcquireLockTwiceForDifferentReasons() throws Exception {
         lockStore.acquireLock(REASON);
         lockStore.acquireLock("other-reason");
     }
 
-    @Test(expected = KeyAlreadyExistsException.class)
-    public void canNotAcquireLockThatWasTakenOutByAnotherStore() {
+    @Test(expected = PersistentLockIsTakenException.class)
+    public void canNotAcquireLockThatWasTakenOutByAnotherStore() throws Exception {
         LockStore otherLockStore = LockStore.create(kvs);
         otherLockStore.acquireLock("grabbed by other store");
 
@@ -78,7 +77,7 @@ public class LockStoreTest {
     }
 
     @Test
-    public void releaseLockRemovesItFromEntryList() {
+    public void releaseLockRemovesItFromEntryList() throws Exception {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
         lockStore.releaseLock(lockEntry);
 
@@ -86,7 +85,7 @@ public class LockStoreTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void canNotReleaseNonExistentLock() {
+    public void canNotReleaseNonExistentLock() throws Exception {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
 
         LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).lockId("42").reason("other").build();
@@ -94,15 +93,15 @@ public class LockStoreTest {
     }
 
     @Test
-    public void canReleaseLockAndReacquire() {
+    public void canReleaseLockAndReacquire() throws Exception {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
         lockStore.releaseLock(lockEntry);
 
         lockStore.acquireLock(REASON);
     }
 
-    @Test(expected = KeyAlreadyExistsException.class)
-    public void canNotReacquireAfterReleasingDifferentLock() {
+    @Test(expected = PersistentLockIsTakenException.class)
+    public void canNotReacquireAfterReleasingDifferentLock() throws Exception {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
 
         LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).lockId("42").reason("other").build();

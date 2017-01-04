@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -39,10 +40,15 @@ public final class LockStore {
         return new LockStore(kvs);
     }
 
-    public LockEntry acquireLock(String reason) {
+    public LockEntry acquireLock(String reason) throws PersistentLockIsTakenException {
         LockEntry lockEntry = generateUniqueLockEntry(reason);
 
-        keyValueService.putUnlessExists(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.insertionMap());
+        try {
+            keyValueService.putUnlessExists(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.insertionMap());
+        } catch (KeyAlreadyExistsException e) {
+            Set<LockEntry> heldLocks = allLockEntries();
+            throw new PersistentLockIsTakenException(lockEntry, heldLocks, e);
+        }
 
         return lockEntry;
     }
