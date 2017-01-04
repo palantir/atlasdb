@@ -66,7 +66,9 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1398>`__)
 
     *    - |improved|
-         - Increase minimum Cassandra pool size to better handle bursts in requests.
+         - Increase default Cassandra pool size from minimum of 20 and maximum of 5x the minimum (100 if minimum not modified)
+           connections to minimum of 30 and maximum of 100 connections. This allows for better handling of bursts of requests
+           that would otherwise require creating many new connections to Cassandra from the clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
