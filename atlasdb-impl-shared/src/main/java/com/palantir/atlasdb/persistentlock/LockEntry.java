@@ -29,21 +29,27 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 @Value.Immutable
 public abstract class LockEntry {
     private static final String REASON_FOR_LOCK_COLUMN = "reasonForLock";
+    private static final String LOCK_ID_COLUMN = "lockId";
 
-    public abstract long lockId();
+    public abstract String rowName();
+    public abstract String lockId();
     public abstract String reason();
 
     public Map<Cell, byte[]> insertionMap() {
-        return ImmutableMap.of(makeCell(REASON_FOR_LOCK_COLUMN), asUtf8Bytes(reason()));
+        return ImmutableMap.of(
+                makeCell(LOCK_ID_COLUMN), asUtf8Bytes(lockId()),
+                makeCell(REASON_FOR_LOCK_COLUMN), asUtf8Bytes(reason()));
     }
 
     public Multimap<Cell, Long> deletionMap() {
         Long timestamp = AtlasDbConstants.TRANSACTION_TS;
-        return ImmutableMultimap.of(makeCell(REASON_FOR_LOCK_COLUMN), timestamp);
+        return ImmutableMultimap.of(
+                makeCell(LOCK_ID_COLUMN), timestamp,
+                makeCell(REASON_FOR_LOCK_COLUMN), timestamp);
     }
 
     private Cell makeCell(String columnName) {
-        byte[] rowBytes = String.valueOf(lockId()).getBytes(StandardCharsets.UTF_8);
+        byte[] rowBytes = String.valueOf(rowName()).getBytes(StandardCharsets.UTF_8);
         byte[] columnBytes = columnName.getBytes(StandardCharsets.UTF_8);
         return Cell.create(rowBytes, columnBytes);
     }

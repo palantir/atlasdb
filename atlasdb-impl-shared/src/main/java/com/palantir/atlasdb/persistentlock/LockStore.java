@@ -15,10 +15,13 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
+import java.util.UUID;
+
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public final class LockStore {
+    private static final String ROW_NAME = "DeletionLock";
     private final KeyValueService keyValueService;
 
     private LockStore(KeyValueService kvs) {
@@ -31,11 +34,16 @@ public final class LockStore {
     }
 
     public LockEntry acquireLock(String reason) {
-        LockEntry lockEntry = ImmutableLockEntry.builder().lockId(1).reason(reason).build();
+        LockEntry lockEntry = generateUniqueLockEntry(reason);
 
         keyValueService.putUnlessExists(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.insertionMap());
 
         return lockEntry;
+    }
+
+    private LockEntry generateUniqueLockEntry(String reason) {
+        UUID uuid = UUID.randomUUID();
+        return ImmutableLockEntry.builder().rowName(ROW_NAME).lockId(uuid.toString()).reason(reason).build();
     }
 
     public void releaseLock(LockEntry lockEntry) {
