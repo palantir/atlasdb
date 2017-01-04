@@ -39,16 +39,25 @@ if ./scripts/circle-ci/check-only-docs-changes.sh; then
     exit 0
 fi
 
+JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:+HeapDumpOnOutOfMemoryError"
+JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -verbose:gc"
+JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:+PrintGC"
+JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:+PrintGCDateStamps"
+JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:+PrintGCDetails"
+JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -XX:-TraceClassUnloading"
+JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xloggc:build-%t-%p.gc.log"
+
 # External builds have a 4GB limit so we have to tune everything so it fits in memory (only just!)
 if [[ $INTERNAL_BUILD == true ]]; then
     BASE_GRADLE_ARGS+=" --parallel"
-    export _JAVA_OPTIONS="-Xmx1024m"
+    export _JAVA_OPTIONS="-Xmx1024m ${JAVA_GC_LOGGING_OPTIONS}"
     export CASSANDRA_MAX_HEAP_SIZE=512m
     export CASSANDRA_HEAP_NEWSIZE=64m
 else
     ./gradlew $BASE_GRADLE_ARGS --parallel compileJava compileTestJava
     BASE_GRADLE_ARGS+=" -x compileJava -x compileTestJava"
     export GRADLE_OPTS="-Xss1024K -XX:+CMSClassUnloadingEnabled -XX:InitialCodeCacheSize=32M -XX:CodeCacheExpansionSize=1M -XX:CodeCacheMinimumFreeSpace=1M -XX:ReservedCodeCacheSize=150M -XX:MinMetaspaceExpansion=1M -XX:MaxMetaspaceExpansion=8M -XX:MaxMetaspaceSize=128M -XX:MaxDirectMemorySize=96M -XX:CompressedClassSpaceSize=32M"
+    export _JAVA_OPTIONS="${_JAVA_OPTIONS} ${JAVA_GC_LOGGING_OPTIONS}"
     export CASSANDRA_MAX_HEAP_SIZE=160m
     export CASSANDRA_HEAP_NEWSIZE=24m
 fi
