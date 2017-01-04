@@ -44,11 +44,10 @@ public class TodoEteTest {
 
     @Test
     public void shouldExposeATimestampServer() {
-        Set<String> set = Sets.newHashSet();
+        Set<byte[]> set = Sets.newHashSet();
         for (int i = 0; i < Integer.MAX_VALUE; i++) {
-            set.add("abcpwejrf39mn0g3[k12" + i);
-            System.err.println("3p0"
-                    + "q129jm cn1103pftjmg2q -----" + i);
+            set.add(new byte[i * i]);
+            System.err.println(i);
         }
         System.out.println(set);
 
