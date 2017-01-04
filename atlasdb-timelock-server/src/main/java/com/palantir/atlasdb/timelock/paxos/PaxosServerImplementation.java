@@ -55,10 +55,11 @@ import io.atomix.catalyst.transport.Address;
 import io.dropwizard.setup.Environment;
 
 public class PaxosServerImplementation implements ServerImplementation {
-    private Set<Address> remoteServers;
+    private Set<String> remoteServers;
     private Optional<SSLSocketFactory> optionalSecurity = Optional.absent();
 
     private LeaderElectionService leaderElectionService;
+    private PaxosResource paxosResource;
 
     private final Environment environment;
 
@@ -69,7 +70,8 @@ public class PaxosServerImplementation implements ServerImplementation {
     @Override
     public void onStart(TimeLockServerConfiguration configuration) {
         String leaderNamespace = "__leader";
-        PaxosResource paxosResource = PaxosResource.createPaxosResourceForClient(leaderNamespace);
+        paxosResource = PaxosResource.create();
+        paxosResource.addClient(leaderNamespace);
 
         if (configuration.atomix().security().isPresent()) {
             optionalSecurity = constructOptionalSslSocketFactory(configuration);
@@ -79,21 +81,22 @@ public class PaxosServerImplementation implements ServerImplementation {
         // Construct the intermediate stuff
         List<PaxosLearner> learners = getNamespacedProxies(
                 getRemoteAddresses(configuration),
-                leaderNamespace,
+                "/" + leaderNamespace,
                 optionalSecurity,
                 PaxosLearner.class);
-        learners.add(paxosResource.getPaxosLearner());
+        learners.add(paxosResource.getPaxosLearner(leaderNamespace));
 
         List<PaxosAcceptor> acceptors = getNamespacedProxies(
                 getRemoteAddresses(configuration),
-                leaderNamespace,
+                "/" + leaderNamespace,
                 optionalSecurity,
                 PaxosAcceptor.class);
-        acceptors.add(paxosResource.getPaxosAcceptor());
+        acceptors.add(paxosResource.getPaxosAcceptor(leaderNamespace));
 
         Map<PingableLeader, HostAndPort> otherLeaders = Leaders.generatePingables(
-                Sets.difference(configuration.cluster().servers().stream().map(Address::toString).collect(Collectors.toSet()),
-                        ImmutableSet.of(configuration.cluster().localServer())),
+                Sets.difference(configuration.cluster().servers().stream().map(x -> "http://" + x.host() + ":" + x.port())
+                                .collect(Collectors.toSet()),
+                        ImmutableSet.of("http://" + configuration.cluster().localServer().host() + ":" + configuration.cluster().localServer().port())),
                 optionalSecurity);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
@@ -102,7 +105,7 @@ public class PaxosServerImplementation implements ServerImplementation {
                 .build());
 
         PaxosProposer proposer = PaxosProposerImpl.newProposer(
-                paxosResource.getPaxosLearner(),
+                paxosResource.getPaxosLearner(leaderNamespace),
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners),
                 configuration.cluster().servers().size() / 2 + 1,
@@ -111,7 +114,7 @@ public class PaxosServerImplementation implements ServerImplementation {
         // Build and store a gatekeeping leader election service
         PaxosLeaderElectionService leader = new PaxosLeaderElectionService(
                 proposer,
-                paxosResource.getPaxosLearner(),
+                paxosResource.getPaxosLearner(leaderNamespace),
                 otherLeaders,
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners),
@@ -148,7 +151,7 @@ public class PaxosServerImplementation implements ServerImplementation {
     @Override
     public TimeLockServices createInvalidatingTimeLockServices(String client) {
         // Establish a group of Paxos coordinators for THIS CLIENT that achieve consensus
-        PaxosResource paxosResource = PaxosResource.createPaxosResourceForClient(client);
+        paxosResource.addClient(client);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
                 .setNameFormat("atlas-consensus-%d")
@@ -156,18 +159,18 @@ public class PaxosServerImplementation implements ServerImplementation {
                 .build());
 
         List<PaxosAcceptor> acceptors = getNamespacedProxies(remoteServers,
-                client,
+                "/" + client,
                 optionalSecurity,
                 PaxosAcceptor.class);
-        acceptors.add(paxosResource.getPaxosAcceptor());
+        acceptors.add(paxosResource.getPaxosAcceptor(client));
         List<PaxosLearner> learners = getNamespacedProxies(remoteServers,
-                client,
+                "/" + client,
                 optionalSecurity,
                 PaxosLearner.class);
-        learners.add(paxosResource.getPaxosLearner());
+        learners.add(paxosResource.getPaxosLearner(client));
 
         PaxosProposer proposer = PaxosProposerImpl.newProposer(
-                paxosResource.getPaxosLearner(),
+                paxosResource.getPaxosLearner(client),
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners),
                 acceptors.size() / 2 + 1,
@@ -178,7 +181,7 @@ public class PaxosServerImplementation implements ServerImplementation {
                 () -> PersistentTimestampService.create(
                         new PaxosTimestampBoundStore(
                                 proposer,
-                                paxosResource.getPaxosLearner(),
+                                paxosResource.getPaxosLearner(client),
                                 ImmutableList.copyOf(acceptors),
                                 ImmutableList.copyOf(learners)
                         )
@@ -190,24 +193,25 @@ public class PaxosServerImplementation implements ServerImplementation {
                 LockServiceImpl::create,
                 leaderElectionService);
 
-        environment.jersey().register(paxosResource);
-
         return TimeLockServices.create(timestampService, lockService);
     }
 
-    private static Set<Address> getRemoteAddresses(TimeLockServerConfiguration configuration) {
-        return Sets.difference(
+    private static Set<String> getRemoteAddresses(TimeLockServerConfiguration configuration) {
+        Set<Address> remoteAddresses = Sets.difference(
                 configuration.cluster().servers(),
                 ImmutableSet.of(configuration.cluster().localServer()));
-    }
-
-    private static Set<String> getSuffixedUris(Set<Address> addresses, String suffix) {
-        return addresses.stream()
-                .map(address -> address.toString() + suffix)
+        return remoteAddresses.stream()
+                .map(x -> "http://" + x.host() + ":" + x.port())
                 .collect(Collectors.toSet());
     }
 
-    private static <T> List<T> getNamespacedProxies(Set<Address> addresses,
+    private static Set<String> getSuffixedUris(Set<String> addresses, String suffix) {
+        return addresses.stream()
+                .map(address -> address + suffix)
+                .collect(Collectors.toSet());
+    }
+
+    private static <T> List<T> getNamespacedProxies(Set<String> addresses,
                                                    String namespace,
                                                    Optional<SSLSocketFactory> optionalSecurity,
                                                    Class<T> clazz) {
