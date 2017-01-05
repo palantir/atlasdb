@@ -1716,7 +1716,55 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void checkAndSet(final CheckAndSetRequest request) {
-        // TODO
+        try {
+            clientPool.runWithRetry(client -> {
+                TableReference tableRef = request.table();
+                byte[] rowNameAsBytes = request.row().getRowName();
+                byte[] columnName = request.row().getColumnName();
+                byte[] contents = request.newValue();
+
+                String tableName = internalTableName(tableRef);
+                ByteBuffer rowName = ByteBuffer.wrap(rowNameAsBytes);
+                long timestamp = AtlasDbConstants.TRANSACTION_TS;
+                byte[] colName = CassandraKeyValueServices
+                        .makeCompositeBuffer(columnName, timestamp)
+                        .array();
+
+                List<Column> oldColumns;
+                if (request.oldValue().length > 0) {
+                    Column oldColumn = new Column();
+                    oldColumn.setName(colName);
+                    oldColumn.setValue(request.oldValue());
+                    oldColumn.setTimestamp(timestamp);
+                    oldColumns = ImmutableList.of(oldColumn);
+                } else {
+                    oldColumns = ImmutableList.of();
+                }
+
+                Column newColumn = new Column();
+                newColumn.setName(colName);
+                newColumn.setValue(contents);
+                newColumn.setTimestamp(timestamp);
+                CASResult casResult = queryRunner.run(client, tableRef, () -> {
+                    return client.cas(
+                            rowName,
+                            tableName,
+                            oldColumns,
+                            ImmutableList.of(newColumn),
+                            ConsistencyLevel.SERIAL,
+                            writeConsistency);
+                });
+
+                if (!casResult.isSuccess()) {
+                    // TODO Handle error properly
+                    throw new KeyAlreadyExistsException("This transaction row has an unexpected value.",
+                            ImmutableList.of(request.row()));
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            throw Throwables.throwUncheckedException(e);
+        }
     }
 
     @Override
