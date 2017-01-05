@@ -61,6 +61,10 @@ develop
          - We now publish a runnable distribution of AtlasCli that is available for download directly from Bintray
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1345>`__)
 
+    *    - |improved|
+         - Enable garbage collection logging for CircleCI builds.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1398>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

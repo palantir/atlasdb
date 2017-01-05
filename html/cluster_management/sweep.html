@@ -171,10 +171,10 @@ Deletions in AtlasDB are similar; in practice they are the same as updates with 
 At a high level, this works by periodically scanning the database for rows with multiple versions and deleting the older versions from the database.</p>
 <div class="section" id="reasons-to-sweep">
 <h2>Reasons to Sweep<a class="headerlink" href="#reasons-to-sweep" title="Permalink to this headline">¶</a></h2>
-<ol class="arabic">
+<ol class="arabic simple">
 <li><dl class="first docutils">
 <dt>Freeing up Disk Space</dt>
-<dd><ul class="first last simple">
+<dd><ul class="first last">
 <li>Putting large amounts of data into cells that are updated creates tables that hold onto data that isn&#8217;t used. These tables are good candidates to sweep if you want to reclaim disk space.</li>
 </ul>
 </dd>
@@ -182,7 +182,7 @@ At a high level, this works by periodically scanning the database for rows with 
 </li>
 <li><dl class="first docutils">
 <dt>Improving Performance</dt>
-<dd><ul class="first last simple">
+<dd><ul class="first last">
 <li>Making many edits to the same row will leave behind many tombstoned entries, so it&#8217;s advantageous to sweep these tables to increase performance.</li>
 </ul>
 </dd>
@@ -190,7 +190,7 @@ At a high level, this works by periodically scanning the database for rows with 
 </li>
 <li><dl class="first docutils">
 <dt>Improving Stability</dt>
-<dd><ul class="first last simple">
+<dd><ul class="first last">
 <li>We have seen situations in the field where reading rows with many historical values caused the underlying Cassandra KVS to run out of memory.
 This situation could have been mitigated by sweeping the table in question.</li>
 </ul>
@@ -214,7 +214,7 @@ Given that the background sweep job chooses which tables it sweeps, you can ensu
 <span id="sweep-tunable-parameters"></span><h2>Tunable Configuration Options<a class="headerlink" href="#tunable-configuration-options" title="Permalink to this headline">¶</a></h2>
 <p>The following optional parameters can be tuned to optimize Sweep performance for a specific AtlasDB instance.
 You may set them as part of your <a class="reference internal" href="../configuration/index.html#atlas-config"><span class="std std-ref">AtlasDB configuration</span></a>, or as a CLI option if you are running sweep using the CLI.</p>
-<table border="1" class="docutils">
+<table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="7%" />
 <col width="7%" />
