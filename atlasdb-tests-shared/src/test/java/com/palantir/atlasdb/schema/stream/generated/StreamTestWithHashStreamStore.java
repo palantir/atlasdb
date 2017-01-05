@@ -188,8 +188,8 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
     protected StreamMetadata storeBlocksAndGetFinalMetadata(Transaction t, long id, InputStream stream) {
         //Hash the data before compressing it
         MessageDigest digest = Sha256Hash.getMessageDigest();
-        InputStream hashingStream = new DigestInputStream(stream, digest);
-        try (InputStream compressingStream = new LZ4CompressingInputStream(hashingStream)) {
+        try (InputStream hashingStream = new DigestInputStream(stream, digest);
+            InputStream compressingStream = new LZ4CompressingInputStream(hashingStream)) {
             StreamMetadata metadata = storeBlocksAndGetHashlessMetadata(t, id, compressingStream);
             return StreamMetadata.newBuilder(metadata)
                     .setHash(ByteString.copyFrom(digest.digest()))

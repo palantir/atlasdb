@@ -147,11 +147,14 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
     // This method is overridden in generated code. Changes to this method may have unintended consequences.
     protected StreamMetadata storeBlocksAndGetFinalMetadata(@Nullable Transaction t, long id, InputStream stream) {
         MessageDigest digest = Sha256Hash.getMessageDigest();
-        InputStream hashingStream = new DigestInputStream(stream, digest);
-        StreamMetadata metadata = storeBlocksAndGetHashlessMetadata(t, id, hashingStream);
-        return StreamMetadata.newBuilder(metadata)
-                .setHash(ByteString.copyFrom(digest.digest()))
-                .build();
+        try (InputStream hashingStream = new DigestInputStream(stream, digest)) {
+            StreamMetadata metadata = storeBlocksAndGetHashlessMetadata(t, id, hashingStream);
+            return StreamMetadata.newBuilder(metadata)
+                    .setHash(ByteString.copyFrom(digest.digest()))
+                    .build();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     protected final StreamMetadata storeBlocksAndGetHashlessMetadata(@Nullable Transaction t, long id, InputStream stream) {
