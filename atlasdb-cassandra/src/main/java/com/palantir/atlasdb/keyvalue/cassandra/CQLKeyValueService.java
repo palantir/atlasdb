@@ -93,6 +93,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -1194,6 +1195,11 @@ public class CQLKeyValueService extends AbstractKeyValueService {
         } catch (Throwable t) {
             throw Throwables.throwUncheckedException(t);
         }
+    }
+
+    @Override
+    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
+        // TODO
     }
 
     String getFullTableName(TableReference tableRef) {

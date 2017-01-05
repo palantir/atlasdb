@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -268,6 +269,25 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
             s.totalPutCellBytes.addAndGet(e.getKey().getColumnName().length);
             s.totalPutValueBytes.addAndGet(e.getValue().length);
         }
+    }
+
+    @Override
+    public void checkAndSet(CheckAndSetRequest request) {
+        TableStats s = getTableStats(request.table());
+
+        long start = System.currentTimeMillis();
+        super.checkAndSet(request);
+        long finish = System.currentTimeMillis();
+
+        // TODO technically a CAS is both a get and a put, but I'm unsure how to represent this here.
+        s.totalPutMillis.addAndGet(finish - start);
+        s.totalPutCalls.incrementAndGet();
+
+        // Only update stats after put was successful.
+        s.totalPutCells.incrementAndGet(); // can only CAS one value
+        s.totalPutCellBytes.addAndGet(request.row().getRowName().length);
+        s.totalPutCellBytes.addAndGet(request.row().getColumnName().length);
+        s.totalPutValueBytes.addAndGet(request.newValue().length);
     }
 
     private TableStats getTableStats(TableReference tableRef) {

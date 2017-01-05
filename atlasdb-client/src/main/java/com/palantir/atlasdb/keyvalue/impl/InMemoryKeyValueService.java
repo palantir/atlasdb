@@ -48,6 +48,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -387,6 +388,11 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
         putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), 0), true);
+    }
+
+    @Override
+    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
+        // TODO
     }
 
     @Override

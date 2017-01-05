@@ -290,6 +290,14 @@ public interface KeyValueService extends AutoCloseable {
                          Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
     /**
+     * Performs a check-and-set into the key-value store.
+     */
+    @POST
+    @Path("check-and-set")
+    @Consumes(MediaType.APPLICATION_JSON)
+    void checkAndSet(CheckAndSetRequest checkAndSetRequest);
+
+    /**
      * Deletes values from the key-value store.
      * <p>
      * This call <i>does not</i> guarantee atomicity for deletes across (Cell, ts) pairs. However it

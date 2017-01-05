@@ -109,6 +109,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.jdbc.config.JdbcDataSourceConfiguration;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -518,6 +519,11 @@ public class JdbcKeyValueService implements KeyValueService {
                 return null;
             }
         });
+    }
+
+    @Override
+    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
+        // TODO
     }
 
     @Override

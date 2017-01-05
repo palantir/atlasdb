@@ -34,6 +34,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -200,6 +201,11 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             return;
         }
         delegate.putUnlessExists(tableRef, values);
+    }
+
+    @Override
+    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
+        delegate.checkAndSet(checkAndSetRequest);
     }
 
     @Override

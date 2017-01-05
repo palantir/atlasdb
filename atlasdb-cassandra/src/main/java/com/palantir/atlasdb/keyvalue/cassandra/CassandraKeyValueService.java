@@ -86,6 +86,7 @@ import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -1711,6 +1712,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
+    }
+
+    @Override
+    public void checkAndSet(final CheckAndSetRequest request) {
+        // TODO
     }
 
     @Override

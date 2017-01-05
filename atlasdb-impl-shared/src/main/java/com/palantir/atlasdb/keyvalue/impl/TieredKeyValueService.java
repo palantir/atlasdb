@@ -44,6 +44,7 @@ import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -320,6 +321,11 @@ public final class TieredKeyValueService implements KeyValueService {
         }
         throw new UnsupportedOperationException("TieredKeyValueService does not"
                 + " support putUnlessExists on tiered tables. tableName=" + tableRef + ".");
+    }
+
+    @Override
+    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
+        // TODO
     }
 
     @Override

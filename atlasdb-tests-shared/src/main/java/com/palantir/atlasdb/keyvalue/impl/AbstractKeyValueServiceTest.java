@@ -55,6 +55,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -821,6 +822,34 @@ public abstract class AbstractKeyValueServiceTest {
         } catch (KeyAlreadyExistsException e) {
             // Legal
         }
+    }
+
+    @Test
+    public void testCheckAndSetFromEmpty() {
+        Cell cell = Cell.create(row0, column0);
+        CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, cell, value00);
+        keyValueService.checkAndSet(request);
+
+        Multimap<Cell, Long> timestamps = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(cell), 1L);
+
+        assertEquals(1, timestamps.size());
+        assertTrue(timestamps.containsEntry(cell, AtlasDbConstants.TRANSACTION_TS));
+    }
+
+    @Test
+    public void testCheckAndSetFromOtherValue() {
+        Cell cell = Cell.create(row0, column0);
+
+        CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, cell, value00);
+        keyValueService.checkAndSet(request);
+
+        CheckAndSetRequest secondRequest = CheckAndSetRequest.singleCell(TEST_TABLE, cell, value00, value01);
+        keyValueService.checkAndSet(secondRequest);
+
+        Multimap<Cell, Long> timestamps = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(cell), 1L);
+
+        assertEquals(1, timestamps.size());
+        assertTrue(timestamps.containsEntry(cell, AtlasDbConstants.TRANSACTION_TS));
     }
 
     @Test
