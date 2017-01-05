@@ -23,10 +23,7 @@ import java.util.stream.Collectors;
 import org.dellroad.stuff.net.TCPNetwork;
 import org.jsimpledb.JSimpleDB;
 import org.jsimpledb.JSimpleDBFactory;
-import org.jsimpledb.JTransaction;
-import org.jsimpledb.ValidationMode;
 import org.jsimpledb.core.Database;
-import org.jsimpledb.core.ObjId;
 import org.jsimpledb.kv.RetryTransactionException;
 import org.jsimpledb.kv.mvcc.AtomicKVDatabase;
 import org.jsimpledb.kv.raft.RaftKVDatabase;
@@ -110,8 +107,11 @@ public class JSimpleDbServerImplementation implements ServerImplementation {
 
     @Override
     public TimeLockServices createInvalidatingTimeLockServices(String client) {
-        return TimeLockServices.create(
-                new JSimpleDbTimestampService(jdb, client),
-                LockServiceImpl.create());
+        return JSimpleDbInvalidatingLeaderProxy.create(
+                raft,
+                () -> TimeLockServices.create(
+                        new JSimpleDbTimestampService(jdb, client),
+                        LockServiceImpl.create()),
+                TimeLockServices.class);
     }
 }
