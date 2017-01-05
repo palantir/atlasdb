@@ -65,6 +65,10 @@ develop
          - Enable garbage collection logging for CircleCI builds.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1398>`__)
 
+    *    - |fixed|
+         - Allow tables declared with SweepStrategy.THOROUGH to be migrated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1410>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
