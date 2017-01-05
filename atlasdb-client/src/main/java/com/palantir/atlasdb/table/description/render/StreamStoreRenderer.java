@@ -166,11 +166,7 @@ public class StreamStoreRenderer {
                     getBlock();
                     line();
                     if (clientSideCompression) {
-                        storeStreamWithCompression();
-                        line();
-                        storeStreamsWithCompression();
-                        line();
-                        compressAndStoreStream();
+                        storeBlocksAndGetFinalMetadata();
                         line();
                         loadStreamWithCompression();
                         line();
@@ -539,54 +535,21 @@ public class StreamStoreRenderer {
                 } line("}");
             }
 
-            private void storeStreamWithCompression() {
+            private void storeBlocksAndGetFinalMetadata() {
                 line("@Override");
-                line("public Pair<", StreamId, ", Sha256Hash> storeStream(InputStream stream) {"); {
-                    line("long id = storeEmptyMetadata();");
-                    line("StreamMetadata metadata = compressAndStoreStream(stream, id, null);");
-                    line("// Store the corrected metadata with the hash based on uncompressed data");
-                    line("storeMetadataAndIndex(id, metadata);");
-                    line("return Pair.create(id, new Sha256Hash(metadata.getHash().toByteArray()));");
-                } line("}");
-            }
-
-            private void storeStreamsWithCompression() {
-                line("@Override");
-                line("public Map<", StreamId, ", Sha256Hash> storeStreams(final Transaction t, final Map<", StreamId, ", InputStream> streams) {"); {
-                    line("if (streams.isEmpty()) {"); {
-                        line("return ImmutableMap.of();");
-                    } line("}");
-                    line();
-                    line("Map<", StreamId, ", StreamMetadata> idsToEmptyMetadata = Maps.transformValues(streams, Functions.constant(getEmptyMetadata()));");
-                    line("putMetadataAndHashIndexTask(t, idsToEmptyMetadata);");
-                    line();
-                    line("Map<", StreamId, ", StreamMetadata> idsToMetadata = Maps.transformEntries(streams, (id, stream) -> {"); {
-                        line("return compressAndStoreStream(stream, id, t);");
-                    } line("});");
-                    line("// Store the corrected metadata with the correct hashes");
-                    line("putMetadataAndHashIndexTask(t, idsToMetadata);");
-                    line();
-                    line("Map<", StreamId, ", Sha256Hash> hashes = Maps.transformValues(idsToMetadata,");
-                    line("        metadata -> new Sha256Hash(metadata.getHash().toByteArray()));");
-                    line("return hashes;");
-                } line("}");
-            }
-
-            private void compressAndStoreStream() {
-                line("private StreamMetadata compressAndStoreStream(InputStream stream, ", StreamId, " id, Transaction transaction) {"); {
+                line("protected StreamMetadata storeBlocksAndGetFinalMetadata(Transaction t, long id, InputStream stream) {"); {
+                    line("//Hash the data before compressing it");
                     line("MessageDigest digest = Sha256Hash.getMessageDigest();");
-                    line("InputStream compressedStream;");
+                    line("InputStream hashingStream = new DigestInputStream(stream, digest);");
+                    line("InputStream compressingStream;");
                     line("try {"); {
-                        line("// Hash the data before compressing it");
-                        line("compressedStream = new LZ4CompressingInputStream(new DigestInputStream(stream, digest));");
-                    } line ("} catch (IOException e) {"); {
+                        line("compressingStream = new LZ4CompressingInputStream(hashingStream);");
+                    } line("} catch (IOException e) {"); {
                         line("throw new RuntimeException(e);");
                     } line("}");
-                    line("StreamMetadata metadata = storeBlocksAndGetFinalMetadata(transaction, id, compressedStream, false);");
-                    line();
-                    line("ByteString hashByteString = ByteString.copyFrom(digest.digest());");
+                    line("StreamMetadata metadata = storeBlocksAndGetHashlessMetadata(t, id, compressingStream);");
                     line("return StreamMetadata.newBuilder(metadata)");
-                    line("        .setHash(hashByteString)");
+                    line("        .setHash(ByteString.copyFrom(digest.digest()))");
                     line("        .build();");
                 } line("}");
             }

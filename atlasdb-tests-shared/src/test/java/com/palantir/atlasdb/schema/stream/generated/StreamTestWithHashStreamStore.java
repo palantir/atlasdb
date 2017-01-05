@@ -185,48 +185,19 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
     }
 
     @Override
-    public Pair<Long, Sha256Hash> storeStream(InputStream stream) {
-        long id = storeEmptyMetadata();
-        StreamMetadata metadata = compressAndStoreStream(stream, id, null);
-        // Store the corrected metadata with the hash based on uncompressed data
-        storeMetadataAndIndex(id, metadata);
-        return Pair.create(id, new Sha256Hash(metadata.getHash().toByteArray()));
-    }
-
-    @Override
-    public Map<Long, Sha256Hash> storeStreams(final Transaction t, final Map<Long, InputStream> streams) {
-        if (streams.isEmpty()) {
-            return ImmutableMap.of();
-        }
-
-        Map<Long, StreamMetadata> idsToEmptyMetadata = Maps.transformValues(streams, Functions.constant(getEmptyMetadata()));
-        putMetadataAndHashIndexTask(t, idsToEmptyMetadata);
-
-        Map<Long, StreamMetadata> idsToMetadata = Maps.transformEntries(streams, (id, stream) -> {
-            return compressAndStoreStream(stream, id, t);
-        });
-        // Store the corrected metadata with the correct hashes
-        putMetadataAndHashIndexTask(t, idsToMetadata);
-
-        Map<Long, Sha256Hash> hashes = Maps.transformValues(idsToMetadata,
-                metadata -> new Sha256Hash(metadata.getHash().toByteArray()));
-        return hashes;
-    }
-
-    private StreamMetadata compressAndStoreStream(InputStream stream, Long id, Transaction transaction) {
+    protected StreamMetadata storeBlocksAndGetFinalMetadata(Transaction t, long id, InputStream stream) {
+        //Hash the data before compressing it
         MessageDigest digest = Sha256Hash.getMessageDigest();
-        InputStream compressedStream;
+        InputStream hashingStream = new DigestInputStream(stream, digest);
+        InputStream compressingStream;
         try {
-            // Hash the data before compressing it
-            compressedStream = new LZ4CompressingInputStream(new DigestInputStream(stream, digest));
+            compressingStream = new LZ4CompressingInputStream(hashingStream);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        StreamMetadata metadata = storeBlocksAndGetFinalMetadata(transaction, id, compressedStream, false);
-
-        ByteString hashByteString = ByteString.copyFrom(digest.digest());
+        StreamMetadata metadata = storeBlocksAndGetHashlessMetadata(t, id, compressingStream);
         return StreamMetadata.newBuilder(metadata)
-                .setHash(hashByteString)
+                .setHash(ByteString.copyFrom(digest.digest()))
                 .build();
     }
 
