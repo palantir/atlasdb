@@ -47,7 +47,9 @@ public class MonotonicChecker implements Checker {
 
             if (latestEventPerProcess.containsKey(process)) {
                 OkEvent previousEvent = latestEventPerProcess.get(process);
-                if (event.value() <= previousEvent.value()) {
+                Long previousTimestamp = Long.parseLong(previousEvent.value());
+                Long timestamp = Long.parseLong(event.value());
+                if (timestamp <= previousTimestamp) {
                     errors.add(previousEvent);
                     errors.add(event);
                 }
