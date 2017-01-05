@@ -541,16 +541,14 @@ public class StreamStoreRenderer {
                     line("//Hash the data before compressing it");
                     line("MessageDigest digest = Sha256Hash.getMessageDigest();");
                     line("InputStream hashingStream = new DigestInputStream(stream, digest);");
-                    line("InputStream compressingStream;");
-                    line("try {"); {
-                        line("compressingStream = new LZ4CompressingInputStream(hashingStream);");
+                    line("try (InputStream compressingStream = new LZ4CompressingInputStream(hashingStream)) {"); {
+                        line("StreamMetadata metadata = storeBlocksAndGetHashlessMetadata(t, id, compressingStream);");
+                        line("return StreamMetadata.newBuilder(metadata)");
+                        line("        .setHash(ByteString.copyFrom(digest.digest()))");
+                        line("        .build();");
                     } line("} catch (IOException e) {"); {
                         line("throw new RuntimeException(e);");
                     } line("}");
-                    line("StreamMetadata metadata = storeBlocksAndGetHashlessMetadata(t, id, compressingStream);");
-                    line("return StreamMetadata.newBuilder(metadata)");
-                    line("        .setHash(ByteString.copyFrom(digest.digest()))");
-                    line("        .build();");
                 } line("}");
             }
 
