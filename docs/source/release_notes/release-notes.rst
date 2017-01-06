@@ -72,6 +72,12 @@ develop
          - Enabled garbage collection logging for CircleCI builds. This may be useful for investigating pre-merge build failures.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1398>`__)
 
+    *    - |new|
+         - AtlasDB now supports stream store compression.
+           Streams can be compressed client-side by adding the ``compressStreamInClient`` option to the stream 
+           definition. Reads from the stream store will transparently decompress the data.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1357>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
