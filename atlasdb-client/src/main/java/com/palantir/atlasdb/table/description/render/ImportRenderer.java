@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Iterables;
 
 public class ImportRenderer extends Renderer {
     private static final List<String> IMPORT_PREFIXES = ImmutableList.of("java.", "javax.", "org.", "com.", "net.");
@@ -41,7 +40,7 @@ public class ImportRenderer extends Renderer {
     void renderImports() {
         for (String prefix : IMPORT_PREFIXES) {
             boolean anyImportsRendered = renderImportsWithPrefix(prefix);
-            if (anyImportsRendered && !prefix.equals(Iterables.getLast(IMPORT_PREFIXES))) {
+            if (anyImportsRendered) {
                 line();
             }
         }
