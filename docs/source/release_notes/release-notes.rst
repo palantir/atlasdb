@@ -43,6 +43,25 @@ develop
          - Change
 
     *    - |improved|
+         - Increase default Cassandra pool size from minimum of 20 and maximum of 5x the minimum (100 if minimum not modified)
+           connections to minimum of 30 and maximum of 100 connections. This allows for better handling of bursts of requests
+           that would otherwise require creating many new connections to Cassandra from the clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.27.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
          - ``StreamStore.loadStream`` now actually streams the data, if the data does not fit in memory.
            This means that getting the first byte of the stream now has constant-time performance, compared to being
            linear in terms of stream length, as it was previously.
@@ -64,12 +83,6 @@ develop
     *    - |improved|
          - Enable garbage collection logging for CircleCI builds.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1398>`__)
-
-    *    - |improved|
-         - Increase default Cassandra pool size from minimum of 20 and maximum of 5x the minimum (100 if minimum not modified)
-           connections to minimum of 30 and maximum of 100 connections. This allows for better handling of bursts of requests
-           that would otherwise require creating many new connections to Cassandra from the clients.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)
 
     *    - |new|
          - AtlasDB now supports stream store compression.
