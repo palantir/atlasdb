@@ -295,7 +295,7 @@ public interface KeyValueService extends AutoCloseable {
     @POST
     @Path("check-and-set")
     @Consumes(MediaType.APPLICATION_JSON)
-    void checkAndSet(CheckAndSetRequest checkAndSetRequest);
+    void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException;
 
     /**
      * Deletes values from the key-value store.

@@ -86,6 +86,7 @@ import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -1696,19 +1697,29 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void checkAndSet(final CheckAndSetRequest request) {
+    public void checkAndSet(final CheckAndSetRequest request) throws CheckAndSetException {
         try {
             clientPool.runWithRetry(client -> {
                 CASResult casResult = executeCheckAndSet(client, request);
 
                 if (!casResult.isSuccess()) {
-                    // TODO Handle error properly
-                    throw new KeyAlreadyExistsException("This transaction row has an unexpected value.",
-                            ImmutableList.of(request.row()));
+                    List<byte[]> currentValues = casResult.current_values.stream()
+                            .map(Column::getValue)
+                            .collect(Collectors.toList());
+
+                    String msg = String.format("The row %s in table %s has an unexpected value. "
+                            + "If this is happening repeatedly, your program may be out of sync with the database.",
+                            request.row(),
+                            request.table().getQualifiedName());
+
+                    throw new CheckAndSetException(msg,
+                            request.row(),
+                            request.oldValue(),
+                            currentValues);
                 }
                 return null;
             });
-        } catch (Exception e) {
+        } catch (TException e) {
             throw Throwables.throwUncheckedException(e);
         }
     }
