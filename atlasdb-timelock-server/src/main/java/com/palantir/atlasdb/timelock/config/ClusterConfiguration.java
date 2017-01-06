@@ -25,16 +25,14 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 
-import io.atomix.catalyst.transport.Address;
-
 @JsonSerialize(as = ImmutableClusterConfiguration.class)
 @JsonDeserialize(as = ImmutableClusterConfiguration.class)
 @Value.Immutable
 public abstract class ClusterConfiguration {
-    public abstract Address localServer();
+    public abstract String localServer();
 
     @Size(min = 1)
-    public abstract Set<Address> servers();
+    public abstract Set<String> servers();
 
     @Value.Check
     protected void check() {

@@ -24,12 +24,10 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 
-import io.atomix.catalyst.transport.Address;
-
 public class TimeLockServerConfigurationTest {
-    private static final Address ADDRESS = new Address("localhost:8700");
+    private static final String ADDRESS = "localhost:8701";
     private static final ClusterConfiguration CLUSTER = ImmutableClusterConfiguration.builder()
-            .localServer(new Address(ADDRESS))
+            .localServer(ADDRESS)
             .addServers(ADDRESS)
             .build();
     private static final Set<String> CLIENTS = ImmutableSet.of("client1", "client2");

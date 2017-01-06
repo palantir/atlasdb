@@ -19,11 +19,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
-import io.atomix.catalyst.transport.Address;
-
 public class ClusterConfigurationTest {
-    private static final Address ADDRESS_1 = new Address("localhost:1");
-    private static final Address ADDRESS_2 = new Address("localhost:2");
+    private static final String ADDRESS_1 = "localhost:2";
+    private static final String ADDRESS_2 = "localhost:1";
 
     @Test
     public void shouldThrowIfLocalServerNotSpecified() {

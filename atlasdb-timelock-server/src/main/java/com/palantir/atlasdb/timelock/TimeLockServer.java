@@ -39,7 +39,7 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
         ServerImplementation serverImpl = new AtomixServerImplementation();
         try {
             serverImpl.onStart(configuration);
-            run(configuration, environment, serverImpl);
+            registerResources(configuration, environment, serverImpl);
         } catch (Exception e) {
             serverImpl.onFail();
             throw e;
@@ -53,7 +53,7 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
         });
     }
 
-    private static void run(
+    private static void registerResources(
             TimeLockServerConfiguration configuration,
             Environment environment,
             ServerImplementation serverImpl) {

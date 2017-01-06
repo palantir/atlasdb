@@ -17,6 +17,7 @@ package com.palantir.atlasdb.timelock.atomix;
 
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,7 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting1.config.ssl.SslConfiguration;
 
 import io.atomix.AtomixReplica;
+import io.atomix.catalyst.transport.Address;
 import io.atomix.catalyst.transport.Transport;
 import io.atomix.catalyst.transport.netty.NettyTransport;
 import io.atomix.copycat.server.storage.Storage;
@@ -45,14 +47,19 @@ public class AtomixServerImplementation implements ServerImplementation {
 
     @Override
     public void onStart(TimeLockServerConfiguration configuration) {
-        replica = AtomixReplica.builder(configuration.cluster().localServer())
+        replica = AtomixReplica.builder(new Address(configuration.cluster().localServer()))
                 .withStorage(Storage.builder()
                         .withDirectory(configuration.atomix().storageDirectory())
                         .withStorageLevel(configuration.atomix().storageLevel())
                         .build())
                 .withTransport(createTransport(configuration.atomix().security()))
                 .build();
-        AtomixRetryer.getWithRetry(() -> replica.bootstrap(configuration.cluster().servers()));
+        AtomixRetryer.getWithRetry(() -> replica.bootstrap(
+                configuration.cluster()
+                        .servers()
+                        .stream()
+                        .map(Address::new)
+                        .collect(Collectors.toSet())));
 
         DistributedGroup timeLockGroup = DistributedValues.getTimeLockGroup(replica);
         localMember = AtomixRetryer.getWithRetry(timeLockGroup::join);
