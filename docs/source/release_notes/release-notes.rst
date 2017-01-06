@@ -48,6 +48,11 @@ develop
            that would otherwise require creating many new connections to Cassandra from the clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)
 
+    *    - |improved|
+         - Backoff when receiving a socket timeout to Cassandra to put back pressure on client and to spread out load incurred
+           on remaining servers when a failover occurs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1420>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

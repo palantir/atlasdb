@@ -518,7 +518,7 @@ public class CassandraClientPool {
                 if (isRetriableWithBackoffException(e)) {
                     log.warn("Retrying with backoff a query intended for host {}.", hostPool.getHost(), e);
                     try {
-                        Thread.sleep(numTries * 1000);
+                        Thread.sleep(numTries * ThreadLocalRandom.current().nextInt(1000));
                     } catch (InterruptedException i) {
                         throw new RuntimeException(i);
                     }
@@ -653,6 +653,8 @@ public class CassandraClientPool {
                 && (ex instanceof NoSuchElementException
                 // remote cassandra node couldn't talk to enough other remote cassandra nodes to answer
                 || ex instanceof UnavailableException
+                // tcp socket timeout, possibly indicating network flake, long GC, or restarting server
+                || isConnectionException(ex)
                 || isRetriableWithBackoffException(ex.getCause()));
     }
 
