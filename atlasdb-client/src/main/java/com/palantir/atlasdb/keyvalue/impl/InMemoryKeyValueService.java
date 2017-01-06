@@ -373,18 +373,10 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     private void putInternal(TableReference tableRef, Collection<Map.Entry<Cell, Value>> values, boolean doNotOverwriteWithSameValue) {
         Table table = getTableMap(tableRef);
         for (Map.Entry<Cell, Value> e : values) {
-            Cell cell = e.getKey();
-            byte[] row = cell.getRowName();
-            byte[] col = cell.getColumnName();
             byte[] contents = e.getValue().getContents();
             long timestamp = e.getValue().getTimestamp();
 
-            Key nextKey = table.entries.ceilingKey(new Key(row, ArrayUtils.EMPTY_BYTE_ARRAY, Long.MIN_VALUE));
-            if (nextKey != null && nextKey.matchesRow(row)) {
-                // Save memory by sharing rows.
-                row = nextKey.row;
-            }
-            byte[] oldContents = table.entries.putIfAbsent(new Key(row, col, timestamp), copyOf(contents));
+            byte[] oldContents = table.entries.putIfAbsent(getKey(table, e.getKey(), timestamp), copyOf(contents));
             if (oldContents != null && (doNotOverwriteWithSameValue || !Arrays.equals(oldContents, contents))) {
                 throw new KeyAlreadyExistsException("We already have a value for this timestamp");
             }
@@ -399,6 +391,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void checkAndSet(CheckAndSetRequest request) throws CheckAndSetException {
+        Table table = getTableMap(request.table());
         Cell cell = request.row();
         byte[] oldValue = request.oldValue();
 
@@ -411,18 +404,9 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             throw new CheckAndSetException(msg, request.row(), oldValue, actual);
         }
 
-        Table table = getTableMap(request.table());
-        byte[] row = cell.getRowName();
-        byte[] col = cell.getColumnName();
         byte[] contents = request.newValue();
-        long timestamp = AtlasDbConstants.TRANSACTION_TS;
 
-        Key nextKey = table.entries.ceilingKey(new Key(row, ArrayUtils.EMPTY_BYTE_ARRAY, Long.MIN_VALUE));
-        if (nextKey != null && nextKey.matchesRow(row)) {
-            // Save memory by sharing rows.
-            row = nextKey.row;
-        }
-        byte[] oldContents = table.entries.put(new Key(row, col, timestamp), copyOf(contents));
+        byte[] oldContents = table.entries.put(getKey(table, cell, AtlasDbConstants.TRANSACTION_TS), copyOf(contents));
         if (oldContents != null && (!Arrays.equals(oldContents, oldValue))) {
             throw new CheckAndSetException("Very unexpected value for this key. If you're seeing this, "
                     + "multi-threaded operations have been running on this KVS, and your data got stomped on.",
@@ -431,6 +415,18 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                     ImmutableList.of(oldContents));
 
         }
+    }
+
+    private Key getKey(Table table, Cell cell, long timestamp) {
+        byte[] row = cell.getRowName();
+        byte[] col = cell.getColumnName();
+
+        Key nextKey = table.entries.ceilingKey(new Key(row, ArrayUtils.EMPTY_BYTE_ARRAY, Long.MIN_VALUE));
+        if (nextKey != null && nextKey.matchesRow(row)) {
+            // Save memory by sharing rows.
+            row = nextKey.row;
+        }
+        return new Key(row, col, timestamp);
     }
 
     private boolean valuesMatch(Map<Cell, Value> storedValue, byte[] expectedValue) {
