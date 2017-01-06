@@ -52,6 +52,11 @@ develop
          - Don't retry transactions when the locks are invalid. Previously, AtlasDB tried repeatedly to run a transaction when the external locks are already invalid.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1323>`__)
 
+    *    - |improved|
+         - Backoff when receiving a socket timeout to Cassandra to put back pressure on client and to spread out load incurred
+           on remaining servers when a failover occurs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1420>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
