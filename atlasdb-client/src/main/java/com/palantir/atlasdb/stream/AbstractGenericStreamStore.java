@@ -65,13 +65,13 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     protected abstract long getInMemoryThreshold();
 
     @Override
-    public final InputStream loadStream(Transaction transaction, final ID id) {
+    public InputStream loadStream(Transaction transaction, final ID id) {
         StreamMetadata metadata = getMetadata(transaction, id);
         return getStream(transaction, id, metadata);
     }
 
     @Override
-    public final Map<ID, InputStream> loadStreams(Transaction transaction, Set<ID> ids) {
+    public Map<ID, InputStream> loadStreams(Transaction transaction, Set<ID> ids) {
         Map<ID, InputStream> ret = Maps.newHashMap();
         Map<ID, StreamMetadata> idsToMetadata = getMetadata(transaction, ids);
         for (Map.Entry<ID, StreamMetadata> entry : idsToMetadata.entrySet()) {
@@ -104,7 +104,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         }
     }
 
-    private InputStream makeStream(ID id, StreamMetadata metadata) {
+    protected InputStream makeStream(ID id, StreamMetadata metadata) {
         long totalBlocks = getNumberOfBlocksFromMetadata(metadata);
         int blocksInMemory = getNumberOfBlocksThatFitInMemory();
 
@@ -183,7 +183,8 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         }
     }
 
-    private void tryWriteStreamToFile(Transaction transaction, ID id, StreamMetadata metadata, FileOutputStream fos)
+    // This method is overridden in generated code. Changes to this method may have unintended consequences.
+    protected void tryWriteStreamToFile(Transaction transaction, ID id, StreamMetadata metadata, FileOutputStream fos)
             throws IOException {
         long numBlocks = getNumberOfBlocksFromMetadata(metadata);
         for (long i = 0; i < numBlocks; i++) {
