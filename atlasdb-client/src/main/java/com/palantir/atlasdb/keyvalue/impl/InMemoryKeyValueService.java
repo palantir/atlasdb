@@ -15,10 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -27,6 +29,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -35,8 +38,11 @@ import org.apache.commons.lang.ArrayUtils;
 
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -48,6 +54,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -391,8 +398,51 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
-        // TODO
+    public void checkAndSet(CheckAndSetRequest request) throws CheckAndSetException {
+        Cell cell = request.row();
+        byte[] oldValue = request.oldValue();
+
+        Map<Cell, Value> storedValue = get(request.table(),
+                    ImmutableMap.of(cell, AtlasDbConstants.TRANSACTION_TS + 1));
+        if (!valuesMatch(storedValue, oldValue)) {
+            String expected = new String(oldValue, StandardCharsets.UTF_8);
+            List<byte[]> actual = storedValue.values().stream().map(Value::getContents).collect(Collectors.toList());
+            String msg = String.format("Unexpected value for this key. Wanted %s, got %s", expected, actual);
+            throw new CheckAndSetException(msg, request.row(), oldValue, actual);
+        }
+
+        Table table = getTableMap(request.table());
+        byte[] row = cell.getRowName();
+        byte[] col = cell.getColumnName();
+        byte[] contents = request.newValue();
+        long timestamp = AtlasDbConstants.TRANSACTION_TS;
+
+        Key nextKey = table.entries.ceilingKey(new Key(row, ArrayUtils.EMPTY_BYTE_ARRAY, Long.MIN_VALUE));
+        if (nextKey != null && nextKey.matchesRow(row)) {
+            // Save memory by sharing rows.
+            row = nextKey.row;
+        }
+        byte[] oldContents = table.entries.put(new Key(row, col, timestamp), copyOf(contents));
+        if (oldContents != null && (!Arrays.equals(oldContents, oldValue))) {
+            throw new CheckAndSetException("Very unexpected value for this key. If you're seeing this, "
+                    + "multi-threaded operations have been running on this KVS, and your data got stomped on.",
+                    cell,
+                    oldValue,
+                    ImmutableList.of(oldContents));
+
+        }
+    }
+
+    private boolean valuesMatch(Map<Cell, Value> storedValue, byte[] expectedValue) {
+        if (expectedValue.length == 0 && storedValue.isEmpty()) {
+            return true;
+        }
+
+        if (storedValue.entrySet().size() != 1) {
+            return false;
+        }
+
+        return Arrays.equals(expectedValue, Iterables.getOnlyElement(storedValue.values()).getContents());
     }
 
     @Override
