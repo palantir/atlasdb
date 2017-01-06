@@ -43,7 +43,7 @@ public final class BlockConsumingInputStream extends InputStream {
 
     private static void ensureExpectedArraySizeDoesNotOverflow(BlockGetter blockGetter, int blocksInMemory) {
         int expectedLength = blockGetter.expectedLength();
-        Preconditions.checkArgument(blocksInMemory < Integer.MAX_VALUE / expectedLength,
+        Preconditions.checkArgument(blocksInMemory <= Integer.MAX_VALUE / expectedLength,
                 "Promised to load too many blocks into memory. The underlying buffer is stored as a byte array, "
                         + "so can only fit Integer.MAX_VALUE bytes. The supplied BlockGetter expected to produce "
                         + "blocks of %s bytes, so %s of them would cause the array to overflow.",
