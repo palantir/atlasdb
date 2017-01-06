@@ -444,6 +444,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 }
                 Map<Cell, byte[]> post = new LinkedHashMap<>();
                 getWithPostFiltering(tableRef, raw, post, Value.GET_VALUE);
+                validateExternalAndCommitLocksIfNecessary(tableRef);
                 batchIterator.markNumResultsNotDeleted(post.keySet().size());
                 return post.entrySet().iterator();
             }
@@ -513,7 +514,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 ColumnSelection.all(),
                 getStartTimestamp()));
 
-        return filterRowResults(tableRef, rawResults, Maps.newHashMap());
+
+        SortedMap<byte[], RowResult<byte[]>> results = filterRowResults(tableRef, rawResults, Maps.newHashMap());
+        validateExternalAndCommitLocksIfNecessary(tableRef);
+        return results;
     }
 
     private SortedMap<byte[], RowResult<byte[]>> filterRowResults(TableReference tableRef,
@@ -580,6 +584,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         Map<Cell, byte[]> result = getFromKeyValueService(tableRef, cells);
+        validateExternalAndCommitLocksIfNecessary(tableRef);
 
         return Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
     }

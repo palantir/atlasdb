@@ -71,6 +71,11 @@ develop
            definition. Reads from the stream store will transparently decompress the data.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1357>`__)
 
+    *    - |fixed|
+         - All SnapshotTransaction get methods support tables declared with
+           SweepStrategy.THOROUGH.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1421>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
