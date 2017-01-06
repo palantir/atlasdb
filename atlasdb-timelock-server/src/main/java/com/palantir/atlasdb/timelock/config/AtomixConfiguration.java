@@ -21,7 +21,6 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.remoting1.config.ssl.SslConfiguration;
 
 import io.atomix.copycat.server.storage.StorageLevel;
 
@@ -31,7 +30,7 @@ import io.atomix.copycat.server.storage.StorageLevel;
 public abstract class AtomixConfiguration {
     public static final AtomixConfiguration DEFAULT = ImmutableAtomixConfiguration.builder().build();
 
-    public abstract Optional<SslConfiguration> security();
+    public abstract Optional<AtomixSslConfiguration> security();
 
     @Value.Default
     public StorageLevel storageLevel() {

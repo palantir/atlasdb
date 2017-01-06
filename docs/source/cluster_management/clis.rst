@@ -55,9 +55,9 @@ For more information run ``./bin/atlasdb help migrate`` for more information.
  
 .. code-block:: bash
 
-     ./bin/atlasdb migrate --offline –-fromConfig from.yml --migrateConfig to.yml –-setup
-     ./bin/atlasdb migrate --offline –-fromConfig from.yml --migrateConfig to.yml --migrate
-     ./bin/atlasdb migrate --offline –-fromConfig from.yml --migrateConfig to.yml --validate
+     ./bin/atlasdb-cli --offline migrate  –-fromConfig from.yml --migrateConfig to.yml –-setup
+     ./bin/atlasdb-cli --offline migrate  –-fromConfig from.yml --migrateConfig to.yml --migrate
+     ./bin/atlasdb-cli --offline migrate  –-fromConfig from.yml --migrateConfig to.yml --validate
 
 .. _offline-clis:
 

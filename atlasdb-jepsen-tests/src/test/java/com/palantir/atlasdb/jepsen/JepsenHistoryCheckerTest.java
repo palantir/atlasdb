@@ -35,7 +35,11 @@ import com.palantir.atlasdb.jepsen.events.Event;
 import clojure.lang.Keyword;
 
 public class JepsenHistoryCheckerTest {
-    private static final Map<Keyword, ?> INFO_EVENT = ImmutableMap.of(Keyword.intern("type"), "info");
+    private static final Map<Keyword, ?> INFO_EVENT = ImmutableMap.of(
+            Keyword.intern("type"), "info",
+            Keyword.intern("process"), JepsenConstants.NEMESIS_PROCESS,
+            Keyword.intern("f"), "function",
+            Keyword.intern("time"), 12345L);
     private static final Map<Keyword, ?> INVOKE_EVENT = ImmutableMap.of(
             Keyword.intern("type"), "invoke",
             Keyword.intern("process"), 0,

@@ -30,7 +30,6 @@ import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.EventVisitor;
 import com.palantir.atlasdb.jepsen.events.FailEvent;
 import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
-import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 
@@ -46,7 +45,7 @@ public class NonOverlappingReadsMonotonicChecker implements Checker {
     }
 
     private static class Visitor implements EventVisitor {
-        private static final long DUMMY_VALUE = -1L;
+        private static final String DUMMY_VALUE = "-1";
         private static final int DUMMY_PROCESS = -1;
 
         private final Map<Integer, InvokeEvent> pendingReadForProcess = new HashMap<>();
@@ -54,10 +53,6 @@ public class NonOverlappingReadsMonotonicChecker implements Checker {
                 (first, second) -> Long.compare(first.time(), second.time()));
 
         private final List<Event> errors = new ArrayList<>();
-
-        @Override
-        public void visit(InfoEvent event) {
-        }
 
         @Override
         public void visit(InvokeEvent event) {
@@ -94,10 +89,14 @@ public class NonOverlappingReadsMonotonicChecker implements Checker {
 
         private void validateTimestampHigherThanReadsCompletedBeforeInvoke(InvokeEvent invoke, OkEvent event) {
             OkEvent lastAcknowledgedRead = lastAcknowledgedReadBefore(invoke.time());
-            if (lastAcknowledgedRead != null && lastAcknowledgedRead.value() >= event.value()) {
-                errors.add(lastAcknowledgedRead);
-                errors.add(invoke);
-                errors.add(event);
+            if (lastAcknowledgedRead != null) {
+                long timestamp = Long.parseLong(event.value());
+                long lastAcknowledgedTimestamp = Long.parseLong(lastAcknowledgedRead.value());
+                if (lastAcknowledgedTimestamp >= timestamp) {
+                    errors.add(lastAcknowledgedRead);
+                    errors.add(invoke);
+                    errors.add(event);
+                }
             }
         }
 

@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.jepsen;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -27,6 +28,8 @@ public class MonotonicCheckerTest {
     private static final Long ZERO_TIME = 0L;
     private static final int PROCESS_0 = 0;
     private static final int PROCESS_1 = 1;
+    private static final String INT_MAX_PLUS_ONE = String.valueOf(1L + Integer.MAX_VALUE);
+    private static final String NOOP = "noop";
 
     @Test
     public void shouldSucceedOnNoEvents() {
@@ -41,12 +44,12 @@ public class MonotonicCheckerTest {
         Event event1 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_0)
-                .value(1L)
+                .value("1")
                 .build();
         Event event2 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_0)
-                .value(0L)
+                .value("0")
                 .build();
 
         CheckerResult result = runMonotonicChecker(event1, event2);
@@ -60,12 +63,12 @@ public class MonotonicCheckerTest {
         Event event1 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_0)
-                .value(0L)
+                .value("0")
                 .build();
         Event event2 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_0)
-                .value(0L)
+                .value("0")
                 .build();
 
         CheckerResult result = runMonotonicChecker(event1, event2);
@@ -79,28 +82,55 @@ public class MonotonicCheckerTest {
         Event event1 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_0)
-                .value(1L)
+                .value("1")
                 .build();
         Event event2 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_1)
-                .value(2L)
+                .value("2")
                 .build();
         Event event3 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_0)
-                .value(4L)
+                .value("4")
                 .build();
         Event event4 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_1)
-                .value(3L)
+                .value("3")
                 .build();
 
-        CheckerResult result = runMonotonicChecker(event1, event2, event3, event4);
+        CheckerTestUtils.assertNoErrors(MonotonicChecker::new,
+                event1, event2, event3, event4);
+    }
 
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+    @Test
+    public void shouldThrowIfOkEventHasNonIntegerValue() {
+        Event event1 = ImmutableOkEvent.builder()
+                .time(ZERO_TIME)
+                .process(PROCESS_0)
+                .value(NOOP)
+                .build();
+        Event event2 = ImmutableOkEvent.builder()
+                .time(ZERO_TIME)
+                .process(PROCESS_0)
+                .value(NOOP)
+                .build();
+
+        assertThatThrownBy(() -> runMonotonicChecker(event1, event2))
+                .isInstanceOf(NumberFormatException.class);
+    }
+
+    @Test
+    public void shouldParseLongValues() {
+        Event event1 = ImmutableOkEvent.builder()
+                .time(ZERO_TIME)
+                .process(PROCESS_0)
+                .value(INT_MAX_PLUS_ONE)
+                .build();
+
+        CheckerTestUtils.assertNoErrors(MonotonicChecker::new,
+                event1);
     }
 
     private static CheckerResult runMonotonicChecker(Event... events) {

@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.jepsen;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -28,6 +29,8 @@ import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
 public class NonOverlappingReadsMonotonicCheckerTest {
     private static final int PROCESS_0 = 0;
     private static final int PROCESS_1 = 1;
+    private static final Long INT_MAX_PLUS_ONE = 1L + Integer.MAX_VALUE;
+    private static final Long INT_MAX_PLUS_TWO = 2L + Integer.MAX_VALUE;
 
     @Test
     public void shouldSucceedOnNoEvents() {
@@ -41,9 +44,9 @@ public class NonOverlappingReadsMonotonicCheckerTest {
     public void shouldFailOnDecreasingConfirmedReadsOnOneProcess() {
         long time = 0;
         Event event1 = createInvokeEvent(time++, PROCESS_0);
-        Event event2 = createOkEvent(time++, PROCESS_0, 1L);
+        Event event2 = createOkEvent(time++, PROCESS_0, "1");
         Event event3 = createInvokeEvent(time++, PROCESS_0);
-        Event event4 = createOkEvent(time++, PROCESS_0, 0L);
+        Event event4 = createOkEvent(time++, PROCESS_0, "0");
 
         CheckerResult result = runChecker(event1, event2, event3, event4);
 
@@ -55,9 +58,9 @@ public class NonOverlappingReadsMonotonicCheckerTest {
     public void shouldFailOnDecreasingConfirmedReadsAcrossTwoProcesses() {
         long time = 0;
         Event event1 = createInvokeEvent(time++, PROCESS_0);
-        Event event2 = createOkEvent(time++, PROCESS_0, 1L);
+        Event event2 = createOkEvent(time++, PROCESS_0, "1");
         Event event3 = createInvokeEvent(time++, PROCESS_1);
-        Event event4 = createOkEvent(time++, PROCESS_1, 0L);
+        Event event4 = createOkEvent(time++, PROCESS_1, "0");
 
         CheckerResult result = runChecker(event1, event2, event3, event4);
 
@@ -69,9 +72,9 @@ public class NonOverlappingReadsMonotonicCheckerTest {
     public void shouldFailOnEqualConfirmedReads() {
         long time = 0;
         Event event1 = createInvokeEvent(time++, PROCESS_0);
-        Event event2 = createOkEvent(time++, PROCESS_0, 0L);
+        Event event2 = createOkEvent(time++, PROCESS_0, "0");
         Event event3 = createInvokeEvent(time++, PROCESS_0);
-        Event event4 = createOkEvent(time++, PROCESS_0, 0L);
+        Event event4 = createOkEvent(time++, PROCESS_0, "0");
 
         CheckerResult result = runChecker(event1, event2, event3, event4);
 
@@ -80,17 +83,15 @@ public class NonOverlappingReadsMonotonicCheckerTest {
     }
 
     @Test
-    public void shouldFailOnOverlappingReadsOnTwoProcesses() {
+    public void shouldSucceedOnOverlappingReadsOnTwoProcesses() {
         long time = 0;
         Event event1 = createInvokeEvent(time++, PROCESS_0);
         Event event2 = createInvokeEvent(time++, PROCESS_1);
-        Event event3 = createOkEvent(time++, PROCESS_0, 1L);
-        Event event4 = createOkEvent(time++, PROCESS_1, 0L);
+        Event event3 = createOkEvent(time++, PROCESS_0, "1");
+        Event event4 = createOkEvent(time++, PROCESS_1, "0");
 
-        CheckerResult result = runChecker(event1, event2, event3, event4);
-
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        CheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new,
+                event1, event2, event3, event4);
     }
 
     @Test
@@ -99,12 +100,10 @@ public class NonOverlappingReadsMonotonicCheckerTest {
         Event event1 = createInvokeEvent(time++, PROCESS_0);
         Event event2 = createFailEvent(time++, PROCESS_0);
         Event event3 = createInvokeEvent(time++, PROCESS_0);
-        Event event4 = createOkEvent(time++, PROCESS_0, 1L);
+        Event event4 = createOkEvent(time++, PROCESS_0, "1");
 
-        CheckerResult result = runChecker(event1, event2, event3, event4);
-
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        CheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new,
+                event1, event2, event3, event4);
     }
 
     @Test
@@ -113,12 +112,10 @@ public class NonOverlappingReadsMonotonicCheckerTest {
         Event event1 = createInvokeEvent(time++, PROCESS_0);
         Event event2 = createFailEvent(time++, PROCESS_0);
         Event event3 = createInvokeEvent(time++, PROCESS_1);
-        Event event4 = createOkEvent(time++, PROCESS_1, 1L);
+        Event event4 = createOkEvent(time++, PROCESS_1, "1");
 
-        CheckerResult result = runChecker(event1, event2, event3, event4);
-
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        CheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new,
+                event1, event2, event3, event4);
     }
 
     @Test
@@ -127,12 +124,35 @@ public class NonOverlappingReadsMonotonicCheckerTest {
         Event event1 = createInvokeEvent(time++, PROCESS_0);
         Event event3 = createInvokeEvent(time++, PROCESS_1);
         Event event2 = createFailEvent(time++, PROCESS_0);
-        Event event4 = createOkEvent(time++, PROCESS_1, 1L);
+        Event event4 = createOkEvent(time++, PROCESS_1, "1");
 
-        CheckerResult result = runChecker(event1, event2, event3, event4);
+        CheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new,
+                event1, event2, event3, event4);
+    }
 
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+    @Test
+    public void shouldThrowIfOkEventHasNonIntegerValue() {
+        long time = 0;
+        Event event1 = createInvokeEvent(time++, PROCESS_0);
+        Event event2 = createOkEvent(time++, PROCESS_0, "1");
+        Event event3 = createInvokeEvent(time++, PROCESS_0);
+        Event event4 = createOkEvent(time++, PROCESS_0, "noop");
+
+        NonOverlappingReadsMonotonicChecker checker = new NonOverlappingReadsMonotonicChecker();
+        assertThatThrownBy(() -> checker.check(ImmutableList.of(event1, event2, event3, event4)))
+                .isInstanceOf(NumberFormatException.class);
+    }
+
+    @Test
+    public void shouldParseLongValues() {
+        long time = 0;
+        Event event1 = createInvokeEvent(time++, PROCESS_0);
+        Event event2 = createOkEvent(time++, PROCESS_0, INT_MAX_PLUS_ONE.toString());
+        Event event3 = createInvokeEvent(time++, PROCESS_0);
+        Event event4 = createOkEvent(time++, PROCESS_0, INT_MAX_PLUS_TWO.toString());
+
+        CheckerTestUtils.assertNoErrors(NonOverlappingReadsMonotonicChecker::new,
+                event1, event2, event3, event4);
     }
 
     private ImmutableInvokeEvent createInvokeEvent(long time, int process) {
@@ -142,7 +162,7 @@ public class NonOverlappingReadsMonotonicCheckerTest {
                 .build();
     }
 
-    private ImmutableOkEvent createOkEvent(long time, int process, long value) {
+    private ImmutableOkEvent createOkEvent(long time, int process, String value) {
         return ImmutableOkEvent.builder()
                 .time(time)
                 .process(process)
