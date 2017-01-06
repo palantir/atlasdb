@@ -55,20 +55,21 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1341>`__)
 
     *    - |improved|
-         - Oracle query performance improvement; table name cache now global to KVS level.
+         - Improved the performance of Oracle queries, by making the table name cache global to the KVS level.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1325>`__)
 
     *    - |fixed|
          - Oracle value style caching limited in scope to per-KVS, previously per-JVM,
-           which could have in extremely rare cases caused issues for users in odd configurations.
+           which could have in extremely rare cases caused issues for users in non-standard configurations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1325>`__)
 
     *    - |new|
-         - We now publish a runnable distribution of AtlasCli that is available for download directly from Bintray
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1318>`__)
+         - We now publish a runnable distribution of AtlasCli that is available for download directly from Bintray.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1318>`__) and
+           (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/1345>`__)
 
     *    - |improved|
-         - Enable garbage collection logging for CircleCI builds.
+         - Enabled garbage collection logging for CircleCI builds. This may be useful for investigating pre-merge build failures.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1398>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
