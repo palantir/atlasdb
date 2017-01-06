@@ -21,13 +21,15 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.timelock.ServerImplementation;
+import com.palantir.atlasdb.timelock.atomix.AtomixServerImplementation;
 
 import io.atomix.copycat.server.storage.StorageLevel;
 
 @JsonSerialize(as = ImmutableAtomixConfiguration.class)
 @JsonDeserialize(as = ImmutableAtomixConfiguration.class)
 @Value.Immutable
-public abstract class AtomixConfiguration {
+public abstract class AtomixConfiguration implements AlgorithmConfiguration {
     public static final AtomixConfiguration DEFAULT = ImmutableAtomixConfiguration.builder().build();
 
     public abstract Optional<AtomixSslConfiguration> security();
@@ -40,5 +42,10 @@ public abstract class AtomixConfiguration {
     @Value.Default
     public String storageDirectory() {
         return "var/data/atomix";
+    }
+
+    @Override
+    public ServerImplementation createServerImpl() {
+        return new AtomixServerImplementation();
     }
 }

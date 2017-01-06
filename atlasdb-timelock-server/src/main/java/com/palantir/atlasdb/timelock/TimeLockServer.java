@@ -22,7 +22,6 @@ import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.component.LifeCycle;
 
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.timelock.atomix.AtomixServerImplementation;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
 
@@ -36,7 +35,7 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
 
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
-        ServerImplementation serverImpl = new AtomixServerImplementation();
+        ServerImplementation serverImpl = configuration.algorithm().createServerImpl();
         try {
             serverImpl.onStart(configuration);
             registerResources(configuration, environment, serverImpl);

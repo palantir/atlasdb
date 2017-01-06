@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.timelock.ServerImplementation;
 import com.palantir.atlasdb.timelock.TimeLockServices;
+import com.palantir.atlasdb.timelock.config.AtomixConfiguration;
 import com.palantir.atlasdb.timelock.config.AtomixSslConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -47,12 +48,13 @@ public class AtomixServerImplementation implements ServerImplementation {
 
     @Override
     public void onStart(TimeLockServerConfiguration configuration) {
+        AtomixConfiguration atomix = ((AtomixConfiguration) configuration.algorithm());
         replica = AtomixReplica.builder(new Address(configuration.cluster().localServer()))
                 .withStorage(Storage.builder()
-                        .withDirectory(configuration.atomix().storageDirectory())
-                        .withStorageLevel(configuration.atomix().storageLevel())
+                        .withDirectory(atomix.storageDirectory())
+                        .withStorageLevel(atomix.storageLevel())
                         .build())
-                .withTransport(createTransport(configuration.atomix().security()))
+                .withTransport(createTransport(atomix.security()))
                 .build();
         AtomixRetryer.getWithRetry(() -> replica.bootstrap(
                 configuration.cluster()

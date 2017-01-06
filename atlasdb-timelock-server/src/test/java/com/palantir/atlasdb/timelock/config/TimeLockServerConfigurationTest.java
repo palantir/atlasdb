@@ -35,7 +35,7 @@ public class TimeLockServerConfigurationTest {
     @Test
     public void shouldAddDefaultConfigurationIfNotIncluded() {
         TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS);
-        assertThat(configuration.atomix()).isEqualTo(ImmutableAtomixConfiguration.DEFAULT);
+        assertThat(configuration.algorithm()).isEqualTo(ImmutableAtomixConfiguration.DEFAULT);
     }
 
     @Test
