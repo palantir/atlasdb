@@ -54,6 +54,18 @@ develop
            linear in terms of stream length, as it was previously.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1341>`__)
 
+    *    - |new|
+         - AtlasDB now supports stream store compression.
+           Streams can be compressed client-side by adding the ``compressStreamInClient`` option to the stream
+           definition. Reads from the stream store will transparently decompress the data.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1357>`__)
+
+    *    - |improved|
+         - Increase connection pool idle timeout to 10 minutes, and reduce eviction check frequency to 20-30 seconds at 1/10 of connections.
+           Note that there is now a configuration called ``maxConnectionBurstSize``, which configures how large the pool is able to grow when
+           receiving a large burst of requests. Previously this was hard-coded to 5x the ``poolSize`` (which is now the default for the parameter).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1336>`__)
+
     *    - |improved|
          - Improved the performance of Oracle queries, by making the table name cache global to the KVS level.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1325>`__)
@@ -72,11 +84,9 @@ develop
          - Enabled garbage collection logging for CircleCI builds. This may be useful for investigating pre-merge build failures.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1398>`__)
 
-    *    - |new|
-         - AtlasDB now supports stream store compression.
-           Streams can be compressed client-side by adding the ``compressStreamInClient`` option to the stream 
-           definition. Reads from the stream store will transparently decompress the data.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1357>`__)
+    *    - |changed|
+         - Updated our dependency on ``gradle-java-distribution`` from 1.0.1 to 1.2.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1361>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -119,12 +129,6 @@ v0.26.0
          - When we hit the ``MultipleRunningTimestampServicesError`` issue, we now automatically log thread dumps to a separate file (file path specified in service logs).
            The full file path of the ``atlas-timestamps-log`` file will be outputted to the service logs.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1275>`__, `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1332>`__)
-
-    *    - |improved|
-         - Increase connection pool idle timeout to 10 minutes, and reduce eviction check frequency to 20-30 seconds at 1/10 of connections.
-           Note that there is now a configuration called ``maxConnectionBurstSize``, which configures how large the pool is able to grow when
-           receiving a large burst of requests. Previously this was hard-coded to 5x the ``poolSize`` (which is now the default for the parameter).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1336>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
