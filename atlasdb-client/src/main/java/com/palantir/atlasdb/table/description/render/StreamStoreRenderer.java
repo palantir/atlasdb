@@ -540,8 +540,8 @@ public class StreamStoreRenderer {
                 line("protected StreamMetadata storeBlocksAndGetFinalMetadata(Transaction t, long id, InputStream stream) {"); {
                     line("//Hash the data before compressing it");
                     line("MessageDigest digest = Sha256Hash.getMessageDigest();");
-                    line("try (InputStream hashingStream = new DigestInputStream(stream, digest);"); {
-                        line("    InputStream compressingStream = new LZ4CompressingInputStream(hashingStream)) {");
+                    line("try (InputStream hashingStream = new DigestInputStream(stream, digest);");
+                    line("        InputStream compressingStream = new LZ4CompressingInputStream(hashingStream)) {"); {
                         line("StreamMetadata metadata = storeBlocksAndGetHashlessMetadata(t, id, compressingStream);");
                         line("return StreamMetadata.newBuilder(metadata)");
                         line("        .setHash(ByteString.copyFrom(digest.digest()))");
