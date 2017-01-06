@@ -20,12 +20,18 @@ import org.jsimpledb.JTransaction;
 import org.jsimpledb.ValidationMode;
 import org.jsimpledb.core.ObjId;
 
+import com.google.common.base.Preconditions;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
 public class JSimpleDbTimestampService implements TimestampService {
     private final JSimpleDB jdb;
     private final ObjId timestampId;
+
+    private long current = 0L;
+    private long maximal = 0L;
+
+    private static final long BUFFER = 1000000L;
 
     public JSimpleDbTimestampService(JSimpleDB jdb, String client) {
         this.jdb = jdb;
@@ -38,22 +44,30 @@ public class JSimpleDbTimestampService implements TimestampService {
     }
 
     @Override
-    public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        return JSimpleDbRetryer.getWithRetry(() -> {
-            JTransaction tx = jdb.createTransaction(true, ValidationMode.AUTOMATIC);
-            JTransaction.setCurrent(tx);
-            try {
-                Timestamp ts = Timestamp.get(timestampId);
-                long lastTimestampHandedOut = ts.getTimestamp();
-                ts.setTimestamp(lastTimestampHandedOut + numTimestampsRequested);
-                tx.commit();
-                return TimestampRange.createInclusiveRange(
-                        lastTimestampHandedOut + 1,
-                        lastTimestampHandedOut + numTimestampsRequested);
-            } finally {
-                JTransaction.setCurrent(null);
-            }
-        });
+    public synchronized TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+        Preconditions.checkArgument(numTimestampsRequested > 0, "Can't request negative number of timestamps.");
+
+        if (current + numTimestampsRequested > maximal) {
+            // pump up the buffer
+            maximal = JSimpleDbRetryer.getWithRetry(() -> {
+                JTransaction tx = jdb.createTransaction(true, ValidationMode.AUTOMATIC);
+                JTransaction.setCurrent(tx);
+                try {
+                    Timestamp ts = Timestamp.get(timestampId);
+                    long lastTimestampHandedOut = ts.getTimestamp();
+                    ts.setTimestamp(lastTimestampHandedOut + BUFFER);
+                    tx.commit();
+                    return lastTimestampHandedOut + BUFFER;
+                } finally {
+                    JTransaction.setCurrent(null);
+                }
+            });
+            current = maximal - BUFFER; // wasteful but avoids difficult situations...
+        }
+
+        TimestampRange range = TimestampRange.createInclusiveRange(current + 1, current + numTimestampsRequested);
+        current = current + numTimestampsRequested;
+        return range;
     }
 
     private static ObjId getTimestampId(JSimpleDB jdb, String client) {

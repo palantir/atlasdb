@@ -37,6 +37,8 @@ public class JSimpleDbInvalidatingLeaderProxy<T> extends AbstractInvocationHandl
     private final Supplier<T> delegateSupplier;
     private final AtomicReference<TermWrapped<T>> delegateRef;
 
+    private org.jsimpledb.kv.raft.Timestamp safetyBound;
+
     public JSimpleDbInvalidatingLeaderProxy(RaftKVDatabase raft, Supplier<T> delegateSupplier) {
         this.raft = raft;
         this.delegateSupplier = delegateSupplier;
@@ -62,10 +64,20 @@ public class JSimpleDbInvalidatingLeaderProxy<T> extends AbstractInvocationHandl
         try {
             if (raft.getCurrentRole() instanceof LeaderRole) {
                 // We *think* we are the leader. But we still need to get more info
+
+                if (safetyBound != null && new org.jsimpledb.kv.raft.Timestamp().compareTo(safetyBound) < 0) {
+                    // Safe.
+                    TermWrapped<T> delegate = delegateRef.get();
+                    if (delegate != null && delegate.term() == raft.getCurrentTerm()) {
+                        return method.invoke(delegate.delegate(), args);
+                    }
+                }
+
                 RaftKVTransaction tx = raft.createTransaction();
                 tx.setTimeout(RaftKVDatabase.DEFAULT_HEARTBEAT_TIMEOUT * 2);
                 tx.commit(); // this "touch" means we have contacted a majority of servers
                 long currentTerm = tx.getCommitTerm();
+                safetyBound = ((LeaderRole) raft.getCurrentRole()).getLeaseTimeout();
 
                 TermWrapped<T> delegate = delegateRef.get();
                 while (delegate == null || delegate.term() < currentTerm) {
