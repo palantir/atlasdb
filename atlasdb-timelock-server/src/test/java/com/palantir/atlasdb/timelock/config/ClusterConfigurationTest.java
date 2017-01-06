@@ -20,8 +20,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.Test;
 
 public class ClusterConfigurationTest {
-    private static final String ADDRESS_1 = "localhost:2";
-    private static final String ADDRESS_2 = "localhost:1";
+    private static final String ADDRESS_1 = "localhost:1";
+    private static final String ADDRESS_2 = "localhost:2";
 
     @Test
     public void shouldThrowIfLocalServerNotSpecified() {

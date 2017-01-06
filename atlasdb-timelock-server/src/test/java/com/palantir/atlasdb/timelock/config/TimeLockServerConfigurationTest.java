@@ -43,4 +43,16 @@ public class TimeLockServerConfigurationTest {
         assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of()))
                 .isInstanceOf(IllegalStateException.class);
     }
+
+    @Test
+    public void shouldRejectClientsWithInvalidCharacters() {
+        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of("/")))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void shouldRejectClientsWithEmptyName() {
+        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of("")))
+                .isInstanceOf(IllegalStateException.class);
+    }
 }
