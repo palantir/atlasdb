@@ -1678,36 +1678,17 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public void putUnlessExists(final TableReference tableRef, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        String tableName = internalTableName(tableRef);
         try {
-            clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
-                @Override
-                public Void apply(Client client) throws Exception {
-                    for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
-                        ByteBuffer rowName = ByteBuffer.wrap(e.getKey().getRowName());
-                        byte[] contents = e.getValue();
-                        long timestamp = AtlasDbConstants.TRANSACTION_TS;
-                        byte[] colName = CassandraKeyValueServices
-                                .makeCompositeBuffer(e.getKey().getColumnName(), timestamp)
-                                .array();
-                        Column col = new Column();
-                        col.setName(colName);
-                        col.setValue(contents);
-                        col.setTimestamp(timestamp);
-                        CASResult casResult = queryRunner.run(client, tableRef, () -> client.cas(
-                                rowName,
-                                tableName,
-                                ImmutableList.of(),
-                                ImmutableList.of(col),
-                                ConsistencyLevel.SERIAL,
-                                writeConsistency));
-                        if (!casResult.isSuccess()) {
-                            throw new KeyAlreadyExistsException("This transaction row already exists.",
-                                    ImmutableList.of(e.getKey()));
-                        }
+            clientPool.runWithRetry(client -> {
+                for (Entry<Cell, byte[]> e : values.entrySet()) {
+                    CheckAndSetRequest request = CheckAndSetRequest.newCell(tableRef, e.getKey(), e.getValue());
+                    CASResult casResult = executeCheckAndSet(client, request);
+                    if (!casResult.isSuccess()) {
+                        throw new KeyAlreadyExistsException("This transaction row already exists.",
+                                ImmutableList.of(e.getKey()));
                     }
-                    return null;
                 }
+                return null;
             });
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
@@ -1718,42 +1699,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     public void checkAndSet(final CheckAndSetRequest request) {
         try {
             clientPool.runWithRetry(client -> {
-                TableReference tableRef = request.table();
-                byte[] rowNameAsBytes = request.row().getRowName();
-                byte[] columnName = request.row().getColumnName();
-                byte[] contents = request.newValue();
-
-                String tableName = internalTableName(tableRef);
-                ByteBuffer rowName = ByteBuffer.wrap(rowNameAsBytes);
-                long timestamp = AtlasDbConstants.TRANSACTION_TS;
-                byte[] colName = CassandraKeyValueServices
-                        .makeCompositeBuffer(columnName, timestamp)
-                        .array();
-
-                List<Column> oldColumns;
-                if (request.oldValue().length > 0) {
-                    Column oldColumn = new Column();
-                    oldColumn.setName(colName);
-                    oldColumn.setValue(request.oldValue());
-                    oldColumn.setTimestamp(timestamp);
-                    oldColumns = ImmutableList.of(oldColumn);
-                } else {
-                    oldColumns = ImmutableList.of();
-                }
-
-                Column newColumn = new Column();
-                newColumn.setName(colName);
-                newColumn.setValue(contents);
-                newColumn.setTimestamp(timestamp);
-                CASResult casResult = queryRunner.run(client, tableRef, () -> {
-                    return client.cas(
-                            rowName,
-                            tableName,
-                            oldColumns,
-                            ImmutableList.of(newColumn),
-                            ConsistencyLevel.SERIAL,
-                            writeConsistency);
-                });
+                CASResult casResult = executeCheckAndSet(client, request);
 
                 if (!casResult.isSuccess()) {
                     // TODO Handle error properly
@@ -1765,6 +1711,42 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
+    }
+
+    private CASResult executeCheckAndSet(Client client, CheckAndSetRequest request)
+            throws TException {
+        TableReference table = request.table();
+        Cell cell = request.row();
+        long timestamp = AtlasDbConstants.TRANSACTION_TS;
+
+        ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());
+        byte[] colName = CassandraKeyValueServices
+                .makeCompositeBuffer(cell.getColumnName(), timestamp)
+                .array();
+
+        List<Column> oldColumns;
+        if (request.oldValue().length > 0) {
+            oldColumns = ImmutableList.of(makeColumn(colName, request.oldValue(), timestamp));
+        } else {
+            oldColumns = ImmutableList.of();
+        }
+
+        Column newColumn = makeColumn(colName, request.newValue(), timestamp);
+        return queryRunner.run(client, table, () -> client.cas(
+                rowName,
+                internalTableName(table),
+                oldColumns,
+                ImmutableList.of(newColumn),
+                ConsistencyLevel.SERIAL,
+                writeConsistency));
+    }
+
+    private Column makeColumn(byte[] colName, byte[] contents, long timestamp) {
+        Column newColumn = new Column();
+        newColumn.setName(colName);
+        newColumn.setValue(contents);
+        newColumn.setTimestamp(timestamp);
+        return newColumn;
     }
 
     @Override
