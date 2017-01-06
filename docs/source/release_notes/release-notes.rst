@@ -35,6 +35,12 @@ Changelog
 develop
 =======
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+0.27.0
+=======
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -55,11 +61,11 @@ develop
     *    - |fixed|
          - Oracle value style caching limited in scope to per-KVS, previously per-JVM,
            which could have in extremely rare cases caused issues for users in odd configurations.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1235>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1325>`__)
 
     *    - |new|
          - We now publish a runnable distribution of AtlasCli that is available for download directly from Bintray
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1345>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1318>`__)
 
     *    - |improved|
          - Enable garbage collection logging for CircleCI builds.
