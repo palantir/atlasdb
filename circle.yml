@@ -26,6 +26,7 @@ dependencies:
   override:
     - ./scripts/time-cmd.sh ./gradlew --profile --parallel resolveConfigurations
     - scripts/circle-ci/pr-changelog-status-check.sh
+    - ./gradlew --stacktrace generateLock verifyDependencyLocksAreCurrent
 
 test:
   pre:
