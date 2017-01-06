@@ -40,8 +40,8 @@ public class TimeLockServerConfiguration extends Configuration {
         this.clients = clients;
     }
 
-    private void checkClientNames(Set<String> clients) {
-        clients.forEach(client -> Preconditions.checkState(
+    private void checkClientNames(Set<String> clientNames) {
+        clientNames.forEach(client -> Preconditions.checkState(
                 client.matches("[a-zA-Z0-9_-]+"),
                 String.format("Client names must consist of alphanumeric characters, underscores or dashes only; "
                         + "'%s' does not.", client)));

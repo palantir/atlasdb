@@ -48,7 +48,7 @@ public class AtomixServerImplementation implements ServerImplementation {
 
     @Override
     public void onStart(TimeLockServerConfiguration configuration) {
-        AtomixConfiguration atomix = ((AtomixConfiguration) configuration.algorithm());
+        AtomixConfiguration atomix = (AtomixConfiguration) configuration.algorithm();
         replica = AtomixReplica.builder(new Address(configuration.cluster().localServer()))
                 .withStorage(Storage.builder()
                         .withDirectory(atomix.storageDirectory())
