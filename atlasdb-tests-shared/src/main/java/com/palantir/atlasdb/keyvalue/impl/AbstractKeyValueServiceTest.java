@@ -24,6 +24,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -55,6 +56,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -850,6 +852,34 @@ public abstract class AbstractKeyValueServiceTest {
 
         assertEquals(1, timestamps.size());
         assertTrue(timestamps.containsEntry(cell, AtlasDbConstants.TRANSACTION_TS));
+    }
+
+    @Test(expected = CheckAndSetException.class)
+    public void testCheckAndSetFromWrongValue() {
+        Cell cell = Cell.create(row0, column0);
+
+        CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, cell, value00);
+        keyValueService.checkAndSet(request);
+
+        CheckAndSetRequest secondRequest = CheckAndSetRequest.singleCell(TEST_TABLE, cell, value01, value00);
+        keyValueService.checkAndSet(secondRequest);
+    }
+
+    @Test(expected = CheckAndSetException.class)
+    public void testCheckAndSetFromValueWhenNoValue() {
+        Cell cell = Cell.create(row0, column0);
+
+        CheckAndSetRequest request = CheckAndSetRequest.singleCell(TEST_TABLE, cell, value00, value01);
+        keyValueService.checkAndSet(request);
+    }
+
+    @Test(expected = CheckAndSetException.class)
+    public void testCheckAndSetFromNoValueWhenValueIsPresent() {
+        Cell cell = Cell.create(row0, column0);
+
+        CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, cell, value00);
+        keyValueService.checkAndSet(request);
+        keyValueService.checkAndSet(request);
     }
 
     @Test
