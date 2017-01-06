@@ -1,0 +1,176 @@
+{
+    "compileClasspath": {
+        "com.fasterxml.jackson.core:jackson-annotations": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:leader-election-api"
+            ]
+        },
+        "com.google.code.findbugs:annotations": {
+            "locked": "2.0.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:leader-election-api",
+                "com.palantir.atlasdb:leader-election-api-protobufs"
+            ]
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "1.3.9",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.google.guava:guava": {
+            "locked": "18.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.google.protobuf:protobuf-java": {
+            "locked": "2.6.0",
+            "requested": "2.6.0",
+            "transitive": [
+                "com.palantir.atlasdb:leader-election-api-protobufs"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-commons": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:leader-election-api"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:leader-election-api": {
+            "project": true
+        },
+        "com.palantir.atlasdb:leader-election-api-protobufs": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:leader-election-api"
+            ]
+        },
+        "commons-io:commons-io": {
+            "locked": "2.1"
+        },
+        "commons-lang:commons-lang": {
+            "locked": "2.6",
+            "requested": "2.6",
+            "transitive": [
+                "com.palantir.atlasdb:leader-election-api"
+            ]
+        },
+        "javax.ws.rs:javax.ws.rs-api": {
+            "locked": "2.0.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:leader-election-api"
+            ]
+        },
+        "net.jpountz.lz4:lz4": {
+            "locked": "1.3.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "org.slf4j:slf4j-api": {
+            "locked": "1.7.5",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        }
+    },
+    "runtime": {
+        "com.fasterxml.jackson.core:jackson-annotations": {
+            "locked": "2.6.7",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:leader-election-api"
+            ]
+        },
+        "com.google.code.findbugs:annotations": {
+            "locked": "2.0.3",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:commons-executors",
+                "com.palantir.atlasdb:leader-election-api",
+                "com.palantir.atlasdb:leader-election-api-protobufs"
+            ]
+        },
+        "com.google.code.findbugs:jsr305": {
+            "locked": "1.3.9",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.google.guava:guava": {
+            "locked": "18.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.google.protobuf:protobuf-java": {
+            "locked": "2.6.0",
+            "requested": "2.6.0",
+            "transitive": [
+                "com.palantir.atlasdb:leader-election-api-protobufs"
+            ]
+        },
+        "com.palantir.atlasdb:atlasdb-commons": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:leader-election-api"
+            ]
+        },
+        "com.palantir.atlasdb:commons-executors": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "com.palantir.atlasdb:leader-election-api": {
+            "project": true
+        },
+        "com.palantir.atlasdb:leader-election-api-protobufs": {
+            "project": true,
+            "transitive": [
+                "com.palantir.atlasdb:leader-election-api"
+            ]
+        },
+        "commons-io:commons-io": {
+            "locked": "2.1"
+        },
+        "commons-lang:commons-lang": {
+            "locked": "2.6",
+            "requested": "2.6",
+            "transitive": [
+                "com.palantir.atlasdb:leader-election-api"
+            ]
+        },
+        "javax.ws.rs:javax.ws.rs-api": {
+            "locked": "2.0.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
+                "com.palantir.atlasdb:leader-election-api"
+            ]
+        },
+        "net.jpountz.lz4:lz4": {
+            "locked": "1.3.0",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
+        "org.slf4j:slf4j-api": {
+            "locked": "1.7.5",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        }
+    }
+}

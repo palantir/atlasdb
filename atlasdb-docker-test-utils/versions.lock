@@ -1,0 +1,192 @@
+{
+    "compileClasspath": {
+        "cglib:cglib-nodep": {
+            "locked": "3.1",
+            "transitive": [
+                "com.jayway.awaitility:awaitility"
+            ]
+        },
+        "com.github.almondtools:conmatch": {
+            "locked": "0.1.5",
+            "transitive": [
+                "net.amygdalum:xrayinterface"
+            ]
+        },
+        "com.github.zafarkhaja:java-semver": {
+            "locked": "0.9.0",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "com.google.code.findbugs:annotations": {
+            "locked": "2.0.3"
+        },
+        "com.google.guava:guava": {
+            "locked": "18.0",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "com.jayway.awaitility:awaitility": {
+            "locked": "1.6.5",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "com.palantir.docker.compose:docker-compose-rule": {
+            "locked": "0.28.1",
+            "requested": "0.28.1"
+        },
+        "commons-io:commons-io": {
+            "locked": "2.1",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "joda-time:joda-time": {
+            "locked": "2.7",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "junit:junit": {
+            "locked": "4.12",
+            "transitive": [
+                "com.github.almondtools:conmatch",
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "net.amygdalum:xrayinterface": {
+            "locked": "0.3.0",
+            "requested": "0.3.0"
+        },
+        "org.apache.commons:commons-lang3": {
+            "locked": "3.1",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "org.hamcrest:hamcrest-core": {
+            "locked": "1.3",
+            "transitive": [
+                "com.jayway.awaitility:awaitility",
+                "junit:junit",
+                "org.hamcrest:hamcrest-library"
+            ]
+        },
+        "org.hamcrest:hamcrest-library": {
+            "locked": "1.3",
+            "transitive": [
+                "com.github.almondtools:conmatch",
+                "com.jayway.awaitility:awaitility"
+            ]
+        },
+        "org.objenesis:objenesis": {
+            "locked": "2.2",
+            "transitive": [
+                "com.jayway.awaitility:awaitility"
+            ]
+        },
+        "org.slf4j:slf4j-api": {
+            "locked": "1.7.5",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        }
+    },
+    "runtime": {
+        "cglib:cglib-nodep": {
+            "locked": "3.1",
+            "transitive": [
+                "com.jayway.awaitility:awaitility"
+            ]
+        },
+        "com.github.almondtools:conmatch": {
+            "locked": "0.1.5",
+            "transitive": [
+                "net.amygdalum:xrayinterface"
+            ]
+        },
+        "com.github.zafarkhaja:java-semver": {
+            "locked": "0.9.0",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "com.google.code.findbugs:annotations": {
+            "locked": "2.0.3"
+        },
+        "com.google.guava:guava": {
+            "locked": "18.0",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "com.jayway.awaitility:awaitility": {
+            "locked": "1.6.5",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "com.palantir.docker.compose:docker-compose-rule": {
+            "locked": "0.28.1",
+            "requested": "0.28.1"
+        },
+        "commons-io:commons-io": {
+            "locked": "2.1",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "joda-time:joda-time": {
+            "locked": "2.7",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "junit:junit": {
+            "locked": "4.12",
+            "transitive": [
+                "com.github.almondtools:conmatch",
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "net.amygdalum:xrayinterface": {
+            "locked": "0.3.0",
+            "requested": "0.3.0"
+        },
+        "org.apache.commons:commons-lang3": {
+            "locked": "3.1",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        },
+        "org.hamcrest:hamcrest-core": {
+            "locked": "1.3",
+            "transitive": [
+                "com.jayway.awaitility:awaitility",
+                "junit:junit",
+                "org.hamcrest:hamcrest-library"
+            ]
+        },
+        "org.hamcrest:hamcrest-library": {
+            "locked": "1.3",
+            "transitive": [
+                "com.github.almondtools:conmatch",
+                "com.jayway.awaitility:awaitility"
+            ]
+        },
+        "org.objenesis:objenesis": {
+            "locked": "2.2",
+            "transitive": [
+                "com.jayway.awaitility:awaitility"
+            ]
+        },
+        "org.slf4j:slf4j-api": {
+            "locked": "1.7.5",
+            "transitive": [
+                "com.palantir.docker.compose:docker-compose-rule"
+            ]
+        }
+    }
+}
