@@ -16,163 +16,62 @@
 package com.palantir.atlasdb.timelock;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.component.LifeCycle;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.timelock.atomix.AtomixRetryer;
-import com.palantir.atlasdb.timelock.atomix.AtomixTimestampService;
-import com.palantir.atlasdb.timelock.atomix.DistributedValues;
-import com.palantir.atlasdb.timelock.atomix.ImmutableLeaderAndTerm;
-import com.palantir.atlasdb.timelock.atomix.InvalidatingLeaderProxy;
-import com.palantir.atlasdb.timelock.atomix.LeaderAndTerm;
-import com.palantir.atlasdb.timelock.config.AtomixSslConfiguration;
+import com.palantir.atlasdb.timelock.atomix.AtomixServerImplementation;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
-import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.remoting1.config.ssl.SslConfiguration;
 import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
 
-import io.atomix.AtomixReplica;
-import io.atomix.catalyst.transport.Transport;
-import io.atomix.catalyst.transport.netty.NettyTransport;
-import io.atomix.copycat.server.storage.Storage;
-import io.atomix.group.DistributedGroup;
-import io.atomix.group.LocalMember;
-import io.atomix.variables.DistributedLong;
-import io.atomix.variables.DistributedValue;
 import io.dropwizard.Application;
-import io.dropwizard.java8.Java8Bundle;
-import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
 public class TimeLockServer extends Application<TimeLockServerConfiguration> {
-    private static final Logger log = LoggerFactory.getLogger(TimeLockServer.class);
-
     public static void main(String[] args) throws Exception {
         new TimeLockServer().run(args);
     }
 
     @Override
-    public void initialize(Bootstrap<TimeLockServerConfiguration> bootstrap) {
-        bootstrap.addBundle(new Java8Bundle());
-    }
-
-    @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
-        AtomixReplica replica = AtomixReplica.builder(configuration.cluster().localServer())
-                .withStorage(Storage.builder()
-                        .withDirectory(configuration.atomix().storageDirectory())
-                        .withStorageLevel(configuration.atomix().storageLevel())
-                        .build())
-                .withTransport(createTransport(configuration.atomix().security()))
-                .build();
+        ServerImplementation serverImpl = new AtomixServerImplementation();
         try {
-            AtomixRetryer.getWithRetry(() -> replica.bootstrap(configuration.cluster().servers()));
-            run(configuration, environment, replica);
+            serverImpl.onStart(configuration);
+            run(configuration, environment, serverImpl);
         } catch (Exception e) {
-            AtomixRetryer.getWithRetry(replica::shutdown);
+            serverImpl.onFail();
             throw e;
         }
 
         environment.lifecycle().addLifeCycleListener(new AbstractLifeCycle.AbstractLifeCycleListener() {
             @Override
             public void lifeCycleStopped(LifeCycle event) {
-                AtomixRetryer.getWithRetry(replica::shutdown);
+                serverImpl.onStop();
             }
         });
     }
 
-    private static void run(TimeLockServerConfiguration configuration, Environment environment, AtomixReplica replica) {
-        DistributedGroup timeLockGroup = DistributedValues.getTimeLockGroup(replica);
-        LocalMember localMember = AtomixRetryer.getWithRetry(timeLockGroup::join);
-
-        DistributedValue<LeaderAndTerm> leaderInfo = DistributedValues.getLeaderInfo(replica);
-        timeLockGroup.election().onElection(term -> {
-            LeaderAndTerm newLeaderInfo = ImmutableLeaderAndTerm.of(term.term(), term.leader().id());
-            while (true) {
-                LeaderAndTerm currentLeaderInfo = AtomixRetryer.getWithRetry(leaderInfo::get);
-                if (currentLeaderInfo != null && newLeaderInfo.term() <= currentLeaderInfo.term()) {
-                    log.info("Not setting the leader to {} since it is not newer than the current leader {}",
-                            newLeaderInfo, currentLeaderInfo);
-                    break;
-                }
-                log.debug("Updating the leader from {} to {}", currentLeaderInfo, newLeaderInfo);
-                if (leaderInfo.compareAndSet(currentLeaderInfo, newLeaderInfo).join()) {
-                    log.info("Leader has been set to {}", newLeaderInfo);
-                    break;
-                }
-            }
-        });
-
+    private static void run(
+            TimeLockServerConfiguration configuration,
+            Environment environment,
+            ServerImplementation serverImpl) {
         Map<String, TimeLockServices> clientToServices = createTimeLockServicesForClients(
-                replica,
-                configuration.clients(),
-                localMember,
-                leaderInfo);
+                serverImpl,
+                configuration.clients());
 
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
         environment.jersey().register(new TimeLockResource(clientToServices));
     }
 
     private static Map<String, TimeLockServices> createTimeLockServicesForClients(
-            AtomixReplica replica,
-            Set<String> clients,
-            LocalMember localMember,
-            DistributedValue<LeaderAndTerm> leaderInfo) {
+            ServerImplementation serverImpl,
+            Set<String> clients) {
         ImmutableMap.Builder<String, TimeLockServices> clientToServices = ImmutableMap.builder();
         for (String client : clients) {
-            DistributedLong timestamp = DistributedValues.getTimestampForClient(replica, client);
-            TimeLockServices timeLockServices = createInvalidatingTimeLockServices(
-                    localMember,
-                    leaderInfo,
-                    timestamp);
-            clientToServices.put(client, timeLockServices);
+            clientToServices.put(client, serverImpl.createInvalidatingTimeLockServices(client));
         }
         return clientToServices.build();
-    }
-
-    private static TimeLockServices createInvalidatingTimeLockServices(
-            LocalMember localMember,
-            DistributedValue<LeaderAndTerm> leaderInfo,
-            DistributedLong timestamp) {
-        Supplier<TimeLockServices> timeLockSupplier = () -> TimeLockServices.create(
-                new AtomixTimestampService(timestamp),
-                LockServiceImpl.create());
-        return InvalidatingLeaderProxy.create(
-                localMember,
-                leaderInfo,
-                timeLockSupplier,
-                TimeLockServices.class);
-    }
-
-    private static Transport createTransport(Optional<AtomixSslConfiguration> optionalSecurity) {
-        NettyTransport.Builder transport = NettyTransport.builder();
-
-        if (!optionalSecurity.isPresent()) {
-            return transport.build();
-        }
-
-        AtomixSslConfiguration security = optionalSecurity.get();
-        SslConfiguration baseSslConfiguration = security.sslConfiguration();
-        transport.withSsl()
-                .withTrustStorePath(baseSslConfiguration.trustStorePath().toString())
-                .withTrustStorePassword(security.trustStorePassword());
-
-        if (isKeystoreSpecified(baseSslConfiguration)) {
-            transport.withKeyStorePath(baseSslConfiguration.keyStorePath().get().toString());
-            transport.withKeyStorePassword(baseSslConfiguration.keyStorePassword().get());
-        }
-
-        return transport.build();
-    }
-
-    private static boolean isKeystoreSpecified(SslConfiguration baseSslConfiguration) {
-        return baseSslConfiguration.keyStorePath().isPresent() && baseSslConfiguration.keyStorePassword().isPresent();
     }
 }
