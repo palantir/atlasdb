@@ -28,7 +28,8 @@ public class MonotonicCheckerTest {
     private static final Long ZERO_TIME = 0L;
     private static final int PROCESS_0 = 0;
     private static final int PROCESS_1 = 1;
-    private static final Long INT_MAX_PLUS_ONE = 1L + Integer.MAX_VALUE;
+    private static final String INT_MAX_PLUS_ONE = String.valueOf(1L + Integer.MAX_VALUE);
+    private static final String NOOP = "noop";
 
     @Test
     public void shouldSucceedOnNoEvents() {
@@ -108,16 +109,16 @@ public class MonotonicCheckerTest {
         Event event1 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_0)
-                .value("noop")
+                .value(NOOP)
                 .build();
         Event event2 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_0)
-                .value("noop")
+                .value(NOOP)
                 .build();
 
         assertThatThrownBy(() -> runMonotonicChecker(event1, event2))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(NumberFormatException.class);
     }
 
     @Test
@@ -125,13 +126,11 @@ public class MonotonicCheckerTest {
         Event event1 = ImmutableOkEvent.builder()
                 .time(ZERO_TIME)
                 .process(PROCESS_0)
-                .value(INT_MAX_PLUS_ONE.toString())
+                .value(INT_MAX_PLUS_ONE)
                 .build();
 
-        CheckerResult result = runMonotonicChecker(event1);
-
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        CheckerTestUtils.assertNoErrors(MonotonicChecker::new,
+                event1);
     }
 
     private static CheckerResult runMonotonicChecker(Event... events) {

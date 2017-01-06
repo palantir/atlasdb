@@ -140,7 +140,7 @@ public class NonOverlappingReadsMonotonicCheckerTest {
 
         NonOverlappingReadsMonotonicChecker checker = new NonOverlappingReadsMonotonicChecker();
         assertThatThrownBy(() -> checker.check(ImmutableList.of(event1, event2, event3, event4)))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(NumberFormatException.class);
     }
 
     @Test

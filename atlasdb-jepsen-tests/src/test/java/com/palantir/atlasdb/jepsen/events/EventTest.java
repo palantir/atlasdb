@@ -28,7 +28,7 @@ import com.palantir.atlasdb.jepsen.JepsenConstants;
 import clojure.lang.Keyword;
 
 public class EventTest {
-    public static final String SOME_INTEGER_AS_STRING = "136";
+    public static final String SOME_LONG_AS_STRING = "136";
     public static final String SOME_STRING = "SOME_STRING";
     public static final Long SOME_LONG = 987L;
     public static final long SOME_TIME = 3029699376L;
@@ -69,7 +69,7 @@ public class EventTest {
         keywordMap.put(Keyword.intern("f"), Keyword.intern(JepsenConstants.START_FUNCTION));
         keywordMap.put(Keyword.intern("process"), Keyword.intern(JepsenConstants.NEMESIS_PROCESS));
         keywordMap.put(Keyword.intern("time"), SOME_TIME);
-        keywordMap.put(Keyword.intern("value"), Keyword.intern(String.valueOf(SOME_INTEGER_AS_STRING)));
+        keywordMap.put(Keyword.intern("value"), Keyword.intern(SOME_LONG_AS_STRING));
 
         Event event = Event.fromKeywordMap(keywordMap);
 
@@ -99,14 +99,14 @@ public class EventTest {
         Map<Keyword, Object> keywordMap = new HashMap<>();
         keywordMap.put(Keyword.intern("type"), Keyword.intern("ok"));
         keywordMap.put(Keyword.intern("f"), Keyword.intern("read-operation"));
-        keywordMap.put(Keyword.intern("value"), SOME_INTEGER_AS_STRING);
+        keywordMap.put(Keyword.intern("value"), SOME_LONG_AS_STRING);
         keywordMap.put(Keyword.intern("process"), SOME_PROCESS);
         keywordMap.put(Keyword.intern("time"), SOME_TIME);
 
         Event event = Event.fromKeywordMap(keywordMap);
 
         OkEvent expectedEvent = ImmutableOkEvent.builder()
-                .value(SOME_INTEGER_AS_STRING)
+                .value(SOME_LONG_AS_STRING)
                 .process(SOME_PROCESS)
                 .time(SOME_TIME)
                 .build();

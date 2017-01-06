@@ -88,8 +88,8 @@ public class NonOverlappingReadsMonotonicChecker implements Checker {
         private void validateTimestampHigherThanReadsCompletedBeforeInvoke(InvokeEvent invoke, OkEvent event) {
             OkEvent lastAcknowledgedRead = lastAcknowledgedReadBefore(invoke.time());
             if (lastAcknowledgedRead != null) {
-                Long timestamp = Long.parseLong(event.value());
-                Long lastAcknowledgedTimestamp = Long.parseLong(lastAcknowledgedRead.value());
+                long timestamp = Long.parseLong(event.value());
+                long lastAcknowledgedTimestamp = Long.parseLong(lastAcknowledgedRead.value());
                 if (lastAcknowledgedTimestamp >= timestamp) {
                     errors.add(lastAcknowledgedRead);
                     errors.add(invoke);
