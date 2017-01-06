@@ -18,11 +18,30 @@ package com.palantir.atlasdb.timelock;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 
 public interface ServerImplementation {
+    /**
+     * Called when the Timelock Server is started up, and is guaranteed to run before any requests
+     * are accepted from clients.
+     * @param configuration Timelock Server configuration; may be useful for initialisation
+     */
     void onStart(TimeLockServerConfiguration configuration);
 
+    /**
+     * Called when the Timelock Server is shut down after a successful start, whether normally or because
+     * of an exception. In the event the server fails to start, onFail() will be called, not this method.
+     */
     void onStop();
 
+    /**
+     * Called when the Timelock Server fails to start up. Note that this only applies to startup failures;
+     * in the event the Timelock Server is shut down due to an exception, onStop() will be called, not this method.
+     */
     void onFail();
 
+    /**
+     * Creates timestamp and lock services for the given client. It is expected that for each client there should
+     * only be one active timestamp service, and one active lock service at any time.
+     * @param client Client namespace to create the services for
+     * @return Invalidating timestamp and lock services
+     */
     TimeLockServices createInvalidatingTimeLockServices(String client);
 }
