@@ -48,40 +48,46 @@ develop
     *    - Type
          - Change
 
-    *    - |improved|
-         - ``StreamStore.loadStream`` now actually streams the data, if the data does not fit in memory.
-           This means that getting the first byte of the stream now has constant-time performance, compared to being
-           linear in terms of stream length, as it was previously.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1341>`__)
-
     *    - |new|
          - AtlasDB now supports stream store compression.
-           Streams can be compressed client-side by adding the ``compressStreamInClient`` option to the stream
-           definition. Reads from the stream store will transparently decompress the data.
+           Streams can be compressed client-side by adding the ``compressStreamInClient`` option to the stream definition.
+           Reads from the stream store will transparently decompress the data.
+
+           For information on using the stream store, see :ref:`schemas-streams`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1357>`__)
 
     *    - |improved|
-         - Increase connection pool idle timeout to 10 minutes, and reduce eviction check frequency to 20-30 seconds at 1/10 of connections.
-           Note that there is now a configuration called ``maxConnectionBurstSize``, which configures how large the pool is able to grow when
-           receiving a large burst of requests. Previously this was hard-coded to 5x the ``poolSize`` (which is now the default for the parameter).
+         - ``StreamStore.loadStream`` now actually streams data if it does not fit in memory.
+           This means that getting the first byte of the stream now has constant-time performance, rather than linear in terms of stream length as it was previously.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1341>`__)
+
+    *    - |improved|
+         - Increased connection pool idle timeout to 10 minutes, and reduced eviction check frequency to 20-30 seconds at 1/10 of connections.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1336>`__)
+
+    *    - |new|
+         - There is a new configuration called ``maxConnectionBurstSize``, which configures how large the pool is able to grow when receiving a large burst of requests.
+           Previously this was hard-coded to 5x the ``poolSize`` (which is now the default for the parameter).
+
+           See :ref:`Cassandra KVS Config <cassandra-kvs-config>` for details on configuring AtlasDB with Cassandra.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1336>`__)
 
     *    - |improved|
-         - Improved the performance of Oracle queries, by making the table name cache global to the KVS level.
+         - Improved the performance of Oracle queries by making the table name cache global to the KVS level.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1325>`__)
 
     *    - |fixed|
-         - Oracle value style caching limited in scope to per-KVS, previously per-JVM,
-           which could have in extremely rare cases caused issues for users in non-standard configurations.
+         - Oracle value style caching limited in scope to per-KVS, previously per-JVM, which could have in extremely rare cases caused issues for users in non-standard configurations.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1325>`__)
 
     *    - |new|
-         - We now publish a runnable distribution of AtlasCli that is available for download directly from Bintray.
+         - We now publish a runnable distribution of AtlasCli that is available for download directly from `Bintray <https://bintray.com/palantir/releases/atlasdb#files/com/palantir/atlasdb/atlasdb-cli-distribution>`__.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1318>`__) and
            (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/1345>`__)
 
     *    - |improved|
-         - Enabled garbage collection logging for CircleCI builds. This may be useful for investigating pre-merge build failures.
+         - Enabled garbage collection logging for CircleCI builds.
+           This may be useful for investigating pre-merge build failures.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1398>`__)
 
     *    - |changed|
