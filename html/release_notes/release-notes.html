@@ -192,7 +192,13 @@ which could have in extremely rare cases caused issues for users in odd configur
 <td>Enable garbage collection logging for CircleCI builds.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1398">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Increase default Cassandra pool size from minimum of 20 and maximum of 5x the minimum (100 if minimum not modified)
+connections to minimum of 30 and maximum of 100 connections. This allows for better handling of bursts of requests
+that would otherwise require creating many new connections to Cassandra from the clients.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1402">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB now supports stream store compression.
 Streams can be compressed client-side by adding the <code class="docutils literal"><span class="pre">compressStreamInClient</span></code> option to the stream
 definition. Reads from the stream store will transparently decompress the data.
