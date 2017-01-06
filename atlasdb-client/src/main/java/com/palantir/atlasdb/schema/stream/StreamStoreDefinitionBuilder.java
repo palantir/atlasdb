@@ -27,16 +27,20 @@ import com.palantir.atlasdb.table.description.ValueType;
 public class StreamStoreDefinitionBuilder {
     private final ValueType valueType;
     private final String shortName, longName;
-    private Map<String, StreamTableDefinitionBuilder> streamTables =  Maps.newHashMapWithExpectedSize(StreamTableType.values().length);
+    private Map<String, StreamTableDefinitionBuilder> streamTables =
+            Maps.newHashMapWithExpectedSize(StreamTableType.values().length);
     private int inMemoryThreshold = AtlasDbConstants.DEFAULT_STREAM_IN_MEMORY_THRESHOLD;
+    private boolean compressStream;
 
     public StreamStoreDefinitionBuilder(String shortName, String longName, ValueType valueType) {
         for (StreamTableType tableType : StreamTableType.values()) {
-            streamTables.put(tableType.getTableName(shortName), new StreamTableDefinitionBuilder(tableType, longName, valueType));
+            streamTables.put(tableType.getTableName(shortName),
+                    new StreamTableDefinitionBuilder(tableType, longName, valueType));
         }
         this.valueType = valueType;
         this.shortName = shortName;
         this.longName = longName;
+        this.compressStream = false;
     }
 
     public StreamStoreDefinitionBuilder hashFirstRowComponent() {
@@ -54,18 +58,29 @@ public class StreamStoreDefinitionBuilder {
         return this;
     }
 
+    public StreamStoreDefinitionBuilder compressStreamInClient() {
+        compressStream = true;
+        return this;
+    }
+
     public StreamStoreDefinitionBuilder inMemoryThreshold(int inMemoryThreshold) {
         this.inMemoryThreshold = inMemoryThreshold;
         return this;
     }
 
     public StreamStoreDefinition build() {
-        Map<String, TableDefinition> tablesToCreate = streamTables.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().build()));
+        Map<String, TableDefinition> tablesToCreate = streamTables.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().build()));
 
         Preconditions.checkArgument(valueType.getJavaClassName().equals("long"), "Stream ids must be a long");
 
-
-        return new StreamStoreDefinition(tablesToCreate, shortName, longName, valueType, inMemoryThreshold);
+        return new StreamStoreDefinition(
+                tablesToCreate,
+                shortName,
+                longName,
+                valueType,
+                inMemoryThreshold,
+                compressStream);
     }
 
 }
