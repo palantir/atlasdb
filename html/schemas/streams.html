@@ -194,6 +194,11 @@ stored on different media than regular tables. One simple way to handle
 this is to write a <code class="docutils literal"><span class="pre">KeyValueService</span></code> implementation that just
 delegates to 2 other <code class="docutils literal"><span class="pre">KeyValueService</span></code> impls and sends COLD tables to
 one and other tables to another.</p>
+<p>Streams can be optionally compressed to boost performance via the
+<code class="docutils literal"><span class="pre">compressStreamsInClient</span></code> option on the <code class="docutils literal"><span class="pre">StreamStoreDefinitionBuilder</span></code>.
+This transparently decompresses and compresses the stream via the LZ4
+algorithm upon reads and writes, respectively. Compression is performed client
+side before any network communication to the underlying database.</p>
 </div>
 <div class="section" id="transactionality">
 <h2>Transactionality<a class="headerlink" href="#transactionality" title="Permalink to this headline">¶</a></h2>

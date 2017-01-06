@@ -192,6 +192,12 @@ which could have in extremely rare cases caused issues for users in odd configur
 <td>Enable garbage collection logging for CircleCI builds.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1398">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<td>AtlasDB now supports stream store compression.
+Streams can be compressed client-side by adding the <code class="docutils literal"><span class="pre">compressStreamInClient</span></code> option to the stream
+definition. Reads from the stream store will transparently decompress the data.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1357">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
