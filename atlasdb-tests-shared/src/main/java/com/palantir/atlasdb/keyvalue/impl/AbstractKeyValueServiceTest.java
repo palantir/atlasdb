@@ -24,8 +24,8 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -832,10 +832,7 @@ public abstract class AbstractKeyValueServiceTest {
         CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, cell, value00);
         keyValueService.checkAndSet(request);
 
-        Multimap<Cell, Long> timestamps = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(cell), 1L);
-
-        assertEquals(1, timestamps.size());
-        assertTrue(timestamps.containsEntry(cell, AtlasDbConstants.TRANSACTION_TS));
+        verifyCheckAndSet(cell, value00);
     }
 
     @Test
@@ -848,10 +845,28 @@ public abstract class AbstractKeyValueServiceTest {
         CheckAndSetRequest secondRequest = CheckAndSetRequest.singleCell(TEST_TABLE, cell, value00, value01);
         keyValueService.checkAndSet(secondRequest);
 
-        Multimap<Cell, Long> timestamps = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(cell), 1L);
+        verifyCheckAndSet(cell, value01);
+    }
+
+    private void verifyCheckAndSet(Cell key, byte[] expectedValue) {
+        Multimap<Cell, Long> timestamps = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(key), 1L);
 
         assertEquals(1, timestamps.size());
-        assertTrue(timestamps.containsEntry(cell, AtlasDbConstants.TRANSACTION_TS));
+        assertTrue(timestamps.containsEntry(key, AtlasDbConstants.TRANSACTION_TS));
+
+        ClosableIterator<RowResult<Value>> result = keyValueService.getRange(TEST_TABLE, RangeRequest.all(),
+                AtlasDbConstants.TRANSACTION_TS + 1);
+
+        // Check first result is right
+        byte[] actual = result.next().getOnlyColumnValue().getContents();
+        assertArrayEquals(String.format("Value \"%s\" different from expected \"%s\"",
+                new String(actual, StandardCharsets.UTF_8),
+                new String(expectedValue, StandardCharsets.UTF_8)),
+                expectedValue,
+                actual);
+
+        // Check no more results
+        assertFalse(result.hasNext());
     }
 
     @Test(expected = CheckAndSetException.class)
