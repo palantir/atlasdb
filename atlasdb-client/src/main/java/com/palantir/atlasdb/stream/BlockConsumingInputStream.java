@@ -42,12 +42,12 @@ public final class BlockConsumingInputStream extends InputStream {
     }
 
     private static void ensureExpectedArraySizeDoesNotOverflow(BlockGetter blockGetter, int blocksInMemory) {
-        int expectedLength = blockGetter.expectedLength();
-        Preconditions.checkArgument(blocksInMemory <= Integer.MAX_VALUE / expectedLength,
+        int expectedBlockLength = blockGetter.expectedBlockLength();
+        Preconditions.checkArgument(blocksInMemory <= Integer.MAX_VALUE / expectedBlockLength,
                 "Promised to load too many blocks into memory. The underlying buffer is stored as a byte array, "
                         + "so can only fit Integer.MAX_VALUE bytes. The supplied BlockGetter expected to produce "
                         + "blocks of %s bytes, so %s of them would cause the array to overflow.",
-                blockGetter.expectedLength(),
+                expectedBlockLength,
                 blocksInMemory);
     }
 
@@ -111,12 +111,13 @@ public final class BlockConsumingInputStream extends InputStream {
     }
 
     private boolean refillBuffer() throws IOException {
-        long numBlocksToGet = Math.min(blocksLeft(), blocksInMemory);
+        // since blocksInMemory is an int, the min is guaranteed to fit in an int
+        int numBlocksToGet = (int) Math.min(blocksLeft(), blocksInMemory);
         if (numBlocksToGet <= 0) {
             return false;
         }
 
-        int expectedLength = blockGetter.expectedLength();
+        int expectedLength = blockGetter.expectedBlockLength() * numBlocksToGet;
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream(expectedLength)) {
             blockGetter.get(nextBlockToRead, numBlocksToGet, outputStream);
             nextBlockToRead += numBlocksToGet;

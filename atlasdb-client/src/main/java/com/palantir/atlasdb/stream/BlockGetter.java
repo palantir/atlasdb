@@ -32,5 +32,5 @@ interface BlockGetter {
     /**
      * @return the expected length of a block of data.
      */
-    int expectedLength();
+    int expectedBlockLength();
 }

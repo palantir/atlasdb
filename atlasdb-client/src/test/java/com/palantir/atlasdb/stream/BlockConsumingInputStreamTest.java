@@ -50,7 +50,7 @@ public class BlockConsumingInputStreamTest {
         }
 
         @Override
-        public int expectedLength() {
+        public int expectedBlockLength() {
             return data.length;
         }
     };
@@ -66,7 +66,7 @@ public class BlockConsumingInputStreamTest {
         }
 
         @Override
-        public int expectedLength() {
+        public int expectedBlockLength() {
             return data.length;
         }
     };
@@ -83,7 +83,7 @@ public class BlockConsumingInputStreamTest {
         }
 
         @Override
-        public int expectedLength() {
+        public int expectedBlockLength() {
             return data.length;
         }
     };
@@ -227,12 +227,12 @@ public class BlockConsumingInputStreamTest {
             }
 
             @Override
-            public int expectedLength() {
+            public int expectedBlockLength() {
                 return 1_000_000;
             }
         };
 
-        // Should fail, because bigGetter.expectedLength() * blocksInMemory > Integer.MAX_VALUE.
+        // Should fail, because bigGetter.expectedBlockLength() * blocksInMemory > Integer.MAX_VALUE.
         BlockConsumingInputStream.create(bigGetter, 9001, 2148);
     }
 
