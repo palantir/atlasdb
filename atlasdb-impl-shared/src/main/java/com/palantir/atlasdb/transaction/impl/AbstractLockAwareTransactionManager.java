@@ -16,13 +16,13 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.commons.lang3.Validate;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.transaction.api.LockAcquisitionException;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
@@ -112,13 +112,14 @@ public abstract class AbstractLockAwareTransactionManager
     }
 
     private void refreshAfterLockTimeout(Iterable<HeldLocksToken> lockTokens, TransactionLockTimeoutException ex) {
-        Set<LockRefreshToken> toRequest =
-                ImmutableSet.copyOf(Iterables.transform(lockTokens, HeldLocksToken::getLockRefreshToken));
+        Set<LockRefreshToken> toRequest = StreamSupport.stream(lockTokens.spliterator(), false)
+                .map(HeldLocksToken::getLockRefreshToken)
+                .collect(Collectors.toSet());
         if (toRequest.isEmpty()) {
             return;
         }
         Set<LockRefreshToken> refreshedTokens = getLockService().refreshLockRefreshTokens(toRequest);
-        ImmutableSet<LockRefreshToken> failedTokens = Sets.difference(toRequest, refreshedTokens).immutableCopy();
+        Set<LockRefreshToken> failedTokens = Sets.difference(toRequest, refreshedTokens);
         if (!failedTokens.isEmpty()) {
             throw new TransactionLockTimeoutException("Provided lock tokens expired. Retry is not possible. tokens: "
                     + failedTokens,

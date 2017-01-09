@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -29,6 +30,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
@@ -78,7 +80,6 @@ import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.LockAcquisitionException;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
@@ -97,6 +98,7 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockCollections;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 
@@ -690,8 +692,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void noRetryOnExpiredLockTokens() throws LockAcquisitionException, RuntimeException, InterruptedException {
-        final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
+    public void noRetryOnExpiredLockTokens() throws InterruptedException {
+        Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
         HeldLocksToken expiredLockToken = getFakeHeldLocksToken();
         try {
             txManager.runTaskWithLocksWithRetry(ImmutableList.of(expiredLockToken), () -> null, (tx, locks) -> {
@@ -699,8 +701,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 return null;
             });
         } catch (TransactionLockTimeoutException e) {
-            assertTrue(e.getMessage().contains(ImmutableSet.of(expiredLockToken.getLockRefreshToken()).toString()));
-            assertTrue(e.getMessage().contains("Retry is not possible."));
+            Set<LockRefreshToken> expectedTokens = ImmutableSet.of(expiredLockToken.getLockRefreshToken());
+            assertThat(e.getMessage(), containsString(expectedTokens.toString()));
+            assertThat(e.getMessage(), containsString("Retry is not possible."));
         }
     }
 
