@@ -23,11 +23,11 @@ public interface ServerImplementation {
      * are accepted from clients.
      * @param configuration Timelock Server configuration; may be useful for initialisation
      */
-    void onStart(TimeLockServerConfiguration configuration);
+    void onStartup(TimeLockServerConfiguration configuration);
 
     /**
      * Called when the Timelock Server is shut down after a successful start, whether normally or because
-     * of an exception. In the event the server fails to start, onFail() will be called, not this method.
+     * of an exception. In the event the server fails to start, onStartupFailure() will be called, not this method.
      */
     void onStop();
 
@@ -35,7 +35,7 @@ public interface ServerImplementation {
      * Called when the Timelock Server fails to start up. Note that this only applies to startup failures;
      * in the event the Timelock Server is shut down due to an exception, onStop() will be called, not this method.
      */
-    void onFail();
+    void onStartupFailure();
 
     /**
      * Creates timestamp and lock services for the given client. It is expected that for each client there should

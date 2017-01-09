@@ -47,7 +47,7 @@ public class AtomixServerImplementation implements ServerImplementation {
     private LocalMember localMember;
 
     @Override
-    public void onStart(TimeLockServerConfiguration configuration) {
+    public void onStartup(TimeLockServerConfiguration configuration) {
         AtomixConfiguration atomix = (AtomixConfiguration) configuration.algorithm();
         replica = AtomixReplica.builder(new Address(configuration.cluster().localServer()))
                 .withStorage(Storage.builder()
@@ -94,7 +94,7 @@ public class AtomixServerImplementation implements ServerImplementation {
     }
 
     @Override
-    public void onFail() {
+    public void onStartupFailure() {
         onStop();
     }
 

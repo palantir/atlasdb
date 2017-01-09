@@ -37,10 +37,10 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
         ServerImplementation serverImpl = configuration.algorithm().createServerImpl();
         try {
-            serverImpl.onStart(configuration);
+            serverImpl.onStartup(configuration);
             registerResources(configuration, environment, serverImpl);
         } catch (Exception e) {
-            serverImpl.onFail();
+            serverImpl.onStartupFailure();
             throw e;
         }
 
