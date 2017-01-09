@@ -43,6 +43,12 @@ develop
          - Change
 
     *    - |improved|
+         - More informative logging around retrying of transactions.
+           If a transaction succeeds after being retried, we log the success (at the INFO level).
+           If a transaction failed, but will be retried, we now also log the number of failures so far (at INFO).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1376>`__)
+
+    *    - |improved|
          - ``StreamStore.loadStream`` now actually streams the data, if the data does not fit in memory.
            This means that getting the first byte of the stream now has constant-time performance, compared to being
            linear in terms of stream length, as it was previously.
