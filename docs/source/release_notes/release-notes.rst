@@ -74,10 +74,12 @@ develop
 
     *    - |improved|
          - Improved the performance of Oracle queries by making the table name cache global to the KVS level.
+           Keeping the mapping in a cache saves one DB lookup per query, when the table has already been used.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1325>`__)
 
     *    - |fixed|
          - Oracle value style caching limited in scope to per-KVS, previously per-JVM, which could have in extremely rare cases caused issues for users in non-standard configurations.
+           This would have caused issues for users doing a KVS migration to move from one Oracle DB to another.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1325>`__)
 
     *    - |new|
