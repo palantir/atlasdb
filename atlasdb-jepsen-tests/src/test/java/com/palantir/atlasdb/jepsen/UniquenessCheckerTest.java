@@ -27,8 +27,8 @@ public class UniquenessCheckerTest {
     private static final long ZERO_TIME = 0L;
     private static final int PROCESS_0 = 0;
     private static final int PROCESS_1 = 1;
-    private static final long VALUE_A = 0L;
-    private static final long VALUE_B = 1L;
+    private static final String VALUE_A = "0";
+    private static final String VALUE_B = "1";
 
     @Test
     public void shouldSuceeedOnNoEvents() {
