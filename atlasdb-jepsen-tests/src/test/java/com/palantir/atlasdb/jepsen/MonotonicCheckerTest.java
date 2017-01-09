@@ -55,16 +55,8 @@ public class MonotonicCheckerTest {
 
     @Test
     public void shouldFailOnEqualEntries() {
-        Event event1 = ImmutableOkEvent.builder()
-                .time(ZERO_TIME)
-                .process(PROCESS_0)
-                .value("0")
-                .build();
-        Event event2 = ImmutableOkEvent.builder()
-                .time(ZERO_TIME)
-                .process(PROCESS_0)
-                .value("0")
-                .build();
+        Event event1 = TestEventUtil.createTimestamp(ZERO_TIME, PROCESS_0, "0");
+        Event event2 = TestEventUtil.createTimestamp(ZERO_TIME, PROCESS_0, "0");
 
         CheckerResult result = runMonotonicChecker(event1, event2);
 
@@ -74,26 +66,10 @@ public class MonotonicCheckerTest {
 
     @Test
     public void shouldSucceedOnTwoProcessesOverlapping() {
-        Event event1 = ImmutableOkEvent.builder()
-                .time(ZERO_TIME)
-                .process(PROCESS_0)
-                .value("1")
-                .build();
-        Event event2 = ImmutableOkEvent.builder()
-                .time(ZERO_TIME)
-                .process(PROCESS_1)
-                .value("2")
-                .build();
-        Event event3 = ImmutableOkEvent.builder()
-                .time(ZERO_TIME)
-                .process(PROCESS_0)
-                .value("4")
-                .build();
-        Event event4 = ImmutableOkEvent.builder()
-                .time(ZERO_TIME)
-                .process(PROCESS_1)
-                .value("3")
-                .build();
+        Event event1 = TestEventUtil.createTimestamp(ZERO_TIME, PROCESS_0, "1");
+        Event event2 = TestEventUtil.createTimestamp(ZERO_TIME, PROCESS_1, "2");
+        Event event3 = TestEventUtil.createTimestamp(ZERO_TIME, PROCESS_0, "4");
+        Event event4 = TestEventUtil.createTimestamp(ZERO_TIME, PROCESS_1, "3");
 
         CheckerTestUtils.assertNoErrors(MonotonicChecker::new,
                 event1, event2, event3, event4);
@@ -101,16 +77,8 @@ public class MonotonicCheckerTest {
 
     @Test
     public void shouldThrowIfOkEventHasNonIntegerValue() {
-        Event event1 = ImmutableOkEvent.builder()
-                .time(ZERO_TIME)
-                .process(PROCESS_0)
-                .value(NOOP)
-                .build();
-        Event event2 = ImmutableOkEvent.builder()
-                .time(ZERO_TIME)
-                .process(PROCESS_0)
-                .value(NOOP)
-                .build();
+        Event event1 = TestEventUtil.createTimestamp(ZERO_TIME, PROCESS_0, NOOP);
+        Event event2 = TestEventUtil.createTimestamp(ZERO_TIME, PROCESS_0, NOOP);
 
         assertThatThrownBy(() -> runMonotonicChecker(event1, event2))
                 .isInstanceOf(NumberFormatException.class);
@@ -118,11 +86,7 @@ public class MonotonicCheckerTest {
 
     @Test
     public void shouldParseLongValues() {
-        Event event1 = ImmutableOkEvent.builder()
-                .time(ZERO_TIME)
-                .process(PROCESS_0)
-                .value(INT_MAX_PLUS_ONE)
-                .build();
+        Event event1 = TestEventUtil.createTimestamp(ZERO_TIME, PROCESS_0, INT_MAX_PLUS_ONE);
 
         CheckerTestUtils.assertNoErrors(MonotonicChecker::new,
                 event1);
