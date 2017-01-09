@@ -439,12 +439,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     rawBuilder.put(result);
                 }
                 Map<Cell, Value> raw = rawBuilder.build();
+                validateExternalAndCommitLocksIfNecessary(tableRef);
                 if (raw.isEmpty()) {
                     return endOfData();
                 }
                 Map<Cell, byte[]> post = new LinkedHashMap<>();
                 getWithPostFiltering(tableRef, raw, post, Value.GET_VALUE);
-                validateExternalAndCommitLocksIfNecessary(tableRef);
                 batchIterator.markNumResultsNotDeleted(post.keySet().size());
                 return post.entrySet().iterator();
             }

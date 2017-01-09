@@ -25,6 +25,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.math.BigInteger;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +61,9 @@ import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -584,6 +587,56 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                     });
     }
 
+    @Test(expected = TransactionFailedRetriableException.class)
+    public void testValidateExternalAndCommitLocksForGetRowsColumnRange() throws Exception {
+        testValidateExternalAndCommitLocks(
+                new LockAwareTransactionTask<Void, Exception>() {
+                    @Override
+                    public Void execute(Transaction t, Iterable<HeldLocksToken> heldLocks)
+                            throws Exception {
+                        Collection<BatchingVisitable<Map.Entry<Cell, byte[]>>> results =
+                                t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton("row1".getBytes()),
+                                        BatchColumnRangeSelection.create(
+                                                new ColumnRangeSelection(null, null),
+                                                1 /* batch hint */))
+                                        .values();
+                        results.forEach(result -> result.batchAccept(1, AbortingVisitors.alwaysTrue()));
+                        return null;
+                    }
+                });
+    }
+
+    @Test(expected = TransactionFailedRetriableException.class)
+    public void testValidateExternalAndCommitLocksForGetRowsIgnoringLocalWrites() throws Exception {
+        testValidateExternalAndCommitLocks(
+                new LockAwareTransactionTask<Void, Exception>() {
+                    @Override
+                    public Void execute(Transaction t, Iterable<HeldLocksToken> heldLocks)
+                            throws Exception {
+                        SnapshotTransaction snapshotTx = unwrapSnapshotTransaction(t);
+                        snapshotTx.getRowsIgnoringLocalWrites(
+                                TABLE_SWEPT_THOROUGH,
+                                Collections.singleton("row1".getBytes()));
+                        return null;
+                    }
+                });
+    }
+
+    @Test(expected = TransactionFailedRetriableException.class)
+    public void testValidateExternalAndCommitLocksForGetIgnoringLocalWrites() throws Exception {
+        final Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
+        testValidateExternalAndCommitLocks(
+                new LockAwareTransactionTask<Void, Exception>() {
+                    @Override
+                    public Void execute(Transaction t, Iterable<HeldLocksToken> heldLocks)
+                            throws Exception {
+                        SnapshotTransaction snapshotTx = unwrapSnapshotTransaction(t);
+                        snapshotTx.getIgnoringLocalWrites(TABLE_SWEPT_THOROUGH, Collections.singleton(cell));
+                        return null;
+                    }
+                });
+    }
+
     @Test
     public void testWriteChangedConflictsNoThrow() {
         conflictDetectionManager.setConflictDetectionMode(TABLE, ConflictHandler.RETRY_ON_VALUE_CHANGED);
@@ -732,6 +785,15 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         txManager.runTaskWithLocksThrowOnConflict(
                 ImmutableList.of(getFakeHeldLocksToken()),
                 lockAwareTransactionTask);
+    }
+
+    /**
+     * Hack to get reference to underlying {@link SnapshotTransaction}. See how transaction managers are composed at
+     * {@link AtlasDbTestCase#setUp()}.
+     */
+    private static SnapshotTransaction unwrapSnapshotTransaction(Transaction cachingTransaction) {
+        Transaction unwrapped = ((CachingTransaction) cachingTransaction).delegate();
+        return ((RawTransaction) unwrapped).delegate();
     }
 
 }
