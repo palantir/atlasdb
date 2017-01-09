@@ -30,13 +30,11 @@ public class TimeLockServerTest extends ServerImplementationTest {
     private static final String LOCAL_ADDRESS = "localhost:8080";
     private static final String TEST_CLIENT = "test";
 
-    private TimeLockAlgorithmConfiguration algorithmConfiguration;
     private ServerImplementation serverImplementation;
-    private TimeLockServerConfiguration timeLockServerConfiguration;
 
     @Override
     protected TimeLockServerConfiguration getConfiguration() {
-        algorithmConfiguration = mock(TimeLockAlgorithmConfiguration.class);
+        TimeLockAlgorithmConfiguration algorithmConfiguration = mock(TimeLockAlgorithmConfiguration.class);
         serverImplementation = mock(ServerImplementation.class);
         when(algorithmConfiguration.createServerImpl()).thenReturn(serverImplementation);
         when(serverImplementation.createInvalidatingTimeLockServices(any())).thenReturn(mock(TimeLockServices.class));
