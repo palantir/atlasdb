@@ -45,4 +45,43 @@ public class ClusterConfigurationTest {
                 ::build)
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    public void shouldAcceptValidHostPortString() {
+        assertAddressValid(ADDRESS_1);
+    }
+
+    @Test
+    public void shouldAcceptHostSpecifiedAsIpAddress() {
+        assertAddressValid("1.2.3.4:1");
+    }
+
+    @Test
+    public void shouldThrowIfServerHasNoPort() {
+        assertAddressNotValid("localhost");
+    }
+
+    @Test
+    public void shouldThrowIfServerHasInvalidPort() {
+        assertAddressNotValid("localhost:1234567");
+    }
+
+    @Test
+    public void shouldThrowIfStringIncludesProtocol() {
+        assertAddressNotValid("http://palantir.com:8080");
+    }
+
+    @Test
+    public void shouldThrowIfPortUnparseable() {
+        assertAddressNotValid("localhost:foo");
+    }
+
+    private void assertAddressValid(String address) {
+        ClusterConfiguration.checkHostPortString(address);
+    }
+
+    private void assertAddressNotValid(String address) {
+        assertThatThrownBy(() -> ClusterConfiguration.checkHostPortString(address))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

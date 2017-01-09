@@ -23,6 +23,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
@@ -46,7 +47,8 @@ public abstract class ClusterConfiguration {
         servers().forEach(ClusterConfiguration::checkHostPortString);
     }
 
-    private static void checkHostPortString(String server) {
+    @VisibleForTesting
+    static void checkHostPortString(String server) {
         HostAndPort hostAndPort = HostAndPort.fromString(server);
         Preconditions.checkArgument(hostAndPort.hasPort(), "Port not present: '%s'", server);
     }
