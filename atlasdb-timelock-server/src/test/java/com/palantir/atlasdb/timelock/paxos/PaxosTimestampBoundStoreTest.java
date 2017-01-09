@@ -22,9 +22,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.annotation.Nullable;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
@@ -42,6 +43,7 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
+import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 
 public class PaxosTimestampBoundStoreTest {
@@ -57,10 +59,10 @@ public class PaxosTimestampBoundStoreTest {
     private static final RuntimeException EXCEPTION = new RuntimeException("exception");
 
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
+    private final List<PaxosAcceptor> acceptors = Lists.newArrayList();
+    private final List<PaxosLearner> learners = Lists.newArrayList();
+    private final List<AtomicBoolean> failureToggles = Lists.newArrayList();
 
-    private List<PaxosAcceptor> acceptors = Lists.newArrayList();
-    private List<PaxosLearner> learners = Lists.newArrayList();
-    private List<AtomicBoolean> failureToggles = Lists.newArrayList();
     private PaxosTimestampBoundStore store;
 
     @Before
@@ -100,6 +102,11 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @Test
+    public void timestampsBeginFromZero() {
+        assertThat(store.getUpperLimit()).isEqualTo(0L);
+    }
+
+    @Test
     public void canStoreUpperLimit() {
         store.storeUpperLimit(TIMESTAMP_1);
         assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
@@ -130,17 +137,8 @@ public class PaxosTimestampBoundStoreTest {
 
     @Test
     public void retriesProposeUntilSuccessful() throws Exception {
-        failureToggles.get(1).set(true);
-        failureToggles.get(2).set(true);
-        failureToggles.get(3).set(true);
-        Future<Void> future = executor.submit(() -> {
-            store.storeUpperLimit(TIMESTAMP_1);
-            return null;
-        });
-        failureToggles.get(4).set(true);
-        failureToggles.get(3).set(false);
-        failureToggles.get(2).set(false);
-        future.get(10, TimeUnit.SECONDS);
+        store = createOnceFailingPaxosTimestampBoundStore(0);
+        store.storeUpperLimit(TIMESTAMP_1);
         assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
     }
 
@@ -174,17 +172,108 @@ public class PaxosTimestampBoundStoreTest {
         assertThat(additionalStore2.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_3);
     }
 
+    @Test
+    public void canGetAgreedInitialState() {
+        PaxosTimestampBoundStore.SequenceAndBound sequenceAndBound = store.getAgreedState(0);
+        assertThat(sequenceAndBound.getSeqId()).isEqualTo(0);
+        assertThat(sequenceAndBound.getBound()).isEqualTo(0);
+    }
+
+    @Test
+    public void canGetAgreedState() {
+        store.storeUpperLimit(TIMESTAMP_1);
+        PaxosTimestampBoundStore.SequenceAndBound sequenceAndBound = store.getAgreedState(1);
+        assertThat(sequenceAndBound.getSeqId()).isEqualTo(1);
+        assertThat(sequenceAndBound.getBound()).isEqualTo(TIMESTAMP_1);
+    }
+
+    @Test
+    public void canSafelyGetAgreedStateFromPrehistory() {
+        assertThat(store.getAgreedState(Long.MIN_VALUE).getBound()).isEqualTo(0);
+    }
+
+    @Test
+    public void canGetAgreedStateAfterPartition() {
+        failureToggles.get(1).set(true);
+        store.storeUpperLimit(TIMESTAMP_1);
+        store.storeUpperLimit(TIMESTAMP_2);
+        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
+        failureToggles.get(1).set(false);
+
+        assertThat(additionalStore.getAgreedState(3).getBound()).isEqualTo(TIMESTAMP_2);
+    }
+
+    @Test
+    public void cannotGetAgreedStateFromTheFuture() {
+        assertThatThrownBy(() -> store.getAgreedState(Long.MAX_VALUE).getBound())
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    public void canSafelyForceAgreedStateFromPrehistory() {
+        assertThat(store.forceAgreedState(Long.MIN_VALUE, Long.MIN_VALUE).getBound()).isEqualTo(0);
+    }
+
+    @Test
+    public void retriesForceAgreedStateUntilSuccessful() throws Exception {
+        store = createOnceFailingPaxosTimestampBoundStore(0);
+        store.forceAgreedState(1, TIMESTAMP_1);
+        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
+    }
+
     private PaxosTimestampBoundStore createPaxosTimestampBoundStore(int nodeIndex) {
-        PaxosProposer proposer = PaxosProposerImpl.newProposer(
+        PaxosProposer proposer = createPaxosProposer(nodeIndex);
+        return createPaxosTimestampBoundStore(nodeIndex, proposer);
+    }
+
+    private PaxosTimestampBoundStore createOnceFailingPaxosTimestampBoundStore(int nodeIndex)
+            throws PaxosRoundFailureException {
+        PaxosProposer proposer = new OnceFailingPaxosProposer(createPaxosProposer(nodeIndex));
+        return createPaxosTimestampBoundStore(nodeIndex, proposer);
+    }
+
+    private PaxosProposer createPaxosProposer(int nodeIndex) {
+        return PaxosProposerImpl.newProposer(
                 learners.get(nodeIndex),
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners),
                 NUM_NODES / 2 + 1,
                 executor);
+    }
+
+    private PaxosTimestampBoundStore createPaxosTimestampBoundStore(int nodeIndex, PaxosProposer proposer) {
         return new PaxosTimestampBoundStore(
                 proposer,
                 learners.get(nodeIndex),
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners));
+    }
+
+    private static class OnceFailingPaxosProposer implements PaxosProposer {
+        private final PaxosProposer delegate;
+        private boolean hasFailed = false;
+
+        private OnceFailingPaxosProposer(PaxosProposer delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public byte[] propose(long seq, @Nullable byte[] proposalValue) throws PaxosRoundFailureException {
+            if (hasFailed) {
+                return delegate.propose(seq, proposalValue);
+            }
+            hasFailed = true;
+            throw new PaxosRoundFailureException("paxos fail");
+        }
+
+        @Override
+        public int getQuorumSize() {
+            return delegate.getQuorumSize();
+        }
+
+        @Override
+        public String getUUID() {
+            return delegate.getUUID();
+        }
     }
 }

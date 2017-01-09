@@ -27,6 +27,7 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
@@ -84,7 +85,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         return agreedState.getBound();
     }
 
-    private SequenceAndBound getAgreedState(long seq) {
+    @VisibleForTesting
+    SequenceAndBound getAgreedState(long seq) {
         final Optional<SequenceAndBound> state = getLearnedState(seq);
         if (state.isPresent()) {
             return state.get();
@@ -101,7 +103,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         return forceAgreedState(seq, lastState.get().getBound());
     }
 
-    private SequenceAndBound forceAgreedState(long seq, @Nullable Long oldState) {
+    @VisibleForTesting
+    SequenceAndBound forceAgreedState(long seq, @Nullable Long oldState) {
         if (seq <= PaxosAcceptor.NO_LOG_ENTRY) {
             return ImmutableSequenceAndBound.of(PaxosAcceptor.NO_LOG_ENTRY, 0L);
         }
