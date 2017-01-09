@@ -80,7 +80,7 @@ public class PaxosServerImplementation implements ServerImplementation {
             optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
         }
 
-        remoteServers = getRemoteAddresses(configuration);
+        remoteServers = getRemotePaths(configuration);
         // Construct the intermediate stuff
         List<PaxosLearner> learners = getNamespacedProxies(
                 remoteServers,
@@ -97,7 +97,7 @@ public class PaxosServerImplementation implements ServerImplementation {
         acceptors.add(paxosResource.getPaxosAcceptor(leaderNamespace));
 
         Map<PingableLeader, HostAndPort> otherLeaders = Leaders.generatePingables(
-                getRemoteAddresses(configuration),
+                remoteServers,
                 optionalSecurity);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
@@ -202,6 +202,15 @@ public class PaxosServerImplementation implements ServerImplementation {
     private static Set<String> getRemoteAddresses(TimeLockServerConfiguration configuration) {
         return Sets.difference(configuration.cluster().servers(),
                 ImmutableSet.of(configuration.cluster().localServer()));
+    }
+
+    private Set<String> getRemotePaths(TimeLockServerConfiguration configuration) {
+        String protocolPrefix = paxosConfiguration.sslConfiguration().isPresent() ?
+                "https://" :
+                "http://";
+        return getRemoteAddresses(configuration).stream()
+                .map(address -> protocolPrefix + address)
+                .collect(Collectors.toSet());
     }
 
     private static Set<String> getSuffixedUris(Set<String> addresses, String suffix) {

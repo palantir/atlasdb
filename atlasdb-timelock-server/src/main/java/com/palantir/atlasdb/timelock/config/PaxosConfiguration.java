@@ -34,13 +34,8 @@ import io.dropwizard.setup.Environment;
 @Value.Immutable
 public abstract class PaxosConfiguration implements AlgorithmConfiguration {
     @Value.Default
-    public File learnerLogDirRoot() {
-        return new File("var/data/paxos/learner");
-    }
-
-    @Value.Default
-    public File acceptorLogDirRoot() {
-        return new File("var/data/paxos/acceptor");
+    public File paxosDataDir() {
+        return new File("var/data/paxos");
     }
 
     public abstract Optional<SslConfiguration> sslConfiguration();
@@ -62,10 +57,8 @@ public abstract class PaxosConfiguration implements AlgorithmConfiguration {
 
     @Value.Check
     protected final void check() {
-        Preconditions.checkArgument(learnerLogDirRoot().exists() || learnerLogDirRoot().mkdirs(),
-                "Learner log directory '%s' does not exist and cannot be created.", learnerLogDirRoot());
-        Preconditions.checkArgument(acceptorLogDirRoot().exists() || acceptorLogDirRoot().mkdirs(),
-                "Acceptor log directory '%s' does not exist and cannot be created.", acceptorLogDirRoot());
+        Preconditions.checkArgument(paxosDataDir().exists() || paxosDataDir().mkdirs(),
+                "Paxos data directory '%s' does not exist and cannot be created.", paxosDataDir());
     }
 
     @Override
