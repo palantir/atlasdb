@@ -21,6 +21,7 @@ import java.util.Map;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
@@ -54,7 +55,9 @@ public class PaxosResource {
     }
 
     public void addClient(String client) {
-        String rootSubdirectory = logDirectory + client;
+        Preconditions.checkState(!paxosLearners.containsKey(client),
+                "Paxos resource already has client '%s' registered", client);
+        String rootSubdirectory = logDirectory + client + "/";
         paxosLearners.put(client, PaxosLearnerImpl.newLearner(rootSubdirectory + LEARNER_PATH));
         paxosAcceptors.put(client, PaxosAcceptorImpl.newAcceptor(rootSubdirectory + ACCEPTOR_PATH));
     }
