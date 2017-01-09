@@ -175,6 +175,10 @@ connections to minimum of 30 and maximum of 100 connections. This allows for bet
 that would otherwise require creating many new connections to Cassandra from the clients.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1402">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Don&#8217;t retry transactions when the locks are invalid. Previously, AtlasDB tried repeatedly to run a transaction when the external locks are already invalid.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1323">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
