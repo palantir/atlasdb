@@ -35,6 +35,7 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.ServerImplementation;
 import com.palantir.atlasdb.timelock.TimeLockServices;
+import com.palantir.atlasdb.timelock.config.PaxosConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionService;
@@ -46,12 +47,10 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
-import com.palantir.remoting.ssl.SslConfiguration;
 import com.palantir.remoting.ssl.SslSocketFactories;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
 
-import io.atomix.catalyst.transport.Address;
 import io.dropwizard.setup.Environment;
 
 public class PaxosServerImplementation implements ServerImplementation {
@@ -60,6 +59,8 @@ public class PaxosServerImplementation implements ServerImplementation {
 
     private LeaderElectionService leaderElectionService;
     private PaxosResource paxosResource;
+
+    private PaxosConfiguration paxosConfiguration;
 
     private final Environment environment;
 
@@ -73,30 +74,30 @@ public class PaxosServerImplementation implements ServerImplementation {
         paxosResource = PaxosResource.create();
         paxosResource.addClient(leaderNamespace);
 
-        if (configuration.atomix().security().isPresent()) {
-            optionalSecurity = constructOptionalSslSocketFactory(configuration);
+        paxosConfiguration = ((PaxosConfiguration) configuration.algorithm());
+
+        if (paxosConfiguration.sslConfiguration().isPresent()) {
+            optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
         }
 
         remoteServers = getRemoteAddresses(configuration);
         // Construct the intermediate stuff
         List<PaxosLearner> learners = getNamespacedProxies(
-                getRemoteAddresses(configuration),
+                remoteServers,
                 "/" + leaderNamespace,
                 optionalSecurity,
                 PaxosLearner.class);
         learners.add(paxosResource.getPaxosLearner(leaderNamespace));
 
         List<PaxosAcceptor> acceptors = getNamespacedProxies(
-                getRemoteAddresses(configuration),
+                remoteServers,
                 "/" + leaderNamespace,
                 optionalSecurity,
                 PaxosAcceptor.class);
         acceptors.add(paxosResource.getPaxosAcceptor(leaderNamespace));
 
         Map<PingableLeader, HostAndPort> otherLeaders = Leaders.generatePingables(
-                Sets.difference(configuration.cluster().servers().stream().map(x -> "http://" + x.host() + ":" + x.port())
-                                .collect(Collectors.toSet()),
-                        ImmutableSet.of("http://" + configuration.cluster().localServer().host() + ":" + configuration.cluster().localServer().port())),
+                getRemoteAddresses(configuration),
                 optionalSecurity);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
@@ -108,7 +109,7 @@ public class PaxosServerImplementation implements ServerImplementation {
                 paxosResource.getPaxosLearner(leaderNamespace),
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners),
-                configuration.cluster().servers().size() / 2 + 1,
+                getQuorumSize(configuration),
                 executor);
 
         // Build and store a gatekeeping leader election service
@@ -119,9 +120,9 @@ public class PaxosServerImplementation implements ServerImplementation {
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners),
                 executor,
-                1000L, // Ping rate ms
-                5000L, // Wait before proposing
-                2000L); // Leader ping response wait
+                paxosConfiguration.pingRateMs(), // Ping rate ms
+                paxosConfiguration.randomWaitBeforeProposingLeadershipMs(), // Wait before proposing
+                paxosConfiguration.leaderPingResponseWaitMs()); // Leader ping response wait
         leaderElectionService = leader;
 
         environment.jersey().register(paxosResource);
@@ -129,13 +130,13 @@ public class PaxosServerImplementation implements ServerImplementation {
         environment.jersey().register(new NotCurrentLeaderExceptionMapper());
     }
 
+    private static int getQuorumSize(TimeLockServerConfiguration configuration) {
+        return configuration.cluster().servers().size() / 2 + 1;
+    }
+
     private static Optional<SSLSocketFactory> constructOptionalSslSocketFactory(
-            TimeLockServerConfiguration configuration) {
-        return Optional.of(SslSocketFactories.createSslSocketFactory(
-                SslConfiguration.of(
-                        configuration.atomix().security().get().trustStorePath(),
-                        configuration.atomix().security().get().keyStorePath().orNull(),
-                        configuration.atomix().security().get().keyStorePassword().orNull())));
+            PaxosConfiguration configuration) {
+        return Optional.of(SslSocketFactories.createSslSocketFactory(configuration.sslConfiguration().get()));
     }
 
     @Override
@@ -158,12 +159,14 @@ public class PaxosServerImplementation implements ServerImplementation {
                 .setDaemon(true)
                 .build());
 
-        List<PaxosAcceptor> acceptors = getNamespacedProxies(remoteServers,
+        List<PaxosAcceptor> acceptors = getNamespacedProxies(
+                remoteServers,
                 "/" + client,
                 optionalSecurity,
                 PaxosAcceptor.class);
         acceptors.add(paxosResource.getPaxosAcceptor(client));
-        List<PaxosLearner> learners = getNamespacedProxies(remoteServers,
+        List<PaxosLearner> learners = getNamespacedProxies(
+                remoteServers,
                 "/" + client,
                 optionalSecurity,
                 PaxosLearner.class);
@@ -197,12 +200,8 @@ public class PaxosServerImplementation implements ServerImplementation {
     }
 
     private static Set<String> getRemoteAddresses(TimeLockServerConfiguration configuration) {
-        Set<Address> remoteAddresses = Sets.difference(
-                configuration.cluster().servers(),
+        return Sets.difference(configuration.cluster().servers(),
                 ImmutableSet.of(configuration.cluster().localServer()));
-        return remoteAddresses.stream()
-                .map(x -> "http://" + x.host() + ":" + x.port())
-                .collect(Collectors.toSet());
     }
 
     private static Set<String> getSuffixedUris(Set<String> addresses, String suffix) {

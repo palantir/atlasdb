@@ -35,7 +35,7 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
 
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
-        ServerImplementation serverImpl = configuration.algorithm().createServerImpl();
+        ServerImplementation serverImpl = configuration.algorithm().createServerImpl(environment);
         try {
             serverImpl.onStartup(configuration);
             registerResources(configuration, environment, serverImpl);

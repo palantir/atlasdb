@@ -25,6 +25,7 @@ import com.palantir.atlasdb.timelock.ServerImplementation;
 import com.palantir.atlasdb.timelock.atomix.AtomixServerImplementation;
 
 import io.atomix.copycat.server.storage.StorageLevel;
+import io.dropwizard.setup.Environment;
 
 @JsonSerialize(as = ImmutableAtomixConfiguration.class)
 @JsonDeserialize(as = ImmutableAtomixConfiguration.class)
@@ -45,7 +46,7 @@ public abstract class AtomixConfiguration implements TimeLockAlgorithmConfigurat
     }
 
     @Override
-    public ServerImplementation createServerImpl() {
+    public ServerImplementation createServerImpl(Environment environment) {
         return new AtomixServerImplementation();
     }
 }
