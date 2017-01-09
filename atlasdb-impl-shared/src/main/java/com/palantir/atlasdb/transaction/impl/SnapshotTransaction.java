@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import static com.codahale.metrics.MetricRegistry.name;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -106,6 +104,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbstractBatchingVisitable;
@@ -129,7 +128,6 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.AssertUtils;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -1863,12 +1861,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private Timer getTimer(String name) {
         return metricRegistry.getTimers().getOrDefault(name,
-                metricRegistry.timer(name(SnapshotTransaction.class, name)));
+                metricRegistry.timer(MetricRegistry.name(SnapshotTransaction.class, name)));
     }
 
     private Histogram getHistogram(String name) {
         return metricRegistry.getHistograms().getOrDefault(name,
-                metricRegistry.histogram(name(SnapshotTransaction.class, name)));
+                metricRegistry.histogram(MetricRegistry.name(SnapshotTransaction.class, name)));
     }
 
 }
