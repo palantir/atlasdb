@@ -24,6 +24,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
 
 @JsonSerialize(as = ImmutableClusterConfiguration.class)
 @JsonDeserialize(as = ImmutableClusterConfiguration.class)
@@ -38,5 +39,15 @@ public abstract class ClusterConfiguration {
     protected void check() {
         Preconditions.checkArgument(servers().contains(localServer()),
                 "The localServer '%s' must be included in the server entries %s.", localServer(), servers());
+        checkServersAreWellFormed();
+    }
+
+    private void checkServersAreWellFormed() {
+        servers().forEach(ClusterConfiguration::checkHostPortString);
+    }
+
+    private static void checkHostPortString(String server) {
+        HostAndPort hostAndPort = HostAndPort.fromString(server);
+        Preconditions.checkArgument(hostAndPort.hasPort(), "Port not present: '%s'", server);
     }
 }

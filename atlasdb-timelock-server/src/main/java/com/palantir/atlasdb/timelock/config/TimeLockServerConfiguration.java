@@ -24,12 +24,12 @@ import com.google.common.base.Preconditions;
 import io.dropwizard.Configuration;
 
 public class TimeLockServerConfiguration extends Configuration {
-    private final AlgorithmConfiguration algorithm;
+    private final TimeLockAlgorithmConfiguration algorithm;
     private final ClusterConfiguration cluster;
     private final Set<String> clients;
 
     public TimeLockServerConfiguration(
-            @JsonProperty(value = "algorithm", required = false) AlgorithmConfiguration algorithm,
+            @JsonProperty(value = "algorithm", required = false) TimeLockAlgorithmConfiguration algorithm,
             @JsonProperty(value = "cluster", required = true) ClusterConfiguration cluster,
             @JsonProperty(value = "clients", required = true) Set<String> clients) {
         Preconditions.checkState(!clients.isEmpty(), "'clients' should have at least one entry");
@@ -47,7 +47,7 @@ public class TimeLockServerConfiguration extends Configuration {
                         + "'%s' does not.", client)));
     }
 
-    public AlgorithmConfiguration algorithm() {
+    public TimeLockAlgorithmConfiguration algorithm() {
         return algorithm;
     }
 

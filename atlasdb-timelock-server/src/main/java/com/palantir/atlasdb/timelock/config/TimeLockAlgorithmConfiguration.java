@@ -24,6 +24,6 @@ import com.palantir.atlasdb.timelock.ServerImplementation;
         property = "type")
 @JsonSubTypes({
         @JsonSubTypes.Type(value = AtomixConfiguration.class, name = "atomix")})
-public interface AlgorithmConfiguration {
+public interface TimeLockAlgorithmConfiguration {
     ServerImplementation createServerImpl();
 }

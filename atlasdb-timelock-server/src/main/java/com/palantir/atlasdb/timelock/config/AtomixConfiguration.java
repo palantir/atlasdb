@@ -29,7 +29,7 @@ import io.atomix.copycat.server.storage.StorageLevel;
 @JsonSerialize(as = ImmutableAtomixConfiguration.class)
 @JsonDeserialize(as = ImmutableAtomixConfiguration.class)
 @Value.Immutable
-public abstract class AtomixConfiguration implements AlgorithmConfiguration {
+public abstract class AtomixConfiguration implements TimeLockAlgorithmConfiguration {
     public static final AtomixConfiguration DEFAULT = ImmutableAtomixConfiguration.builder().build();
 
     public abstract Optional<AtomixSslConfiguration> security();
