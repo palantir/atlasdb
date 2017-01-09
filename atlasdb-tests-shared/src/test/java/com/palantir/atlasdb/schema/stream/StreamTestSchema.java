@@ -59,10 +59,9 @@ public class StreamTestSchema implements AtlasSchema {
                     .isAppendHeavyAndReadLight()
                     .build());
 
-        // streams can have up to Integer.MAX_VALUE as the inMemoryThreshold
         schema.addStreamStoreDefinition(
                 new StreamStoreDefinitionBuilder("stream_test_max_mem", "stream_test_max_mem", ValueType.VAR_LONG)
-                    .inMemoryThreshold(Integer.MAX_VALUE)
+                    .inMemoryThreshold(StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD)
                     .build());
 
         return schema;

@@ -20,9 +20,9 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 
 public final class BlockConsumingInputStream extends InputStream {
-    private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8; // ArrayList.MAX_ARRAY_SIZE on 64-bit systems
     private final BlockGetter blockGetter;
     private final long numBlocks;
     private final int blocksInMemory;
@@ -44,13 +44,13 @@ public final class BlockConsumingInputStream extends InputStream {
 
     private static void ensureExpectedArraySizeDoesNotOverflow(BlockGetter blockGetter, int blocksInMemory) {
         int expectedBlockLength = blockGetter.expectedBlockLength();
-        int maxBlocksInMemory = MAX_ARRAY_SIZE / expectedBlockLength;
+        int maxBlocksInMemory = StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD / expectedBlockLength;
         long expectedBufferSize = (long) expectedBlockLength * (long) blocksInMemory;
         Preconditions.checkArgument(blocksInMemory <= maxBlocksInMemory,
                 "Promised to load too many blocks into memory. The underlying buffer is stored as a byte array, "
                         + "so can only fit %s bytes. The supplied BlockGetter expected to produce "
                         + "blocks of %s bytes, so %s of them (requested size %s) would cause the array to overflow.",
-                MAX_ARRAY_SIZE,
+                StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD,
                 expectedBlockLength,
                 blocksInMemory,
                 expectedBufferSize);
