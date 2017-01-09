@@ -94,7 +94,11 @@ public abstract class TestEventUtil {
         return unlockFailure(time, process, LOCKNAME);
     }
 
-    public static ImmutableOkEvent createTimestamp(long time, int process, String value) {
+    public static ImmutableInvokeEvent invokeTimestamp(long time, int process) {
+        return createInvokeEvent(time, process, RequestType.TIMESTAMP, TIMESTAMP);
+    }
+
+    public static ImmutableOkEvent timestampOk(long time, int process, String value) {
         return createOkEvent(time, process, value, RequestType.TIMESTAMP, TIMESTAMP);
     }
 

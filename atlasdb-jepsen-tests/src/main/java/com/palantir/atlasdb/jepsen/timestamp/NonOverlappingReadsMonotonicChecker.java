@@ -32,6 +32,7 @@ import com.palantir.atlasdb.jepsen.events.FailEvent;
 import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
+import com.palantir.atlasdb.jepsen.events.RequestType;
 
 public class NonOverlappingReadsMonotonicChecker implements Checker {
     @Override
@@ -105,6 +106,8 @@ public class NonOverlappingReadsMonotonicChecker implements Checker {
                     .time(time)
                     .process(DUMMY_PROCESS)
                     .value(DUMMY_VALUE)
+                    .requestType(RequestType.TIMESTAMP)
+                    .resourceName("timestamp")
                     .build();
             return acknowledgedReadsOverTime.floor(dummyOkEvent);
         }
