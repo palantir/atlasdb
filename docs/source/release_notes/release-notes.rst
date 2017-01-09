@@ -42,6 +42,24 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - All SnapshotTransaction get methods are now safe for tables declared with SweepStrategy.THOROUGH.
+           Previously, a validation check was omitted for ``getRowsColumnRange``, ``getRowsIgnoringLocalWrites``, and ``getIgnoringLocalWrites``, which in very rare cases could have resulted in deleted values being returned by a long-running read transaction.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1421>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.27.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved|
          - ``StreamStore.loadStream`` now actually streams the data, if the data does not fit in memory.
            This means that getting the first byte of the stream now has constant-time performance, compared to being
@@ -70,11 +88,6 @@ develop
            Streams can be compressed client-side by adding the ``compressStreamInClient`` option to the stream 
            definition. Reads from the stream store will transparently decompress the data.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1357>`__)
-
-    *    - |fixed|
-         - All SnapshotTransaction get methods support tables declared with
-           SweepStrategy.THOROUGH.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1421>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
