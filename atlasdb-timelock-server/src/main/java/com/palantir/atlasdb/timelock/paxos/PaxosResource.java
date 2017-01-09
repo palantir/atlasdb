@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.io.File;
 import java.util.Map;
 
 import javax.ws.rs.Path;
@@ -28,24 +29,32 @@ import com.palantir.paxos.PaxosLearnerImpl;
 
 @Path("/{client: [a-zA-Z0-9_-]+}")
 public class PaxosResource {
-    private static final String DEFAULT_LOG_DIRECTORY = "var/data/";
+    private static final File DEFAULT_LOG_DIRECTORY = new File("var/data/");
     private static final String LEARNER_PATH = "/learner";
     private static final String ACCEPTOR_PATH = "/acceptor";
 
+    private final File logDirectory;
     private final Map<String, PaxosLearner> paxosLearners;
     private final Map<String, PaxosAcceptor> paxosAcceptors;
 
-    public PaxosResource(Map<String, PaxosLearner> paxosLearners, Map<String, PaxosAcceptor> paxosAcceptors) {
+    private PaxosResource(File logDirectory,
+            Map<String, PaxosLearner> paxosLearners,
+            Map<String, PaxosAcceptor> paxosAcceptors) {
+        this.logDirectory = logDirectory;
         this.paxosLearners = paxosLearners;
         this.paxosAcceptors = paxosAcceptors;
     }
 
     public static PaxosResource create() {
-        return new PaxosResource(Maps.newHashMap(), Maps.newHashMap());
+        return create(DEFAULT_LOG_DIRECTORY);
+    }
+
+    public static PaxosResource create(File logDirectory) {
+        return new PaxosResource(logDirectory, Maps.newHashMap(), Maps.newHashMap());
     }
 
     public void addClient(String client) {
-        String rootSubdirectory = DEFAULT_LOG_DIRECTORY + client;
+        String rootSubdirectory = logDirectory + client;
         paxosLearners.put(client, PaxosLearnerImpl.newLearner(rootSubdirectory + LEARNER_PATH));
         paxosAcceptors.put(client, PaxosAcceptorImpl.newAcceptor(rootSubdirectory + ACCEPTOR_PATH));
     }

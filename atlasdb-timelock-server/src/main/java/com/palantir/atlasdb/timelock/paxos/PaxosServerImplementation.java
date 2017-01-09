@@ -73,7 +73,7 @@ public class PaxosServerImplementation implements ServerImplementation {
     public void onStart(TimeLockServerConfiguration configuration) {
         paxosConfiguration = ((PaxosConfiguration) configuration.algorithm());
 
-        paxosResource = PaxosResource.create();
+        paxosResource = PaxosResource.create(paxosConfiguration.paxosDataDir());
         paxosResource.addClient(LEADER_NAMESPACE);
 
         if (paxosConfiguration.sslConfiguration().isPresent()) {
@@ -150,7 +150,16 @@ public class PaxosServerImplementation implements ServerImplementation {
 
     @Override
     public TimeLockServices createInvalidatingTimeLockServices(String client) {
-        // Establish a group of Paxos coordinators for THIS CLIENT that achieve consensus
+        TimestampService timestampService = createPaxosBackedTimestampService(client);
+        LockService lockService = AwaitingLeadershipProxy.newProxyInstance(
+                LockService.class,
+                LockServiceImpl::create,
+                leaderElectionService);
+
+        return TimeLockServices.create(timestampService, lockService);
+    }
+
+    private TimestampService createPaxosBackedTimestampService(String client) {
         paxosResource.addClient(client);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
@@ -178,7 +187,7 @@ public class PaxosServerImplementation implements ServerImplementation {
                 acceptors.size() / 2 + 1,
                 executor);
 
-        TimestampService timestampService = AwaitingLeadershipProxy.newProxyInstance(
+        return AwaitingLeadershipProxy.newProxyInstance(
                 TimestampService.class,
                 () -> PersistentTimestampService.create(
                         new PaxosTimestampBoundStore(
@@ -189,13 +198,6 @@ public class PaxosServerImplementation implements ServerImplementation {
                         )
                 ),
                 leaderElectionService);
-
-        LockService lockService = AwaitingLeadershipProxy.newProxyInstance(
-                LockService.class,
-                LockServiceImpl::create,
-                leaderElectionService);
-
-        return TimeLockServices.create(timestampService, lockService);
     }
 
     private static Set<String> getRemoteAddresses(TimeLockServerConfiguration configuration) {
@@ -225,5 +227,4 @@ public class PaxosServerImplementation implements ServerImplementation {
         Set<String> endpointUris = getSuffixedUris(addresses, namespace);
         return AtlasDbHttpClients.createProxies(optionalSecurity, endpointUris, clazz);
     }
-
 }
