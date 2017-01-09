@@ -75,6 +75,7 @@ public class AtlasDbConfigTest {
                 .build();
         assertThat(config, not(nullValue()));
     }
+
     @Test
     public void remoteLockAndTimestampConfigIsValid() {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()

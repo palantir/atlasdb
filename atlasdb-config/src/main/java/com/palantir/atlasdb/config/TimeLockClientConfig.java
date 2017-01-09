@@ -28,4 +28,3 @@ public abstract class TimeLockClientConfig {
 
     public abstract ServerListConfig serversList();
 }
-
