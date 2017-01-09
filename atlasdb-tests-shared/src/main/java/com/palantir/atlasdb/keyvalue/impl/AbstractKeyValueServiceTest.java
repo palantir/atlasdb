@@ -38,6 +38,7 @@ import org.apache.commons.lang.ArrayUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -97,6 +98,10 @@ public abstract class AbstractKeyValueServiceTest {
     protected static KeyValueService keyValueService = null;
 
     protected boolean reverseRangesSupported() {
+        return true;
+    }
+
+    protected boolean checkAndSetSupported() {
         return true;
     }
 
@@ -828,6 +833,8 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testCheckAndSetFromEmpty() {
+        Assume.assumeTrue(checkAndSetSupported());
+
         Cell cell = Cell.create(row0, column0);
         CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, cell, value00);
         keyValueService.checkAndSet(request);
@@ -837,6 +844,8 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testCheckAndSetFromOtherValue() {
+        Assume.assumeTrue(checkAndSetSupported());
+
         Cell cell = Cell.create(row0, column0);
 
         CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, cell, value00);
@@ -871,6 +880,8 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test(expected = CheckAndSetException.class)
     public void testCheckAndSetFromWrongValue() {
+        Assume.assumeTrue(checkAndSetSupported());
+
         Cell cell = Cell.create(row0, column0);
 
         CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, cell, value00);
@@ -882,6 +893,8 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test(expected = CheckAndSetException.class)
     public void testCheckAndSetFromValueWhenNoValue() {
+        Assume.assumeTrue(checkAndSetSupported());
+
         Cell cell = Cell.create(row0, column0);
 
         CheckAndSetRequest request = CheckAndSetRequest.singleCell(TEST_TABLE, cell, value00, value01);
@@ -890,6 +903,8 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test(expected = CheckAndSetException.class)
     public void testCheckAndSetFromNoValueWhenValueIsPresent() {
+        Assume.assumeTrue(checkAndSetSupported());
+
         Cell cell = Cell.create(row0, column0);
 
         CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, cell, value00);

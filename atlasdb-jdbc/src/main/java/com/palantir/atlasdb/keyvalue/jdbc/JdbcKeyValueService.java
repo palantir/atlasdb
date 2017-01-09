@@ -523,7 +523,7 @@ public class JdbcKeyValueService implements KeyValueService {
 
     @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
-        // TODO
+        throw new UnsupportedOperationException("Check and set is not supported for JDBC KVS");
     }
 
     @Override

@@ -427,7 +427,7 @@ public class RocksDbKeyValueService implements KeyValueService {
 
     @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
-        // TODO
+        throw new UnsupportedOperationException("Check and set is not supported for RocksDB KVS");
     }
 
     @Override
