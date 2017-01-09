@@ -77,6 +77,9 @@ artifactory {
 artifactoryPublish.onlyIf {
     System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD') && System.getenv('ARTIFACTORY_JAR_REPO') && System.getenv('ARTIFACTORY_URL') && !(project.version ==~ releaseVersionRegex)
 }
+
+artifactoryPublish.outputs.upToDateWhen { true }
+
 artifactoryPublish.dependsOn 'generatePomFileForArtifactoryPublication', 'sourceJar', 'testJar', 'build'
 
 ext {

@@ -60,6 +60,8 @@ artifactoryPublish.onlyIf {
     System.getenv('ARTIFACTORY_USERNAME') && System.getenv('ARTIFACTORY_PASSWORD') && System.getenv('ARTIFACTORY_DIST_REPO') && System.getenv('ARTIFACTORY_URL') && !(project.version ==~ releaseVersionRegex)
 }
 
+artifactoryPublish.outputs.upToDateWhen { true }
+
 artifactoryPublish.dependsOn 'generatePomFileForDistsPublication', 'distTar', 'build'
 
 ext {
