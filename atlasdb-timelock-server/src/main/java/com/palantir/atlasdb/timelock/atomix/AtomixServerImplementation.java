@@ -56,6 +56,11 @@ public class AtomixServerImplementation implements ServerImplementation {
                         .build())
                 .withTransport(createTransport(atomix.security()))
                 .build();
+
+        startAtomix(configuration);
+    }
+
+    private void startAtomix(TimeLockServerConfiguration configuration) {
         AtomixRetryer.getWithRetry(() -> replica.bootstrap(
                 configuration.cluster()
                         .servers()
