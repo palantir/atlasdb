@@ -59,6 +59,13 @@ public abstract class PaxosConfiguration implements TimeLockAlgorithmConfigurati
     protected final void check() {
         Preconditions.checkArgument(paxosDataDir().exists() || paxosDataDir().mkdirs(),
                 "Paxos data directory '%s' does not exist and cannot be created.", paxosDataDir());
+        Preconditions.checkArgument(pingRateMs() > 0,
+                "Ping rate must be positive; found '%s'.", pingRateMs());
+        Preconditions.checkArgument(randomWaitBeforeProposingLeadershipMs() > 0,
+                "Random wait before proposing leadership must be positive; found '%s'.",
+                randomWaitBeforeProposingLeadershipMs());
+        Preconditions.checkArgument(leaderPingResponseWaitMs() > 0,
+                "Leader ping response wait interval must be positive; found '%s'.", leaderPingResponseWaitMs());
     }
 
     @Override
