@@ -51,6 +51,12 @@ public class TimeLockServerConfigurationTest {
     }
 
     @Test
+    public void shouldRejectClientsConflictingWithInternalClients() {
+        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of("__leader")))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
     public void shouldRejectClientsWithEmptyName() {
         assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of("")))
                 .isInstanceOf(IllegalStateException.class);
