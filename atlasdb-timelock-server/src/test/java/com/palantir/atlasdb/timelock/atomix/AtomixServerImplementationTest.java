@@ -64,18 +64,21 @@ public class AtomixServerImplementationTest extends ServerImplementationTest {
 
     @Override
     protected void verifyPostStartupFailure() {
-        assertThatThrownBy(AtomixServerImplementationTest::tryToConnectToAtomixPort)
-                .isInstanceOf(ConnectException.class);
+        assertAtomixNotListeningOnPort();
     }
 
     @Override
     protected void verifyPostStop() {
-        assertThatThrownBy(AtomixServerImplementationTest::tryToConnectToAtomixPort)
-                .isInstanceOf(ConnectException.class)
-                .hasMessageContaining("Connection refused");
+        assertAtomixNotListeningOnPort();
     }
 
     private static void tryToConnectToAtomixPort() throws IOException {
         new Socket(LOCAL_ADDRESS.host(), LOCAL_ADDRESS.port());
+    }
+
+    private static void assertAtomixNotListeningOnPort() {
+        assertThatThrownBy(AtomixServerImplementationTest::tryToConnectToAtomixPort)
+                .isInstanceOf(ConnectException.class)
+                .hasMessageContaining("Connection refused");
     }
 }
