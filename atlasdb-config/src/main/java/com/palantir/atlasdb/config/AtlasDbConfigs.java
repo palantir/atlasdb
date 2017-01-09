@@ -140,8 +140,8 @@ public final class AtlasDbConfigs {
         //noinspection ConstantConditions - function returns an existing ServerListConfig, maybe with different SSL.
         return config.transform(clientConfig -> ImmutableTimeLockClientConfig.builder()
                 .from(clientConfig)
-                .servers(addSslConfigurationToServerListFunction(sslConfiguration)
-                        .apply(clientConfig.servers()))
+                .serversList(addSslConfigurationToServerListFunction(sslConfiguration)
+                        .apply(clientConfig.serversList()))
                 .build());
     }
 

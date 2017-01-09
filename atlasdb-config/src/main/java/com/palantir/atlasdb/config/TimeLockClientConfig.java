@@ -26,6 +26,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 public abstract class TimeLockClientConfig {
     public abstract String client();
 
-    public abstract ServerListConfig servers();
+    public abstract ServerListConfig serversList();
 }
 

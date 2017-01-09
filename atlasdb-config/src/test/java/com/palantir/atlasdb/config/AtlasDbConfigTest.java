@@ -39,7 +39,7 @@ public class AtlasDbConfigTest {
             .build();
     public static final TimeLockClientConfig TIMELOCK_CONFIG = ImmutableTimeLockClientConfig.builder()
             .client("testClient")
-            .servers(DEFAULT_SERVER_LIST)
+            .serversList(DEFAULT_SERVER_LIST)
             .build();
     private static final Optional<SslConfiguration> SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
     private static final Optional<SslConfiguration> OTHER_SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
@@ -93,7 +93,7 @@ public class AtlasDbConfigTest {
                 .keyValueService(KVS_CONFIG)
                 .timelock(ImmutableTimeLockClientConfig.builder()
                         .client("testClient")
-                        .servers(DEFAULT_SERVER_LIST).build())
+                        .serversList(DEFAULT_SERVER_LIST).build())
                 .lock(DEFAULT_SERVER_LIST)
                 .timestamp(DEFAULT_SERVER_LIST)
                 .build();
@@ -170,7 +170,7 @@ public class AtlasDbConfigTest {
                 .timelock(TIMELOCK_CONFIG)
                 .build();
         AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
-        assertThat(withSsl.timelock().get().servers().sslConfiguration(), is(SSL_CONFIG));
+        assertThat(withSsl.timelock().get().serversList().sslConfiguration(), is(SSL_CONFIG));
     }
 
     @Test
