@@ -164,6 +164,16 @@ public class AtlasDbConfigTest {
     }
 
     @Test
+    public void addingFallbackSslAddsItToTimelockServersBlock() {
+        AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG)
+                .timelock(TIMELOCK_CONFIG)
+                .build();
+        AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
+        assertThat(withSsl.timelock().get().servers().sslConfiguration(), is(SSL_CONFIG));
+    }
+
+    @Test
     public void addingFallbackSslAddsItToTimestampBlock() {
         AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
                 .keyValueService(KVS_CONFIG)
