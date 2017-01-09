@@ -71,7 +71,7 @@ public class PaxosServerImplementation implements ServerImplementation {
 
     @Override
     public void onStartup(TimeLockServerConfiguration configuration) {
-        paxosConfiguration = ((PaxosConfiguration) configuration.algorithm());
+        paxosConfiguration = (PaxosConfiguration) configuration.algorithm();
         registerPaxosResource();
 
         if (paxosConfiguration.sslConfiguration().isPresent()) {
@@ -211,9 +211,8 @@ public class PaxosServerImplementation implements ServerImplementation {
     }
 
     private Set<String> getRemotePaths(TimeLockServerConfiguration configuration) {
-        String protocolPrefix = paxosConfiguration.sslConfiguration().isPresent() ?
-                "https://" :
-                "http://";
+        String protocolPrefix = paxosConfiguration.sslConfiguration().isPresent()
+                ? "https://" : "http://";
         return getRemoteAddresses(configuration).stream()
                 .map(address -> protocolPrefix + address)
                 .collect(Collectors.toSet());

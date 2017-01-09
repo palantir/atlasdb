@@ -29,7 +29,7 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 
 @Path("/{client: [a-zA-Z0-9_-]+}")
-public class PaxosResource {
+public final class PaxosResource {
     private static final File DEFAULT_LOG_DIRECTORY = new File("var/data/");
     private static final String LEARNER_PATH = "/learner";
     private static final String ACCEPTOR_PATH = "/acceptor";

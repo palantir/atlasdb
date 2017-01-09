@@ -80,7 +80,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         if (!PaxosQuorumChecker.hasQuorum(responses, proposer.getQuorumSize())) {
             throw new ServiceNotAvailableException("could not get a quorum");
         }
-        PaxosLong max = Ordering.natural().onResultOf((PaxosLong a) -> a.getValue()).max(responses);
+        PaxosLong max = Ordering.natural().onResultOf(PaxosLong::getValue).max(responses);
         agreedState = getAgreedState(max.getValue());
         return agreedState.getBound();
     }
@@ -118,7 +118,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
             try {
                 byte[] value = proposer.propose(seq, oldState == null ? null : PtBytes.toBytes(oldState));
                 // propose must never be null.  We only pass in null for things we know are agreed upon already.
-                Preconditions.checkNotNull(value);
+                Preconditions.checkNotNull(value, "Proposed value can't be null, but was in sequence %s", seq);
                 return ImmutableSequenceAndBound.of(seq, PtBytes.toLong(value));
             } catch (PaxosRoundFailureException e) {
                 log.info("failed during propose", e);
@@ -149,8 +149,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         return Optional.of(ImmutableSequenceAndBound.of(seq, responses.iterator().next().getValue()));
     }
 
-    private static PaxosLong getLearnedValue(long seq, PaxosLearner l) {
-        PaxosValue value = l.getLearnedValue(seq);
+    private static PaxosLong getLearnedValue(long seq, PaxosLearner learner) {
+        PaxosValue value = learner.getLearnedValue(seq);
         if (value == null) {
             throw new NoSuchElementException();
         }
@@ -177,7 +177,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 log.info("failed during propose", e);
                 long backoffTime = (long) (200.0 * Math.random());
                 try {
-                    Thread.sleep(backoffTime);
+                    wait(backoffTime);
                 } catch (InterruptedException e1) {
                     Thread.currentThread().interrupt();
                 }
