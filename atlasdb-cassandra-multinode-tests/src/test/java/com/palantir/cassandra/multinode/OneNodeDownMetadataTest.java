@@ -53,6 +53,8 @@ public class OneNodeDownMetadataTest {
         assertThatThrownBy(() -> OneNodeDownTestSuite.db.putMetadataForTable(OneNodeDownTestSuite.TEST_TABLE,
                 newTableMetadata.persistToBytes())).isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("At schema version UNREACHABLE");
+
+        canGetMetadataForTable();
     }
 
     @Test
@@ -63,5 +65,7 @@ public class OneNodeDownMetadataTest {
                 ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, newTableMetadata.persistToBytes())))
                 .isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("At schema version UNREACHABLE");
+
+        canGetMetadataForTable();
     }
 }

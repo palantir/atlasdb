@@ -15,6 +15,7 @@
  */
 package com.palantir.cassandra.multinode;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 
@@ -76,6 +77,11 @@ public class OneNodeDownPutTest {
         assertThatThrownBy(() -> OneNodeDownTestSuite.db.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_CONTENTS)))
                 .isInstanceOf(KeyAlreadyExistsException.class);
+
+        Map<Cell, Value> result = OneNodeDownTestSuite.db.get(OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, AtlasDbConstants.TRANSACTION_TS));
+        assertThat(Value.create(OneNodeDownTestSuite.DEFAULT_CONTENTS, AtlasDbConstants.TRANSACTION_TS))
+                .isNotEqualTo(result.get(OneNodeDownTestSuite.CELL_1_1));
     }
 
     @Test

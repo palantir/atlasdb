@@ -38,6 +38,7 @@ public class OneNodeDownTableManipulationTest {
                 .isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("At schema version UNREACHABLE");
         // This documents and verifies the current behaviour, creating the table in spite of the exception
+        // Seems to be inconsistent with the API
         assertThat(OneNodeDownTestSuite.db.getAllTableNames()).contains(NEW_TABLE);
     }
 
@@ -49,6 +50,7 @@ public class OneNodeDownTableManipulationTest {
                 .isExactlyInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("At schema version UNREACHABLE");
         // This documents and verifies the current behaviour, creating the table in spite of the exception
+        // Seems to be inconsistent with the API
         assertThat(OneNodeDownTestSuite.db.getAllTableNames()).contains(NEW_TABLE2);
     }
 
@@ -58,6 +60,7 @@ public class OneNodeDownTableManipulationTest {
         assertThatThrownBy(() -> OneNodeDownTestSuite.db.dropTable(OneNodeDownTestSuite.TEST_TABLE_TO_DROP))
                 .isExactlyInstanceOf(IllegalStateException.class);
         // This documents and verifies the current behaviour, dropping the table in spite of the exception
+        // Seems to be inconsistent with the API
         assertThat(OneNodeDownTestSuite.db.getAllTableNames()).doesNotContain(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
     }
 
@@ -68,6 +71,7 @@ public class OneNodeDownTableManipulationTest {
                 ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2)))
                 .isExactlyInstanceOf(IllegalStateException.class);
         // This documents and verifies the current behaviour, dropping the table in spite of the exception
+        // Seems to be inconsistent with the API
         assertThat(OneNodeDownTestSuite.db.getAllTableNames())
                 .doesNotContain(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2);
     }
