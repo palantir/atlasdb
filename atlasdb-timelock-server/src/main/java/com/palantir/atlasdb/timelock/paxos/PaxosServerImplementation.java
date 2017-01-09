@@ -70,18 +70,26 @@ public class PaxosServerImplementation implements ServerImplementation {
     }
 
     @Override
-    public void onStart(TimeLockServerConfiguration configuration) {
+    public void onStartup(TimeLockServerConfiguration configuration) {
         paxosConfiguration = ((PaxosConfiguration) configuration.algorithm());
-
-        paxosResource = PaxosResource.create(paxosConfiguration.paxosDataDir());
-        paxosResource.addClient(LEADER_NAMESPACE);
+        registerPaxosResource();
 
         if (paxosConfiguration.sslConfiguration().isPresent()) {
             optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
         }
 
+        registerLeaderElectionService(configuration);
+        environment.jersey().register(new NotCurrentLeaderExceptionMapper());
+    }
+
+    private void registerPaxosResource() {
+        paxosResource = PaxosResource.create(paxosConfiguration.paxosDataDir());
+        paxosResource.addClient(LEADER_NAMESPACE);
+        environment.jersey().register(paxosResource);
+    }
+
+    private void registerLeaderElectionService(TimeLockServerConfiguration configuration) {
         remoteServers = getRemotePaths(configuration);
-        // Construct the intermediate stuff
         List<PaxosLearner> learners = getNamespacedProxies(
                 remoteServers,
                 "/" + LEADER_NAMESPACE,
@@ -120,13 +128,10 @@ public class PaxosServerImplementation implements ServerImplementation {
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners),
                 executor,
-                paxosConfiguration.pingRateMs(), // Ping rate ms
-                paxosConfiguration.randomWaitBeforeProposingLeadershipMs(), // Wait before proposing
+                paxosConfiguration.pingRateMs(),
+                paxosConfiguration.randomWaitBeforeProposingLeadershipMs(),
                 paxosConfiguration.leaderPingResponseWaitMs());
-
-        environment.jersey().register(paxosResource);
         environment.jersey().register(leaderElectionService);
-        environment.jersey().register(new NotCurrentLeaderExceptionMapper());
     }
 
     private static int getQuorumSize(TimeLockServerConfiguration configuration) {
@@ -144,7 +149,7 @@ public class PaxosServerImplementation implements ServerImplementation {
     }
 
     @Override
-    public void onFail() {
+    public void onStartupFailure() {
         // Nothing
     }
 
