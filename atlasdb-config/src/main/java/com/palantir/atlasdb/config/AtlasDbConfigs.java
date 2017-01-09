@@ -28,6 +28,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.palantir.config.crypto.DecryptingVariableSubstitutor;
@@ -114,6 +115,7 @@ public final class AtlasDbConfigs {
                 .leader(addFallbackSslConfigurationToLeader(config.leader(), sslConfiguration))
                 .lock(addFallbackSslConfigurationToServerList(config.lock(), sslConfiguration))
                 .timestamp(addFallbackSslConfigurationToServerList(config.timestamp(), sslConfiguration))
+                .timelock(addFallbackSslConfigurationToTimeLockClientConfig(config.timelock(), sslConfiguration))
                 .build();
     }
 
@@ -129,9 +131,26 @@ public final class AtlasDbConfigs {
     private static Optional<ServerListConfig> addFallbackSslConfigurationToServerList(
             Optional<ServerListConfig> config,
             Optional<SslConfiguration> sslConfiguration) {
-        return config.transform(serverList -> ImmutableServerListConfig.builder()
+        return config.transform(addSslConfigurationToServerListFunction(sslConfiguration));
+    }
+
+    private static Optional<TimeLockClientConfig> addFallbackSslConfigurationToTimeLockClientConfig(
+            Optional<TimeLockClientConfig> config,
+            Optional<SslConfiguration> sslConfiguration) {
+        //noinspection ConstantConditions - function returns an existing ServerListConfig, maybe with different SSL.
+        return config.transform(clientConfig -> ImmutableTimeLockClientConfig.builder()
+                .from(clientConfig)
+                .servers(addSslConfigurationToServerListFunction(sslConfiguration)
+                        .apply(clientConfig.servers()))
+                .build());
+    }
+
+    private static Function<ServerListConfig, ServerListConfig> addSslConfigurationToServerListFunction(
+            Optional<SslConfiguration> sslConfiguration) {
+        return serverList -> ImmutableServerListConfig.builder()
                 .from(serverList)
                 .sslConfiguration(serverList.sslConfiguration().or(sslConfiguration))
-                .build());
+                .build();
+
     }
 }
