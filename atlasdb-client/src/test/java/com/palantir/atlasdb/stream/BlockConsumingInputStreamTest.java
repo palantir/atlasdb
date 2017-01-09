@@ -218,8 +218,8 @@ public class BlockConsumingInputStreamTest {
         assertArrayEquals(Arrays.copyOf(data, dataSizeMinusOne), Arrays.copyOf(result, dataSizeMinusOne));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void bufferLengthShouldNotExceedIntMaxValue() throws IOException {
+    @Test
+    public void bufferLengthCanAlmostReachIntMaxValue() throws IOException {
         BlockGetter bigGetter = new BlockGetter() {
             @Override
             public void get(long firstBlock, long numBlocks, OutputStream destination) {
@@ -228,14 +228,49 @@ public class BlockConsumingInputStreamTest {
 
             @Override
             public int expectedBlockLength() {
-                return 1_000_000;
+                return Integer.MAX_VALUE - 8;
             }
         };
 
-        // Should fail, because bigGetter.expectedBlockLength() * blocksInMemory > Integer.MAX_VALUE.
-        BlockConsumingInputStream.create(bigGetter, 9001, 2148);
+        // Should succeed, because bigGetter.expectedBlockLength() * blocksInMemory = Integer.MAX_VALUE - 8.
+        BlockConsumingInputStream.create(bigGetter, 2, 1);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void bufferLengthCanNotQuiteReachIntMaxValue() throws IOException {
+        BlockGetter reallyBigGetter = new BlockGetter() {
+            @Override
+            public void get(long firstBlock, long numBlocks, OutputStream destination) {
+                // do nothing
+            }
+
+            @Override
+            public int expectedBlockLength() {
+                return (Integer.MAX_VALUE - 1) / 8;
+            }
+        };
+
+        // Should fail, because reallyBigGetter.expectedBlockLength() * blocksInMemory = Integer.MAX_VALUE - 7.
+        BlockConsumingInputStream.create(reallyBigGetter, 9, 8);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void bufferLengthShouldNotExceedMaxArrayLength() throws IOException {
+        BlockGetter tooBigGetter = new BlockGetter() {
+            @Override
+            public void get(long firstBlock, long numBlocks, OutputStream destination) {
+                // do nothing
+            }
+
+            @Override
+            public int expectedBlockLength() {
+                return Integer.MAX_VALUE - 7;
+            }
+        };
+
+        // Should fail, because tooBigGetter.expectedBlockLength() * 1 = Integer.MAX_VALUE - 7.
+        BlockConsumingInputStream.create(tooBigGetter, 2, 1);
+    }
     @Test
     public void canLoadMultipleBlocksAtOnceAndAlsoFewerBlocksAtEnd() throws IOException {
         BlockGetter spiedGetter = Mockito.spy(singleByteConsumer);
