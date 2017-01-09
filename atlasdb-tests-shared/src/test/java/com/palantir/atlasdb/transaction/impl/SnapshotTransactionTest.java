@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -29,6 +30,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
@@ -82,6 +84,7 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.AbortingVisitor;
@@ -95,6 +98,7 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockCollections;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 
@@ -685,6 +689,22 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThat(rowResult, is(notNullValue()));
         assertThat(rowResult.getCellSet(), hasItem(writtenCell));
         assertThat(rowResult.getCellSet(), not(hasItem(emptyCell)));
+    }
+
+    @Test
+    public void noRetryOnExpiredLockTokens() throws InterruptedException {
+        Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
+        HeldLocksToken expiredLockToken = getFakeHeldLocksToken();
+        try {
+            txManager.runTaskWithLocksWithRetry(ImmutableList.of(expiredLockToken), () -> null, (tx, locks) -> {
+                tx.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
+                return null;
+            });
+        } catch (TransactionLockTimeoutException e) {
+            Set<LockRefreshToken> expectedTokens = ImmutableSet.of(expiredLockToken.getLockRefreshToken());
+            assertThat(e.getMessage(), containsString(expectedTokens.toString()));
+            assertThat(e.getMessage(), containsString("Retry is not possible."));
+        }
     }
 
     private void writeCells(TableReference table, ImmutableMap<Cell, byte[]> cellsToWrite) {

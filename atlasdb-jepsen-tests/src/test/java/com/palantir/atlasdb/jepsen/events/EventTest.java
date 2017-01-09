@@ -16,17 +16,21 @@
 package com.palantir.atlasdb.jepsen.events;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.jepsen.JepsenConstants;
+
 import clojure.lang.Keyword;
 
 public class EventTest {
-    public static final long SOME_VALUE = 136L;
+    public static final String SOME_LONG_AS_STRING = "136";
+    public static final String SOME_STRING = "SOME_STRING";
+    public static final Long SOME_LONG = 987L;
     public static final long SOME_TIME = 3029699376L;
     public static final int SOME_PROCESS = 1;
 
@@ -34,7 +38,24 @@ public class EventTest {
     public void makeSureWeCanHaveNullValues() {
         Map<Keyword, Object> keywordMap = new HashMap<>();
         keywordMap.put(Keyword.intern("type"), Keyword.intern("info"));
+        keywordMap.put(Keyword.intern("f"), Keyword.intern(JepsenConstants.START_FUNCTION));
+        keywordMap.put(Keyword.intern("process"), Keyword.intern(JepsenConstants.NEMESIS_PROCESS));
+        keywordMap.put(Keyword.intern("time"), SOME_TIME);
         keywordMap.put(Keyword.intern("value"), null);
+
+        Event event = Event.fromKeywordMap(keywordMap);
+
+        assertThat(event).isInstanceOf(InfoEvent.class);
+        assertThat(((InfoEvent) event).value().isPresent()).isFalse();
+    }
+
+    @Test
+    public void canDeserialiseInfoReadWithoutValue() {
+        Map<Keyword, Object> keywordMap = new HashMap<>();
+        keywordMap.put(Keyword.intern("type"), Keyword.intern("info"));
+        keywordMap.put(Keyword.intern("f"), Keyword.intern(JepsenConstants.START_FUNCTION));
+        keywordMap.put(Keyword.intern("process"), Keyword.intern(JepsenConstants.NEMESIS_PROCESS));
+        keywordMap.put(Keyword.intern("time"), SOME_TIME);
 
         Event event = Event.fromKeywordMap(keywordMap);
 
@@ -42,12 +63,13 @@ public class EventTest {
     }
 
     @Test
-    public void canDeserialiseInfoRead() {
+    public void canDeserialiseInfoReadWithValue() {
         Map<Keyword, Object> keywordMap = new HashMap<>();
         keywordMap.put(Keyword.intern("type"), Keyword.intern("info"));
-        keywordMap.put(Keyword.intern("f"), Keyword.intern("start"));
-        keywordMap.put(Keyword.intern("process"), Keyword.intern("nemesis"));
+        keywordMap.put(Keyword.intern("f"), Keyword.intern(JepsenConstants.START_FUNCTION));
+        keywordMap.put(Keyword.intern("process"), Keyword.intern(JepsenConstants.NEMESIS_PROCESS));
         keywordMap.put(Keyword.intern("time"), SOME_TIME);
+        keywordMap.put(Keyword.intern("value"), Keyword.intern(SOME_LONG_AS_STRING));
 
         Event event = Event.fromKeywordMap(keywordMap);
 
@@ -73,18 +95,75 @@ public class EventTest {
     }
 
     @Test
-    public void canDeserialiseOkRead() {
+    public void canDeserialiseOkReadWithValueAsStringOfLong() {
         Map<Keyword, Object> keywordMap = new HashMap<>();
         keywordMap.put(Keyword.intern("type"), Keyword.intern("ok"));
         keywordMap.put(Keyword.intern("f"), Keyword.intern("read-operation"));
-        keywordMap.put(Keyword.intern("value"), SOME_VALUE);
+        keywordMap.put(Keyword.intern("value"), SOME_LONG_AS_STRING);
         keywordMap.put(Keyword.intern("process"), SOME_PROCESS);
         keywordMap.put(Keyword.intern("time"), SOME_TIME);
 
         Event event = Event.fromKeywordMap(keywordMap);
 
         OkEvent expectedEvent = ImmutableOkEvent.builder()
-                .value(SOME_VALUE)
+                .value(SOME_LONG_AS_STRING)
+                .process(SOME_PROCESS)
+                .time(SOME_TIME)
+                .build();
+        assertThat(event).isEqualTo(expectedEvent);
+    }
+
+    @Test
+    public void canDeserialiseOkReadWithValueAsAnyString() {
+        Map<Keyword, Object> keywordMap = new HashMap<>();
+        keywordMap.put(Keyword.intern("type"), Keyword.intern("ok"));
+        keywordMap.put(Keyword.intern("f"), Keyword.intern("read-operation"));
+        keywordMap.put(Keyword.intern("value"), SOME_STRING);
+        keywordMap.put(Keyword.intern("process"), SOME_PROCESS);
+        keywordMap.put(Keyword.intern("time"), SOME_TIME);
+
+        Event event = Event.fromKeywordMap(keywordMap);
+
+        OkEvent expectedEvent = ImmutableOkEvent.builder()
+                .value(SOME_STRING)
+                .process(SOME_PROCESS)
+                .time(SOME_TIME)
+                .build();
+        assertThat(event).isEqualTo(expectedEvent);
+    }
+
+    @Test
+    public void canDeserialiseOkReadWithValueAsLong() {
+        Map<Keyword, Object> keywordMap = new HashMap<>();
+        keywordMap.put(Keyword.intern("type"), Keyword.intern("ok"));
+        keywordMap.put(Keyword.intern("f"), Keyword.intern("read-operation"));
+        keywordMap.put(Keyword.intern("value"), SOME_LONG);
+        keywordMap.put(Keyword.intern("process"), SOME_PROCESS);
+        keywordMap.put(Keyword.intern("time"), SOME_TIME);
+
+        Event event = Event.fromKeywordMap(keywordMap);
+
+        OkEvent expectedEvent = ImmutableOkEvent.builder()
+                .value(SOME_LONG.toString())
+                .process(SOME_PROCESS)
+                .time(SOME_TIME)
+                .build();
+        assertThat(event).isEqualTo(expectedEvent);
+    }
+
+    @Test
+    public void canDeserialiseOkReadWithNullValue() {
+        Map<Keyword, Object> keywordMap = new HashMap<>();
+        keywordMap.put(Keyword.intern("type"), Keyword.intern("ok"));
+        keywordMap.put(Keyword.intern("f"), Keyword.intern("read-operation"));
+        keywordMap.put(Keyword.intern("value"), null);
+        keywordMap.put(Keyword.intern("process"), SOME_PROCESS);
+        keywordMap.put(Keyword.intern("time"), SOME_TIME);
+
+        Event event = Event.fromKeywordMap(keywordMap);
+
+        OkEvent expectedEvent = ImmutableOkEvent.builder()
+                .value(null)
                 .process(SOME_PROCESS)
                 .time(SOME_TIME)
                 .build();
@@ -130,13 +209,56 @@ public class EventTest {
     }
 
     @Test
-    public void cannotDeserialiseOkReadWhenValueIsMissing() {
+    public void canDeserialiseOkReadWhenValueIsMissing() {
         Map<Keyword, Object> keywordMap = new HashMap<>();
         keywordMap.put(Keyword.intern("type"), Keyword.intern("ok"));
         keywordMap.put(Keyword.intern("f"), Keyword.intern("read-operation"));
         keywordMap.put(Keyword.intern("process"), SOME_PROCESS);
         keywordMap.put(Keyword.intern("time"), SOME_TIME);
 
-        assertThatThrownBy(() -> Event.fromKeywordMap(keywordMap)).isInstanceOf(IllegalArgumentException.class);
+        Event event = Event.fromKeywordMap(keywordMap);
+
+        OkEvent expectedEvent = ImmutableOkEvent.builder()
+                .process(SOME_PROCESS)
+                .time(SOME_TIME)
+                .value(null)
+                .build();
+        assertThat(event).isEqualTo(expectedEvent);
+    }
+
+    @Test
+    public void canSerialiseInfoEventWithValue() {
+        Event infoEvent = ImmutableInfoEvent.builder()
+                .function("foo")
+                .process(String.valueOf(SOME_PROCESS))
+                .time(SOME_TIME)
+                .value("bar")
+                .build();
+
+        Map<Keyword, Object> expected = ImmutableMap.of(
+                Keyword.intern("type"), "info",
+                Keyword.intern("f"), "foo",
+                Keyword.intern("process"), String.valueOf(SOME_PROCESS),
+                Keyword.intern("time"), SOME_TIME,
+                Keyword.intern("value"), "bar");
+
+        assertThat(Event.toKeywordMap(infoEvent)).isEqualTo(expected);
+    }
+
+    @Test
+    public void canSerialiseInfoEventWithoutValue() {
+        Event infoEvent = ImmutableInfoEvent.builder()
+                .function("foo")
+                .process(String.valueOf(SOME_PROCESS))
+                .time(SOME_TIME)
+                .build();
+
+        Map<Keyword, Object> expected = ImmutableMap.of(
+                Keyword.intern("type"), "info",
+                Keyword.intern("f"), "foo",
+                Keyword.intern("process"), String.valueOf(SOME_PROCESS),
+                Keyword.intern("time"), SOME_TIME);
+
+        assertThat(Event.toKeywordMap(infoEvent)).isEqualTo(expected);
     }
 }

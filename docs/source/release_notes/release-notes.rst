@@ -43,6 +43,34 @@ develop
          - Change
 
     *    - |improved|
+         - Increase default Cassandra pool size from minimum of 20 and maximum of 5x the minimum (100 if minimum not modified)
+           connections to minimum of 30 and maximum of 100 connections. This allows for better handling of bursts of requests
+           that would otherwise require creating many new connections to Cassandra from the clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)
+
+    *    - |fixed|
+         - Don't retry transactions when the locks are invalid. Previously, AtlasDB tried repeatedly to run a transaction when the external locks are already invalid.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1323>`__)
+           
+    *    - |improved|
+         - Added metrics to SnapshotTransaction to monitor durations of various operations such as get, getRows, commit,
+           etc. Atlas users should use AtlasDbMetrics.createAndSetInstance to create a MetricRegistry.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1356>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.27.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
          - ``StreamStore.loadStream`` now actually streams the data, if the data does not fit in memory.
            This means that getting the first byte of the stream now has constant-time performance, compared to being
            linear in terms of stream length, as it was previously.
@@ -62,9 +90,14 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1345>`__)
 
     *    - |improved|
-         - Added metrics to SnapshotTransaction to monitor durations of various operations such as get, getRows, commit,
-           etc. Atlas users should use AtlasDbMetrics.createAndSetInstance to create a MetricRegistry.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1356>`__)
+         - Enable garbage collection logging for CircleCI builds.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1398>`__)
+
+    *    - |new|
+         - AtlasDB now supports stream store compression.
+           Streams can be compressed client-side by adding the ``compressStreamInClient`` option to the stream
+           definition. Reads from the stream store will transparently decompress the data.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1357>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 

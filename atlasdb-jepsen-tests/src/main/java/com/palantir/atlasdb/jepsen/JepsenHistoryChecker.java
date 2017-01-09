@@ -28,17 +28,18 @@ import clojure.lang.Keyword;
 
 public class JepsenHistoryChecker {
 
-    private final List<Checker> checkers;
+    private List<Checker> checkers;
 
     public JepsenHistoryChecker(Checker... checkers) {
         this.checkers = ImmutableList.copyOf(checkers);
     }
 
-    public static JepsenHistoryChecker createWithStandardCheckers() {
-        return new JepsenHistoryChecker(
-                new MonotonicChecker(),
-                new NonOverlappingReadsMonotonicChecker(),
-                new UniquenessChecker());
+    public JepsenHistoryChecker(List<Checker> checkers) {
+        this.checkers = ImmutableList.copyOf(checkers);
+    }
+
+    public List<Checker> getCheckers() {
+        return checkers;
     }
 
     /**

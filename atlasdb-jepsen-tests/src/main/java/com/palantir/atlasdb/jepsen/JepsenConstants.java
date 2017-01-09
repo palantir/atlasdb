@@ -13,17 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.http;
+package com.palantir.atlasdb.jepsen;
 
-import java.util.List;
+public final class JepsenConstants {
+    public static final String NEMESIS_PROCESS = "nemesis";
 
-import com.palantir.timestamp.TimestampService;
+    public static final String START_FUNCTION = "start";
+    public static final String STOP_FUNCTION = "stop";
 
-public final class TimestampClient {
-    private TimestampClient() {
-    }
-
-    public static TimestampService create(List<String> hosts) {
-        return TimelockUtils.createClient(hosts, TimestampService.class);
+    private JepsenConstants() {
+        // utility class
     }
 }

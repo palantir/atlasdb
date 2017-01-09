@@ -13,17 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.http;
+package com.palantir.atlasdb.timelock.config;
 
-import java.util.List;
+import org.immutables.value.Value;
 
-import com.palantir.timestamp.TimestampService;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.remoting1.config.ssl.SslConfiguration;
 
-public final class TimestampClient {
-    private TimestampClient() {
-    }
+@JsonSerialize(as = ImmutableAtomixSslConfiguration.class)
+@JsonDeserialize(as = ImmutableAtomixSslConfiguration.class)
+@Value.Immutable
+public abstract class AtomixSslConfiguration {
+    public abstract SslConfiguration sslConfiguration();
 
-    public static TimestampService create(List<String> hosts) {
-        return TimelockUtils.createClient(hosts, TimestampService.class);
-    }
+    public abstract String trustStorePassword();
 }
