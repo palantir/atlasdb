@@ -87,7 +87,7 @@ public class RefreshCorrectnessChecker implements Checker {
                  * Remember the new value for the most recent successful lock
                  */
                 case LOCK:
-                    if (event.value() == OkEvent.SUCCESS) {
+                    if (event.isSuccessful()) {
                         lastHeldLock.put(processLock, event);
                     }
                     break;
@@ -101,7 +101,7 @@ public class RefreshCorrectnessChecker implements Checker {
                  */
                 case REFRESH:
                 case UNLOCK:
-                    if (event.value() == OkEvent.SUCCESS && lastHeldLock.containsKey(processLock)) {
+                    if (event.isSuccessful() && lastHeldLock.containsKey(processLock)) {
                         long lastLockTime = lastHeldLock.get(processLock).time();
                         if (lastLockTime < invokeEvent.time()) {
                             Range<Long> newRange = Range.closedOpen(lastLockTime, invokeEvent.time());

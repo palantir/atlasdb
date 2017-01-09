@@ -32,8 +32,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 public abstract class OkEvent implements Event {
     public static final String TYPE = "ok";
 
-    public static final long SUCCESS = 1;
-    public static final long FAILURE = -1;
+    public static final String SUCCESS = "SUCCESS";
+    public static final String FAILURE = "FAILURE";
 
     @Override
     public abstract long time();
@@ -50,5 +50,13 @@ public abstract class OkEvent implements Event {
     @Override
     public void accept(EventVisitor visitor) {
         visitor.visit(this);
+    }
+
+    public boolean isSuccessful() {
+        return (value() != null && value() == SUCCESS);
+    }
+
+    public boolean isFailure() {
+        return (value() != null && value() == FAILURE);
     }
 }

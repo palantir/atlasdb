@@ -23,6 +23,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Checker;
 
+import com.palantir.atlasdb.jepsen.timestamp.MonotonicChecker;
+import com.palantir.atlasdb.jepsen.timestamp.NonOverlappingReadsMonotonicChecker;
+import com.palantir.atlasdb.jepsen.timestamp.UniquenessChecker;
+
+
 public final class JepsenHistoryCheckers {
     private JepsenHistoryCheckers() {
         // utility

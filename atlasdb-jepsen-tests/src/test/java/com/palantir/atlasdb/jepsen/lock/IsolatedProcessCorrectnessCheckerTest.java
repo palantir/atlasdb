@@ -24,9 +24,6 @@ import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.TestEventUtil;
 
-/**
- * Created by gmaretic on 10/12/2016.
- */
 public class IsolatedProcessCorrectnessCheckerTest {
     private static final int process1 = 1;
 

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.jepsen.events;
 public abstract class TestEventUtil {
 
     private static final String LOCKNAME = "default_lockname";
+    private static final String TIMESTAMP = "timestamp";
 
     public static ImmutableInvokeEvent invokeLock(long time, int process, String lockname) {
         return createInvokeEvent(time, process, RequestType.LOCK, lockname);
@@ -93,6 +94,11 @@ public abstract class TestEventUtil {
         return unlockFailure(time, process, LOCKNAME);
     }
 
+    public static ImmutableOkEvent createTimestamp(long time, int process, String value) {
+        return createOkEvent(time, process, value, RequestType.TIMESTAMP, TIMESTAMP);
+    }
+
+
     public static ImmutableInvokeEvent createInvokeEvent(long time, int process, RequestType requestType,
             String resourceName) {
         return ImmutableInvokeEvent.builder()
@@ -103,7 +109,7 @@ public abstract class TestEventUtil {
                 .build();
     }
 
-    public static ImmutableOkEvent createOkEvent(long time, int process, long value, RequestType requestType,
+    public static ImmutableOkEvent createOkEvent(long time, int process, String value, RequestType requestType,
             String resourceName) {
         return ImmutableOkEvent.builder()
                 .time(time)

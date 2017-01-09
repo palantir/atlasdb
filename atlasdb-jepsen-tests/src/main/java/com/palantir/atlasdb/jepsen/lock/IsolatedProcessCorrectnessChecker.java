@@ -90,18 +90,18 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
 
             switch (event.requestType()) {
                 case LOCK:
-                    if (event.value() == OkEvent.FAILURE) {
+                    if (event.isFailure()) {
                         refreshAllowed.put(processLock, false);
                     }
-                    if (event.value() == OkEvent.SUCCESS) {
+                    if (event.isSuccessful()) {
                         refreshAllowed.put(processLock, true);
                     }
                     break;
                 case REFRESH:
-                    if (event.value() == OkEvent.FAILURE) {
+                    if (event.isFailure()) {
                         refreshAllowed.put(processLock, false);
                     }
-                    if (event.value() == OkEvent.SUCCESS) {
+                    if (event.isSuccessful()) {
                         if (!refreshAllowed.get(processLock)) {
                             errors.add(lastEvent.get(processLock));
                             errors.add(event);
@@ -110,7 +110,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
                     }
                     break;
                 case UNLOCK:
-                    if (event.value() == OkEvent.SUCCESS) {
+                    if (event.isSuccessful()) {
                         if (!refreshAllowed.get(processLock)) {
                             errors.add(lastEvent.get(processLock));
                             errors.add(event);

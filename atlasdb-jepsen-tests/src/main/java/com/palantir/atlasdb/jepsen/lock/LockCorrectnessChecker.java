@@ -120,11 +120,11 @@ public class LockCorrectnessChecker implements Checker {
                  *    by IsolatedProcessCorrectnessChecker
                  */
                 case LOCK:
-                    if (event.value() == OkEvent.SUCCESS) {
+                    if (event.isSuccessful()) {
                         locksAtSomePoint.get(lockName).add(new Pair(invokeEvent, event));
                         lastHeldLock.put(processLock, event);
                     }
-                    if (event.value() == OkEvent.FAILURE) {
+                    if (event.isFailure()) {
                         failedLocksAtSomePoint.get(lockName).add(new Pair(invokeEvent, event));
                     }
                     break;
@@ -136,7 +136,7 @@ public class LockCorrectnessChecker implements Checker {
                  */
                 case REFRESH:
                 case UNLOCK:
-                    if (event.value() == OkEvent.SUCCESS && lastHeldLock.containsKey(processLock)) {
+                    if (event.isSuccessful() && lastHeldLock.containsKey(processLock)) {
                         long lastLockTime = lastHeldLock.get(processLock).time();
                         if (lastLockTime < invokeEvent.time()) {
                             locksHeld.get(lockName).add(

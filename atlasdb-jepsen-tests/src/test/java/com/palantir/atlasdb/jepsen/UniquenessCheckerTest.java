@@ -22,6 +22,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
+import com.palantir.atlasdb.jepsen.timestamp.UniquenessChecker;
 
 public class UniquenessCheckerTest {
     private static final long ZERO_TIME = 0L;

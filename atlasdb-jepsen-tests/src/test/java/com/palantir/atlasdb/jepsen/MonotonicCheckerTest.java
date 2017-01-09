@@ -24,6 +24,9 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
 
+import com.palantir.atlasdb.jepsen.timestamp.MonotonicChecker;
+import com.palantir.atlasdb.jepsen.events.TestEventUtil;
+
 public class MonotonicCheckerTest {
     private static final Long ZERO_TIME = 0L;
     private static final int PROCESS_0 = 0;
@@ -41,16 +44,8 @@ public class MonotonicCheckerTest {
 
     @Test
     public void shouldFailOnDecreasingValueEvents() {
-        Event event1 = ImmutableOkEvent.builder()
-                .time(ZERO_TIME)
-                .process(PROCESS_0)
-                .value("1")
-                .build();
-        Event event2 = ImmutableOkEvent.builder()
-                .time(ZERO_TIME)
-                .process(PROCESS_0)
-                .value("0")
-                .build();
+        Event event1 = TestEventUtil.createTimestamp(ZERO_TIME, PROCESS_0, "1");
+        Event event2 = TestEventUtil.createTimestamp(ZERO_TIME, PROCESS_0, "0");
 
         CheckerResult result = runMonotonicChecker(event1, event2);
 
