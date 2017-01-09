@@ -518,7 +518,8 @@ public class CassandraClientPool {
                 if (isRetriableWithBackoffException(e)) {
                     log.warn("Retrying with backoff a query intended for host {}.", hostPool.getHost(), e);
                     try {
-                        Thread.sleep(numTries * ThreadLocalRandom.current().nextInt(1000));
+                        // And value between -500 and +500ms to backoff to better spread load on failover
+                        Thread.sleep(numTries * 1000 + (ThreadLocalRandom.current().nextInt(1000) - 500));
                     } catch (InterruptedException i) {
                         throw new RuntimeException(i);
                     }
