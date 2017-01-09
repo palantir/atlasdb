@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -45,6 +46,7 @@ public abstract class OkEvent implements Event {
     @Nullable
     public abstract String value();
 
+    @JsonProperty("f")
     public abstract String function();
 
     @Override
@@ -53,7 +55,7 @@ public abstract class OkEvent implements Event {
     }
 
     public boolean isFailure() {
-        return (value().isEmpty() || value() == "false");
+        return (value() == null || value().isEmpty() || value() == "false");
     }
 
     public boolean isSuccessful() {

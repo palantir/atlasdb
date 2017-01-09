@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -37,6 +38,7 @@ public abstract class InvokeEvent implements Event {
 
     public abstract int process();
 
+    @JsonProperty("f")
     public abstract String function();
 
     @Nullable

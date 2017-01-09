@@ -86,7 +86,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
             String lockName = resourceName.get(currentProcess);
             Pair processLock = new Pair(currentProcess, lockName);
 
-            if (!processes.contains(currentProcess)) {
+            if (!processes.contains(currentProcess) || !refreshAllowed.containsKey(processLock)) {
                 processes.add(currentProcess);
                 refreshAllowed.put(processLock, false);
                 lastEvent.put(processLock, event);
