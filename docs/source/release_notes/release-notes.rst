@@ -58,6 +58,12 @@ develop
          - Don't retry interrupted remote calls, shut down the scrubber immediately when interrupted.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1488>`__)
 
+    *    - |improved|
+         - More informative logging around retrying of transactions.
+           If a transaction succeeds after being retried, we log the success (at the INFO level).
+           If a transaction failed, but will be retried, we now also log the number of failures so far (at INFO).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1376>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -228,7 +234,8 @@ v0.27.1
 
     *    - |improved|
          - ``StreamStore.loadStream`` now actually streams data if it does not fit in memory.
-           This means that getting the first byte of the stream now has constant-time performance, rather than linear in terms of stream length as it was previously.
+           This means that getting the first byte of the stream now has constant-time performance, rather than
+           linear in terms of stream length as it was previously.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1341>`__)
 
     *    - |improved|
