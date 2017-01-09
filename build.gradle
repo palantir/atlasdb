@@ -58,6 +58,7 @@ jacoco {
 }
 
 allprojects {
+    apply plugin: 'com.jfrog.artifactory'
     apply plugin: 'nebula.dependency-recommender'
 
     dependencyRecommendations {
