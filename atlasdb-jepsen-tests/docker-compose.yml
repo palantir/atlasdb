@@ -1,6 +1,6 @@
 jepsen:
   image: tjake/jepsen:latest
-  privileged: true
   volumes:
     - ./:/jepsen/atlasdb
-  command: "wrapdocker bash -c 'source ~/.bashrc && cd /jepsen/atlasdb && lein test'"
+    - /var/run/docker.sock:/var/run/docker.sock
+  command: "bash -lc 'cd /jepsen/atlasdb && lein test'"

@@ -24,23 +24,31 @@ import com.google.common.base.Preconditions;
 import io.dropwizard.Configuration;
 
 public class TimeLockServerConfiguration extends Configuration {
-    private final AtomixConfiguration atomix;
+    private final TimeLockAlgorithmConfiguration algorithm;
     private final ClusterConfiguration cluster;
     private final Set<String> clients;
 
     public TimeLockServerConfiguration(
-            @JsonProperty(value = "atomix", required = false) AtomixConfiguration atomix,
+            @JsonProperty(value = "algorithm", required = false) TimeLockAlgorithmConfiguration algorithm,
             @JsonProperty(value = "cluster", required = true) ClusterConfiguration cluster,
             @JsonProperty(value = "clients", required = true) Set<String> clients) {
         Preconditions.checkState(!clients.isEmpty(), "'clients' should have at least one entry");
+        checkClientNames(clients);
 
-        this.atomix = MoreObjects.firstNonNull(atomix, AtomixConfiguration.DEFAULT);
+        this.algorithm = MoreObjects.firstNonNull(algorithm, AtomixConfiguration.DEFAULT);
         this.cluster = cluster;
         this.clients = clients;
     }
 
-    public AtomixConfiguration atomix() {
-        return atomix;
+    private void checkClientNames(Set<String> clientNames) {
+        clientNames.forEach(client -> Preconditions.checkState(
+                client.matches("[a-zA-Z0-9_-]+"),
+                String.format("Client names must consist of alphanumeric characters, underscores or dashes only; "
+                        + "'%s' does not.", client)));
+    }
+
+    public TimeLockAlgorithmConfiguration algorithm() {
+        return algorithm;
     }
 
     public ClusterConfiguration cluster() {

@@ -18,7 +18,8 @@ Changelog
 .. role:: changetype-deprecated
     :class: changetype changetype-deprecated
 
-.. |breaking| replace:: :changetype-breaking:`BREAKING`
+.. |userbreak| replace:: :changetype-breaking:`USER BREAK`
+.. |devbreak| replace:: :changetype-breaking:`DEV BREAK`
 .. |new| replace:: :changetype-new:`NEW`
 .. |fixed| replace:: :changetype-fixed:`FIXED`
 .. |changed| replace:: :changetype-changed:`CHANGED`
@@ -33,6 +34,65 @@ Changelog
 =======
 develop
 =======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Increase default Cassandra pool size from minimum of 20 and maximum of 5x the minimum (100 if minimum not modified)
+           connections to minimum of 30 and maximum of 100 connections. This allows for better handling of bursts of requests
+           that would otherwise require creating many new connections to Cassandra from the clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)
+
+    *    - |fixed|
+         - Don't retry transactions when the locks are invalid. Previously, AtlasDB tried repeatedly to run a transaction when the external locks are already invalid.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1323>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.27.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - ``StreamStore.loadStream`` now actually streams the data, if the data does not fit in memory.
+           This means that getting the first byte of the stream now has constant-time performance, compared to being
+           linear in terms of stream length, as it was previously.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1341>`__)
+
+    *    - |improved|
+         - Oracle query performance improvement; table name cache now global to KVS level.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1325>`__)
+
+    *    - |fixed|
+         - Oracle value style caching limited in scope to per-KVS, previously per-JVM,
+           which could have in extremely rare cases caused issues for users in odd configurations.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1235>`__)
+
+    *    - |new|
+         - We now publish a runnable distribution of AtlasCli that is available for download directly from Bintray
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1345>`__)
+
+    *    - |improved|
+         - Enable garbage collection logging for CircleCI builds.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1398>`__)
+
+    *    - |new|
+         - AtlasDB now supports stream store compression.
+           Streams can be compressed client-side by adding the ``compressStreamInClient`` option to the stream
+           definition. Reads from the stream store will transparently decompress the data.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1357>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -80,6 +140,12 @@ v0.26.0
            The full file path of the ``atlas-timestamps-log`` file will be outputted to the service logs.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1275>`__, `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1332>`__)
 
+    *    - |improved|
+         - Increase connection pool idle timeout to 10 minutes, and reduce eviction check frequency to 20-30 seconds at 1/10 of connections.
+           Note that there is now a configuration called ``maxConnectionBurstSize``, which configures how large the pool is able to grow when
+           receiving a large burst of requests. Previously this was hard-coded to 5x the ``poolSize`` (which is now the default for the parameter).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1336>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -94,16 +160,10 @@ v0.25.0
          - Change
 
     *    - |fixed|
-         - Worrying-looking thread dumps no longer appear in logs when we suspect that the
-           ``MultipleRunningTimestampServicesError`` may have been hit. Instead, we output them to a temporary file,
-           logging only its path to the user.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1275>`__)
-
-    *    - |fixed|
          - ``--config-root`` and other global parameters can now be passed into dropwizard CLIs.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1268>`__)
 
-    *    - |breaking|
+    *    - |userbreak|
          - The migration ``--config-root`` shorthand (``-r``) can no longer be used as it conflicted with the timestamp command ``--row``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1268>`__)
 
@@ -141,7 +201,7 @@ v0.25.0
          - OracleKVS: ``TableSizeCache`` now invalidates the cache on table delete.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1272>`__)
 
-    *    - |breaking|
+    *    - |devbreak|
          - Our Jackson version has been updated from 2.5.1 to 2.6.7 and Dropwizard version from 0.8.2 to 0.9.3.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1209>`__)
 
@@ -149,7 +209,7 @@ v0.25.0
          - Additional debugging available for those receiving 'name must be no longer than 1500 bytes' errors.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
 
-    *    - |breaking|
+    *    - |devbreak|
          - ``Cell.validateNameValid`` is now private; consider ``Cell.isNameValid`` instead
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
 
@@ -166,7 +226,7 @@ v0.24.0
     *    - Type
          - Change
 
-    *    - |breaking|
+    *    - |userbreak|
          - All Oracle table names will be truncated and be of the form: ``<prefix>_<2-letter-namespace>__<table-name>_<5-digit-int>``.
            Previously we only truncated names that exceeded the character limit for Oracle table names.
            This should improve legibility as all table names for a particular application will have identical formatting.
@@ -230,7 +290,7 @@ v0.23.0
     *    - Type
          - Change
 
-    *    - |breaking|
+    *    - |devbreak|
          - All KVSs now as a guarantee throw a RuntimeException on attempts to truncate a non-existing table, so services should check the existence of a table before attempting to truncate.
            Previously we would only throw exceptions for the Cassandra KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1114>`__)
@@ -377,7 +437,7 @@ v0.20.0
     *    - Type
          - Change
 
-    *    - |breaking|
+    *    - |devbreak|
          - Hotspotting warnings, previously logged at ERROR, will now throw ``IllegalStateException`` when generating your schema code.
            Products who hit this warning will need to add ``ignoreHotspottingChecks()`` to the relevant tables of their schema, or modify their schemas such that the first row component is not a VAR_STRING, a VAR_LONG, a VAR_SIGNED_LONG, or a SIZED_BLOB.
 
@@ -431,7 +491,7 @@ v0.19.0
 
     *    - Type
          - Change
-    *    - |breaking|
+    *    - |devbreak|
          - Removed KeyValueService ``initializeFromFreshInstance``, ``tearDown``, and ``getRangeWithHistory``.
            It is likely all callers of tearDown just want to call close, and getRangeWithHistory has been replaced with ``getRangeOfTimestamps``.
            Also removed Partitioning and Remoting KVSs, which were unused and had many unimplemented methods.
@@ -447,7 +507,7 @@ v0.19.0
            This will ensure we handle delayed heartbeats in high load situations (eg. on circleci).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1035>`__)
 
-    *    - |breaking|
+    *    - |devbreak|
          - Removed the following classes and interfaces that appeared to be unused:
               - ``AbstractStringCollector``
               - ``BatchRowVisitor``
@@ -542,7 +602,7 @@ v0.16.0
     *    - Type
          - Change
 
-    *    - |breaking|
+    *    - |devbreak|
          - Removed ``TransactionManager`` implementations ``ShellAwareReadOnlyTransactionManager``
            and ``AtlasDbBackendDebugTransactionManager``. These are no longer
            supported by AtlasDB and products are not expected to use them.
@@ -580,7 +640,7 @@ v0.15.0
            Removing temp tables entirely should reduce the need to manually truncate the locks table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/916>`__)
 
-    *    - |breaking|
+    *    - |devbreak|
          - All TransactionManagers are now AutoCloseable and implement a close method that will free up the underlying resources.
 
            If your service implements a ``TransactionManager`` and does not extend ``AbstractTransactionManager``, you now have to add a close method to the implementation.
@@ -626,7 +686,7 @@ v0.14.0
     *    - Type
          - Change
 
-    *    - |breaking|
+    *    - |userbreak|
          - ``TransactionManagers.create()`` no longer takes in an argument of ``Optional<SSLSocketFactory> sslSocketFactory``.
            Instead, security settings between AtlasDB clients are now specified directly in configuration via the new optional parameter ``sslConfiguration`` located in the ``leader``, ``timestamp``, and ``lock`` blocks.
            Details can be found in the :ref:`Leader Configuration <leader-config>` documentation.
@@ -645,7 +705,7 @@ v0.14.0
            This prevented CLIs deployed via the :ref:`Dropwizard bundle <dropwizard-bundle>` from loading configuration properly.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/875>`__)
 
-    *    - |breaking|
+    *    - |devbreak|
          - Updated our Dagger dependency from 2.0.2 to 2.4, so that our generated code matches with that of internal products.
            This also bumps our Guava dependency from 18.0 to 19.0 to accommodate a Dagger compile dependency.
            We plan on shading Dagger in the next release of AtlasDB, but products can force a Guava 18.0 runtime dependency to workaround the issue in the meantime.
@@ -665,12 +725,12 @@ v0.13.0
     *    - Type
          - Change
 
-    *    - |breaking|
+    *    - |devbreak|
          - ``AtlasDbServer`` has been renamed to ``AtlasDbServiceServer``.
            Any products that are using this should switch to using the standard AtlasDB java API instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/801>`__)
 
-    *    - |breaking|
+    *    - |fixed|
          - The method ``updateManyUnregisteredQuery(String sql)`` has been removed from the ``SqlConnection`` interface, as it was broken, unused, and unnecessary.
            Use ``updateManyUnregisteredQuery(String sql, Iterable<Object[] list>)`` instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/796>`__)
@@ -708,7 +768,7 @@ v0.12.0
     *    - Type
          - Change
 
-    *    - |breaking|
+    *    - |userbreak|
          - AtlasDB will always try to register timestamp and lock endpoints for your application, whereas previously this only occurred if you specify a :ref:`leader-config`.
            This ensures that CLIs will be able to run against your service even in the single node case.
            For Dropwizard applications, this is only a breaking change if you try to initialize your KeyValueService after having initialized the Dropwizard application.
@@ -889,7 +949,7 @@ v0.9.0
     *    - Type
          - Change
 
-    *    - |breaking|
+    *    - |devbreak|
          - Inserting an empty (size = 0) value into a ``Cell`` will now throw an ``IllegalArgumentException``. (`#156 <https://github.com/palantir/atlasdb/issues/156>`__) Likely empty
            values include empty strings and empty protobufs.
 

@@ -35,6 +35,7 @@ import java.util.Set;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -87,12 +88,10 @@ public abstract class AbstractKeyValueServiceTest {
     protected static final byte[] value0_t1 = "value1_t1".getBytes();
     protected static final byte[] value0_t5 = "value5_t5".getBytes();
 
-    protected static final byte[] metadata0 = "metadata0".getBytes();
-
     protected static final long TEST_TIMESTAMP = 1000000l;
     private static final long MAX_TIMESTAMP = Long.MAX_VALUE;
 
-    protected KeyValueService keyValueService;
+    protected static KeyValueService keyValueService = null;
 
     protected boolean reverseRangesSupported() {
         return true;
@@ -100,14 +99,22 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Before
     public void setUp() throws Exception {
-        keyValueService = getKeyValueService();
+        if (keyValueService == null) {
+            keyValueService = getKeyValueService();
+        }
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
     @After
     public void tearDown() throws Exception {
-        keyValueService.dropTables(keyValueService.getAllTableNames());
-        keyValueService.close();
+        keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE));
+    }
+
+    @AfterClass
+    public static void tearDownKvs() {
+        if (keyValueService != null) {
+            keyValueService.close();
+        }
     }
 
     @Test
@@ -1059,15 +1066,6 @@ public abstract class AbstractKeyValueServiceTest {
         values.put(Cell.create(row2, column1), value21);
         values.put(Cell.create(row2, column2), value22);
         keyValueService.put(TEST_TABLE, values, TEST_TIMESTAMP);
-    }
-
-    private void putValuesForTimestamps(Iterable<Long> timestamps) {
-        Cell cell = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
-
-        for (long timestamp: timestamps) {
-            keyValueService.put(TEST_TABLE, ImmutableMap.of(cell,
-                    PtBytes.toBytes("val" + timestamp)), timestamp);
-        }
     }
 
     protected abstract KeyValueService getKeyValueService();

@@ -16,12 +16,14 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.commons.lang3.Validate;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.transaction.api.LockAcquisitionException;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
@@ -78,18 +80,13 @@ public abstract class AbstractLockAwareTransactionManager
                     log.warn("Non-retriable exception while processing transaction.", e);
                     throw e;
                 }
+                if (e instanceof TransactionLockTimeoutException) {
+                    refreshAfterLockTimeout(lockTokens, (TransactionLockTimeoutException) e);
+                }
                 failureCount++;
                 if (shouldStopRetrying(failureCount)) {
                     log.warn("Failing after {} tries", failureCount, e);
                     throw e;
-                }
-                if (e instanceof TransactionLockTimeoutException && !Iterables.isEmpty(lockTokens)) {
-                    Set<LockRefreshToken> refreshedTokens = getLockService().refreshLockRefreshTokens(
-                            Iterables.transform(lockTokens, HeldLocksToken::getLockRefreshToken));
-                    if (refreshedTokens.size() < Iterables.size(lockTokens)) {
-                        log.warn("Locks timed out while processing transaction.", e);
-                        throw e;
-                    }
                 }
                 log.info("retrying transaction", e);
             } catch (RuntimeException e) {
@@ -112,6 +109,22 @@ public abstract class AbstractLockAwareTransactionManager
             throws E, InterruptedException {
         checkOpen();
         return runTaskWithLocksWithRetry(ImmutableList.of(), lockSupplier, task);
+    }
+
+    private void refreshAfterLockTimeout(Iterable<HeldLocksToken> lockTokens, TransactionLockTimeoutException ex) {
+        Set<LockRefreshToken> toRequest = StreamSupport.stream(lockTokens.spliterator(), false)
+                .map(HeldLocksToken::getLockRefreshToken)
+                .collect(Collectors.toSet());
+        if (toRequest.isEmpty()) {
+            return;
+        }
+        Set<LockRefreshToken> refreshedTokens = getLockService().refreshLockRefreshTokens(toRequest);
+        Set<LockRefreshToken> failedTokens = Sets.difference(toRequest, refreshedTokens);
+        if (!failedTokens.isEmpty()) {
+            throw new TransactionLockTimeoutException("Provided lock tokens expired. Retry is not possible. tokens: "
+                    + failedTokens,
+                    ex);
+        }
     }
 
     @Override

@@ -15,123 +15,62 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
-import java.util.function.Supplier;
+import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.jetty.util.component.AbstractLifeCycle;
+import org.eclipse.jetty.util.component.LifeCycle;
 
-import com.palantir.atlasdb.timelock.atomix.AtomixRetryer;
-import com.palantir.atlasdb.timelock.atomix.AtomixTimestampService;
-import com.palantir.atlasdb.timelock.atomix.DistributedValues;
-import com.palantir.atlasdb.timelock.atomix.ImmutableLeaderAndTerm;
-import com.palantir.atlasdb.timelock.atomix.InvalidatingLeaderProxy;
-import com.palantir.atlasdb.timelock.atomix.LeaderAndTerm;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
-import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.remoting1.config.ssl.SslConfiguration;
 import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
 
-import io.atomix.AtomixReplica;
-import io.atomix.catalyst.transport.Transport;
-import io.atomix.catalyst.transport.netty.NettyTransport;
-import io.atomix.copycat.server.storage.Storage;
-import io.atomix.group.DistributedGroup;
-import io.atomix.group.LocalMember;
-import io.atomix.variables.DistributedLong;
-import io.atomix.variables.DistributedValue;
 import io.dropwizard.Application;
 import io.dropwizard.setup.Environment;
 
 public class TimeLockServer extends Application<TimeLockServerConfiguration> {
-    private static final Logger log = LoggerFactory.getLogger(TimeLockServer.class);
-
     public static void main(String[] args) throws Exception {
         new TimeLockServer().run(args);
     }
 
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
-        AtomixReplica localNode = AtomixReplica.builder(configuration.cluster().localServer())
-                .withStorage(Storage.builder()
-                        .withDirectory(configuration.atomix().storageDirectory())
-                        .withStorageLevel(configuration.atomix().storageLevel())
-                        .build())
-                .withTransport(createTransport(configuration.atomix().security()))
-                .build();
+        ServerImplementation serverImpl = configuration.algorithm().createServerImpl();
+        try {
+            serverImpl.onStartup(configuration);
+            registerResources(configuration, environment, serverImpl);
+        } catch (Exception e) {
+            serverImpl.onStartupFailure();
+            throw e;
+        }
 
-        localNode.bootstrap(configuration.cluster().servers()).join();
-
-        DistributedGroup timeLockGroup = DistributedValues.getTimeLockGroup(localNode);
-        LocalMember localMember = AtomixRetryer.getWithRetry(timeLockGroup::join);
-
-        DistributedValue<LeaderAndTerm> leaderInfo = DistributedValues.getLeaderInfo(localNode);
-        timeLockGroup.election().onElection(term -> {
-            LeaderAndTerm newLeaderInfo = ImmutableLeaderAndTerm.of(term.term(), term.leader().id());
-            while (true) {
-                LeaderAndTerm currentLeaderInfo = AtomixRetryer.getWithRetry(leaderInfo::get);
-                if (currentLeaderInfo != null && newLeaderInfo.term() <= currentLeaderInfo.term()) {
-                    log.info("Not setting the leader to {} since it is not newer than the current leader {}",
-                            newLeaderInfo, currentLeaderInfo);
-                    break;
-                }
-                log.debug("Updating the leader from {} to {}", currentLeaderInfo, newLeaderInfo);
-                if (leaderInfo.compareAndSet(currentLeaderInfo, newLeaderInfo).join()) {
-                    log.info("Leader has been set to {}", newLeaderInfo);
-                    break;
-                }
+        environment.lifecycle().addLifeCycleListener(new AbstractLifeCycle.AbstractLifeCycleListener() {
+            @Override
+            public void lifeCycleStopped(LifeCycle event) {
+                serverImpl.onStop();
             }
         });
+    }
 
-        Map<String, TimeLockServices> clientToServices = new HashMap<>();
-        for (String client : configuration.clients()) {
-            DistributedLong timestamp = DistributedValues.getTimestampForClient(localNode, client);
-            TimeLockServices timeLockServices = createInvalidatingTimeLockServices(
-                    localMember,
-                    leaderInfo,
-                    timestamp);
-            clientToServices.put(client, timeLockServices);
-        }
+    private static void registerResources(
+            TimeLockServerConfiguration configuration,
+            Environment environment,
+            ServerImplementation serverImpl) {
+        Map<String, TimeLockServices> clientToServices = createTimeLockServicesForClients(
+                serverImpl,
+                configuration.clients());
 
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
         environment.jersey().register(new TimeLockResource(clientToServices));
     }
 
-    private static TimeLockServices createInvalidatingTimeLockServices(
-            LocalMember localMember,
-            DistributedValue<LeaderAndTerm> leaderInfo,
-            DistributedLong timestamp) {
-        Supplier<TimeLockServices> timeLockSupplier = () -> TimeLockServices.create(
-                new AtomixTimestampService(timestamp),
-                LockServiceImpl.create());
-        return InvalidatingLeaderProxy.create(
-                localMember,
-                leaderInfo,
-                timeLockSupplier,
-                TimeLockServices.class);
-    }
-
-    private static Transport createTransport(Optional<SslConfiguration> optionalSecurity) {
-        NettyTransport.Builder transport = NettyTransport.builder();
-
-        if (!optionalSecurity.isPresent()) {
-            return transport.build();
+    private static Map<String, TimeLockServices> createTimeLockServicesForClients(
+            ServerImplementation serverImpl,
+            Set<String> clients) {
+        ImmutableMap.Builder<String, TimeLockServices> clientToServices = ImmutableMap.builder();
+        for (String client : clients) {
+            clientToServices.put(client, serverImpl.createInvalidatingTimeLockServices(client));
         }
-
-        SslConfiguration security = optionalSecurity.get();
-        transport.withSsl()
-                .withTrustStorePath(security.trustStorePath().toString());
-
-        if (security.keyStorePath().isPresent()) {
-            transport.withKeyStorePath(security.keyStorePath().get().toString());
-        }
-
-        if (security.keyStorePassword().isPresent()) {
-            transport.withKeyStorePassword(security.keyStorePassword().get());
-        }
-
-        return transport.build();
+        return clientToServices.build();
     }
 }
