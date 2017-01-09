@@ -23,22 +23,33 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-
-import io.atomix.catalyst.transport.Address;
+import com.google.common.net.HostAndPort;
 
 @JsonSerialize(as = ImmutableClusterConfiguration.class)
 @JsonDeserialize(as = ImmutableClusterConfiguration.class)
 @Value.Immutable
 public abstract class ClusterConfiguration {
-    public abstract Address localServer();
+    public abstract String localServer();
 
     @Size(min = 1)
-    public abstract Set<Address> servers();
+    public abstract Set<String> servers();
 
     @Value.Check
     protected void check() {
         Preconditions.checkArgument(servers().contains(localServer()),
                 "The localServer '%s' must be included in the server entries %s.", localServer(), servers());
+        checkServersAreWellFormed();
+    }
+
+    private void checkServersAreWellFormed() {
+        servers().forEach(ClusterConfiguration::checkHostPortString);
+    }
+
+    @VisibleForTesting
+    static void checkHostPortString(String server) {
+        HostAndPort hostAndPort = HostAndPort.fromString(server);
+        Preconditions.checkArgument(hostAndPort.hasPort(), "Port not present: '%s'", server);
     }
 }

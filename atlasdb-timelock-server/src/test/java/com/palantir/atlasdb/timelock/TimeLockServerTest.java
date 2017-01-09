@@ -47,14 +47,15 @@ import io.dropwizard.setup.Environment;
 @Ignore("Observed ConcurrentModificationException-related flakes (e.g. build #5407 on CircleCI)."
         + "Fixed in atomix/copycat#231, but not part of Copycat 1.1.4 which we use.")
 public class TimeLockServerTest {
-    private static final Address LOCAL_ADDRESS = new Address("localhost:12345");
+    private static final String LOCAL_ADDRESS_STRING = "localhost:12345";
+    private static final Address LOCAL_ADDRESS = new Address(LOCAL_ADDRESS_STRING);
     private static final TimeLockServerConfiguration TIMELOCK_CONFIG = new TimeLockServerConfiguration(
             ImmutableAtomixConfiguration.builder()
                     .storageLevel(StorageLevel.MEMORY)
                     .build(),
             ImmutableClusterConfiguration.builder()
-                    .localServer(LOCAL_ADDRESS)
-                    .addServers(LOCAL_ADDRESS)
+                    .localServer(LOCAL_ADDRESS_STRING)
+                    .addServers(LOCAL_ADDRESS_STRING)
                     .build(),
             ImmutableSet.of(String.format("%s:%s", LOCAL_ADDRESS.host(), LOCAL_ADDRESS.port())));
 
