@@ -36,6 +36,14 @@ public class JepsenHistoryCheckersTest {
     }
 
     @Test
+    public void canCreateWithLockCheckers() {
+        JepsenHistoryChecker checker = JepsenHistoryCheckers.createWithLockCheckers();
+
+        assertCheckerHasMatchingCheckers(JepsenHistoryCheckers.LOCK_CHECKERS, checker);
+        assertThat(checker.getCheckers()).hasSize(JepsenHistoryCheckers.LOCK_CHECKERS.size());
+    }
+
+    @Test
     public void createsDistinctCheckerInstances() {
         JepsenHistoryChecker checker1 = JepsenHistoryCheckers.createWithTimestampCheckers();
         JepsenHistoryChecker checker2 = JepsenHistoryCheckers.createWithTimestampCheckers();

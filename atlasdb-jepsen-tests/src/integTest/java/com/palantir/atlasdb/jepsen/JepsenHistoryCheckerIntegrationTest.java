@@ -30,6 +30,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
+import com.palantir.atlasdb.jepsen.lock.IsolatedProcessCorrectnessChecker;
+import com.palantir.atlasdb.jepsen.lock.LockCorrectnessChecker;
+import com.palantir.atlasdb.jepsen.lock.RefreshCorrectnessChecker;
 
 import clojure.lang.Keyword;
 import one.util.streamex.EntryStream;
@@ -40,6 +43,17 @@ public class JepsenHistoryCheckerIntegrationTest {
         List<Map<Keyword, ?>> convertedAllEvents = getClojureMapFromFile("correct_history.json");
 
         Map<Keyword, Object> results = JepsenHistoryCheckers.createWithTimestampCheckers()
+                .checkClojureHistory(convertedAllEvents);
+
+        assertThat(results).containsEntry(Keyword.intern("valid?"), true);
+        assertThat(results).containsEntry(Keyword.intern("errors"), ImmutableList.of());
+    }
+
+    @Test
+    public void correctLockTestHistoryShouldReturnValidAndNoErrors() throws IOException {
+        List<Map<Keyword, ?>> convertedAllEvents = getClojureMapFromFile("lock_test_without_nemesis.json");
+
+        Map<Keyword, Object> results = JepsenHistoryCheckers.createWithLockCheckers()
                 .checkClojureHistory(convertedAllEvents);
 
         assertThat(results).containsEntry(Keyword.intern("valid?"), true);

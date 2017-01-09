@@ -22,6 +22,9 @@ import java.util.stream.Collectors;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Checker;
+import com.palantir.atlasdb.jepsen.lock.IsolatedProcessCorrectnessChecker;
+import com.palantir.atlasdb.jepsen.lock.LockCorrectnessChecker;
+import com.palantir.atlasdb.jepsen.lock.RefreshCorrectnessChecker;
 
 import com.palantir.atlasdb.jepsen.timestamp.MonotonicChecker;
 import com.palantir.atlasdb.jepsen.timestamp.NonOverlappingReadsMonotonicChecker;
@@ -40,8 +43,18 @@ public final class JepsenHistoryCheckers {
             UniquenessChecker::new,
             NemesisResilienceChecker::new);
 
+    @VisibleForTesting
+    static final List<Supplier<Checker>> LOCK_CHECKERS = ImmutableList.of(
+            IsolatedProcessCorrectnessChecker::new,
+            LockCorrectnessChecker::new,
+            RefreshCorrectnessChecker::new);
+
     public static JepsenHistoryChecker createWithTimestampCheckers() {
         return createWithCheckers(TIMESTAMP_CHECKERS);
+    }
+
+    public static JepsenHistoryChecker createWithLockCheckers() {
+        return createWithCheckers(LOCK_CHECKERS);
     }
 
     @VisibleForTesting
