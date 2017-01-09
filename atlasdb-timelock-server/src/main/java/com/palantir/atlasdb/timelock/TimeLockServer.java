@@ -32,6 +32,7 @@ import com.palantir.atlasdb.timelock.atomix.DistributedValues;
 import com.palantir.atlasdb.timelock.atomix.ImmutableLeaderAndTerm;
 import com.palantir.atlasdb.timelock.atomix.InvalidatingLeaderProxy;
 import com.palantir.atlasdb.timelock.atomix.LeaderAndTerm;
+import com.palantir.atlasdb.timelock.config.AtomixSslConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting1.config.ssl.SslConfiguration;
@@ -150,25 +151,28 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
                 TimeLockServices.class);
     }
 
-    private static Transport createTransport(Optional<SslConfiguration> optionalSecurity) {
+    private static Transport createTransport(Optional<AtomixSslConfiguration> optionalSecurity) {
         NettyTransport.Builder transport = NettyTransport.builder();
 
         if (!optionalSecurity.isPresent()) {
             return transport.build();
         }
 
-        SslConfiguration security = optionalSecurity.get();
+        AtomixSslConfiguration security = optionalSecurity.get();
+        SslConfiguration baseSslConfiguration = security.sslConfiguration();
         transport.withSsl()
-                .withTrustStorePath(security.trustStorePath().toString());
+                .withTrustStorePath(baseSslConfiguration.trustStorePath().toString())
+                .withTrustStorePassword(security.trustStorePassword());
 
-        if (security.keyStorePath().isPresent()) {
-            transport.withKeyStorePath(security.keyStorePath().get().toString());
-        }
-
-        if (security.keyStorePassword().isPresent()) {
-            transport.withKeyStorePassword(security.keyStorePassword().get());
+        if (isKeystoreSpecified(baseSslConfiguration)) {
+            transport.withKeyStorePath(baseSslConfiguration.keyStorePath().get().toString());
+            transport.withKeyStorePassword(baseSslConfiguration.keyStorePassword().get());
         }
 
         return transport.build();
+    }
+
+    private static boolean isKeystoreSpecified(SslConfiguration baseSslConfiguration) {
+        return baseSslConfiguration.keyStorePath().isPresent() && baseSslConfiguration.keyStorePassword().isPresent();
     }
 }

@@ -27,7 +27,7 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '1.2.3'
     id 'com.palantir.configuration-resolver' version '0.1.0'
     id 'com.palantir.git-version' version '0.5.2'
-    id 'org.inferred.processors' version '1.1'
+    id 'org.inferred.processors' version '1.2.4-rc2'
     id 'org.unbroken-dome.test-sets' version '1.2.0'
 }
 
@@ -44,13 +44,11 @@ group = 'com.palantir.atlasdb'
 version = gitVersion()
 description = 'Transactional distributed database layer'
 
-task clean(type: Delete) {
-    delete buildDir
-}
-
-task printLastVersion << {
-    def details = versionDetails()
-    println details.lastTag
+task printLastVersion {
+    doLast {
+        def details = versionDetails()
+        println details.lastTag
+    }
 }
 
 apply plugin: 'com.palantir.jacoco-full-report'

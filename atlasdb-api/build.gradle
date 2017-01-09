@@ -22,13 +22,15 @@ dependencies {
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
 }
 
-task versionInfo << {
-  def metaInf = new File("${sourceSets.main.output.classesDir}/META-INF")
-  if (metaInf.mkdir()) {
-    def versionfile = new File(metaInf, "atlasdb.version")
-    versionfile.text = project.version
-  } else {
-    println "Unable to create directory: ${metaInf}"
+task versionInfo {
+  doLast {
+    def metaInf = new File("${sourceSets.main.output.classesDir}/META-INF")
+    if (metaInf.mkdir()) {
+      def versionfile = new File(metaInf, "atlasdb.version")
+      versionfile.text = project.version
+    } else {
+      println "Unable to create directory: ${metaInf}"
+    }
   }
 }
 compileJava.finalizedBy versionInfo

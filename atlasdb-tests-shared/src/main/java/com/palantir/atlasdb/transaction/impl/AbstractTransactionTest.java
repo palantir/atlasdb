@@ -1170,6 +1170,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     @Test
     public void testTableMetadata() {
+        keyValueService.dropTable(TEST_TABLE);
+        keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
         byte[] metadataForTable = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(metadataForTable == null || Arrays.equals(AtlasDbConstants.GENERIC_TABLE_METADATA, metadataForTable));
         byte[] bytes = new TableMetadata().persistToBytes();
