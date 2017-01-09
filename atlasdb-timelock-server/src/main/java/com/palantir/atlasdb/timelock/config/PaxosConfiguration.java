@@ -32,7 +32,7 @@ import io.dropwizard.setup.Environment;
 @JsonSerialize(as = ImmutablePaxosConfiguration.class)
 @JsonDeserialize(as = ImmutablePaxosConfiguration.class)
 @Value.Immutable
-public abstract class PaxosConfiguration implements AlgorithmConfiguration {
+public abstract class PaxosConfiguration implements TimeLockAlgorithmConfiguration {
     @Value.Default
     public File paxosDataDir() {
         return new File("var/data/paxos");
