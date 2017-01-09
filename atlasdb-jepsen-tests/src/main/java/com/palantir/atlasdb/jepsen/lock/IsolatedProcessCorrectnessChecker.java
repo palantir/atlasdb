@@ -34,6 +34,8 @@ import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.util.Pair;
 
+import com.palantir.atlasdb.jepsen.events.RequestType;
+
 /**
  * This checker verifies that the sequence of events is correct for each process in isolation. Since we know that no
  * process makes a new request before getting a reply from the old one, we only need to consider the OkEvents.
@@ -54,6 +56,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
         private final Map<Pair<Integer, String>, OkEvent> lastEvent = new HashMap<>();
         private final Set<Integer> processes = new HashSet<>();
         private final List<Event> errors = new ArrayList<>();
+        private final Map<Integer, String> resourceName = new HashMap<>();
 
         @Override
         public void visit(InfoEvent event) {
@@ -61,6 +64,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
 
         @Override
         public void visit(InvokeEvent event) {
+            resourceName.put(event.process(), event.value());
         }
 
         /**
@@ -79,7 +83,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
         @Override
         public void visit(OkEvent event) {
             int currentProcess = event.process();
-            String lockName = event.resourceName();
+            String lockName = resourceName.get(currentProcess);
             Pair processLock = new Pair(currentProcess, lockName);
 
             if (!processes.contains(currentProcess)) {
@@ -88,8 +92,8 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
                 lastEvent.put(processLock, event);
             }
 
-            switch (event.requestType()) {
-                case LOCK:
+            switch (event.function()) {
+                case RequestType.LOCK:
                     if (event.isFailure()) {
                         refreshAllowed.put(processLock, false);
                     }
@@ -97,7 +101,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
                         refreshAllowed.put(processLock, true);
                     }
                     break;
-                case REFRESH:
+                case RequestType.REFRESH:
                     if (event.isFailure()) {
                         refreshAllowed.put(processLock, false);
                     }
@@ -109,7 +113,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
                         }
                     }
                     break;
-                case UNLOCK:
+                case RequestType.UNLOCK:
                     if (event.isSuccessful()) {
                         if (!refreshAllowed.get(processLock)) {
                             errors.add(lastEvent.get(processLock));

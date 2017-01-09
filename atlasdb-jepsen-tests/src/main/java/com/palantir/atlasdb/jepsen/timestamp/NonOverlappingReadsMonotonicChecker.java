@@ -106,8 +106,7 @@ public class NonOverlappingReadsMonotonicChecker implements Checker {
                     .time(time)
                     .process(DUMMY_PROCESS)
                     .value(DUMMY_VALUE)
-                    .requestType(RequestType.TIMESTAMP)
-                    .resourceName("timestamp")
+                    .function(RequestType.TIMESTAMP)
                     .build();
             return acknowledgedReadsOverTime.floor(dummyOkEvent);
         }

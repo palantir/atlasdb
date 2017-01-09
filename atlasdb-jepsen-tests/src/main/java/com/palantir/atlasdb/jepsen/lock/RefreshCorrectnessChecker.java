@@ -34,6 +34,7 @@ import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.util.Pair;
 
+import com.palantir.atlasdb.jepsen.events.RequestType;
 
 
 /**
@@ -57,6 +58,7 @@ public class RefreshCorrectnessChecker implements Checker {
         private final Map<String, TreeRangeSet<Long>> locksHeld = new HashMap<>();
         private final ArrayList<String> allLockNames = new ArrayList<>();
         private final List<Event> errors = new ArrayList<>();
+        private final Map<Integer, String> resourceName = new HashMap<>();
 
         @Override
         public void visit(InfoEvent event) {
@@ -65,7 +67,8 @@ public class RefreshCorrectnessChecker implements Checker {
         @Override
         public void visit(InvokeEvent event) {
             Integer process = event.process();
-            String lockName = event.resourceName();
+            String lockName = event.value();
+            resourceName.put(process, lockName);
             pendingForProcessAndLock.put(new Pair(process, lockName), event);
 
             if (!allLockNames.contains(lockName)) {
@@ -77,16 +80,16 @@ public class RefreshCorrectnessChecker implements Checker {
         @Override
         public void visit(OkEvent event) {
             Integer process = event.process();
-            String lockName = event.resourceName();
+            String lockName = resourceName.get(process);
             Pair processLock = new Pair(process, lockName);
             InvokeEvent invokeEvent = pendingForProcessAndLock.get(processLock);
 
-            switch (event.requestType()) {
+            switch (event.function()) {
                 /**
                  * Successful LOCK:
                  * Remember the new value for the most recent successful lock
                  */
-                case LOCK:
+                case RequestType.LOCK:
                     if (event.isSuccessful()) {
                         lastHeldLock.put(processLock, event);
                     }
@@ -99,8 +102,8 @@ public class RefreshCorrectnessChecker implements Checker {
                  * Also verify that the whole interval was free. Unlock can be treated as refresh, as the correctness
                  * of their mutual interaction is verified by IsolatedProcessCorrectnessChecker
                  */
-                case REFRESH:
-                case UNLOCK:
+                case RequestType.REFRESH:
+                case RequestType.UNLOCK:
                     if (event.isSuccessful() && lastHeldLock.containsKey(processLock)) {
                         long lastLockTime = lastHeldLock.get(processLock).time();
                         if (lastLockTime < invokeEvent.time()) {

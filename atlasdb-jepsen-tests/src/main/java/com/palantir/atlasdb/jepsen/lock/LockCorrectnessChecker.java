@@ -34,6 +34,8 @@ import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.util.Pair;
 
+import com.palantir.atlasdb.jepsen.events.RequestType;
+
 /**
  * Checker verifying that whenever a lock is granted, there was a time point between the request and the
  * acknowledge when the lock was actually free to be granted. This is tricky due to the existence of refreshes
@@ -84,6 +86,7 @@ public class LockCorrectnessChecker implements Checker {
         private final ArrayList<String> allLockNames = new ArrayList<>();
 
         private final List<Event> errors = new ArrayList<>();
+        private final Map<Integer, String> resourceName = new HashMap<>();
 
         @Override
         public void visit(InfoEvent event) {
@@ -92,7 +95,9 @@ public class LockCorrectnessChecker implements Checker {
         @Override
         public void visit(InvokeEvent event) {
             Integer process = event.process();
-            String lockName = event.resourceName();
+            String lockName = event.value();
+            resourceName.put(process, lockName);
+
             pendingForProcessAndLock.put(new Pair(process, lockName), event);
             if (!allLockNames.contains(lockName)) {
                 allLockNames.add(lockName);
@@ -105,11 +110,11 @@ public class LockCorrectnessChecker implements Checker {
         @Override
         public void visit(OkEvent event) {
             Integer process = event.process();
-            String lockName = event.resourceName();
+            String lockName = resourceName.get(process);
             Pair processLock = new Pair(process, lockName);
             InvokeEvent invokeEvent = pendingForProcessAndLock.get(processLock);
 
-            switch (event.requestType()) {
+            switch (event.function()) {
                 /**
                  * Successful LOCK:
                  * 1) Add a new uncertain interval to verify at the end,
@@ -119,7 +124,7 @@ public class LockCorrectnessChecker implements Checker {
                  * 2) remembering most recent successful lock not necessary, as the correctness of this is covered
                  *    by IsolatedProcessCorrectnessChecker
                  */
-                case LOCK:
+                case RequestType.LOCK:
                     if (event.isSuccessful()) {
                         locksAtSomePoint.get(lockName).add(new Pair(invokeEvent, event));
                         lastHeldLock.put(processLock, event);
@@ -134,8 +139,8 @@ public class LockCorrectnessChecker implements Checker {
                  * existing interval (a, b'). In this checker, we are assuming correctness of refreshes and unlocks
                  * which allows for somewhat simpler logic, and makes it unnecessary to verify the failed instances.
                  */
-                case REFRESH:
-                case UNLOCK:
+                case RequestType.REFRESH:
+                case RequestType.UNLOCK:
                     if (event.isSuccessful() && lastHeldLock.containsKey(processLock)) {
                         long lastLockTime = lastHeldLock.get(processLock).time();
                         if (lastLockTime < invokeEvent.time()) {

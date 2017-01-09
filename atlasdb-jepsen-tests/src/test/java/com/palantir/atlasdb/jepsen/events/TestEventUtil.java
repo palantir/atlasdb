@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.jepsen.events;
 
+import com.palantir.common.annotation.Immutable;
+
 public abstract class TestEventUtil {
 
     private static final String LOCKNAME = "default_lockname";
@@ -28,22 +30,12 @@ public abstract class TestEventUtil {
         return invokeLock(time, process, LOCKNAME);
     }
 
-    public static ImmutableOkEvent lockSuccess(long time, int process, String lockname) {
-        return createOkEvent(time, process, OkEvent.SUCCESS, RequestType.LOCK, lockname);
-    }
-
     public static ImmutableOkEvent lockSuccess(long time, int process) {
-
-        return lockSuccess(time, process, LOCKNAME);
-    }
-
-    public static ImmutableOkEvent lockFailure(long time, int process, String lockname) {
-        return createOkEvent(time, process, OkEvent.FAILURE, RequestType.LOCK, lockname);
+        return createOkEvent(time, process, OkEvent.SUCCESS, RequestType.LOCK);
     }
 
     public static ImmutableOkEvent lockFailure(long time, int process) {
-
-        return lockFailure(time, process, LOCKNAME);
+        return createOkEvent(time, process, OkEvent.FAILURE, RequestType.LOCK);
     }
 
     public static ImmutableInvokeEvent invokeRefresh(long time, int process, String lockname) {
@@ -54,20 +46,12 @@ public abstract class TestEventUtil {
         return invokeRefresh(time, process, LOCKNAME);
     }
 
-    public static ImmutableOkEvent refreshSuccess(long time, int process, String lockname) {
-        return createOkEvent(time, process, OkEvent.SUCCESS, RequestType.REFRESH, lockname);
-    }
-
     public static ImmutableOkEvent refreshSuccess(long time, int process) {
-        return refreshSuccess(time, process, LOCKNAME);
-    }
-
-    public static ImmutableOkEvent refreshFailure(long time, int process, String lockname) {
-        return createOkEvent(time, process, OkEvent.FAILURE, RequestType.REFRESH, lockname);
+        return createOkEvent(time, process, OkEvent.SUCCESS, RequestType.REFRESH);
     }
 
     public static ImmutableOkEvent refreshFailure(long time, int process) {
-        return refreshFailure(time, process, LOCKNAME);
+        return createOkEvent(time, process, OkEvent.FAILURE, RequestType.REFRESH);
     }
 
     public static ImmutableInvokeEvent invokeUnlock(long time, int process, String lockname) {
@@ -78,20 +62,12 @@ public abstract class TestEventUtil {
         return invokeUnlock(time, process, LOCKNAME);
     }
 
-    public static ImmutableOkEvent unlockSuccess(long time, int process, String lockname) {
-        return createOkEvent(time, process, OkEvent.SUCCESS, RequestType.UNLOCK, lockname);
-    }
-
     public static ImmutableOkEvent unlockSuccess(long time, int process) {
-        return unlockSuccess(time, process, LOCKNAME);
-    }
-
-    public static ImmutableOkEvent unlockFailure(long time, int process, String lockname) {
-        return createOkEvent(time, process, OkEvent.FAILURE, RequestType.UNLOCK, lockname);
+        return createOkEvent(time, process, OkEvent.UNLOCK_SUCCESS, RequestType.UNLOCK);
     }
 
     public static ImmutableOkEvent unlockFailure(long time, int process) {
-        return unlockFailure(time, process, LOCKNAME);
+        return createOkEvent(time, process, OkEvent.UNLOCK_FAILURE, RequestType.UNLOCK);
     }
 
     public static ImmutableInvokeEvent invokeTimestamp(long time, int process) {
@@ -99,28 +75,25 @@ public abstract class TestEventUtil {
     }
 
     public static ImmutableOkEvent timestampOk(long time, int process, String value) {
-        return createOkEvent(time, process, value, RequestType.TIMESTAMP, TIMESTAMP);
+        return createOkEvent(time, process, value, RequestType.TIMESTAMP);
     }
 
 
-    public static ImmutableInvokeEvent createInvokeEvent(long time, int process, RequestType requestType,
-            String resourceName) {
+    public static ImmutableInvokeEvent createInvokeEvent(long time, int process, String requestType, String resourceName) {
         return ImmutableInvokeEvent.builder()
                 .time(time)
                 .process(process)
-                .requestType(requestType)
-                .resourceName(resourceName)
+                .function(requestType)
+                .value(resourceName)
                 .build();
     }
 
-    public static ImmutableOkEvent createOkEvent(long time, int process, String value, RequestType requestType,
-            String resourceName) {
+    public static ImmutableOkEvent createOkEvent(long time, int process, String value, String requestType) {
         return ImmutableOkEvent.builder()
                 .time(time)
                 .process(process)
                 .value(value)
-                .requestType(requestType)
-                .resourceName(resourceName)
+                .function(requestType)
                 .build();
     }
 }

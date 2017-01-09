@@ -40,7 +40,7 @@ public class IsolatedProcessCorrectnessCheckerTest {
                 .add(TestEventUtil.invokeLock(0, process1))
                 .add(TestEventUtil.lockSuccess(1, process1))
                 .add(TestEventUtil.invokeLock(2, process1, "alternate_lock"))
-                .add(TestEventUtil.lockFailure(3, process1, "alternate_lock"))
+                .add(TestEventUtil.lockFailure(3, process1))
                 .build();
         CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
         assertThat(result.valid()).isTrue();
@@ -53,7 +53,7 @@ public class IsolatedProcessCorrectnessCheckerTest {
                 .add(TestEventUtil.invokeRefresh(0, process1))
                 .add(TestEventUtil.refreshSuccess(1, process1))
                 .add(TestEventUtil.invokeRefresh(2, process1, "alternate_lock"))
-                .add(TestEventUtil.refreshFailure(3, process1, "alternate_lock"))
+                .add(TestEventUtil.refreshFailure(3, process1))
                 .build();
         CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
         assertThat(result.valid()).isFalse();
@@ -66,7 +66,7 @@ public class IsolatedProcessCorrectnessCheckerTest {
                 .add(TestEventUtil.invokeUnlock(0, process1))
                 .add(TestEventUtil.unlockSuccess(1, process1))
                 .add(TestEventUtil.invokeUnlock(2, process1, "alternate_lock"))
-                .add(TestEventUtil.unlockFailure(3, process1, "alternate_lock"))
+                .add(TestEventUtil.unlockFailure(3, process1))
                 .build();
         CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
         assertThat(result.valid()).isFalse();

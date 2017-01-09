@@ -37,9 +37,7 @@ public abstract class FailEvent implements Event {
 
     public abstract String error();
 
-    public abstract RequestType requestType();
-
-    public abstract String resourceName();
+    public abstract String function();
 
     @Override
     public void accept(EventVisitor visitor) {

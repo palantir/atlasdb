@@ -15,9 +15,9 @@
  */
 package com.palantir.atlasdb.jepsen.events;
 
-public enum RequestType {
-    TIMESTAMP,
-    LOCK,
-    REFRESH,
-    UNLOCK;
+public abstract class RequestType {
+    public static final String TIMESTAMP = "timestamp";
+    public static final String LOCK = "lock";
+    public static final String REFRESH = "refresh";
+    public static final String UNLOCK = "unlock";
 }

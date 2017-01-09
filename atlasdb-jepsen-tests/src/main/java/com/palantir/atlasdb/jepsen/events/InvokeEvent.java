@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.jepsen.events;
 
+import javax.annotation.Nullable;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -35,9 +37,10 @@ public abstract class InvokeEvent implements Event {
 
     public abstract int process();
 
-    public abstract RequestType requestType();
+    public abstract String function();
 
-    public abstract String resourceName();
+    @Nullable
+    public abstract String value();
 
     @Override
     public void accept(EventVisitor visitor) {

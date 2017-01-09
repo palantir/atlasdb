@@ -32,8 +32,10 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 public abstract class OkEvent implements Event {
     public static final String TYPE = "ok";
 
-    public static final String SUCCESS = "SUCCESS";
-    public static final String FAILURE = "FAILURE";
+    public static final String UNLOCK_SUCCESS = "true";
+    public static final String UNLOCK_FAILURE = "false";
+    public static final String SUCCESS = "Dummy tokens";
+    public static final String FAILURE = "";
 
     @Override
     public abstract long time();
@@ -43,20 +45,19 @@ public abstract class OkEvent implements Event {
     @Nullable
     public abstract String value();
 
-    public abstract RequestType requestType();
-
-    public abstract String resourceName();
+    public abstract String function();
 
     @Override
     public void accept(EventVisitor visitor) {
         visitor.visit(this);
     }
 
-    public boolean isSuccessful() {
-        return (value() != null && value() == SUCCESS);
+    public boolean isFailure() {
+        return (value().isEmpty() || value() == "false");
     }
 
-    public boolean isFailure() {
-        return (value() != null && value() == FAILURE);
+    public boolean isSuccessful() {
+        return !isFailure();
     }
+
 }
