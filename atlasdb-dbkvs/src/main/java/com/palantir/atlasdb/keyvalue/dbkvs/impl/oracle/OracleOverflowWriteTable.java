@@ -176,6 +176,12 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     @Override
+    public void update(Cell row, byte[] bytes, byte[] bytes1) {
+        // TODO
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
     public void delete(List<Entry<Cell, Long>> entries) {
         List<Object[]> args = Lists.newArrayListWithCapacity(entries.size());
         for (Map.Entry<Cell, Long> entry : entries) {

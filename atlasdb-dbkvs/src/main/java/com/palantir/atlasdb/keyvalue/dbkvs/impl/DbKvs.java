@@ -69,6 +69,7 @@ import com.google.common.util.concurrent.Atomics;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -357,8 +358,28 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
-        // TODO
+    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException {
+        if (checkAndSetRequest.oldValue().length == 0) {
+            executePutUnlessExists(checkAndSetRequest);
+        } else {
+            executeCheckAndSet(checkAndSetRequest);
+        }
+    }
+
+    private void executePutUnlessExists(CheckAndSetRequest checkAndSetRequest) {
+        try {
+            Map<Cell, byte[]> value = ImmutableMap.of(checkAndSetRequest.row(), checkAndSetRequest.newValue());
+            putUnlessExists(checkAndSetRequest.table(), value);
+        } catch (KeyAlreadyExistsException e) {
+            throw new CheckAndSetException("Value unexpectedly present when running check and set", e);
+        }
+    }
+
+    private void executeCheckAndSet(CheckAndSetRequest checkAndSetRequest) {
+        runWrite(checkAndSetRequest.table(), table -> {
+            table.update(checkAndSetRequest.row(), checkAndSetRequest.oldValue(), checkAndSetRequest.newValue());
+            return null;
+        });
     }
 
     @Override
