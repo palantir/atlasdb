@@ -57,7 +57,7 @@ public final class AtlasDbHttpClients {
     private static final Decoder decoder = new TextDelegateDecoder(new JacksonDecoder(mapper));
     private static final ErrorDecoder errorDecoder = new AtlasDbErrorDecoder();
 
-    private static final ImmutableList<ConnectionSpec> CONNECTION_SPEC = ImmutableList.of(
+    private static final ImmutableList<ConnectionSpec> CONNECTION_SPEC_WITH_CYPHER_SUITES = ImmutableList.of(
             new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
                     .tlsVersions(TlsVersion.TLS_1_2)
                     .cipherSuites(
@@ -177,9 +177,7 @@ public final class AtlasDbHttpClients {
     private static Client newOkHttpClient(Optional<SSLSocketFactory> sslSocketFactory) {
         com.squareup.okhttp.OkHttpClient client = new com.squareup.okhttp.OkHttpClient();
 
-        // set up cipher suites
-        client.setConnectionSpecs(CONNECTION_SPEC);
-
+        client.setConnectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES);
         client.setConnectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS));
         client.setSslSocketFactory(sslSocketFactory.orNull());
         return new OkHttpClient(client);
