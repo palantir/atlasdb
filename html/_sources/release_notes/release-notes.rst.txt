@@ -48,6 +48,10 @@ develop
            that would otherwise require creating many new connections to Cassandra from the clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)
 
+    *    - |fixed|
+         - Allow tables declared with SweepStrategy.THOROUGH to be migrated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1410>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
