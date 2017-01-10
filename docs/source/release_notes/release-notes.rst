@@ -49,10 +49,6 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)
 
     *    - |fixed|
-         - Don't retry transactions when the locks are invalid. Previously, AtlasDB tried repeatedly to run a transaction when the external locks are already invalid.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1323>`__)
-
-    *    - |fixed|
          - Allow tables declared with SweepStrategy.THOROUGH to be migrated.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1410>`__)
 
