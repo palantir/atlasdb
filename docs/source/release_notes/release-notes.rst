@@ -48,10 +48,6 @@ develop
            that would otherwise require creating many new connections to Cassandra from the clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)
 
-    *    - |fixed|
-         - Don't retry transactions when the locks are invalid. Previously, AtlasDB tried repeatedly to run a transaction when the external locks are already invalid.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1323>`__)
-
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
