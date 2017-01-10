@@ -52,6 +52,11 @@ develop
          - Allow tables declared with SweepStrategy.THOROUGH to be migrated.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1410>`__)
 
+    *    - |improved|
+         - atlasdb-rocksdb is no longer required by atlasdb-cli and therefore will no longer be packaged with AtlasDB clients
+           pulling in the atlasdb-dropwizard-bundle.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1439>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
