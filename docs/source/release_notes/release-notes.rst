@@ -133,12 +133,6 @@ v0.27.0
          - Updated our dependency on ``gradle-java-distribution`` from 1.0.1 to 1.2.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1361>`__)
 
-    *    - |new|
-         - AtlasDB now supports stream store compression.
-           Streams can be compressed client-side by adding the ``compressStreamInClient`` option to the stream
-           definition. Reads from the stream store will transparently decompress the data.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1357>`__)
-
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
