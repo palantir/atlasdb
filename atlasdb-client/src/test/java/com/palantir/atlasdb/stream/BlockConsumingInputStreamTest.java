@@ -236,7 +236,7 @@ public class BlockConsumingInputStreamTest {
         };
 
         // Should succeed, because bigGetter.expectedBlockLength() * blocksInMemory = Integer.MAX_VALUE - 8.
-        BlockConsumingInputStream.create(bigGetter, 2, 1);
+        BlockConsumingInputStream.ensureExpectedArraySizeDoesNotOverflow(bigGetter, 1);
     }
 
     @Test(expected = IllegalArgumentException.class)

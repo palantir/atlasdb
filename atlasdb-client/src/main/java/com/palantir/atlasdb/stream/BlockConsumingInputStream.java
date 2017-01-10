@@ -19,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 
@@ -42,7 +43,9 @@ public final class BlockConsumingInputStream extends InputStream {
         return stream;
     }
 
-    private static void ensureExpectedArraySizeDoesNotOverflow(BlockGetter blockGetter, int blocksInMemory) {
+    // we don't want to actually create a very large array in tests, as the external test VM would run out of memory.
+    @VisibleForTesting
+    protected static void ensureExpectedArraySizeDoesNotOverflow(BlockGetter blockGetter, int blocksInMemory) {
         int expectedBlockLength = blockGetter.expectedBlockLength();
         int maxBlocksInMemory = StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD / expectedBlockLength;
         long expectedBufferSize = (long) expectedBlockLength * (long) blocksInMemory;
