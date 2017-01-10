@@ -42,6 +42,15 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Increase default Cassandra pool size from minimum of 20 and maximum of 5x the minimum (100 if minimum not modified) connections to minimum of 30 and maximum of 100 connections.
+           This allows for better handling of bursts of requests that would otherwise require creating many new connections to Cassandra from the clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)
+
+    *    - |fixed|
+         - Allow tables declared with SweepStrategy.THOROUGH to be migrated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1410>`__)
+
     *    - |fixed|
          - All SnapshotTransaction get methods are now safe for tables declared with SweepStrategy.THOROUGH.
            Previously, a validation check was omitted for ``getRowsColumnRange``, ``getRowsIgnoringLocalWrites``, and ``getIgnoringLocalWrites``, which in very rare cases could have resulted in deleted values being returned by a long-running read transaction.
@@ -67,10 +76,12 @@ v0.27.2
            or when the block size was many times smaller (7KB for the default in-memory threshold).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1422>`__)
 
+
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-v0.27.0
+v0.27.1
 =======
 
 .. list-table::
@@ -80,15 +91,10 @@ v0.27.0
     *    - Type
          - Change
 
-    *    - |improved|
-         - Increase default Cassandra pool size from minimum of 20 and maximum of 5x the minimum (100 if minimum not modified)
-           connections to minimum of 30 and maximum of 100 connections. This allows for better handling of bursts of requests
-           that would otherwise require creating many new connections to Cassandra from the clients.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)
-
     *    - |fixed|
-         - Allow tables declared with SweepStrategy.THOROUGH to be migrated.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1410>`__)
+         - Fixed an edge case in stream stores where we throw an exception for using the exact maximum number of bytes in memory.
+           This behavior was introduced in 0.27.0 and does not affect stream store usage pre-0.27.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1411>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
