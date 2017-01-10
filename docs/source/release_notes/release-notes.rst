@@ -32,7 +32,27 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-develop
+v0.27.2
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed an issue with ``StreamStore.loadStream``'s underlying ``BlockGetter`` where, for non-default block size and in-memory thresholds,
+           we would incorrectly throw an exception instead of allowing the stream to be created.
+           This caused an issue when the in-memory threshold was many times larger than the default (47MB for the default block size),
+           or when the block size was many times smaller (7KB for the default in-memory threshold).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1422>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.27.0
 =======
 
 .. list-table::
@@ -112,6 +132,12 @@ develop
     *    - |changed|
          - Updated our dependency on ``gradle-java-distribution`` from 1.0.1 to 1.2.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1361>`__)
+
+    *    - |new|
+         - AtlasDB now supports stream store compression.
+           Streams can be compressed client-side by adding the ``compressStreamInClient`` option to the stream
+           definition. Reads from the stream store will transparently decompress the data.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1357>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
