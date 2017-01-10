@@ -52,6 +52,12 @@ develop
          - Allow tables declared with SweepStrategy.THOROUGH to be migrated.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1410>`__)
 
+    *    - |new|
+         - Added a new ``KeyValueService`` API method, ``checkAndSet``.
+           This is supported for Cassandra, Postgres, and Oracle, but in the latter case support is only provided for tables which are not overflow tables.
+           ``checkAndSet`` is **not** supported for RocksDB or JDBC. However, it will only be used in a future release.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1435>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
