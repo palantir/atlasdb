@@ -227,6 +227,14 @@ public class PaxosTimestampBoundStoreTest {
         return createPaxosTimestampBoundStore(nodeIndex, proposer);
     }
 
+    private PaxosTimestampBoundStore createPaxosTimestampBoundStore(int nodeIndex, PaxosProposer proposer) {
+        return new PaxosTimestampBoundStore(
+                proposer,
+                learners.get(nodeIndex),
+                ImmutableList.copyOf(acceptors),
+                ImmutableList.copyOf(learners));
+    }
+
     private PaxosTimestampBoundStore createOnceFailingPaxosTimestampBoundStore(int nodeIndex)
             throws PaxosRoundFailureException {
         PaxosProposer proposer = new OnceFailingPaxosProposer(createPaxosProposer(nodeIndex));
@@ -242,15 +250,8 @@ public class PaxosTimestampBoundStoreTest {
                 executor);
     }
 
-    private PaxosTimestampBoundStore createPaxosTimestampBoundStore(int nodeIndex, PaxosProposer proposer) {
-        return new PaxosTimestampBoundStore(
-                proposer,
-                learners.get(nodeIndex),
-                ImmutableList.copyOf(acceptors),
-                ImmutableList.copyOf(learners));
-    }
 
-    private static class OnceFailingPaxosProposer implements PaxosProposer {
+    private static final class OnceFailingPaxosProposer implements PaxosProposer {
         private final PaxosProposer delegate;
         private boolean hasFailed = false;
 

@@ -31,7 +31,8 @@ dependencies {
 
     processor group: 'org.immutables', name: 'value'
 
-    testCompile project(':atlasdb-config')
+    testCompile project(":atlasdb-config")
+    testCompile project(path: ":leader-election-impl", configuration: "testArtifacts")
 
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile group: 'org.mockito', name: 'mockito-core'
