@@ -1,4 +1,5 @@
-atomix:
+algorithm:
+  type: atomix
   storageLevel: memory
 
 cluster:

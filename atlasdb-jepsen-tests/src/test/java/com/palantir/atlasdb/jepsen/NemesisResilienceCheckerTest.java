@@ -47,12 +47,12 @@ public class NemesisResilienceCheckerTest {
     private static final Event OK_1 = ImmutableOkEvent.builder()
             .time(ZERO_TIME)
             .process(PROCESS_1)
-            .value(0L)
+            .value("0")
             .build();
     private static final Event OK_2 = ImmutableOkEvent.builder()
             .time(ZERO_TIME)
             .process(PROCESS_2)
-            .value(0L)
+            .value("0")
             .build();
 
     private static final Event ERROR_1 = ImmutableFailEvent.builder()
