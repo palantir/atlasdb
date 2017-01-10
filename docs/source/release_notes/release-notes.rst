@@ -87,7 +87,7 @@ v0.27.1
          - Change
 
     *    - |fixed|
-         - Fixed an edge case in stream stores where we throw an exception for using the exact maximum number of blocks.
+         - Fixed an edge case in stream stores where we throw an exception for using the exact maximum number of bytes in memory.
            This behavior was introduced in 0.27.0 and does not affect stream store usage pre-0.27.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1411>`__)
 
