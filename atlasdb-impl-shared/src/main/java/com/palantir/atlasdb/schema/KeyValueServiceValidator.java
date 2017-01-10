@@ -120,7 +120,7 @@ public class KeyValueServiceValidator {
 
     private void validateTable(final TableReference table) {
         final int limit = getBatchSize(table);
-        validationFromTransactionManager.runTaskReadOnly(
+        validationFromTransactionManager.runTaskWithRetry(
                 new TransactionTask<Map<Cell, byte[]>, RuntimeException>() {
                     @Override
                     public Map<Cell, byte[]> execute(Transaction t1) {
@@ -132,7 +132,7 @@ public class KeyValueServiceValidator {
     }
 
     private void validateTable(final TableReference table, final int limit, final Transaction t1) {
-        validationToTransactionManager.runTaskReadOnly(
+        validationToTransactionManager.runTaskWithRetry(
                 new TransactionTask<Map<Cell, byte[]>, RuntimeException>() {
                     @Override
                     public Map<Cell, byte[]> execute(Transaction t2) {
