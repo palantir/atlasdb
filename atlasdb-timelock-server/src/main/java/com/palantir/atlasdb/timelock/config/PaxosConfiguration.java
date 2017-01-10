@@ -70,6 +70,6 @@ public abstract class PaxosConfiguration implements TimeLockAlgorithmConfigurati
 
     @Override
     public ServerImplementation createServerImpl(Environment environment) {
-        return new PaxosServerImplementation(environment);
+        return new PaxosServerImplementation(this, environment);
     }
 }

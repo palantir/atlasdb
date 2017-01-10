@@ -36,12 +36,10 @@ import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
 import io.dropwizard.setup.Environment;
 
 public abstract class ServerImplementationTest {
-    private static final String LOCAL_ADDRESS = "localhost:8080";
-    private static final String TEST_CLIENT = "test";
-
     private final TimeLockServer server = new TimeLockServer();
-    private final Environment environment = mock(Environment.class);
     private final List<LifeCycle.Listener> listeners = new ArrayList<>();
+
+    protected final Environment environment = mock(Environment.class);
 
     @Before
     public void setUp() {

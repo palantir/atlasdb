@@ -56,22 +56,22 @@ import io.dropwizard.setup.Environment;
 public class PaxosServerImplementation implements ServerImplementation {
     public static final String LEADER_NAMESPACE = "__leader";
 
+    private final PaxosConfiguration paxosConfiguration;
     private final Environment environment;
 
     private Set<String> remoteServers;
     private Optional<SSLSocketFactory> optionalSecurity = Optional.absent();
 
-    private PaxosConfiguration paxosConfiguration;
     private LeaderElectionService leaderElectionService;
     private PaxosResource paxosResource;
 
-    public PaxosServerImplementation(Environment environment) {
+    public PaxosServerImplementation(PaxosConfiguration configuration, Environment environment) {
+        this.paxosConfiguration = configuration;
         this.environment = environment;
     }
 
     @Override
     public void onStartup(TimeLockServerConfiguration configuration) {
-        paxosConfiguration = (PaxosConfiguration) configuration.algorithm();
         registerPaxosResource();
 
         if (paxosConfiguration.sslConfiguration().isPresent()) {

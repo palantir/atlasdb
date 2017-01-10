@@ -36,7 +36,7 @@ public class TimeLockServerTest extends ServerImplementationTest {
     protected TimeLockServerConfiguration getConfiguration() {
         TimeLockAlgorithmConfiguration algorithmConfiguration = mock(TimeLockAlgorithmConfiguration.class);
         serverImplementation = mock(ServerImplementation.class);
-        when(algorithmConfiguration.createServerImpl()).thenReturn(serverImplementation);
+        when(algorithmConfiguration.createServerImpl(any())).thenReturn(serverImplementation);
         when(serverImplementation.createInvalidatingTimeLockServices(any())).thenReturn(mock(TimeLockServices.class));
 
         return new TimeLockServerConfiguration(
