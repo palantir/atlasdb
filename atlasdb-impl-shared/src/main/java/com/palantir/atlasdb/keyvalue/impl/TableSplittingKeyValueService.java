@@ -309,7 +309,7 @@ public final class TableSplittingKeyValueService implements KeyValueService {
 
     @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
-        // TODO
+        getDelegate(checkAndSetRequest.table()).checkAndSet(checkAndSetRequest);
     }
 
     @Override

@@ -325,7 +325,13 @@ public final class TieredKeyValueService implements KeyValueService {
 
     @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
-        // TODO
+        TableReference tableRef = checkAndSetRequest.table();
+        if (isNotTiered(tableRef)) {
+            primary.checkAndSet(checkAndSetRequest);
+            return;
+        }
+        throw new UnsupportedOperationException("TieredKeyValueService does not"
+                + " support checkAndSet on tiered tables. tableName=" + tableRef + ".");
     }
 
     @Override

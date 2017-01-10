@@ -279,7 +279,6 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
         super.checkAndSet(request);
         long finish = System.currentTimeMillis();
 
-        // TODO technically a CAS is both a get and a put, but I'm unsure how to represent this here.
         s.totalPutMillis.addAndGet(finish - start);
         s.totalPutCalls.incrementAndGet();
 

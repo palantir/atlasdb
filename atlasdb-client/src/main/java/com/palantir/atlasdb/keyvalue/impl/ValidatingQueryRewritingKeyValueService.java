@@ -204,11 +204,6 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
-        delegate.checkAndSet(checkAndSetRequest);
-    }
-
-    @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException {
         if (cellValues.isEmpty()) {
             return;
