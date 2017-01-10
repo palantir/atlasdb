@@ -83,7 +83,7 @@ public class PaxosServerImplementation implements ServerImplementation {
     }
 
     private void registerPaxosResource() {
-        paxosResource = PaxosResource.create(paxosConfiguration.paxosDataDir());
+        paxosResource = PaxosResource.create(paxosConfiguration.paxosDataDir().toString());
         paxosResource.addClient(LEADER_NAMESPACE);
         environment.jersey().register(paxosResource);
     }

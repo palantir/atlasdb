@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
@@ -27,7 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class PaxosResourceTest {
-    private static final File LOG_DIR = new File("testlogs/");
+    private static final String LOG_DIR = "testLogs/";
 
     private static final String CLIENT_1 = "andrew";
     private static final String CLIENT_2 = "bob";
@@ -41,7 +42,7 @@ public class PaxosResourceTest {
 
     @After
     public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(LOG_DIR);
+        FileUtils.deleteDirectory(new File(LOG_DIR));
     }
 
     @Test
@@ -49,6 +50,15 @@ public class PaxosResourceTest {
         paxosResource.addClient(CLIENT_1);
         assertThat(paxosResource.getPaxosLearner(CLIENT_1)).isNotNull();
         assertThat(paxosResource.getPaxosAcceptor(CLIENT_1)).isNotNull();
+    }
+
+    @Test
+    public void addsClientsInSubdirectory() {
+        paxosResource.addClient(CLIENT_1);
+        File expectedAcceptorLogDir = Paths.get(LOG_DIR, CLIENT_1, PaxosResource.ACCEPTOR_PATH).toFile();
+        assertThat(expectedAcceptorLogDir.exists()).isTrue();
+        File expectedLearnerLogDir = Paths.get(LOG_DIR, CLIENT_1, PaxosResource.LEARNER_PATH).toFile();
+        assertThat(expectedLearnerLogDir.exists()).isTrue();
     }
 
     @Test
