@@ -52,6 +52,10 @@ develop
          - Allow tables declared with SweepStrategy.THOROUGH to be migrated.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1410>`__)
 
+    *    - |improved|
+         - AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1378>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -114,10 +118,6 @@ develop
          - Updated our dependency on ``gradle-java-distribution`` from 1.0.1 to 1.2.0.
            See gradle-java-distribution `release notes <https://github.com/palantir/gradle-java-distribution/releases>`__ for details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1361>`__)
-
-    *    - |improved|
-         - AtlasDB timestamp and lock HTTP communication now use JVM optimized cipher suite CBC over the slower GCM
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1378>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
