@@ -29,6 +29,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
@@ -45,11 +46,11 @@ import io.dropwizard.testing.junit.DropwizardAppRule;
 
 public class PaxosTimeLockServerIntegrationTest {
     private static final String NOT_FOUND_CODE = "404";
-    private static final String SERVICE_NOT_AVAILABLE_CODE = "503";
 
     private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
     private static final String NONEXISTENT_CLIENT = "nonexistent";
+    private static final String INVALID_CLIENT = "test2\b";
 
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
     private static final String LOCK_CLIENT_NAME = "lock-client-name";
@@ -99,9 +100,57 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
+    public void lockServiceShouldNotAllowUsToRefreshLocksFromDifferentNamespaces() throws InterruptedException {
+        RemoteLockService lockService1 = getLockService(CLIENT_1);
+        RemoteLockService lockService2 = getLockService(CLIENT_2);
+
+        LockRefreshToken token1 = lockService1.lock(LOCK_CLIENT_NAME, LockRequest.builder(LOCK_MAP)
+                .doNotBlock()
+                .build());
+
+        assertThat(token1).isNotNull();
+        assertThat(lockService1.refreshLockRefreshTokens(ImmutableList.of(token1))).isNotEmpty();
+        assertThat(lockService2.refreshLockRefreshTokens(ImmutableList.of(token1))).isEmpty();
+
+        lockService1.unlock(token1);
+    }
+
+    @Test
+    public void timestampServiceShouldGiveUsIncrementalTimestamps() {
+        TimestampService timestampService = getTimestampService(CLIENT_1);
+
+        long timestamp1 = timestampService.getFreshTimestamp();
+        long timestamp2 = timestampService.getFreshTimestamp();
+
+        assertThat(timestamp1).isLessThan(timestamp2);
+    }
+
+    @Test
+    public void timestampServiceShouldRespectDistinctClientsWhenIssuingTimestamps() {
+        TimestampService timestampService1 = getTimestampService(CLIENT_1);
+        TimestampService timestampService2 = getTimestampService(CLIENT_2);
+
+        long firstServiceFirstTimestamp = timestampService1.getFreshTimestamp();
+        long secondServiceFirstTimestamp = timestampService2.getFreshTimestamp();
+
+        long firstServiceSecondTimestamp = timestampService1.getFreshTimestamp();
+        long secondServiceSecondTimestamp = timestampService2.getFreshTimestamp();
+
+        assertThat(firstServiceFirstTimestamp + 1).isEqualTo(firstServiceSecondTimestamp);
+        assertThat(secondServiceFirstTimestamp + 1).isEqualTo(secondServiceSecondTimestamp);
+    }
+
+    @Test
     public void returnsNotFoundOnQueryingNonexistentClient() {
         RemoteLockService lockService = getLockService(NONEXISTENT_CLIENT);
         assertThatThrownBy(lockService::currentTimeMillis)
+                .hasMessageContaining(NOT_FOUND_CODE);
+    }
+
+    @Test
+    public void returnsNotFoundOnQueryingClientWithInvalidName() {
+        TimestampService timestampService = getTimestampService(INVALID_CLIENT);
+        assertThatThrownBy(timestampService::getFreshTimestamp)
                 .hasMessageContaining(NOT_FOUND_CODE);
     }
 
