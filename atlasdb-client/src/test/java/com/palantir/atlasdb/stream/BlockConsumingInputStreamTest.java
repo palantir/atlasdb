@@ -17,6 +17,7 @@ package com.palantir.atlasdb.stream;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
@@ -32,6 +33,8 @@ import java.util.Arrays;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class BlockConsumingInputStreamTest {
@@ -251,7 +254,11 @@ public class BlockConsumingInputStreamTest {
         };
 
         // Should fail, because reallyBigGetter.expectedBlockLength() * blocksInMemory = Integer.MAX_VALUE - 7.
-        BlockConsumingInputStream.create(reallyBigGetter, 9, 8);
+        int blocksInMemory = 8;
+        assertTrue("Test assumption violated: expectedBlockLength() * blocksInMemory > MAX_IN_MEMORY_THRESHOLD.",
+                (long) reallyBigGetter.expectedBlockLength() * (long) blocksInMemory
+                        > StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD);
+        BlockConsumingInputStream.create(reallyBigGetter, 9, blocksInMemory);
     }
 
     @Test(expected = IllegalArgumentException.class)
