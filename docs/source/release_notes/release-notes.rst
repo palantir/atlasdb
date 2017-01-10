@@ -43,24 +43,23 @@ develop
          - Change
 
     *    - |improved|
-         - Increase default Cassandra pool size from minimum of 20 and maximum of 5x the minimum (100 if minimum not modified)
-           connections to minimum of 30 and maximum of 100 connections. This allows for better handling of bursts of requests
-           that would otherwise require creating many new connections to Cassandra from the clients.
+         - Increase default Cassandra pool size from minimum of 20 and maximum of 5x the minimum (100 if minimum not modified) connections to minimum of 30 and maximum of 100 connections.
+           This allows for better handling of bursts of requests that would otherwise require creating many new connections to Cassandra from the clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)
 
-    *    - |fixed|
-         - Don't retry transactions when the locks are invalid. Previously, AtlasDB tried repeatedly to run a transaction when the external locks are already invalid.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1323>`__)
-           
     *    - |improved|
          - Added metrics to SnapshotTransaction to monitor durations of various operations such as get, getRows, commit,
            etc. Atlas users should use AtlasDbMetrics.createAndSetInstance to create a MetricRegistry.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1356>`__)
 
+    *    - |fixed|
+         - Allow tables declared with SweepStrategy.THOROUGH to be migrated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1410>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-v0.27.0
+v0.27.2
 =======
 
 .. list-table::
@@ -70,34 +69,95 @@ v0.27.0
     *    - Type
          - Change
 
-    *    - |improved|
-         - ``StreamStore.loadStream`` now actually streams the data, if the data does not fit in memory.
-           This means that getting the first byte of the stream now has constant-time performance, compared to being
-           linear in terms of stream length, as it was previously.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1341>`__)
+    *    - |fixed|
+         - Fixed an issue with ``StreamStore.loadStream``'s underlying ``BlockGetter`` where, for non-default block size and in-memory thresholds,
+           we would incorrectly throw an exception instead of allowing the stream to be created.
+           This caused an issue when the in-memory threshold was many times larger than the default (47MB for the default block size),
+           or when the block size was many times smaller (7KB for the default in-memory threshold).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1422>`__)
 
-    *    - |improved|
-         - Oracle query performance improvement; table name cache now global to KVS level.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1325>`__)
+
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.27.1
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
-         - Oracle value style caching limited in scope to per-KVS, previously per-JVM,
-           which could have in extremely rare cases caused issues for users in odd configurations.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1235>`__)
+         - Fixed an edge case in stream stores where we throw an exception for using the exact maximum number of bytes in memory.
+           This behavior was introduced in 0.27.0 and does not affect stream store usage pre-0.27.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1411>`__)
 
-    *    - |new|
-         - We now publish a runnable distribution of AtlasCli that is available for download directly from Bintray
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1345>`__)
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
-    *    - |improved|
-         - Enable garbage collection logging for CircleCI builds.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1398>`__)
+=======
+0.27.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |new|
          - AtlasDB now supports stream store compression.
-           Streams can be compressed client-side by adding the ``compressStreamInClient`` option to the stream
-           definition. Reads from the stream store will transparently decompress the data.
+           Streams can be compressed client-side by adding the ``compressStreamInClient`` option to the stream definition.
+           Reads from the stream store will transparently decompress the data.
+
+           For information on using the stream store, see :ref:`schemas-streams`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1357>`__)
+
+    *    - |improved|
+         - ``StreamStore.loadStream`` now actually streams data if it does not fit in memory.
+           This means that getting the first byte of the stream now has constant-time performance, rather than linear in terms of stream length as it was previously.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1341>`__)
+
+    *    - |improved|
+         - Increased Cassandra connection pool idle timeout to 10 minutes, and reduced eviction check frequency to 20-30 seconds at 1/10 of connections.
+           This should reduce bursts of stress on idle Cassandra clusters.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1336>`__)
+
+    *    - |new|
+         - There is a new configuration called ``maxConnectionBurstSize``, which configures how large the pool is able to grow when receiving a large burst of requests.
+           Previously this was hard-coded to 5x the ``poolSize`` (which is now the default for the parameter).
+
+           See :ref:`Cassandra KVS Config <cassandra-kvs-config>` for details on configuring AtlasDB with Cassandra.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1336>`__)
+
+    *    - |improved|
+         - Improved the performance of Oracle queries by making the table name cache global to the KVS level.
+           Keeping the mapping in a cache saves one DB lookup per query, when the table has already been used.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1325>`__)
+
+    *    - |fixed|
+         - Oracle value style caching limited in scope to per-KVS, previously per-JVM, which could have in extremely rare cases caused issues for users in non-standard configurations.
+           This would have caused issues for users doing a KVS migration to move from one Oracle DB to another.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1325>`__)
+
+    *    - |new|
+         - We now publish a runnable distribution of AtlasCli that is available for download directly from `Bintray <https://bintray.com/palantir/releases/atlasdb#files/com/palantir/atlasdb/atlasdb-cli-distribution>`__.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1318>`__) and
+           (`Pull Request 2 <https://github.com/palantir/atlasdb/pull/1345>`__)
+
+    *    - |improved|
+         - Enabled garbage collection logging for CircleCI builds.
+           This may be useful for investigating pre-merge build failures.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1398>`__)
+
+    *    - |Improved|
+         - Updated our dependency on ``gradle-java-distribution`` from 1.0.1 to 1.2.0.
+           See gradle-java-distribution `release notes <https://github.com/palantir/gradle-java-distribution/releases>`__ for details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1361>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -140,12 +200,6 @@ v0.26.0
          - When we hit the ``MultipleRunningTimestampServicesError`` issue, we now automatically log thread dumps to a separate file (file path specified in service logs).
            The full file path of the ``atlas-timestamps-log`` file will be outputted to the service logs.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/1275>`__, `Pull Request 2 <https://github.com/palantir/atlasdb/pull/1332>`__)
-
-    *    - |improved|
-         - Increase connection pool idle timeout to 10 minutes, and reduce eviction check frequency to 20-30 seconds at 1/10 of connections.
-           Note that there is now a configuration called ``maxConnectionBurstSize``, which configures how large the pool is able to grow when
-           receiving a large burst of requests. Previously this was hard-coded to 5x the ``poolSize`` (which is now the default for the parameter).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1336>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -211,7 +265,7 @@ v0.25.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
 
     *    - |devbreak|
-         - ``Cell.validateNameValid`` is now private; consider ``Cell.isNameValid`` instead
+         - ``Cell.validateNameValid`` is now private; consider ``Cell.isNameValid`` instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1117>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
@@ -270,7 +324,7 @@ v0.24.0
 
     *    - |improved|
          - ``atlasdb-cassandra`` now depends on ``cassandra-thrift`` instead of ``cassandra-all``.
-           This reduces our dependency footprint.
+           Applications that support :ref:`CassandraKVS <cassandra-configuration>` will see a 20MB (10%) decrease in their Cassandra dependency footprint.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1222>`__)
 
     *    - |new|
@@ -604,15 +658,13 @@ v0.16.0
          - Change
 
     *    - |devbreak|
-         - Removed ``TransactionManager`` implementations ``ShellAwareReadOnlyTransactionManager``
-           and ``AtlasDbBackendDebugTransactionManager``. These are no longer
-           supported by AtlasDB and products are not expected to use them.
+         - Removed ``TransactionManager`` implementations ``ShellAwareReadOnlyTransactionManager`` and ``AtlasDbBackendDebugTransactionManager``.
+           These are no longer supported by AtlasDB and products are not expected to use them.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/939>`__)
 
     *    - |improved|
-         - ``TransactionMangers.create()`` now accepts ``LockServerOptions`` which can be used to
-           apply configurations to the embedded LockServer instance running in the product.  The other
-           ``create()`` methods will continue to use ``LockServerOptions.DEFAULT``.
+         - ``TransactionMangers.create()`` now accepts ``LockServerOptions`` which can be used to apply configurations to the embedded LockServer instance running in the product.
+           The other ``create()`` methods will continue to use ``LockServerOptions.DEFAULT``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/984>`__)
 
     *    - |fixed|
@@ -806,7 +858,7 @@ v0.11.4
 
     *    - |fixed|
          - Correctly checks the Cassandra client version that determines if Cassandra supports Check And Set operations.
-           This is a critical bug fix that ensures we actually use our implementation from `#436 <https://github.com/palantir/atlasdb/pull/436>`__, which prevents the Cassandra concurrent table creation bug described in `#431 <https://github.com/palantir/atlasdb/issues/431>`__.
+           This is a critical bug fix that ensures we actually use our implementation from `#436 <https://github.com/palantir/atlasdb/pull/436>`__, which prevents data loss due to the Cassandra concurrent table creation bug described in `#431 <https://github.com/palantir/atlasdb/issues/431>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/751>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
@@ -822,9 +874,12 @@ v0.11.2
     *    - Type
          - Change
 
-    *    - |changed|
-         - The ``ssl`` property now takes precedence over the new ``sslConfiguration`` block to allow back-compatibility.
+    *    - |userbreak|
+         - Reverting behavior introduced in AtlasDB 0.11.0 so the ``ssl`` property continues to take precedence over the ``sslConfiguration`` block to allow back-compatibility when using SSL with CassandraKVS.
            This means that products can add default truststore and keystore configuration to their AtlasDB config without overriding previously made SSL decisions (setting ``ssl: false`` should cause SSL to not be used).
+
+           This only affects end users who have deployed products with AtlasDB 0.11.0 or 0.11.1; users upgrading from earlier versions will not see changed behavior.
+           See :ref:`Communicating Over SSL <cass-config-ssl>` for details on how to configure CassandraKVS with SSL.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/745>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
@@ -846,7 +901,8 @@ v0.11.1
            (`Pull Request <https://github.com/palantir/atlasdb/pull/741>`__)
 
     *    - |improved|
-         - Updated schema table generation to optimize reads with no ColumnSelection specified against tables with fixed columns.  To benefit from this improvement you will need to re-generate your schemas.
+         - Updated schema table generation to optimize reads with no ColumnSelection specified against tables with fixed columns.
+           To benefit from this improvement you will need to re-generate your schemas.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/713>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
@@ -896,7 +952,7 @@ v0.11.0
            To enable trace logging, see `Enabling Cassandra Tracing <https://palantir.github.io/atlasdb/html/configuration/enabling_cassandra_tracing.html#enabling-cassandra-tracing>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/700>`__)
 
-    *    - |deprecated|
+    *    - |new|
          - The Cassandra KVS now supports specifying SSL options via the new ``sslConfiguration`` block, which takes precedence over the now deprecated ``ssl`` property.
            The ``ssl`` property will be removed in a future release, and consumers leveraging the Cassandra KVS are encouraged to use the ``sslConfiguration`` block instead.
            See the `Cassandra SSL Configuration <https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html#communicating-over-ssl>`__ documentation for more details.
@@ -933,9 +989,9 @@ v0.10.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/663>`__)
 
     *    - |improved|
-         - Cassandra client connection pooling will now evict idle connections over a longer period of time and has improved logic
-           for deciding whether or not a node should be blacklisted.  This should result in less connection churn
-           and therefore lower latency.  (`Pull Request <https://github.com/palantir/atlasdb/pull/667>`__)
+         - Cassandra client connection pooling will now evict idle connections over a longer period of time and has improved logic for deciding whether or not a node should be blacklisted.
+           This should result in less connection churn and therefore lower latency.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/667>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -1054,17 +1110,17 @@ v0.6.0
         - Change
 
     *   - |fixed|
-        - A potential race condition could cause timestamp allocation to never complete on a particular node (#462)
+        - A potential race condition could cause timestamp allocation to never complete on a particular node (#462).
 
     *   - |fixed|
-        - An innocuous error was logged once for each TransactionManager about not being able to allocate
-          enough timestamps. The error has been downgraded to INFO and made less scary.
+        - An innocuous error was logged once for each TransactionManager about not being able to allocate enough timestamps.
+          The error has been downgraded to INFO and made less scary.
 
     *   - |fixed|
         - Serializable Transactions that read a column selection could consistently report conflicts when there were none.
 
     *   - |fixed|
-        - An excessively long Cassandra related logline was sometimes printed (#501)
+        - An excessively long Cassandra related logline was sometimes printed (#501).
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -1080,7 +1136,7 @@ v0.5.0
         - Change
 
     *   - |changed|
-        - Only bumping double minor version in artifacts for long-term stability fixes
+        - Only bumping double minor version in artifacts for long-term stability fixes.
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -1096,10 +1152,10 @@ v0.4.1
         - Change
 
     *   - |fixed|
-        - Prevent _metadata tables from triggering the Cassandra 2.x schema mutation bug `431 <https://github.com/palantir/atlasdb/issues/431>`_ (`444 <https://github.com/palantir/atlasdb/issues/444>`_ not yet fixed)
+        - Prevent _metadata tables from triggering the Cassandra 2.x schema mutation bug `431 <https://github.com/palantir/atlasdb/issues/431>`_ (`444 <https://github.com/palantir/atlasdb/issues/444>`_ not yet fixed).
 
     *   - |fixed|
-        - Required projects are now Java 6 compliant
+        - Required projects are now Java 6 compliant.
 
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
