@@ -79,7 +79,8 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1341>`__)
 
     *    - |improved|
-         - Increased connection pool idle timeout to 10 minutes, and reduced eviction check frequency to 20-30 seconds at 1/10 of connections.
+         - Increased Cassandra connection pool idle timeout to 10 minutes, and reduced eviction check frequency to 20-30 seconds at 1/10 of connections.
+           This should reduce bursts of stress on idle Cassandra clusters.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1336>`__)
 
     *    - |new|
@@ -109,8 +110,9 @@ develop
            This may be useful for investigating pre-merge build failures.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1398>`__)
 
-    *    - |changed|
+    *    - |Improved|
          - Updated our dependency on ``gradle-java-distribution`` from 1.0.1 to 1.2.0.
+           See gradle-java-distribution `release notes <https://github.com/palantir/gradle-java-distribution/releases>`__ for details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1361>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
