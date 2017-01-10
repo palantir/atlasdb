@@ -1199,7 +1199,7 @@ public class CQLKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
-        // TODO
+        throw new UnsupportedOperationException("Check and set is not yet supported for CQL KeyValueService");
     }
 
     String getFullTableName(TableReference tableRef) {
