@@ -368,7 +368,7 @@ public class DbKvs extends AbstractKeyValueService {
 
     private void executePutUnlessExists(CheckAndSetRequest checkAndSetRequest) {
         try {
-            Map<Cell, byte[]> value = ImmutableMap.of(checkAndSetRequest.row(), checkAndSetRequest.newValue());
+            Map<Cell, byte[]> value = ImmutableMap.of(checkAndSetRequest.cell(), checkAndSetRequest.newValue());
             putUnlessExists(checkAndSetRequest.table(), value);
         } catch (KeyAlreadyExistsException e) {
             throw new CheckAndSetException("Value unexpectedly present when running check and set", e);
@@ -377,7 +377,7 @@ public class DbKvs extends AbstractKeyValueService {
 
     private void executeCheckAndSet(CheckAndSetRequest checkAndSetRequest) {
         runWrite(checkAndSetRequest.table(), table -> {
-            table.update(checkAndSetRequest.row(), checkAndSetRequest.oldValue(), checkAndSetRequest.newValue());
+            table.update(checkAndSetRequest.cell(), checkAndSetRequest.oldValue(), checkAndSetRequest.newValue());
             return null;
         });
     }

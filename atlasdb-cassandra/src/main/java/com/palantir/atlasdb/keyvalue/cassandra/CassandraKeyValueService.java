@@ -1709,11 +1709,11 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                     String msg = String.format("The row %s in table %s has an unexpected value. "
                             + "If this is happening repeatedly, your program may be out of sync with the database.",
-                            request.row(),
+                            request.cell(),
                             request.table().getQualifiedName());
 
                     throw new CheckAndSetException(msg,
-                            request.row(),
+                            request.cell(),
                             request.oldValue(),
                             currentValues);
                 }
@@ -1727,7 +1727,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     private CASResult executeCheckAndSet(Client client, CheckAndSetRequest request)
             throws TException {
         TableReference table = request.table();
-        Cell cell = request.row();
+        Cell cell = request.cell();
         long timestamp = AtlasDbConstants.TRANSACTION_TS;
 
         ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());

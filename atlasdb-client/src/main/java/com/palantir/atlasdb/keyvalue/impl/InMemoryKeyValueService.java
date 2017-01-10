@@ -392,7 +392,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public void checkAndSet(CheckAndSetRequest request) throws CheckAndSetException {
         Table table = getTableMap(request.table());
-        Cell cell = request.row();
+        Cell cell = request.cell();
         byte[] oldValue = request.oldValue();
 
         Map<Cell, Value> storedValue = get(request.table(),
@@ -401,7 +401,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             String expected = new String(oldValue, StandardCharsets.UTF_8);
             List<byte[]> actual = storedValue.values().stream().map(Value::getContents).collect(Collectors.toList());
             String msg = String.format("Unexpected value for this key. Wanted %s, got %s", expected, actual);
-            throw new CheckAndSetException(msg, request.row(), oldValue, actual);
+            throw new CheckAndSetException(msg, request.cell(), oldValue, actual);
         }
 
         byte[] contents = request.newValue();

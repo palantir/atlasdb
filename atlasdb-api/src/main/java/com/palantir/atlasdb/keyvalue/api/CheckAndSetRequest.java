@@ -21,7 +21,7 @@ import org.immutables.value.Value;
 public abstract class CheckAndSetRequest {
     public abstract TableReference table();
 
-    public abstract Cell row();
+    public abstract Cell cell();
 
     @Value.Default
     public byte[] oldValue() {

@@ -284,8 +284,8 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
 
         // Only update stats after put was successful.
         s.totalPutCells.incrementAndGet(); // can only CAS one value
-        s.totalPutCellBytes.addAndGet(request.row().getRowName().length);
-        s.totalPutCellBytes.addAndGet(request.row().getColumnName().length);
+        s.totalPutCellBytes.addAndGet(request.cell().getRowName().length);
+        s.totalPutCellBytes.addAndGet(request.cell().getColumnName().length);
         s.totalPutValueBytes.addAndGet(request.newValue().length);
     }
 
