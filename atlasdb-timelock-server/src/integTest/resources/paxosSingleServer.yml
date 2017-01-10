@@ -1,0 +1,12 @@
+algorithm:
+  type: paxos
+  paxosDataDir: var/test/data
+
+cluster:
+  localServer: localhost:8080
+  servers:
+    - localhost:8080
+
+clients:
+  - test
+  - test2
