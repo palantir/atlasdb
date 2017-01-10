@@ -1,0 +1,7 @@
+package com.palantir.atlasdb.calcite.proto;
+
+message TestObject {
+    required fixed64 id = 1;
+    required int64 type = 2;
+    required bool valid = 3;
+}

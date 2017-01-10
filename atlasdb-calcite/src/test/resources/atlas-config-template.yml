@@ -1,0 +1,12 @@
+atlasdb:
+  keyValueService:
+    type: relational
+    ddl:
+      type: postgres
+    connection:
+      type: postgres
+      host: %s
+      port: %s
+      dbName: atlas
+      dbLogin: palantir
+      dbPassword: palantir
