@@ -175,10 +175,6 @@ connections to minimum of 30 and maximum of 100 connections. This allows for bet
 that would otherwise require creating many new connections to Cassandra from the clients.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1402">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Don&#8217;t retry transactions when the locks are invalid. Previously, AtlasDB tried repeatedly to run a transaction when the external locks are already invalid.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1323">Pull Request</a>)</td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -358,7 +354,7 @@ its load balancer responds with &#8220;503: Service Unavailable&#8221;, the requ
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1117">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td><code class="docutils literal"><span class="pre">Cell.validateNameValid</span></code> is now private; consider <code class="docutils literal"><span class="pre">Cell.isNameValid</span></code> instead
+<td><code class="docutils literal"><span class="pre">Cell.validateNameValid</span></code> is now private; consider <code class="docutils literal"><span class="pre">Cell.isNameValid</span></code> instead.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1117">Pull Request</a>)</td>
 </tr>
 </tbody>
@@ -420,7 +416,7 @@ This should greatly improve usability for service admins using the CLIs.
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">atlasdb-cassandra</span></code> now depends on <code class="docutils literal"><span class="pre">cassandra-thrift</span></code> instead of <code class="docutils literal"><span class="pre">cassandra-all</span></code>.
-This reduces our dependency footprint.
+Applications that support <a class="reference internal" href="../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-configuration"><span class="std std-ref">CassandraKVS</span></a> will see a 20MB (10%) decrease in their Cassandra dependency footprint.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1222">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
@@ -784,15 +780,13 @@ For more information on using <code class="docutils literal"><span class="pre">h
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>Removed <code class="docutils literal"><span class="pre">TransactionManager</span></code> implementations <code class="docutils literal"><span class="pre">ShellAwareReadOnlyTransactionManager</span></code>
-and <code class="docutils literal"><span class="pre">AtlasDbBackendDebugTransactionManager</span></code>. These are no longer
-supported by AtlasDB and products are not expected to use them.
+<td>Removed <code class="docutils literal"><span class="pre">TransactionManager</span></code> implementations <code class="docutils literal"><span class="pre">ShellAwareReadOnlyTransactionManager</span></code> and <code class="docutils literal"><span class="pre">AtlasDbBackendDebugTransactionManager</span></code>.
+These are no longer supported by AtlasDB and products are not expected to use them.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/939">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td><code class="docutils literal"><span class="pre">TransactionMangers.create()</span></code> now accepts <code class="docutils literal"><span class="pre">LockServerOptions</span></code> which can be used to
-apply configurations to the embedded LockServer instance running in the product.  The other
-<code class="docutils literal"><span class="pre">create()</span></code> methods will continue to use <code class="docutils literal"><span class="pre">LockServerOptions.DEFAULT</span></code>.
+<td><code class="docutils literal"><span class="pre">TransactionMangers.create()</span></code> now accepts <code class="docutils literal"><span class="pre">LockServerOptions</span></code> which can be used to apply configurations to the embedded LockServer instance running in the product.
+The other <code class="docutils literal"><span class="pre">create()</span></code> methods will continue to use <code class="docutils literal"><span class="pre">LockServerOptions.DEFAULT</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/984">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
@@ -999,7 +993,7 @@ See <a class="reference internal" href="../configuration/logging.html#logging-co
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Correctly checks the Cassandra client version that determines if Cassandra supports Check And Set operations.
-This is a critical bug fix that ensures we actually use our implementation from <a class="reference external" href="https://github.com/palantir/atlasdb/pull/436">#436</a>, which prevents the Cassandra concurrent table creation bug described in <a class="reference external" href="https://github.com/palantir/atlasdb/issues/431">#431</a>.
+This is a critical bug fix that ensures we actually use our implementation from <a class="reference external" href="https://github.com/palantir/atlasdb/pull/436">#436</a>, which prevents data loss due to the Cassandra concurrent table creation bug described in <a class="reference external" href="https://github.com/palantir/atlasdb/issues/431">#431</a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/751">Pull Request</a>)</td>
 </tr>
 </tbody>
@@ -1018,10 +1012,13 @@ This is a critical bug fix that ensures we actually use our implementation from 
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
-<td>The <code class="docutils literal"><span class="pre">ssl</span></code> property now takes precedence over the new <code class="docutils literal"><span class="pre">sslConfiguration</span></code> block to allow back-compatibility.
-This means that products can add default truststore and keystore configuration to their AtlasDB config without overriding previously made SSL decisions (setting <code class="docutils literal"><span class="pre">ssl:</span> <span class="pre">false</span></code> should cause SSL to not be used).
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/745">Pull Request</a>)</td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<td><p class="first">Reverting behavior introduced in AtlasDB 0.11.0 so the <code class="docutils literal"><span class="pre">ssl</span></code> property continues to take precedence over the <code class="docutils literal"><span class="pre">sslConfiguration</span></code> block to allow back-compatibility when using SSL with CassandraKVS.
+This means that products can add default truststore and keystore configuration to their AtlasDB config without overriding previously made SSL decisions (setting <code class="docutils literal"><span class="pre">ssl:</span> <span class="pre">false</span></code> should cause SSL to not be used).</p>
+<p class="last">This only affects end users who have deployed products with AtlasDB 0.11.0 or 0.11.1; users upgrading from earlier versions will not see changed behavior.
+See <a class="reference internal" href="../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cass-config-ssl"><span class="std std-ref">Communicating Over SSL</span></a> for details on how to configure CassandraKVS with SSL.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/745">Pull Request</a>)</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -1045,7 +1042,8 @@ This prevents AtlasDB 0.11.0 clients from starting if a leader configuration is 
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/741">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Updated schema table generation to optimize reads with no ColumnSelection specified against tables with fixed columns.  To benefit from this improvement you will need to re-generate your schemas.
+<td>Updated schema table generation to optimize reads with no ColumnSelection specified against tables with fixed columns.
+To benefit from this improvement you will need to re-generate your schemas.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/713">Pull Request</a>)</td>
 </tr>
 </tbody>
@@ -1097,7 +1095,7 @@ _timestamp is a hidden table, and it is expected that _timestamp metadata should
 To enable trace logging, see <a class="reference external" href="https://palantir.github.io/atlasdb/html/configuration/enabling_cassandra_tracing.html#enabling-cassandra-tracing">Enabling Cassandra Tracing</a>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/700">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>The Cassandra KVS now supports specifying SSL options via the new <code class="docutils literal"><span class="pre">sslConfiguration</span></code> block, which takes precedence over the now deprecated <code class="docutils literal"><span class="pre">ssl</span></code> property.
 The <code class="docutils literal"><span class="pre">ssl</span></code> property will be removed in a future release, and consumers leveraging the Cassandra KVS are encouraged to use the <code class="docutils literal"><span class="pre">sslConfiguration</span></code> block instead.
 See the <a class="reference external" href="https://palantir.github.io/atlasdb/html/configuration/cassandra_KVS_configuration.html#communicating-over-ssl">Cassandra SSL Configuration</a> documentation for more details.
@@ -1137,9 +1135,9 @@ Products or clients (such as AtlasDB Sweep) making use of wide rows should consi
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/663">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Cassandra client connection pooling will now evict idle connections over a longer period of time and has improved logic
-for deciding whether or not a node should be blacklisted.  This should result in less connection churn
-and therefore lower latency.  (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/667">Pull Request</a>)</td>
+<td>Cassandra client connection pooling will now evict idle connections over a longer period of time and has improved logic for deciding whether or not a node should be blacklisted.
+This should result in less connection churn and therefore lower latency.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/667">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -1264,17 +1262,17 @@ However, this is very dependent on the particular scenario AtlasDB is being used
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>A potential race condition could cause timestamp allocation to never complete on a particular node (#462)</td>
+<td>A potential race condition could cause timestamp allocation to never complete on a particular node (#462).</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>An innocuous error was logged once for each TransactionManager about not being able to allocate
-enough timestamps. The error has been downgraded to INFO and made less scary.</td>
+<td>An innocuous error was logged once for each TransactionManager about not being able to allocate enough timestamps.
+The error has been downgraded to INFO and made less scary.</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Serializable Transactions that read a column selection could consistently report conflicts when there were none.</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>An excessively long Cassandra related logline was sometimes printed (#501)</td>
+<td>An excessively long Cassandra related logline was sometimes printed (#501).</td>
 </tr>
 </tbody>
 </table>
@@ -1293,7 +1291,7 @@ enough timestamps. The error has been downgraded to INFO and made less scary.</t
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
-<td>Only bumping double minor version in artifacts for long-term stability fixes</td>
+<td>Only bumping double minor version in artifacts for long-term stability fixes.</td>
 </tr>
 </tbody>
 </table>
@@ -1312,10 +1310,10 @@ enough timestamps. The error has been downgraded to INFO and made less scary.</t
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Prevent _metadata tables from triggering the Cassandra 2.x schema mutation bug <a class="reference external" href="https://github.com/palantir/atlasdb/issues/431">431</a> (<a class="reference external" href="https://github.com/palantir/atlasdb/issues/444">444</a> not yet fixed)</td>
+<td>Prevent _metadata tables from triggering the Cassandra 2.x schema mutation bug <a class="reference external" href="https://github.com/palantir/atlasdb/issues/431">431</a> (<a class="reference external" href="https://github.com/palantir/atlasdb/issues/444">444</a> not yet fixed).</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Required projects are now Java 6 compliant</td>
+<td>Required projects are now Java 6 compliant.</td>
 </tr>
 </tbody>
 </table>
