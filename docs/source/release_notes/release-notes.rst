@@ -51,6 +51,11 @@ develop
     *    - |fixed|
          - Don't retry transactions when the locks are invalid. Previously, AtlasDB tried repeatedly to run a transaction when the external locks are already invalid.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1323>`__)
+           
+    *    - |improved|
+         - Added metrics to SnapshotTransaction to monitor durations of various operations such as get, getRows, commit,
+           etc. Atlas users should use AtlasDbMetrics.createAndSetInstance to create a MetricRegistry.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1356>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
