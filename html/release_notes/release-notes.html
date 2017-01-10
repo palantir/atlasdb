@@ -182,8 +182,8 @@ that would otherwise require creating many new connections to Cassandra from the
 </tbody>
 </table>
 </div>
-<div class="section" id="v0-27-0">
-<h2>v0.27.0<a class="headerlink" href="#v0-27-0" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id1">
+<h2>0.27.0<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -195,34 +195,53 @@ that would otherwise require creating many new connections to Cassandra from the
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td><code class="docutils literal"><span class="pre">StreamStore.loadStream</span></code> now actually streams the data, if the data does not fit in memory.
-This means that getting the first byte of the stream now has constant-time performance, compared to being
-linear in terms of stream length, as it was previously.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1341">Pull Request</a>)</td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td><p class="first">AtlasDB now supports stream store compression.
+Streams can be compressed client-side by adding the <code class="docutils literal"><span class="pre">compressStreamInClient</span></code> option to the stream definition.
+Reads from the stream store will transparently decompress the data.</p>
+<p class="last">For information on using the stream store, see <a class="reference internal" href="../schemas/streams.html#schemas-streams"><span class="std std-ref">Streams</span></a>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1357">Pull Request</a>)</p>
+</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Oracle query performance improvement; table name cache now global to KVS level.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1325">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Oracle value style caching limited in scope to per-KVS, previously per-JVM,
-which could have in extremely rare cases caused issues for users in odd configurations.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1235">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
-<td>We now publish a runnable distribution of AtlasCli that is available for download directly from Bintray
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1345">Pull Request</a>)</td>
+<td><code class="docutils literal"><span class="pre">StreamStore.loadStream</span></code> now actually streams data if it does not fit in memory.
+This means that getting the first byte of the stream now has constant-time performance, rather than linear in terms of stream length as it was previously.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1341">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Enable garbage collection logging for CircleCI builds.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1398">Pull Request</a>)</td>
+<td>Increased connection pool idle timeout to 10 minutes, and reduced eviction check frequency to 20-30 seconds at 1/10 of connections.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1336">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
-<td>AtlasDB now supports stream store compression.
-Streams can be compressed client-side by adding the <code class="docutils literal"><span class="pre">compressStreamInClient</span></code> option to the stream
-definition. Reads from the stream store will transparently decompress the data.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1357">Pull Request</a>)</td>
+<td><p class="first">There is a new configuration called <code class="docutils literal"><span class="pre">maxConnectionBurstSize</span></code>, which configures how large the pool is able to grow when receiving a large burst of requests.
+Previously this was hard-coded to 5x the <code class="docutils literal"><span class="pre">poolSize</span></code> (which is now the default for the parameter).</p>
+<p class="last">See <a class="reference internal" href="../configuration/key_value_service_configs/cassandra_key_value_service_config.html#cassandra-kvs-config"><span class="std std-ref">Cassandra KVS Config</span></a> for details on configuring AtlasDB with Cassandra.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1336">Pull Request</a>)</p>
+</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Improved the performance of Oracle queries by making the table name cache global to the KVS level.
+Keeping the mapping in a cache saves one DB lookup per query, when the table has already been used.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1325">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Oracle value style caching limited in scope to per-KVS, previously per-JVM, which could have in extremely rare cases caused issues for users in non-standard configurations.
+This would have caused issues for users doing a KVS migration to move from one Oracle DB to another.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1325">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>We now publish a runnable distribution of AtlasCli that is available for download directly from <a class="reference external" href="https://bintray.com/palantir/releases/atlasdb#files/com/palantir/atlasdb/atlasdb-cli-distribution">Bintray</a>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1318">Pull Request 1</a>) and
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1345">Pull Request 2</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Enabled garbage collection logging for CircleCI builds.
+This may be useful for investigating pre-merge build failures.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1398">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>Updated our dependency on <code class="docutils literal"><span class="pre">gradle-java-distribution</span></code> from 1.0.1 to 1.2.0.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1361">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -271,12 +290,6 @@ See comments on the pull request for details.
 <td>When we hit the <code class="docutils literal"><span class="pre">MultipleRunningTimestampServicesError</span></code> issue, we now automatically log thread dumps to a separate file (file path specified in service logs).
 The full file path of the <code class="docutils literal"><span class="pre">atlas-timestamps-log</span></code> file will be outputted to the service logs.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1275">Pull Request 1</a>, <a class="reference external" href="https://github.com/palantir/atlasdb/pull/1332">Pull Request 2</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Increase connection pool idle timeout to 10 minutes, and reduce eviction check frequency to 20-30 seconds at 1/10 of connections.
-Note that there is now a configuration called <code class="docutils literal"><span class="pre">maxConnectionBurstSize</span></code>, which configures how large the pool is able to grow when
-receiving a large burst of requests. Previously this was hard-coded to 5x the <code class="docutils literal"><span class="pre">poolSize</span></code> (which is now the default for the parameter).
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1336">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
