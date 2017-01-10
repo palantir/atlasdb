@@ -58,6 +58,7 @@ import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.schema.stream.generated.DeletingStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.KeyValueTable;
+import com.palantir.atlasdb.schema.stream.generated.StreamTestMaxMemStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamHashAidxTable;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamMetadataTable;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamStore;
@@ -81,6 +82,7 @@ import com.palantir.util.crypto.Sha256Hash;
 public class StreamTest extends AtlasDbTestCase {
     private PersistentStreamStore defaultStore;
     private PersistentStreamStore compressedStore;
+    private PersistentStreamStore maxMemStore;
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -92,6 +94,7 @@ public class StreamTest extends AtlasDbTestCase {
 
         defaultStore = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
         compressedStore = StreamTestWithHashStreamStore.of(txManager, StreamTestTableFactory.of());
+        maxMemStore = StreamTestMaxMemStreamStore.of(txManager, StreamTestTableFactory.of());
     }
 
     @Test
@@ -218,6 +221,16 @@ public class StreamTest extends AtlasDbTestCase {
     @Test
     public void testStoreByteStreamFiveMegaBytes_compressedStream_incompressible() throws IOException {
         storeAndCheckByteStreams(compressedStore, getIncompressibleBytes(5_000_000));
+    }
+
+    @Test
+    public void testStoreToMaxMemStream() throws IOException {
+        storeAndCheckByteStreams(maxMemStore, getIncompressibleBytes(100));
+    }
+
+    @Test
+    public void testStoreHugeToMaxMemStream() throws IOException {
+        storeAndCheckByteStreams(maxMemStore, getIncompressibleBytes(20_000_000));
     }
 
     private long storeAndCheckByteStreams(PersistentStreamStore store, byte[] bytesToStore) throws IOException {

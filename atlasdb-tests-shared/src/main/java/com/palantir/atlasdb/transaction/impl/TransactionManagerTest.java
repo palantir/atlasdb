@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -29,6 +30,15 @@ import com.palantir.common.concurrent.PTExecutors;
 public class TransactionManagerTest extends TransactionTestSetup {
     @Rule
     public ExpectedException exception = ExpectedException.none();
+
+    @Override
+    @After
+    public void tearDown() {
+        // these tests close the txMgr, so we need to also close the keyValueService
+        // and null it out so that it gets recreated for the next test
+        keyValueService.close();
+        keyValueService = null;
+    }
 
     @Test
     public void shouldSuccessfullyCloseTransactionManagerMultipleTimes() throws Exception {
