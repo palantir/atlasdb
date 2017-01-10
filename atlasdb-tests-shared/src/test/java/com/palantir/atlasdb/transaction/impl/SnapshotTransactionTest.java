@@ -560,6 +560,20 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test(expected = TransactionFailedRetriableException.class)
+    public void testValidateExternalAndCommitLocksForGetRange() throws Exception {
+        final RangeRequest rangeRequest = RangeRequest.builder().batchHint(1).build();
+        testValidateExternalAndCommitLocks(
+                new LockAwareTransactionTask<Void, Exception>() {
+                    @Override
+                    public Void execute(Transaction t, Iterable<HeldLocksToken> heldLocks)
+                            throws Exception {
+                        t.getRange(TABLE_SWEPT_THOROUGH, rangeRequest).batchAccept(1, AbortingVisitors.alwaysTrue());
+                        return null;
+                    }
+                });
+    }
+
+    @Test(expected = TransactionFailedRetriableException.class)
     public void testValidateExternalAndCommitLocksForGetRanges() throws Exception {
         final RangeRequest rangeRequest = RangeRequest.builder().batchHint(1).build();
         testValidateExternalAndCommitLocks(
@@ -601,6 +615,21 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                                                 1 /* batch hint */))
                                         .values();
                         results.forEach(result -> result.batchAccept(1, AbortingVisitors.alwaysTrue()));
+                        return null;
+                    }
+                });
+    }
+
+    @Test(expected = TransactionFailedRetriableException.class)
+    public void testValidateExternalAndCommitLocksForGetRowsColumnRangeBatching() throws Exception {
+        testValidateExternalAndCommitLocks(
+                new LockAwareTransactionTask<Void, Exception>() {
+                    @Override
+                    public Void execute(Transaction t, Iterable<HeldLocksToken> heldLocks)
+                            throws Exception {
+                        t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton("row1".getBytes()),
+                                new ColumnRangeSelection(null, null),
+                                1 /* batch hint */);
                         return null;
                     }
                 });

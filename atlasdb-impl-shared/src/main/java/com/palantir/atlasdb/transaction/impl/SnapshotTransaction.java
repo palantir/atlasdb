@@ -390,6 +390,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                    columnRangeSelection,
                                                    batchHint,
                                                    getStartTimestamp());
+        if (!rawResults.hasNext()) {
+            validateExternalAndCommitLocksIfNecessary(tableRef);
+        } // else the postFiltered iterator will check for each batch.
+
         Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(rawResults);
         Iterator<Iterator<Map.Entry<Cell, byte[]>>> postFiltered = Iterators.transform(rawResultsByRow, e -> {
             byte[] row = e.getKey();
@@ -514,10 +518,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 ColumnSelection.all(),
                 getStartTimestamp()));
 
-
-        SortedMap<byte[], RowResult<byte[]>> results = filterRowResults(tableRef, rawResults, Maps.newHashMap());
         validateExternalAndCommitLocksIfNecessary(tableRef);
-        return results;
+        return filterRowResults(tableRef, rawResults, Maps.newHashMap());
     }
 
     private SortedMap<byte[], RowResult<byte[]>> filterRowResults(TableReference tableRef,
@@ -816,6 +818,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             @Override
             protected Iterator<RowResult<T>> computeNext() {
                 List<RowResult<Value>> batch = results.getBatch();
+                validateExternalAndCommitLocksIfNecessary(tableRef);
                 if (batch.isEmpty()) {
                     return endOfData();
                 }
@@ -1019,6 +1022,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         if (!keysToReload.isEmpty()) {
             Map<Cell, Value> nextRawResults = keyValueService.get(tableRef, keysToReload);
+            validateExternalAndCommitLocksIfNecessary(tableRef);
             return nextRawResults;
         } else {
             return ImmutableMap.of();
