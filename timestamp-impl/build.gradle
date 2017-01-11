@@ -12,4 +12,5 @@ dependencies {
   testCompile group: 'org.jmock', name: 'jmock', version: libVersions.jmock
   testCompile group: 'com.jayway.awaitility', name: 'awaitility'
   testCompile group: 'org.mockito', name: 'mockito-core'
+  testCompile group: 'org.assertj', name: 'assertj-core'
 }

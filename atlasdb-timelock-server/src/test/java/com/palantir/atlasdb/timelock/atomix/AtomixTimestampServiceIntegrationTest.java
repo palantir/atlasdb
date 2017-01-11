@@ -15,16 +15,16 @@
  */
 package com.palantir.atlasdb.timelock.atomix;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.concurrent.TimeoutException;
 
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.palantir.timestamp.TimestampRange;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.TimestampServiceTests;
 
 import io.atomix.AtomixReplica;
 import io.atomix.catalyst.transport.Address;
@@ -34,7 +34,7 @@ import io.atomix.copycat.server.storage.Storage;
 import io.atomix.copycat.server.storage.StorageLevel;
 import io.atomix.variables.DistributedLong;
 
-public class AtomixTimestampServiceTest {
+public class AtomixTimestampServiceIntegrationTest {
     private static final Address LOCAL_ADDRESS = new Address("localhost", 8700);
     private static final String CLIENT_KEY = "client";
 
@@ -45,7 +45,7 @@ public class AtomixTimestampServiceTest {
             .withTransport(new LocalTransport(new LocalServerRegistry()))
             .build();
 
-    private TimestampService timestampService;
+    private AtomixTimestampService atomixTimestampService;
 
     @BeforeClass
     public static void startAtomix() {
@@ -60,44 +60,56 @@ public class AtomixTimestampServiceTest {
     @Before
     public void setupTimestampService() {
         DistributedLong distributedLong = DistributedValues.getTimestampForClient(ATOMIX_REPLICA, CLIENT_KEY);
-        timestampService = new AtomixTimestampService(distributedLong);
+        atomixTimestampService = new AtomixTimestampService(distributedLong);
     }
 
     @Test
-    public void timestampsShouldBeIncreasing() {
-        long ts1 = timestampService.getFreshTimestamp();
-        long ts2 = timestampService.getFreshTimestamp();
-
-        assertThat(ts1).isLessThan(ts2);
+    public void timestampsAreReturnedInOrder() {
+        TimestampServiceTests.timestampsAreReturnedInOrder(atomixTimestampService);
     }
 
     @Test
     public void canRequestTimestampRange() {
-        int expectedNumTimestamps = 5;
-        TimestampRange range = timestampService.getFreshTimestamps(expectedNumTimestamps);
+        TimestampServiceTests.canRequestTimestampRangeWithGetFreshTimestamps(atomixTimestampService);
+    }
 
-        long actualNumTimestamps = range.getUpperBound() - range.getLowerBound() + 1;
-        assertThat(actualNumTimestamps)
-                .withFailMessage("Expected %d timestamps, got %d timestamps. (The returned range was: %d-%d)",
-                        expectedNumTimestamps, actualNumTimestamps, range.getLowerBound(), range.getUpperBound())
-                .isEqualTo(expectedNumTimestamps);
+    @Test
+    public void timestampRangesAreReturnedInNonOverlappingOrder() {
+        TimestampServiceTests.timestampRangesAreReturnedInNonOverlappingOrder(atomixTimestampService);
+    }
+
+    @Test
+    public void willNotHandOutTimestampsEarlierThanAFastForward() {
+        TimestampServiceTests.willNotHandOutTimestampsEarlierThanAFastForward(
+                atomixTimestampService,
+                atomixTimestampService);
+    }
+
+    @Test public void
+    willDoNothingWhenFastForwardToEarlierTimestamp() {
+        TimestampServiceTests.willDoNothingWhenFastForwardToEarlierTimestamp(
+                atomixTimestampService,
+                atomixTimestampService);
+    }
+
+    @Test
+    public void canReturnManyUniqueTimestampsInParallel() throws TimeoutException, InterruptedException {
+        TimestampServiceTests.canReturnManyUniqueTimestampsInParallel(atomixTimestampService);
     }
 
     @Test
     public void shouldThrowIfRequestingNegativeNumbersOfTimestamps() {
-        assertThatThrownBy(() -> timestampService.getFreshTimestamps(-1))
-                .isInstanceOf(IllegalArgumentException.class);
+        TimestampServiceTests.shouldThrowIfRequestingNegativeNumbersOfTimestamps(atomixTimestampService);
     }
 
     @Test
     public void shouldThrowIfRequestingZeroTimestamps() {
-        assertThatThrownBy(() -> timestampService.getFreshTimestamps(0))
-                .isInstanceOf(IllegalArgumentException.class);
+        TimestampServiceTests.shouldThrowIfRequestingZeroTimestamps(atomixTimestampService);
     }
 
     @Test
     public void shouldThrowIfRequestingTooManyTimestamps() {
-        assertThatThrownBy(() -> timestampService.getFreshTimestamps(AtomixTimestampService.MAX_GRANT_SIZE + 1))
+        assertThatThrownBy(() -> atomixTimestampService.getFreshTimestamps(AtomixTimestampService.MAX_GRANT_SIZE + 1))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

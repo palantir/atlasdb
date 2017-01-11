@@ -15,20 +15,10 @@
  */
 package com.palantir.timestamp;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
-
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 
 import org.junit.Rule;
@@ -38,48 +28,41 @@ import org.junit.rules.ExpectedException;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 
 public class PersistentTimestampServiceIntegrationTest {
-    private static final long ONE_MILLION = 1000 * 1000;
-    private static final long TWO_MILLION = 2 * ONE_MILLION;
-
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
     private InMemoryTimestampBoundStore timestampBoundStore = new InMemoryTimestampBoundStore();
     private PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
-    private ExecutorService executor = Executors.newFixedThreadPool(16);
 
     @Test public void
-    tiemstampsAreReturnedInOrder() {
-        List<Long> timestamps = new ArrayList<>();
-
-        timestamps.add(persistentTimestampService.getFreshTimestamp());
-        timestamps.add(persistentTimestampService.getFreshTimestamp());
-        timestamps.add(persistentTimestampService.getFreshTimestamp());
-
-        assertThat(timestamps, contains(1L, 2L, 3L));
+    timestampsAreReturnedInOrder() {
+        TimestampServiceTests.timestampsAreReturnedInOrder(persistentTimestampService);
     }
 
     @Test public void
     timestampRangesAreReturnedInNonOverlappingOrder() {
-        List<TimestampRange> timestampRanges = new ArrayList<>();
+        TimestampServiceTests.timestampRangesAreReturnedInNonOverlappingOrder(persistentTimestampService);
+    }
 
-        timestampRanges.add(persistentTimestampService.getFreshTimestamps(10));
-        timestampRanges.add(persistentTimestampService.getFreshTimestamps(10));
+    @Test public void
+    canRequestMoreTimestampsThanAreAllocatedAtOnce() {
+        TimestampServiceTests.canRequestMoreTimestampsThanAreAllocatedAtOnce(persistentTimestampService);
+    }
 
-        long firstUpperBound = timestampRanges.get(0).getUpperBound();
-        long secondLowerBound = timestampRanges.get(1).getLowerBound();
-
-        assertThat(firstUpperBound, is(lessThan(secondLowerBound)));
+    @Test public void
+    willNotHandOutTimestampsEarlierThanAFastForward() {
+        TimestampServiceTests.willNotHandOutTimestampsEarlierThanAFastForward(persistentTimestampService, persistentTimestampService);
     }
 
 
     @Test public void
-    canRequestMoreTimestampsThanAreAllocatedAtOnce() {
-        for(int i = 0; i < ONE_MILLION / 1000; i++) {
-            persistentTimestampService.getFreshTimestamps(1000);
-        }
+    willDoNothingWhenFastForwardToEarlierTimestamp() {
+        TimestampServiceTests.willDoNothingWhenFastForwardToEarlierTimestamp(persistentTimestampService, persistentTimestampService);
+    }
 
-        assertThat(persistentTimestampService.getFreshTimestamp(), is(ONE_MILLION + 1));
+    @Test public void
+    canReturnManyUniqueTimestampsInParallel() throws InterruptedException, TimeoutException {
+        TimestampServiceTests.canReturnManyUniqueTimestampsInParallel(persistentTimestampService);
     }
 
     @Test public void
@@ -88,29 +71,6 @@ public class PersistentTimestampServiceIntegrationTest {
                 persistentTimestampService.getFreshTimestamps(100 * 1000).size(),
                 is(10 * 1000L)
         );
-    }
-
-    @Test public void
-    willNotHandOutTimestampsEarlierThanAFastForward() {
-        persistentTimestampService.fastForwardTimestamp(TWO_MILLION);
-
-        assertThat(
-                persistentTimestampService.getFreshTimestamp(),
-                is(greaterThan(TWO_MILLION)));
-    }
-
-    @Test public void
-    canReturnManyUniqueTimestampsInParallel() throws InterruptedException, TimeoutException {
-        Set<Long> uniqueTimestamps = new ConcurrentSkipListSet<>();
-
-        repeat(TWO_MILLION, new Runnable() {
-            @Override
-            public void run() {
-                uniqueTimestamps.add(persistentTimestampService.getFreshTimestamp());
-            }
-        });
-
-        assertThat(uniqueTimestamps.size(), is((int) TWO_MILLION));
     }
 
     @Test(expected = ServiceNotAvailableException.class) public void
@@ -141,17 +101,14 @@ public class PersistentTimestampServiceIntegrationTest {
         assertThat(timestampBoundStore.numberOfAllocations(), is(lessThan(2)));
     }
 
-    private void repeat(long count, Runnable task) throws InterruptedException, TimeoutException {
-        for(int i = 0; i < count; i++) {
-            executor.submit(task);
-        }
+    @Test
+    public void shouldThrowIfRequestingNegativeNumbersOfTimestamps() {
+        TimestampServiceTests.shouldThrowIfRequestingNegativeNumbersOfTimestamps(persistentTimestampService);
+    }
 
-        executor.shutdown();
-        executor.awaitTermination(1, MINUTES);
-
-        if(!executor.isTerminated()) {
-            throw new TimeoutException("Timed out waiting for the executor to terminate");
-        }
+    @Test
+    public void shouldThrowIfRequestingZeroTimestamps() {
+        TimestampServiceTests.shouldThrowIfRequestingZeroTimestamps(persistentTimestampService);
     }
 
     private void getTimestampAndIgnoreErrors() {
