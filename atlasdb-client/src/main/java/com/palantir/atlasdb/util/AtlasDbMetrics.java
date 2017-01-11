@@ -23,13 +23,17 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 public final class AtlasDbMetrics {
     private static final Logger log = LoggerFactory.getLogger(AtlasDbMetrics.class);
     private static final String DEFAULT_DOMAIN = "com.palantir.util";
-    private static final String DEFAULT_REGISTRY_NAME = "AtlasDb";
-    private static volatile MetricRegistry metrics;
+    @VisibleForTesting
+    static final String DEFAULT_REGISTRY_NAME = "AtlasDb";
+
+    @VisibleForTesting
+    static volatile MetricRegistry metrics;
 
     private AtlasDbMetrics() {}
 
@@ -54,6 +58,7 @@ public final class AtlasDbMetrics {
                 }
             }
         }
+
         return AtlasDbMetrics.metrics;
     }
 }
