@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentMap;
@@ -393,28 +394,47 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     public void checkAndSet(CheckAndSetRequest request) throws CheckAndSetException {
         Table table = getTableMap(request.table());
         Cell cell = request.cell();
-        byte[] oldValue = request.oldValue();
+        Optional<byte[]> oldValue = request.oldValue();
 
         Map<Cell, Value> storedValue = get(request.table(),
                     ImmutableMap.of(cell, AtlasDbConstants.TRANSACTION_TS + 1));
         if (!valuesMatch(storedValue, oldValue)) {
-            String expected = new String(oldValue, StandardCharsets.UTF_8);
+            String expected = getStringRepresentation(oldValue);
             List<byte[]> actual = storedValue.values().stream().map(Value::getContents).collect(Collectors.toList());
             String msg = String.format("Unexpected value for this key. Wanted %s, got %s", expected, actual);
-            throw new CheckAndSetException(msg, request.cell(), oldValue, actual);
+            throw new CheckAndSetException(msg, request.cell(), oldValue.orElse(null), actual);
         }
 
         byte[] contents = request.newValue();
 
         byte[] oldContents = table.entries.put(getKey(table, cell, AtlasDbConstants.TRANSACTION_TS), copyOf(contents));
-        if (oldContents != null && (!Arrays.equals(oldContents, oldValue))) {
+        if (oldContents != null && !Arrays.equals(oldContents, oldValue.orElse(null))) {
             throw new CheckAndSetException("Very unexpected value for this key. If you're seeing this, "
                     + "multi-threaded operations have been running on this KVS, and your data got stomped on.",
                     cell,
-                    oldValue,
+                    oldValue.orElse(null),
                     ImmutableList.of(oldContents));
 
         }
+    }
+
+    private boolean valuesMatch(Map<Cell, Value> storedValue, Optional<byte[]> expectedValue) {
+        if (!expectedValue.isPresent()) {
+            return storedValue.isEmpty();
+        }
+
+        return storedValue.entrySet().size() == 1
+                && Arrays.equals(expectedValue.get(), Iterables.getOnlyElement(storedValue.values()).getContents());
+    }
+
+    private String getStringRepresentation(Optional<byte[]> oldValue) {
+        String expected;
+        if (oldValue.isPresent()) {
+            expected = new String(oldValue.get(), StandardCharsets.UTF_8);
+        } else {
+            expected = "(absent)";
+        }
+        return expected;
     }
 
     private Key getKey(Table table, Cell cell, long timestamp) {
@@ -427,18 +447,6 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             row = nextKey.row;
         }
         return new Key(row, col, timestamp);
-    }
-
-    private boolean valuesMatch(Map<Cell, Value> storedValue, byte[] expectedValue) {
-        if (expectedValue.length == 0 && storedValue.isEmpty()) {
-            return true;
-        }
-
-        if (storedValue.entrySet().size() != 1) {
-            return false;
-        }
-
-        return Arrays.equals(expectedValue, Iterables.getOnlyElement(storedValue.values()).getContents());
     }
 
     @Override

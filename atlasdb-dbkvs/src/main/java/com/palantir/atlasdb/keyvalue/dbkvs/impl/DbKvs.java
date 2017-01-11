@@ -359,11 +359,21 @@ public class DbKvs extends AbstractKeyValueService {
 
     @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException {
-        if (checkAndSetRequest.oldValue().length == 0) {
-            executePutUnlessExists(checkAndSetRequest);
-        } else {
+        if (checkAndSetRequest.oldValue().isPresent()) {
             executeCheckAndSet(checkAndSetRequest);
+        } else {
+            executePutUnlessExists(checkAndSetRequest);
         }
+    }
+
+    private void executeCheckAndSet(CheckAndSetRequest checkAndSetRequest) {
+        Preconditions.checkArgument(checkAndSetRequest.oldValue().isPresent());
+
+        runWrite(checkAndSetRequest.table(), table -> {
+            //noinspection OptionalGetWithoutIsPresent
+            table.update(checkAndSetRequest.cell(), checkAndSetRequest.oldValue().get(), checkAndSetRequest.newValue());
+            return null;
+        });
     }
 
     private void executePutUnlessExists(CheckAndSetRequest checkAndSetRequest) {
@@ -373,13 +383,6 @@ public class DbKvs extends AbstractKeyValueService {
         } catch (KeyAlreadyExistsException e) {
             throw new CheckAndSetException("Value unexpectedly present when running check and set", e);
         }
-    }
-
-    private void executeCheckAndSet(CheckAndSetRequest checkAndSetRequest) {
-        runWrite(checkAndSetRequest.table(), table -> {
-            table.update(checkAndSetRequest.cell(), checkAndSetRequest.oldValue(), checkAndSetRequest.newValue());
-            return null;
-        });
     }
 
     @Override

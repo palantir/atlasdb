@@ -1714,7 +1714,7 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
 
                     throw new CheckAndSetException(msg,
                             request.cell(),
-                            request.oldValue(),
+                            request.oldValue().orElse(null),
                             currentValues);
                 }
                 return null;
@@ -1736,8 +1736,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                 .array();
 
         List<Column> oldColumns;
-        if (request.oldValue().length > 0) {
-            oldColumns = ImmutableList.of(makeColumn(colName, request.oldValue(), timestamp));
+        java.util.Optional<byte[]> oldValue = request.oldValue();
+        if (oldValue.isPresent()) {
+            oldColumns = ImmutableList.of(makeColumn(colName, oldValue.get(), timestamp));
         } else {
             oldColumns = ImmutableList.of();
         }

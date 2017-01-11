@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
 /**
@@ -34,8 +36,8 @@ public abstract class CheckAndSetRequest {
     public abstract Cell cell();
 
     @Value.Default
-    public byte[] oldValue() {
-        return new byte[0];
+    public Optional<byte[]> oldValue() {
+        return Optional.empty();
     }
 
     public abstract byte[] newValue();
@@ -48,7 +50,7 @@ public abstract class CheckAndSetRequest {
         return ImmutableCheckAndSetRequest.builder()
                 .table(table)
                 .cell(cell)
-                .oldValue(oldValue)
+                .oldValue(Optional.of(oldValue))
                 .newValue(newValue)
                 .build();
     }
