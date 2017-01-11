@@ -25,8 +25,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.google.common.base.Preconditions;
 
-public class AtlasDbMetrics {
-
+public final class AtlasDbMetrics {
     private static final Logger log = LoggerFactory.getLogger(AtlasDbMetrics.class);
     private static final String DEFAULT_DOMAIN = "com.palantir.util";
     private static final String DEFAULT_REGISTRY_NAME = "AtlasDb";
@@ -34,26 +33,27 @@ public class AtlasDbMetrics {
 
     private AtlasDbMetrics() {}
 
-    public static void setMetrics(MetricRegistry metricRegistry) {
-        Preconditions.checkNotNull(metricRegistry, "metric registry cannot be null");
-        AtlasDbMetrics.metrics = metricRegistry;
-    }
-
-    public static MetricRegistry metrics() {
-        MetricRegistry metricRegistry = AtlasDbMetrics.metrics;
-        Preconditions.checkState(metricRegistry != null, "metric registry has not been initialized");
-        return metricRegistry;
+    public static synchronized void setMetricRegistry(MetricRegistry metricRegistry) {
+        AtlasDbMetrics.metrics = Preconditions.checkNotNull(metricRegistry, "Metric registry cannot be null");
     }
 
     // Using this means that all atlasdb clients will report to the same registry, which may give confusing stats
-    public synchronized static MetricRegistry getOrInitializeDefaultRegistry() {
+    public static MetricRegistry getMetricRegistry() {
         if (AtlasDbMetrics.metrics == null) {
-            AtlasDbMetrics.metrics = SharedMetricRegistries.getOrCreate(DEFAULT_REGISTRY_NAME);
-            JmxReporter.forRegistry(AtlasDbMetrics.metrics).inDomain(DEFAULT_DOMAIN).convertDurationsTo(
-                    TimeUnit.MILLISECONDS).convertRatesTo(TimeUnit.SECONDS).build().start();
-            log.info("Metric Registry was not set, setting to default registry name of " + DEFAULT_REGISTRY_NAME);
+            synchronized (AtlasDbMetrics.class) {
+                if (AtlasDbMetrics.metrics == null) {
+                    AtlasDbMetrics.metrics = SharedMetricRegistries.getOrCreate(DEFAULT_REGISTRY_NAME);
+                    JmxReporter.forRegistry(AtlasDbMetrics.metrics)
+                            .inDomain(DEFAULT_DOMAIN)
+                            .convertDurationsTo(TimeUnit.MILLISECONDS)
+                            .convertRatesTo(TimeUnit.SECONDS)
+                            .build()
+                            .start();
+                    log.info("Metric Registry was not set, setting to default registry name of "
+                            + DEFAULT_REGISTRY_NAME);
+                }
+            }
         }
         return AtlasDbMetrics.metrics;
     }
-
 }

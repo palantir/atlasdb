@@ -193,8 +193,9 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final boolean allowHiddenTableAccess;
     protected final Stopwatch transactionTimer = Stopwatch.createStarted();
     protected final TimestampCache timestampValidationReadCache;
-    private final MetricRegistry metricRegistry = AtlasDbMetrics.getOrInitializeDefaultRegistry();
-    protected final Timer.Context transactionTimerContext = getTimer("transactionMillis").time();
+
+    private final MetricRegistry metricRegistry = AtlasDbMetrics.getMetricRegistry();
+    private final Timer.Context transactionTimerContext = getTimer("transactionMillis").time();
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
@@ -352,7 +353,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         rawResults.keySet().removeAll(result.keySet());
 
         SortedMap<byte[], RowResult<byte[]>> results = filterRowResults(tableRef, rawResults, result);
-        long getRowsMillis = TimeUnit.NANOSECONDS.convert(timer.stop(), TimeUnit.MILLISECONDS);
+        long getRowsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
         if (perfLogger.isDebugEnabled()) {
             perfLogger.debug("getRows({}, {} rows) found {} rows, took {} ms",
                     tableRef, Iterables.size(rows), results.size(), getRowsMillis);
@@ -571,7 +572,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         // We don't need to read any cells that were written locally.
         result.putAll(getFromKeyValueService(tableRef, Sets.difference(cells, result.keySet())));
 
-        long getMillis = TimeUnit.NANOSECONDS.convert(timer.stop(), TimeUnit.MILLISECONDS);
+        long getMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
         if (perfLogger.isDebugEnabled()) {
             perfLogger.debug("get({}, {} cells) found {} cells (some possibly deleted), took {} ms",
                     tableRef, cells.size(), result.size(), getMillis);
@@ -675,8 +676,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                 }
                             });
                         }
-                        long processedRangeMillis = TimeUnit.NANOSECONDS.convert(timer.stop(),
-                                TimeUnit.MILLISECONDS);
+                        long processedRangeMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
                         log.trace("Processed {} range requests for {} in {}ms",
                                 input.size(), tableRef, processedRangeMillis);
                         return ret;
@@ -1196,8 +1196,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
             checkConstraints();
             commitWrites(transactionService);
-            long transactionMillis = TimeUnit.NANOSECONDS.convert(transactionTimerContext.stop(),
-                    TimeUnit.MILLISECONDS);
+            long transactionMillis = TimeUnit.NANOSECONDS.toMillis(transactionTimerContext.stop());
             perfLogger.debug("Committed transaction {} in {}ms",
                     getStartTimestamp(),
                     transactionMillis);
@@ -1233,15 +1232,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         Timer.Context acquireLocksTimer = getTimer("commitAcquireLocks").time();
         LockRefreshToken commitLocksToken = acquireLocksForCommit();
-        long millisForLocks = TimeUnit.NANOSECONDS.convert(acquireLocksTimer.stop(), TimeUnit.MILLISECONDS);
+        long millisForLocks = TimeUnit.NANOSECONDS.toMillis(acquireLocksTimer.stop());
         try {
             Timer.Context conflictsTimer = getTimer("commitCheckingForConflicts").time();
             throwIfConflictOnCommit(commitLocksToken, transactionService);
-            long millisCheckingForConflicts = TimeUnit.NANOSECONDS.convert(conflictsTimer.stop(),
-                    TimeUnit.MILLISECONDS);
+            long millisCheckingForConflicts = TimeUnit.NANOSECONDS.toMillis(conflictsTimer.stop());
             Timer.Context writesTimer = getTimer("commitWrite").time();
             keyValueService.multiPut(writesByTable, getStartTimestamp());
-            long millisForWrites = TimeUnit.NANOSECONDS.convert(writesTimer.stop(), TimeUnit.MILLISECONDS);
+            long millisForWrites = TimeUnit.NANOSECONDS.toMillis(writesTimer.stop());
 
             // Now that all writes are done, get the commit timestamp
             // We must do this before we check that our locks are still valid to ensure that
@@ -1255,7 +1253,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             // scrub timestamp (same as the hard delete transaction's start timestamp)
             Timer.Context punchTimer = getTimer("millisForPunch").time();
             cleaner.punch(commitTimestamp);
-            long millisForPunch = TimeUnit.NANOSECONDS.convert(punchTimer.stop(), TimeUnit.MILLISECONDS);
+            long millisForPunch = TimeUnit.NANOSECONDS.toMillis(punchTimer.stop());
 
             throwIfReadWriteConflictForSerializable(commitTimestamp);
 
@@ -1265,7 +1263,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
             Timer.Context commitTsTimer = getTimer("commitPutCommitTs").time();
             putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService);
-            long millisForCommitTs = TimeUnit.NANOSECONDS.convert(commitTsTimer.stop(), TimeUnit.MILLISECONDS);
+            long millisForCommitTs = TimeUnit.NANOSECONDS.toMillis(commitTsTimer.stop());
 
             Set<LockRefreshToken> expiredLocks = refreshExternalAndCommitLocks(commitLocksToken);
             if (!expiredLocks.isEmpty()) {
@@ -1718,8 +1716,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (waitForCommitterToComplete) {
             Timer.Context timer = getTimer("waitForCommitTsMillis").time();
             waitForCommitToComplete(startTimestamps);
-            long waitForCommitTsMillis = TimeUnit.NANOSECONDS.convert(timer.stop(),
-                    TimeUnit.MILLISECONDS);
+            long waitForCommitTsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
             perfLogger.debug("Waited {} ms to get commit timestamps for table {}.",
                     waitForCommitTsMillis, tableRef);
         }
@@ -1860,15 +1857,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private Timer getTimer(String name) {
-        return metricRegistry.getTimers().getOrDefault(name,
-                metricRegistry.timer(MetricRegistry.name(SnapshotTransaction.class, name)));
+        return metricRegistry.getTimers()
+                .getOrDefault(name, metricRegistry.timer(MetricRegistry.name(SnapshotTransaction.class, name)));
     }
 
     private Histogram getHistogram(String name) {
-        return metricRegistry.getHistograms().getOrDefault(name,
-                metricRegistry.histogram(MetricRegistry.name(SnapshotTransaction.class, name)));
+        return metricRegistry.getHistograms()
+                .getOrDefault(name, metricRegistry.histogram(MetricRegistry.name(SnapshotTransaction.class, name)));
     }
-
 }
 
 

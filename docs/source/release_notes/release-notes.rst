@@ -47,6 +47,11 @@ develop
            This allows for better handling of bursts of requests that would otherwise require creating many new connections to Cassandra from the clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)
 
+    *    - |new|
+         - Added metrics to SnapshotTransaction to monitor durations of various operations such as ``get``, ``getRows``, ``commit``, etc.
+           Atlas users should use ``AtlasDbMetrics.setMetricRegistry`` to set a ``MetricRegistry``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1429>`__)
+
     *    - |fixed|
          - Allow tables declared with ``SweepStrategy.THOROUGH`` to be migrated.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1410>`__)
@@ -158,11 +163,6 @@ v0.27.1
          - Updated our dependency on ``gradle-java-distribution`` from 1.0.1 to 1.2.0.
            See gradle-java-distribution `release notes <https://github.com/palantir/gradle-java-distribution/releases>`__ for details.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1361>`__)
-
-    *    - |improved|
-         - Added metrics to SnapshotTransaction to monitor durations of various operations such as get, getRows, commit,
-           etc. Atlas users should use AtlasDbMetrics.createAndSetInstance to create a MetricRegistry.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1356>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
