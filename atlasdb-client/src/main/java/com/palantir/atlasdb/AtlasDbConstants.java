@@ -37,8 +37,8 @@ public class AtlasDbConstants {
     public static final TableReference DEFAULT_METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final TableReference DEFAULT_ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace("atlasdb_metadata");
 
-    public static final String ORACLE_NAME_MAPPING_TABLE = "atlasdb_table_names";
-    public static final String ORACLE_NAME_MAPPING_PK_CONSTRAINT = "pk_" + ORACLE_NAME_MAPPING_TABLE;
+    public static final String DBKVS_NAME_MAPPING_TABLE = "atlasdb_table_names";
+    public static final String DBKVS_NAME_MAPPING_PK_CONSTRAINT = "pk_" + DBKVS_NAME_MAPPING_TABLE;
     public static final String ORACLE_OVERFLOW_SEQUENCE = "overflow_seq";
 
     public static final String NAMESPACE_PREFIX = "_n_";
@@ -59,7 +59,6 @@ public class AtlasDbConstants {
 
     public static final long TRANSACTION_TS = 0L;
 
-    // TODO (ejin): Organize constants (maybe into a single class?)
     public static final Set<TableReference> hiddenTables = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             PUNCH_TABLE,

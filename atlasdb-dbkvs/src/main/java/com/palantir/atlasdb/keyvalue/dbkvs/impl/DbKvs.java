@@ -90,7 +90,6 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.PalantirSqlException;
-import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
@@ -126,22 +125,18 @@ public class DbKvs extends AbstractKeyValueService {
         this.config = config;
         this.dbTables = dbTables;
         this.connections = connections;
-        if (DBType.ORACLE.equals(dbTables.getDbType())) {
-            prefixedTableNames = new OraclePrefixedTableNames(
-                    config,
-                    new ConnectionSupplier(connections),
-                    ((OracleDbTableFactory) dbTables).getOracleTableNameGetter());
-        } else {
-            prefixedTableNames = new PrefixedTableNames(config);
-        }
+        prefixedTableNames = new MappedTableNames(
+                config,
+                new ConnectionSupplier(connections),
+                dbTables.getTableNameGetter());
     }
 
     private void init() {
-        databaseSpecificInitialization();
+        createUtilityTables();
         createMetadataTable();
     }
 
-    private void databaseSpecificInitialization() {
+    private void createUtilityTables() {
         runInitialization(new Function<DbTableInitializer, Void>() {
             @Nullable
             @Override

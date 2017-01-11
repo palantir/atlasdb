@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.TableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
@@ -44,19 +44,19 @@ public final class OracleDdlTable implements DbDdlTable {
     private final OracleDdlConfig config;
     private final ConnectionSupplier conns;
     private final TableReference tableRef;
-    private final OracleTableNameGetter oracleTableNameGetter;
+    private final TableNameGetter tableNameGetter;
     private final TableValueStyleCache valueStyleCache;
 
     private OracleDdlTable(
             OracleDdlConfig config,
             ConnectionSupplier conns,
             TableReference tableRef,
-            OracleTableNameGetter oracleTableNameGetter,
+            TableNameGetter tableNameGetter,
             TableValueStyleCache valueStyleCache) {
         this.config = config;
         this.conns = conns;
         this.tableRef = tableRef;
-        this.oracleTableNameGetter = oracleTableNameGetter;
+        this.tableNameGetter = tableNameGetter;
         this.valueStyleCache = valueStyleCache;
     }
 
@@ -64,9 +64,9 @@ public final class OracleDdlTable implements DbDdlTable {
             TableReference tableRef,
             ConnectionSupplier conns,
             OracleDdlConfig config,
-            OracleTableNameGetter oracleTableNameGetter,
+            TableNameGetter tableNameGetter,
             TableValueStyleCache valueStyleCache) {
-        return new OracleDdlTable(config, conns, tableRef, oracleTableNameGetter, valueStyleCache);
+        return new OracleDdlTable(config, conns, tableRef, tableNameGetter, valueStyleCache);
     }
 
     @Override
@@ -95,7 +95,7 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     private void createTable(boolean needsOverflow) {
-        String shortTableName = oracleTableNameGetter.generateShortTableName(conns, tableRef);
+        String shortTableName = tableNameGetter.generateShortTableName(conns, tableRef);
         executeIgnoringError(
                 "CREATE TABLE " + shortTableName + " ("
                 + "  row_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL,"
@@ -107,11 +107,11 @@ public final class OracleDdlTable implements DbDdlTable {
                 + " PRIMARY KEY (row_name, col_name, ts) "
                 + ") organization index compress overflow",
                 OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
-        putTableNameMapping(oracleTableNameGetter.getPrefixedTableName(tableRef), shortTableName);
+        putTableNameMapping(tableNameGetter.getPrefixedTableName(tableRef), shortTableName);
     }
 
     private void createOverflowTable() {
-        final String shortOverflowTableName = oracleTableNameGetter.generateShortOverflowTableName(conns, tableRef);
+        final String shortOverflowTableName = tableNameGetter.generateShortOverflowTableName(conns, tableRef);
         executeIgnoringError(
                 "CREATE TABLE " + shortOverflowTableName + " ("
                 + "  id  NUMBER(38) NOT NULL, "
@@ -119,7 +119,7 @@ public final class OracleDdlTable implements DbDdlTable {
                 + "  CONSTRAINT " + getPrimaryKeyConstraintName(shortOverflowTableName) + " PRIMARY KEY (id)"
                 + ")",
                 OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
-        putTableNameMapping(oracleTableNameGetter.getPrefixedOverflowTableName(tableRef), shortOverflowTableName);
+        putTableNameMapping(tableNameGetter.getPrefixedOverflowTableName(tableRef), shortOverflowTableName);
     }
 
     private void putTableNameMapping(String fullTableName, String shortTableName) {
@@ -131,7 +131,7 @@ public final class OracleDdlTable implements DbDdlTable {
     private void insertTableMappingIgnoringPrimaryKeyViolation(String fullTableName, String shortTableName) {
         try {
             conns.get().insertOneUnregisteredQuery(
-                    "INSERT INTO " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
+                    "INSERT INTO " + AtlasDbConstants.DBKVS_NAME_MAPPING_TABLE
                             + " (table_name, short_table_name) VALUES (?, ?)",
                     fullTableName,
                     shortTableName);
@@ -145,16 +145,16 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     private boolean isPrimaryKeyViolation(PalantirSqlException ex) {
-        return StringUtils.containsIgnoreCase(ex.getMessage(), AtlasDbConstants.ORACLE_NAME_MAPPING_PK_CONSTRAINT);
+        return StringUtils.containsIgnoreCase(ex.getMessage(), AtlasDbConstants.DBKVS_NAME_MAPPING_PK_CONSTRAINT);
     }
 
     @Override
     public void drop() {
         try {
-            dropTableInternal(oracleTableNameGetter.getPrefixedTableName(tableRef),
-                    oracleTableNameGetter.getInternalShortTableName(conns, tableRef));
-            dropTableInternal(oracleTableNameGetter.getPrefixedOverflowTableName(tableRef),
-                    oracleTableNameGetter.getInternalShortOverflowTableName(conns, tableRef));
+            dropTableInternal(tableNameGetter.getPrefixedTableName(tableRef),
+                    tableNameGetter.getInternalShortTableName(conns, tableRef));
+            dropTableInternal(tableNameGetter.getPrefixedOverflowTableName(tableRef),
+                    tableNameGetter.getInternalShortOverflowTableName(conns, tableRef));
         } catch (TableMappingNotFoundException ex) {
             // If table does not exist, do nothing
         }
@@ -173,9 +173,9 @@ public final class OracleDdlTable implements DbDdlTable {
         executeIgnoringError("DROP TABLE " + shortTableName + " PURGE", OracleErrorConstants.ORACLE_NOT_EXISTS_ERROR);
         if (config.useTableMapping()) {
             conns.get().executeUnregisteredQuery(
-                    "DELETE FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE + " WHERE table_name = ?",
+                    "DELETE FROM " + AtlasDbConstants.DBKVS_NAME_MAPPING_TABLE + " WHERE table_name = ?",
                     fullTableName);
-            oracleTableNameGetter.clearCacheForTable(fullTableName);
+            tableNameGetter.clearCacheForTable(fullTableName);
         }
     }
 
@@ -183,12 +183,12 @@ public final class OracleDdlTable implements DbDdlTable {
     public void truncate() {
         try {
             conns.get().executeUnregisteredQuery(
-                    "TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef));
+                    "TRUNCATE TABLE " + tableNameGetter.getInternalShortTableName(conns, tableRef));
         } catch (TableMappingNotFoundException | RuntimeException e) {
             throw new IllegalStateException(
                     String.format(
                         "Truncate called on a table (%s) that did not exist",
-                        oracleTableNameGetter.getPrefixedTableName(tableRef)));
+                        tableNameGetter.getPrefixedTableName(tableRef)));
         }
         truncateOverflowTableIfItExists();
     }
@@ -199,14 +199,14 @@ public final class OracleDdlTable implements DbDdlTable {
                 && config.overflowMigrationState() != OverflowMigrationState.UNSTARTED) {
             try {
                 conns.get().executeUnregisteredQuery(
-                        "TRUNCATE TABLE " + oracleTableNameGetter.getInternalShortOverflowTableName(conns, tableRef));
+                        "TRUNCATE TABLE " + tableNameGetter.getInternalShortOverflowTableName(conns, tableRef));
             } catch (TableMappingNotFoundException | RuntimeException e) {
                 throw new IllegalStateException(
                         String.format(
                                 "Truncate called on a table (%s) that was supposed to have an overflow table (%s),"
                                 + " but that overflow table appears to not exist",
-                                oracleTableNameGetter.getPrefixedTableName(tableRef),
-                                oracleTableNameGetter.getPrefixedOverflowTableName(tableRef)));
+                                tableNameGetter.getPrefixedTableName(tableRef),
+                                tableNameGetter.getPrefixedOverflowTableName(tableRef)));
             }
         }
     }
@@ -240,7 +240,7 @@ public final class OracleDdlTable implements DbDdlTable {
         if (config.enableOracleEnterpriseFeatures()) {
             try {
                 conns.get().executeUnregisteredQuery(
-                        "ALTER TABLE " + oracleTableNameGetter.getInternalShortTableName(conns, tableRef)
+                        "ALTER TABLE " + tableNameGetter.getInternalShortTableName(conns, tableRef)
                                 + " MOVE ONLINE");
             } catch (PalantirSqlException e) {
                 log.error("Tried to clean up {} bloat after a sweep operation,"

@@ -18,26 +18,26 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.TableNameGetter;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 
-public class OraclePrefixedTableNames extends PrefixedTableNames {
-    private OracleTableNameGetter oracleTableNameGetter;
+public class MappedTableNames extends PrefixedTableNames {
+    private TableNameGetter tableNameGetter;
     private ConnectionSupplier connectionSupplier;
 
-    public OraclePrefixedTableNames(
+    public MappedTableNames(
             DdlConfig config,
             ConnectionSupplier connectionSupplier,
-            OracleTableNameGetter oracleTableNameGetter) {
+            TableNameGetter tableNameGetter) {
         super(config);
         this.connectionSupplier = connectionSupplier;
-        this.oracleTableNameGetter = oracleTableNameGetter;
+        this.tableNameGetter = tableNameGetter;
     }
 
     @Override
     public String get(TableReference tableRef) {
         try {
-            return oracleTableNameGetter.getInternalShortTableName(connectionSupplier, tableRef);
+            return tableNameGetter.getInternalShortTableName(connectionSupplier, tableRef);
         } catch (TableMappingNotFoundException e) {
             throw Throwables.propagate(e);
         }

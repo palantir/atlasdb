@@ -27,15 +27,10 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 
-public class OracleTableNameMapperTest extends TableNameMapperTest {
+public class PostgresTableNameMapperTest extends TableNameMapperTest {
     @Override
     TableNameMapper getTableNameMapper() {
-        return new OracleTableNameMapper();
-    }
-
-    @Override
-    String getTableNameWithNumber(int tableNum) {
-        return String.format("a_te__ThisIsAVeryLongTab_%05d", tableNum);
+        return new PostgresTableNameMapper();
     }
 
 
@@ -46,9 +41,13 @@ public class OracleTableNameMapperTest extends TableNameMapperTest {
         TableReference tableRef = TableReference.create(Namespace.create("reallyLongNamespaceName"), "short");
         String shortPrefixedTableName = tableNameMapper
                 .getShortPrefixedTableName(connectionSupplier, TEST_PREFIX, tableRef);
-        assertThat(shortPrefixedTableName, is("a_re__short_00000"));
+        assertThat(shortPrefixedTableName, is("a_reallyLong__short_00000"));
     }
 
+    @Override
+    String getTableNameWithNumber(int tableNum) {
+        return String.format("a_test_names__ThisIsAVeryLongTableNameThatWillExceedEvenT_%05d", tableNum);
+    }
 
     @Test
     public void shouldNumericallyRemapOtherwiseOverlappingTablenames() {
@@ -61,6 +60,7 @@ public class OracleTableNameMapperTest extends TableNameMapperTest {
         TableReference tableRef = TableReference.create(TEST_NAMESPACE, LONG_TABLE_NAME);
         String shortPrefixedTableName = tableNameMapper.getShortPrefixedTableName(connectionSupplier, TEST_PREFIX,
                 tableRef);
-        assertThat(shortPrefixedTableName, is("a_te__ThisIsAVeryLongTab_00011"));
+        assertThat(shortPrefixedTableName, is("a_test_names__ThisIsAVeryLongTableNameThatWillExceedEvenT_00011"));
     }
+
 }

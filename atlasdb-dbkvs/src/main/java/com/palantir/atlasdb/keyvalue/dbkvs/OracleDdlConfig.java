@@ -78,12 +78,6 @@ public abstract class OracleDdlConfig extends DdlConfig {
         return AtlasDbConstants.DEFAULT_ORACLE_METADATA_TABLE;
     }
 
-    @Value.Default
-    @JsonIgnore
-    public boolean useTableMapping() {
-        return true;
-    }
-
     @Override
     public final String type() {
         return TYPE;

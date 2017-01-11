@@ -59,9 +59,9 @@ public class OracleTableInitializer implements DbTableInitializer {
                                 + "CONSTRAINT %s PRIMARY KEY (table_name),"
                                 + "CONSTRAINT unique_%s UNIQUE (short_table_name)"
                                 + ")",
-                        AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE,
-                        AtlasDbConstants.ORACLE_NAME_MAPPING_PK_CONSTRAINT,
-                        AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE),
+                        AtlasDbConstants.DBKVS_NAME_MAPPING_TABLE,
+                        AtlasDbConstants.DBKVS_NAME_MAPPING_PK_CONSTRAINT,
+                        AtlasDbConstants.DBKVS_NAME_MAPPING_TABLE),
                 OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
 
         executeIgnoringError(
