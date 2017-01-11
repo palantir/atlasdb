@@ -90,12 +90,6 @@ public class PersistentTimestampService implements TimestampService {
     }
 
     private void asynchronouslyRefreshBuffer() {
-        executor.submit(new Runnable() {
-            @Override
-            public void run() {
-                availableTimestamps.refreshBuffer();
-            }
-        });
+        executor.submit(availableTimestamps::refreshBuffer);
     }
-
 }
