@@ -291,6 +291,23 @@ public interface KeyValueService extends AutoCloseable {
 
     /**
      * Performs a check-and-set into the key-value store.
+     * Please see {@link CheckAndSetRequest} for information about how to create this request.
+     * <p>
+     * Note that this call <i>does not</i> guarantee atomicity across Cells.
+     * If you attempt to achieve this guarantee by performing multiple checkAndSet calls in a single transaction,
+     * and one of the calls fails, then you will need to manually roll back successful checkAndSet operations,
+     * as data will have been overwritten.
+     * It is therefore not recommended to attempt to perform checkAndSet operations alongside other operations in a
+     * single transaction.
+     * <p>
+     * If the call completes successfully, then you know that the Cell initially had the value you expected,
+     * although the Cell could have taken on another value and then been written back to the expected value since
+     * said value was obtained.
+     * If a {@link CheckAndSetException} is thrown, it is likely that the value stored was not as you expected.
+     * In this case, you may want to check the stored value and determine why it was different from the expected value.
+     *
+     * @param checkAndSetRequest the request, including table, cell, old value and new value.
+     * @throws CheckAndSetException if the stored value for the cell was not as expected.
      */
     @POST
     @Path("check-and-set")

@@ -17,6 +17,16 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import org.immutables.value.Value;
 
+/**
+ * A request to be supplied to KeyValueService.checkAndSet.
+ * Use {@link #newCell(TableReference, Cell, byte[])} if the Cell is not yet stored,
+ * and {@link #singleCell(TableReference, Cell, byte[], byte[])} otherwise.
+ *
+ * {@link #table()} the {@link TableReference} where the Cell is stored.
+ * {@link #cell()} the {@link Cell} to update.
+ * {@link #oldValue()} the existing value, or empty() if no value exists.
+ * {@link #newValue()} the desired new value.
+ */
 @Value.Immutable
 public abstract class CheckAndSetRequest {
     public abstract TableReference table();
