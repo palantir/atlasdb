@@ -1,18 +1,10 @@
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
-apply plugin: 'java'
-apply plugin: 'eclipse'
-
 sourceCompatibility = 1.6
 targetCompatibility = 1.6
 ideaSetModuleLevel(idea, targetCompatibility)
 
-repositories {
-    mavenCentral()
-}
-
-libsDirName = file('build/artifacts')
 dependencies {
     compile group: 'com.google.code.findbugs', name: 'jsr305'
     compile group: 'com.google.guava', name: 'guava'
