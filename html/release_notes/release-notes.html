@@ -232,6 +232,11 @@ or when the block size was many times smaller (7KB for the default in-memory thr
 This behavior was introduced in 0.27.0 and does not affect stream store usage pre-0.27.0.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1411">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Backoff when receiving a socket timeout to Cassandra to put back pressure on client and to spread out load incurred
+on remaining servers when a failover occurs.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1420">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
