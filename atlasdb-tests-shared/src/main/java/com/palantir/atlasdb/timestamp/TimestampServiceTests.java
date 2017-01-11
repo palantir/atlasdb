@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.timestamp;
+package com.palantir.atlasdb.timestamp;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -32,6 +32,9 @@ import java.util.concurrent.TimeoutException;
 import org.assertj.core.api.Assertions;
 import org.hamcrest.MatcherAssert;
 
+import com.palantir.timestamp.TimestampMigrationService;
+import com.palantir.timestamp.TimestampRange;
+import com.palantir.timestamp.TimestampService;
 
 public class TimestampServiceTests {
     private static final long ONE_MILLION = 1000 * 1000;

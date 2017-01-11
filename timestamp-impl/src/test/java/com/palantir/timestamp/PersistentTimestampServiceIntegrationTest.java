@@ -25,6 +25,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.palantir.atlasdb.timestamp.TimestampServiceTests;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 
 public class PersistentTimestampServiceIntegrationTest {

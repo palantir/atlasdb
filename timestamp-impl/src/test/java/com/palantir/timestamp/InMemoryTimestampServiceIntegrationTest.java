@@ -19,6 +19,8 @@ import java.util.concurrent.TimeoutException;
 
 import org.junit.Test;
 
+import com.palantir.atlasdb.timestamp.TimestampServiceTests;
+
 public class InMemoryTimestampServiceIntegrationTest {
 
     private InMemoryTimestampService inMemoryTimestampService = new InMemoryTimestampService();

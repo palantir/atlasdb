@@ -33,7 +33,10 @@ public class TimeLockResourceTest {
     private static final LockService LOCK_SERVICE = mock(LockService.class);
     private static final TimestampService TIME_SERVICE = mock(TimestampService.class);
     private static final TimestampMigrationService TIME_MIGRATION_SERVICE = mock(TimestampMigrationService.class);
-    private static final TimeLockServices TIME_LOCK_SERVICES = TimeLockServices.create(TIME_SERVICE, LOCK_SERVICE, TIME_MIGRATION_SERVICE);
+    private static final TimeLockServices TIME_LOCK_SERVICES = TimeLockServices.create(
+            TIME_SERVICE,
+            LOCK_SERVICE,
+            TIME_MIGRATION_SERVICE);
 
     private static final TimeLockResource RESOURCE = new TimeLockResource(
             ImmutableMap.of(EXISTING_CLIENT, TIME_LOCK_SERVICES));
