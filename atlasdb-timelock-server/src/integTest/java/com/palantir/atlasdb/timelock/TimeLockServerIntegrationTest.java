@@ -173,7 +173,7 @@ public class TimeLockServerIntegrationTest {
     }
 
     @Test
-    public void timestampMigrationShouldBeAbleToFastForwardForAllClients() {
+    public void timestampMigrationShouldFastForwardForClientNamespaces() {
         TimestampService timestampServiceForClient1 = getTimestampService(CLIENT_1);
         TimestampMigrationService timestampMigrationServiceForClient2 = getTimestampMigrationService(CLIENT_2);
 
@@ -197,7 +197,7 @@ public class TimeLockServerIntegrationTest {
     }
 
     @Test
-    public void timestampServiceShouldNotFastForwardTimestampsIfNotLeader() {
+    public void timestampMigrationServiceShouldNotFastForwardTimestampsIfNotLeader() {
         String leader = getLeader();
         TimestampMigrationService timestampService = getTimestampMigrationService(CLIENT_1);
         try {

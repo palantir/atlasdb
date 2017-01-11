@@ -40,7 +40,7 @@ public class TimeLockResource {
 
     @Path("/timestamp")
     public TimestampService getTimeService(@PathParam("client") String client) {
-        return getTimeLockServicesForClient(client).getTimeService();
+        return getTimeLockServicesForClient(client).getTimestampService();
     }
 
     @Path("/timestamp-migration")

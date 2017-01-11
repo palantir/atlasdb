@@ -24,17 +24,17 @@ import com.palantir.timestamp.TimestampService;
 @Value.Immutable
 public interface TimeLockServices {
     static TimeLockServices create(
-            TimestampService timeService,
+            TimestampService timestampService,
             LockService lockService,
             TimestampMigrationService timestampMigrationService) {
         return ImmutableTimeLockServices.builder()
-                .timeService(timeService)
+                .timestampService(timestampService)
                 .lockService(lockService)
                 .timestampMigrationService(timestampMigrationService)
                 .build();
     }
 
     TimestampMigrationService getTimestampMigrationService();
-    TimestampService getTimeService();
+    TimestampService getTimestampService();
     LockService getLockService();
 }

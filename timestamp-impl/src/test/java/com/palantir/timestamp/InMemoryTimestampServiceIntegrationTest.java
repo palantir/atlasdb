@@ -22,7 +22,6 @@ import org.junit.Test;
 import com.palantir.atlasdb.timestamp.TimestampServiceTests;
 
 public class InMemoryTimestampServiceIntegrationTest {
-
     private InMemoryTimestampService inMemoryTimestampService = new InMemoryTimestampService();
 
     @Test public void
@@ -42,12 +41,16 @@ public class InMemoryTimestampServiceIntegrationTest {
 
     @Test public void
     willNotHandOutTimestampsEarlierThanAFastForward() {
-        TimestampServiceTests.willNotHandOutTimestampsEarlierThanAFastForward(inMemoryTimestampService, inMemoryTimestampService);
+        TimestampServiceTests.willNotHandOutTimestampsEarlierThanAFastForward(
+                inMemoryTimestampService,
+                inMemoryTimestampService);
     }
 
     @Test public void
     willDoNothingWhenFastForwardToEarlierTimestamp() {
-        TimestampServiceTests.willDoNothingWhenFastForwardToEarlierTimestamp(inMemoryTimestampService, inMemoryTimestampService);
+        TimestampServiceTests.willDoNothingWhenFastForwardToEarlierTimestamp(
+                inMemoryTimestampService,
+                inMemoryTimestampService);
     }
 
     @Test public void
