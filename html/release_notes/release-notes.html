@@ -175,8 +175,13 @@ This allows for better handling of bursts of requests that would otherwise requi
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1402">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Allow tables declared with SweepStrategy.THOROUGH to be migrated.
+<td>Allow tables declared with <code class="docutils literal"><span class="pre">SweepStrategy.THOROUGH</span></code> to be migrated.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1410">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td><code class="docutils literal"><span class="pre">atlasdb-rocksdb</span></code> is no longer required by <code class="docutils literal"><span class="pre">atlasdb-cli</span></code> and therefore will no longer be packaged with AtlasDB clients
+pulling in <code class="docutils literal"><span class="pre">atlasdb-dropwizard-bundle</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1439">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
