@@ -44,11 +44,11 @@ public abstract class KeyValueServiceInstrumentation {
     public abstract boolean canConnect(InetSocketAddress addr);
 
     private static Map<String, KeyValueServiceInstrumentation> backendMap =
-            new TreeMap<String, KeyValueServiceInstrumentation>();
+            new TreeMap<>();
 
     static {
-        backendMap.put("CASSANDRA", new CassandraKeyValueServiceInstrumentation());
-        backendMap.put("POSTGRES", new PostgresKeyValueServiceInstrumentation());
+        addNewBackendType(new CassandraKeyValueServiceInstrumentation());
+        addNewBackendType(new PostgresKeyValueServiceInstrumentation());
     }
 
     public static KeyValueServiceInstrumentation forDatabase(String backend) {
@@ -64,4 +64,6 @@ public abstract class KeyValueServiceInstrumentation {
     public static Set<String> getBackends() {
         return backendMap.keySet();
     }
+
+    public abstract String toString();
 }

@@ -69,4 +69,9 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
             return false;
         }
     }
+
+    @Override
+    public String toString() {
+        return "CASSANDRA";
+    }
 }

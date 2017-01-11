@@ -51,4 +51,9 @@ public class PostgresKeyValueServiceInstrumentation extends KeyValueServiceInstr
     public boolean canConnect(InetSocketAddress addr) {
         return true;
     }
+
+    @Override
+    public String toString() {
+        return "POSTGRES";
+    }
 }

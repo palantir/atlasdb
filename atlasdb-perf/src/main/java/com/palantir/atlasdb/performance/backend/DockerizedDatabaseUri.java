@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.performance.backend;
 
-import java.lang.reflect.Constructor;
 import java.net.InetSocketAddress;
 
 public class DockerizedDatabaseUri {
@@ -32,22 +31,9 @@ public class DockerizedDatabaseUri {
 
     public static DockerizedDatabaseUri fromUriString(String uri) {
         String[] parts = uri.trim().split(DELIMITER);
-
-        DockerizedDatabaseUri d = null;
-        try {
-            Constructor<KeyValueServiceInstrumentation> test = (Constructor<KeyValueServiceInstrumentation>) Class.forName(
-                    parts[0]).getConstructors()[0];
-            KeyValueServiceInstrumentation bla = test.newInstance();
-            String[] addrParts = parts[2].split(":");
-
-            d = new DockerizedDatabaseUri(
-                    bla,
+        String[] addrParts = parts[1].split(":");
+        return new DockerizedDatabaseUri(KeyValueServiceInstrumentation.forDatabase(parts[0]),
                     InetSocketAddress.createUnresolved(addrParts[0], Integer.parseInt(addrParts[1])));
-        }
-        catch(Exception e){
-            System.exit(1);
-        }
-        return d;
     }
 
     public KeyValueServiceInstrumentation getKeyValueServiceInstrumentation() {
