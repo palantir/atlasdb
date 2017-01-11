@@ -371,23 +371,29 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         putInternal(tableRef, values.entries(), false);
     }
 
+    @Override
+    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
+            throws KeyAlreadyExistsException {
+        putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), 0), true);
+    }
+
     private void putInternal(TableReference tableRef, Collection<Map.Entry<Cell, Value>> values, boolean doNotOverwriteWithSameValue) {
         Table table = getTableMap(tableRef);
         for (Map.Entry<Cell, Value> e : values) {
             byte[] contents = e.getValue().getContents();
             long timestamp = e.getValue().getTimestamp();
 
-            byte[] oldContents = table.entries.putIfAbsent(getKey(table, e.getKey(), timestamp), copyOf(contents));
+            Key key = getKey(table, e.getKey(), timestamp);
+            byte[] oldContents = putIfAbsent(table, key, contents);
             if (oldContents != null && (doNotOverwriteWithSameValue || !Arrays.equals(oldContents, contents))) {
                 throw new KeyAlreadyExistsException("We already have a value for this timestamp");
             }
         }
     }
 
-    @Override
-    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
-            throws KeyAlreadyExistsException {
-        putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), 0), true);
+    // Returns the existing contents, if any, and null otherwise
+    private byte[] putIfAbsent(Table table, Key key, final byte[] contents) {
+        return table.entries.putIfAbsent(key, copyOf(contents));
     }
 
     @Override
@@ -395,27 +401,42 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         Table table = getTableMap(request.table());
         Cell cell = request.cell();
         Optional<byte[]> oldValue = request.oldValue();
-
-        Map<Cell, Value> storedValue = get(request.table(),
-                    ImmutableMap.of(cell, AtlasDbConstants.TRANSACTION_TS + 1));
-        if (!valuesMatch(storedValue, oldValue)) {
-            String expected = getStringRepresentation(oldValue);
-            List<byte[]> actual = storedValue.values().stream().map(Value::getContents).collect(Collectors.toList());
-            String msg = String.format("Unexpected value for this key. Wanted %s, got %s", expected, actual);
-            throw new CheckAndSetException(msg, request.cell(), oldValue.orElse(null), actual);
-        }
-
         byte[] contents = request.newValue();
 
-        byte[] oldContents = table.entries.put(getKey(table, cell, AtlasDbConstants.TRANSACTION_TS), copyOf(contents));
-        if (oldContents != null && !Arrays.equals(oldContents, oldValue.orElse(null))) {
-            throw new CheckAndSetException("Very unexpected value for this key. If you're seeing this, "
-                    + "multi-threaded operations have been running on this KVS, and your data got stomped on.",
-                    cell,
-                    oldValue.orElse(null),
-                    ImmutableList.of(oldContents));
-
+        Key key = getKey(table, cell, AtlasDbConstants.TRANSACTION_TS);
+        if (oldValue.isPresent()) {
+            byte[] storedValue = table.entries.get(key);
+            boolean succeeded = Arrays.equals(storedValue, oldValue.get())
+                    && table.entries.replace(key, storedValue, copyOf(contents));
+            if (!succeeded) {
+                byte[] actual = table.entries.get(key); // Refetch, something may have happened between get and replace
+                throwCheckAndSetException(cell, oldValue.get(), actual);
+            }
+        } else {
+            byte[] oldContents = putIfAbsent(table, key, contents);
+            if (oldContents != null) {
+                String actual = new String(oldContents, StandardCharsets.UTF_8);
+                String msg = String.format("Unexpected value for this key. Wanted (empty), got %s", actual);
+                throw new CheckAndSetException(msg, cell, null, ImmutableList.of(oldContents));
+            }
         }
+    }
+
+    private void throwCheckAndSetException(Cell cell, byte[] expected, byte[] actual) {
+        String expectedStr = new String(expected, StandardCharsets.UTF_8);
+        if (actual != null) {
+            String actualStr = new String(actual, StandardCharsets.UTF_8);
+            String msg = String.format("Unexpected value for this key. Wanted %s, got %s", expectedStr, actualStr);
+            throw new CheckAndSetException(msg, cell, expected, ImmutableList.of(actual));
+        } else {
+            String msg = String.format("Unexpected value for this key. Wanted %s, got (empty)", expectedStr);
+            throw new CheckAndSetException(msg, cell, expected, ImmutableList.of());
+        }
+    }
+
+    private List<byte[]> getStoredValues(Cell cell, TableReference tableRef) {
+        Map<Cell, Value> storedValue = get(tableRef, ImmutableMap.of(cell, AtlasDbConstants.TRANSACTION_TS + 1));
+        return storedValue.values().stream().map(Value::getContents).collect(Collectors.toList());
     }
 
     private boolean valuesMatch(Map<Cell, Value> storedValue, Optional<byte[]> expectedValue) {
