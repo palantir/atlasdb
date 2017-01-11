@@ -33,7 +33,7 @@ import org.assertj.core.api.Assertions;
 import org.hamcrest.MatcherAssert;
 
 
-public final class TimestampServiceTests {
+public class TimestampServiceTests {
     private static final long ONE_MILLION = 1000 * 1000;
     private static final long TWO_MILLION = 2 * ONE_MILLION;
 
