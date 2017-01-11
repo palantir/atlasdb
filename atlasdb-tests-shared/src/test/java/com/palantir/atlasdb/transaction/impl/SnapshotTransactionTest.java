@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
@@ -40,6 +41,7 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
@@ -51,6 +53,8 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -554,15 +558,31 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void readsFromThoroughlySweptTableShouldFailWhenLocksAreInvalid() throws Exception {
-        for (Pair<String, LockAwareTransactionTask<Void, Exception>> task : getThoroughTableReadTasks()) {
-            try {
-                runTaskWithInvalidLocks(task.getRight());
-                Assert.fail(String.format(
-                        "Expected %s to fail with TransactionFailedRetriableException, but it succeeded.",
-                        task.getLeft()));
-            } catch (TransactionFailedRetriableException expected) {
-                // expected
-            }
+        keyValueService.createTable(
+                TABLE_SWEPT_THOROUGH,
+                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH).persistToBytes());
+        List<String> successfulTasks = getThoroughTableReadTasks().stream()
+                .map(this::runTaskWithInvalidLocks)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
+        if (!successfulTasks.isEmpty()) {
+            Assert.fail("Expected read to fail with TransactionFailedRetriableException, but it succeeded for: " +
+                            Joiner.on(", ").join(successfulTasks));
+        }
+    }
+
+    /**
+     * Given Pair.of("label", task), return task label iff task succeeds.
+     */
+    private Optional<String> runTaskWithInvalidLocks(Pair<String, LockAwareTransactionTask<Void, Exception>> task) {
+        try {
+            txManager.runTaskWithLocksThrowOnConflict(ImmutableList.of(getExpiredHeldLocksToken()), task.getRight());
+            return Optional.of(task.getLeft());
+        } catch (TransactionFailedRetriableException expected) {
+            return Optional.empty();
+        } catch (Exception e) {
+            throw Throwables.propagate(e);
         }
     }
 
@@ -733,7 +753,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void noRetryOnExpiredLockTokens() throws InterruptedException {
         Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
-        HeldLocksToken expiredLockToken = getFakeHeldLocksToken();
+        HeldLocksToken expiredLockToken = getExpiredHeldLocksToken();
         try {
             txManager.runTaskWithLocksWithRetry(ImmutableList.of(expiredLockToken), () -> null, (tx, locks) -> {
                 tx.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
@@ -773,27 +793,25 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 false);
     }
 
-    private void runTaskWithInvalidLocks(final LockAwareTransactionTask<Void, Exception> lockAwareTransactionTask)
-            throws Exception {
-        keyValueService.createTable(TABLE_SWEPT_THOROUGH, getTableMetadataForSweepStrategy(
-                SweepStrategy.THOROUGH).persistToBytes());
-        txManager.runTaskWithLocksThrowOnConflict(
-                ImmutableList.of(getExpiredHeldLocksToken()),
-                lockAwareTransactionTask);
-    }
-
     private HeldLocksToken getExpiredHeldLocksToken() {
-        ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder =
-                ImmutableSortedMap.naturalOrder();
-        builder.put(AtlasRowLockDescriptor.of(TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
-                TransactionConstants.getValueForTimestamp(0L)), LockMode.WRITE);
+        ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder = ImmutableSortedMap.naturalOrder();
+        builder.put(
+                AtlasRowLockDescriptor.of(
+                        TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
+                        TransactionConstants.getValueForTimestamp(0L)),
+                LockMode.WRITE);
         long creationDateMs = System.currentTimeMillis();
         long expirationDateMs = creationDateMs - 1;
         TimeDuration lockTimeout = SimpleTimeDuration.of(0, TimeUnit.SECONDS);
-        return new HeldLocksToken(new BigInteger("0"), lockClient,
-                creationDateMs, expirationDateMs,
+        long versionId = 0L;
+        return new HeldLocksToken(
+                BigInteger.ZERO,
+                lockClient,
+                creationDateMs,
+                expirationDateMs,
                 LockCollections.of(builder.build()),
-                lockTimeout, 0L);
+                lockTimeout,
+                versionId);
     }
 
 
