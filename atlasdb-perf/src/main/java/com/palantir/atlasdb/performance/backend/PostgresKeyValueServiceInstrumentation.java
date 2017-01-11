@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.performance.backend;
 
-
 import java.net.InetSocketAddress;
 
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
@@ -24,7 +23,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 
-public class PostgresKeyValueServiceInstrumentation extends KeyValueServiceTypeInterface {
+public class PostgresKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
 
     public PostgresKeyValueServiceInstrumentation() {
         super(5432, "postgres-docker-compose.yml");
@@ -34,15 +33,18 @@ public class PostgresKeyValueServiceInstrumentation extends KeyValueServiceTypeI
     public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr) {
         return ImmutableDbKeyValueServiceConfig.builder()
                 .ddl(ImmutablePostgresDdlConfig.builder().build())
-                .connection(
-                        ImmutablePostgresConnectionConfig.builder()
-                                .host(addr.getHostString())
-                                .port(5432)
-                                .dbName("atlas")
-                                .dbLogin("palantir")
-                                .dbPassword(ImmutableMaskedValue.of("palantir"))
-                                .build()
-                ).build();
+                .connection(getImmutablePostgresConnectionConfig(addr))
+                .build();
+    }
+
+    private ImmutablePostgresConnectionConfig getImmutablePostgresConnectionConfig(InetSocketAddress addr) {
+        return ImmutablePostgresConnectionConfig.builder()
+                .host(addr.getHostString())
+                .port(5432)
+                .dbName("atlas")
+                .dbLogin("palantir")
+                .dbPassword(ImmutableMaskedValue.of("palantir"))
+                .build();
     }
 
     @Override

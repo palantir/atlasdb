@@ -15,29 +15,42 @@
  */
 package com.palantir.atlasdb.performance.backend;
 
+import java.lang.reflect.Constructor;
 import java.net.InetSocketAddress;
 
 public class DockerizedDatabaseUri {
 
     private static final String DELIMITER = "@";
 
-    private final KeyValueServiceTypeInterface type;
+    private final KeyValueServiceInstrumentation type;
     private final InetSocketAddress addr;
 
-    public DockerizedDatabaseUri(KeyValueServiceTypeInterface type, InetSocketAddress addr) {
+    public DockerizedDatabaseUri(KeyValueServiceInstrumentation type, InetSocketAddress addr) {
         this.type = type;
         this.addr = addr;
     }
 
     public static DockerizedDatabaseUri fromUriString(String uri) {
         String[] parts = uri.trim().split(DELIMITER);
-        String[] addrParts = parts[1].split(":");
-        return new DockerizedDatabaseUri(
-                KeyValueServiceTypeInterface.keyValueServiceTypeFor(parts[0]),
-                InetSocketAddress.createUnresolved(addrParts[0], Integer.parseInt(addrParts[1])));
+
+        DockerizedDatabaseUri d = null;
+        try {
+            Constructor<KeyValueServiceInstrumentation> test = (Constructor<KeyValueServiceInstrumentation>) Class.forName(
+                    parts[0]).getConstructors()[0];
+            KeyValueServiceInstrumentation bla = test.newInstance();
+            String[] addrParts = parts[2].split(":");
+
+            d = new DockerizedDatabaseUri(
+                    bla,
+                    InetSocketAddress.createUnresolved(addrParts[0], Integer.parseInt(addrParts[1])));
+        }
+        catch(Exception e){
+            System.exit(1);
+        }
+        return d;
     }
 
-    public KeyValueServiceTypeInterface getKeyValueServiceType() {
+    public KeyValueServiceInstrumentation getKeyValueServiceInstrumentation() {
         return type;
     }
 

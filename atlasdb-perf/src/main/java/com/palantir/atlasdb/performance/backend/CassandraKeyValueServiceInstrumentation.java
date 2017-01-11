@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.performance.backend;
 
-
 import java.net.InetSocketAddress;
 
 import com.google.common.base.Optional;
@@ -28,7 +27,7 @@ import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
-public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceTypeInterface {
+public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
 
     public CassandraKeyValueServiceInstrumentation() {
         super(9160, "cassandra-docker-compose.yml");
@@ -60,8 +59,7 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceType
             CassandraKeyValueService.create(
                     CassandraKeyValueServiceConfigManager.createSimpleManager(
                             (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr)),
-                    Optional.of(ImmutableLeaderConfig
-                            .builder()
+                    Optional.of(ImmutableLeaderConfig.builder()
                             .quorumSize(1)
                             .localServer(addr.getHostString())
                             .leaders(ImmutableSet.of(addr.getHostString()))

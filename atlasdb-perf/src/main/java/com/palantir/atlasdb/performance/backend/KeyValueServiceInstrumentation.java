@@ -20,15 +20,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
-public abstract class KeyValueServiceTypeInterface {
+public abstract class KeyValueServiceInstrumentation {
 
     private final int kvsPort;
     private final String dockerComposeFileName;
 
-    KeyValueServiceTypeInterface(int kvsPort, String dockerComposeFileName) {
+    KeyValueServiceInstrumentation(int kvsPort, String dockerComposeFileName) {
         this.kvsPort = kvsPort;
         this.dockerComposeFileName = dockerComposeFileName;
     }
@@ -41,22 +40,22 @@ public abstract class KeyValueServiceTypeInterface {
         return kvsPort;
     }
 
-    abstract KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr);
-    abstract boolean canConnect(InetSocketAddress addr);
+    public abstract KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr);
+    public abstract boolean canConnect(InetSocketAddress addr);
 
-    private static Map<String, KeyValueServiceTypeInterface> backendMap =
-            new TreeMap<String, KeyValueServiceTypeInterface>();
+    private static Map<String, KeyValueServiceInstrumentation> backendMap =
+            new TreeMap<String, KeyValueServiceInstrumentation>();
 
     static {
         backendMap.put("CASSANDRA", new CassandraKeyValueServiceInstrumentation());
         backendMap.put("POSTGRES", new PostgresKeyValueServiceInstrumentation());
     }
 
-    public static KeyValueServiceTypeInterface keyValueServiceTypeFor(String backend) {
+    public static KeyValueServiceInstrumentation forDatabase(String backend) {
         return backendMap.get(backend);
     }
 
-    public static void addNewBackendType(KeyValueServiceTypeInterface backend) {
+    public static void addNewBackendType(KeyValueServiceInstrumentation backend) {
         if (!backendMap.containsKey(backend.toString())) {
             backendMap.put(backend.toString(), backend);
         }
