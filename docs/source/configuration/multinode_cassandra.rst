@@ -13,7 +13,7 @@ In the case where all nodes are up, the entire Cassandra Key Value Service (KVS)
 A minority of nodes are down
 ============================
 
-The following behaviour is guaranteed when interacting with a Cassandra cluster with three nodes, RF three, and one node down. More generally, this is the expected behaviour for a cluster that has nodes down, but can still always satisfy QUORUM requests (i.e. fewer than RF/2 nodes are down).
+The following behaviour is guaranteed when interacting with a Cassandra cluster with three nodes, RF three, and one node down. More generally, the following is the expected behaviour for a cluster that has nodes down, but can still always satisfy QUORUM requests (i.e. fewer than RF/2 nodes are down).
 
 .. list-table::
     :widths: 40 40
