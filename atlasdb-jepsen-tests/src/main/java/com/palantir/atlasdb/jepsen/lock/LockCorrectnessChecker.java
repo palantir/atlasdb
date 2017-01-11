@@ -20,6 +20,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
 import com.google.common.collect.TreeRangeSet;
@@ -33,7 +36,6 @@ import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.util.Pair;
-
 import com.palantir.atlasdb.jepsen.events.RequestType;
 
 /**
@@ -64,6 +66,9 @@ import com.palantir.atlasdb.jepsen.events.RequestType;
  * intervals in U are fully covered by the intervals in the set of lock intervals L.
  */
 public class LockCorrectnessChecker implements Checker {
+
+    private static Logger log = LoggerFactory.getLogger(LockCorrectnessChecker.class);
+
     @Override
     public CheckerResult check(List<Event> events) {
         Visitor visitor = new Visitor();
@@ -169,9 +174,14 @@ public class LockCorrectnessChecker implements Checker {
         private void verifyLockCorrectness() {
             locksAtSomePoint.entrySet().forEach(entry ->
                     entry.getValue().forEach(eventPair -> {
-                        if (intervalCovered(entry.getKey(), eventPair)) {
-                            errors.add(eventPair.getLhSide());
-                            errors.add(eventPair.getRhSide());
+                        String lockName = entry.getKey();
+                        InvokeEvent invokeEvent = eventPair.getLhSide();
+                        OkEvent okEvent = eventPair.getRhSide();
+                        if (intervalCovered(lockName, eventPair)) {
+                            log.error("Lock {} granted to process {} between {} and {}, but lock was already held by " +
+                            "another process.", lockName, invokeEvent.process(), invokeEvent.time(), okEvent.time());
+                            errors.add(invokeEvent);
+                            errors.add(okEvent);
                         }
                     }));
             failedLocksAtSomePoint.entrySet().forEach(entry ->

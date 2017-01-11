@@ -20,6 +20,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
 import com.google.common.collect.TreeRangeSet;
@@ -36,12 +39,14 @@ import com.palantir.util.Pair;
 
 import com.palantir.atlasdb.jepsen.events.RequestType;
 
-
 /**
  * This checker verifies that refreshes of locks do not cause two processes to simultaneously hold the same lock.
  * We assume that the events of each process in isolation are correct.
  */
 public class RefreshCorrectnessChecker implements Checker {
+
+    private static Logger log = LoggerFactory.getLogger(RefreshCorrectnessChecker.class);
+
     @Override
     public CheckerResult check(List<Event> events) {
         Visitor visitor = new Visitor();
@@ -109,6 +114,11 @@ public class RefreshCorrectnessChecker implements Checker {
                         if (lastLockTime < invokeEvent.time()) {
                             Range<Long> newRange = Range.closedOpen(lastLockTime, invokeEvent.time());
                             if (!locksHeld.get(lockName).complement().encloses(newRange)) {
+                                log.error("A {} request for lock {} by process {} invoked at time {} was granted at " +
+                                        "time {}, but another process was granted the lock between {} and {} (last " +
+                                        "known time the lock was held by {})", invokeEvent.function(),
+                                        invokeEvent.value(), invokeEvent.process(), invokeEvent.time(),
+                                        event.time(), lastLockTime, invokeEvent.time(), invokeEvent.process());
                                 errors.add(invokeEvent);
                                 errors.add(event);
                             }
