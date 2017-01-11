@@ -1857,13 +1857,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private Timer getTimer(String name) {
-        return metricRegistry.getTimers()
-                .getOrDefault(name, metricRegistry.timer(MetricRegistry.name(SnapshotTransaction.class, name)));
+        return metricRegistry.timer(MetricRegistry.name(SnapshotTransaction.class, name));
     }
 
     private Histogram getHistogram(String name) {
-        return metricRegistry.getHistograms()
-                .getOrDefault(name, metricRegistry.histogram(MetricRegistry.name(SnapshotTransaction.class, name)));
+        return metricRegistry.histogram(MetricRegistry.name(SnapshotTransaction.class, name));
     }
 }
 
