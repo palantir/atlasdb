@@ -58,6 +58,13 @@ public class TimeLockServerTest {
         setUpEnvironment();
     }
 
+    private void setUpMockServerImplementation() {
+        algorithmConfiguration = mock(TimeLockAlgorithmConfiguration.class);
+        serverImplementation = mock(ServerImplementation.class);
+        when(algorithmConfiguration.createServerImpl()).thenReturn(serverImplementation);
+        when(serverImplementation.createInvalidatingTimeLockServices(any())).thenReturn(mock(TimeLockServices.class));
+    }
+
     private void setUpEnvironment() {
         when(environment.jersey()).thenReturn(mock(JerseyEnvironment.class));
 
@@ -65,13 +72,6 @@ public class TimeLockServerTest {
         when(environment.lifecycle()).thenReturn(lifecycle);
         doAnswer(invocation -> listeners.add((LifeCycle.Listener) invocation.getArguments()[0]))
                 .when(lifecycle).addLifeCycleListener(any());
-    }
-
-    private void setUpMockServerImplementation() {
-        algorithmConfiguration = mock(TimeLockAlgorithmConfiguration.class);
-        serverImplementation = mock(ServerImplementation.class);
-        when(algorithmConfiguration.createServerImpl()).thenReturn(serverImplementation);
-        when(serverImplementation.createInvalidatingTimeLockServices(any())).thenReturn(mock(TimeLockServices.class));
     }
 
     @After
