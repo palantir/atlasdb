@@ -852,6 +852,16 @@ public abstract class AbstractKeyValueServiceTest {
         verifyCheckAndSet(TEST_CELL, value01);
     }
 
+    @Test
+    public void testCheckAndSetAndBackAgain() {
+        testCheckAndSetFromOtherValue();
+
+        CheckAndSetRequest thirdRequest = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, value01, value00);
+        keyValueService.checkAndSet(thirdRequest);
+
+        verifyCheckAndSet(TEST_CELL, value00);
+    }
+
     private void verifyCheckAndSet(Cell key, byte[] expectedValue) {
         Multimap<Cell, Long> timestamps = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(key), 1L);
 
