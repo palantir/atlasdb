@@ -17,6 +17,9 @@ package com.palantir.atlasdb.performance.backend;
 
 import java.net.InetSocketAddress;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -28,6 +31,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
+
+    private Logger log = LoggerFactory.getLogger(CassandraKeyValueServiceInstrumentation.class);
 
     public CassandraKeyValueServiceInstrumentation() {
         super(9160, "cassandra-docker-compose.yml");
@@ -66,6 +71,7 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
                             .build()));
             return true;
         } catch (Exception e) {
+            log.error("Unable to create Cassandra KVS", e);
             return false;
         }
     }
