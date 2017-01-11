@@ -31,13 +31,13 @@ public abstract class CheckAndSetRequest {
     public abstract byte[] newValue();
 
     public static CheckAndSetRequest newCell(TableReference table, Cell row, byte[] newValue) {
-        return ImmutableCheckAndSetRequest.builder().table(table).row(row).newValue(newValue).build();
+        return ImmutableCheckAndSetRequest.builder().table(table).cell(row).newValue(newValue).build();
     }
 
     public static CheckAndSetRequest singleCell(TableReference table, Cell cell, byte[] oldValue, byte[] newValue) {
         return ImmutableCheckAndSetRequest.builder()
                 .table(table)
-                .row(cell)
+                .cell(cell)
                 .oldValue(oldValue)
                 .newValue(newValue)
                 .build();
