@@ -107,7 +107,6 @@ public class DualWriteKeyValueService implements KeyValueService {
     @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
         delegate1.checkAndSet(checkAndSetRequest);
-        delegate2.checkAndSet(checkAndSetRequest);
     }
 
     @Override
