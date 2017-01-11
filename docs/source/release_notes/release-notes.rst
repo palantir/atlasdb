@@ -47,9 +47,19 @@ develop
            This allows for better handling of bursts of requests that would otherwise require creating many new connections to Cassandra from the clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)
 
+    *    - |new|
+         - Added metrics to SnapshotTransaction to monitor durations of various operations such as ``get``, ``getRows``, ``commit``, etc.
+           Atlas users should use ``AtlasDbMetrics.setMetricRegistry`` to set a ``MetricRegistry``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1429>`__)
+
     *    - |fixed|
-         - Allow tables declared with SweepStrategy.THOROUGH to be migrated.
+         - Allow tables declared with ``SweepStrategy.THOROUGH`` to be migrated.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1410>`__)
+
+    *    - |improved|
+         - ``atlasdb-rocksdb`` is no longer required by ``atlasdb-cli`` and therefore will no longer be packaged with AtlasDB clients
+           pulling in ``atlasdb-dropwizard-bundle``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1439>`__)
 
     *    - |fixed|
          - All SnapshotTransaction get methods are now safe for tables declared with SweepStrategy.THOROUGH.
@@ -95,6 +105,11 @@ v0.27.1
          - Fixed an edge case in stream stores where we throw an exception for using the exact maximum number of bytes in memory.
            This behavior was introduced in 0.27.0 and does not affect stream store usage pre-0.27.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1411>`__)
+
+    *    - |improved|
+         - Backoff when receiving a socket timeout to Cassandra to put back pressure on client and to spread out load incurred
+           on remaining servers when a failover occurs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1420>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
