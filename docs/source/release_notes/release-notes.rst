@@ -101,6 +101,11 @@ v0.27.1
            This behavior was introduced in 0.27.0 and does not affect stream store usage pre-0.27.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1411>`__)
 
+    *    - |improved|
+         - Backoff when receiving a socket timeout to Cassandra to put back pressure on client and to spread out load incurred
+           on remaining servers when a failover occurs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1420>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
