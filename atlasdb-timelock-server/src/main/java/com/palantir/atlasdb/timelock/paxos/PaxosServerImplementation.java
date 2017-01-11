@@ -92,14 +92,14 @@ public class PaxosServerImplementation implements ServerImplementation {
         remoteServers = getRemotePaths(configuration);
         List<PaxosLearner> learners = getNamespacedProxies(
                 remoteServers,
-                "/" + LEADER_NAMESPACE,
+                LEADER_NAMESPACE,
                 optionalSecurity,
                 PaxosLearner.class);
         learners.add(paxosResource.getPaxosLearner(LEADER_NAMESPACE));
 
         List<PaxosAcceptor> acceptors = getNamespacedProxies(
                 remoteServers,
-                "/" + LEADER_NAMESPACE,
+                LEADER_NAMESPACE,
                 optionalSecurity,
                 PaxosAcceptor.class);
         acceptors.add(paxosResource.getPaxosAcceptor(LEADER_NAMESPACE));
@@ -129,7 +129,7 @@ public class PaxosServerImplementation implements ServerImplementation {
                 ImmutableList.copyOf(learners),
                 executor,
                 paxosConfiguration.pingRateMs(),
-                paxosConfiguration.randomWaitBeforeProposingLeadershipMs(),
+                paxosConfiguration.randomWaitBeforeProposalMs(),
                 paxosConfiguration.leaderPingResponseWaitMs());
         environment.jersey().register(leaderElectionService);
     }
@@ -168,19 +168,19 @@ public class PaxosServerImplementation implements ServerImplementation {
         paxosResource.addClient(client);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
-                .setNameFormat("atlas-consensus-%d")
+                .setNameFormat("atlas-consensus-" + client + "-%d")
                 .setDaemon(true)
                 .build());
 
         List<PaxosAcceptor> acceptors = getNamespacedProxies(
                 remoteServers,
-                "/" + client,
+                client,
                 optionalSecurity,
                 PaxosAcceptor.class);
         acceptors.add(paxosResource.getPaxosAcceptor(client));
         List<PaxosLearner> learners = getNamespacedProxies(
                 remoteServers,
-                "/" + client,
+                client,
                 optionalSecurity,
                 PaxosLearner.class);
         learners.add(paxosResource.getPaxosLearner(client));
@@ -199,9 +199,8 @@ public class PaxosServerImplementation implements ServerImplementation {
                                 proposer,
                                 paxosResource.getPaxosLearner(client),
                                 ImmutableList.copyOf(acceptors),
-                                ImmutableList.copyOf(learners)
-                        )
-                ),
+                                ImmutableList.copyOf(learners),
+                                paxosConfiguration.randomWaitBeforeProposalMs())),
                 leaderElectionService);
     }
 
@@ -218,9 +217,9 @@ public class PaxosServerImplementation implements ServerImplementation {
                 .collect(Collectors.toSet());
     }
 
-    private static Set<String> getSuffixedUris(Set<String> addresses, String suffix) {
+    private static Set<String> getNamespacedUris(Set<String> addresses, String suffix) {
         return addresses.stream()
-                .map(address -> address + suffix)
+                .map(address -> address + "/" + suffix)
                 .collect(Collectors.toSet());
     }
 
@@ -228,7 +227,7 @@ public class PaxosServerImplementation implements ServerImplementation {
                                                    String namespace,
                                                    Optional<SSLSocketFactory> optionalSecurity,
                                                    Class<T> clazz) {
-        Set<String> endpointUris = getSuffixedUris(addresses, namespace);
+        Set<String> endpointUris = getNamespacedUris(addresses, namespace);
         return AtlasDbHttpClients.createProxies(optionalSecurity, endpointUris, clazz);
     }
 }

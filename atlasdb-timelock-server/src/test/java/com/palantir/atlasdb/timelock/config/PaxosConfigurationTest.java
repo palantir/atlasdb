@@ -88,21 +88,21 @@ public class PaxosConfigurationTest {
     @Test
     public void canSpecifyPositiveRandomWaitBeforeProposingLeadership() {
         ImmutablePaxosConfiguration.builder()
-                .randomWaitBeforeProposingLeadershipMs(POSITIVE_LONG)
+                .randomWaitBeforeProposalMs(POSITIVE_LONG)
                 .build();
     }
 
     @Test
     public void throwOnNegativeRandomWaitBeforeProposingLeadership() {
         assertThatThrownBy(ImmutablePaxosConfiguration.builder()
-                .randomWaitBeforeProposingLeadershipMs(NEGATIVE_LONG)
+                .randomWaitBeforeProposalMs(NEGATIVE_LONG)
                 ::build).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     public void throwOnZeroRandomWaitBeforeProposingLeadership() {
         assertThatThrownBy(ImmutablePaxosConfiguration.builder()
-                .randomWaitBeforeProposingLeadershipMs(ZERO_LONG)
+                .randomWaitBeforeProposalMs(ZERO_LONG)
                 ::build).isInstanceOf(IllegalArgumentException.class);
     }
 

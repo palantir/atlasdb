@@ -52,6 +52,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
 
     private final List<PaxosAcceptor> acceptors;
     private final List<PaxosLearner> learners;
+    private final long randomWaitBeforeProposalMs;
 
     @GuardedBy("this")
     private SequenceAndBound agreedState;
@@ -61,11 +62,13 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     public PaxosTimestampBoundStore(PaxosProposer proposer,
             PaxosLearner knowledge,
             List<PaxosAcceptor> acceptors,
-            List<PaxosLearner> learners) {
+            List<PaxosLearner> learners,
+            long randomWaitBeforeProposalMs) {
         this.proposer = proposer;
         this.knowledge = knowledge;
         this.acceptors = acceptors;
         this.learners = learners;
+        this.randomWaitBeforeProposalMs = randomWaitBeforeProposalMs;
     }
 
     @Override
@@ -122,7 +125,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 return ImmutableSequenceAndBound.of(seq, PtBytes.toLong(value));
             } catch (PaxosRoundFailureException e) {
                 log.info("failed during propose", e);
-                long backoffTime = (long) (200.0 * Math.random());
+                long backoffTime = getRandomBackoffTime();
                 try {
                     Thread.sleep(backoffTime);
                 } catch (InterruptedException e1) {
@@ -175,7 +178,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 }
             } catch (PaxosRoundFailureException e) {
                 log.info("failed during propose", e);
-                long backoffTime = (long) (200.0 * Math.random());
+                long backoffTime = getRandomBackoffTime();
                 try {
                     wait(backoffTime);
                 } catch (InterruptedException e1) {
@@ -183,6 +186,10 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 }
             }
         }
+    }
+
+    private long getRandomBackoffTime() {
+        return (long) (randomWaitBeforeProposalMs * Math.random());
     }
 
     @Value.Immutable
