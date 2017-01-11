@@ -32,7 +32,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
 
-    private Logger log = LoggerFactory.getLogger(CassandraKeyValueServiceInstrumentation.class);
+    private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueServiceInstrumentation.class);
 
     public CassandraKeyValueServiceInstrumentation() {
         super(9160, "cassandra-docker-compose.yml");
