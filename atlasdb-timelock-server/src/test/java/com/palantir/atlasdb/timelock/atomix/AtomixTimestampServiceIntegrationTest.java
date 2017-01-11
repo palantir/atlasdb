@@ -24,7 +24,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.palantir.timestamp.TimestampServiceTests;
+import com.palantir.atlasdb.timestamp.TimestampServiceTests;
 
 import io.atomix.AtomixReplica;
 import io.atomix.catalyst.transport.Address;
