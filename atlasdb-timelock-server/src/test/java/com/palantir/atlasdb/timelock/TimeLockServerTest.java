@@ -15,30 +15,108 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.eclipse.jetty.util.component.LifeCycle;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.config.ImmutableClusterConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockAlgorithmConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 
-public class TimeLockServerTest extends ServerImplementationTest {
+import io.dropwizard.jersey.setup.JerseyEnvironment;
+import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
+import io.dropwizard.setup.Environment;
+
+public class TimeLockServerTest {
     private static final String LOCAL_ADDRESS = "localhost:8080";
     private static final String TEST_CLIENT = "test";
 
+    private final Environment environment = mock(Environment.class);
+    private final List<LifeCycle.Listener> listeners = new ArrayList<>();
+    private final TimeLockServer server = new TimeLockServer();
+
     private ServerImplementation serverImplementation;
+    private TimeLockAlgorithmConfiguration algorithmConfiguration;
 
-    @Override
-    protected TimeLockServerConfiguration getConfiguration() {
-        TimeLockAlgorithmConfiguration algorithmConfiguration = mock(TimeLockAlgorithmConfiguration.class);
+    @Before
+    public void setUp() {
+        setUpMockServerImplementation();
+        setUpEnvironment();
+    }
+
+    private void setUpMockServerImplementation() {
+        algorithmConfiguration = mock(TimeLockAlgorithmConfiguration.class);
         serverImplementation = mock(ServerImplementation.class);
-        when(algorithmConfiguration.createServerImpl(any())).thenReturn(serverImplementation);
+        when(algorithmConfiguration.createServerImpl(environment)).thenReturn(serverImplementation);
         when(serverImplementation.createInvalidatingTimeLockServices(any())).thenReturn(mock(TimeLockServices.class));
+    }
 
+    private void setUpEnvironment() {
+        when(environment.jersey()).thenReturn(mock(JerseyEnvironment.class));
+
+        LifecycleEnvironment lifecycle = mock(LifecycleEnvironment.class);
+        when(environment.lifecycle()).thenReturn(lifecycle);
+        doAnswer(invocation -> listeners.add((LifeCycle.Listener) invocation.getArguments()[0]))
+                .when(lifecycle).addLifeCycleListener(any());
+    }
+
+    @After
+    public void sendShutdownToListeners() {
+        LifeCycle event = mock(LifeCycle.class);
+        listeners.forEach(listener -> listener.lifeCycleStopping(event));
+        listeners.forEach(listener -> listener.lifeCycleStopped(event));
+    }
+
+    @Test
+    public void verifyOnStartupIsCalledExactlyOnceOnSuccessfulStartup() {
+        server.run(getConfiguration(), environment);
+        verify(serverImplementation, times(1)).onStartup(any());
+    }
+
+    @Test
+    public void verifyOnStartupFailureIsCalledExactlyOnceIfStartupFails() {
+        causeFailedStartup();
+        verify(serverImplementation, times(1)).onStartupFailure();
+    }
+
+    @Test
+    public void verifyOnStopIsNeverCalledIfStartupFails() {
+        causeFailedStartup();
+        verify(serverImplementation, never()).onStop();
+    }
+
+    private void causeFailedStartup() {
+        RuntimeException expectedException = new RuntimeException("jersey throw");
+        when(environment.jersey()).thenThrow(expectedException);
+
+        assertThatThrownBy(() -> server.run(getConfiguration(), environment))
+                .isEqualTo(expectedException);
+    }
+
+    @Test
+    public void verifyOnStopIsCalledExactlyOnceIfServerShutsDown() {
+        server.run(getConfiguration(), environment);
+
+        sendShutdownToListeners();
+        listeners.clear();
+        verify(serverImplementation, times(1)).onStop();
+    }
+
+    private TimeLockServerConfiguration getConfiguration() {
         return new TimeLockServerConfiguration(
                 algorithmConfiguration,
                 ImmutableClusterConfiguration.builder()
@@ -46,21 +124,5 @@ public class TimeLockServerTest extends ServerImplementationTest {
                         .addServers(LOCAL_ADDRESS)
                         .build(),
                 ImmutableSet.of(TEST_CLIENT));
-    }
-
-    @Override
-    protected void verifyPostStartupSuccess() {
-        verify(serverImplementation, times(1)).onStartup(any());
-    }
-
-    @Override
-    protected void verifyPostStartupFailure() {
-        verify(serverImplementation, times(1)).onStartupFailure();
-        verify(serverImplementation, times(0)).onStop();
-    }
-
-    @Override
-    protected void verifyPostStop() {
-        verify(serverImplementation, times(1)).onStop();
     }
 }
