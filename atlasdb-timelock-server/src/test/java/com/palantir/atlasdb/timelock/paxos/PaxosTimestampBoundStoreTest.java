@@ -194,19 +194,18 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @Test
-    public void canGetAgreedStateAfterPartition() {
+    public void canGetAgreedStateAfterNodeDown() {
         failureToggles.get(1).set(true);
         store.storeUpperLimit(TIMESTAMP_1);
-        store.storeUpperLimit(TIMESTAMP_2);
         PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
         failureToggles.get(1).set(false);
 
-        assertThat(additionalStore.getAgreedState(3).getBound()).isEqualTo(TIMESTAMP_2);
+        assertThat(additionalStore.getAgreedState(2).getBound()).isEqualTo(TIMESTAMP_1);
     }
 
     @Test
     public void cannotGetAgreedStateFromTheFuture() {
-        assertThatThrownBy(() -> store.getAgreedState(Long.MAX_VALUE).getBound())
+        assertThatThrownBy(() -> store.getAgreedState(Long.MAX_VALUE))
                 .isInstanceOf(NullPointerException.class);
     }
 
