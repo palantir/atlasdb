@@ -97,4 +97,9 @@ public abstract class AbstractTransactionManager implements TransactionManager {
     protected void checkOpen() {
         Preconditions.checkState(!this.closed, "Operations cannot be performed on closed TransactionManager.");
     }
+
+    @Override
+    public void clearTimestampCache() {
+        timestampValidationReadCache.clear();
+    }
 }

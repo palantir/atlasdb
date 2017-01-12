@@ -37,6 +37,10 @@ public class AtlasDbConfigTest {
     private static final ServerListConfig DEFAULT_SERVER_LIST = ImmutableServerListConfig.builder()
             .addServers("server")
             .build();
+    public static final TimeLockClientConfig TIMELOCK_CONFIG = ImmutableTimeLockClientConfig.builder()
+            .client("testClient")
+            .serversList(DEFAULT_SERVER_LIST)
+            .build();
     private static final Optional<SslConfiguration> SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
     private static final Optional<SslConfiguration> OTHER_SSL_CONFIG = Optional.of(mock(SslConfiguration.class));
     private static final Optional<SslConfiguration> NO_SSL_CONFIG = Optional.absent();
@@ -64,6 +68,15 @@ public class AtlasDbConfigTest {
     }
 
     @Test
+    public void configWithTimelockBlockIsValid() {
+        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG)
+                .timelock(TIMELOCK_CONFIG)
+                .build();
+        assertThat(config, not(nullValue()));
+    }
+
+    @Test
     public void remoteLockAndTimestampConfigIsValid() {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .keyValueService(KVS_CONFIG)
@@ -80,6 +93,27 @@ public class AtlasDbConfigTest {
                 .leader(LEADER_CONFIG)
                 .lock(DEFAULT_SERVER_LIST)
                 .timestamp(DEFAULT_SERVER_LIST)
+                .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void timelockBlockNotPermittedWithLockAndTimestampBlocks() {
+        ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG)
+                .timelock(ImmutableTimeLockClientConfig.builder()
+                        .client("testClient")
+                        .serversList(DEFAULT_SERVER_LIST).build())
+                .lock(DEFAULT_SERVER_LIST)
+                .timestamp(DEFAULT_SERVER_LIST)
+                .build();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void timelockBlockNotPermittedWithLeaderBlock() {
+        ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG)
+                .timelock(TIMELOCK_CONFIG)
+                .leader(LEADER_CONFIG)
                 .build();
     }
 
@@ -136,6 +170,16 @@ public class AtlasDbConfigTest {
                 .build();
         AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
         assertThat(withSsl.lock().get().sslConfiguration(), is(SSL_CONFIG));
+    }
+
+    @Test
+    public void addingFallbackSslAddsItToTimelockServersBlock() {
+        AtlasDbConfig withoutSsl = ImmutableAtlasDbConfig.builder()
+                .keyValueService(KVS_CONFIG)
+                .timelock(TIMELOCK_CONFIG)
+                .build();
+        AtlasDbConfig withSsl = AtlasDbConfigs.addFallbackSslConfigurationToAtlasDbConfig(withoutSsl, SSL_CONFIG);
+        assertThat(withSsl.timelock().get().serversList().sslConfiguration(), is(SSL_CONFIG));
     }
 
     @Test
