@@ -108,21 +108,6 @@ public class LockCorrectnessCheckerTest {
     }
 
     @Test
-    public void failedLockIntervalNotCoveredByAnotherProcessFails() {
-        ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtil.invokeLock(0, process1))
-                .add(TestEventUtil.lockSuccess(1, process1))
-                .add(TestEventUtil.invokeLock(2, process2))
-                .add(TestEventUtil.lockFailure(3, process2))
-                .add(TestEventUtil.invokeRefresh(3, process1))
-                .add(TestEventUtil.refreshSuccess(5, process1))
-                .build();
-        CheckerResult result = runLockCorrectnessChecker(eventList);
-        assertThat(result.valid()).isFalse();
-        assertThat(result.errors()).containsExactly(eventList.get(2), eventList.get(3));
-    }
-
-    @Test
     public void shouldSucceedWhenThereIsASmallWindow() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
                 .add(TestEventUtil.invokeLock(0, process1))

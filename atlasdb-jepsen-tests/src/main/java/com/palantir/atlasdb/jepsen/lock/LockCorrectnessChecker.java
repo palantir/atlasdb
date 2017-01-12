@@ -86,7 +86,6 @@ public class LockCorrectnessChecker implements Checker {
 
         private final Map<String, TreeRangeSet<Long>> locksHeld = new HashMap<>();
         private final Map<String, List<Pair<InvokeEvent, OkEvent>>> locksAtSomePoint = new HashMap<>();
-        private final Map<String, List<Pair<InvokeEvent, OkEvent>>> failedLocksAtSomePoint = new HashMap<>();
 
         private final ArrayList<String> allLockNames = new ArrayList<>();
 
@@ -108,7 +107,6 @@ public class LockCorrectnessChecker implements Checker {
                 allLockNames.add(lockName);
                 locksHeld.put(lockName, TreeRangeSet.create());
                 locksAtSomePoint.put(lockName, new ArrayList<>());
-                failedLocksAtSomePoint.put(lockName, new ArrayList<>());
             }
         }
 
@@ -124,18 +122,11 @@ public class LockCorrectnessChecker implements Checker {
                  * Successful LOCK:
                  * 1) Add a new uncertain interval to verify at the end,
                  * 2) Remember the new value for the most recent successful lock
-                 * Failed LOCK:
-                 * 1) Add an interval that must completely be covered by existing locks
-                 * 2) remembering most recent successful lock not necessary, as the correctness of this is covered
-                 *    by IsolatedProcessCorrectnessChecker
                  */
                 case RequestType.LOCK:
                     if (event.isSuccessful()) {
                         locksAtSomePoint.get(lockName).add(new Pair(invokeEvent, event));
                         lastHeldLock.put(processLock, event);
-                    }
-                    if (event.isFailure()) {
-                        failedLocksAtSomePoint.get(lockName).add(new Pair(invokeEvent, event));
                     }
                     break;
                 /**
@@ -177,25 +168,17 @@ public class LockCorrectnessChecker implements Checker {
                         String lockName = entry.getKey();
                         InvokeEvent invokeEvent = eventPair.getLhSide();
                         OkEvent okEvent = eventPair.getRhSide();
-                        if (intervalCovered(lockName, eventPair)) {
+                        if (intervalCovered(lockName, invokeEvent, okEvent)) {
                             log.error("Lock {} granted to process {} between {} and {}, but lock was already held by " +
                             "another process.", lockName, invokeEvent.process(), invokeEvent.time(), okEvent.time());
                             errors.add(invokeEvent);
                             errors.add(okEvent);
                         }
                     }));
-            failedLocksAtSomePoint.entrySet().forEach(entry ->
-                    entry.getValue().forEach(eventPair -> {
-                        if (!intervalCovered(entry.getKey(), eventPair)) {
-                            errors.add(eventPair.getLhSide());
-                            errors.add(eventPair.getRhSide());
-                        }
-                    }));
         }
 
-
-        private boolean intervalCovered(String lockName, Pair<InvokeEvent, OkEvent> eventPair) {
-            Range<Long> interval = Range.closed(eventPair.getLhSide().time(), eventPair.getRhSide().time());
+        private boolean intervalCovered(String lockName, InvokeEvent invokeEvent, OkEvent okEvent) {
+            Range<Long> interval = Range.closed(invokeEvent.time(), okEvent.time());
             return locksHeld.get(lockName).encloses(interval);
         }
 
