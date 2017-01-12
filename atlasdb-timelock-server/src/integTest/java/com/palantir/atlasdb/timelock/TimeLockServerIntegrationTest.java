@@ -61,7 +61,7 @@ public class TimeLockServerIntegrationTest {
     private static final String CLIENT_2 = "test2";
     private static final String NONEXISTENT_CLIENT = "nonexistent-client";
     private static final String INVALID_CLIENT = "invalid-client-with-symbol-$";
-    private static final long ONE_MILLION = 1000 * 1000;
+    private static final long ONE_MILLION = 1_000_000;
 
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
     private static final String LOCK_CLIENT_NAME = "lock-client-name";

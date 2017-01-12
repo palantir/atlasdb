@@ -44,7 +44,7 @@ public class TimeLockResource {
     }
 
     @Path("/timestamp-management")
-    public TimestampManagementService getTimestampMigrationService(@PathParam("client") String client) {
+    public TimestampManagementService getTimestampManagementService(@PathParam("client") String client) {
         return getTimeLockServicesForClient(client).getTimestampManagementService();
     }
 
