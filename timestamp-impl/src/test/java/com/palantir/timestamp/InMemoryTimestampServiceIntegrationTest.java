@@ -24,47 +24,47 @@ import com.palantir.atlasdb.timestamp.TimestampServiceTests;
 public class InMemoryTimestampServiceIntegrationTest {
     private InMemoryTimestampService inMemoryTimestampService = new InMemoryTimestampService();
 
-    @Test public void
-    timestampsAreReturnedInOrder() {
+    @Test
+    public void timestampsAreReturnedInOrder() {
         TimestampServiceTests.timestampsAreReturnedInOrder(inMemoryTimestampService);
     }
 
-    @Test public void
-    timestampRangesAreReturnedInNonOverlappingOrder() {
+    @Test
+    public void timestampRangesAreReturnedInNonOverlappingOrder() {
         TimestampServiceTests.timestampRangesAreReturnedInNonOverlappingOrder(inMemoryTimestampService);
     }
 
-    @Test public void
-    canRequestMoreTimestampsThanAreAllocatedAtOnce() {
+    @Test
+    public void canRequestMoreTimestampsThanAreAllocatedAtOnce() {
         TimestampServiceTests.canRequestMoreTimestampsThanAreAllocatedAtOnce(inMemoryTimestampService);
     }
 
-    @Test public void
-    willNotHandOutTimestampsEarlierThanAFastForward() {
+    @Test
+    public void willNotHandOutTimestampsEarlierThanAFastForward() {
         TimestampServiceTests.willNotHandOutTimestampsEarlierThanAFastForward(
                 inMemoryTimestampService,
                 inMemoryTimestampService);
     }
 
-    @Test public void
-    willDoNothingWhenFastForwardToEarlierTimestamp() {
+    @Test
+    public void willDoNothingWhenFastForwardToEarlierTimestamp() {
         TimestampServiceTests.willDoNothingWhenFastForwardToEarlierTimestamp(
                 inMemoryTimestampService,
                 inMemoryTimestampService);
     }
 
-    @Test public void
-    canReturnManyUniqueTimestampsInParallel() throws InterruptedException, TimeoutException {
+    @Test
+    public void canReturnManyUniqueTimestampsInParallel() throws InterruptedException, TimeoutException {
         TimestampServiceTests.canReturnManyUniqueTimestampsInParallel(inMemoryTimestampService);
     }
 
-    @Test public void
-    shouldThrowIfRequestingNegativeNumbersOfTimestamps() {
+    @Test
+    public void shouldThrowIfRequestingNegativeNumbersOfTimestamps() {
         TimestampServiceTests.shouldThrowIfRequestingNegativeNumbersOfTimestamps(inMemoryTimestampService);
     }
 
-    @Test public void
-    shouldThrowIfRequestingZeroTimestamps() {
+    @Test
+    public void shouldThrowIfRequestingZeroTimestamps() {
         TimestampServiceTests.shouldThrowIfRequestingZeroTimestamps(inMemoryTimestampService);
     }
 }
