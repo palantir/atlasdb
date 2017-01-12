@@ -44,8 +44,8 @@ public class AtlasDbServicesConnector implements Closeable {
             throw new IllegalStateException("connect() has already been called");
         }
         DockerizedDatabaseUri dburi = DockerizedDatabaseUri.fromUriString(uri);
-        KeyValueServiceConfig config = KeyValueServiceType.getKeyValueServiceConfig(
-                dburi.getKeyValueServiceType(), dburi.getAddress());
+        KeyValueServiceConfig config = dburi.getKeyValueServiceInstrumentation()
+                .getKeyValueServiceConfig(dburi.getAddress());
         services = DaggerAtlasDbServices.builder()
                 .servicesConfigModule(
                         ServicesConfigModule.create(

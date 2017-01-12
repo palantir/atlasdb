@@ -78,7 +78,7 @@ public class PerformanceResults {
         String[] benchmarkParts = benchmark.split("\\.");
         String benchmarkSuite = benchmarkParts[benchmarkParts.length - 2];
         String benchmarkName = benchmarkParts[benchmarkParts.length - 1];
-        return benchmarkSuite + "#" + benchmarkName + "-" + uri.getKeyValueServiceType().toString();
+        return benchmarkSuite + "#" + benchmarkName + "-" + uri.getKeyValueServiceInstrumentation().toString();
     }
 
     private BufferedWriter openFileWriter(File file) throws FileNotFoundException {

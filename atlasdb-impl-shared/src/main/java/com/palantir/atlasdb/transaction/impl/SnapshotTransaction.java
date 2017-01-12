@@ -398,6 +398,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                    columnRangeSelection,
                                                    batchHint,
                                                    getStartTimestamp());
+        if (!rawResults.hasNext()) {
+            validateExternalAndCommitLocksIfNecessary(tableRef);
+        } // else the postFiltered iterator will check for each batch.
+
         Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(rawResults);
         Iterator<Iterator<Map.Entry<Cell, byte[]>>> postFiltered = Iterators.transform(rawResultsByRow, e -> {
             byte[] row = e.getKey();
@@ -447,6 +451,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     rawBuilder.put(result);
                 }
                 Map<Cell, Value> raw = rawBuilder.build();
+                validateExternalAndCommitLocksIfNecessary(tableRef);
                 if (raw.isEmpty()) {
                     return endOfData();
                 }
@@ -521,6 +526,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 ColumnSelection.all(),
                 getStartTimestamp()));
 
+        validateExternalAndCommitLocksIfNecessary(tableRef);
         return filterRowResults(tableRef, rawResults, Maps.newHashMap());
     }
 
@@ -589,6 +595,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         Map<Cell, byte[]> result = getFromKeyValueService(tableRef, cells);
+        validateExternalAndCommitLocksIfNecessary(tableRef);
 
         return Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
     }
@@ -821,6 +828,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             @Override
             protected Iterator<RowResult<T>> computeNext() {
                 List<RowResult<Value>> batch = results.getBatch();
+                validateExternalAndCommitLocksIfNecessary(tableRef);
                 if (batch.isEmpty()) {
                     return endOfData();
                 }
@@ -1024,6 +1032,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         if (!keysToReload.isEmpty()) {
             Map<Cell, Value> nextRawResults = keyValueService.get(tableRef, keysToReload);
+            validateExternalAndCommitLocksIfNecessary(tableRef);
             return nextRawResults;
         } else {
             return ImmutableMap.of();
@@ -1857,13 +1866,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private Timer getTimer(String name) {
-        return metricRegistry.getTimers()
-                .getOrDefault(name, metricRegistry.timer(MetricRegistry.name(SnapshotTransaction.class, name)));
+        return metricRegistry.timer(MetricRegistry.name(SnapshotTransaction.class, name));
     }
 
     private Histogram getHistogram(String name) {
-        return metricRegistry.getHistograms()
-                .getOrDefault(name, metricRegistry.histogram(MetricRegistry.name(SnapshotTransaction.class, name)));
+        return metricRegistry.histogram(MetricRegistry.name(SnapshotTransaction.class, name));
     }
 }
 

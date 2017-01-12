@@ -67,6 +67,11 @@ develop
            pulling in ``atlasdb-dropwizard-bundle``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1439>`__)
 
+    *    - |fixed|
+         - All SnapshotTransaction get methods are now safe for tables declared with SweepStrategy.THOROUGH.
+           Previously, a validation check was omitted for ``getRowsColumnRange``, ``getRowsIgnoringLocalWrites``, and ``getIgnoringLocalWrites``, which in very rare cases could have resulted in deleted values being returned by a long-running read transaction.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1421>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -106,6 +111,11 @@ v0.27.1
          - Fixed an edge case in stream stores where we throw an exception for using the exact maximum number of bytes in memory.
            This behavior was introduced in 0.27.0 and does not affect stream store usage pre-0.27.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1411>`__)
+
+    *    - |improved|
+         - Backoff when receiving a socket timeout to Cassandra to put back pressure on client and to spread out load incurred
+           on remaining servers when a failover occurs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1420>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
