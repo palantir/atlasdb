@@ -53,7 +53,7 @@ public class PersistentTimestampServiceTests extends AbstractTimestampServiceTes
 
     @Test
     public void shouldLimitRequestsForMoreThanTenThousandTimestamps() {
-        assertThat(getTimestampService().getFreshTimestamps(100 * 1000).size(), is(10 * 1000L));
+        assertThat(getTimestampService().getFreshTimestamps(100_000).size(), is(10_000L));
     }
 
     @Test(expected = ServiceNotAvailableException.class)

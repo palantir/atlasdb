@@ -43,10 +43,10 @@ public class InMemoryTimestampService implements TimestampService, TimestampMana
 
     @Override
     public void fastForwardTimestamp(long currentTimestamp) {
-        long currentTimestampFromService = counter.get();
-        while (currentTimestampFromService < currentTimestamp) {
-            counter.compareAndSet(currentTimestampFromService, currentTimestamp);
-            currentTimestampFromService = counter.get();
+        long latestTimestampFromService = counter.get();
+        while (latestTimestampFromService < currentTimestamp) {
+            counter.compareAndSet(latestTimestampFromService, currentTimestamp);
+            latestTimestampFromService = counter.get();
         }
     }
 }

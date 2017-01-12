@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.timestamp;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
@@ -32,8 +30,9 @@ import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractTimestampServiceTests {
-    private static final long ONE_MILLION = 1000 * 1000;
+    private static final long ONE_MILLION = 1000_000;
     private static final long TWO_MILLION = 2 * ONE_MILLION;
+    public static final int ONE_THOUSAND = 1000;
 
     private TimestampService timestampService = getTimestampService();
     private TimestampManagementService timestampManagementService = getTimestampManagementService();
@@ -63,25 +62,22 @@ public abstract class AbstractTimestampServiceTests {
 
     @Test
     public void timestampRangesAreReturnedInNonOverlappingOrder() {
-        List<TimestampRange> timestampRanges = new ArrayList<>();
+        TimestampRange timestampRange1 = timestampService.getFreshTimestamps(10);
+        TimestampRange timestampRange2 = timestampService.getFreshTimestamps(10);
 
-        timestampRanges.add(timestampService.getFreshTimestamps(10));
-        timestampRanges.add(timestampService.getFreshTimestamps(10));
-
-        long firstUpperBound = timestampRanges.get(0).getUpperBound();
-        long secondLowerBound = timestampRanges.get(1).getLowerBound();
+        long firstUpperBound = timestampRange1.getUpperBound();
+        long secondLowerBound = timestampRange2.getLowerBound();
 
         Assertions.assertThat(firstUpperBound).isLessThan(secondLowerBound);
     }
 
     @Test
     public void canRequestMoreTimestampsThanAreAllocatedAtOnce() {
-        for (int i = 0; i < ONE_MILLION / 1000; i++) {
-            timestampService.getFreshTimestamps(1000);
+        for (int i = 0; i < ONE_MILLION / ONE_THOUSAND; i++) {
+            timestampService.getFreshTimestamps(ONE_THOUSAND);
         }
 
-        Assertions.assertThat(timestampService.getFreshTimestamp())
-                .isGreaterThanOrEqualTo(ONE_MILLION + 1);
+        Assertions.assertThat(timestampService.getFreshTimestamp()).isGreaterThanOrEqualTo(ONE_MILLION + 1);
     }
 
     @Test
