@@ -45,7 +45,7 @@ public class InMemoryTimestampService implements TimestampService, TimestampMigr
     public void fastForwardTimestamp(long currentTimestamp) {
         long currentTimestampFromService = counter.get();
         while (currentTimestampFromService < currentTimestamp) {
-            counter.compareAndSet(currentTimestamp, currentTimestampFromService);
+            counter.compareAndSet(currentTimestampFromService, currentTimestamp);
             currentTimestampFromService = counter.get();
         }
     }
