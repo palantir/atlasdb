@@ -15,14 +15,6 @@
  */
 package com.palantir.atlasdb.timestamp;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.both;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -54,7 +46,7 @@ public class TimestampServiceTests {
         timestamps.add(timestampService.getFreshTimestamp());
         timestamps.add(timestampService.getFreshTimestamp());
 
-        assertThat(timestamps.get(0), lessThan(timestamps.get(1)));
+        Assertions.assertThat(timestamps.get(0)).isLessThan(timestamps.get(1));
     }
 
     public static void canRequestTimestampRangeWithGetFreshTimestamps(TimestampService timestampService) {
@@ -62,11 +54,12 @@ public class TimestampServiceTests {
         TimestampRange range = timestampService.getFreshTimestamps(expectedNumTimestamps);
 
         long actualNumTimestamps = range.getUpperBound() - range.getLowerBound() + 1;
-        assertThat(
-                String.format("Expected %d timestamps, got %d timestamps. (The returned range was: %d-%d)",
-                        expectedNumTimestamps, actualNumTimestamps, range.getLowerBound(), range.getUpperBound()),
-                (int) actualNumTimestamps,
-                is(both(greaterThanOrEqualTo(1)).and(lessThanOrEqualTo(expectedNumTimestamps))));
+
+        Assertions.assertThat((int) actualNumTimestamps)
+                .withFailMessage("Expected %d timestamps, got %d timestamps. (The returned range was: %d-%d)",
+                        expectedNumTimestamps, actualNumTimestamps, range.getLowerBound(), range.getUpperBound())
+                .isGreaterThanOrEqualTo(1)
+                .isLessThanOrEqualTo(expectedNumTimestamps);
     }
 
     public static void timestampRangesAreReturnedInNonOverlappingOrder(TimestampService timestampService) {
@@ -78,7 +71,7 @@ public class TimestampServiceTests {
         long firstUpperBound = timestampRanges.get(0).getUpperBound();
         long secondLowerBound = timestampRanges.get(1).getLowerBound();
 
-        assertThat(firstUpperBound, is(lessThan(secondLowerBound)));
+        Assertions.assertThat(firstUpperBound).isLessThan(secondLowerBound);
     }
 
     public static void canRequestMoreTimestampsThanAreAllocatedAtOnce(TimestampService timestampService) {
@@ -86,14 +79,14 @@ public class TimestampServiceTests {
             timestampService.getFreshTimestamps(1000);
         }
 
-        assertThat(timestampService.getFreshTimestamp(), is(ONE_MILLION + 1));
+        Assertions.assertThat(timestampService.getFreshTimestamp()).isEqualTo(ONE_MILLION + 1);
     }
 
     public static void willNotHandOutTimestampsEarlierThanAFastForward(
             TimestampMigrationService timestampMigrationService, TimestampService timestampService) {
         timestampMigrationService.fastForwardTimestamp(TWO_MILLION);
 
-        assertThat(timestampService.getFreshTimestamp(), is(greaterThan(TWO_MILLION)));
+        Assertions.assertThat(timestampService.getFreshTimestamp()).isGreaterThan(TWO_MILLION);
     }
 
     public static void willDoNothingWhenFastForwardToEarlierTimestamp(
@@ -103,8 +96,8 @@ public class TimestampServiceTests {
         long ts1 = timestampService.getFreshTimestamp();
         timestampMigrationService.fastForwardTimestamp(ONE_MILLION);
         long ts2 = timestampService.getFreshTimestamp();
-        assertThat(ts2, greaterThan(TWO_MILLION));
-        assertThat(ts2, greaterThan(ts1));
+        Assertions.assertThat(ts2).isGreaterThan(TWO_MILLION);
+        Assertions.assertThat(ts2).isGreaterThan(ts1);
     }
 
     public static void canReturnManyUniqueTimestampsInParallel(TimestampService timestampService)
@@ -113,7 +106,7 @@ public class TimestampServiceTests {
 
         repeat(TWO_MILLION, () -> uniqueTimestamps.add(timestampService.getFreshTimestamp()));
 
-        assertThat(uniqueTimestamps.size(), is((int) TWO_MILLION));
+        Assertions.assertThat(uniqueTimestamps.size()).isEqualTo((int) TWO_MILLION);
     }
 
     private static void repeat(long count, Runnable task) throws InterruptedException, TimeoutException {
