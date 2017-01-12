@@ -250,7 +250,6 @@ public class PaxosTimestampBoundStoreTest {
                 executor);
     }
 
-
     private static final class OnceFailingPaxosProposer implements PaxosProposer {
         private final PaxosProposer delegate;
         private boolean hasFailed = false;
