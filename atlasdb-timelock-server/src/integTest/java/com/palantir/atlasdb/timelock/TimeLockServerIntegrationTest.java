@@ -27,6 +27,7 @@ import javax.net.ssl.SSLSocketFactory;
 
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Optional;
@@ -53,6 +54,7 @@ import io.atomix.variables.DistributedValue;
 import io.dropwizard.testing.ResourceHelpers;
 import io.dropwizard.testing.junit.DropwizardAppRule;
 
+@Ignore("Observed ConcurrentModificationException-related flakes (e.g. build #611 on internal CircleCI).")
 public class TimeLockServerIntegrationTest {
     private static final String NOT_FOUND_CODE = "404";
     private static final String SERVICE_NOT_AVAILABLE_CODE = "503";

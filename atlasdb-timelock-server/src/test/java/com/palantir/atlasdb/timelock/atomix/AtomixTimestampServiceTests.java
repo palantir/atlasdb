@@ -17,7 +17,6 @@ package com.palantir.atlasdb.timelock.atomix;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.palantir.atlasdb.timestamp.AbstractTimestampServiceTests;
@@ -32,7 +31,6 @@ import io.atomix.copycat.server.storage.Storage;
 import io.atomix.copycat.server.storage.StorageLevel;
 import io.atomix.variables.DistributedLong;
 
-@Ignore("Observed ConcurrentModificationException-related flakes (e.g. build #611 on internal CircleCI).")
 public class AtomixTimestampServiceTests extends AbstractTimestampServiceTests {
     private static final Address LOCAL_ADDRESS = new Address("localhost", 8700);
     private static final String CLIENT_KEY = "client";
@@ -76,5 +74,9 @@ public class AtomixTimestampServiceTests extends AbstractTimestampServiceTests {
     @Test(expected = IllegalArgumentException.class)
     public void shouldThrowIfRequestingTooManyTimestamps() {
         getTimestampService().getFreshTimestamps(AtomixTimestampService.MAX_GRANT_SIZE + 1);
+    }
+
+    @Override
+    public void canReturnManyUniqueTimestampsInParallel() {
     }
 }
