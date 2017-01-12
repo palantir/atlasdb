@@ -26,8 +26,10 @@ public interface TimestampMigrationService {
     /**
      * Updates the timestamp service to the currentTimestamp to ensure that all fresh timestamps issued after
      * this request are greater than the current timestamp.
+     * The caller of this is responsible for not using any of the fresh timestamps previously served to it,
+     * and must call getFreshTimestamps() to ensure it is using timestamps after the fastforward point.
      *
-     * @param currentTimestamp the largest timestamp issued until this time
+     * @param currentTimestamp the largest timestamp issued until the fast-forward call
      */
     @POST
     @Path("fast-forward")
