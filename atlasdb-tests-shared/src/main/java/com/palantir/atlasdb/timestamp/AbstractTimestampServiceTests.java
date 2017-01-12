@@ -27,30 +27,32 @@ import java.util.concurrent.TimeoutException;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
-import com.palantir.timestamp.TimestampServiceWithManagement;
+import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractTimestampServiceTests {
     private static final long ONE_MILLION = 1000 * 1000;
     private static final long TWO_MILLION = 2 * ONE_MILLION;
-    private TimestampServiceWithManagement timestampServiceWithManagement = getTimestampServiceWithManagement();
 
-    protected abstract TimestampServiceWithManagement getTimestampServiceWithManagement();
+    private TimestampService timestampService = getTimestampService();
+    private TimestampManagementService timestampManagementService = getTimestampManagementService();
+
+    protected abstract TimestampService getTimestampService();
+    protected abstract TimestampManagementService getTimestampManagementService();
 
     @Test
     public void timestampsAreReturnedInOrder() {
-        List<Long> timestamps = new ArrayList<>();
+        long freshTimestamp1 = timestampService.getFreshTimestamp();
+        long freshTimestamp2 = timestampService.getFreshTimestamp();
 
-        timestamps.add(timestampServiceWithManagement.getFreshTimestamp());
-        timestamps.add(timestampServiceWithManagement.getFreshTimestamp());
-
-        Assertions.assertThat(timestamps.get(0)).isLessThan(timestamps.get(1));
+        Assertions.assertThat(freshTimestamp1).isLessThan(freshTimestamp2);
     }
 
     @Test
     public void canRequestTimestampRangeWithGetFreshTimestamps() {
         int expectedNumTimestamps = 5;
-        TimestampRange timestampRange = timestampServiceWithManagement.getFreshTimestamps(expectedNumTimestamps);
+        TimestampRange timestampRange = timestampService.getFreshTimestamps(expectedNumTimestamps);
 
         Assertions.assertThat((int) timestampRange.size())
                 .withFailMessage("Expected %d timestamps, got %d timestamps. (The returned range was: %d-%d)",
@@ -63,8 +65,8 @@ public abstract class AbstractTimestampServiceTests {
     public void timestampRangesAreReturnedInNonOverlappingOrder() {
         List<TimestampRange> timestampRanges = new ArrayList<>();
 
-        timestampRanges.add(timestampServiceWithManagement.getFreshTimestamps(10));
-        timestampRanges.add(timestampServiceWithManagement.getFreshTimestamps(10));
+        timestampRanges.add(timestampService.getFreshTimestamps(10));
+        timestampRanges.add(timestampService.getFreshTimestamps(10));
 
         long firstUpperBound = timestampRanges.get(0).getUpperBound();
         long secondLowerBound = timestampRanges.get(1).getLowerBound();
@@ -75,26 +77,26 @@ public abstract class AbstractTimestampServiceTests {
     @Test
     public void canRequestMoreTimestampsThanAreAllocatedAtOnce() {
         for (int i = 0; i < ONE_MILLION / 1000; i++) {
-            timestampServiceWithManagement.getFreshTimestamps(1000);
+            timestampService.getFreshTimestamps(1000);
         }
 
-        Assertions.assertThat(timestampServiceWithManagement.getFreshTimestamp())
+        Assertions.assertThat(timestampService.getFreshTimestamp())
                 .isGreaterThanOrEqualTo(ONE_MILLION + 1);
     }
 
     @Test
     public void willNotHandOutTimestampsEarlierThanAFastForward() {
-        timestampServiceWithManagement.fastForwardTimestamp(TWO_MILLION);
+        timestampManagementService.fastForwardTimestamp(TWO_MILLION);
 
-        Assertions.assertThat(timestampServiceWithManagement.getFreshTimestamp()).isGreaterThan(TWO_MILLION);
+        Assertions.assertThat(timestampService.getFreshTimestamp()).isGreaterThan(TWO_MILLION);
     }
 
     @Test
     public void willDoNothingWhenFastForwardToEarlierTimestamp() {
-        timestampServiceWithManagement.fastForwardTimestamp(TWO_MILLION);
-        long ts1 = timestampServiceWithManagement.getFreshTimestamp();
-        timestampServiceWithManagement.fastForwardTimestamp(ONE_MILLION);
-        long ts2 = timestampServiceWithManagement.getFreshTimestamp();
+        timestampManagementService.fastForwardTimestamp(TWO_MILLION);
+        long ts1 = timestampService.getFreshTimestamp();
+        timestampManagementService.fastForwardTimestamp(ONE_MILLION);
+        long ts2 = timestampService.getFreshTimestamp();
         Assertions.assertThat(ts2).isGreaterThan(TWO_MILLION);
         Assertions.assertThat(ts2).isGreaterThan(ts1);
     }
@@ -104,19 +106,19 @@ public abstract class AbstractTimestampServiceTests {
             throws InterruptedException, TimeoutException {
         Set<Long> uniqueTimestamps = new ConcurrentSkipListSet<>();
 
-        repeat(TWO_MILLION, () -> uniqueTimestamps.add(timestampServiceWithManagement.getFreshTimestamp()));
+        repeat(TWO_MILLION, () -> uniqueTimestamps.add(timestampService.getFreshTimestamp()));
 
         Assertions.assertThat(uniqueTimestamps.size()).isEqualTo((int) TWO_MILLION);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldThrowIfRequestingNegativeNumbersOfTimestamps() {
-       timestampServiceWithManagement.getFreshTimestamps(-1);
+       timestampService.getFreshTimestamps(-1);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldThrowIfRequestingZeroTimestamps() {
-        timestampServiceWithManagement.getFreshTimestamps(0);
+        timestampService.getFreshTimestamps(0);
     }
 
     private static void repeat(long count, Runnable task)

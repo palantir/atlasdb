@@ -19,8 +19,22 @@ import com.palantir.atlasdb.timestamp.AbstractTimestampServiceTests;
 
 public class InMemoryTimestampServiceTests extends AbstractTimestampServiceTests {
 
+    private InMemoryTimestampService inMemoryTimestampService;
+
     @Override
-    protected InMemoryTimestampService getTimestampServiceWithManagement() {
-        return new InMemoryTimestampService();
+    protected TimestampService getTimestampService() {
+        return getSingletonTimestampService();
+    }
+
+    @Override
+    protected TimestampManagementService getTimestampManagementService() {
+        return getSingletonTimestampService();
+    }
+
+    private InMemoryTimestampService getSingletonTimestampService() {
+        if (inMemoryTimestampService == null) {
+            inMemoryTimestampService = new InMemoryTimestampService();
+        }
+        return inMemoryTimestampService;
     }
 }

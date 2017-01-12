@@ -16,11 +16,12 @@
 package com.palantir.atlasdb.timelock.atomix;
 
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.palantir.atlasdb.timestamp.AbstractTimestampServiceTests;
+import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.TimestampService;
 
 import io.atomix.AtomixReplica;
 import io.atomix.catalyst.transport.Address;
@@ -52,19 +53,26 @@ public class AtomixTimestampServiceTests extends AbstractTimestampServiceTests {
         ATOMIX_REPLICA.leave();
     }
 
-    @Before
-    public void setupTimestampService() {
-        atomixTimestampService = getTimestampServiceWithManagement();
+    @Override
+    protected TimestampService getTimestampService() {
+        return getSingletonTimestampManagementService();
     }
 
     @Override
-    protected AtomixTimestampService getTimestampServiceWithManagement() {
-        DistributedLong distributedLong = DistributedValues.getTimestampForClient(ATOMIX_REPLICA, CLIENT_KEY);
-        return new AtomixTimestampService(distributedLong);
+    protected TimestampManagementService getTimestampManagementService() {
+        return getSingletonTimestampManagementService();
+    }
+
+    private AtomixTimestampService getSingletonTimestampManagementService() {
+        if (atomixTimestampService == null) {
+            DistributedLong distributedLong = DistributedValues.getTimestampForClient(ATOMIX_REPLICA, CLIENT_KEY);
+            atomixTimestampService = new AtomixTimestampService(distributedLong);
+        }
+        return atomixTimestampService;
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldThrowIfRequestingTooManyTimestamps() {
-        atomixTimestampService.getFreshTimestamps(AtomixTimestampService.MAX_GRANT_SIZE + 1);
+        getTimestampService().getFreshTimestamps(AtomixTimestampService.MAX_GRANT_SIZE + 1);
     }
 }

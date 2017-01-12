@@ -23,19 +23,21 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.lock.LockService;
-import com.palantir.timestamp.TimestampServiceWithManagement;
+import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.TimestampService;
 
 public class TimeLockResourceTest {
     private static final String EXISTING_CLIENT = "existing-client";
     private static final String NON_EXISTING_CLIENT = "non-existing-client";
 
     private static final LockService LOCK_SERVICE = mock(LockService.class);
-    private static final TimestampServiceWithManagement TIMESTAMP_SERVICE_WITH_MANAGEMENT =
-            mock(TimestampServiceWithManagement.class);
+    private static final TimestampService TIMESTAMP_SERVICE = mock(TimestampService.class);
+    private static final TimestampManagementService TIMESTAMP_MANAGEMENT_SERVICE =
+            mock(TimestampManagementService.class);
     private static final TimeLockServices TIME_LOCK_SERVICES = TimeLockServices.create(
-            TIMESTAMP_SERVICE_WITH_MANAGEMENT,
+            TIMESTAMP_SERVICE,
             LOCK_SERVICE,
-            TIMESTAMP_SERVICE_WITH_MANAGEMENT);
+            TIMESTAMP_MANAGEMENT_SERVICE);
 
     private static final TimeLockResource RESOURCE = new TimeLockResource(
             ImmutableMap.of(EXISTING_CLIENT, TIME_LOCK_SERVICES));

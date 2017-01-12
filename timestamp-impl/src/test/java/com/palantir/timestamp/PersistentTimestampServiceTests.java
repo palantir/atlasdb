@@ -19,7 +19,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -34,27 +33,34 @@ public class PersistentTimestampServiceTests extends AbstractTimestampServiceTes
     private PersistentTimestampService persistentTimestampService;
     private InMemoryTimestampBoundStore timestampBoundStore;
 
-    @Before
-    public void setupTimestampService() {
-        persistentTimestampService = getTimestampServiceWithManagement();
+    @Override
+    protected TimestampService getTimestampService() {
+        return getSingletonTimestampService();
     }
 
     @Override
-    protected PersistentTimestampService getTimestampServiceWithManagement() {
-        timestampBoundStore = new InMemoryTimestampBoundStore();
-        return PersistentTimestampService.create(timestampBoundStore);
+    protected TimestampManagementService getTimestampManagementService() {
+        return getSingletonTimestampService();
+    }
+
+    private PersistentTimestampService getSingletonTimestampService() {
+        if (timestampBoundStore == null || persistentTimestampService == null) {
+            timestampBoundStore = new InMemoryTimestampBoundStore();
+            persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
+        }
+        return persistentTimestampService;
     }
 
     @Test
     public void shouldLimitRequestsForMoreThanTenThousandTimestamps() {
-        assertThat(persistentTimestampService.getFreshTimestamps(100 * 1000).size(), is(10 * 1000L));
+        assertThat(getTimestampService().getFreshTimestamps(100 * 1000).size(), is(10 * 1000L));
     }
 
     @Test(expected = ServiceNotAvailableException.class)
     public void throwsAserviceNotAvailableExceptionIfThereAreMultipleServersRunning() {
         timestampBoundStore.pretendMultipleServersAreRunning();
 
-        persistentTimestampService.getFreshTimestamp();
+        getTimestampService().getFreshTimestamp();
     }
 
     @Test
@@ -65,7 +71,7 @@ public class PersistentTimestampServiceTests extends AbstractTimestampServiceTes
 
         timestampBoundStore.failWith(failure);
 
-        persistentTimestampService.getFreshTimestamp();
+        getTimestampService().getFreshTimestamp();
     }
 
     @Test
@@ -80,7 +86,7 @@ public class PersistentTimestampServiceTests extends AbstractTimestampServiceTes
 
     private void getTimestampAndIgnoreErrors() {
         try {
-            persistentTimestampService.getFreshTimestamp();
+            getTimestampService().getFreshTimestamp();
         } catch (Exception e) {
             // expected
         }
