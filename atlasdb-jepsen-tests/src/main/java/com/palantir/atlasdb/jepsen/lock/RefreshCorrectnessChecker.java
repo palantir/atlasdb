@@ -45,7 +45,7 @@ import com.palantir.atlasdb.jepsen.events.RequestType;
  */
 public class RefreshCorrectnessChecker implements Checker {
 
-    private static Logger log = LoggerFactory.getLogger(RefreshCorrectnessChecker.class);
+    private static final Logger log = LoggerFactory.getLogger(RefreshCorrectnessChecker.class);
 
     @Override
     public CheckerResult check(List<Event> events) {

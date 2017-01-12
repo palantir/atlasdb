@@ -67,7 +67,7 @@ import com.palantir.atlasdb.jepsen.events.RequestType;
  */
 public class LockCorrectnessChecker implements Checker {
 
-    private static Logger log = LoggerFactory.getLogger(LockCorrectnessChecker.class);
+    private static final Logger log = LoggerFactory.getLogger(LockCorrectnessChecker.class);
 
     @Override
     public CheckerResult check(List<Event> events) {
