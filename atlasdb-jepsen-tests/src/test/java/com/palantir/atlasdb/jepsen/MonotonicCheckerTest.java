@@ -22,9 +22,8 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Event;
-
-import com.palantir.atlasdb.jepsen.timestamp.MonotonicChecker;
 import com.palantir.atlasdb.jepsen.events.TestEventUtil;
+import com.palantir.atlasdb.jepsen.timestamp.MonotonicChecker;
 
 public class MonotonicCheckerTest {
     private static final Long ZERO_TIME = 0L;

@@ -55,7 +55,7 @@ public abstract class OkEvent implements Event {
     }
 
     public boolean isFailure() {
-        return (value() == null || value().isEmpty() || value().equals("false"));
+        return value() == null || value().isEmpty() || value().equals("false");
     }
 
     public boolean isSuccessful() {

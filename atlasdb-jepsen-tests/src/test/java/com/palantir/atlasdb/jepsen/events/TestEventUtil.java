@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.jepsen.events;
 
-import com.palantir.common.annotation.Immutable;
-
 public abstract class TestEventUtil {
 
     private static final String LOCKNAME = "default_lockname";
@@ -79,7 +77,8 @@ public abstract class TestEventUtil {
     }
 
 
-    public static ImmutableInvokeEvent createInvokeEvent(long time, int process, String requestType, String resourceName) {
+    public static ImmutableInvokeEvent createInvokeEvent(long time, int process, String requestType,
+            String resourceName) {
         return ImmutableInvokeEvent.builder()
                 .time(time)
                 .process(process)

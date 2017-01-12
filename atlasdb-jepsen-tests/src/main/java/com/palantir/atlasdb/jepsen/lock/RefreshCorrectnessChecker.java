@@ -35,9 +35,9 @@ import com.palantir.atlasdb.jepsen.events.FailEvent;
 import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
-import com.palantir.util.Pair;
-
 import com.palantir.atlasdb.jepsen.events.RequestType;
+
+import com.palantir.util.Pair;
 
 /**
  * This checker verifies that refreshes of locks do not cause two processes to simultaneously hold the same lock.
@@ -114,11 +114,12 @@ public class RefreshCorrectnessChecker implements Checker {
                         if (lastLockTime < invokeEvent.time()) {
                             Range<Long> newRange = Range.closedOpen(lastLockTime, invokeEvent.time());
                             if (!locksHeld.get(lockName).complement().encloses(newRange)) {
-                                log.error("A {} request for lock {} by process {} invoked at time {} was granted at " +
-                                        "time {}, but another process was granted the lock between {} and {} (last " +
-                                        "known time the lock was held by {})", invokeEvent.function(),
-                                        invokeEvent.value(), invokeEvent.process(), invokeEvent.time(),
-                                        event.time(), lastLockTime, invokeEvent.time(), invokeEvent.process());
+                                log.error("A {} request for lock {} by process {} invoked at time {} was granted at "
+                                        + "time {}, but another process was granted the lock between {} and {} "
+                                        + "(last known time the lock was held by {})",
+                                        invokeEvent.function(), invokeEvent.value(), invokeEvent.process(),
+                                        invokeEvent.time(), event.time(), lastLockTime, invokeEvent.time(),
+                                        invokeEvent.process());
                                 errors.add(invokeEvent);
                                 errors.add(event);
                             }

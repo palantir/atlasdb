@@ -17,10 +17,8 @@ package com.palantir.atlasdb.jepsen.lock;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.CheckerResult;
@@ -32,9 +30,9 @@ import com.palantir.atlasdb.jepsen.events.FailEvent;
 import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
-import com.palantir.util.Pair;
-
 import com.palantir.atlasdb.jepsen.events.RequestType;
+
+import com.palantir.util.Pair;
 
 /**
  * This checker verifies that the sequence of events is correct for each process in isolation. Since we know that no
@@ -54,7 +52,6 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
     private static class Visitor implements EventVisitor {
         private final Map<Pair<Integer, String>, Boolean> refreshAllowed = new HashMap<>();
         private final Map<Pair<Integer, String>, OkEvent> lastEvent = new HashMap<>();
-        private final Set<Integer> processes = new HashSet<>();
         private final List<Event> errors = new ArrayList<>();
         private final Map<Integer, String> resourceName = new HashMap<>();
 
@@ -86,8 +83,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
             String lockName = resourceName.get(currentProcess);
             Pair processLock = new Pair(currentProcess, lockName);
 
-            if (!processes.contains(currentProcess) || !refreshAllowed.containsKey(processLock)) {
-                processes.add(currentProcess);
+            if (!refreshAllowed.containsKey(processLock)) {
                 refreshAllowed.put(processLock, false);
                 lastEvent.put(processLock, event);
             }

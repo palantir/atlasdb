@@ -26,9 +26,8 @@ import com.palantir.atlasdb.jepsen.events.ImmutableFailEvent;
 import com.palantir.atlasdb.jepsen.events.ImmutableInvokeEvent;
 import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
-import com.palantir.atlasdb.jepsen.timestamp.NonOverlappingReadsMonotonicChecker;
-
 import com.palantir.atlasdb.jepsen.events.TestEventUtil;
+import com.palantir.atlasdb.jepsen.timestamp.NonOverlappingReadsMonotonicChecker;
 
 public class NonOverlappingReadsMonotonicCheckerTest {
     private static final int PROCESS_0 = 0;

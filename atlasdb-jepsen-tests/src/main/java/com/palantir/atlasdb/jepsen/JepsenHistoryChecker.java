@@ -24,9 +24,6 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.lock.LockCorrectnessChecker;
-import com.palantir.atlasdb.jepsen.timestamp.MonotonicChecker;
-import com.palantir.atlasdb.jepsen.timestamp.NonOverlappingReadsMonotonicChecker;
-import com.palantir.atlasdb.jepsen.timestamp.UniquenessChecker;
 
 import clojure.lang.Keyword;
 

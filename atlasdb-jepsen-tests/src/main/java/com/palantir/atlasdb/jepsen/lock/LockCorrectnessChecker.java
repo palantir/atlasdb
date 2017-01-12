@@ -35,8 +35,9 @@ import com.palantir.atlasdb.jepsen.events.FailEvent;
 import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
-import com.palantir.util.Pair;
 import com.palantir.atlasdb.jepsen.events.RequestType;
+
+import com.palantir.util.Pair;
 
 /**
  * Checker verifying that whenever a lock is granted, there was a time point between the request and the
@@ -169,8 +170,9 @@ public class LockCorrectnessChecker implements Checker {
                         InvokeEvent invokeEvent = eventPair.getLhSide();
                         OkEvent okEvent = eventPair.getRhSide();
                         if (intervalCovered(lockName, invokeEvent, okEvent)) {
-                            log.error("Lock {} granted to process {} between {} and {}, but lock was already held by " +
-                            "another process.", lockName, invokeEvent.process(), invokeEvent.time(), okEvent.time());
+                            log.error("Lock {} granted to process {} between {} and {}, but lock was already held by "
+                                    + "another process.",
+                                    lockName, invokeEvent.process(), invokeEvent.time(), okEvent.time());
                             errors.add(invokeEvent);
                             errors.add(okEvent);
                         }

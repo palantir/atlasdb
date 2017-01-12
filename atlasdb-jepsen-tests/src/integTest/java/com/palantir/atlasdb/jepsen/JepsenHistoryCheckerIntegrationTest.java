@@ -30,9 +30,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
-import com.palantir.atlasdb.jepsen.lock.IsolatedProcessCorrectnessChecker;
-import com.palantir.atlasdb.jepsen.lock.LockCorrectnessChecker;
-import com.palantir.atlasdb.jepsen.lock.RefreshCorrectnessChecker;
 
 import clojure.lang.Keyword;
 import one.util.streamex.EntryStream;
