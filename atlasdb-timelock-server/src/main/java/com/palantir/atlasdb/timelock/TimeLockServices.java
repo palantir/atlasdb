@@ -18,17 +18,23 @@ package com.palantir.atlasdb.timelock;
 import org.immutables.value.Value;
 
 import com.palantir.lock.LockService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 @Value.Immutable
 public interface TimeLockServices {
-    static TimeLockServices create(TimestampService timeService, LockService lockService) {
+    static TimeLockServices create(
+            TimestampService timestampService,
+            LockService lockService,
+            TimestampManagementService timestampManagementService) {
         return ImmutableTimeLockServices.builder()
-                .timeService(timeService)
+                .timestampService(timestampService)
                 .lockService(lockService)
+                .timestampManagementService(timestampManagementService)
                 .build();
     }
 
-    TimestampService getTimeService();
+    TimestampManagementService getTimestampManagementService();
+    TimestampService getTimestampService();
     LockService getLockService();
 }

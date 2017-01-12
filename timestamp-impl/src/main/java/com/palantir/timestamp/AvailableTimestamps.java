@@ -19,6 +19,8 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.palantir.util.DebugLogger;
+
 public class AvailableTimestamps {
     static final long ALLOCATION_BUFFER_SIZE = 1000 * 1000;
     private static final long MINIMUM_BUFFER = ALLOCATION_BUFFER_SIZE / 2;

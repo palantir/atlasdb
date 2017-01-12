@@ -74,8 +74,8 @@ import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting.ssl.SslConfiguration;
 import com.palantir.remoting.ssl.SslSocketFactories;
-import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.util.DebugLogger;
 
 public final class TransactionManagers {
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
