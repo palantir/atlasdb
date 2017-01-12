@@ -188,6 +188,11 @@ Atlas users should use <code class="docutils literal"><span class="pre">AtlasDbM
 pulling in <code class="docutils literal"><span class="pre">atlasdb-dropwizard-bundle</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1439">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>All SnapshotTransaction get methods are now safe for tables declared with SweepStrategy.THOROUGH.
+Previously, a validation check was omitted for <code class="docutils literal"><span class="pre">getRowsColumnRange</span></code>, <code class="docutils literal"><span class="pre">getRowsIgnoringLocalWrites</span></code>, and <code class="docutils literal"><span class="pre">getIgnoringLocalWrites</span></code>, which in very rare cases could have resulted in deleted values being returned by a long-running read transaction.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1421">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>

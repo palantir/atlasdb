@@ -61,6 +61,11 @@ develop
            pulling in ``atlasdb-dropwizard-bundle``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1439>`__)
 
+    *    - |fixed|
+         - All SnapshotTransaction get methods are now safe for tables declared with SweepStrategy.THOROUGH.
+           Previously, a validation check was omitted for ``getRowsColumnRange``, ``getRowsIgnoringLocalWrites``, and ``getIgnoringLocalWrites``, which in very rare cases could have resulted in deleted values being returned by a long-running read transaction.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1421>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
