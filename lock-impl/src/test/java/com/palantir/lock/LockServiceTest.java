@@ -922,7 +922,7 @@ public abstract class LockServiceTest {
         HeldLocksGrant grant = server.convertToGrant(token);
         Assert.assertNotNull(grant);
         Assert.assertNull(grant.getClient());
-        Assert.assertEquals(request.getLockDescriptors(), grant.getLocks());
+        Assert.assertEquals(request.getLockDescriptors(), grant.getLockDescriptors());
         Thread.sleep(51);
         Assert.assertTrue(grant.getExpirationDateMs() - System.currentTimeMillis() < 450);
         grant = server.refreshGrant(grant);

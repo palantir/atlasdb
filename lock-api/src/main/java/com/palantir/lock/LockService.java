@@ -183,4 +183,6 @@ import com.palantir.common.annotation.NonIdempotent;
     @Override
     @Idempotent void logCurrentState();
 
+    @Override
+    @Idempotent void logCurrentHeldLocks(String descriptorRegex, boolean versionIdNecessary);
 }

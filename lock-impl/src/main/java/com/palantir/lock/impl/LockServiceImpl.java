@@ -37,6 +37,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -787,7 +789,7 @@ import com.palantir.util.Pair;
         }
         HeldLocksGrant realGrant = heldLocks.realToken;
         changeOwner(heldLocks.locks, INTERNAL_LOCK_GRANT_CLIENT, client);
-        HeldLocksToken token = createHeldLocksToken(client, realGrant.getLocks(),
+        HeldLocksToken token = createHeldLocksToken(client, realGrant.getLockDescriptors(),
                 heldLocks.locks, realGrant.getLockTimeout(), realGrant.getVersionId());
         if (log.isTraceEnabled()) {
             log.trace(".useGrant({}, {}) returns {}", client, grant, token);
@@ -810,7 +812,7 @@ import com.palantir.util.Pair;
         }
         HeldLocksGrant realGrant = heldLocks.realToken;
         changeOwner(heldLocks.locks, INTERNAL_LOCK_GRANT_CLIENT, client);
-        HeldLocksToken token = createHeldLocksToken(client, realGrant.getLocks(),
+        HeldLocksToken token = createHeldLocksToken(client, realGrant.getLockDescriptors(),
                 heldLocks.locks, realGrant.getLockTimeout(), realGrant.getVersionId());
         if (log.isTraceEnabled()) {
             log.trace(".useGrant({}, {}) returns {}", client, grantId.toString(Character.MAX_RADIX), token);
@@ -978,13 +980,7 @@ import com.palantir.util.Pair;
      */
     @Override
     public void logCurrentState() {
-        StringBuilder logString = new StringBuilder();
-        logString.append("Logging current state. Time = ").append(currentTimeMillis()).append("\n");
-        logString.append("isStandaloneServer = ").append(isStandaloneServer).append("\n");
-        logString.append("maxAllowedLockTimeout = ").append(maxAllowedLockTimeout).append("\n");
-        logString.append("maxAllowedClockDrift = ").append(maxAllowedClockDrift).append("\n");
-        logString.append("maxAllowedBlockingDuration = ").append(maxAllowedBlockingDuration).append("\n");
-        logString.append("randomBitCount = ").append(randomBitCount).append("\n");
+        StringBuilder logString = getGeneralLockStats();
         for (Pair<String, ? extends Collection<?>> nameValuePair : ImmutableList.of(
                 Pair.create("descriptorToLockMap", descriptorToLockMap.asMap().entrySet()),
                 Pair.create("outstandingLockRequestMultimap", outstandingLockRequestMultimap.asMap().entrySet()),
@@ -1009,6 +1005,32 @@ import com.palantir.util.Pair;
     }
 
     @Override
+    public void logCurrentHeldLocks(String descriptorRegex, boolean versionIdNecessary) {
+        StringBuilder logString = getGeneralLockStats();
+        Pattern pattern = Pattern.compile(descriptorRegex);
+        Set<ExpiringToken> heldLocksTokens = ImmutableSet.<ExpiringToken>builder()
+                .addAll(heldLocksTokenMap.keySet())
+                .addAll(heldLocksGrantMap.keySet())
+                .build();
+
+        for (ExpiringToken heldLocksToken : heldLocksTokens) {
+            if (!versionIdNecessary || heldLocksToken.getVersionId() != null) {
+                for (LockDescriptor lockDescriptor : heldLocksToken.getLockDescriptors()) {
+                    String lockId = lockDescriptor.getLockIdAsString();
+                    Matcher matcher = pattern.matcher(lockId);
+                    if (matcher.matches()) {
+                        logString.append("Lock descriptor: ").append(lockDescriptor)
+                                .append(" Held locks token for the lock: ").append(heldLocksToken).append("\n");
+                    }
+                }
+            }
+        }
+
+        log.error("Current state with descriptor regex: [{}], version ID necessary: [{}]. Locks matching:\n {}",
+                descriptorRegex, versionIdNecessary, logString.toString());
+    }
+
+    @Override
     public void close() {
         isShutDown = true;
         executor.shutdownNow();
@@ -1025,6 +1047,17 @@ import com.palantir.util.Pair;
     @Override
     public long currentTimeMillis() {
         return System.currentTimeMillis();
+    }
+
+    private StringBuilder getGeneralLockStats() {
+        StringBuilder logString = new StringBuilder();
+        logString.append("Logging current state. Time = ").append(currentTimeMillis()).append("\n");
+        logString.append("isStandaloneServer = ").append(isStandaloneServer).append("\n");
+        logString.append("maxAllowedLockTimeout = ").append(maxAllowedLockTimeout).append("\n");
+        logString.append("maxAllowedClockDrift = ").append(maxAllowedClockDrift).append("\n");
+        logString.append("maxAllowedBlockingDuration = ").append(maxAllowedBlockingDuration).append("\n");
+        logString.append("randomBitCount = ").append(randomBitCount).append("\n");
+        return logString;
     }
 
     private String getRequestDescription(LockRequest request) {

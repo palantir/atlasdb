@@ -106,7 +106,8 @@ import com.google.common.base.Preconditions;
      * Returns the set of locks which were successfully acquired, as a mapping
      * from descriptor to lock mode.
      */
-    public SortedLockCollection<LockDescriptor> getLocks() {
+    @Override
+    public SortedLockCollection<LockDescriptor> getLockDescriptors() {
         Preconditions.checkState(!lockMap.isEmpty());
         return lockMap;
     }
