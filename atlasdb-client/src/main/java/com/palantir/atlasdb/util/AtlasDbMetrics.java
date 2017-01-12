@@ -15,12 +15,9 @@
  */
 package com.palantir.atlasdb.util;
 
-import java.util.concurrent.TimeUnit;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.google.common.annotations.VisibleForTesting;
@@ -28,7 +25,6 @@ import com.google.common.base.Preconditions;
 
 public final class AtlasDbMetrics {
     private static final Logger log = LoggerFactory.getLogger(AtlasDbMetrics.class);
-    private static final String DEFAULT_DOMAIN = "com.palantir.util";
     @VisibleForTesting
     static final String DEFAULT_REGISTRY_NAME = "AtlasDb";
 
@@ -47,12 +43,6 @@ public final class AtlasDbMetrics {
             synchronized (AtlasDbMetrics.class) {
                 if (AtlasDbMetrics.metrics == null) {
                     AtlasDbMetrics.metrics = SharedMetricRegistries.getOrCreate(DEFAULT_REGISTRY_NAME);
-                    JmxReporter.forRegistry(AtlasDbMetrics.metrics)
-                            .inDomain(DEFAULT_DOMAIN)
-                            .convertDurationsTo(TimeUnit.MILLISECONDS)
-                            .convertRatesTo(TimeUnit.SECONDS)
-                            .build()
-                            .start();
                     log.info("Metric Registry was not set, setting to default registry name of "
                             + DEFAULT_REGISTRY_NAME);
                 }
