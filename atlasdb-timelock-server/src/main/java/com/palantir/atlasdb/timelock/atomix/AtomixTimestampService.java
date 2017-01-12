@@ -18,13 +18,13 @@ package com.palantir.atlasdb.timelock.atomix;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Futures;
-import com.palantir.timestamp.TimestampMigrationService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
 import io.atomix.variables.DistributedLong;
 
-public class AtomixTimestampService implements TimestampService, TimestampMigrationService {
+public class AtomixTimestampService implements TimestampService, TimestampManagementService {
     /**
      * Maximum number of timestamps that may be granted at once.
      */

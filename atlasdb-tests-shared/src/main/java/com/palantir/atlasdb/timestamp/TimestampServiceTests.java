@@ -25,7 +25,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.assertj.core.api.Assertions;
 
-import com.palantir.timestamp.TimestampMigrationService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
@@ -80,18 +80,18 @@ public class TimestampServiceTests {
     }
 
     public static void willNotHandOutTimestampsEarlierThanAFastForward(
-            TimestampMigrationService timestampMigrationService, TimestampService timestampService) {
-        timestampMigrationService.fastForwardTimestamp(TWO_MILLION);
+            TimestampManagementService timestampManagementService, TimestampService timestampService) {
+        timestampManagementService.fastForwardTimestamp(TWO_MILLION);
 
         Assertions.assertThat(timestampService.getFreshTimestamp()).isGreaterThan(TWO_MILLION);
     }
 
     public static void willDoNothingWhenFastForwardToEarlierTimestamp(
-            TimestampMigrationService timestampMigrationService,
+            TimestampManagementService timestampManagementService,
             TimestampService timestampService) {
-        timestampMigrationService.fastForwardTimestamp(TWO_MILLION);
+        timestampManagementService.fastForwardTimestamp(TWO_MILLION);
         long ts1 = timestampService.getFreshTimestamp();
-        timestampMigrationService.fastForwardTimestamp(ONE_MILLION);
+        timestampManagementService.fastForwardTimestamp(ONE_MILLION);
         long ts2 = timestampService.getFreshTimestamp();
         Assertions.assertThat(ts2).isGreaterThan(TWO_MILLION);
         Assertions.assertThat(ts2).isGreaterThan(ts1);

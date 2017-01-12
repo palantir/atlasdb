@@ -23,7 +23,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.lock.LockService;
-import com.palantir.timestamp.TimestampMigrationService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public class TimeLockResourceTest {
@@ -32,11 +32,12 @@ public class TimeLockResourceTest {
 
     private static final LockService LOCK_SERVICE = mock(LockService.class);
     private static final TimestampService TIME_SERVICE = mock(TimestampService.class);
-    private static final TimestampMigrationService TIME_MIGRATION_SERVICE = mock(TimestampMigrationService.class);
+    private static final TimestampManagementService TIMESTAMP_MANAGEMENT_SERVICE =
+            mock(TimestampManagementService.class);
     private static final TimeLockServices TIME_LOCK_SERVICES = TimeLockServices.create(
             TIME_SERVICE,
             LOCK_SERVICE,
-            TIME_MIGRATION_SERVICE);
+            TIMESTAMP_MANAGEMENT_SERVICE);
 
     private static final TimeLockResource RESOURCE = new TimeLockResource(
             ImmutableMap.of(EXISTING_CLIENT, TIME_LOCK_SERVICES));

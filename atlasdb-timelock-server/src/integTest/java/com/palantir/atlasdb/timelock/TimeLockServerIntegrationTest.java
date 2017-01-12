@@ -43,7 +43,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.timestamp.TimestampMigrationService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 import io.atomix.Atomix;
@@ -153,7 +153,7 @@ public class TimeLockServerIntegrationTest {
 
     @Test
     public void timestampMigrationServiceShouldThrowIfQueryingNonexistentClient() {
-        TimestampMigrationService nonexistent = getTimestampMigrationService(NONEXISTENT_CLIENT);
+        TimestampManagementService nonexistent = getTimestampMigrationService(NONEXISTENT_CLIENT);
         assertThatThrownBy(() -> nonexistent.fastForwardTimestamp(ONE_MILLION))
                 .hasMessageContaining(NOT_FOUND_CODE);
     }
@@ -167,7 +167,7 @@ public class TimeLockServerIntegrationTest {
 
     @Test
     public void timestampMigrationServiceShouldThrowIfQueryingInvalidClient() {
-        TimestampMigrationService nonexistent = getTimestampMigrationService(INVALID_CLIENT);
+        TimestampManagementService nonexistent = getTimestampMigrationService(INVALID_CLIENT);
         assertThatThrownBy(() -> nonexistent.fastForwardTimestamp(ONE_MILLION))
                 .hasMessageContaining(NOT_FOUND_CODE);
     }
@@ -175,10 +175,10 @@ public class TimeLockServerIntegrationTest {
     @Test
     public void timestampMigrationShouldFastForwardForClientNamespaces() {
         TimestampService timestampServiceForClient1 = getTimestampService(CLIENT_1);
-        TimestampMigrationService timestampMigrationServiceForClient2 = getTimestampMigrationService(CLIENT_2);
+        TimestampManagementService timestampManagementServiceForClient2 = getTimestampMigrationService(CLIENT_2);
 
         long firstTimestampForClient1 = timestampServiceForClient1.getFreshTimestamp();
-        timestampMigrationServiceForClient2.fastForwardTimestamp(ONE_MILLION);
+        timestampManagementServiceForClient2.fastForwardTimestamp(ONE_MILLION);
         long secondTimestampForClient1 = timestampServiceForClient1.getFreshTimestamp();
         assertThat(secondTimestampForClient1).isGreaterThan(firstTimestampForClient1).isLessThan(ONE_MILLION);
     }
@@ -199,7 +199,7 @@ public class TimeLockServerIntegrationTest {
     @Test
     public void timestampMigrationServiceShouldNotFastForwardTimestampsIfNotLeader() {
         String leader = getLeader();
-        TimestampMigrationService timestampService = getTimestampMigrationService(CLIENT_1);
+        TimestampManagementService timestampService = getTimestampMigrationService(CLIENT_1);
         try {
             setLeader(null);
             assertThatThrownBy(() -> timestampService.fastForwardTimestamp(ONE_MILLION))
@@ -263,10 +263,10 @@ public class TimeLockServerIntegrationTest {
                 TimestampService.class);
     }
 
-    private TimestampMigrationService getTimestampMigrationService(String client) {
+    private TimestampManagementService getTimestampMigrationService(String client) {
         return AtlasDbHttpClients.createProxy(
                 NO_SSL,
                 String.format("http://localhost:%d/%s", APP.getLocalPort(), client),
-                TimestampMigrationService.class);
+                TimestampManagementService.class);
     }
 }

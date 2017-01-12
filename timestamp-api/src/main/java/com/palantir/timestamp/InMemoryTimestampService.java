@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author bdorne
  *
  */
-public class InMemoryTimestampService implements TimestampService, TimestampMigrationService {
+public class InMemoryTimestampService implements TimestampService, TimestampManagementService {
     private final AtomicLong counter = new AtomicLong(0);
 
     @Override

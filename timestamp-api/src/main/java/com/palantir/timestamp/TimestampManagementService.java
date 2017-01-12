@@ -21,8 +21,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-@Path("/timestamp-migration")
-public interface TimestampMigrationService {
+@Path("/timestamp-management")
+public interface TimestampManagementService {
     /**
      * Updates the timestamp service to the currentTimestamp to ensure that all fresh timestamps issued after
      * this request are greater than the current timestamp.
