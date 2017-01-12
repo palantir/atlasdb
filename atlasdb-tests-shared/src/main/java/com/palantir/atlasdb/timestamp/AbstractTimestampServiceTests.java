@@ -30,7 +30,7 @@ import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractTimestampServiceTests {
-    private static final long ONE_MILLION = 1000_000;
+    private static final long ONE_MILLION = 1_000_000;
     private static final long TWO_MILLION = 2 * ONE_MILLION;
     public static final int ONE_THOUSAND = 1000;
 
