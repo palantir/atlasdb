@@ -56,6 +56,11 @@ develop
          - Allow tables declared with ``SweepStrategy.THOROUGH`` to be migrated.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1410>`__)
 
+    *    - |fixed|
+         - Fix an issue with stream store, where pre-loading the first block of an input stream caused us to create a transaction inside another transaction.
+           To avoid this issue, it is now the caller's responsibility to ensure that ``InputStream.read()`` is not called within the transaction used to fetch the stream.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1447>`__)
+
     *    - |improved|
          - ``atlasdb-rocksdb`` is no longer required by ``atlasdb-cli`` and therefore will no longer be packaged with AtlasDB clients
            pulling in ``atlasdb-dropwizard-bundle``.
