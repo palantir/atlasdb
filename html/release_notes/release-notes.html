@@ -325,6 +325,10 @@ See gradle-java-distribution <a class="reference external" href="https://github.
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Added Javadocs to <code class="docutils literal"><span class="pre">CassandraKeyValueService.java</span></code>, <a class="reference external" href="http://palantir.github.io/atlasdb/html/configuration/multinode_cassandra.html">documented</a> the behaviour of <code class="docutils literal"><span class="pre">CassandraKeyValueService</span></code> when one or more nodes in the Cassandra cluster are down.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1329">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><p class="first">Substantially improved performance of the DBKVS implementation of the single-iterator version of getRowsColumnRange.
 Two new performance benchmarks were added as part of this PR:</p>
 <blockquote>
@@ -337,21 +341,21 @@ Two new performance benchmarks were added as part of this PR:</p>
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1132">Pull Request</a>)</p>
 </td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>OkHttpClient connection pool configured to have 100 idle connections with 10 minute keep-alive, reducing the number of connections that need to be created when a large number of transactions begin.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1294">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Commit timestamp lookups are now cached across transactions.
 This provided a near 2x improvement in our performance benchmark testing.
 See comments on the pull request for details.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1238">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">LockAwareTransactionManager.runTaskWithLocksWithRetry</span></code> now fails faster if given lock tokens that time out in a way that cannot be recovered from.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1322">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>When we hit the <code class="docutils literal"><span class="pre">MultipleRunningTimestampServicesError</span></code> issue, we now automatically log thread dumps to a separate file (file path specified in service logs).
 The full file path of the <code class="docutils literal"><span class="pre">atlas-timestamps-log</span></code> file will be outputted to the service logs.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1275">Pull Request 1</a>, <a class="reference external" href="https://github.com/palantir/atlasdb/pull/1332">Pull Request 2</a>)</td>
