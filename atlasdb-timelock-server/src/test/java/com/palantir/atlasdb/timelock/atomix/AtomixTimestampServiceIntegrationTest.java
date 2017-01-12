@@ -22,6 +22,7 @@ import java.util.concurrent.TimeoutException;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.palantir.atlasdb.timestamp.TimestampServiceTests;
@@ -92,6 +93,7 @@ public class AtomixTimestampServiceIntegrationTest {
                 atomixTimestampService);
     }
 
+    @Ignore
     @Test
     public void canReturnManyUniqueTimestampsInParallel() throws TimeoutException, InterruptedException {
         TimestampServiceTests.canReturnManyUniqueTimestampsInParallel(atomixTimestampService);
