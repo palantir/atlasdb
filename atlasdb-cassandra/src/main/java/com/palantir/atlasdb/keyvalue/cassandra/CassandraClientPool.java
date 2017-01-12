@@ -252,7 +252,12 @@ public class CassandraClientPool {
     }
 
     private void addPool(InetSocketAddress server) {
-        currentPools.put(server, new CassandraClientPoolingContainer(server, config));
+        addPool(server, new CassandraClientPoolingContainer(server, config));
+    }
+
+    @VisibleForTesting
+    void addPool(InetSocketAddress server, CassandraClientPoolingContainer container) {
+        currentPools.put(server, container);
         registerMetricsForHost(server);
     }
 
@@ -587,7 +592,8 @@ public class CassandraClientPool {
         return runOnHost(getRandomGoodHost().getHost(), fn);
     }
 
-    private <V, K extends Exception> V runOnHost(InetSocketAddress specifiedHost,
+    @VisibleForTesting
+    <V, K extends Exception> V runOnHost(InetSocketAddress specifiedHost,
                                                  FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
         CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
         return runWithPooledResourceRecordingMetrics(hostPool, fn);
