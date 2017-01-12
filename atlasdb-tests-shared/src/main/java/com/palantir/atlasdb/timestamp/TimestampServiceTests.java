@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -33,8 +32,6 @@ import com.palantir.timestamp.TimestampService;
 public class TimestampServiceTests {
     private static final long ONE_MILLION = 1000 * 1000;
     private static final long TWO_MILLION = 2 * ONE_MILLION;
-
-    private static ExecutorService executor = Executors.newFixedThreadPool(16);
 
     private TimestampServiceTests() {
 
@@ -100,16 +97,18 @@ public class TimestampServiceTests {
         Assertions.assertThat(ts2).isGreaterThan(ts1);
     }
 
-    public static void canReturnManyUniqueTimestampsInParallel(TimestampService timestampService)
+    public static void canReturnManyUniqueTimestampsInParallel(
+            TimestampService timestampService,
+            ExecutorService executor)
             throws InterruptedException, TimeoutException {
         Set<Long> uniqueTimestamps = new ConcurrentSkipListSet<>();
 
-        repeat(TWO_MILLION, () -> uniqueTimestamps.add(timestampService.getFreshTimestamp()));
+        repeat(executor, TWO_MILLION, () -> uniqueTimestamps.add(timestampService.getFreshTimestamp()));
 
         Assertions.assertThat(uniqueTimestamps.size()).isEqualTo((int) TWO_MILLION);
     }
 
-    private static void repeat(long count, Runnable task) throws InterruptedException, TimeoutException {
+    private static void repeat(ExecutorService executor, long count, Runnable task) throws InterruptedException, TimeoutException {
         for (int i = 0; i < count; i++) {
             executor.submit(task);
         }

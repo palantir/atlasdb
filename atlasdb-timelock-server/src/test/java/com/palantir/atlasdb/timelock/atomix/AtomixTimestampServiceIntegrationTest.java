@@ -17,6 +17,8 @@ package com.palantir.atlasdb.timelock.atomix;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 
 import org.junit.AfterClass;
@@ -38,7 +40,6 @@ import io.atomix.variables.DistributedLong;
 public class AtomixTimestampServiceIntegrationTest {
     private static final Address LOCAL_ADDRESS = new Address("localhost", 8700);
     private static final String CLIENT_KEY = "client";
-
     private static final AtomixReplica ATOMIX_REPLICA = AtomixReplica.builder(LOCAL_ADDRESS)
             .withStorage(Storage.builder()
                     .withStorageLevel(StorageLevel.MEMORY)
@@ -47,6 +48,7 @@ public class AtomixTimestampServiceIntegrationTest {
             .build();
 
     private AtomixTimestampService atomixTimestampService;
+    private ExecutorService executor = Executors.newFixedThreadPool(16);
 
     @BeforeClass
     public static void startAtomix() {
@@ -96,7 +98,7 @@ public class AtomixTimestampServiceIntegrationTest {
     @Ignore
     @Test
     public void canReturnManyUniqueTimestampsInParallel() throws TimeoutException, InterruptedException {
-        TimestampServiceTests.canReturnManyUniqueTimestampsInParallel(atomixTimestampService);
+        TimestampServiceTests.canReturnManyUniqueTimestampsInParallel(atomixTimestampService, executor);
     }
 
     @Test

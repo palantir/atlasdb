@@ -19,6 +19,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 
 import org.junit.Rule;
@@ -34,6 +36,7 @@ public class PersistentTimestampServiceIntegrationTest {
 
     private InMemoryTimestampBoundStore timestampBoundStore = new InMemoryTimestampBoundStore();
     private PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(timestampBoundStore);
+    private ExecutorService executor = Executors.newFixedThreadPool(16);
 
     @Test public void
     timestampsAreReturnedInOrder() {
@@ -63,7 +66,7 @@ public class PersistentTimestampServiceIntegrationTest {
 
     @Test public void
     canReturnManyUniqueTimestampsInParallel() throws InterruptedException, TimeoutException {
-        TimestampServiceTests.canReturnManyUniqueTimestampsInParallel(persistentTimestampService);
+        TimestampServiceTests.canReturnManyUniqueTimestampsInParallel(persistentTimestampService, executor);
     }
 
     @Test public void

@@ -15,6 +15,8 @@
  */
 package com.palantir.timestamp;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 
 import org.junit.Test;
@@ -23,6 +25,7 @@ import com.palantir.atlasdb.timestamp.TimestampServiceTests;
 
 public class InMemoryTimestampServiceIntegrationTest {
     private InMemoryTimestampService inMemoryTimestampService = new InMemoryTimestampService();
+    private ExecutorService executor = Executors.newFixedThreadPool(16);
 
     @Test
     public void timestampsAreReturnedInOrder() {
@@ -55,7 +58,7 @@ public class InMemoryTimestampServiceIntegrationTest {
 
     @Test
     public void canReturnManyUniqueTimestampsInParallel() throws InterruptedException, TimeoutException {
-        TimestampServiceTests.canReturnManyUniqueTimestampsInParallel(inMemoryTimestampService);
+        TimestampServiceTests.canReturnManyUniqueTimestampsInParallel(inMemoryTimestampService, executor);
     }
 
     @Test
