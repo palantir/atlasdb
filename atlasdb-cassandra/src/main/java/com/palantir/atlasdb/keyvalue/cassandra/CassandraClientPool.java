@@ -33,6 +33,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -64,6 +65,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.ClientCreationFailedException;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
@@ -102,6 +104,11 @@ public class CassandraClientPool {
     Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
     final CassandraKeyValueServiceConfig config;
     final ScheduledThreadPoolExecutor refreshDaemon;
+
+    private final MetricsManager metricsManager = new MetricsManager();
+    private final AtomicLong totalRequests = new AtomicLong(0);
+    private final AtomicLong totalRequestExceptions = new AtomicLong(0);
+    private final AtomicLong totalRequestConnectionExceptions = new AtomicLong(0);
 
     public static class LightweightOppToken implements Comparable<LightweightOppToken> {
         final byte[] bytes;
@@ -175,12 +182,26 @@ public class CassandraClientPool {
             runOneTimeStartupChecks();
         }
         refreshPool(); // ensure we've initialized before returning
+        registerMetrics();
     }
 
     public void shutdown() {
         refreshDaemon.shutdown();
         currentPools.forEach((address, cassandraClientPoolingContainer) ->
                 cassandraClientPoolingContainer.shutdownPooling());
+        metricsManager.deregisterMetrics();
+    }
+
+    private void registerMetrics() {
+        metricsManager.registerMetric(
+                CassandraClientPool.class, "numBlacklistedHosts",
+                () -> blacklistedHosts.size());
+        metricsManager.registerMetric(
+                CassandraClientPool.class, "requestFailureProportion",
+                () -> ((double) totalRequestExceptions.get()) / ((double) totalRequests.get()));
+        metricsManager.registerMetric(
+                CassandraClientPool.class, "requestConnectionExceptionProportion",
+                () -> ((double) totalRequestConnectionExceptions.get()) / ((double) totalRequests.get()));
     }
 
     private synchronized void refreshPool() {
@@ -510,8 +531,10 @@ public class CassandraClientPool {
             }
 
             try {
+                totalRequests.getAndIncrement();
                 return hostPool.runWithPooledResource(fn);
             } catch (Exception e) {
+                recordException(e);
                 numTries++;
                 triedHosts.add(hostPool.getHost());
                 this.<K>handleException(numTries, hostPool.getHost(), e);
@@ -538,7 +561,20 @@ public class CassandraClientPool {
     private <V, K extends Exception> V runOnHost(InetSocketAddress specifiedHost,
                                                  FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
         CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
-        return hostPool.runWithPooledResource(fn);
+        totalRequests.getAndIncrement();
+        try {
+            return hostPool.runWithPooledResource(fn);
+        } catch (Exception e) {
+            recordException(e);
+            throw e;
+        }
+    }
+
+    private void recordException(Exception ex) {
+        totalRequestExceptions.getAndIncrement();
+        if (isConnectionException(ex)) {
+            totalRequestConnectionExceptions.getAndIncrement();
+        }
     }
 
     @SuppressWarnings("unchecked")
