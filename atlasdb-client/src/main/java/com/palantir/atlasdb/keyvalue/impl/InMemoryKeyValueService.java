@@ -15,12 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -30,7 +28,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -40,10 +37,8 @@ import org.apache.commons.lang.ArrayUtils;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -53,6 +48,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -374,7 +370,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), 0), true);
+        putInternal(tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), AtlasDbConstants.TRANSACTION_TS), true);
     }
 
     private void putInternal(TableReference tableRef, Collection<Map.Entry<Cell, Value>> values, boolean doNotOverwriteWithSameValue) {
@@ -415,47 +411,11 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         } else {
             byte[] oldContents = putIfAbsent(table, key, contents);
             if (oldContents != null) {
-                String actual = new String(oldContents, StandardCharsets.UTF_8);
+                String actual = PtBytes.encodeHexString(oldContents);
                 String msg = String.format("Unexpected value for this key. Wanted (empty), got %s", actual);
                 throw new CheckAndSetException(msg, cell, null, ImmutableList.of(oldContents));
             }
         }
-    }
-
-    private void throwCheckAndSetException(Cell cell, byte[] expected, byte[] actual) {
-        String expectedStr = new String(expected, StandardCharsets.UTF_8);
-        if (actual != null) {
-            String actualStr = new String(actual, StandardCharsets.UTF_8);
-            String msg = String.format("Unexpected value for this key. Wanted %s, got %s", expectedStr, actualStr);
-            throw new CheckAndSetException(msg, cell, expected, ImmutableList.of(actual));
-        } else {
-            String msg = String.format("Unexpected value for this key. Wanted %s, got (empty)", expectedStr);
-            throw new CheckAndSetException(msg, cell, expected, ImmutableList.of());
-        }
-    }
-
-    private List<byte[]> getStoredValues(Cell cell, TableReference tableRef) {
-        Map<Cell, Value> storedValue = get(tableRef, ImmutableMap.of(cell, AtlasDbConstants.TRANSACTION_TS + 1));
-        return storedValue.values().stream().map(Value::getContents).collect(Collectors.toList());
-    }
-
-    private boolean valuesMatch(Map<Cell, Value> storedValue, Optional<byte[]> expectedValue) {
-        if (!expectedValue.isPresent()) {
-            return storedValue.isEmpty();
-        }
-
-        return storedValue.entrySet().size() == 1
-                && Arrays.equals(expectedValue.get(), Iterables.getOnlyElement(storedValue.values()).getContents());
-    }
-
-    private String getStringRepresentation(Optional<byte[]> oldValue) {
-        String expected;
-        if (oldValue.isPresent()) {
-            expected = new String(oldValue.get(), StandardCharsets.UTF_8);
-        } else {
-            expected = "(absent)";
-        }
-        return expected;
     }
 
     private Key getKey(Table table, Cell cell, long timestamp) {
@@ -468,6 +428,18 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             row = nextKey.row;
         }
         return new Key(row, col, timestamp);
+    }
+
+    private void throwCheckAndSetException(Cell cell, byte[] expected, byte[] actual) {
+        String expectedStr = PtBytes.encodeHexString(expected);
+        if (actual != null) {
+            String actualStr = PtBytes.encodeHexString(actual);
+            String msg = String.format("Unexpected value for this key. Wanted %s, got %s", expectedStr, actualStr);
+            throw new CheckAndSetException(msg, cell, expected, ImmutableList.of(actual));
+        } else {
+            String msg = String.format("Unexpected value for this key. Wanted %s, got (empty)", expectedStr);
+            throw new CheckAndSetException(msg, cell, expected, ImmutableList.of());
+        }
     }
 
     @Override
