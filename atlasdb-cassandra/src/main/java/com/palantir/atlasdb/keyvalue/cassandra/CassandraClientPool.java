@@ -106,9 +106,8 @@ public class CassandraClientPool {
     final ScheduledThreadPoolExecutor refreshDaemon;
 
     private final MetricsManager metricsManager = new MetricsManager();
-    private final AtomicLong totalRequests = new AtomicLong(0);
-    private final AtomicLong totalRequestExceptions = new AtomicLong(0);
-    private final AtomicLong totalRequestConnectionExceptions = new AtomicLong(0);
+    private final RequestMetrics aggregateMetrics = new RequestMetrics();
+    private final Map<InetSocketAddress, RequestMetrics> metricsByHost = new HashMap<>();
 
     public static class LightweightOppToken implements Comparable<LightweightOppToken> {
         final byte[] bytes;
@@ -145,6 +144,21 @@ public class CassandraClientPool {
         }
     }
 
+    private static class RequestMetrics {
+        final AtomicLong totalRequests = new AtomicLong(0);
+        final AtomicLong totalRequestExceptions = new AtomicLong(0);
+        final AtomicLong totalRequestConnectionExceptions = new AtomicLong(0);
+
+        // Approximate
+        double getExceptionProportion() {
+            return ((double) totalRequestExceptions.get()) / ((double) totalRequests.get());
+        }
+        // Approximate
+        double getConnectionExceptionProportion() {
+            return ((double) totalRequestConnectionExceptions.get()) / ((double) totalRequests.get());
+        }
+    }
+
     private enum StartupChecks {
         RUN,
         DO_NOT_RUN
@@ -161,9 +175,7 @@ public class CassandraClientPool {
 
     private CassandraClientPool(CassandraKeyValueServiceConfig config, StartupChecks startupChecks) {
         this.config = config;
-        config.servers().forEach(server ->
-                currentPools.put(server, new CassandraClientPoolingContainer(server, config)));
-
+        config.servers().forEach(this::addPool);
         refreshDaemon = PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("CassandraClientPoolRefresh-%d")
@@ -182,7 +194,7 @@ public class CassandraClientPool {
             runOneTimeStartupChecks();
         }
         refreshPool(); // ensure we've initialized before returning
-        registerMetrics();
+        registerAggregateMetrics();
     }
 
     public void shutdown() {
@@ -192,16 +204,16 @@ public class CassandraClientPool {
         metricsManager.deregisterMetrics();
     }
 
-    private void registerMetrics() {
+    private void registerAggregateMetrics() {
         metricsManager.registerMetric(
                 CassandraClientPool.class, "numBlacklistedHosts",
                 () -> blacklistedHosts.size());
         metricsManager.registerMetric(
                 CassandraClientPool.class, "requestFailureProportion",
-                () -> ((double) totalRequestExceptions.get()) / ((double) totalRequests.get()));
+                aggregateMetrics::getExceptionProportion);
         metricsManager.registerMetric(
                 CassandraClientPool.class, "requestConnectionExceptionProportion",
-                () -> ((double) totalRequestConnectionExceptions.get()) / ((double) totalRequests.get()));
+                aggregateMetrics::getConnectionExceptionProportion);
     }
 
     private synchronized void refreshPool() {
@@ -225,13 +237,8 @@ public class CassandraClientPool {
             serversToRemove = Sets.difference(currentPools.keySet(), config.servers());
         }
 
-        for (InetSocketAddress newServer : serversToAdd) {
-            currentPools.put(newServer, new CassandraClientPoolingContainer(newServer, config));
-        }
-
-        for (InetSocketAddress removedServerAddress : serversToRemove) {
-            removePool(removedServerAddress);
-        }
+        serversToAdd.forEach(this::addPool);
+        serversToRemove.forEach(this::removePool);
 
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
             sanityCheckRingConsistency();
@@ -244,7 +251,13 @@ public class CassandraClientPool {
         debugLogStateOfPool();
     }
 
+    private void addPool(InetSocketAddress server) {
+        currentPools.put(server, new CassandraClientPoolingContainer(server, config));
+        registerMetricsForHost(server);
+    }
+
     private void removePool(InetSocketAddress removedServerAddress) {
+        deregisterMetricsForHost(removedServerAddress);
         blacklistedHosts.remove(removedServerAddress);
         try {
             currentPools.get(removedServerAddress).shutdownPooling();
@@ -253,6 +266,24 @@ public class CassandraClientPool {
                     removedServerAddress, e);
         }
         currentPools.remove(removedServerAddress);
+    }
+
+    private void registerMetricsForHost(InetSocketAddress server) {
+        RequestMetrics requestMetrics = new RequestMetrics();
+        metricsManager.registerMetric(
+                CassandraClientPool.class,
+                server.getHostString(), "requestFailureProportion",
+                requestMetrics::getExceptionProportion);
+        metricsManager.registerMetric(
+                CassandraClientPool.class,
+                server.getHostString(), "requestConnectionExceptionProportion",
+                requestMetrics::getConnectionExceptionProportion);
+        metricsByHost.put(server, requestMetrics);
+    }
+
+    private void deregisterMetricsForHost(InetSocketAddress removedServerAddress) {
+        metricsByHost.remove(removedServerAddress);
+        metricsManager.deregisterMetricsWithPrefix(CassandraClientPool.class, removedServerAddress.getHostString());
     }
 
     private void debugLogStateOfPool() {
@@ -531,10 +562,8 @@ public class CassandraClientPool {
             }
 
             try {
-                totalRequests.getAndIncrement();
-                return hostPool.runWithPooledResource(fn);
+                return runWithPooledResourceRecordingMetrics(hostPool, fn);
             } catch (Exception e) {
-                recordException(e);
                 numTries++;
                 triedHosts.add(hostPool.getHost());
                 this.<K>handleException(numTries, hostPool.getHost(), e);
@@ -561,19 +590,46 @@ public class CassandraClientPool {
     private <V, K extends Exception> V runOnHost(InetSocketAddress specifiedHost,
                                                  FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
         CassandraClientPoolingContainer hostPool = currentPools.get(specifiedHost);
-        totalRequests.getAndIncrement();
+        return runWithPooledResourceRecordingMetrics(hostPool, fn);
+    }
+
+    private <V, K extends Exception> V runWithPooledResourceRecordingMetrics(
+            CassandraClientPoolingContainer hostPool,
+            FunctionCheckedException<Cassandra.Client, V, K> fn) throws K {
+
+        recordRequestOnHost(hostPool);
         try {
             return hostPool.runWithPooledResource(fn);
         } catch (Exception e) {
-            recordException(e);
+            recordExceptionOnHost(hostPool);
+            if (isConnectionException(e)) {
+                recordConnectionExceptionOnHost(hostPool);
+            }
             throw e;
         }
     }
 
-    private void recordException(Exception ex) {
-        totalRequestExceptions.getAndIncrement();
-        if (isConnectionException(ex)) {
-            totalRequestConnectionExceptions.getAndIncrement();
+    private void recordRequestOnHost(CassandraClientPoolingContainer hostPool) {
+        aggregateMetrics.totalRequests.getAndIncrement();
+        RequestMetrics hostMetrics = metricsByHost.get(hostPool.getHost());
+        if (hostMetrics != null) {
+            hostMetrics.totalRequests.getAndIncrement();
+        }
+    }
+
+    private void recordExceptionOnHost(CassandraClientPoolingContainer hostPool) {
+        aggregateMetrics.totalRequestExceptions.getAndIncrement();
+        RequestMetrics hostMetrics = metricsByHost.get(hostPool.getHost());
+        if (hostMetrics != null) {
+            hostMetrics.totalRequestExceptions.getAndIncrement();
+        }
+    }
+
+    private void recordConnectionExceptionOnHost(CassandraClientPoolingContainer hostPool) {
+        aggregateMetrics.totalRequestConnectionExceptions.getAndIncrement();
+        RequestMetrics hostMetrics = metricsByHost.get(hostPool.getHost());
+        if (hostMetrics != null) {
+            hostMetrics.totalRequestConnectionExceptions.getAndIncrement();
         }
     }
 

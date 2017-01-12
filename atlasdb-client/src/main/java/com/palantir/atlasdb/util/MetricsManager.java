@@ -58,4 +58,16 @@ public class MetricsManager {
         registeredMetrics.forEach(metricRegistry::remove);
         registeredMetrics.clear();
     }
+
+    private synchronized void deregisterMetric(String fullyQualifiedMetricName) {
+        metricRegistry.remove(fullyQualifiedMetricName);
+        registeredMetrics.remove(fullyQualifiedMetricName);
+    }
+
+    public void deregisterMetricsWithPrefix(Class clazz, String prefix) {
+        String fqnPrefix = MetricRegistry.name(clazz, prefix);
+        registeredMetrics.stream()
+                .filter(metricName -> metricName.startsWith(fqnPrefix))
+                .forEach(this::deregisterMetric);
+    }
 }
