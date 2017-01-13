@@ -35,7 +35,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
@@ -168,7 +167,8 @@ public class CassandraClientPoolTest {
 
     @Test
     public void testRequestFailureMetricsWithConnectionException() {
-        throwingExceptionFromRunOnHostProduceRightMetrics(new SocketTimeoutException("test_exception"));
+        runTwoNoopsOnTwoHostsAndThrowFromSecondRunOnFirstHost(
+                new SocketTimeoutException("test_socket_timeout_exception"));
         verifyAggregateFailureMetrics(0.25, 0.25);
         verifyFailureMetricsOnHost(HOST_1, 0.5, 0.5);
         verifyFailureMetricsOnHost(HOST_2, 0.0, 0.0);
@@ -176,13 +176,14 @@ public class CassandraClientPoolTest {
 
     @Test
     public void testRequestFailureMetricsWithNoConnectionException() {
-        throwingExceptionFromRunOnHostProduceRightMetrics(new NoSuchElementException("test_exception"));
+        runTwoNoopsOnTwoHostsAndThrowFromSecondRunOnFirstHost(
+                new NoSuchElementException("test_non_connection_exception"));
         verifyAggregateFailureMetrics(0.25, 0.0);
         verifyFailureMetricsOnHost(HOST_1, 0.5, 0.0);
         verifyFailureMetricsOnHost(HOST_2, 0.0, 0.0);
     }
 
-    private void throwingExceptionFromRunOnHostProduceRightMetrics(Exception exception) {
+    private void runTwoNoopsOnTwoHostsAndThrowFromSecondRunOnFirstHost(Exception exception) {
         CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1, HOST_2));
 
         runNoopOnHost(HOST_1, cassandraClientPool);
@@ -290,39 +291,41 @@ public class CassandraClientPoolTest {
         }
     }
 
-    private void verifyAggregateFailureMetrics(double requestFailureProportion, double requestConnectionExceptionProportion) {
-        assertEquals(getClientPoolGaugeByMetricName(
-                "requestFailureProportion").getValue(),
+    private void verifyAggregateFailureMetrics(
+            double requestFailureProportion,
+            double requestConnectionExceptionProportion) {
+        assertEquals(
+                getAggregateMetricValueForMetricName("requestFailureProportion"),
                 requestFailureProportion);
-        assertEquals(getClientPoolGaugeByMetricName(
-                "requestConnectionExceptionProportion").getValue(),
+        assertEquals(
+                getAggregateMetricValueForMetricName("requestConnectionExceptionProportion"),
                 requestConnectionExceptionProportion);
     }
 
     private void verifyFailureMetricsOnHost(
-            InetSocketAddress host, double requestFailureProportion, double requestConnectionExceptionProportion) {
-        assertEquals(getClientPoolGaugeByMetricName(
-                host.getHostString(),
-                "requestFailureProportion").getValue(),
+            InetSocketAddress host,
+            double requestFailureProportion,
+            double requestConnectionExceptionProportion) {
+        assertEquals(
+                getMetricValueFromHostAndMetricName(host.getHostString(), "requestFailureProportion"),
                 requestFailureProportion);
-        assertEquals(getClientPoolGaugeByMetricName(
-                host.getHostString(),
-                "requestConnectionExceptionProportion").getValue(),
+        assertEquals(
+                getMetricValueFromHostAndMetricName(host.getHostString(), "requestConnectionExceptionProportion"),
                 requestConnectionExceptionProportion);
     }
 
     private void verifyBlacklistMetric(Integer expectedSize) {
-        assertEquals(getClientPoolGaugeByMetricName("numBlacklistedHosts").getValue(), expectedSize);
+        assertEquals(getAggregateMetricValueForMetricName("numBlacklistedHosts"), expectedSize);
     }
 
-    private Gauge getClientPoolGaugeByMetricName(String metricName) {
+    private Object getAggregateMetricValueForMetricName(String metricName) {
         String fullyQualifiedMetricName = MetricRegistry.name(CassandraClientPool.class, metricName);
-        return metricRegistry.getGauges().get(fullyQualifiedMetricName);
+        return metricRegistry.getGauges().get(fullyQualifiedMetricName).getValue();
     }
 
-    private Gauge getClientPoolGaugeByMetricName(String hostname, String metricName) {
+    private Object getMetricValueFromHostAndMetricName(String hostname, String metricName) {
         String fullyQualifiedMetricName = MetricRegistry.name(CassandraClientPool.class, hostname, metricName);
-        return metricRegistry.getGauges().get(fullyQualifiedMetricName);
+        return metricRegistry.getGauges().get(fullyQualifiedMetricName).getValue();
     }
 
 }
