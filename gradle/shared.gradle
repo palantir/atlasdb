@@ -98,8 +98,6 @@ task verifyDependencyLocksAreCurrent << {
     def expectedDependencies = tasks.saveLock.getOutputLock()
     def actualDependencies = tasks.saveLock.getGeneratedLock()
 
-    println expectedDependencies
-    println actualDependencies
     def digester = java.security.MessageDigest.getInstance('SHA')
     logger.info("Verifying integrity of dependency locks: {} vs {}", expectedDependencies, actualDependencies)
     if (digester.digest(expectedDependencies.bytes) != digester.digest(actualDependencies.bytes)) {
