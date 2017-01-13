@@ -39,7 +39,6 @@ import com.palantir.atlasdb.timelock.TimeLockServerImplementation;
 import com.palantir.atlasdb.timelock.config.ImmutableClusterConfiguration;
 import com.palantir.atlasdb.timelock.config.ImmutablePaxosConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
-import com.palantir.leader.LeaderElectionService;
 import com.palantir.paxos.PaxosAcceptor;
 
 import io.dropwizard.jersey.setup.JerseyEnvironment;
@@ -72,7 +71,7 @@ public class PaxosTimeLockServerImplementationTest {
     @Test
     public void verifyPaxosResourcesAreRegisteredAfterStartup() throws IOException {
         implementation.onStartup(TIMELOCK_CONFIG);
-        verify(environment.jersey(), times(1)).register(Mockito.isA(LeaderElectionService.class));
+        verify(environment.jersey(), times(1)).register(Mockito.isA(LeadershipResource.class));
         verify(environment.jersey(), times(1)).register(Mockito.isA(PaxosResource.class));
         verify(environment.jersey(), times(1)).register(Mockito.isA(NotCurrentLeaderExceptionMapper.class));
     }

@@ -156,6 +156,13 @@ public class PaxosTimeLockServerIntegrationTest {
                 .hasMessageContaining(NOT_FOUND_CODE);
     }
 
+    @Test
+    public void supportsClientNamesMatchingPaxosRoles() throws InterruptedException {
+        getTimestampService("leader").getFreshTimestamp();
+        getTimestampService("learner").getFreshTimestamp();
+        getTimestampService("acceptor").getFreshTimestamp();
+    }
+
     private static RemoteLockService getLockService(String client) {
         return AtlasDbHttpClients.createProxy(
                 NO_SSL,

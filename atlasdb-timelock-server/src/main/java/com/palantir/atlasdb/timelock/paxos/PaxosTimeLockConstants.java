@@ -20,6 +20,8 @@ public final class PaxosTimeLockConstants {
     public static final String LEARNER_PATH = "/learner";
     public static final String ACCEPTOR_PATH = "/acceptor";
 
+    public static final String LEADER_NAMESPACE = "__leader";
+
     private PaxosTimeLockConstants() {
     }
 }

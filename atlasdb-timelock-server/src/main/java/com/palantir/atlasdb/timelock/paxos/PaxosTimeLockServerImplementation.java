@@ -88,19 +88,24 @@ public class PaxosTimeLockServerImplementation implements TimeLockServerImplemen
         Leaders.LocalPaxosServices localPaxosServices = Leaders.createLocalServices(leaderConfig);
         leaderElectionService = localPaxosServices.leaderElectionService();
 
-        environment.jersey().register(localPaxosServices.ourAcceptor());
-        environment.jersey().register(localPaxosServices.ourLearner());
-        environment.jersey().register(leaderElectionService);
+        environment.jersey().register(new LeadershipResource(
+                localPaxosServices.ourAcceptor(),
+                localPaxosServices.ourLearner(),
+                localPaxosServices.pingableLeader()));
         environment.jersey().register(new NotCurrentLeaderExceptionMapper());
     }
 
     private LeaderConfig getLeaderConfig(TimeLockServerConfiguration configuration) {
         return ImmutableLeaderConfig.builder()
-                    .leaders(configuration.cluster().servers())
-                    .localServer(configuration.cluster().localServer())
+                    .leaders(getNamespacedUris(configuration.cluster().servers(),
+                            PaxosTimeLockConstants.LEADER_NAMESPACE))
+                    .localServer(addNamespace(configuration.cluster().localServer(),
+                            PaxosTimeLockConstants.LEADER_NAMESPACE))
                     .acceptorLogDir(Paths.get(paxosConfiguration.paxosDataDir().toString(),
+                            PaxosTimeLockConstants.LEADER_NAMESPACE,
                             PaxosTimeLockConstants.ACCEPTOR_PATH).toFile())
                     .learnerLogDir(Paths.get(paxosConfiguration.paxosDataDir().toString(),
+                            PaxosTimeLockConstants.LEADER_NAMESPACE,
                             PaxosTimeLockConstants.LEARNER_PATH).toFile())
                     .pingRateMs(paxosConfiguration.pingRateMs())
                     .quorumSize(getQuorumSize(configuration.cluster().servers()))
@@ -182,7 +187,11 @@ public class PaxosTimeLockServerImplementation implements TimeLockServerImplemen
 
     private static Set<String> getNamespacedUris(Set<String> addresses, String suffix) {
         return addresses.stream()
-                .map(address -> address + "/" + suffix)
+                .map(address -> addNamespace(address, suffix))
                 .collect(Collectors.toSet());
+    }
+
+    private static String addNamespace(String address, String namespace) {
+        return address + "/" + namespace;
     }
 }

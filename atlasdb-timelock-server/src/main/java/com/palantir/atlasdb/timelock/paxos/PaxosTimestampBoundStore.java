@@ -76,6 +76,13 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
 
     @Override
     public synchronized long getUpperLimit() {
+        List<PaxosLong> responses = getLatestSequenceNumbersFromAcceptors();
+        PaxosLong max = Ordering.natural().onResultOf(PaxosLong::getValue).max(responses);
+        agreedState = getAgreedState(max.getValue());
+        return agreedState.getBound();
+    }
+
+    private List<PaxosLong> getLatestSequenceNumbersFromAcceptors() {
         List<PaxosLong> responses = PaxosQuorumChecker.collectQuorumResponses(
                 ImmutableList.copyOf(acceptors),
                 acceptor -> ImmutablePaxosLong.of(acceptor.getLatestSequencePreparedOrAccepted()),
@@ -86,9 +93,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         if (!PaxosQuorumChecker.hasQuorum(responses, proposer.getQuorumSize())) {
             throw new ServiceNotAvailableException("could not get a quorum");
         }
-        PaxosLong max = Ordering.natural().onResultOf(PaxosLong::getValue).max(responses);
-        agreedState = getAgreedState(max.getValue());
-        return agreedState.getBound();
+        return responses;
     }
 
     @VisibleForTesting

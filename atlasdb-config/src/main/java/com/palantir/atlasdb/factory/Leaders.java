@@ -105,6 +105,7 @@ public final class Leaders {
                 .ourAcceptor(ourAcceptor)
                 .ourLearner(ourLearner)
                 .leaderElectionService(leader)
+                .pingableLeader(leader)
                 .build();
     }
 
@@ -163,5 +164,6 @@ public final class Leaders {
         PaxosAcceptor ourAcceptor();
         PaxosLearner ourLearner();
         LeaderElectionService leaderElectionService();
+        PingableLeader pingableLeader();
     }
 }
