@@ -33,7 +33,6 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -47,6 +46,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Counter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -146,29 +146,29 @@ public class CassandraClientPool {
     }
 
     private static class RequestMetrics {
-        final AtomicLong totalRequests = new AtomicLong(0);
-        final AtomicLong totalRequestExceptions = new AtomicLong(0);
-        final AtomicLong totalRequestConnectionExceptions = new AtomicLong(0);
+        private final Counter totalRequests = new Counter();
+        private final Counter totalRequestExceptions = new Counter();
+        private final Counter totalRequestConnectionExceptions = new Counter();
 
-        AtomicLong getTotalRequests() {
+        Counter getTotalRequests() {
             return totalRequests;
         }
 
-        AtomicLong getTotalRequestExceptions() {
+        Counter getTotalRequestExceptions() {
             return totalRequestExceptions;
         }
 
-        AtomicLong getTotalRequestConnectionExceptions() {
+        Counter getTotalRequestConnectionExceptions() {
             return totalRequestConnectionExceptions;
         }
 
         // Approximate
         double getExceptionProportion() {
-            return ((double) totalRequestExceptions.get()) / ((double) totalRequests.get());
+            return ((double) totalRequestExceptions.getCount()) / ((double) totalRequests.getCount());
         }
         // Approximate
         double getConnectionExceptionProportion() {
-            return ((double) totalRequestConnectionExceptions.get()) / ((double) totalRequests.get());
+            return ((double) totalRequestConnectionExceptions.getCount()) / ((double) totalRequests.getCount());
         }
     }
 
@@ -642,11 +642,11 @@ public class CassandraClientPool {
 
     private void incrementMetric(
             CassandraClientPoolingContainer hostPool,
-            Function<RequestMetrics, AtomicLong> getMetric) {
-        getMetric.apply(aggregateMetrics).getAndIncrement();
+            Function<RequestMetrics, Counter> getMetric) {
+        getMetric.apply(aggregateMetrics).inc();
         RequestMetrics requestMetricsForHost = metricsByHost.get(hostPool.getHost());
         if (requestMetricsForHost != null) {
-            getMetric.apply(requestMetricsForHost).getAndIncrement();
+            getMetric.apply(requestMetricsForHost).inc();
         }
     }
 
