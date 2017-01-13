@@ -55,8 +55,7 @@ public class LockClientTest {
     public void lockRequestIsWrite() throws InterruptedException {
         when(LockClient.lock(LOCK_SERVICE, CLIENT, LOCK_NAME)).thenAnswer((invocation) -> {
             LockRequest request = (LockRequest) invocation.getArguments()[1];
-            assertThat(request.getLocks(), contains(
-                    hasProperty("lockMode", is(LockMode.WRITE))));
+            assertThat(request.getLocks(), contains(hasProperty("lockMode", is(LockMode.WRITE))));
             return null;
         });
     }
