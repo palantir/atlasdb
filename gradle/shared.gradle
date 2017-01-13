@@ -108,3 +108,5 @@ task verifyDependencyLocksAreCurrent << {
                 + "Run `./gradlew generateLock saveLock` and commit the updated version.lock files")
     }
 }
+
+check.dependsOn generateLock, verifyDependencyLocksAreCurrent
