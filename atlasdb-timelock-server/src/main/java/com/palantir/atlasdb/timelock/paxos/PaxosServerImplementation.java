@@ -47,7 +47,6 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
-import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.remoting.ssl.SslSocketFactories;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.TimestampService;
@@ -76,7 +75,6 @@ public class PaxosServerImplementation implements ServerImplementation {
         optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
 
         registerLeaderElectionService(configuration);
-        environment.jersey().register(new NotCurrentLeaderExceptionMapper());
     }
 
     private void registerPaxosResource() {
@@ -107,6 +105,7 @@ public class PaxosServerImplementation implements ServerImplementation {
         environment.jersey().register(localPaxosServices.ourAcceptor());
         environment.jersey().register(localPaxosServices.ourLearner());
         environment.jersey().register(leaderElectionService);
+        environment.jersey().register(new NotCurrentLeaderExceptionMapper());
     }
 
     @VisibleForTesting
@@ -148,20 +147,17 @@ public class PaxosServerImplementation implements ServerImplementation {
                 .setDaemon(true)
                 .build());
 
-        List<PaxosAcceptor> acceptors = getNamespacedProxies(
-                remoteServers,
-                client,
-                optionalSecurity,
-                PaxosAcceptor.class);
-        acceptors.add(paxosResource.getPaxosAcceptor(client));
-        List<PaxosLearner> learners = getNamespacedProxies(
-                remoteServers,
-                client,
-                optionalSecurity,
-                PaxosLearner.class);
-        learners.add(paxosResource.getPaxosLearner(client));
+        Set<String> namespacedUris = getNamespacedUris(remoteServers, client);
+        List<PaxosAcceptor> acceptors = Leaders.createAcceptorList(
+                paxosResource.getPaxosAcceptor(client),
+                namespacedUris,
+                optionalSecurity);
+        List<PaxosLearner> learners = Leaders.createLearnerList(
+                paxosResource.getPaxosLearner(client),
+                namespacedUris,
+                optionalSecurity);
 
-        PaxosProposer proposer = PaxosProposerImpl.newProposer(
+        PaxosProposer proposer = Leaders.createPaxosProposer(
                 paxosResource.getPaxosLearner(client),
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners),

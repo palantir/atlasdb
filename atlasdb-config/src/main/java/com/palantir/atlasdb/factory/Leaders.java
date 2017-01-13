@@ -62,7 +62,6 @@ public final class Leaders {
 
         env.register(localPaxosServices.ourAcceptor());
         env.register(localPaxosServices.ourLearner());
-
         env.register(localPaxosServices.leaderElectionService());
         env.register(new NotCurrentLeaderExceptionMapper());
 
@@ -79,13 +78,8 @@ public final class Leaders {
         Optional<SSLSocketFactory> sslSocketFactory =
                 TransactionManagers.createSslSocketFactory(config.sslConfiguration());
 
-        List<PaxosLearner> learners =
-                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosLearner.class);
-        learners.add(ourLearner);
-
-        List<PaxosAcceptor> acceptors =
-                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosAcceptor.class);
-        acceptors.add(ourAcceptor);
+        List<PaxosLearner> learners = createLearnerList(ourLearner, remoteLeaderUris, sslSocketFactory);
+        List<PaxosAcceptor> acceptors = createAcceptorList(ourAcceptor, remoteLeaderUris, sslSocketFactory);
 
         Map<PingableLeader, HostAndPort> otherLeaders = generatePingables(remoteLeaderUris, sslSocketFactory);
 
@@ -94,12 +88,7 @@ public final class Leaders {
                 .setDaemon(true)
                 .build());
 
-        PaxosProposer proposer = PaxosProposerImpl.newProposer(
-                ourLearner,
-                ImmutableList.copyOf(acceptors),
-                ImmutableList.copyOf(learners),
-                config.quorumSize(),
-                executor);
+        PaxosProposer proposer = createPaxosProposer(ourLearner, acceptors, learners, config.quorumSize(), executor);
 
         PaxosLeaderElectionService leader = new PaxosLeaderElectionService(
                 proposer,
@@ -117,6 +106,40 @@ public final class Leaders {
                 .ourLearner(ourLearner)
                 .leaderElectionService(leader)
                 .build();
+    }
+
+    public static PaxosProposer createPaxosProposer(
+            PaxosLearner ourLearner,
+            List<PaxosAcceptor> acceptors,
+            List<PaxosLearner> learners,
+            int quorumSize,
+            ExecutorService executor) {
+        return PaxosProposerImpl.newProposer(
+                    ourLearner,
+                    ImmutableList.copyOf(acceptors),
+                    ImmutableList.copyOf(learners),
+                    quorumSize,
+                    executor);
+    }
+
+    public static List<PaxosAcceptor> createAcceptorList(
+            PaxosAcceptor ourAcceptor,
+            Set<String> remoteLeaderUris,
+            Optional<SSLSocketFactory> sslSocketFactory) {
+        List<PaxosAcceptor> acceptors =
+                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosAcceptor.class);
+        acceptors.add(ourAcceptor);
+        return acceptors;
+    }
+
+    public static List<PaxosLearner> createLearnerList(
+            PaxosLearner ourLearner,
+            Set<String> remoteLeaderUris,
+            Optional<SSLSocketFactory> sslSocketFactory) {
+        List<PaxosLearner> learners =
+                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosLearner.class);
+        learners.add(ourLearner);
+        return learners;
     }
 
     public static Map<PingableLeader, HostAndPort> generatePingables(

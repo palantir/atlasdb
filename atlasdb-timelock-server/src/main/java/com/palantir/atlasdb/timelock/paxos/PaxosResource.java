@@ -30,7 +30,6 @@ import com.palantir.paxos.PaxosLearnerImpl;
 
 @Path("/{client: [a-zA-Z0-9_-]+}")
 public final class PaxosResource {
-
     private final String logDirectory;
     private final Map<String, PaxosLearner> paxosLearners;
     private final Map<String, PaxosAcceptor> paxosAcceptors;
