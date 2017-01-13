@@ -61,7 +61,8 @@ public class PaxosTimeLockServerImplementationTest {
             TEST_CLIENTS);
 
     private final Environment environment = mock(Environment.class);
-    private final TimeLockServerImplementation implementation = TIMELOCK_CONFIG.algorithm().createServerImpl(environment);
+    private final TimeLockServerImplementation implementation =
+            TIMELOCK_CONFIG.algorithm().createServerImpl(environment);
 
     @Before
     public void setUp() {

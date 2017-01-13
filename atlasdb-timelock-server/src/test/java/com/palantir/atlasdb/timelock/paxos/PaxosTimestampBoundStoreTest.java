@@ -17,6 +17,11 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.io.File;
 import java.io.IOException;
@@ -141,9 +146,11 @@ public class PaxosTimestampBoundStoreTest {
 
     @Test
     public void retriesProposeUntilSuccessful() throws Exception {
-        store = createOnceFailingPaxosTimestampBoundStore(0);
+        PaxosProposer wrapper = spy(new OnceFailingPaxosProposer(createPaxosProposer(0)));
+        store = createPaxosTimestampBoundStore(0, wrapper);
         store.storeUpperLimit(TIMESTAMP_1);
         assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
+        verify(wrapper, times(2)).propose(anyLong(), anyObject());
     }
 
     @Test
@@ -256,9 +263,11 @@ public class PaxosTimestampBoundStoreTest {
 
     @Test
     public void retriesForceAgreedStateUntilSuccessful() throws Exception {
-        store = createOnceFailingPaxosTimestampBoundStore(0);
+        PaxosProposer wrapper = spy(new OnceFailingPaxosProposer(createPaxosProposer(0)));
+        store = createPaxosTimestampBoundStore(0, wrapper);
         store.forceAgreedState(1, TIMESTAMP_1);
         assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
+        verify(wrapper, times(2)).propose(anyLong(), anyObject());
     }
 
     private PaxosTimestampBoundStore createPaxosTimestampBoundStore(int nodeIndex) {
@@ -275,12 +284,6 @@ public class PaxosTimestampBoundStoreTest {
                 1000L);
     }
 
-    private PaxosTimestampBoundStore createOnceFailingPaxosTimestampBoundStore(int nodeIndex)
-            throws PaxosRoundFailureException {
-        PaxosProposer proposer = new OnceFailingPaxosProposer(createPaxosProposer(nodeIndex));
-        return createPaxosTimestampBoundStore(nodeIndex, proposer);
-    }
-
     private PaxosProposer createPaxosProposer(int nodeIndex) {
         return PaxosProposerImpl.newProposer(
                 learners.get(nodeIndex),
@@ -290,11 +293,11 @@ public class PaxosTimestampBoundStoreTest {
                 executor);
     }
 
-    private static final class OnceFailingPaxosProposer implements PaxosProposer {
+    private static class OnceFailingPaxosProposer implements PaxosProposer {
         private final PaxosProposer delegate;
         private boolean hasFailed = false;
 
-        private OnceFailingPaxosProposer(PaxosProposer delegate) {
+        OnceFailingPaxosProposer(PaxosProposer delegate) {
             this.delegate = delegate;
         }
 
