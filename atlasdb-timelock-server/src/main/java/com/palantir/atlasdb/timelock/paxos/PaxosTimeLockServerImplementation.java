@@ -84,27 +84,29 @@ public class PaxosTimeLockServerImplementation implements TimeLockServerImplemen
     private void registerLeaderElectionService(TimeLockServerConfiguration configuration) {
         remoteServers = getRemotePaths(configuration);
 
-        LeaderConfig leaderConfig = ImmutableLeaderConfig.builder()
-                .leaders(configuration.cluster().servers())
-                .localServer(configuration.cluster().localServer())
-                .acceptorLogDir(Paths.get(paxosConfiguration.paxosDataDir().toString(),
-                        PaxosTimeLockConstants.ACCEPTOR_PATH).toFile())
-                .learnerLogDir(Paths.get(paxosConfiguration.paxosDataDir().toString(),
-                        PaxosTimeLockConstants.LEARNER_PATH).toFile())
-                .pingRateMs(paxosConfiguration.pingRateMs())
-                .quorumSize(getQuorumSize(configuration.cluster().servers()))
-                .leaderPingResponseWaitMs(paxosConfiguration.leaderPingResponseWaitMs())
-                .randomWaitBeforeProposingLeadershipMs(paxosConfiguration.maximumWaitBeforeProposalMs())
-                .build();
-
+        LeaderConfig leaderConfig = getLeaderConfig(configuration);
         Leaders.LocalPaxosServices localPaxosServices = Leaders.createLocalServices(leaderConfig);
-
         leaderElectionService = localPaxosServices.leaderElectionService();
 
         environment.jersey().register(localPaxosServices.ourAcceptor());
         environment.jersey().register(localPaxosServices.ourLearner());
         environment.jersey().register(leaderElectionService);
         environment.jersey().register(new NotCurrentLeaderExceptionMapper());
+    }
+
+    private LeaderConfig getLeaderConfig(TimeLockServerConfiguration configuration) {
+        return ImmutableLeaderConfig.builder()
+                    .leaders(configuration.cluster().servers())
+                    .localServer(configuration.cluster().localServer())
+                    .acceptorLogDir(Paths.get(paxosConfiguration.paxosDataDir().toString(),
+                            PaxosTimeLockConstants.ACCEPTOR_PATH).toFile())
+                    .learnerLogDir(Paths.get(paxosConfiguration.paxosDataDir().toString(),
+                            PaxosTimeLockConstants.LEARNER_PATH).toFile())
+                    .pingRateMs(paxosConfiguration.pingRateMs())
+                    .quorumSize(getQuorumSize(configuration.cluster().servers()))
+                    .leaderPingResponseWaitMs(paxosConfiguration.leaderPingResponseWaitMs())
+                    .randomWaitBeforeProposingLeadershipMs(paxosConfiguration.maximumWaitBeforeProposalMs())
+                    .build();
     }
 
     @VisibleForTesting
@@ -115,16 +117,6 @@ public class PaxosTimeLockServerImplementation implements TimeLockServerImplemen
     private static Optional<SSLSocketFactory> constructOptionalSslSocketFactory(
             PaxosConfiguration configuration) {
         return configuration.sslConfiguration().transform(SslSocketFactories::createSslSocketFactory);
-    }
-
-    @Override
-    public void onStop() {
-        // Nothing to do
-    }
-
-    @Override
-    public void onStartupFailure() {
-        // Nothing
     }
 
     @Override
@@ -175,7 +167,7 @@ public class PaxosTimeLockServerImplementation implements TimeLockServerImplemen
                 leaderElectionService);
     }
 
-    private static Set<String> getRemoteAddresses(TimeLockServerConfiguration configuration) {
+    private static Set<String> getRemoteServerAddresses(TimeLockServerConfiguration configuration) {
         return Sets.difference(configuration.cluster().servers(),
                 ImmutableSet.of(configuration.cluster().localServer()));
     }
@@ -183,7 +175,7 @@ public class PaxosTimeLockServerImplementation implements TimeLockServerImplemen
     private Set<String> getRemotePaths(TimeLockServerConfiguration configuration) {
         String protocolPrefix = paxosConfiguration.sslConfiguration().isPresent()
                 ? "https://" : "http://";
-        return getRemoteAddresses(configuration).stream()
+        return getRemoteServerAddresses(configuration).stream()
                 .map(address -> protocolPrefix + address)
                 .collect(Collectors.toSet());
     }
