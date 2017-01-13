@@ -1,6 +1,6 @@
 algorithm:
   type: paxos
-  paxosDataDir: var/test/data
+  paxosDataDir: <TEMP_DATA_DIR>
 
 cluster:
   localServer: localhost:8080

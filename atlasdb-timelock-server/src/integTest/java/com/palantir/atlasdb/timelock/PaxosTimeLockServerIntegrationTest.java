@@ -23,16 +23,16 @@ import java.util.SortedMap;
 
 import javax.net.ssl.SSLSocketFactory;
 
-import org.apache.commons.io.FileUtils;
-import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -42,7 +42,6 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.timestamp.TimestampService;
 
 import io.dropwizard.testing.ResourceHelpers;
-import io.dropwizard.testing.junit.DropwizardAppRule;
 
 public class PaxosTimeLockServerIntegrationTest {
     private static final String NOT_FOUND_CODE = "404";
@@ -56,16 +55,18 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final String LOCK_CLIENT_NAME = "lock-client-name";
     private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP = ImmutableSortedMap.of(
             StringLockDescriptor.of("lock1"), LockMode.WRITE);
+    private static final File TIMELOCK_CONFIG = new File(ResourceHelpers.resourceFilePath("paxosSingleServer.yml"));
+
+    private static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
+    private static final TemporaryConfigurationHolder TEMPORARY_CONFIG_HOLDER =
+            new TemporaryConfigurationHolder(TEMPORARY_FOLDER, TIMELOCK_CONFIG);
+    private static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
+            new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation);
 
     @ClassRule
-    public static final DropwizardAppRule<TimeLockServerConfiguration> APP = new DropwizardAppRule<>(
-            TimeLockServer.class,
-            ResourceHelpers.resourceFilePath("paxosSingleServer.yml"));
-
-    @AfterClass
-    public static void tearDownClass() throws Exception {
-        FileUtils.deleteDirectory(new File("var/test/data"));
-    }
+    public static final RuleChain ruleChain = RuleChain.outerRule(TEMPORARY_FOLDER)
+            .around(TEMPORARY_CONFIG_HOLDER)
+            .around(TIMELOCK_SERVER_HOLDER);
 
     @Test
     public void lockServiceShouldAllowUsToTakeOutLocks() throws InterruptedException {
@@ -104,15 +105,15 @@ public class PaxosTimeLockServerIntegrationTest {
         RemoteLockService lockService1 = getLockService(CLIENT_1);
         RemoteLockService lockService2 = getLockService(CLIENT_2);
 
-        LockRefreshToken token1 = lockService1.lock(LOCK_CLIENT_NAME, LockRequest.builder(LOCK_MAP)
+        LockRefreshToken token = lockService1.lock(LOCK_CLIENT_NAME, LockRequest.builder(LOCK_MAP)
                 .doNotBlock()
                 .build());
 
-        assertThat(token1).isNotNull();
-        assertThat(lockService1.refreshLockRefreshTokens(ImmutableList.of(token1))).isNotEmpty();
-        assertThat(lockService2.refreshLockRefreshTokens(ImmutableList.of(token1))).isEmpty();
+        assertThat(token).isNotNull();
+        assertThat(lockService1.refreshLockRefreshTokens(ImmutableList.of(token))).isNotEmpty();
+        assertThat(lockService2.refreshLockRefreshTokens(ImmutableList.of(token))).isEmpty();
 
-        lockService1.unlock(token1);
+        lockService1.unlock(token);
     }
 
     @Test
@@ -136,8 +137,8 @@ public class PaxosTimeLockServerIntegrationTest {
         long firstServiceSecondTimestamp = timestampService1.getFreshTimestamp();
         long secondServiceSecondTimestamp = timestampService2.getFreshTimestamp();
 
-        assertThat(firstServiceFirstTimestamp + 1).isEqualTo(firstServiceSecondTimestamp);
-        assertThat(secondServiceFirstTimestamp + 1).isEqualTo(secondServiceSecondTimestamp);
+        Assert.assertEquals(firstServiceFirstTimestamp + 1, firstServiceSecondTimestamp);
+        Assert.assertEquals(secondServiceFirstTimestamp + 1, secondServiceSecondTimestamp);
     }
 
     @Test
@@ -157,14 +158,14 @@ public class PaxosTimeLockServerIntegrationTest {
     private static RemoteLockService getLockService(String client) {
         return AtlasDbHttpClients.createProxy(
                 NO_SSL,
-                String.format("http://localhost:%d/%s", APP.getLocalPort(), client),
+                String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client),
                 RemoteLockService.class);
     }
 
     private static TimestampService getTimestampService(String client) {
         return AtlasDbHttpClients.createProxy(
                 NO_SSL,
-                String.format("http://localhost:%d/%s", APP.getLocalPort(), client),
+                String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client),
                 TimestampService.class);
     }
 }
