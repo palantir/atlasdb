@@ -22,42 +22,61 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 
-import org.apache.commons.io.FileUtils;
-import org.junit.After;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import com.palantir.paxos.PaxosAcceptor;
+import com.palantir.paxos.PaxosLearner;
+import com.palantir.paxos.PaxosProposal;
+import com.palantir.paxos.PaxosProposalId;
+import com.palantir.paxos.PaxosValue;
 
 public class PaxosResourceTest {
-    private static final String LOG_DIR = "testLogs/";
-
     private static final String CLIENT_1 = "andrew";
     private static final String CLIENT_2 = "bob";
 
+    private static final long PAXOS_ROUND_ONE = 1;
+    private static final long PAXOS_ROUND_TWO = 2;
+    private static final String PAXOS_UUID = "paxos";
+    private static final byte[] PAXOS_DATA = { 0 };
+    private static final PaxosValue PAXOS_VALUE = new PaxosValue(PAXOS_UUID, PAXOS_ROUND_ONE, PAXOS_DATA);
+    private static final PaxosProposal PAXOS_PROPOSAL = new PaxosProposal(
+            new PaxosProposalId(PAXOS_ROUND_TWO, PAXOS_UUID), PAXOS_VALUE);
+
     private PaxosResource paxosResource;
+    private File logDirectory;
+
+    @ClassRule
+    public static TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Before
-    public void setUp() {
-        paxosResource = PaxosResource.create(LOG_DIR);
-    }
-
-    @After
-    public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(new File(LOG_DIR));
+    public void setUp() throws IOException {
+        logDirectory = temporaryFolder.newFolder();
+        paxosResource = PaxosResource.create(logDirectory.getPath());
     }
 
     @Test
     public void canAddClients() {
         paxosResource.addClient(CLIENT_1);
-        assertThat(paxosResource.getPaxosLearner(CLIENT_1)).isNotNull();
-        assertThat(paxosResource.getPaxosAcceptor(CLIENT_1)).isNotNull();
+        PaxosLearner learner = paxosResource.getPaxosLearner(CLIENT_1);
+        learner.learn(PAXOS_ROUND_ONE, PAXOS_VALUE);
+        assertThat(learner.getGreatestLearnedValue()).isNotNull();
+        assertThat(learner.getGreatestLearnedValue().getLeaderUUID()).isEqualTo(PAXOS_UUID);
+        assertThat(learner.getGreatestLearnedValue().getData()).isEqualTo(PAXOS_DATA);
+
+        PaxosAcceptor acceptor = paxosResource.getPaxosAcceptor(CLIENT_1);
+        acceptor.accept(PAXOS_ROUND_TWO, PAXOS_PROPOSAL);
+        assertThat(acceptor.getLatestSequencePreparedOrAccepted()).isEqualTo(PAXOS_ROUND_TWO);
     }
 
     @Test
     public void addsClientsInSubdirectory() {
         paxosResource.addClient(CLIENT_1);
-        File expectedAcceptorLogDir = Paths.get(LOG_DIR, CLIENT_1, PaxosResource.ACCEPTOR_PATH).toFile();
+        File expectedAcceptorLogDir = Paths.get(logDirectory.getPath(), CLIENT_1, PaxosResource.ACCEPTOR_PATH).toFile();
         assertThat(expectedAcceptorLogDir.exists()).isTrue();
-        File expectedLearnerLogDir = Paths.get(LOG_DIR, CLIENT_1, PaxosResource.LEARNER_PATH).toFile();
+        File expectedLearnerLogDir = Paths.get(logDirectory.getPath(), CLIENT_1, PaxosResource.LEARNER_PATH).toFile();
         assertThat(expectedLearnerLogDir.exists()).isTrue();
     }
 
