@@ -52,6 +52,8 @@ public class CassandraClientPoolTest {
     private static final String HOSTNAME_1 = "1.0.0.0";
     private static final String HOSTNAME_2 = "2.0.0.0";
     private static final String HOSTNAME_3 = "3.0.0.0";
+    private static final InetSocketAddress HOST_1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
+    private static final InetSocketAddress HOST_2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
     private MetricRegistry metricRegistry;
 
     @Before
@@ -62,29 +64,25 @@ public class CassandraClientPoolTest {
 
     @Test
     public void shouldReturnAddressForSingleHostInPool() throws UnknownHostException {
-        InetSocketAddress host = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
-        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host));
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
 
         InetSocketAddress resolvedHost = cassandraClientPool.getAddressForHost(HOSTNAME_1);
 
-        assertThat(resolvedHost, equalTo(host));
+        assertThat(resolvedHost, equalTo(HOST_1));
     }
 
     @Test
     public void shouldReturnAddressForSingleServer() throws UnknownHostException {
-        InetSocketAddress host = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
-        CassandraClientPool cassandraClientPool = clientPoolWithServers(ImmutableSet.of(host));
+        CassandraClientPool cassandraClientPool = clientPoolWithServers(ImmutableSet.of(HOST_1));
 
         InetSocketAddress resolvedHost = cassandraClientPool.getAddressForHost(HOSTNAME_1);
 
-        assertThat(resolvedHost, equalTo(host));
+        assertThat(resolvedHost, equalTo(HOST_1));
     }
 
     @Test
     public void shouldUseCommonPortIfThereIsOnlyOneAndNoAddressMatches() throws UnknownHostException {
-        InetSocketAddress host1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
-        InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
-        CassandraClientPool cassandraClientPool = clientPoolWithServers(ImmutableSet.of(host1, host2));
+        CassandraClientPool cassandraClientPool = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2));
 
         InetSocketAddress resolvedHost = cassandraClientPool.getAddressForHost(HOSTNAME_3);
 
@@ -94,18 +92,16 @@ public class CassandraClientPoolTest {
 
     @Test(expected = UnknownHostException.class)
     public void shouldThrowIfPortsAreNotTheSameAddressDoesNotMatch() throws UnknownHostException {
-        InetSocketAddress host1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
         InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, OTHER_PORT);
 
-        CassandraClientPool cassandraClientPool = clientPoolWithServers(ImmutableSet.of(host1, host2));
+        CassandraClientPool cassandraClientPool = clientPoolWithServers(ImmutableSet.of(HOST_1, host2));
 
         cassandraClientPool.getAddressForHost(HOSTNAME_3);
     }
 
     @Test
     public void shouldReturnAbsentIfPredicateMatchesNoServers() {
-        InetSocketAddress host = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
-        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host));
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
 
         Optional<CassandraClientPoolingContainer> container
                 = cassandraClientPool.getRandomGoodHostForPredicate(address -> false);
@@ -114,38 +110,33 @@ public class CassandraClientPoolTest {
 
     @Test
     public void shouldOnlyReturnHostsMatchingPredicate() {
-        InetSocketAddress host1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
-        InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
-        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host1, host2));
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1, HOST_2));
 
         int numTrials = 50;
         for (int i = 0; i < numTrials; i++) {
             Optional<CassandraClientPoolingContainer> container
-                    = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(host1));
+                    = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
             assertThat(container.isPresent(), is(true));
-            assertThat(container.get().getHost(), equalTo(host1));
+            assertThat(container.get().getHost(), equalTo(HOST_1));
         }
     }
 
     @Test
     public void shouldNotReturnHostsNotMatchingPredicateEvenWithNodeFailure() {
-        InetSocketAddress host1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
-        InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
-        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host1, host2));
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1, HOST_2));
 
-        cassandraClientPool.blacklistedHosts.put(host1, System.currentTimeMillis());
+        cassandraClientPool.blacklistedHosts.put(HOST_1, System.currentTimeMillis());
         Optional<CassandraClientPoolingContainer> container
-                = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(host1));
+                = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
         assertThat(container.isPresent(), is(true));
-        assertThat(container.get().getHost(), equalTo(host1));
+        assertThat(container.get().getHost(), equalTo(HOST_1));
     }
 
     @Test
     public void shouldNotAttemptMoreThanOneConnectionOnSuccess() {
-        InetSocketAddress host = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
-        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host));
-        cassandraClientPool.runWithRetryOnHost(host, input -> null);
-        verifyNumberOfAttemptsOnHost(host, cassandraClientPool, 1);
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
+        cassandraClientPool.runWithRetryOnHost(HOST_1, input -> null);
+        verifyNumberOfAttemptsOnHost(HOST_1, cassandraClientPool, 1);
     }
 
     @Test
@@ -168,64 +159,50 @@ public class CassandraClientPoolTest {
 
     @Test
     public void shouldKeepRetryingIfNowhereToRedirectTo() {
-        InetSocketAddress host = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
         CassandraClientPool cassandraClientPool = throwingClientPoolWithServersInCurrentPool(
-                ImmutableSet.of(host), new SocketTimeoutException());
+                ImmutableSet.of(HOST_1), new SocketTimeoutException());
 
-        runNoopOnHostWithRetryWithException(host, cassandraClientPool);
-        verifyNumberOfAttemptsOnHost(host, cassandraClientPool, CassandraClientPool.MAX_TRIES_TOTAL);
+        runNoopOnHostWithRetryWithException(HOST_1, cassandraClientPool);
+        verifyNumberOfAttemptsOnHost(HOST_1, cassandraClientPool, CassandraClientPool.MAX_TRIES_TOTAL);
     }
 
     @Test
     public void testRequestFailureMetricsWithConnectionException() {
-        InetSocketAddress host1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
-        InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
-        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host1, host2));
-
-        runNoopOnHost(host1, cassandraClientPool);
-        runNoopOnHost(host2, cassandraClientPool);
-        runNoopOnHost(host2, cassandraClientPool);
-
-        CassandraClientPoolingContainer container = cassandraClientPool.currentPools.get(host1);
-        setFailureModeForHost(container, new SocketTimeoutException());
-
-        runNoopOnHostWithException(host1, cassandraClientPool);
-
-        verifyFailureMetrics(0.25, 0.25);
-        verifyFailureMetricsOnHost(host1, 0.5, 0.5);
-        verifyFailureMetricsOnHost(host2, 0.0, 0.0);
+        throwingExceptionFromRunOnHostProduceRightMetrics(new SocketTimeoutException("test_exception"));
+        verifyAggregateFailureMetrics(0.25, 0.25);
+        verifyFailureMetricsOnHost(HOST_1, 0.5, 0.5);
+        verifyFailureMetricsOnHost(HOST_2, 0.0, 0.0);
     }
 
     @Test
     public void testRequestFailureMetricsWithNoConnectionException() {
-        InetSocketAddress host1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
-        InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
-        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host1, host2));
+        throwingExceptionFromRunOnHostProduceRightMetrics(new NoSuchElementException("test_exception"));
+        verifyAggregateFailureMetrics(0.25, 0.0);
+        verifyFailureMetricsOnHost(HOST_1, 0.5, 0.0);
+        verifyFailureMetricsOnHost(HOST_2, 0.0, 0.0);
+    }
 
-        runNoopOnHost(host1, cassandraClientPool);
-        runNoopOnHost(host2, cassandraClientPool);
-        runNoopOnHost(host2, cassandraClientPool);
+    private void throwingExceptionFromRunOnHostProduceRightMetrics(Exception exception) {
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1, HOST_2));
 
-        CassandraClientPoolingContainer container = cassandraClientPool.currentPools.get(host1);
-        setFailureModeForHost(container, new NoSuchElementException());
+        runNoopOnHost(HOST_1, cassandraClientPool);
+        runNoopOnHost(HOST_2, cassandraClientPool);
+        runNoopOnHost(HOST_2, cassandraClientPool);
 
-        runNoopOnHostWithException(host1, cassandraClientPool);
+        CassandraClientPoolingContainer container = cassandraClientPool.currentPools.get(HOST_1);
+        setFailureModeForHost(container, exception);
 
-        verifyFailureMetrics(0.25, 0.0);
-        verifyFailureMetricsOnHost(host1, 0.5, 0.0);
-        verifyFailureMetricsOnHost(host2, 0.0, 0.0);
+        runNoopOnHostWithException(HOST_1, cassandraClientPool);
     }
 
     @Test
     public void testBlacklistMetrics() {
-        InetSocketAddress host1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
-        InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
-        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(host1, host2));
-        CassandraClientPoolingContainer container = cassandraClientPool.currentPools.get(host1);
-        runNoopWithRetryOnHost(host1, cassandraClientPool);
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1, HOST_2));
+        CassandraClientPoolingContainer container = cassandraClientPool.currentPools.get(HOST_1);
+        runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
         verifyBlacklistMetric(0);
         setFailureModeForHost(container, new SocketTimeoutException());
-        runNoopWithRetryOnHost(host1, cassandraClientPool);
+        runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
         verifyBlacklistMetric(1);
     }
 
@@ -313,7 +290,7 @@ public class CassandraClientPoolTest {
         }
     }
 
-    private void verifyFailureMetrics(double requestFailureProportion, double requestConnectionExceptionProportion) {
+    private void verifyAggregateFailureMetrics(double requestFailureProportion, double requestConnectionExceptionProportion) {
         assertEquals(getClientPoolGaugeByMetricName(
                 "requestFailureProportion").getValue(),
                 requestFailureProportion);
