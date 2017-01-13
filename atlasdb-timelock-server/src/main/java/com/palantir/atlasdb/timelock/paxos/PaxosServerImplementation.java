@@ -61,7 +61,6 @@ public class PaxosServerImplementation implements ServerImplementation {
 
     private Set<String> remoteServers;
     private Optional<SSLSocketFactory> optionalSecurity = Optional.absent();
-
     private LeaderElectionService leaderElectionService;
     private PaxosResource paxosResource;
 
@@ -74,9 +73,7 @@ public class PaxosServerImplementation implements ServerImplementation {
     public void onStartup(TimeLockServerConfiguration configuration) {
         registerPaxosResource();
 
-        if (paxosConfiguration.sslConfiguration().isPresent()) {
-            optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
-        }
+        optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
 
         registerLeaderElectionService(configuration);
         environment.jersey().register(new NotCurrentLeaderExceptionMapper());
@@ -141,7 +138,7 @@ public class PaxosServerImplementation implements ServerImplementation {
 
     private static Optional<SSLSocketFactory> constructOptionalSslSocketFactory(
             PaxosConfiguration configuration) {
-        return Optional.of(SslSocketFactories.createSslSocketFactory(configuration.sslConfiguration().get()));
+        return configuration.sslConfiguration().transform(SslSocketFactories::createSslSocketFactory);
     }
 
     @Override

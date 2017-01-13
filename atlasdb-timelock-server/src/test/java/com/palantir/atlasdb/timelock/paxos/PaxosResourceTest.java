@@ -49,7 +49,7 @@ public class PaxosResourceTest {
     private File logDirectory;
 
     @ClassRule
-    public static TemporaryFolder temporaryFolder = new TemporaryFolder();
+    public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Before
     public void setUp() throws IOException {
