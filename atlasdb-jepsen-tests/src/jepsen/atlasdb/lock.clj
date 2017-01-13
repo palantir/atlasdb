@@ -8,8 +8,8 @@
             [jepsen.util :refer [timeout]]
             [knossos.history :as history]
             [clojure.java.io :refer [writer]])
-    (:import com.palantir.atlasdb.jepsen.JepsenHistoryChecker)
-    (:import com.palantir.atlasdb.http.LockClient))
+  (:import com.palantir.atlasdb.jepsen.JepsenHistoryChecker)
+  (:import com.palantir.atlasdb.http.LockClient))
 
 (def lock-names ["bob" "sarah" "alfred" "shelly"])
 
@@ -37,36 +37,36 @@
     (setup!
       [this test node]
       "Factory that returns an object implementing client/Client"
-        (create-client
-          (LockClient/create '("n1" "n2" "n3" "n4" "n5"))
-          (name node)
-          (create-token-store)))
+      (create-client
+        (LockClient/create '("n1" "n2" "n3" "n4" "n5"))
+        (name node)
+        (create-token-store)))
 
     (invoke!
       [this test op]
       "Run an operation on our client"
       (timeout (* 30 1000)
-          (assoc op :type :fail :error :timeout)
-          (try
-            (let [lock-name (:value op)
-                  token-store-key (str client-name lock-name)]
-              (case (:f op)
-                :lock
-                  (let [response (LockClient/lock lock-service client-name lock-name)]
-                    (do (replace-token token-store token-store-key response)
-                        (assoc-ok-value op response [client-name lock-name])))
-                :unlock
-                  (let [token (@token-store token-store-key)
-                        response (LockClient/unlock lock-service token)]
-                    (do (replace-token token-store token-store-key nil)
-                        (assoc-ok-value op response token)))
-                :refresh
-                  (let [token (@token-store token-store-key)
-                        response (LockClient/refresh lock-service token)]
-                    (do (replace-token token-store token-store-key token)
-                        (assoc-ok-value op response token)))))
-          (catch Exception e
-            (assoc op :type :fail :error (.toString e))))))
+        (assoc op :type :fail :error :timeout)
+        (try
+          (let [lock-name (:value op)
+                token-store-key (str client-name lock-name)]
+            (case (:f op)
+              :lock
+                (let [response (LockClient/lock lock-service client-name lock-name)]
+                  (do (replace-token token-store token-store-key response)
+                      (assoc-ok-value op response [client-name lock-name])))
+              :unlock
+                (let [token (@token-store token-store-key)
+                      response (LockClient/unlock lock-service token)]
+                  (do (replace-token token-store token-store-key nil)
+                      (assoc-ok-value op response token)))
+              :refresh
+                (let [token (@token-store token-store-key)
+                      response (LockClient/refresh lock-service token)]
+                  (do (replace-token token-store token-store-key token)
+                      (assoc-ok-value op response token)))))
+        (catch Exception e
+          (assoc op :type :fail :error (.toString e))))))
 
     (teardown! [_ test])))
 
