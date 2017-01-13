@@ -26,7 +26,6 @@ import org.junit.Test;
 
 public class PaxosConfigurationTest {
     private static final long POSITIVE_LONG = 100L;
-    private static final long ZERO_LONG = 0L;
     private static final long NEGATIVE_LONG = -100L;
 
     @Test
@@ -80,29 +79,16 @@ public class PaxosConfigurationTest {
     }
 
     @Test
-    public void throwOnZeroPingRate() {
-        assertThatThrownBy(ImmutablePaxosConfiguration.builder()
-                .pingRateMs(ZERO_LONG)
-                ::build).isInstanceOf(IllegalArgumentException.class);
-    }
-    @Test
-    public void canSpecifyPositiveRandomWaitBeforeProposingLeadership() {
+    public void canSpecifyPositiveMaximumWaitBeforeProposingLeadership() {
         ImmutablePaxosConfiguration.builder()
-                .randomWaitBeforeProposalMs(POSITIVE_LONG)
+                .maximumWaitBeforeProposalMs(POSITIVE_LONG)
                 .build();
     }
 
     @Test
-    public void throwOnNegativeRandomWaitBeforeProposingLeadership() {
+    public void throwOnNegativeMaximumWaitBeforeProposingLeadership() {
         assertThatThrownBy(ImmutablePaxosConfiguration.builder()
-                .randomWaitBeforeProposalMs(NEGATIVE_LONG)
-                ::build).isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    public void throwOnZeroRandomWaitBeforeProposingLeadership() {
-        assertThatThrownBy(ImmutablePaxosConfiguration.builder()
-                .randomWaitBeforeProposalMs(ZERO_LONG)
+                .maximumWaitBeforeProposalMs(NEGATIVE_LONG)
                 ::build).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -117,13 +103,6 @@ public class PaxosConfigurationTest {
     public void throwOnNegativeLeaderPingResponseWait() {
         assertThatThrownBy(ImmutablePaxosConfiguration.builder()
                 .leaderPingResponseWaitMs(NEGATIVE_LONG)
-                ::build).isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    public void throwOnZeroLeaderPingResponseWait() {
-        assertThatThrownBy(ImmutablePaxosConfiguration.builder()
-                .leaderPingResponseWaitMs(ZERO_LONG)
                 ::build).isInstanceOf(IllegalArgumentException.class);
     }
 }

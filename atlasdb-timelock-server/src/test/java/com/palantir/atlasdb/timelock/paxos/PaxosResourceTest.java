@@ -34,7 +34,7 @@ import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosValue;
 
 public class PaxosResourceTest {
-    private static final String CLIENT_1 = "andrew";
+    private static final String CLIENT_1 = "alice";
     private static final String CLIENT_2 = "bob";
 
     private static final long PAXOS_ROUND_ONE = 1;

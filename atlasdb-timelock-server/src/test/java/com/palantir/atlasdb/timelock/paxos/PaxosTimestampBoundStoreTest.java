@@ -55,6 +55,9 @@ public class PaxosTimestampBoundStoreTest {
     private static final long TIMESTAMP_1 = 100000L;
     private static final long TIMESTAMP_2 = 200000L;
     private static final long TIMESTAMP_3 = 300000L;
+    private static final long FORTY_TWO = 42;
+    private static final PaxosTimestampBoundStore.SequenceAndBound ONE_AND_FORTY_TWO =
+            ImmutableSequenceAndBound.of(1, FORTY_TWO);
 
     private static final String STILL_RUNNING_MESSAGE =
             "Some threads are still hanging around! Can't proceed or they might corrupt future tests.";
@@ -114,7 +117,7 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @Test
-    public void throwsIfStoringLimitLesserThanUpperLimit() {
+    public void throwsIfStoringLimitLessThanUpperLimit() {
         store.storeUpperLimit(TIMESTAMP_2);
         assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_2);
         assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_1)).isInstanceOf(IllegalArgumentException.class);
@@ -161,14 +164,16 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @Test
-    public void canReadStateThroughLeaderChanges() {
+    public void canReadConsensusProposedByOtherNodes() {
         PaxosTimestampBoundStore additionalStore1 = createPaxosTimestampBoundStore(1);
         PaxosTimestampBoundStore additionalStore2 = createPaxosTimestampBoundStore(0);
 
         store.storeUpperLimit(TIMESTAMP_1);
         assertThat(additionalStore1.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
+        additionalStore1.storeUpperLimit(TIMESTAMP_2 - 1);
         additionalStore1.storeUpperLimit(TIMESTAMP_2);
         assertThat(additionalStore2.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_2);
+        additionalStore2.storeUpperLimit(TIMESTAMP_3 - 1);
         additionalStore2.storeUpperLimit(TIMESTAMP_3);
         assertThat(additionalStore2.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_3);
     }
@@ -195,10 +200,11 @@ public class PaxosTimestampBoundStoreTest {
 
     @Test
     public void canGetAgreedStateAfterNodeDown() {
-        failureToggles.get(1).set(true);
+        int nodeId = 1;
+        failureToggles.get(nodeId).set(true);
         store.storeUpperLimit(TIMESTAMP_1);
-        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
-        failureToggles.get(1).set(false);
+        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(nodeId);
+        failureToggles.get(nodeId).set(false);
 
         assertThat(additionalStore.getAgreedState(2).getBound()).isEqualTo(TIMESTAMP_1);
     }
@@ -212,6 +218,40 @@ public class PaxosTimestampBoundStoreTest {
     @Test
     public void canSafelyForceAgreedStateFromPrehistory() {
         assertThat(store.forceAgreedState(Long.MIN_VALUE, Long.MIN_VALUE).getBound()).isEqualTo(0);
+    }
+
+    @Test
+    public void canForceAgreedState() {
+        assertThat(store.forceAgreedState(1, FORTY_TWO)).isEqualTo(ONE_AND_FORTY_TWO);
+        assertThat(store.getAgreedState(1)).isEqualTo(ONE_AND_FORTY_TWO);
+    }
+
+    @Test
+    public void forceAgreedStateCanBeUsedToGainKnowledge() {
+        assertThat(store.forceAgreedState(1, FORTY_TWO)).isEqualTo(ONE_AND_FORTY_TWO);
+
+        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
+        assertThat(additionalStore.forceAgreedState(1, null)).isEqualTo(ONE_AND_FORTY_TWO);
+    }
+
+    @Test
+    public void forceAgreedStateReturnsFirstForcedValue() {
+        assertThat(store.forceAgreedState(1, FORTY_TWO)).isEqualTo(ONE_AND_FORTY_TWO);
+        assertThat(store.forceAgreedState(1, 1L)).isEqualTo(ONE_AND_FORTY_TWO);
+        assertThat(store.getAgreedState(1)).isEqualTo(ONE_AND_FORTY_TWO);
+    }
+
+    @Test
+    public void forceAgreedStateOperatesAtSequenceNumberLevel() {
+        assertThat(store.forceAgreedState(1, FORTY_TWO)).isEqualTo(ONE_AND_FORTY_TWO);
+        assertThat(store.forceAgreedState(0, FORTY_TWO + 1)).isEqualTo(ImmutableSequenceAndBound.of(0, 43));
+        assertThat(store.getAgreedState(0)).isEqualTo(ImmutableSequenceAndBound.of(0, 43));
+        assertThat(store.getAgreedState(1)).isEqualTo(ONE_AND_FORTY_TWO);
+    }
+
+    @Test
+    public void forceAgreedStateThrowsIfNoStateWasAgreedUpon() {
+        assertThatThrownBy(() -> store.forceAgreedState(1, null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test

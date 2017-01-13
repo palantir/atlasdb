@@ -78,7 +78,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     public synchronized long getUpperLimit() {
         List<PaxosLong> responses = PaxosQuorumChecker.collectQuorumResponses(
                 ImmutableList.copyOf(acceptors),
-                a -> ImmutablePaxosLong.of(a.getLatestSequencePreparedOrAccepted()),
+                acceptor -> ImmutablePaxosLong.of(acceptor.getLatestSequencePreparedOrAccepted()),
                 proposer.getQuorumSize(),
                 executor,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
