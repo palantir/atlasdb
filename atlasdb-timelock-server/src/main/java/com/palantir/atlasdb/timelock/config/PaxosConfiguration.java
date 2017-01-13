@@ -46,7 +46,7 @@ public abstract class PaxosConfiguration implements TimeLockAlgorithmConfigurati
     }
 
     @Value.Default
-    public long randomWaitBeforeProposalMs() {
+    public long maximumWaitBeforeProposalMs() {
         return 1000L;
     }
 
@@ -61,8 +61,8 @@ public abstract class PaxosConfiguration implements TimeLockAlgorithmConfigurati
                 "Paxos data directory '%s' does not exist and cannot be created.", paxosDataDir());
         Preconditions.checkArgument(pingRateMs() > 0,
                 "Ping rate must be positive; found '%s'.", pingRateMs());
-        Preconditions.checkArgument(randomWaitBeforeProposalMs() > 0,
-                "Random wait before proposal must be positive; found '%s'.", randomWaitBeforeProposalMs());
+        Preconditions.checkArgument(maximumWaitBeforeProposalMs() > 0,
+                "Maximum wait before proposal must be positive; found '%s'.", maximumWaitBeforeProposalMs());
         Preconditions.checkArgument(leaderPingResponseWaitMs() > 0,
                 "Leader ping response wait interval must be positive; found '%s'.", leaderPingResponseWaitMs());
     }

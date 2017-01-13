@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -117,7 +118,7 @@ public class PaxosServerImplementation implements ServerImplementation {
                 paxosResource.getPaxosLearner(LEADER_NAMESPACE),
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners),
-                getQuorumSize(configuration),
+                getQuorumSize(acceptors),
                 executor);
 
         // Build and store a gatekeeping leader election service
@@ -129,13 +130,14 @@ public class PaxosServerImplementation implements ServerImplementation {
                 ImmutableList.copyOf(learners),
                 executor,
                 paxosConfiguration.pingRateMs(),
-                paxosConfiguration.randomWaitBeforeProposalMs(),
+                paxosConfiguration.maximumWaitBeforeProposalMs(),
                 paxosConfiguration.leaderPingResponseWaitMs());
         environment.jersey().register(leaderElectionService);
     }
 
-    private static int getQuorumSize(TimeLockServerConfiguration configuration) {
-        return configuration.cluster().servers().size() / 2 + 1;
+    @VisibleForTesting
+    static int getQuorumSize(List<PaxosAcceptor> acceptors) {
+        return acceptors.size() / 2 + 1;
     }
 
     private static Optional<SSLSocketFactory> constructOptionalSslSocketFactory(
@@ -189,7 +191,7 @@ public class PaxosServerImplementation implements ServerImplementation {
                 paxosResource.getPaxosLearner(client),
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners),
-                acceptors.size() / 2 + 1,
+                getQuorumSize(acceptors),
                 executor);
 
         return AwaitingLeadershipProxy.newProxyInstance(
@@ -200,7 +202,7 @@ public class PaxosServerImplementation implements ServerImplementation {
                                 paxosResource.getPaxosLearner(client),
                                 ImmutableList.copyOf(acceptors),
                                 ImmutableList.copyOf(learners),
-                                paxosConfiguration.randomWaitBeforeProposalMs())),
+                                paxosConfiguration.maximumWaitBeforeProposalMs())),
                 leaderElectionService);
     }
 

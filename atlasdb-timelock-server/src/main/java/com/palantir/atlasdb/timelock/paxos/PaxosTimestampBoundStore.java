@@ -52,7 +52,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
 
     private final List<PaxosAcceptor> acceptors;
     private final List<PaxosLearner> learners;
-    private final long randomWaitBeforeProposalMs;
+    private final long maximumWaitBeforeProposalMs;
 
     @GuardedBy("this")
     private SequenceAndBound agreedState;
@@ -63,12 +63,12 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
             PaxosLearner knowledge,
             List<PaxosAcceptor> acceptors,
             List<PaxosLearner> learners,
-            long randomWaitBeforeProposalMs) {
+            long maximumWaitBeforeProposalMs) {
         this.proposer = proposer;
         this.knowledge = knowledge;
         this.acceptors = acceptors;
         this.learners = learners;
-        this.randomWaitBeforeProposalMs = randomWaitBeforeProposalMs;
+        this.maximumWaitBeforeProposalMs = maximumWaitBeforeProposalMs;
     }
 
     @Override
@@ -189,7 +189,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     }
 
     private long getRandomBackoffTime() {
-        return (long) (randomWaitBeforeProposalMs * Math.random());
+        return (long) (maximumWaitBeforeProposalMs * Math.random());
     }
 
     @Value.Immutable

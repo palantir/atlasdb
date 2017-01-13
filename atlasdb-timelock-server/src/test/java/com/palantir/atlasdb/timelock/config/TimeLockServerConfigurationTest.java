@@ -23,6 +23,7 @@ import java.util.Set;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.paxos.PaxosServerImplementation;
 
 public class TimeLockServerConfigurationTest {
     private static final String ADDRESS = "localhost:8701";
@@ -52,7 +53,8 @@ public class TimeLockServerConfigurationTest {
 
     @Test
     public void shouldRejectClientsConflictingWithInternalClients() {
-        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of("__leader")))
+        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of(
+                PaxosServerImplementation.LEADER_NAMESPACE)))
                 .isInstanceOf(IllegalStateException.class);
     }
 
