@@ -29,7 +29,7 @@
 
 (defn create-client
   "Creates an object that implements the client/Client protocol.
-   The object defines how you create a timestamp client, and how to request timestamps from it. The first call to this
+   The object defines how you create a lock client, and how to request locks from it. The first call to this
    function will return an invalid object: you should call 'setup' on the returned object to get a valid one.
   "
   [lock-service, client-name, token-store]
@@ -85,11 +85,11 @@
   (reify gen/Generator
     (op [generator test process]
       (let [random-lock-name (rand-nth lock-names)]
-        (condp < (rand)
+        (condp > (rand)
           ;; 70% chance of a refresh
-          0.30 {:type :invoke   :f :refresh   :value random-lock-name}
+          0.70 {:type :invoke   :f :refresh   :value random-lock-name}
           ;; 15% chance of a lock
-          0.15 {:type :invoke   :f :lock      :value random-lock-name}
+          0.85 {:type :invoke   :f :lock      :value random-lock-name}
           ;; 15% chance of an unlock
                {:type :invoke   :f :unlock    :value random-lock-name})))))
 

@@ -17,22 +17,16 @@ package com.palantir.atlasdb.http;
 
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
-import javax.net.ssl.SSLSocketFactory;
-
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Iterables;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
-import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.TimeDuration;
 
 public final class LockClient {
     private LockClient() {
@@ -42,7 +36,8 @@ public final class LockClient {
         return TimelockUtils.createClient(hosts, RemoteLockService.class);
     }
 
-    public static LockRefreshToken lock(RemoteLockService service, String client, String lock) throws InterruptedException {
+    public static LockRefreshToken lock(RemoteLockService service, String client, String lock)
+            throws InterruptedException {
         LockDescriptor descriptor = StringLockDescriptor.of(lock);
         LockRequest request = LockRequest.builder(ImmutableSortedMap.of(descriptor, LockMode.WRITE))
                 .doNotBlock()
@@ -62,10 +57,6 @@ public final class LockClient {
             return null;
         }
         Set<LockRefreshToken> validTokens = service.refreshLockRefreshTokens(ImmutableList.of(token));
-        if (validTokens.isEmpty()) {
-            return null;
-        } else {
-            return validTokens.iterator().next();
-        }
+        return Iterables.getOnlyElement(validTokens, null);
     }
 }
