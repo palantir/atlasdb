@@ -49,6 +49,7 @@ public class LockClientTest {
             assertThat(request.getBlockingMode(), is(BlockingMode.DO_NOT_BLOCK));
             return null;
         });
+        LockClient.lock(LOCK_SERVICE, CLIENT, LOCK_NAME);
     }
 
     @Test
@@ -58,6 +59,7 @@ public class LockClientTest {
             assertThat(request.getLocks(), contains(hasProperty("lockMode", is(LockMode.WRITE))));
             return null;
         });
+        LockClient.lock(LOCK_SERVICE, CLIENT, LOCK_NAME);
     }
 
     @Test
