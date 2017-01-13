@@ -34,7 +34,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.Leaders;
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.ServerImplementation;
 import com.palantir.atlasdb.timelock.TimeLockServices;
@@ -193,14 +192,5 @@ public class PaxosServerImplementation implements ServerImplementation {
         return addresses.stream()
                 .map(address -> address + "/" + suffix)
                 .collect(Collectors.toSet());
-    }
-
-    private static <T> List<T> getNamespacedProxies(
-            Set<String> addresses,
-            String namespace,
-            Optional<SSLSocketFactory> optionalSecurity,
-            Class<T> clazz) {
-        Set<String> endpointUris = getNamespacedUris(addresses, namespace);
-        return AtlasDbHttpClients.createProxies(optionalSecurity, endpointUris, clazz);
     }
 }

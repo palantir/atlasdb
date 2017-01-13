@@ -45,10 +45,6 @@ public class TimeLockServerConfiguration extends Configuration {
                 client.matches("[a-zA-Z0-9_-]+"),
                 String.format("Client names must consist of alphanumeric characters, underscores or dashes only; "
                         + "'%s' does not.", client)));
-        clientNames.forEach(client -> Preconditions.checkState(
-                !client.startsWith("__"),
-                String.format("Names starting with two or more underscores are reserved for internal use; found "
-                        + "'%s' specified as a client. Please rename it.", client)));
     }
 
     public TimeLockAlgorithmConfiguration algorithm() {
