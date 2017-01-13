@@ -328,10 +328,7 @@
             ]
         },
         "com.palantir.atlasdb:atlasdb-rocksdb": {
-            "project": true,
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-cli"
-            ]
+            "project": true
         },
         "com.palantir.atlasdb:atlasdb-service": {
             "project": true,
@@ -404,7 +401,6 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
-                "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-jdbc",
                 "com.palantir.atlasdb:atlasdb-rocksdb"
             ]
@@ -501,6 +497,7 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard.metrics:metrics-jetty9",
                 "io.dropwizard.metrics:metrics-json",
@@ -1066,6 +1063,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.zaxxer:HikariCP",
                 "io.dropwizard.metrics:metrics-annotation",
+                "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-lifecycle",
                 "io.dropwizard:dropwizard-logging",
@@ -1450,10 +1448,7 @@
             ]
         },
         "com.palantir.atlasdb:atlasdb-rocksdb": {
-            "project": true,
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-cli"
-            ]
+            "project": true
         },
         "com.palantir.atlasdb:atlasdb-service": {
             "project": true,
@@ -1542,7 +1537,6 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-dbkvs",
-                "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-jdbc",
                 "com.palantir.atlasdb:atlasdb-rocksdb"
             ]
@@ -1647,6 +1641,7 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard.metrics:metrics-jetty9",
                 "io.dropwizard.metrics:metrics-json",
@@ -2227,6 +2222,7 @@
                 "com.palantir.atlasdb:commons-proxy",
                 "com.zaxxer:HikariCP",
                 "io.dropwizard.metrics:metrics-annotation",
+                "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-lifecycle",
                 "io.dropwizard:dropwizard-logging",

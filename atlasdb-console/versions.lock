@@ -106,8 +106,7 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
-                "com.palantir.atlasdb:timestamp-api",
-                "com.palantir.atlasdb:timestamp-impl"
+                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "com.google.code.findbugs:jsr305": {
@@ -207,8 +206,7 @@
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
-                "com.palantir.atlasdb:lock-impl",
-                "com.palantir.atlasdb:timestamp-impl"
+                "com.palantir.atlasdb:lock-impl"
             ]
         },
         "com.palantir.atlasdb:atlasdb-config": {
@@ -276,13 +274,6 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:timestamp-impl"
-            ]
-        },
-        "com.palantir.atlasdb:timestamp-impl": {
-            "project": true,
-            "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
@@ -338,6 +329,12 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-impl"
+            ]
+        },
+        "io.dropwizard.metrics:metrics-core": {
+            "locked": "3.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "io.dropwizard:dropwizard-jackson": {
@@ -406,23 +403,11 @@
             "locked": "1.11",
             "requested": "1.11"
         },
-        "org.hamcrest:hamcrest-core": {
-            "locked": "1.3",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-impl",
-                "org.hamcrest:hamcrest-library"
-            ]
-        },
-        "org.hamcrest:hamcrest-library": {
-            "locked": "1.3",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-impl"
-            ]
-        },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
@@ -546,8 +531,7 @@
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
                 "com.palantir.atlasdb:lock-impl",
-                "com.palantir.atlasdb:timestamp-api",
-                "com.palantir.atlasdb:timestamp-impl"
+                "com.palantir.atlasdb:timestamp-api"
             ]
         },
         "com.google.code.findbugs:jsr305": {
@@ -647,8 +631,7 @@
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-impl",
                 "com.palantir.atlasdb:lock-api",
-                "com.palantir.atlasdb:lock-impl",
-                "com.palantir.atlasdb:timestamp-impl"
+                "com.palantir.atlasdb:lock-impl"
             ]
         },
         "com.palantir.atlasdb:atlasdb-config": {
@@ -716,13 +699,6 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-api",
-                "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:timestamp-impl"
-            ]
-        },
-        "com.palantir.atlasdb:timestamp-impl": {
-            "project": true,
-            "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
@@ -778,6 +754,12 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-impl"
+            ]
+        },
+        "io.dropwizard.metrics:metrics-core": {
+            "locked": "3.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "io.dropwizard:dropwizard-jackson": {
@@ -846,23 +828,11 @@
             "locked": "1.11",
             "requested": "1.11"
         },
-        "org.hamcrest:hamcrest-core": {
-            "locked": "1.3",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-impl",
-                "org.hamcrest:hamcrest-library"
-            ]
-        },
-        "org.hamcrest:hamcrest-library": {
-            "locked": "1.3",
-            "transitive": [
-                "com.palantir.atlasdb:timestamp-impl"
-            ]
-        },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
+                "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },

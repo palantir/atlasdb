@@ -177,6 +177,12 @@
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
+        "io.dropwizard.metrics:metrics-core": {
+            "locked": "3.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "io.netty:netty-buffer": {
             "locked": "4.0.27.Final",
             "transitive": [
@@ -293,6 +299,7 @@
             "transitive": [
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "io.dropwizard.metrics:metrics-core",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",
                 "org.slf4j:jcl-over-slf4j",
@@ -484,6 +491,12 @@
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
+        "io.dropwizard.metrics:metrics-core": {
+            "locked": "3.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "io.netty:netty-buffer": {
             "locked": "4.0.27.Final",
             "transitive": [
@@ -600,6 +613,7 @@
             "transitive": [
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
+                "io.dropwizard.metrics:metrics-core",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",
                 "org.slf4j:jcl-over-slf4j",

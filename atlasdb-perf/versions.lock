@@ -400,8 +400,7 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
-                "com.palantir.atlasdb:atlasdb-dbkvs",
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-dbkvs"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
@@ -483,6 +482,12 @@
         "io.airlift:airline": {
             "locked": "0.7",
             "requested": "0.7"
+        },
+        "io.dropwizard.metrics:metrics-core": {
+            "locked": "3.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
         },
         "io.dropwizard:dropwizard-jackson": {
             "locked": "0.9.3",
@@ -696,6 +701,7 @@
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.docker.compose:docker-compose-rule",
                 "com.zaxxer:HikariCP",
+                "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",
@@ -1117,8 +1123,7 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
-                "com.palantir.atlasdb:atlasdb-dbkvs",
-                "com.palantir.atlasdb:atlasdb-impl-shared"
+                "com.palantir.atlasdb:atlasdb-dbkvs"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
@@ -1200,6 +1205,12 @@
         "io.airlift:airline": {
             "locked": "0.7",
             "requested": "0.7"
+        },
+        "io.dropwizard.metrics:metrics-core": {
+            "locked": "3.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
         },
         "io.dropwizard:dropwizard-jackson": {
             "locked": "0.9.3",
@@ -1413,6 +1424,7 @@
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.docker.compose:docker-compose-rule",
                 "com.zaxxer:HikariCP",
+                "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",

@@ -142,7 +142,6 @@
                 "com.palantir.atlasdb:atlasdb-console",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-lock-api",
-                "com.palantir.atlasdb:atlasdb-rocksdb",
                 "com.palantir.atlasdb:atlasdb-service",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
@@ -235,8 +234,7 @@
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:atlasdb-lock-api",
-                "com.palantir.atlasdb:atlasdb-rocksdb"
+                "com.palantir.atlasdb:atlasdb-lock-api"
             ]
         },
         "com.palantir.atlasdb:atlasdb-cassandra": {
@@ -252,8 +250,7 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
-                "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:atlasdb-rocksdb"
+                "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.palantir.atlasdb:atlasdb-client-protobufs": {
@@ -301,12 +298,6 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared"
-            ]
-        },
-        "com.palantir.atlasdb:atlasdb-rocksdb": {
-            "project": true,
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-cli"
             ]
         },
         "com.palantir.atlasdb:atlasdb-service": {
@@ -379,9 +370,7 @@
         "com.palantir.atlasdb:timestamp-impl": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-cassandra",
-                "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:atlasdb-rocksdb"
+                "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
@@ -464,6 +453,7 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard.metrics:metrics-jetty9",
                 "io.dropwizard.metrics:metrics-json",
@@ -987,12 +977,6 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
-        "org.rocksdb:rocksdbjni": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-rocksdb"
-            ]
-        },
         "org.slf4j:jcl-over-slf4j": {
             "locked": "1.7.5",
             "transitive": [
@@ -1019,6 +1003,7 @@
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "io.dropwizard.metrics:metrics-annotation",
+                "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-lifecycle",
                 "io.dropwizard:dropwizard-logging",
@@ -1187,7 +1172,6 @@
                 "com.palantir.atlasdb:atlasdb-console",
                 "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-lock-api",
-                "com.palantir.atlasdb:atlasdb-rocksdb",
                 "com.palantir.atlasdb:atlasdb-service",
                 "com.palantir.atlasdb:commons-annotations",
                 "com.palantir.atlasdb:commons-api",
@@ -1280,8 +1264,7 @@
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:atlasdb-config",
-                "com.palantir.atlasdb:atlasdb-lock-api",
-                "com.palantir.atlasdb:atlasdb-rocksdb"
+                "com.palantir.atlasdb:atlasdb-lock-api"
             ]
         },
         "com.palantir.atlasdb:atlasdb-cassandra": {
@@ -1297,8 +1280,7 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
-                "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:atlasdb-rocksdb"
+                "com.palantir.atlasdb:atlasdb-impl-shared"
             ]
         },
         "com.palantir.atlasdb:atlasdb-client-protobufs": {
@@ -1346,12 +1328,6 @@
             "project": true,
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-impl-shared"
-            ]
-        },
-        "com.palantir.atlasdb:atlasdb-rocksdb": {
-            "project": true,
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-cli"
             ]
         },
         "com.palantir.atlasdb:atlasdb-service": {
@@ -1424,9 +1400,7 @@
         "com.palantir.atlasdb:timestamp-impl": {
             "project": true,
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-cassandra",
-                "com.palantir.atlasdb:atlasdb-impl-shared",
-                "com.palantir.atlasdb:atlasdb-rocksdb"
+                "com.palantir.atlasdb:atlasdb-cassandra"
             ]
         },
         "com.palantir.config.crypto:encrypted-config-value": {
@@ -1509,6 +1483,7 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard.metrics:metrics-jetty9",
                 "io.dropwizard.metrics:metrics-json",
@@ -2032,12 +2007,6 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
-        "org.rocksdb:rocksdbjni": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-rocksdb"
-            ]
-        },
         "org.slf4j:jcl-over-slf4j": {
             "locked": "1.7.5",
             "transitive": [
@@ -2064,6 +2033,7 @@
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "io.dropwizard.metrics:metrics-annotation",
+                "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-lifecycle",
                 "io.dropwizard:dropwizard-logging",

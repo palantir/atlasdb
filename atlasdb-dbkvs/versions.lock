@@ -222,10 +222,7 @@
             ]
         },
         "com.palantir.atlasdb:timestamp-impl": {
-            "project": true,
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-impl-shared"
-            ]
+            "project": true
         },
         "com.palantir.patches.sourceforge:trove3": {
             "locked": "3.0.3-p5",
@@ -262,6 +259,12 @@
             "locked": "2.6",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "io.dropwizard.metrics:metrics-core": {
+            "locked": "3.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "javax.validation:validation-api": {
@@ -330,7 +333,8 @@
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-proxy",
-                "com.zaxxer:HikariCP"
+                "com.zaxxer:HikariCP",
+                "io.dropwizard.metrics:metrics-core"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -563,10 +567,7 @@
             ]
         },
         "com.palantir.atlasdb:timestamp-impl": {
-            "project": true,
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-impl-shared"
-            ]
+            "project": true
         },
         "com.palantir.patches.sourceforge:trove3": {
             "locked": "3.0.3-p5",
@@ -603,6 +604,12 @@
             "locked": "2.6",
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-client"
+            ]
+        },
+        "io.dropwizard.metrics:metrics-core": {
+            "locked": "3.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "javax.validation:validation-api": {
@@ -671,7 +678,8 @@
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-proxy",
-                "com.zaxxer:HikariCP"
+                "com.zaxxer:HikariCP",
+                "io.dropwizard.metrics:metrics-core"
             ]
         },
         "org.xerial.snappy:snappy-java": {

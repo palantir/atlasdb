@@ -214,41 +214,41 @@
             ]
         },
         "io.atomix.catalyst:catalyst-buffer": {
-            "locked": "1.1.1",
+            "locked": "1.1.2",
             "transitive": [
                 "io.atomix.catalyst:catalyst-serializer"
             ]
         },
         "io.atomix.catalyst:catalyst-common": {
-            "locked": "1.1.1",
+            "locked": "1.1.2",
             "transitive": [
                 "io.atomix.catalyst:catalyst-buffer",
                 "io.atomix.catalyst:catalyst-serializer"
             ]
         },
         "io.atomix.catalyst:catalyst-concurrent": {
-            "locked": "1.1.1",
+            "locked": "1.1.2",
             "transitive": [
                 "io.atomix.catalyst:catalyst-transport"
             ]
         },
         "io.atomix.catalyst:catalyst-local": {
-            "locked": "1.1.1",
+            "locked": "1.1.2",
             "transitive": [
                 "io.atomix:atomix"
             ]
         },
         "io.atomix.catalyst:catalyst-netty": {
-            "locked": "1.1.1"
+            "locked": "1.1.2"
         },
         "io.atomix.catalyst:catalyst-serializer": {
-            "locked": "1.1.1",
+            "locked": "1.1.2",
             "transitive": [
                 "io.atomix.catalyst:catalyst-concurrent"
             ]
         },
         "io.atomix.catalyst:catalyst-transport": {
-            "locked": "1.1.1",
+            "locked": "1.1.2",
             "transitive": [
                 "io.atomix.catalyst:catalyst-local",
                 "io.atomix.catalyst:catalyst-netty",
@@ -256,20 +256,20 @@
             ]
         },
         "io.atomix.copycat:copycat-client": {
-            "locked": "1.1.4",
+            "locked": "1.2.0",
             "transitive": [
                 "io.atomix:atomix-resource"
             ]
         },
         "io.atomix.copycat:copycat-protocol": {
-            "locked": "1.1.4",
+            "locked": "1.2.0",
             "transitive": [
                 "io.atomix.copycat:copycat-client",
                 "io.atomix.copycat:copycat-server"
             ]
         },
         "io.atomix.copycat:copycat-server": {
-            "locked": "1.1.4",
+            "locked": "1.2.0",
             "transitive": [
                 "io.atomix:atomix-resource"
             ]
@@ -327,6 +327,7 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard.metrics:metrics-jetty9",
                 "io.dropwizard.metrics:metrics-json",
@@ -467,32 +468,39 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.0.33.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.0.33.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.0.33.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-buffer"
+                "io.netty:netty-buffer",
+                "io.netty:netty-resolver"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.0.33.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.atomix.catalyst:catalyst-netty"
             ]
         },
+        "io.netty:netty-resolver": {
+            "locked": "4.1.5.Final",
+            "transitive": [
+                "io.netty:netty-transport"
+            ]
+        },
         "io.netty:netty-transport": {
-            "locked": "4.0.33.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.atomix.catalyst:catalyst-netty",
                 "io.netty:netty-codec",
@@ -829,6 +837,7 @@
                 "io.atomix:atomix-resource-manager",
                 "io.atomix:atomix-variables",
                 "io.dropwizard.metrics:metrics-annotation",
+                "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-lifecycle",
                 "io.dropwizard:dropwizard-logging",
@@ -1061,41 +1070,41 @@
             ]
         },
         "io.atomix.catalyst:catalyst-buffer": {
-            "locked": "1.1.1",
+            "locked": "1.1.2",
             "transitive": [
                 "io.atomix.catalyst:catalyst-serializer"
             ]
         },
         "io.atomix.catalyst:catalyst-common": {
-            "locked": "1.1.1",
+            "locked": "1.1.2",
             "transitive": [
                 "io.atomix.catalyst:catalyst-buffer",
                 "io.atomix.catalyst:catalyst-serializer"
             ]
         },
         "io.atomix.catalyst:catalyst-concurrent": {
-            "locked": "1.1.1",
+            "locked": "1.1.2",
             "transitive": [
                 "io.atomix.catalyst:catalyst-transport"
             ]
         },
         "io.atomix.catalyst:catalyst-local": {
-            "locked": "1.1.1",
+            "locked": "1.1.2",
             "transitive": [
                 "io.atomix:atomix"
             ]
         },
         "io.atomix.catalyst:catalyst-netty": {
-            "locked": "1.1.1"
+            "locked": "1.1.2"
         },
         "io.atomix.catalyst:catalyst-serializer": {
-            "locked": "1.1.1",
+            "locked": "1.1.2",
             "transitive": [
                 "io.atomix.catalyst:catalyst-concurrent"
             ]
         },
         "io.atomix.catalyst:catalyst-transport": {
-            "locked": "1.1.1",
+            "locked": "1.1.2",
             "transitive": [
                 "io.atomix.catalyst:catalyst-local",
                 "io.atomix.catalyst:catalyst-netty",
@@ -1103,20 +1112,20 @@
             ]
         },
         "io.atomix.copycat:copycat-client": {
-            "locked": "1.1.4",
+            "locked": "1.2.0",
             "transitive": [
                 "io.atomix:atomix-resource"
             ]
         },
         "io.atomix.copycat:copycat-protocol": {
-            "locked": "1.1.4",
+            "locked": "1.2.0",
             "transitive": [
                 "io.atomix.copycat:copycat-client",
                 "io.atomix.copycat:copycat-server"
             ]
         },
         "io.atomix.copycat:copycat-server": {
-            "locked": "1.1.4",
+            "locked": "1.2.0",
             "transitive": [
                 "io.atomix:atomix-resource"
             ]
@@ -1174,6 +1183,7 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
             "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons",
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard.metrics:metrics-jetty9",
                 "io.dropwizard.metrics:metrics-json",
@@ -1314,32 +1324,39 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.0.33.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.0.33.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.netty:netty-handler"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.0.33.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
-                "io.netty:netty-buffer"
+                "io.netty:netty-buffer",
+                "io.netty:netty-resolver"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.0.33.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.atomix.catalyst:catalyst-netty"
             ]
         },
+        "io.netty:netty-resolver": {
+            "locked": "4.1.5.Final",
+            "transitive": [
+                "io.netty:netty-transport"
+            ]
+        },
         "io.netty:netty-transport": {
-            "locked": "4.0.33.Final",
+            "locked": "4.1.5.Final",
             "transitive": [
                 "io.atomix.catalyst:catalyst-netty",
                 "io.netty:netty-codec",
@@ -1676,6 +1693,7 @@
                 "io.atomix:atomix-resource-manager",
                 "io.atomix:atomix-variables",
                 "io.dropwizard.metrics:metrics-annotation",
+                "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-lifecycle",
                 "io.dropwizard:dropwizard-logging",

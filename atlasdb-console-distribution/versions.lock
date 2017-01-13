@@ -389,7 +389,6 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-cassandra",
                 "com.palantir.atlasdb:atlasdb-dbkvs",
-                "com.palantir.atlasdb:atlasdb-impl-shared",
                 "com.palantir.atlasdb:atlasdb-jdbc",
                 "com.palantir.atlasdb:atlasdb-rocksdb"
             ]
@@ -469,6 +468,12 @@
                 "com.palantir.atlasdb:atlasdb-client",
                 "com.palantir.atlasdb:leader-election-api",
                 "com.palantir.atlasdb:leader-election-impl"
+            ]
+        },
+        "io.dropwizard.metrics:metrics-core": {
+            "locked": "3.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "io.dropwizard:dropwizard-jackson": {
@@ -666,6 +671,7 @@
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-proxy",
                 "com.zaxxer:HikariCP",
+                "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",

@@ -113,6 +113,12 @@
             "locked": "2.6",
             "requested": "2.6"
         },
+        "io.dropwizard.metrics:metrics-core": {
+            "locked": "3.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "javax.validation:validation-api": {
             "locked": "1.1.0.Final",
             "transitive": [
@@ -142,7 +148,8 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "io.dropwizard.metrics:metrics-core"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -264,6 +271,12 @@
             "locked": "2.6",
             "requested": "2.6"
         },
+        "io.dropwizard.metrics:metrics-core": {
+            "locked": "3.1.1",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "javax.validation:validation-api": {
             "locked": "1.1.0.Final",
             "transitive": [
@@ -293,7 +306,8 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
+                "com.palantir.atlasdb:atlasdb-commons",
+                "io.dropwizard.metrics:metrics-core"
             ]
         },
         "org.xerial.snappy:snappy-java": {
