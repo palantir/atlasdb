@@ -74,9 +74,9 @@ public class PaxosResourceTest {
     @Test
     public void addsClientsInSubdirectory() {
         paxosResource.addClient(CLIENT_1);
-        File expectedAcceptorLogDir = Paths.get(logDirectory.getPath(), CLIENT_1, PaxosResource.ACCEPTOR_PATH).toFile();
+        File expectedAcceptorLogDir = Paths.get(logDirectory.getPath(), CLIENT_1, PaxosTimeLockConstants.ACCEPTOR_PATH).toFile();
         assertThat(expectedAcceptorLogDir.exists()).isTrue();
-        File expectedLearnerLogDir = Paths.get(logDirectory.getPath(), CLIENT_1, PaxosResource.LEARNER_PATH).toFile();
+        File expectedLearnerLogDir = Paths.get(logDirectory.getPath(), CLIENT_1, PaxosTimeLockConstants.LEARNER_PATH).toFile();
         assertThat(expectedLearnerLogDir.exists()).isTrue();
     }
 

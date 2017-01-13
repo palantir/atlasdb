@@ -47,6 +47,9 @@ import com.palantir.timestamp.TimestampBoundStore;
 public class PaxosTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(PaxosTimestampBoundStore.class);
 
+    private static final int QUORUM_OF_ONE = 1;
+    private static final boolean ONLY_LOG_ON_QUORUM_FAILURE = true;
+
     private final PaxosProposer proposer;
     private final PaxosLearner knowledge;
 
@@ -142,10 +145,10 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         List<PaxosLong> responses = PaxosQuorumChecker.collectQuorumResponses(
                 ImmutableList.copyOf(learners),
                 l -> getLearnedValue(seq, l),
-                1,
+                QUORUM_OF_ONE,
                 executor,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
-                true);
+                ONLY_LOG_ON_QUORUM_FAILURE);
         if (responses.isEmpty()) {
             return Optional.empty();
         }

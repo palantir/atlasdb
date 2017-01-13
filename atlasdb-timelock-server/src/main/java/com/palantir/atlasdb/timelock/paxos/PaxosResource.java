@@ -30,9 +30,6 @@ import com.palantir.paxos.PaxosLearnerImpl;
 
 @Path("/{client: [a-zA-Z0-9_-]+}")
 public final class PaxosResource {
-    public static final String DEFAULT_LOG_DIRECTORY = "var/data/";
-    public static final String LEARNER_PATH = "/learner";
-    public static final String ACCEPTOR_PATH = "/acceptor";
 
     private final String logDirectory;
     private final Map<String, PaxosLearner> paxosLearners;
@@ -47,7 +44,7 @@ public final class PaxosResource {
     }
 
     public static PaxosResource create() {
-        return create(DEFAULT_LOG_DIRECTORY);
+        return create(PaxosTimeLockConstants.DEFAULT_LOG_DIRECTORY);
     }
 
     public static PaxosResource create(String logDirectory) {
@@ -58,9 +55,9 @@ public final class PaxosResource {
         Preconditions.checkState(!paxosLearners.containsKey(client),
                 "Paxos resource already has client '%s' registered", client);
         paxosLearners.put(client, PaxosLearnerImpl.newLearner(
-                Paths.get(logDirectory, client, LEARNER_PATH).toString()));
+                Paths.get(logDirectory, client, PaxosTimeLockConstants.LEARNER_PATH).toString()));
         paxosAcceptors.put(client, PaxosAcceptorImpl.newAcceptor(
-                Paths.get(logDirectory, client, ACCEPTOR_PATH).toString()));
+                Paths.get(logDirectory, client, PaxosTimeLockConstants.ACCEPTOR_PATH).toString()));
     }
 
     @Path("/learner")

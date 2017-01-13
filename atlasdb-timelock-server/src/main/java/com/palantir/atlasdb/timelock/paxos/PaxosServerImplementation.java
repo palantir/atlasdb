@@ -55,7 +55,6 @@ import com.palantir.timestamp.TimestampService;
 import io.dropwizard.setup.Environment;
 
 public class PaxosServerImplementation implements ServerImplementation {
-    public static final String LEADER_NAMESPACE = "__leader";
 
     private final PaxosConfiguration paxosConfiguration;
     private final Environment environment;
@@ -85,7 +84,7 @@ public class PaxosServerImplementation implements ServerImplementation {
 
     private void registerPaxosResource() {
         paxosResource = PaxosResource.create(paxosConfiguration.paxosDataDir().toString());
-        paxosResource.addClient(LEADER_NAMESPACE);
+        paxosResource.addClient(PaxosTimeLockConstants.LEADER_NAMESPACE);
         environment.jersey().register(paxosResource);
     }
 
@@ -93,17 +92,17 @@ public class PaxosServerImplementation implements ServerImplementation {
         remoteServers = getRemotePaths(configuration);
         List<PaxosLearner> learners = getNamespacedProxies(
                 remoteServers,
-                LEADER_NAMESPACE,
+                PaxosTimeLockConstants.LEADER_NAMESPACE,
                 optionalSecurity,
                 PaxosLearner.class);
-        learners.add(paxosResource.getPaxosLearner(LEADER_NAMESPACE));
+        learners.add(paxosResource.getPaxosLearner(PaxosTimeLockConstants.LEADER_NAMESPACE));
 
         List<PaxosAcceptor> acceptors = getNamespacedProxies(
                 remoteServers,
-                LEADER_NAMESPACE,
+                PaxosTimeLockConstants.LEADER_NAMESPACE,
                 optionalSecurity,
                 PaxosAcceptor.class);
-        acceptors.add(paxosResource.getPaxosAcceptor(LEADER_NAMESPACE));
+        acceptors.add(paxosResource.getPaxosAcceptor(PaxosTimeLockConstants.LEADER_NAMESPACE));
 
         Map<PingableLeader, HostAndPort> otherLeaders = Leaders.generatePingables(
                 remoteServers,
@@ -115,7 +114,7 @@ public class PaxosServerImplementation implements ServerImplementation {
                 .build());
 
         PaxosProposer proposer = PaxosProposerImpl.newProposer(
-                paxosResource.getPaxosLearner(LEADER_NAMESPACE),
+                paxosResource.getPaxosLearner(PaxosTimeLockConstants.LEADER_NAMESPACE),
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners),
                 getQuorumSize(acceptors),
@@ -124,7 +123,7 @@ public class PaxosServerImplementation implements ServerImplementation {
         // Build and store a gatekeeping leader election service
         leaderElectionService = new PaxosLeaderElectionService(
                 proposer,
-                paxosResource.getPaxosLearner(LEADER_NAMESPACE),
+                paxosResource.getPaxosLearner(PaxosTimeLockConstants.LEADER_NAMESPACE),
                 otherLeaders,
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners),
