@@ -23,8 +23,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.timelock.ServerImplementation;
-import com.palantir.atlasdb.timelock.paxos.PaxosServerImplementation;
+import com.palantir.atlasdb.timelock.TimeLockServerImplementation;
+import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockServerImplementation;
 import com.palantir.remoting.ssl.SslConfiguration;
 
 import io.dropwizard.setup.Environment;
@@ -68,7 +68,7 @@ public abstract class PaxosConfiguration implements TimeLockAlgorithmConfigurati
     }
 
     @Override
-    public ServerImplementation createServerImpl(Environment environment) {
-        return new PaxosServerImplementation(this, environment);
+    public TimeLockServerImplementation createServerImpl(Environment environment) {
+        return new PaxosTimeLockServerImplementation(this, environment);
     }
 }

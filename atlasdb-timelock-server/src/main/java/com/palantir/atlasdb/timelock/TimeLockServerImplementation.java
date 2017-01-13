@@ -17,7 +17,7 @@ package com.palantir.atlasdb.timelock;
 
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 
-public interface ServerImplementation {
+public interface TimeLockServerImplementation {
     /**
      * Called when the Timelock Server is started up, and is guaranteed to run before any requests
      * are accepted from clients.

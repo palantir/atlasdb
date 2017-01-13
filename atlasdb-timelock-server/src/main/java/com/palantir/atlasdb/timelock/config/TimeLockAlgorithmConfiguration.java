@@ -17,7 +17,7 @@ package com.palantir.atlasdb.timelock.config;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.palantir.atlasdb.timelock.ServerImplementation;
+import com.palantir.atlasdb.timelock.TimeLockServerImplementation;
 
 import io.dropwizard.setup.Environment;
 
@@ -28,5 +28,5 @@ import io.dropwizard.setup.Environment;
         @JsonSubTypes.Type(value = AtomixConfiguration.class, name = "atomix"),
         @JsonSubTypes.Type(value = PaxosConfiguration.class, name = "paxos")})
 public interface TimeLockAlgorithmConfiguration {
-    ServerImplementation createServerImpl(Environment environment);
+    TimeLockServerImplementation createServerImpl(Environment environment);
 }

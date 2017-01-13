@@ -27,7 +27,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.ServerImplementation;
+import com.palantir.atlasdb.timelock.TimeLockServerImplementation;
 import com.palantir.atlasdb.timelock.config.ImmutableAtomixConfiguration;
 import com.palantir.atlasdb.timelock.config.ImmutableClusterConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
@@ -37,7 +37,7 @@ import io.atomix.copycat.server.storage.StorageLevel;
 
 @Ignore("Observed ConcurrentModificationException-related flakes (e.g. build #5407 on CircleCI)."
         + "Fixed in atomix/copycat#231, but not part of Copycat 1.1.4 which we use.")
-public class AtomixServerImplementationTest {
+public class AtomixTimeLockServerImplementationTest {
     private static final String LOCAL_ADDRESS_STRING = "localhost:12345";
     private static final Address LOCAL_ADDRESS = new Address(LOCAL_ADDRESS_STRING);
     private static final TimeLockServerConfiguration TIMELOCK_CONFIG = new TimeLockServerConfiguration(
@@ -50,7 +50,7 @@ public class AtomixServerImplementationTest {
                     .build(),
             ImmutableSet.of("test"));
 
-    private ServerImplementation implementation;
+    private TimeLockServerImplementation implementation;
 
     @Before
     public void setUp() {
@@ -93,7 +93,7 @@ public class AtomixServerImplementationTest {
     }
 
     private static void assertAtomixNotListeningOnPort() {
-        assertThatThrownBy(AtomixServerImplementationTest::tryToConnectToAtomixPort)
+        assertThatThrownBy(AtomixTimeLockServerImplementationTest::tryToConnectToAtomixPort)
                 .isInstanceOf(ConnectException.class)
                 .hasMessageContaining("Connection refused");
     }

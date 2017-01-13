@@ -35,7 +35,7 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
 
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
-        ServerImplementation serverImpl = configuration.algorithm().createServerImpl(environment);
+        TimeLockServerImplementation serverImpl = configuration.algorithm().createServerImpl(environment);
         try {
             serverImpl.onStartup(configuration);
             registerResources(configuration, environment, serverImpl);
@@ -55,7 +55,7 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
     private static void registerResources(
             TimeLockServerConfiguration configuration,
             Environment environment,
-            ServerImplementation serverImpl) {
+            TimeLockServerImplementation serverImpl) {
         Map<String, TimeLockServices> clientToServices = createTimeLockServicesForClients(
                 serverImpl,
                 configuration.clients());
@@ -65,7 +65,7 @@ public class TimeLockServer extends Application<TimeLockServerConfiguration> {
     }
 
     private static Map<String, TimeLockServices> createTimeLockServicesForClients(
-            ServerImplementation serverImpl,
+            TimeLockServerImplementation serverImpl,
             Set<String> clients) {
         ImmutableMap.Builder<String, TimeLockServices> clientToServices = ImmutableMap.builder();
         for (String client : clients) {

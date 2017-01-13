@@ -35,7 +35,7 @@ import org.mockito.Mockito;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
-import com.palantir.atlasdb.timelock.ServerImplementation;
+import com.palantir.atlasdb.timelock.TimeLockServerImplementation;
 import com.palantir.atlasdb.timelock.config.ImmutableClusterConfiguration;
 import com.palantir.atlasdb.timelock.config.ImmutablePaxosConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
@@ -45,7 +45,7 @@ import com.palantir.paxos.PaxosAcceptor;
 import io.dropwizard.jersey.setup.JerseyEnvironment;
 import io.dropwizard.setup.Environment;
 
-public class PaxosServerImplementationTest {
+public class PaxosTimeLockServerImplementationTest {
     private static final File TEST_DATA_DIRECTORY = new File("testLogs/");
     private static final String LOCAL_ADDRESS_STRING = "localhost:8080";
     private static final Set<String> TEST_CLIENTS = ImmutableSet.of("test");
@@ -61,7 +61,7 @@ public class PaxosServerImplementationTest {
             TEST_CLIENTS);
 
     private final Environment environment = mock(Environment.class);
-    private final ServerImplementation implementation = TIMELOCK_CONFIG.algorithm().createServerImpl(environment);
+    private final TimeLockServerImplementation implementation = TIMELOCK_CONFIG.algorithm().createServerImpl(environment);
 
     @Before
     public void setUp() {
@@ -107,6 +107,6 @@ public class PaxosServerImplementationTest {
         for (int i = 0; i < nodes; i++) {
             acceptorList.add(null);
         }
-        assertEquals(expected, PaxosServerImplementation.getQuorumSize(acceptorList));
+        assertEquals(expected, PaxosTimeLockServerImplementation.getQuorumSize(acceptorList));
     }
 }

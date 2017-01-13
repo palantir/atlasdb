@@ -49,7 +49,7 @@ public class TimeLockServerTest {
     private final List<LifeCycle.Listener> listeners = new ArrayList<>();
     private final TimeLockServer server = new TimeLockServer();
 
-    private ServerImplementation serverImplementation;
+    private TimeLockServerImplementation timeLockServerImplementation;
     private TimeLockAlgorithmConfiguration algorithmConfiguration;
 
     @Before
@@ -60,9 +60,10 @@ public class TimeLockServerTest {
 
     private void setUpMockServerImplementation() {
         algorithmConfiguration = mock(TimeLockAlgorithmConfiguration.class);
-        serverImplementation = mock(ServerImplementation.class);
-        when(algorithmConfiguration.createServerImpl(environment)).thenReturn(serverImplementation);
-        when(serverImplementation.createInvalidatingTimeLockServices(any())).thenReturn(mock(TimeLockServices.class));
+        timeLockServerImplementation = mock(TimeLockServerImplementation.class);
+        when(algorithmConfiguration.createServerImpl(environment)).thenReturn(timeLockServerImplementation);
+        when(timeLockServerImplementation.createInvalidatingTimeLockServices(any()))
+                .thenReturn(mock(TimeLockServices.class));
     }
 
     private void setUpEnvironment() {
@@ -84,19 +85,19 @@ public class TimeLockServerTest {
     @Test
     public void verifyOnStartupIsCalledExactlyOnceOnSuccessfulStartup() {
         server.run(getConfiguration(), environment);
-        verify(serverImplementation, times(1)).onStartup(any());
+        verify(timeLockServerImplementation, times(1)).onStartup(any());
     }
 
     @Test
     public void verifyOnStartupFailureIsCalledExactlyOnceIfStartupFails() {
         causeFailedStartup();
-        verify(serverImplementation, times(1)).onStartupFailure();
+        verify(timeLockServerImplementation, times(1)).onStartupFailure();
     }
 
     @Test
     public void verifyOnStopIsNeverCalledIfStartupFails() {
         causeFailedStartup();
-        verify(serverImplementation, never()).onStop();
+        verify(timeLockServerImplementation, never()).onStop();
     }
 
     private void causeFailedStartup() {
@@ -113,7 +114,7 @@ public class TimeLockServerTest {
 
         sendShutdownToListeners();
         listeners.clear();
-        verify(serverImplementation, times(1)).onStop();
+        verify(timeLockServerImplementation, times(1)).onStop();
     }
 
     private TimeLockServerConfiguration getConfiguration() {
