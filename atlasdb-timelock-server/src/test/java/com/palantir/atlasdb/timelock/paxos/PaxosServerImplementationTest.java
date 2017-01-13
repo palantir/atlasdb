@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -22,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
@@ -31,12 +33,14 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.ServerImplementation;
 import com.palantir.atlasdb.timelock.config.ImmutableClusterConfiguration;
 import com.palantir.atlasdb.timelock.config.ImmutablePaxosConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.leader.LeaderElectionService;
+import com.palantir.paxos.PaxosAcceptor;
 
 import io.dropwizard.jersey.setup.JerseyEnvironment;
 import io.dropwizard.setup.Environment;
@@ -72,8 +76,37 @@ public class PaxosServerImplementationTest {
         verify(environment.jersey(), times(1)).register(Mockito.isA(NotCurrentLeaderExceptionMapper.class));
     }
 
+    @Test
+    public void verifyQuorumOfOneNodeIsOne() {
+        verifyQuorumSize(1, 1);
+    }
+
+    @Test
+    public void verifyQuorumsOfMultipleNodesAreMajorities() {
+        verifyQuorumSize(2, 2);
+        verifyQuorumSize(3, 2);
+        verifyQuorumSize(5, 3);
+        verifyQuorumSize(7, 4);
+        verifyQuorumSize(12, 7);
+    }
+
+    @Test
+    public void verifyLargeQuorumsAreCorrect() {
+        int largeClusterSize = 84;
+        verifyQuorumSize(largeClusterSize * 2, largeClusterSize + 1);
+        verifyQuorumSize(largeClusterSize * 2 + 1, largeClusterSize + 1);
+    }
+
     @After
     public void tearDown() throws Exception {
         FileUtils.deleteDirectory(TEST_DATA_DIRECTORY);
+    }
+
+    private static void verifyQuorumSize(int nodes, int expected) {
+        List<PaxosAcceptor> acceptorList = Lists.newArrayList();
+        for (int i = 0; i < nodes; i++) {
+            acceptorList.add(null);
+        }
+        assertEquals(expected, PaxosServerImplementation.getQuorumSize(acceptorList));
     }
 }
