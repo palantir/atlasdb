@@ -50,7 +50,8 @@ public class JepsenHistoryCheckerIntegrationTest {
     public void livenessFailingHistoryShouldReturnInvalidWithNemesisErrors() throws IOException {
         List<Map<Keyword, ?>> convertedAllEvents = getClojureMapFromFile("liveness_failing_history.json");
 
-        Map<Keyword, Object> results = JepsenHistoryCheckers.createWithTimestampCheckers()
+        Map<Keyword, Object> results = JepsenHistoryCheckers.createWithCheckers(
+                ImmutableList.of(NemesisResilienceChecker::new))
                 .checkClojureHistory(convertedAllEvents);
 
         Map<Keyword, ?> nemesisStartEventMap = ImmutableMap.of(
