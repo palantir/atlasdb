@@ -366,12 +366,12 @@ public class DbKvs extends AbstractKeyValueService {
         }
     }
 
-    private void executeCheckAndSet(CheckAndSetRequest checkAndSetRequest) {
-        Preconditions.checkArgument(checkAndSetRequest.oldValue().isPresent());
+    private void executeCheckAndSet(CheckAndSetRequest request) {
+        Preconditions.checkArgument(request.oldValue().isPresent());
 
-        runWrite(checkAndSetRequest.table(), table -> {
+        runWrite(request.table(), table -> {
             //noinspection OptionalGetWithoutIsPresent
-            table.update(checkAndSetRequest.cell(), checkAndSetRequest.oldValue().get(), checkAndSetRequest.newValue());
+            table.update(request.cell(), AtlasDbConstants.TRANSACTION_TS, request.oldValue().get(), request.newValue());
             return null;
         });
     }

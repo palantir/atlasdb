@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -123,9 +122,8 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
     }
 
     @Override
-    public void update(Cell cell, byte[] oldValue, byte[] newValue) {
+    public void update(Cell cell, long ts, byte[] oldValue, byte[] newValue) {
         String prefixedTableName = prefixedTableNames.get(tableRef);
-        long ts = AtlasDbConstants.TRANSACTION_TS;
         Object[] args = new Object[] {
                 cell.getRowName(),
                 cell.getColumnName(),

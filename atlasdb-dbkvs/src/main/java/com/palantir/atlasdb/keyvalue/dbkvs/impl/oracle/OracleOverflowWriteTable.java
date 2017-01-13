@@ -176,7 +176,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     @Override
-    public void update(Cell row, byte[] oldValue, byte[] newValue) {
+    public void update(Cell row, long ts, byte[] oldValue, byte[] newValue) {
         throw new UnsupportedOperationException("Update is not supported for tables with table style 'overflow'.");
     }
 
