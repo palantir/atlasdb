@@ -45,15 +45,15 @@ public class PaxosResourceTest {
     private static final PaxosProposal PAXOS_PROPOSAL = new PaxosProposal(
             new PaxosProposalId(PAXOS_ROUND_TWO, PAXOS_UUID), PAXOS_VALUE);
 
+    @ClassRule
+    public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
+
     private PaxosResource paxosResource;
     private File logDirectory;
 
-    @ClassRule
-    public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
-
     @Before
     public void setUp() throws IOException {
-        logDirectory = temporaryFolder.newFolder();
+        logDirectory = TEMPORARY_FOLDER.newFolder();
         paxosResource = PaxosResource.create(logDirectory.getPath());
     }
 
@@ -74,9 +74,11 @@ public class PaxosResourceTest {
     @Test
     public void addsClientsInSubdirectory() {
         paxosResource.addClient(CLIENT_1);
-        File expectedAcceptorLogDir = Paths.get(logDirectory.getPath(), CLIENT_1, PaxosTimeLockConstants.ACCEPTOR_PATH).toFile();
+        File expectedAcceptorLogDir =
+                Paths.get(logDirectory.getPath(), CLIENT_1, PaxosTimeLockConstants.ACCEPTOR_PATH).toFile();
         assertThat(expectedAcceptorLogDir.exists()).isTrue();
-        File expectedLearnerLogDir = Paths.get(logDirectory.getPath(), CLIENT_1, PaxosTimeLockConstants.LEARNER_PATH).toFile();
+        File expectedLearnerLogDir =
+                Paths.get(logDirectory.getPath(), CLIENT_1, PaxosTimeLockConstants.LEARNER_PATH).toFile();
         assertThat(expectedLearnerLogDir.exists()).isTrue();
     }
 
