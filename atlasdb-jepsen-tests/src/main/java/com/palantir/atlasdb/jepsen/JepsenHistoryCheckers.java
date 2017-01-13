@@ -32,8 +32,7 @@ public final class JepsenHistoryCheckers {
     static final List<Supplier<Checker>> TIMESTAMP_CHECKERS = ImmutableList.of(
             MonotonicChecker::new,
             NonOverlappingReadsMonotonicChecker::new,
-            UniquenessChecker::new,
-            NemesisResilienceChecker::new);
+            UniquenessChecker::new);
 
     public static JepsenHistoryChecker createWithTimestampCheckers() {
         return createWithCheckers(TIMESTAMP_CHECKERS);
