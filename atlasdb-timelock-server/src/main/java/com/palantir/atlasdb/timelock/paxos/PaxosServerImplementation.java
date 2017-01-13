@@ -15,8 +15,9 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,8 +30,9 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.atlasdb.config.ImmutableLeaderConfig;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
@@ -39,8 +41,6 @@ import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.config.PaxosConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.leader.LeaderElectionService;
-import com.palantir.leader.PaxosLeaderElectionService;
-import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -81,59 +81,37 @@ public class PaxosServerImplementation implements ServerImplementation {
 
     private void registerPaxosResource() {
         paxosResource = PaxosResource.create(paxosConfiguration.paxosDataDir().toString());
-        paxosResource.addClient(PaxosTimeLockConstants.LEADER_NAMESPACE);
         environment.jersey().register(paxosResource);
     }
 
     private void registerLeaderElectionService(TimeLockServerConfiguration configuration) {
         remoteServers = getRemotePaths(configuration);
-        List<PaxosLearner> learners = getNamespacedProxies(
-                remoteServers,
-                PaxosTimeLockConstants.LEADER_NAMESPACE,
-                optionalSecurity,
-                PaxosLearner.class);
-        learners.add(paxosResource.getPaxosLearner(PaxosTimeLockConstants.LEADER_NAMESPACE));
 
-        List<PaxosAcceptor> acceptors = getNamespacedProxies(
-                remoteServers,
-                PaxosTimeLockConstants.LEADER_NAMESPACE,
-                optionalSecurity,
-                PaxosAcceptor.class);
-        acceptors.add(paxosResource.getPaxosAcceptor(PaxosTimeLockConstants.LEADER_NAMESPACE));
+        LeaderConfig leaderConfig = ImmutableLeaderConfig.builder()
+                .leaders(configuration.cluster().servers())
+                .localServer(configuration.cluster().localServer())
+                .acceptorLogDir(Paths.get(paxosConfiguration.paxosDataDir().toString(),
+                        PaxosTimeLockConstants.ACCEPTOR_PATH).toFile())
+                .learnerLogDir(Paths.get(paxosConfiguration.paxosDataDir().toString(),
+                        PaxosTimeLockConstants.LEARNER_PATH).toFile())
+                .pingRateMs(paxosConfiguration.pingRateMs())
+                .quorumSize(getQuorumSize(configuration.cluster().servers()))
+                .leaderPingResponseWaitMs(paxosConfiguration.leaderPingResponseWaitMs())
+                .randomWaitBeforeProposingLeadershipMs(paxosConfiguration.maximumWaitBeforeProposalMs())
+                .build();
 
-        Map<PingableLeader, HostAndPort> otherLeaders = Leaders.generatePingables(
-                remoteServers,
-                optionalSecurity);
+        Leaders.LocalPaxosServices localPaxosServices = Leaders.createLocalServices(leaderConfig);
 
-        ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
-                .setNameFormat("atlas-leaders-%d")
-                .setDaemon(true)
-                .build());
+        leaderElectionService = localPaxosServices.leaderElectionService();
 
-        PaxosProposer proposer = PaxosProposerImpl.newProposer(
-                paxosResource.getPaxosLearner(PaxosTimeLockConstants.LEADER_NAMESPACE),
-                ImmutableList.copyOf(acceptors),
-                ImmutableList.copyOf(learners),
-                getQuorumSize(acceptors),
-                executor);
-
-        // Build and store a gatekeeping leader election service
-        leaderElectionService = new PaxosLeaderElectionService(
-                proposer,
-                paxosResource.getPaxosLearner(PaxosTimeLockConstants.LEADER_NAMESPACE),
-                otherLeaders,
-                ImmutableList.copyOf(acceptors),
-                ImmutableList.copyOf(learners),
-                executor,
-                paxosConfiguration.pingRateMs(),
-                paxosConfiguration.maximumWaitBeforeProposalMs(),
-                paxosConfiguration.leaderPingResponseWaitMs());
+        environment.jersey().register(localPaxosServices.ourAcceptor());
+        environment.jersey().register(localPaxosServices.ourLearner());
         environment.jersey().register(leaderElectionService);
     }
 
     @VisibleForTesting
-    static int getQuorumSize(List<PaxosAcceptor> acceptors) {
-        return acceptors.size() / 2 + 1;
+    static <T> int getQuorumSize(Collection<T> elements) {
+        return elements.size() / 2 + 1;
     }
 
     private static Optional<SSLSocketFactory> constructOptionalSslSocketFactory(
@@ -221,10 +199,11 @@ public class PaxosServerImplementation implements ServerImplementation {
                 .collect(Collectors.toSet());
     }
 
-    private static <T> List<T> getNamespacedProxies(Set<String> addresses,
-                                                   String namespace,
-                                                   Optional<SSLSocketFactory> optionalSecurity,
-                                                   Class<T> clazz) {
+    private static <T> List<T> getNamespacedProxies(
+            Set<String> addresses,
+            String namespace,
+            Optional<SSLSocketFactory> optionalSecurity,
+            Class<T> clazz) {
         Set<String> endpointUris = getNamespacedUris(addresses, namespace);
         return AtlasDbHttpClients.createProxies(optionalSecurity, endpointUris, clazz);
     }

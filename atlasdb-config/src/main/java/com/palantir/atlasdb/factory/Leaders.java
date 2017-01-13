@@ -25,6 +25,8 @@ import java.util.concurrent.Executors;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import org.immutables.value.Value;
+
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -56,7 +58,18 @@ public final class Leaders {
     public static LeaderElectionService create(
             Environment env,
             LeaderConfig config) {
+        LocalPaxosServices localPaxosServices = createLocalServices(config);
 
+        env.register(localPaxosServices.ourAcceptor());
+        env.register(localPaxosServices.ourLearner());
+
+        env.register(localPaxosServices.leaderElectionService());
+        env.register(new NotCurrentLeaderExceptionMapper());
+
+        return localPaxosServices.leaderElectionService();
+    }
+
+    public static LocalPaxosServices createLocalServices(LeaderConfig config) {
         PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor(config.acceptorLogDir().getPath());
         PaxosLearner ourLearner = PaxosLearnerImpl.newLearner(config.learnerLogDir().getPath());
 
@@ -99,13 +112,11 @@ public final class Leaders {
                 config.randomWaitBeforeProposingLeadershipMs(),
                 config.leaderPingResponseWaitMs());
 
-        env.register(ourAcceptor);
-        env.register(ourLearner);
-
-        env.register(leader);
-        env.register(new NotCurrentLeaderExceptionMapper());
-
-        return leader;
+        return ImmutableLocalPaxosServices.builder()
+                .ourAcceptor(ourAcceptor)
+                .ourLearner(ourLearner)
+                .leaderElectionService(leader)
+                .build();
     }
 
     public static Map<PingableLeader, HostAndPort> generatePingables(
@@ -122,5 +133,12 @@ public final class Leaders {
             pingables.put(remoteInterface, hostAndPort);
         }
         return pingables;
+    }
+
+    @Value.Immutable
+    public interface LocalPaxosServices {
+        PaxosAcceptor ourAcceptor();
+        PaxosLearner ourLearner();
+        LeaderElectionService leaderElectionService();
     }
 }
