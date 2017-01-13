@@ -183,27 +183,32 @@ Atlas users should use <code class="docutils literal"><span class="pre">AtlasDbM
 <td>There is now a <code class="docutils literal"><span class="pre">TimestampMigrationService</span></code> with the <code class="docutils literal"><span class="pre">fast-forward</span></code> method that can be used to migrate between timestamp services.
 You will simply need to fast-forward the new timestamp service using the latest timestamp from the old service.
 This can be done using the <a class="reference internal" href="../cluster_management/clis.html#offline-clis"><span class="std std-ref">timestamp forward cli</span></a> when your AtlasDB services are offline.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/?">Pull Request</a>)</td>
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1445">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>The <code class="docutils literal"><span class="pre">DebugLogger</span></code> class was moved from package <code class="docutils literal"><span class="pre">com.palantir.timestamp</span></code> in project <code class="docutils literal"><span class="pre">timestamp-impl</span></code>
+to <code class="docutils literal"><span class="pre">com.palantir.util</span></code> in project <code class="docutils literal"><span class="pre">atlasdb-commons</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1445">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Allow tables declared with <code class="docutils literal"><span class="pre">SweepStrategy.THOROUGH</span></code> to be migrated.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1410">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fix an issue with stream store, where pre-loading the first block of an input stream caused us to create a transaction inside another transaction.
 To avoid this issue, it is now the caller&#8217;s responsibility to ensure that <code class="docutils literal"><span class="pre">InputStream.read()</span></code> is not called within the transaction used to fetch the stream.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1447">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Added metrics in Cassandra clients to record connection pool statistics and exception rates.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1380">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal"><span class="pre">atlasdb-rocksdb</span></code> is no longer required by <code class="docutils literal"><span class="pre">atlasdb-cli</span></code> and therefore will no longer be packaged with AtlasDB clients
 pulling in <code class="docutils literal"><span class="pre">atlasdb-dropwizard-bundle</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1439">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>All SnapshotTransaction get methods are now safe for tables declared with SweepStrategy.THOROUGH.
 Previously, a validation check was omitted for <code class="docutils literal"><span class="pre">getRowsColumnRange</span></code>, <code class="docutils literal"><span class="pre">getRowsIgnoringLocalWrites</span></code>, and <code class="docutils literal"><span class="pre">getIgnoringLocalWrites</span></code>, which in very rare cases could have resulted in deleted values being returned by a long-running read transaction.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1421">Pull Request</a>)</td>
