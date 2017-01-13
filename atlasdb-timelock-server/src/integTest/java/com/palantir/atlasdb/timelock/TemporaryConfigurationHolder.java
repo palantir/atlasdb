@@ -22,8 +22,12 @@ import org.apache.commons.io.FileUtils;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+
 public class TemporaryConfigurationHolder extends ExternalResource {
-    private static final String TEMP_DATA_DIR = "<TEMP_DATA_DIR>";
+    @VisibleForTesting
+    static final String TEMP_DATA_DIR = "<TEMP_DATA_DIR>";
 
     private final TemporaryFolder temporaryFolder;
     private final File configTemplate;
@@ -44,12 +48,22 @@ public class TemporaryConfigurationHolder extends ExternalResource {
     }
 
     private void createTemporaryConfigFile() throws IOException {
-        String oldConfig = FileUtils.readFileToString(configTemplate);
-        String newConfig = replaceTempDataDirPlaceholder(oldConfig, temporaryLogDirectory.getPath());
-        FileUtils.writeStringToFile(temporaryConfigFile, newConfig);
+        writeNewFileWithPlaceholderSubstituted(configTemplate, temporaryLogDirectory.getPath(), temporaryConfigFile);
     }
 
-    private static String replaceTempDataDirPlaceholder(String config, String substitution) {
+    @VisibleForTesting
+    static void writeNewFileWithPlaceholderSubstituted(File sourceFile, String substitution, File destinationFile)
+            throws IOException {
+        Preconditions.checkArgument(!sourceFile.getCanonicalFile().equals(destinationFile.getCanonicalFile()),
+                "The source and destination files both point to '%s'.", sourceFile.getCanonicalPath());
+
+        String oldConfig = FileUtils.readFileToString(sourceFile);
+        String newConfig = replaceTempDataDirPlaceholder(oldConfig, substitution);
+        FileUtils.writeStringToFile(destinationFile, newConfig);
+    }
+
+    @VisibleForTesting
+    static String replaceTempDataDirPlaceholder(String config, String substitution) {
         return config.replace(TEMP_DATA_DIR, substitution);
     }
 

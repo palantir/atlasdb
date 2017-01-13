@@ -17,13 +17,13 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.util.SortedMap;
 
 import javax.net.ssl.SSLSocketFactory;
 
-import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -53,13 +53,14 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
     private static final String LOCK_CLIENT_NAME = "lock-client-name";
-    private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP = ImmutableSortedMap.of(
-            StringLockDescriptor.of("lock1"), LockMode.WRITE);
-    private static final File TIMELOCK_CONFIG = new File(ResourceHelpers.resourceFilePath("paxosSingleServer.yml"));
+    private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP =
+            ImmutableSortedMap.of(StringLockDescriptor.of("lock1"), LockMode.WRITE);
+    private static final File TIMELOCK_CONFIG_TEMPLATE =
+            new File(ResourceHelpers.resourceFilePath("paxosSingleServer.yml"));
 
     private static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
     private static final TemporaryConfigurationHolder TEMPORARY_CONFIG_HOLDER =
-            new TemporaryConfigurationHolder(TEMPORARY_FOLDER, TIMELOCK_CONFIG);
+            new TemporaryConfigurationHolder(TEMPORARY_FOLDER, TIMELOCK_CONFIG_TEMPLATE);
     private static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
             new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation);
 
@@ -137,8 +138,8 @@ public class PaxosTimeLockServerIntegrationTest {
         long firstServiceSecondTimestamp = timestampService1.getFreshTimestamp();
         long secondServiceSecondTimestamp = timestampService2.getFreshTimestamp();
 
-        Assert.assertEquals(firstServiceFirstTimestamp + 1, firstServiceSecondTimestamp);
-        Assert.assertEquals(secondServiceFirstTimestamp + 1, secondServiceSecondTimestamp);
+        assertEquals(firstServiceFirstTimestamp + 1, firstServiceSecondTimestamp);
+        assertEquals(secondServiceFirstTimestamp + 1, secondServiceSecondTimestamp);
     }
 
     @Test
