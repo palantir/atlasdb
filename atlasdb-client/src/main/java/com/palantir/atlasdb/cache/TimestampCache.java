@@ -45,4 +45,11 @@ public class TimestampCache {
     public void putAlreadyCommittedTransaction(Long startTimestamp, Long commitTimestamp) {
         timestampCache.put(startTimestamp, commitTimestamp);
     }
+
+    /**
+     * Clear all values from the cache.
+     */
+    public void clear() {
+        timestampCache.invalidateAll();
+    }
 }

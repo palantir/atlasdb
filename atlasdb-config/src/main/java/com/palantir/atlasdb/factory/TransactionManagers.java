@@ -17,11 +17,13 @@ package com.palantir.atlasdb.factory;
 
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.net.ssl.SSLSocketFactory;
 
 import org.immutables.value.Value;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
@@ -32,8 +34,10 @@ import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
@@ -70,8 +74,8 @@ import com.palantir.lock.client.LockRefreshingRemoteLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.remoting.ssl.SslConfiguration;
 import com.palantir.remoting.ssl.SslSocketFactories;
-import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.util.DebugLogger;
 
 public final class TransactionManagers {
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
@@ -231,9 +235,36 @@ public final class TransactionManagers {
             return createRawLeaderServices(config.leader().get(), env, lock, time);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(config);
+        } else if (config.timelock().isPresent()) {
+            return createNamespacedRawRemoteServices(config.timelock().get());
         } else {
             return createRawEmbeddedServices(env, lock, time);
         }
+    }
+
+    private static LockAndTimestampServices createNamespacedRawRemoteServices(TimeLockClientConfig config) {
+        ServerListConfig namespacedServerListConfig = getNamespacedServerListConfig(config);
+        return getLockAndTimestampServices(namespacedServerListConfig);
+    }
+
+    @VisibleForTesting
+    static ServerListConfig getNamespacedServerListConfig(TimeLockClientConfig config) {
+        return ImmutableServerListConfig.copyOf(config.serversList())
+                .withServers(config.serversList()
+                        .servers()
+                        .stream()
+                        .map(serverAddress -> serverAddress.replaceAll("/$", "") + "/" + config.client())
+                        .collect(Collectors.toSet()));
+    }
+
+    private static LockAndTimestampServices getLockAndTimestampServices(ServerListConfig timelockServerListConfig) {
+        RemoteLockService lockService = new ServiceCreator<>(RemoteLockService.class).apply(timelockServerListConfig);
+        TimestampService timeService = new ServiceCreator<>(TimestampService.class).apply(timelockServerListConfig);
+
+        return ImmutableLockAndTimestampServices.builder()
+                .lock(lockService)
+                .time(timeService)
+                .build();
     }
 
     private static LockAndTimestampServices createRawLeaderServices(

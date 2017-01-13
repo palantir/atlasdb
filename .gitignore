@@ -30,6 +30,7 @@ generated_testSrc/
 .factorypath
 out/
 atlasdb-cli/var/data/
+*.hprof
 
 # Common text-editor temp files
 # emacs

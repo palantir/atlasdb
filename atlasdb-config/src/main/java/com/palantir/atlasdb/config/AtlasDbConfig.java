@@ -34,6 +34,8 @@ public abstract class AtlasDbConfig {
 
     public abstract Optional<LeaderConfig> leader();
 
+    public abstract Optional<TimeLockClientConfig> timelock();
+
     public abstract Optional<ServerListConfig> lock();
 
     public abstract Optional<ServerListConfig> timestamp();
@@ -163,12 +165,23 @@ public abstract class AtlasDbConfig {
     @Value.Check
     protected final void check() {
         if (leader().isPresent()) {
-            Preconditions.checkState(!lock().isPresent() && !timestamp().isPresent(),
+            Preconditions.checkState(areTimeAndLockConfigsAbsent(),
                     "If the leader block is present, then the lock and timestamp server blocks must both be absent.");
+            Preconditions.checkState(!timelock().isPresent(),
+                    "If the leader block is present, then the timelock block must be absent.");
+        }
+
+        if (timelock().isPresent()) {
+            Preconditions.checkState(areTimeAndLockConfigsAbsent(),
+                    "If the timelock block is present, then the lock and timestamp blocks must both be absent.");
         }
 
         Preconditions.checkState(lock().isPresent() == timestamp().isPresent(),
                 "Lock and timestamp server blocks must either both be present or both be absent.");
+    }
+
+    private boolean areTimeAndLockConfigsAbsent() {
+        return !lock().isPresent() && !timestamp().isPresent();
     }
 
     @JsonIgnore

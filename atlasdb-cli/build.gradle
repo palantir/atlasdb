@@ -8,8 +8,5 @@ dependencies {
     compile project(path: ':atlasdb-dagger', configuration: 'shadow')
     compile 'io.airlift:airline:0.7'
 
-    runtime project(':atlasdb-rocksdb')
-
-    testCompile project(':atlasdb-rocksdb')
     testCompile group: 'org.assertj', name: 'assertj-core', version: libVersions.assertj
 }

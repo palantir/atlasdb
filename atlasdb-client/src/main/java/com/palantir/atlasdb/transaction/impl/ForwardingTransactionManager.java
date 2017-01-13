@@ -53,6 +53,11 @@ public abstract class ForwardingTransactionManager extends ForwardingObject impl
     }
 
     @Override
+    public void clearTimestampCache() {
+        delegate().clearTimestampCache();
+    }
+
+    @Override
     public void close() throws Exception {
         delegate().close();
     }
