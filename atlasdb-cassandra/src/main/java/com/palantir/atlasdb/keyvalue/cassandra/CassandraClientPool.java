@@ -34,6 +34,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -148,6 +149,18 @@ public class CassandraClientPool {
         final AtomicLong totalRequests = new AtomicLong(0);
         final AtomicLong totalRequestExceptions = new AtomicLong(0);
         final AtomicLong totalRequestConnectionExceptions = new AtomicLong(0);
+
+        AtomicLong getTotalRequests() {
+            return totalRequests;
+        }
+
+        AtomicLong getTotalRequestExceptions() {
+            return totalRequestExceptions;
+        }
+
+        AtomicLong getTotalRequestConnectionExceptions() {
+            return totalRequestConnectionExceptions;
+        }
 
         // Approximate
         double getExceptionProportion() {
@@ -616,26 +629,24 @@ public class CassandraClientPool {
     }
 
     private void recordRequestOnHost(CassandraClientPoolingContainer hostPool) {
-        aggregateMetrics.totalRequests.getAndIncrement();
-        RequestMetrics hostMetrics = metricsByHost.get(hostPool.getHost());
-        if (hostMetrics != null) {
-            hostMetrics.totalRequests.getAndIncrement();
-        }
+        incrementMetric(hostPool, RequestMetrics::getTotalRequests);
     }
 
     private void recordExceptionOnHost(CassandraClientPoolingContainer hostPool) {
-        aggregateMetrics.totalRequestExceptions.getAndIncrement();
-        RequestMetrics hostMetrics = metricsByHost.get(hostPool.getHost());
-        if (hostMetrics != null) {
-            hostMetrics.totalRequestExceptions.getAndIncrement();
-        }
+        incrementMetric(hostPool, RequestMetrics::getTotalRequestExceptions);
     }
 
     private void recordConnectionExceptionOnHost(CassandraClientPoolingContainer hostPool) {
-        aggregateMetrics.totalRequestConnectionExceptions.getAndIncrement();
-        RequestMetrics hostMetrics = metricsByHost.get(hostPool.getHost());
-        if (hostMetrics != null) {
-            hostMetrics.totalRequestConnectionExceptions.getAndIncrement();
+        incrementMetric(hostPool, RequestMetrics::getTotalRequestConnectionExceptions);
+    }
+
+    private void incrementMetric(
+            CassandraClientPoolingContainer hostPool,
+            Function<RequestMetrics, AtomicLong> getMetric) {
+        getMetric.apply(aggregateMetrics).getAndIncrement();
+        RequestMetrics requestMetricsForHost = metricsByHost.get(hostPool.getHost());
+        if (requestMetricsForHost != null) {
+            getMetric.apply(requestMetricsForHost).getAndIncrement();
         }
     }
 
