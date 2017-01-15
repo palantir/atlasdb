@@ -44,9 +44,9 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
-import com.palantir.util.DebugLogger;
 import com.palantir.util.debug.ThreadDumps;
 
 public final class CassandraTimestampBoundStore implements TimestampBoundStore {
