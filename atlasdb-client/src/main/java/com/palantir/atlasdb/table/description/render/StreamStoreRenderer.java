@@ -571,7 +571,7 @@ public class StreamStoreRenderer {
             private void tryWriteStreamToFile() {
                 line("@Override");
                 line("protected void tryWriteStreamToFile(Transaction transaction, ", StreamId, " id, StreamMetadata metadata, FileOutputStream fos) throws IOException {"); {
-                    line("try (InputStream blockStream = makeStream(id, metadata);");
+                    line("try (InputStream blockStream = makeStream(transaction, id, metadata);");
                     line("        InputStream decompressingStream = new LZ4BlockInputStream(blockStream);");
                     line("        OutputStream fileStream = fos;) {"); {
                         line("ByteStreams.copy(decompressingStream, fileStream);");
