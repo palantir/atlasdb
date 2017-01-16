@@ -18,6 +18,9 @@ package com.palantir.atlasdb.timelock.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -42,6 +45,7 @@ public class PaxosConfigurationTest {
         ImmutablePaxosConfiguration.builder()
                 .paxosDataDir(mockFile)
                 .build();
+        verify(mockFile, times(1)).mkdirs();
     }
 
     @Test
@@ -52,6 +56,7 @@ public class PaxosConfigurationTest {
         ImmutablePaxosConfiguration.builder()
                 .paxosDataDir(mockFile)
                 .build();
+        verify(mockFile, never()).mkdirs();
     }
 
     @Test

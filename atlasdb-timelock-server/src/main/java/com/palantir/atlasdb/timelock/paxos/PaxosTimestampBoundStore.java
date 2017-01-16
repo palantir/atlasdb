@@ -104,7 +104,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 proposer.getQuorumSize(),
                 executor,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
-                true);
+                ONLY_LOG_ON_QUORUM_FAILURE);
         if (!PaxosQuorumChecker.hasQuorum(responses, proposer.getQuorumSize())) {
             throw new ServiceNotAvailableException("could not get a quorum");
         }
@@ -303,7 +303,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 backoffTime,
                 paxosException);
         try {
-            backoffAction.accept(backoffTime);
+            backoffAction.backoff(backoffTime);
         } catch (InterruptedException interruptedException) {
             Thread.currentThread().interrupt();
         }
@@ -341,6 +341,6 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     }
 
     private interface BackoffAction {
-        void accept(long backoffTime) throws InterruptedException;
+        void backoff(long backoffTime) throws InterruptedException;
     }
 }

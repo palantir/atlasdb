@@ -64,8 +64,6 @@ public class PaxosTimestampBoundStoreTest {
     private static final PaxosTimestampBoundStore.SequenceAndBound ONE_AND_FORTY_TWO =
             ImmutableSequenceAndBound.of(1, FORTY_TWO);
 
-    private static final String STILL_RUNNING_MESSAGE =
-            "Some threads are still hanging around! Can't proceed or they might corrupt future tests.";
     private static final RuntimeException EXCEPTION = new RuntimeException("exception");
 
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
@@ -103,7 +101,8 @@ public class PaxosTimestampBoundStoreTest {
             executor.shutdownNow();
             boolean terminated = executor.awaitTermination(10, TimeUnit.SECONDS);
             if (!terminated) {
-                throw new IllegalStateException(STILL_RUNNING_MESSAGE);
+                throw new IllegalStateException(
+                        "Some threads are still hanging around! Can't proceed or they might corrupt future tests.");
             }
         } finally {
             FileUtils.deleteDirectory(new File(LOG_DIR));
