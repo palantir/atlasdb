@@ -28,7 +28,7 @@ public interface TimestampBoundStore {
      * handed out.
      *
      * @param limit the new upper limit to be stored
-     * @throws MultipleRunningTimestampServiceError if the timestamp limit has changed out from under us.
+     * @throws MultipleRunningTimestampServiceError if the timestamp limit has changed out from under us
      */
     void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError;
 }

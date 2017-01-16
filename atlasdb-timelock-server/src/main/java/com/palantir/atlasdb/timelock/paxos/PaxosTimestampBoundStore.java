@@ -74,6 +74,14 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         this.maximumWaitBeforeProposalMs = maximumWaitBeforeProposalMs;
     }
 
+    /**
+     * Contacts a quorum of nodes to find the latest sequence number prepared or accepted from acceptors,
+     * and the bound associated with this sequence number. This method MUST be called at least once before
+     * storeUpperLimit() is called for the first time.
+     *
+     * @return the upper limit the cluster has agreed on
+     * @throws ServiceNotAvailableException if we couldn't contact a quorum
+     */
     @Override
     public synchronized long getUpperLimit() {
         List<PaxosLong> responses = getLatestSequenceNumbersFromAcceptors();
@@ -82,6 +90,13 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         return agreedState.getBound();
     }
 
+    /**
+     * Contacts all acceptors and gets the latest sequence number prepared or accepted by any of them.
+     * This method only returns the values obtained if we obtained a quorum of values.
+     *
+     * @return latest sequence number prepared or accepted by any acceptor
+     * @throws ServiceNotAvailableException if we couldn't contact a quorum
+     */
     private List<PaxosLong> getLatestSequenceNumbersFromAcceptors() {
         List<PaxosLong> responses = PaxosQuorumChecker.collectQuorumResponses(
                 ImmutableList.copyOf(acceptors),
@@ -96,6 +111,23 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         return responses;
     }
 
+    /**
+     * Obtains agreement for a given sequence number, pulling in values from previous sequence numbers
+     * if needed.
+     *
+     * The semantics of this method are as follows:
+     *  - If any learner knows that a value has already been agreed for this sequence number, return said value.
+     *  - Otherwise, poll learners for the state of the previous sequence number.
+     *     - If this is unavailable, the cluster must have agreed on (seq - 2), so read it and then force (seq - 1)
+     *       to that value.
+     *  - Finally, force agreement for seq to be the same value as that agreed for (seq - 1).
+     *
+     * This method has a precondition that (seq - 2) must be agreed upon; note that numbers up to and including
+     * PaxosAcceptor.NO_LOG_ENTRY are always considered agreed upon.
+     *
+     * @param seq Sequence number to obtain agreement on
+     * @return Sequence and bound for the given sequence number; guaranteed nonnull
+     */
     @VisibleForTesting
     SequenceAndBound getAgreedState(long seq) {
         final Optional<SequenceAndBound> state = getLearnedState(seq);
@@ -115,10 +147,22 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     }
 
     /**
-     * Obtains agreement for a given sequence number.
-     * @param seq
-     * @param oldState
-     * @return
+     * Forces agreement to be reached for a given sequence number; if the cluster hasn't reached agreement yet,
+     * attempt to propose a given value. This method only returns when a value has been agreed upon for the provided
+     * sequence number (though there are no guarantees as to whether said value is proposed by this node).
+     *
+     * The semantics of this method are as follows:
+     *  - If any learner knows that a value has already been agreed for this sequence number, return said value.
+     *  - Otherwise, propose the value oldState to the cluster. This call returns the value accepted by a
+     *    quorum of nodes; return that value.
+     *
+     * Callers of this method that supply a null oldState are responsible for ensuring that the cluster has already
+     * agreed on a value with the provided sequence number.
+     *
+     * @param seq Sequence number to obtain agreement on
+     * @param oldState Value to propose, provided no learner has learned a value for this sequence number
+     * @return Sequence and bound for the given sequence number; guaranteed nonnull
+     * @throws NullPointerException if oldState is null and the cluster hasn't agreed on a value for seq yet
      */
     @VisibleForTesting
     SequenceAndBound forceAgreedState(long seq, @Nullable Long oldState) {
@@ -186,9 +230,17 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         return ImmutablePaxosLong.of(PtBytes.toLong(value.getData()));
     }
 
+    /**
+     * Proposes a new timestamp limit, with sequence number 1 greater than the current agreed bound, or
+     * PaxosAcceptor.NO_LOG_ENTRY + 1 if nothing has been proposed or accepted yet.
+     *
+     * @param limit the new upper limit to be stored
+     * @throws IllegalArgumentException if trying to persist a limit smaller than the agreed limit
+     * @throws MultipleRunningTimestampServiceError if the timestamp limit has changed out from under us
+     */
     @Override
     public synchronized void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError {
-        long newSeq = 0;
+        long newSeq = PaxosAcceptor.NO_LOG_ENTRY + 1;
         if (agreedState != null) {
             Preconditions.checkArgument(limit >= agreedState.getBound(),
                     "Tried to store an upper limit %s less than the current limit %s", limit, agreedState.getBound());
