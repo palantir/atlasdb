@@ -56,6 +56,4 @@ public class PostgresKeyValueServiceInstrumentation extends KeyValueServiceInstr
     public String toString() {
         return "POSTGRES";
     }
-
-    public String getClassName(){ return this.getClass().toString().split(" ")[1]; }
 }

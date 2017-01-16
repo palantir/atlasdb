@@ -37,6 +37,11 @@ public abstract class KeyValueServiceInstrumentation {
             new TreeMap<>();
     private static final Map<String, String> classNames = new TreeMap<>();
 
+    static {
+        addNewBackendType(new CassandraKeyValueServiceInstrumentation());
+        addNewBackendType(new PostgresKeyValueServiceInstrumentation());
+    }
+
     KeyValueServiceInstrumentation(int kvsPort, String dockerComposeFileName) {
         this.kvsPort = kvsPort;
         this.dockerComposeFileName = dockerComposeFileName;
@@ -53,29 +58,25 @@ public abstract class KeyValueServiceInstrumentation {
     public abstract KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr);
     public abstract boolean canConnect(InetSocketAddress addr);
 
-    public static KeyValueServiceInstrumentation forDatabase(String backend) {
-        for (String item : backendMap.keySet()) {
-            log.error(item);
-        }
-        if (classNames.containsKey(backend)) {
-            return backendMap.get(classNames.get(backend));
-        }
-        else {
-            return forClass(backend);
-        }
-    }
-
     public static void addNewBackendType(KeyValueServiceInstrumentation backend) {
-        if (!backendMap.containsKey(backend.toString())) {
+        if (!backendMap.containsKey(backend.getClassName())) {
             classNames.put(backend.toString(), backend.getClassName());
             backendMap.put(backend.getClassName(), backend);
         }
     }
 
-    public static KeyValueServiceInstrumentation forClass(String className) {
-         if (!backendMap.containsKey(className)) {
-             addBackendFromClassName(className);
-         }
+    public static KeyValueServiceInstrumentation forDatabase(String backend) {
+        if (classNames.containsKey(backend)) {
+            return backendMap.get(classNames.get(backend));
+        } else {
+            return forClass(backend);
+        }
+    }
+
+    private static KeyValueServiceInstrumentation forClass(String className) {
+        if (!backendMap.containsKey(className)) {
+            addBackendFromClassName(className);
+        }
         return backendMap.get(className);
     }
 
@@ -85,13 +86,11 @@ public abstract class KeyValueServiceInstrumentation {
             Constructor<?> constructor = clazz.getConstructor();
             KeyValueServiceInstrumentation instance = (KeyValueServiceInstrumentation) constructor.newInstance();
             addNewBackendType(instance);
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             log.error("Exception trying to instantiate class {}:", className, e);
             System.exit(1);
         }
     }
-
 
     public static Set<String> getBackends() {
         return classNames.keySet();
@@ -99,5 +98,7 @@ public abstract class KeyValueServiceInstrumentation {
 
     public abstract String toString();
 
-    public String getClassName(){ return this.getClass().toString().split(" ")[1]; }
+    public String getClassName() {
+        return this.getClass().toString().split(" ")[1];
+    }
 }
