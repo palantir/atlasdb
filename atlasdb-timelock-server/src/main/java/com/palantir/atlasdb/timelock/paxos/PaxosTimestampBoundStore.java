@@ -137,6 +137,13 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         }
     }
 
+    /**
+     * Gets the timestamp bound learned for a given sequence number by polling all learners.
+     *
+     * @param seq The sequence number to poll the learners for
+     * @return Sequence ID and bound for the specified sequence number, or an empty Optional if we cannot connect
+     * to any learner which knows a value for this sequence number
+     */
     private Optional<SequenceAndBound> getLearnedState(long seq) {
         if (seq <= PaxosAcceptor.NO_LOG_ENTRY) {
             return Optional.of(ImmutableSequenceAndBound.of(PaxosAcceptor.NO_LOG_ENTRY, 0L));
@@ -154,6 +161,14 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         return Optional.of(ImmutableSequenceAndBound.of(seq, responses.iterator().next().getValue()));
     }
 
+    /**
+     * Gets the value that has been learned from an individual PaxosLearner for a given sequence number.
+     *
+     * @param seq The sequence number to get a value for
+     * @param learner The Paxos learner to query for a value
+     * @return the value learned by the learner for seq
+     * @throws NoSuchElementException if the learner has not learned any value for seq
+     */
     private static PaxosLong getLearnedValue(long seq, PaxosLearner learner) {
         PaxosValue value = learner.getLearnedValue(seq);
         if (value == null) {
@@ -187,7 +202,16 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         }
     }
 
-    private void checkAgreedBoundIsOurs(long limit, long newSeq, PaxosValue value) {
+    /**
+     * Checks that the PaxosValue agreed upon by a quorum of nodes in our cluster was proposed by us.
+     *
+     * @param limit the limit our node has proposed
+     * @param newSeq the sequence number for which our node has proposed the limit
+     * @param value PaxosValue agreed upon by a quorum of nodes, for sequence number newSeq
+     * @throws MultipleRunningTimestampServiceError if the agreed timestamp bound (PaxosValue) changed under us
+     */
+    private void checkAgreedBoundIsOurs(long limit, long newSeq, PaxosValue value)
+            throws MultipleRunningTimestampServiceError {
         if (!value.getLeaderUUID().equals(proposer.getUUID())) {
             String errorMsg = String.format(
                     "Timestamp limit changed from under us for sequence '%s' (leader with UUID '%s' changed"
@@ -204,6 +228,14 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         }
     }
 
+    /**
+     * Executes a backoff action which is given a random amount of time to wait in milliseconds. This is used in Paxos
+     * to resolve multiple concurrent proposals. Users are allowed to specify their own backoff action,
+     * to handle cases where users hold or do not hold monitor locks, for instance.
+     *
+     * @param paxosException the PaxosRoundFailureException that caused us to wait
+     * @param backoffAction the action to take (which consumes the time, in milliseconds, to wait for)
+     */
     private void waitForRandomBackoff(PaxosRoundFailureException paxosException, BackoffAction backoffAction) {
         long backoffTime = getRandomBackoffTime();
         log.info("Paxos proposal couldn't complete, because we could not connect to a quorum of nodes. We"
@@ -217,6 +249,13 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         }
     }
 
+    /**
+     * Generates a random amount of time to wait for, in milliseconds.
+     * This typically depends on the configuration of the Paxos algorithm; currently, we have implemented
+     * this as U(0, k) where k is the maximum wait before proposal in the Paxos configuration.
+     *
+     * @return the amount of time to wait for, in milliseconds
+     */
     private long getRandomBackoffTime() {
         return (long) (maximumWaitBeforeProposalMs * Math.random());
     }
