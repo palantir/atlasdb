@@ -312,12 +312,12 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     /**
      * Generates a random amount of time to wait for, in milliseconds.
      * This typically depends on the configuration of the Paxos algorithm; currently, we have implemented
-     * this as U(0, k) where k is the maximum wait before proposal in the Paxos configuration.
+     * this as U(1, k) where k is the maximum wait before proposal in the Paxos configuration.
      *
      * @return the amount of time to wait for, in milliseconds
      */
     private long getRandomBackoffTime() {
-        return (long) (maximumWaitBeforeProposalMs * Math.random());
+        return (long) (maximumWaitBeforeProposalMs * Math.random() + 1);
     }
 
     @Value.Immutable
