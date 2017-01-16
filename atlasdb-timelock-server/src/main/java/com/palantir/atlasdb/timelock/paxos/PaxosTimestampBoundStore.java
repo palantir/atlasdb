@@ -114,6 +114,12 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         return forceAgreedState(seq, lastState.get().getBound());
     }
 
+    /**
+     * Obtains agreement for a given sequence number.
+     * @param seq
+     * @param oldState
+     * @return
+     */
     @VisibleForTesting
     SequenceAndBound forceAgreedState(long seq, @Nullable Long oldState) {
         if (seq <= PaxosAcceptor.NO_LOG_ENTRY) {
@@ -138,7 +144,9 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     }
 
     /**
-     * Gets the timestamp bound learned for a given sequence number by polling all learners.
+     * Gets the timestamp bound learned for a given sequence number by polling all learners. Note that it suffices
+     * to receive the value from a single learner, because Paxos guarantees that learners will not learn
+     * different values for a given sequence number.
      *
      * @param seq The sequence number to poll the learners for
      * @return Sequence ID and bound for the specified sequence number, or an empty Optional if we cannot connect
@@ -239,7 +247,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     private void waitForRandomBackoff(PaxosRoundFailureException paxosException, BackoffAction backoffAction) {
         long backoffTime = getRandomBackoffTime();
         log.info("Paxos proposal couldn't complete, because we could not connect to a quorum of nodes. We"
-                + " will retry in {}ms. The Paxos exception was {}",
+                + " will retry in {} ms.",
                 backoffTime,
                 paxosException);
         try {
