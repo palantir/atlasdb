@@ -443,7 +443,8 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     private void throwCheckAndSetException(Cell cell, TableReference tableRef, byte[] expected, byte[] actual) {
-        throw new CheckAndSetException(cell, tableRef, expected, ImmutableList.of(actual));
+        ImmutableList<byte[]> actuals = actual == null ? ImmutableList.of() : ImmutableList.of(actual);
+        throw new CheckAndSetException(cell, tableRef, expected, actuals);
     }
 
     @Override
