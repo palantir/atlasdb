@@ -204,9 +204,7 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
         // Only update stats after put was successful.
         s.totalPutCells.addAndGet(values.size());
         for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
-            s.totalPutCellBytes.addAndGet(e.getKey().getRowName().length);
-            s.totalPutCellBytes.addAndGet(e.getKey().getColumnName().length);
-            s.totalPutValueBytes.addAndGet(e.getValue().length);
+            incrementPutBytes(s, e.getKey(), e.getValue());
         }
     }
 
@@ -225,9 +223,7 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
             // Only update stats after put was successful.
             s.totalPutCells.addAndGet(values.size());
             for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
-                s.totalPutCellBytes.addAndGet(e.getKey().getRowName().length);
-                s.totalPutCellBytes.addAndGet(e.getKey().getColumnName().length);
-                s.totalPutValueBytes.addAndGet(e.getValue().length);
+                incrementPutBytes(s, e.getKey(), e.getValue());
             }
         }
     }
@@ -245,48 +241,29 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
         // Only update stats after put was successful.
         s.totalPutCells.addAndGet(values.size());
         for (Entry<Cell, Value> e : values.entries()) {
-            s.totalPutCellBytes.addAndGet(e.getKey().getRowName().length);
-            s.totalPutCellBytes.addAndGet(e.getKey().getColumnName().length);
-            s.totalPutValueBytes.addAndGet(e.getValue().getContents().length);
+            incrementPutBytes(s, e.getKey(), e.getValue().getContents());
         }
     }
 
     @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        TableStats s = getTableStats(tableRef);
-
-        long start = System.currentTimeMillis();
-        super.putUnlessExists(tableRef, values);
-        long finish = System.currentTimeMillis();
-        s.totalPutMillis.addAndGet(finish - start);
-        s.totalPutCalls.incrementAndGet();
+        TableStats s = timeOperation(tableRef, () -> super.putUnlessExists(tableRef, values));
 
         // Only update stats after put was successful.
         s.totalPutCells.addAndGet(values.size());
         for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
-            s.totalPutCellBytes.addAndGet(e.getKey().getRowName().length);
-            s.totalPutCellBytes.addAndGet(e.getKey().getColumnName().length);
-            s.totalPutValueBytes.addAndGet(e.getValue().length);
+            incrementPutBytes(s, e.getKey(), e.getValue());
         }
     }
 
     @Override
     public void checkAndSet(CheckAndSetRequest request) {
-        TableStats s = getTableStats(request.table());
-
-        long start = System.currentTimeMillis();
-        super.checkAndSet(request);
-        long finish = System.currentTimeMillis();
-
-        s.totalPutMillis.addAndGet(finish - start);
-        s.totalPutCalls.incrementAndGet();
+        TableStats s = timeOperation(request.table(), () -> super.checkAndSet(request));
 
         // Only update stats after put was successful.
         s.totalPutCells.incrementAndGet(); // can only CAS one value
-        s.totalPutCellBytes.addAndGet(request.cell().getRowName().length);
-        s.totalPutCellBytes.addAndGet(request.cell().getColumnName().length);
-        s.totalPutValueBytes.addAndGet(request.newValue().length);
+        incrementPutBytes(s, request.cell(), request.newValue());
     }
 
     private TableStats getTableStats(TableReference tableRef) {
@@ -296,6 +273,23 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
             s = statsByTableName.get(tableRef);
         }
         return s;
+    }
+
+    private TableStats timeOperation(TableReference tableRef, Runnable operation) {
+        TableStats s = getTableStats(tableRef);
+
+        long start = System.currentTimeMillis();
+        operation.run();
+        long finish = System.currentTimeMillis();
+        s.totalPutMillis.addAndGet(finish - start);
+        s.totalPutCalls.incrementAndGet();
+        return s;
+    }
+
+    private void incrementPutBytes(TableStats s, Cell cell, byte[] value) {
+        s.totalPutCellBytes.addAndGet(cell.getRowName().length);
+        s.totalPutCellBytes.addAndGet(cell.getColumnName().length);
+        s.totalPutValueBytes.addAndGet(value.length);
     }
 
     public void dumpStats(PrintWriter writer) {
