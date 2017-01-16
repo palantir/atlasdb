@@ -27,6 +27,8 @@ import java.io.File;
 
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class PaxosConfigurationTest {
     private static final long POSITIVE_LONG = 100L;
     private static final long NEGATIVE_LONG = -100L;
@@ -38,6 +40,8 @@ public class PaxosConfigurationTest {
     }
 
     @Test
+    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
+            justification = "The File used is a mock and hence the real mkdirs() method is never called.")
     public void canCreateDirectoryForPaxosDirectory() {
         File mockFile = mock(File.class);
         when(mockFile.exists()).thenReturn(false);
@@ -49,6 +53,8 @@ public class PaxosConfigurationTest {
     }
 
     @Test
+    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
+            justification = "The File used is a mock and hence the real mkdirs() method is never called.")
     public void canUseExistingDirectoryAsPaxosDirectory() {
         File mockFile = mock(File.class);
         when(mockFile.exists()).thenReturn(true);
