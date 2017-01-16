@@ -42,6 +42,10 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Prevent deadlocks during parallel reads from ``DbKvs``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1468>`__)
+
     *    - |new|
          - Returned `RemotingKeyValueService` and associated remoting classes to the AtlasDB code base.  These now live
            in `atlasdb-remoting`.  This KVS will pass remote calls to a local delegate KVS.
