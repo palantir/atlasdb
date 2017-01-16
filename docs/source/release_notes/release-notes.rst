@@ -43,6 +43,23 @@ develop
          - Change
 
     *    - |improved|
+         - AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1378>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.28.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
          - Increase default Cassandra pool size from minimum of 20 and maximum of 5x the minimum (100 if minimum not modified) connections to minimum of 30 and maximum of 100 connections.
            This allows for better handling of bursts of requests that would otherwise require creating many new connections to Cassandra from the clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)
@@ -105,8 +122,6 @@ v0.27.2
            This caused an issue when the in-memory threshold was many times larger than the default (47MB for the default block size),
            or when the block size was many times smaller (7KB for the default in-memory threshold).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1422>`__)
-
-
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
