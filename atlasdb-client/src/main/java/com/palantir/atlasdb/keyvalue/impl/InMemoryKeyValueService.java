@@ -159,7 +159,8 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef,
+    public ClosableIterator<RowResult<Value>> getRange(
+            TableReference tableRef,
             final RangeRequest range,
             final long timestamp) {
         return getRangeInternal(tableRef, range, new ResultProducer<Value>() {
@@ -184,7 +185,8 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
+            TableReference tableRef,
             final RangeRequest range,
             final long timestamp) {
         return getRangeInternal(tableRef, range, new ResultProducer<Set<Long>>() {
@@ -382,7 +384,8 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 true);
     }
 
-    private void putInternal(TableReference tableRef,
+    private void putInternal(
+            TableReference tableRef,
             Collection<Map.Entry<Cell, Value>> values,
             boolean doNotOverwriteWithSameValue) {
         Table table = getTableMap(tableRef);
@@ -396,11 +399,6 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                 throw new KeyAlreadyExistsException("We already have a value for this timestamp");
             }
         }
-    }
-
-    // Returns the existing contents, if any, and null otherwise
-    private byte[] putIfAbsent(Table table, Key key, final byte[] contents) {
-        return table.entries.putIfAbsent(key, copyOf(contents));
     }
 
     @Override
@@ -422,11 +420,14 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         } else {
             byte[] oldContents = putIfAbsent(table, key, contents);
             if (oldContents != null) {
-                String actual = PtBytes.encodeHexString(oldContents);
-                String msg = String.format("Unexpected value for this key. Wanted (empty), got %s", actual);
-                throw new CheckAndSetException(msg, cell, null, ImmutableList.of(oldContents));
+                throwCheckAndSetException(cell, null, oldContents);
             }
         }
+    }
+
+    // Returns the existing contents, if any, and null otherwise
+    private byte[] putIfAbsent(Table table, Key key, final byte[] contents) {
+        return table.entries.putIfAbsent(key, copyOf(contents));
     }
 
     private Key getKey(Table table, Cell cell, long timestamp) {
@@ -443,14 +444,9 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     private void throwCheckAndSetException(Cell cell, byte[] expected, byte[] actual) {
         String expectedStr = PtBytes.encodeHexString(expected);
-        if (actual != null) {
-            String actualStr = PtBytes.encodeHexString(actual);
-            String msg = String.format("Unexpected value for this key. Wanted %s, got %s", expectedStr, actualStr);
-            throw new CheckAndSetException(msg, cell, expected, ImmutableList.of(actual));
-        } else {
-            String msg = String.format("Unexpected value for this key. Wanted %s, got (empty)", expectedStr);
-            throw new CheckAndSetException(msg, cell, expected, ImmutableList.of());
-        }
+        String actualStr = PtBytes.encodeHexString(actual);
+        String msg = String.format("Unexpected value for this key. Wanted '%s', got '%s'", expectedStr, actualStr);
+        throw new CheckAndSetException(msg, cell, expected, ImmutableList.of(actual));
     }
 
     @Override
