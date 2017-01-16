@@ -29,6 +29,9 @@ import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
 import com.palantir.common.base.Throwables;
 
 public class StreamStoreDefinition {
+    // from ArrayList.MAX_ARRAY_SIZE on 64-bit systems
+    public static final int MAX_IN_MEMORY_THRESHOLD = Integer.MAX_VALUE - 8;
+
     private final Map<String, TableDefinition> streamStoreTables;
     private final String shortName, longName;
     private final ValueType idType;

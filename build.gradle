@@ -17,6 +17,7 @@ buildscript {
         classpath 'com.palantir.gradle.javadist:gradle-java-distribution:1.2.0'
         classpath 'com.palantir:gradle-baseline-java:0.7.1'
         classpath 'com.palantir:jacoco-coverage:0.4.0'
+        classpath "com.netflix.nebula:gradle-dependency-lock-plugin:4.3.2"
         classpath 'com.netflix.nebula:nebula-dependency-recommender:3.6.3'
         classpath 'com.netflix.nebula:nebula-publishing-plugin:4.9.1'
         classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0'

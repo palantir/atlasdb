@@ -23,15 +23,15 @@ import com.jayway.awaitility.Duration;
 
 public final class DatabasesContainer implements AutoCloseable {
 
-    public static DatabasesContainer startup(List<KeyValueServiceType> backends) {
+    public static DatabasesContainer startup(List<KeyValueServiceInstrumentation> backends) {
         List<DockerizedDatabase> dbs = Lists.newArrayList();
         try {
-            for (KeyValueServiceType backend : backends) {
+            for (KeyValueServiceInstrumentation backend : backends) {
                 DockerizedDatabase db = DockerizedDatabase.start(backend);
                 Awaitility.await()
-                        .atMost(Duration.ONE_MINUTE)
-                        .pollInterval(Duration.ONE_SECOND)
-                        .until(() -> KeyValueServiceType.canConnect(backend, db.getUri().getAddress()));
+                        .atMost(Duration.FIVE_MINUTES)
+                        .pollInterval(Duration.ONE_MINUTE)
+                        .until(() -> backend.canConnect(db.getUri().getAddress()));
                 dbs.add(db);
             }
             return new DatabasesContainer(dbs);
