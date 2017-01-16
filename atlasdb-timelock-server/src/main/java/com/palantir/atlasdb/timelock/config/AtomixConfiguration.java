@@ -21,8 +21,8 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.atlasdb.timelock.TimeLockServerImplementation;
-import com.palantir.atlasdb.timelock.atomix.AtomixTimeLockServerImplementation;
+import com.palantir.atlasdb.timelock.TimeLockServer;
+import com.palantir.atlasdb.timelock.atomix.AtomixTimeLockServer;
 
 import io.atomix.copycat.server.storage.StorageLevel;
 import io.dropwizard.setup.Environment;
@@ -46,7 +46,7 @@ public abstract class AtomixConfiguration implements TimeLockAlgorithmConfigurat
     }
 
     @Override
-    public TimeLockServerImplementation createServerImpl(Environment environment) {
-        return new AtomixTimeLockServerImplementation();
+    public TimeLockServer createServerImpl(Environment environment) {
+        return new AtomixTimeLockServer();
     }
 }

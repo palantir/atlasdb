@@ -33,7 +33,7 @@ public class TimeLockServerHolder extends ExternalResource {
 
     @Override
     protected void before() throws Exception {
-        timelockServer = new DropwizardTestSupport<>(TimeLockServer.class, configFilePathSupplier.get());
+        timelockServer = new DropwizardTestSupport<>(TimeLockServerLauncher.class, configFilePathSupplier.get());
         timelockServer.before();
     }
 

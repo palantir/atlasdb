@@ -35,7 +35,7 @@ import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
-import com.palantir.atlasdb.timelock.TimeLockServerImplementation;
+import com.palantir.atlasdb.timelock.TimeLockServer;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.config.PaxosConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
@@ -52,7 +52,7 @@ import com.palantir.timestamp.TimestampService;
 
 import io.dropwizard.setup.Environment;
 
-public class PaxosTimeLockServerImplementation implements TimeLockServerImplementation {
+public class PaxosTimeLockServer implements TimeLockServer {
 
     private final PaxosConfiguration paxosConfiguration;
     private final Environment environment;
@@ -62,7 +62,7 @@ public class PaxosTimeLockServerImplementation implements TimeLockServerImplemen
     private LeaderElectionService leaderElectionService;
     private PaxosResource paxosResource;
 
-    public PaxosTimeLockServerImplementation(PaxosConfiguration configuration, Environment environment) {
+    public PaxosTimeLockServer(PaxosConfiguration configuration, Environment environment) {
         this.paxosConfiguration = configuration;
         this.environment = environment;
     }
