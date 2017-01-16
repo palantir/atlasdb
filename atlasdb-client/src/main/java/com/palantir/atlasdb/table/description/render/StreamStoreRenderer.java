@@ -173,6 +173,8 @@ public class StreamStoreRenderer {
                         line();
                         tryWriteStreamToFile();
                         line();
+                        makeStream();
+                        line();
                     }
                     getMetadata();
                     line();
@@ -576,6 +578,18 @@ public class StreamStoreRenderer {
                     line("        OutputStream fileStream = fos;) {"); {
                         line("ByteStreams.copy(decompressingStream, fileStream);");
                     } line("}");
+                } line("}");
+            }
+
+            private void makeStream() {
+                line("@Override");
+                line("protected InputStream makeStream(Transaction parent, ", StreamId, " id, StreamMetadata metadata) {"); {
+                    line("long totalBlocks = getNumberOfBlocksFromMetadata(metadata);");
+                    line("ByteArrayIOStream destination = new ByteArrayIOStream();");
+                    line("for (long i = 0; i < totalBlocks; i++) {"); {
+                        line("loadSingleBlockToOutputStream(parent, id, i, destination);");
+                    } line("}");
+                    line("return destination.getInputStream();");
                 } line("}");
             }
 

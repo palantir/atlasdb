@@ -222,6 +222,16 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
     }
 
     @Override
+    protected InputStream makeStream(Transaction parent, Long id, StreamMetadata metadata) {
+        long totalBlocks = getNumberOfBlocksFromMetadata(metadata);
+        ByteArrayIOStream destination = new ByteArrayIOStream();
+        for (long i = 0; i < totalBlocks; i++) {
+            loadSingleBlockToOutputStream(parent, id, i, destination);
+        }
+        return destination.getInputStream();
+    }
+
+    @Override
     protected Map<Long, StreamMetadata> getMetadata(Transaction t, Set<Long> streamIds) {
         if (streamIds.isEmpty()) {
             return ImmutableMap.of();
