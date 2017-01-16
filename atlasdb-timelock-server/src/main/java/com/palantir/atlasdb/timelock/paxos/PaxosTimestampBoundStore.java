@@ -127,13 +127,14 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
 
         while (true) {
             try {
-                byte[] value = proposer.propose(seq, oldState == null ? null : PtBytes.toBytes(oldState));
-                // propose must never be null.  We only pass in null for things we know are agreed upon already.
-                Preconditions.checkNotNull(value, "Proposed value can't be null, but was in sequence %s", seq);
-                return ImmutableSequenceAndBound.of(seq, PtBytes.toLong(value));
+                byte[] acceptedValue = proposer.propose(seq, oldState == null ? null : PtBytes.toBytes(oldState));
+                // propose must never return null.  We only pass in null for things we know are agreed upon already.
+                Preconditions.checkNotNull(acceptedValue, "Proposed value can't be null, but was in sequence %s", seq);
+                return ImmutableSequenceAndBound.of(seq, PtBytes.toLong(acceptedValue));
             } catch (PaxosRoundFailureException e) {
-                log.info("failed during propose", e);
                 long backoffTime = getRandomBackoffTime();
+                log.info("Paxos proposal couldn't complete, because we could not connect to a quorum of nodes. We "
+                        + "will retry in {}ms.", e, backoffTime);
                 try {
                     Thread.sleep(backoffTime);
                 } catch (InterruptedException e1) {
@@ -149,7 +150,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         }
         List<PaxosLong> responses = PaxosQuorumChecker.collectQuorumResponses(
                 ImmutableList.copyOf(learners),
-                l -> getLearnedValue(seq, l),
+                learner -> getLearnedValue(seq, learner),
                 QUORUM_OF_ONE,
                 executor,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
@@ -163,21 +164,37 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     private static PaxosLong getLearnedValue(long seq, PaxosLearner learner) {
         PaxosValue value = learner.getLearnedValue(seq);
         if (value == null) {
-            throw new NoSuchElementException();
+            throw new NoSuchElementException(
+                    String.format("Tried to get a learned value for sequence number '%d' which didn't exist", seq));
         }
         return ImmutablePaxosLong.of(PtBytes.toLong(value.getData()));
     }
 
     @Override
     public synchronized void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError {
-        Preconditions.checkArgument(agreedState == null || limit >= agreedState.getBound());
-        long newSeq = agreedState == null ? 0 : agreedState.getSeqId() + 1;
+        long newSeq = 0;
+        if (agreedState != null) {
+            Preconditions.checkArgument(limit >= agreedState.getBound(),
+                    "Tried to store an upper limit %s less than the current limit %s", limit, agreedState.getBound());
+            newSeq = agreedState.getSeqId() + 1;
+        }
         while (true) {
             try {
                 proposer.propose(newSeq, PtBytes.toBytes(limit));
                 PaxosValue value = knowledge.getLearnedValue(newSeq);
                 if (!value.getLeaderUUID().equals(proposer.getUUID())) {
-                    throw new MultipleRunningTimestampServiceError("concurrent proposal: " + value);
+                    String errorMsg = String.format(
+                            "Timestamp limit changed from under us for sequence '%s' (leader with UUID '%s' changed"
+                                    + " it, our UUID is '%s'). This suggests that another timestamp store for this"
+                                    + " namespace is running. The offending bound was '%s'; we tried to propose"
+                                    + " a bound of '%s'. (The offending Paxos value was '%s'.)",
+                            newSeq,
+                            value.getLeaderUUID(),
+                            proposer.getUUID(),
+                            PtBytes.toLong(value.getData()),
+                            limit,
+                            value);
+                    throw new MultipleRunningTimestampServiceError(errorMsg);
                 }
                 long newLimit = PtBytes.toLong(value.getData());
                 agreedState = ImmutableSequenceAndBound.of(newSeq, newLimit);
@@ -185,8 +202,9 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                     return;
                 }
             } catch (PaxosRoundFailureException e) {
-                log.info("failed during propose", e);
                 long backoffTime = getRandomBackoffTime();
+                log.info("Paxos proposal couldn't complete, because we could not connect to a quorum of nodes. We"
+                        + " will retry in {}ms.", e, backoffTime);
                 try {
                     wait(backoffTime);
                 } catch (InterruptedException e1) {
