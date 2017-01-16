@@ -17,8 +17,8 @@ package com.palantir.atlasdb.timelock.paxos;
 
 public final class PaxosTimeLockConstants {
     public static final String DEFAULT_LOG_DIRECTORY = "var/data/";
-    public static final String LEARNER_PATH = "/learner";
-    public static final String ACCEPTOR_PATH = "/acceptor";
+    public static final String LEARNER_SUBDIRECTORY_PATH = "/learner";
+    public static final String ACCEPTOR_SUBDIRECTORY_PATH = "/acceptor";
 
     public static final String LEADER_NAMESPACE = "__leader";
 

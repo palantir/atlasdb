@@ -54,9 +54,9 @@ public final class PaxosResource {
         Preconditions.checkState(!paxosLearners.containsKey(client),
                 "Paxos resource already has client '%s' registered", client);
         paxosLearners.put(client, PaxosLearnerImpl.newLearner(
-                Paths.get(logDirectory, client, PaxosTimeLockConstants.LEARNER_PATH).toString()));
+                Paths.get(logDirectory, client, PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH).toString()));
         paxosAcceptors.put(client, PaxosAcceptorImpl.newAcceptor(
-                Paths.get(logDirectory, client, PaxosTimeLockConstants.ACCEPTOR_PATH).toString()));
+                Paths.get(logDirectory, client, PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH).toString()));
     }
 
     @Path("/learner")

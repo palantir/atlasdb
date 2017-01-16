@@ -103,10 +103,10 @@ public class PaxosTimeLockServerImplementation implements TimeLockServerImplemen
                             PaxosTimeLockConstants.LEADER_NAMESPACE))
                     .acceptorLogDir(Paths.get(paxosConfiguration.paxosDataDir().toString(),
                             PaxosTimeLockConstants.LEADER_NAMESPACE,
-                            PaxosTimeLockConstants.ACCEPTOR_PATH).toFile())
+                            PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH).toFile())
                     .learnerLogDir(Paths.get(paxosConfiguration.paxosDataDir().toString(),
                             PaxosTimeLockConstants.LEADER_NAMESPACE,
-                            PaxosTimeLockConstants.LEARNER_PATH).toFile())
+                            PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH).toFile())
                     .pingRateMs(paxosConfiguration.pingRateMs())
                     .quorumSize(getQuorumSize(configuration.cluster().servers()))
                     .leaderPingResponseWaitMs(paxosConfiguration.leaderPingResponseWaitMs())

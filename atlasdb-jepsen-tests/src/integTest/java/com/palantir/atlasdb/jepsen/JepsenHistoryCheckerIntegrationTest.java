@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.junit.Test;
@@ -30,6 +31,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
+import com.palantir.atlasdb.jepsen.events.Checker;
 
 import clojure.lang.Keyword;
 import one.util.streamex.EntryStream;
@@ -51,7 +53,10 @@ public class JepsenHistoryCheckerIntegrationTest {
         List<Map<Keyword, ?>> convertedAllEvents = getClojureMapFromFile("liveness_failing_history.json");
 
         Map<Keyword, Object> results = JepsenHistoryCheckers.createWithCheckers(
-                ImmutableList.of(NemesisResilienceChecker::new))
+                ImmutableList.<Supplier<Checker>>builder()
+                        .addAll(JepsenHistoryCheckers.TIMESTAMP_CHECKERS)
+                        .add(NemesisResilienceChecker::new)
+                        .build())
                 .checkClojureHistory(convertedAllEvents);
 
         Map<Keyword, ?> nemesisStartEventMap = ImmutableMap.of(

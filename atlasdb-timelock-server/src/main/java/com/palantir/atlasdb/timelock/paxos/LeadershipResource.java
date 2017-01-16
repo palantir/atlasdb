@@ -21,7 +21,7 @@ import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 
-@Path("/__leader")
+@Path("/" + PaxosTimeLockConstants.LEADER_NAMESPACE)
 public class LeadershipResource {
     private final PaxosAcceptor acceptor;
     private final PaxosLearner learner;

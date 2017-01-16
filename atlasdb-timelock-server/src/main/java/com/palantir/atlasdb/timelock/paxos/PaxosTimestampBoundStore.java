@@ -148,7 +148,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
 
     /**
      * Forces agreement to be reached for a given sequence number; if the cluster hasn't reached agreement yet,
-     * attempt to propose a given value. This method only returns when a value has been agreed upon for the provided
+     * attempts to propose a given value. This method only returns when a value has been agreed upon for the provided
      * sequence number (though there are no guarantees as to whether said value is proposed by this node).
      *
      * The semantics of this method are as follows:
