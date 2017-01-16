@@ -43,6 +43,10 @@ develop
          - Change
 
     *    - |improved|
+         - Added support for benchmarking custom Key Value Stores; see `documentation <http://palantir.github.io/atlasdb/html/performance/writing.html>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+
+    *    - |improved|
          - Increase default Cassandra pool size from minimum of 20 and maximum of 5x the minimum (100 if minimum not modified) connections to minimum of 30 and maximum of 100 connections.
            This allows for better handling of bursts of requests that would otherwise require creating many new connections to Cassandra from the clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)

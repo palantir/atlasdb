@@ -96,6 +96,10 @@ public abstract class KeyValueServiceInstrumentation {
         return classNames.keySet();
     }
 
+    /**
+     * The --backend parameter and the [dbtype] of the --db-uri parameter must match the return value of the
+     * impementation of this method for your class.
+     */
     public abstract String toString();
 
     public String getClassName() {
