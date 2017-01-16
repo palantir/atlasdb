@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Palantir Technologies
+ * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.timestamp;
+package com.palantir.atlasdb.config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.immutables.value.Value;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-@SuppressFBWarnings("SLF4J_LOGGER_SHOULD_BE_PRIVATE")
-public final class DebugLogger {
-    public static final Logger logger = LoggerFactory.getLogger(DebugLogger.class);
+@JsonSerialize(as = ImmutableTimeLockClientConfig.class)
+@JsonDeserialize(as = ImmutableTimeLockClientConfig.class)
+@Value.Immutable
+public abstract class TimeLockClientConfig {
+    public abstract String client();
 
-    private DebugLogger() {
-        // Logging utility class
-    }
+    public abstract ServerListConfig serversList();
 }

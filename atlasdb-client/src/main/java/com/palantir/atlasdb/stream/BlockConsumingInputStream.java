@@ -19,7 +19,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 
 public final class BlockConsumingInputStream extends InputStream {
     private final BlockGetter blockGetter;
@@ -36,19 +38,23 @@ public final class BlockConsumingInputStream extends InputStream {
             long numBlocks,
             int blocksInMemory) throws IOException {
         ensureExpectedArraySizeDoesNotOverflow(blockGetter, blocksInMemory);
-        BlockConsumingInputStream stream = new BlockConsumingInputStream(blockGetter, numBlocks, blocksInMemory);
-        stream.refillBuffer();
-        return stream;
+        return new BlockConsumingInputStream(blockGetter, numBlocks, blocksInMemory);
     }
 
-    private static void ensureExpectedArraySizeDoesNotOverflow(BlockGetter blockGetter, int blocksInMemory) {
-        int expectedLength = blockGetter.expectedLength();
-        Preconditions.checkArgument(blocksInMemory < Integer.MAX_VALUE / expectedLength,
+    // we don't want to actually create a very large array in tests, as the external test VM would run out of memory.
+    @VisibleForTesting
+    protected static void ensureExpectedArraySizeDoesNotOverflow(BlockGetter blockGetter, int blocksInMemory) {
+        int expectedBlockLength = blockGetter.expectedBlockLength();
+        int maxBlocksInMemory = StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD / expectedBlockLength;
+        long expectedBufferSize = (long) expectedBlockLength * (long) blocksInMemory;
+        Preconditions.checkArgument(blocksInMemory <= maxBlocksInMemory,
                 "Promised to load too many blocks into memory. The underlying buffer is stored as a byte array, "
-                        + "so can only fit Integer.MAX_VALUE bytes. The supplied BlockGetter expected to produce "
-                        + "blocks of %s bytes, so %s of them would cause the array to overflow.",
-                blockGetter.expectedLength(),
-                blocksInMemory);
+                        + "so can only fit %s bytes. The supplied BlockGetter expected to produce "
+                        + "blocks of %s bytes, so %s of them (requested size %s) would cause the array to overflow.",
+                StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD,
+                expectedBlockLength,
+                blocksInMemory,
+                expectedBufferSize);
     }
 
     private BlockConsumingInputStream(BlockGetter blockGetter, long numBlocks, int blocksInMemory) {
@@ -57,6 +63,7 @@ public final class BlockConsumingInputStream extends InputStream {
         this.blocksInMemory = blocksInMemory;
         this.nextBlockToRead = 0L;
         this.positionInBuffer = 0;
+        this.buffer = new byte[0];
     }
 
     @Override
@@ -111,12 +118,13 @@ public final class BlockConsumingInputStream extends InputStream {
     }
 
     private boolean refillBuffer() throws IOException {
-        long numBlocksToGet = Math.min(blocksLeft(), blocksInMemory);
+        // since blocksInMemory is an int, the min is guaranteed to fit in an int
+        int numBlocksToGet = (int) Math.min(blocksLeft(), blocksInMemory);
         if (numBlocksToGet <= 0) {
             return false;
         }
 
-        int expectedLength = blockGetter.expectedLength();
+        int expectedLength = blockGetter.expectedBlockLength() * numBlocksToGet;
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream(expectedLength)) {
             blockGetter.get(nextBlockToRead, numBlocksToGet, outputStream);
             nextBlockToRead += numBlocksToGet;

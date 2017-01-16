@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author bdorne
  *
  */
-public class InMemoryTimestampService implements TimestampService {
+public class InMemoryTimestampService implements TimestampService, TimestampManagementService {
     private final AtomicLong counter = new AtomicLong(0);
 
     @Override
@@ -39,5 +39,14 @@ public class InMemoryTimestampService implements TimestampService {
         }
         long topValue = counter.addAndGet(timestampsToGet);
         return TimestampRange.createInclusiveRange(topValue - timestampsToGet + 1, topValue);
+    }
+
+    @Override
+    public void fastForwardTimestamp(long currentTimestamp) {
+        long latestTimestampFromService = counter.get();
+        while (latestTimestampFromService < currentTimestamp) {
+            counter.compareAndSet(latestTimestampFromService, currentTimestamp);
+            latestTimestampFromService = counter.get();
+        }
     }
 }

@@ -34,8 +34,8 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.TimestampService;
+import com.palantir.util.DebugLogger;
 import com.palantir.util.debug.ThreadDumps;
 
 public class ServiceDiscoveringAtlasSupplier {

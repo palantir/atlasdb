@@ -120,8 +120,8 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
             }
 
             @Override
-            public int expectedLength() {
-                return BLOCK_SIZE_IN_BYTES * blocksInMemory;
+            public int expectedBlockLength() {
+                return BLOCK_SIZE_IN_BYTES;
             }
         };
 

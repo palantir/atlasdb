@@ -22,6 +22,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
 import com.palantir.lock.LockService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 @Path("/{client: [a-zA-Z0-9_-]+}")
@@ -39,7 +40,12 @@ public class TimeLockResource {
 
     @Path("/timestamp")
     public TimestampService getTimeService(@PathParam("client") String client) {
-        return getTimeLockServicesForClient(client).getTimeService();
+        return getTimeLockServicesForClient(client).getTimestampService();
+    }
+
+    @Path("/timestamp-management")
+    public TimestampManagementService getTimestampManagementService(@PathParam("client") String client) {
+        return getTimeLockServicesForClient(client).getTimestampManagementService();
     }
 
     private TimeLockServices getTimeLockServicesForClient(String client) {

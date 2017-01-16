@@ -73,6 +73,8 @@ public class StreamStoreDefinitionBuilder {
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().build()));
 
         Preconditions.checkArgument(valueType.getJavaClassName().equals("long"), "Stream ids must be a long");
+        Preconditions.checkArgument(inMemoryThreshold <= StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD,
+                "inMemoryThreshold cannot be greater than %s", StreamStoreDefinition.MAX_IN_MEMORY_THRESHOLD);
 
         return new StreamStoreDefinition(
                 tablesToCreate,
