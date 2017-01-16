@@ -1707,13 +1707,9 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
                             .map(Column::getValue)
                             .collect(Collectors.toList());
 
-                    String msg = String.format("The cell %s in table %s has an unexpected value. "
-                            + "If this is happening repeatedly, your program may be out of sync with the database.",
+                    throw new CheckAndSetException(
                             request.cell(),
-                            request.table().getQualifiedName());
-
-                    throw new CheckAndSetException(msg,
-                            request.cell(),
+                            request.table(),
                             request.oldValue().orElse(null),
                             currentValues);
                 }

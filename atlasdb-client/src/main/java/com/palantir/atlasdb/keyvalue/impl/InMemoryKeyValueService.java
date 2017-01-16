@@ -48,7 +48,6 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -403,7 +402,8 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
 
     @Override
     public void checkAndSet(CheckAndSetRequest request) throws CheckAndSetException {
-        Table table = getTableMap(request.table());
+        TableReference tableRef = request.table();
+        Table table = getTableMap(tableRef);
         Cell cell = request.cell();
         Optional<byte[]> oldValue = request.oldValue();
         byte[] contents = request.newValue();
@@ -415,12 +415,12 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
                     && table.entries.replace(key, storedValue, copyOf(contents));
             if (!succeeded) {
                 byte[] actual = table.entries.get(key); // Re-fetch, something may have happened between get and replace
-                throwCheckAndSetException(cell, oldValue.get(), actual);
+                throwCheckAndSetException(cell, tableRef, oldValue.get(), actual);
             }
         } else {
             byte[] oldContents = putIfAbsent(table, key, contents);
             if (oldContents != null) {
-                throwCheckAndSetException(cell, null, oldContents);
+                throwCheckAndSetException(cell, tableRef, null, oldContents);
             }
         }
     }
@@ -442,11 +442,8 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         return new Key(row, col, timestamp);
     }
 
-    private void throwCheckAndSetException(Cell cell, byte[] expected, byte[] actual) {
-        String expectedStr = PtBytes.encodeHexString(expected);
-        String actualStr = PtBytes.encodeHexString(actual);
-        String msg = String.format("Unexpected value for this key. Wanted '%s', got '%s'", expectedStr, actualStr);
-        throw new CheckAndSetException(msg, cell, expected, ImmutableList.of(actual));
+    private void throwCheckAndSetException(Cell cell, TableReference tableRef, byte[] expected, byte[] actual) {
+        throw new CheckAndSetException(cell, tableRef, expected, ImmutableList.of(actual));
     }
 
     @Override

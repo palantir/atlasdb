@@ -144,15 +144,10 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
         int updated = ((PalantirSqlConnection) conns.get()).updateCountRowsUnregisteredQuery(sqlString,
                 args);
         if (updated == 0) {
-            String msg = String.format("The row %s in table %s has an unexpected value. "
-                    + "If this is happening repeatedly, your application may be out of sync with the database.",
-                    cell,
-                    tableRef.getQualifiedName());
-            throw new CheckAndSetException(msg,
-                    cell,
-                    oldValue,
-                    ImmutableList.of()); // right now we don't know what's actually in the db :-(
+            // right now we don't know what's actually in the db :-(
+            throw new CheckAndSetException(cell, tableRef, oldValue, ImmutableList.of());
         }
+        // TODO check > 1
     }
 
     @Override
