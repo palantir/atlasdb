@@ -37,10 +37,12 @@ import org.reflections.scanners.MethodAnnotationsScanner;
 
 import com.palantir.atlasdb.performance.BenchmarkParam;
 import com.palantir.atlasdb.performance.PerformanceResults;
+import com.palantir.atlasdb.performance.backend.CassandraKeyValueServiceInstrumentation;
 import com.palantir.atlasdb.performance.backend.DatabasesContainer;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabase;
 import com.palantir.atlasdb.performance.backend.DockerizedDatabaseUri;
 import com.palantir.atlasdb.performance.backend.KeyValueServiceInstrumentation;
+import com.palantir.atlasdb.performance.backend.PostgresKeyValueServiceInstrumentation;
 
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
@@ -82,6 +84,9 @@ public class AtlasDbPerfCli {
 
     public static void main(String[] args) throws Exception {
         AtlasDbPerfCli cli = SingleCommand.singleCommand(AtlasDbPerfCli.class).parse(args);
+
+        KeyValueServiceInstrumentation.addNewBackendType(new CassandraKeyValueServiceInstrumentation());
+        KeyValueServiceInstrumentation.addNewBackendType(new PostgresKeyValueServiceInstrumentation());
 
         if (cli.helpOption.showHelpIfRequested()) {
             return;

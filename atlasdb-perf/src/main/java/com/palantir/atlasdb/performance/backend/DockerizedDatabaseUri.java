@@ -45,7 +45,7 @@ public class DockerizedDatabaseUri {
     }
 
     public String toString() {
-        return type.toString() + DELIMITER + addr.toString();
+        return type.getClassName() + DELIMITER + addr.toString();
     }
 
 }
