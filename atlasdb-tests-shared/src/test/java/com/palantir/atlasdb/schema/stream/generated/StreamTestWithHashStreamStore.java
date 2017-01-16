@@ -214,15 +214,14 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
 
     @Override
     protected void tryWriteStreamToFile(Transaction transaction, Long id, StreamMetadata metadata, FileOutputStream fos) throws IOException {
-        try (InputStream blockStream = makeStream(transaction, id, metadata);
+        try (InputStream blockStream = eagerlyLoadStream(transaction, id, metadata);
                 InputStream decompressingStream = new LZ4BlockInputStream(blockStream);
                 OutputStream fileStream = fos;) {
             ByteStreams.copy(decompressingStream, fileStream);
         }
     }
 
-    @Override
-    protected InputStream makeStream(Transaction parent, Long id, StreamMetadata metadata) {
+    private InputStream eagerlyLoadStream(Transaction parent, Long id, StreamMetadata metadata) {
         long totalBlocks = getNumberOfBlocksFromMetadata(metadata);
         ByteArrayIOStream destination = new ByteArrayIOStream();
         for (long i = 0; i < totalBlocks; i++) {

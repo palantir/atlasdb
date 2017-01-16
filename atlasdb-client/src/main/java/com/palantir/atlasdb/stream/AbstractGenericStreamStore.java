@@ -105,7 +105,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         }
     }
 
-    protected InputStream makeStream(Transaction parent, ID id, StreamMetadata metadata) {
+    private InputStream makeStream(Transaction parent, ID id, StreamMetadata metadata) {
         long totalBlocks = getNumberOfBlocksFromMetadata(metadata);
         int blocksInMemory = getNumberOfBlocksThatFitInMemory();
 

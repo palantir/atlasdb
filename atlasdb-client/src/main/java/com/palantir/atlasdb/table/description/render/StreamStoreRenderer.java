@@ -173,7 +173,7 @@ public class StreamStoreRenderer {
                         line();
                         tryWriteStreamToFile();
                         line();
-                        makeStream();
+                        eagerlyLoadStream();
                         line();
                     }
                     getMetadata();
@@ -573,7 +573,7 @@ public class StreamStoreRenderer {
             private void tryWriteStreamToFile() {
                 line("@Override");
                 line("protected void tryWriteStreamToFile(Transaction transaction, ", StreamId, " id, StreamMetadata metadata, FileOutputStream fos) throws IOException {"); {
-                    line("try (InputStream blockStream = makeStream(transaction, id, metadata);");
+                    line("try (InputStream blockStream = eagerlyLoadStream(transaction, id, metadata);");
                     line("        InputStream decompressingStream = new LZ4BlockInputStream(blockStream);");
                     line("        OutputStream fileStream = fos;) {"); {
                         line("ByteStreams.copy(decompressingStream, fileStream);");
@@ -581,9 +581,8 @@ public class StreamStoreRenderer {
                 } line("}");
             }
 
-            private void makeStream() {
-                line("@Override");
-                line("protected InputStream makeStream(Transaction parent, ", StreamId, " id, StreamMetadata metadata) {"); {
+            private void eagerlyLoadStream() {
+                line("private InputStream eagerlyLoadStream(Transaction parent, ", StreamId, " id, StreamMetadata metadata) {"); {
                     line("long totalBlocks = getNumberOfBlocksFromMetadata(metadata);");
                     line("ByteArrayIOStream destination = new ByteArrayIOStream();");
                     line("for (long i = 0; i < totalBlocks; i++) {"); {
