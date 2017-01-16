@@ -57,9 +57,9 @@ public class PaxosTimestampBoundStoreTest {
     private static final String LOG_DIR = "testlogs/";
     private static final String LEARNER_DIR_PREFIX = LOG_DIR + "learner/";
     private static final String ACCEPTOR_DIR_PREFIX = LOG_DIR + "acceptor/";
-    private static final long TIMESTAMP_1 = 100000L;
-    private static final long TIMESTAMP_2 = 200000L;
-    private static final long TIMESTAMP_3 = 300000L;
+    private static final long TIMESTAMP_1 = 100000;
+    private static final long TIMESTAMP_2 = 200000;
+    private static final long TIMESTAMP_3 = 300000;
     private static final long FORTY_TWO = 42;
     private static final PaxosTimestampBoundStore.SequenceAndBound ONE_AND_FORTY_TWO =
             ImmutableSequenceAndBound.of(1, FORTY_TWO);
@@ -250,9 +250,10 @@ public class PaxosTimestampBoundStoreTest {
 
     @Test
     public void forceAgreedStateOperatesAtSequenceNumberLevel() {
+        long fortyThree = FORTY_TWO + 1;
         assertThat(store.forceAgreedState(1, FORTY_TWO)).isEqualTo(ONE_AND_FORTY_TWO);
-        assertThat(store.forceAgreedState(0, FORTY_TWO + 1)).isEqualTo(ImmutableSequenceAndBound.of(0, 43));
-        assertThat(store.getAgreedState(0)).isEqualTo(ImmutableSequenceAndBound.of(0, 43));
+        assertThat(store.forceAgreedState(0, fortyThree)).isEqualTo(ImmutableSequenceAndBound.of(0, fortyThree));
+        assertThat(store.getAgreedState(0)).isEqualTo(ImmutableSequenceAndBound.of(0, fortyThree));
         assertThat(store.getAgreedState(1)).isEqualTo(ONE_AND_FORTY_TWO);
     }
 
