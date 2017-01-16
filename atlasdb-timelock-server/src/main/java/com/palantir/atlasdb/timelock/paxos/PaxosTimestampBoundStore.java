@@ -239,9 +239,9 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     private void waitForRandomBackoff(PaxosRoundFailureException paxosException, BackoffAction backoffAction) {
         long backoffTime = getRandomBackoffTime();
         log.info("Paxos proposal couldn't complete, because we could not connect to a quorum of nodes. We"
-                + " will retry in {}ms.",
-                paxosException,
-                backoffTime);
+                + " will retry in {}ms. The Paxos exception was {}",
+                backoffTime,
+                paxosException);
         try {
             backoffAction.accept(backoffTime);
         } catch (InterruptedException interruptedException) {
