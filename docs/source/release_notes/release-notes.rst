@@ -42,6 +42,12 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Stream store compression, introduced in 0.27.0, no longer creates a transaction inside a transaction when streaming directly to a file.
+           Additionally, a check was added to enforce the condition imposed in 0.28.0, namely that the caller of ``AbstractGenericStreamStore.loadStream`` should not
+           call ``InputStream.read()`` within the transaction that was used to fetch the stream.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1460>`__)
+
     *    - |improved|
          - AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1378>`__)
