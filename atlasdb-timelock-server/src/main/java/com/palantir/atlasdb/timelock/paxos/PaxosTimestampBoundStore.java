@@ -132,14 +132,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 Preconditions.checkNotNull(acceptedValue, "Proposed value can't be null, but was in sequence %s", seq);
                 return ImmutableSequenceAndBound.of(seq, PtBytes.toLong(acceptedValue));
             } catch (PaxosRoundFailureException e) {
-                long backoffTime = getRandomBackoffTime();
-                log.info("Paxos proposal couldn't complete, because we could not connect to a quorum of nodes. We "
-                        + "will retry in {}ms.", e, backoffTime);
-                try {
-                    Thread.sleep(backoffTime);
-                } catch (InterruptedException e1) {
-                    Thread.currentThread().interrupt();
-                }
+                waitForRandomBackoff(e, Thread::sleep);
             }
         }
     }
@@ -182,35 +175,45 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
             try {
                 proposer.propose(newSeq, PtBytes.toBytes(limit));
                 PaxosValue value = knowledge.getLearnedValue(newSeq);
-                if (!value.getLeaderUUID().equals(proposer.getUUID())) {
-                    String errorMsg = String.format(
-                            "Timestamp limit changed from under us for sequence '%s' (leader with UUID '%s' changed"
-                                    + " it, our UUID is '%s'). This suggests that another timestamp store for this"
-                                    + " namespace is running. The offending bound was '%s'; we tried to propose"
-                                    + " a bound of '%s'. (The offending Paxos value was '%s'.)",
-                            newSeq,
-                            value.getLeaderUUID(),
-                            proposer.getUUID(),
-                            PtBytes.toLong(value.getData()),
-                            limit,
-                            value);
-                    throw new MultipleRunningTimestampServiceError(errorMsg);
-                }
+                checkAgreedBoundIsOurs(limit, newSeq, value);
                 long newLimit = PtBytes.toLong(value.getData());
                 agreedState = ImmutableSequenceAndBound.of(newSeq, newLimit);
                 if (newLimit >= limit) {
                     return;
                 }
             } catch (PaxosRoundFailureException e) {
-                long backoffTime = getRandomBackoffTime();
-                log.info("Paxos proposal couldn't complete, because we could not connect to a quorum of nodes. We"
-                        + " will retry in {}ms.", e, backoffTime);
-                try {
-                    wait(backoffTime);
-                } catch (InterruptedException e1) {
-                    Thread.currentThread().interrupt();
-                }
+                waitForRandomBackoff(e, this::wait);
             }
+        }
+    }
+
+    private void checkAgreedBoundIsOurs(long limit, long newSeq, PaxosValue value) {
+        if (!value.getLeaderUUID().equals(proposer.getUUID())) {
+            String errorMsg = String.format(
+                    "Timestamp limit changed from under us for sequence '%s' (leader with UUID '%s' changed"
+                            + " it, our UUID is '%s'). This suggests that another timestamp store for this"
+                            + " namespace is running. The offending bound was '%s'; we tried to propose"
+                            + " a bound of '%s'. (The offending Paxos value was '%s'.)",
+                    newSeq,
+                    value.getLeaderUUID(),
+                    proposer.getUUID(),
+                    PtBytes.toLong(value.getData()),
+                    limit,
+                    value);
+            throw new MultipleRunningTimestampServiceError(errorMsg);
+        }
+    }
+
+    private void waitForRandomBackoff(PaxosRoundFailureException paxosException, BackoffAction backoffAction) {
+        long backoffTime = getRandomBackoffTime();
+        log.info("Paxos proposal couldn't complete, because we could not connect to a quorum of nodes. We"
+                + " will retry in {}ms.",
+                paxosException,
+                backoffTime);
+        try {
+            backoffAction.accept(backoffTime);
+        } catch (InterruptedException interruptedException) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -236,5 +239,9 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
 
         @Value.Parameter
         long getBound();
+    }
+
+    private interface BackoffAction {
+        void accept(long backoffTime) throws InterruptedException;
     }
 }
