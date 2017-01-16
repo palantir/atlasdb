@@ -43,10 +43,10 @@ develop
          - Change
 
     *    - |improved|
-
          - Added support for benchmarking custom Key Value Stores; see `documentation <http://palantir.github.io/atlasdb/html/performance/writing.html>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1459>`__)
 
+    *    - |improved|
          - AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1378>`__)
 
