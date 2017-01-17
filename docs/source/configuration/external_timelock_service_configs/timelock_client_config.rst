@@ -22,38 +22,44 @@ Timelock
 Required parameters:
 
 .. list-table::
-:widths: 5 40
+    :widths: 5 40
     :header-rows: 1
 
        *    - Property
             - Description
 
        *    - client
-            - The name of your client, generally the same as your application name.
+            - The name of your client, generally the same as your application name. This client
+              must also be on the ``clients`` list of the Timelock Server, as discussed in
+              :ref:`timelock-server-configuration`.
 
        *    - serversList::servers
             - A list of all hosts. The hosts must be specified as addresses i.e. ``host:port``.
+              At least one server must be specified. AtlasDB assumes that the Timelock Servers being pointed at
+              are part of the same Timelock cluster.
 
 Optional parameters:
 
 .. list-table::
-:widths: 5 40
+    :widths: 5 40
     :header-rows: 1
 
        *    - Property
             - Description
 
        *    - serversList::sslConfiguration
-            - The SSL configuration of the service.
+            - The SSL configuration of the service. This should follow the
+              `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java>`__
+              library. This should also be in alignment with the protocol used when configuring the servers.
 
 .. _timelock-config-examples:
 
 Timelock Configuration Examples
 ===============================
 
-Here is an example of an AtlasDB configuration with the  timelock block.
+Here is an example of an AtlasDB configuration with the timelock block.
 
-You must ensure that you have migrated to the timelock server before adding a timelock block to the config.
+You must ensure that you have migrated to the Timelock Server before adding a timelock block to the config.
 
 .. code-block:: yaml
 
@@ -85,41 +91,3 @@ You must ensure that you have migrated to the timelock server before adding a ti
             - "host3:3828"
           sslConfiguration:
             trustStorePath: var/security/truststore.jks
-
-
-The Timelock Block
-------------------
-
-The ``cluster`` block is used to identify the servers which make up a Timelock Service cluster. An example is as
-follows:
-
-   .. code:: yaml
-
-      timelock:
-        client: jkong
-        serverListConfig:
-          servers:
-            - http://palantir.com:31415/
-            - http://palantir.com:9265/
-
-.. list-table::
-   :widths: 5 40
-   :header-rows: 1
-
-   * - Property
-     - Description
-
-   * - client
-     - A string which indicates the namespace for which the client will request locks and timestamps. This client
-       must also be on the ``clients`` list of the Timelock Server, as discussed in
-       :ref:`timelock-server-configuration`.
-
-   * - serverListConfig.servers
-     - A list of strings following the form ``protocol://hostname:port`` identifying the hosts in the Timelock Service
-       cluster. At least one server must be specified. AtlasDB assumes that the Timelock Servers being pointed at
-       are backed by the same Atomix cluster.
-
-   * - serverListConfig.sslConfiguration
-     - Security settings for communication between this client and the Timelock Servers, following the
-       `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java>`__
-       library (default: no SSL). This should be in alignment with the protocol used when configuring the servers.
