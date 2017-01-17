@@ -42,6 +42,10 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - Returned `RemotingKeyValueService` and associated remoting classes to the AtlasDB code base.  These now live
+           in `atlasdb-remoting`.  This KVS will pass remote calls to a local delegate KVS.
+
     *    - |improved|
          - AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1378>`__)
