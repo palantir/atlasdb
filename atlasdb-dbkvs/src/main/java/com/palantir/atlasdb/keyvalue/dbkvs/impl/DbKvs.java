@@ -69,6 +69,8 @@ import com.google.common.util.concurrent.Atomics;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -353,6 +355,34 @@ public class DbKvs extends AbstractKeyValueService {
     @Override
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         put(tableRef, values, AtlasDbConstants.TRANSACTION_TS, false);
+    }
+
+    @Override
+    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException {
+        if (checkAndSetRequest.oldValue().isPresent()) {
+            executeCheckAndSet(checkAndSetRequest);
+        } else {
+            executePutUnlessExists(checkAndSetRequest);
+        }
+    }
+
+    private void executeCheckAndSet(CheckAndSetRequest request) {
+        Preconditions.checkArgument(request.oldValue().isPresent());
+
+        runWrite(request.table(), table -> {
+            //noinspection OptionalGetWithoutIsPresent
+            table.update(request.cell(), AtlasDbConstants.TRANSACTION_TS, request.oldValue().get(), request.newValue());
+            return null;
+        });
+    }
+
+    private void executePutUnlessExists(CheckAndSetRequest checkAndSetRequest) {
+        try {
+            Map<Cell, byte[]> value = ImmutableMap.of(checkAndSetRequest.cell(), checkAndSetRequest.newValue());
+            putUnlessExists(checkAndSetRequest.table(), value);
+        } catch (KeyAlreadyExistsException e) {
+            throw new CheckAndSetException("Value unexpectedly present when running check and set", e);
+        }
     }
 
     @Override

@@ -50,7 +50,6 @@ public final class RocksDbKeyValueServiceTest {
     private static final TableReference TABLE = TableReference.createWithEmptyNamespace("yo");
     private RocksDbKeyValueService db = null;
 
-
     @Before
     public void setUp() throws Exception {
         db = RocksDbKeyValueService.create("testdb");

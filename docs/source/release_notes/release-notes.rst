@@ -42,6 +42,33 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - Returned `RemotingKeyValueService` and associated remoting classes to the AtlasDB code base.  These now live
+           in `atlasdb-remoting`.  This KVS will pass remote calls to a local delegate KVS.
+
+    *    - |improved|
+         - AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1378>`__)
+
+    *    - |new|
+         - Added a new ``KeyValueService`` API method, ``checkAndSet``.
+           This is supported for Cassandra, Postgres, and Oracle, but in the latter case support is only provided for tables which are not overflow tables.
+           ``checkAndSet`` is **not** supported for RocksDB or JDBC. However, it will only be used in a future release.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1435>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.28.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved|
          - Increase default Cassandra pool size from minimum of 20 and maximum of 5x the minimum (100 if minimum not modified) connections to minimum of 30 and maximum of 100 connections.
            This allows for better handling of bursts of requests that would otherwise require creating many new connections to Cassandra from the clients.
@@ -111,8 +138,6 @@ v0.27.2
            This caused an issue when the in-memory threshold was many times larger than the default (47MB for the default block size),
            or when the block size was many times smaller (7KB for the default in-memory threshold).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1422>`__)
-
-
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
