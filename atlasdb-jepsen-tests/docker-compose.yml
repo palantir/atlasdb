@@ -3,4 +3,4 @@ jepsen:
   volumes:
     - ./:/jepsen/atlasdb
     - /var/run/docker.sock:/var/run/docker.sock
-  command: "bash -c 'while true; do sleep 99; done'"
+  command: "bash -lc 'cd /jepsen/atlasdb && lein test'"
