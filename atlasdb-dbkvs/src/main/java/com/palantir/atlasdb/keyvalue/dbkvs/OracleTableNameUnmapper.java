@@ -54,7 +54,7 @@ class OracleTableNameUnmapper {
                     conn = connectionSupplier.getNewUnsharedConnection();
                     AgnosticResultSet results = conn.selectResultSetUnregisteredQuery(
                             "SELECT short_table_name "
-                                    + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
+                                    + "FROM " + AtlasDbConstants.DBKVS_NAME_MAPPING_TABLE
                                     + " WHERE table_name = ?", fullTableName);
                     if (results.size() == 0) {
                         throw new TableMappingNotFoundException(

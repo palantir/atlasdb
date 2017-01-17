@@ -33,7 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.TableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbWriteTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
@@ -48,29 +48,29 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     private final OracleDdlConfig config;
     private final ConnectionSupplier conns;
     private final OverflowSequenceSupplier overflowSequenceSupplier;
-    private final OracleTableNameGetter oracleTableNameGetter;
+    private final TableNameGetter tableNameGetter;
     private final TableReference tableRef;
 
     private OracleOverflowWriteTable(
             OracleDdlConfig config,
             ConnectionSupplier conns,
             OverflowSequenceSupplier sequenceSupplier,
-            OracleTableNameGetter oracleTableNameGetter,
+            TableNameGetter tableNameGetter,
             TableReference tableRef) {
         this.config = config;
         this.conns = conns;
         this.overflowSequenceSupplier = sequenceSupplier;
-        this.oracleTableNameGetter = oracleTableNameGetter;
+        this.tableNameGetter = tableNameGetter;
         this.tableRef = tableRef;
     }
 
     public static OracleOverflowWriteTable create(
             OracleDdlConfig config,
             ConnectionSupplier conns,
-            OracleTableNameGetter oracleTableNameGetter,
+            TableNameGetter tableNameGetter,
             TableReference tableRef) {
         OverflowSequenceSupplier sequenceSupplier = OverflowSequenceSupplier.create(conns, config.tablePrefix());
-        return new OracleOverflowWriteTable(config, conns, sequenceSupplier, oracleTableNameGetter, tableRef);
+        return new OracleOverflowWriteTable(config, conns, sequenceSupplier, tableNameGetter, tableRef);
     }
 
     @Override
@@ -233,7 +233,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
 
     private String getShortTableName() {
         try {
-            return oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
+            return tableNameGetter.getInternalShortTableName(conns, tableRef);
         } catch (TableMappingNotFoundException e) {
             throw Throwables.propagate(e);
         }
@@ -241,7 +241,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
 
     private String getShortOverflowTableName() {
         try {
-            return oracleTableNameGetter.getInternalShortOverflowTableName(conns, tableRef);
+            return tableNameGetter.getInternalShortOverflowTableName(conns, tableRef);
         } catch (TableMappingNotFoundException e) {
             throw Throwables.propagate(e);
         }

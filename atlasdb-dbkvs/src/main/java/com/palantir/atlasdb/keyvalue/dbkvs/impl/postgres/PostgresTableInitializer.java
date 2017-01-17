@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbTableInitializer;
 import com.palantir.exception.PalantirSqlException;
@@ -41,6 +42,20 @@ public class PostgresTableInitializer implements DbTableInitializer {
         connectionSupplier.get().executeUnregisteredQuery(
                 "INSERT INTO dual (id) SELECT 1 WHERE NOT EXISTS ( SELECT id FROM dual WHERE id = 1 )"
         );
+
+        executeIgnoringError(
+                String.format(
+                        "CREATE TABLE %s ("
+                                + "table_name varchar(2000) NOT NULL,"
+                                + "short_table_name varchar(30) NOT NULL,"
+                                + "CONSTRAINT %s PRIMARY KEY (table_name),"
+                                + "CONSTRAINT unique_%s UNIQUE (short_table_name)"
+                                + ")",
+                        AtlasDbConstants.DBKVS_NAME_MAPPING_TABLE,
+                        AtlasDbConstants.DBKVS_NAME_MAPPING_PK_CONSTRAINT,
+                        AtlasDbConstants.DBKVS_NAME_MAPPING_TABLE),
+                "already exists");
+
     }
 
     @Override

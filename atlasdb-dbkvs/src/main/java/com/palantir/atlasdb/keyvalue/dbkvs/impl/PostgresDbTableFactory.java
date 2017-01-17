@@ -20,25 +20,30 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.PostgresTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.TableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresTableInitializer;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresWriteTable;
+import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.nexus.db.DBType;
 
 public class PostgresDbTableFactory implements DbTableFactory {
-
+    private TableNameGetter tableNameGetter;
     private final PostgresDdlConfig config;
     private final ExecutorService exec;
 
     public PostgresDbTableFactory(PostgresDdlConfig config) {
         this.config = config;
-        int poolSize = config.poolSize();
-        this.exec = newFixedThreadPool(poolSize);
+        this.exec = newFixedThreadPool(config.poolSize());
+
+        tableNameGetter = new PostgresTableNameGetter(config);
     }
 
     private static ThreadPoolExecutor newFixedThreadPool(int maxPoolSize) {
@@ -58,7 +63,7 @@ public class PostgresDbTableFactory implements DbTableFactory {
 
     @Override
     public DbDdlTable createDdl(TableReference tableName, ConnectionSupplier conns) {
-        return new PostgresDdlTable(tableName, conns, config);
+        return new PostgresDdlTable(tableName, conns, config, tableNameGetter);
     }
 
     @Override
@@ -70,19 +75,36 @@ public class PostgresDbTableFactory implements DbTableFactory {
     public DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns) {
         return new BatchedDbReadTable(
                 conns,
-                new PostgresQueryFactory(DbKvs.internalTableName(tableRef), config),
+                new PostgresQueryFactory(getTableName(tableRef, conns), config),
                 exec,
                 config);
     }
 
     @Override
     public DbWriteTable createWrite(TableReference tableRef, ConnectionSupplier conns) {
-        return new PostgresWriteTable(config, conns, tableRef, new PrefixedTableNames(config));
+        return new PostgresWriteTable(
+                config,
+                conns,
+                tableRef,
+                new MappedTableNames(config, conns, tableNameGetter));
     }
 
     @Override
     public DBType getDbType() {
         return DBType.POSTGRESQL;
+    }
+
+    @Override
+    public TableNameGetter getTableNameGetter() {
+        return tableNameGetter;
+    }
+
+    private String getTableName(TableReference tableRef, ConnectionSupplier connectionSupplier) {
+        try {
+            return tableNameGetter.getInternalShortTableName(connectionSupplier, tableRef);
+        } catch (TableMappingNotFoundException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
     @Override

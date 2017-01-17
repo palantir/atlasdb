@@ -19,6 +19,7 @@ import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
+import com.palantir.atlasdb.keyvalue.dbkvs.TableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowQueryFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OracleOverflowWriteTable;
@@ -30,12 +31,12 @@ import com.palantir.nexus.db.DBType;
 
 public class OracleDbTableFactory implements DbTableFactory {
     private final OracleDdlConfig config;
-    private OracleTableNameGetter oracleTableNameGetter;
+    private TableNameGetter tableNameGetter;
     private TableValueStyleCache valueStyleCache;
 
     public OracleDbTableFactory(OracleDdlConfig config) {
         this.config = config;
-        oracleTableNameGetter = new OracleTableNameGetter(config);
+        tableNameGetter = new OracleTableNameGetter(config);
         valueStyleCache = new TableValueStyleCache();
     }
 
@@ -46,7 +47,7 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     @Override
     public DbDdlTable createDdl(TableReference tableRef, ConnectionSupplier conns) {
-        return OracleDdlTable.create(tableRef, conns, config, oracleTableNameGetter, valueStyleCache);
+        return OracleDdlTable.create(tableRef, conns, config, tableNameGetter, valueStyleCache);
     }
 
     @Override
@@ -76,7 +77,7 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     private String getTableName(ConnectionSupplier connectionSupplier, TableReference tableRef) {
         try {
-            return oracleTableNameGetter.getInternalShortTableName(connectionSupplier, tableRef);
+            return tableNameGetter.getInternalShortTableName(connectionSupplier, tableRef);
         } catch (TableMappingNotFoundException e) {
             throw Throwables.propagate(e);
         }
@@ -84,7 +85,7 @@ public class OracleDbTableFactory implements DbTableFactory {
 
     private String getOverflowTableName(ConnectionSupplier connectionSupplier, TableReference tableRef) {
         try {
-            return oracleTableNameGetter.getInternalShortOverflowTableName(connectionSupplier, tableRef);
+            return tableNameGetter.getInternalShortOverflowTableName(connectionSupplier, tableRef);
         } catch (TableMappingNotFoundException e) {
             throw Throwables.propagate(e);
         }
@@ -95,9 +96,9 @@ public class OracleDbTableFactory implements DbTableFactory {
         TableValueStyle tableValueStyle = valueStyleCache.getTableType(conns, tableRef, config.metadataTable());
         switch (tableValueStyle) {
             case OVERFLOW:
-                return OracleOverflowWriteTable.create(config, conns, oracleTableNameGetter, tableRef);
+                return OracleOverflowWriteTable.create(config, conns, tableNameGetter, tableRef);
             case RAW:
-                return new OracleWriteTable(config, conns, oracleTableNameGetter, tableRef);
+                return new OracleWriteTable(config, conns, tableNameGetter, tableRef);
             default:
                 throw new EnumConstantNotPresentException(TableValueStyle.class, tableValueStyle.name());
         }
@@ -108,8 +109,9 @@ public class OracleDbTableFactory implements DbTableFactory {
         return DBType.ORACLE;
     }
 
-    public OracleTableNameGetter getOracleTableNameGetter() {
-        return oracleTableNameGetter;
+    @Override
+    public TableNameGetter getTableNameGetter() {
+        return tableNameGetter;
     }
 
     @Override

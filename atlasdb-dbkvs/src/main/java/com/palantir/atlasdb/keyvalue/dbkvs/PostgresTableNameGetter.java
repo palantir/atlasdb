@@ -15,14 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-public class OracleTableNameGetter extends TableNameGetter {
+public class PostgresTableNameGetter extends TableNameGetter {
 
-    public OracleTableNameGetter(OracleDdlConfig config) {
+    public PostgresTableNameGetter(PostgresDdlConfig config) {
         super(
                 config.tablePrefix(),
-                config.overflowTablePrefix(),
+                "postgres doesn't use overflow",
                 config.useTableMapping(),
-                new OracleTableNameMapper());
+                new PostgresTableNameMapper());
     }
 
 }

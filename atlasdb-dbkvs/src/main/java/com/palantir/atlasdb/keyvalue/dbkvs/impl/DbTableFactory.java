@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 import java.io.Closeable;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.dbkvs.TableNameGetter;
 import com.palantir.nexus.db.DBType;
 
 public interface DbTableFactory extends Closeable {
@@ -27,6 +28,7 @@ public interface DbTableFactory extends Closeable {
     DbReadTable createRead(TableReference tableRef, ConnectionSupplier conns);
     DbWriteTable createWrite(TableReference tableRef, ConnectionSupplier conns);
     DBType getDbType();
+    TableNameGetter getTableNameGetter();
     @Override
     void close();
 }

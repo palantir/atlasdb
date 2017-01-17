@@ -42,6 +42,9 @@ develop
     *    - Type
          - Change
 
+    *    - Type
+         - Change
+
     *    - |improved|
          - AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1378>`__)
@@ -102,6 +105,10 @@ v0.28.0
          - All SnapshotTransaction get methods are now safe for tables declared with SweepStrategy.THOROUGH.
            Previously, a validation check was omitted for ``getRowsColumnRange``, ``getRowsIgnoringLocalWrites``, and ``getIgnoringLocalWrites``, which in very rare cases could have resulted in deleted values being returned by a long-running read transaction.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1421>`__)
+
+    *    - |fixed|
+         - Fixed an issue where Postgres KVS mishandled tablenames of >63 characters.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1441>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
