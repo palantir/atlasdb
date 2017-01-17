@@ -71,23 +71,30 @@ public final class Leaders {
     public static LocalPaxosServices createLocalServices(LeaderConfig config) {
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
         remoteLeaderUris.remove(config.localServer());
-        return createLocalServices(config, remoteLeaderUris, remoteLeaderUris, remoteLeaderUris);
+
+        RemotePaxosServerSpec remotePaxosServerSpec = ImmutableRemotePaxosServerSpec.builder()
+                .remoteLeaderUris(remoteLeaderUris)
+                .remoteAcceptorUris(remoteLeaderUris)
+                .remoteLearnerUris(remoteLeaderUris)
+                .build();
+        return createLocalServices(config, remotePaxosServerSpec);
     }
 
     public static LocalPaxosServices createLocalServices(LeaderConfig config,
-            Set<String> remoteLeaderUris,
-            Set<String> remoteLearnerUris,
-            Set<String> remoteAcceptorUris) {
+            RemotePaxosServerSpec remotePaxosServerSpec) {
         PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor(config.acceptorLogDir().getPath());
         PaxosLearner ourLearner = PaxosLearnerImpl.newLearner(config.learnerLogDir().getPath());
 
         Optional<SSLSocketFactory> sslSocketFactory =
                 TransactionManagers.createSslSocketFactory(config.sslConfiguration());
 
-        List<PaxosLearner> learners = createLearnerList(ourLearner, remoteLearnerUris, sslSocketFactory);
-        List<PaxosAcceptor> acceptors = createAcceptorList(ourAcceptor, remoteAcceptorUris, sslSocketFactory);
+        List<PaxosLearner> learners = createLearnerList(
+                ourLearner, remotePaxosServerSpec.remoteLearnerUris(), sslSocketFactory);
+        List<PaxosAcceptor> acceptors = createAcceptorList(
+                ourAcceptor, remotePaxosServerSpec.remoteAcceptorUris(), sslSocketFactory);
 
-        Map<PingableLeader, HostAndPort> otherLeaders = generatePingables(remoteLeaderUris, sslSocketFactory);
+        Map<PingableLeader, HostAndPort> otherLeaders = generatePingables(
+                remotePaxosServerSpec.remoteLeaderUris(), sslSocketFactory);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
                 .setNameFormat("atlas-leaders-%d")
@@ -171,5 +178,12 @@ public final class Leaders {
         PaxosLearner ourLearner();
         LeaderElectionService leaderElectionService();
         PingableLeader pingableLeader();
+    }
+
+    @Value.Immutable
+    public interface RemotePaxosServerSpec {
+        Set<String> remoteLeaderUris();
+        Set<String> remoteAcceptorUris();
+        Set<String> remoteLearnerUris();
     }
 }

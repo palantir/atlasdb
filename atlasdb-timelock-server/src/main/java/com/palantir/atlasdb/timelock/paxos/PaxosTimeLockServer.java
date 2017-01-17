@@ -33,6 +33,7 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.factory.ImmutableRemotePaxosServerSpec;
 import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockServer;
@@ -92,9 +93,11 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
         Leaders.LocalPaxosServices localPaxosServices = Leaders.createLocalServices(
                 leaderConfig,
-                remoteServers,
-                paxosSubresourceUris,
-                paxosSubresourceUris);
+                ImmutableRemotePaxosServerSpec.builder()
+                        .remoteLeaderUris(remoteServers)
+                        .remoteAcceptorUris(paxosSubresourceUris)
+                        .remoteLearnerUris(paxosSubresourceUris)
+                        .build());
         leaderElectionService = localPaxosServices.leaderElectionService();
 
         environment.jersey().register(leaderElectionService);
