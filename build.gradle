@@ -42,7 +42,9 @@ repositories {
 apply from: 'gradle/versions.gradle'
 
 group = 'com.palantir.atlasdb'
-version = gitVersion()
+// if the version ends with a git hash, replace the 'g' with an 'r'
+// this is to get around maven regexes that considers -g<hash> a snapshot
+version = gitVersion().replaceAll('-g([a-fA-F0-9]+)$', '-r$1')
 description = 'Transactional distributed database layer'
 
 task printLastVersion {
