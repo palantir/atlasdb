@@ -29,13 +29,10 @@ public class OracleTableNameMapper {
     public static final int MAX_NAMESPACE_LENGTH = 2;
     private static final int PREFIXED_TABLE_NAME_LENGTH = ORACLE_MAX_TABLE_NAME_LENGTH - SUFFIX_NUMBER_LENGTH;
 
-    private final ConnectionSupplier conns;
-
-    public OracleTableNameMapper(ConnectionSupplier conns) {
-        this.conns = conns;
-    }
-
-    public String getShortPrefixedTableName(String tablePrefix, TableReference tableRef) {
+    public String getShortPrefixedTableName(
+            ConnectionSupplier connectionSupplier,
+            String tablePrefix,
+            TableReference tableRef) {
         Preconditions.checkState(tablePrefix.length() <= AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH,
                 "The tablePrefix can be at most %s characters long", AtlasDbConstants.MAX_TABLE_PREFIX_LENGTH);
 
@@ -45,7 +42,7 @@ public class OracleTableNameMapper {
         String truncatedTableName = truncate(prefixedTableName, PREFIXED_TABLE_NAME_LENGTH);
 
         String fullTableName = tablePrefix + DbKvs.internalTableName(tableRef);
-        return truncatedTableName + getTableNumberSuffix(fullTableName, truncatedTableName);
+        return truncatedTableName + getTableNumberSuffix(connectionSupplier, fullTableName, truncatedTableName);
     }
 
     private TableReference truncateNamespace(TableReference tableRef) {
@@ -61,8 +58,11 @@ public class OracleTableNameMapper {
         return name.substring(0, Math.min(name.length(), length));
     }
 
-    private String getTableNumberSuffix(String fullTableName, String truncatedTableName) {
-        int tableSuffixNumber = getNextTableNumber(truncatedTableName);
+    private String getTableNumberSuffix(
+            ConnectionSupplier connectionSupplier,
+            String fullTableName,
+            String truncatedTableName) {
+        int tableSuffixNumber = getNextTableNumber(connectionSupplier, truncatedTableName);
         if (tableSuffixNumber >= 100_000) {
             throw new IllegalArgumentException(
                     "Cannot create any more tables with name starting with " + truncatedTableName
@@ -71,8 +71,8 @@ public class OracleTableNameMapper {
         return "_" + String.format("%05d", tableSuffixNumber);
     }
 
-    private int getNextTableNumber(String truncatedTableName) {
-        AgnosticResultSet results = conns.get().selectResultSetUnregisteredQuery(
+    private int getNextTableNumber(ConnectionSupplier connectionSupplier, String truncatedTableName) {
+        AgnosticResultSet results = connectionSupplier.get().selectResultSetUnregisteredQuery(
                 "SELECT short_table_name "
                 + "FROM " + AtlasDbConstants.ORACLE_NAME_MAPPING_TABLE
                 + " WHERE LOWER(short_table_name) LIKE LOWER(?||'\\______%') ESCAPE '\\'"

@@ -1,3 +1,4 @@
+apply from: "../gradle/publish-jars.gradle"
 apply plugin: 'org.inferred.processors'
 
 apply from: "../gradle/shared.gradle"
@@ -14,4 +15,15 @@ dependencies {
 
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile 'com.palantir.docker.compose:docker-compose-rule:' + libVersions.dockerComposeRule
+}
+
+task longTest(type: Test) {
+    include '**/CassandraKeyValueServiceTransactionIntegrationTest.class'
+    include '**/CassandraKeyValueServiceSweeperIntegrationTest.class'
+}
+
+test {
+    dependsOn longTest
+    exclude '**/CassandraKeyValueServiceTransactionIntegrationTest.class'
+    exclude '**/CassandraKeyValueServiceSweeperIntegrationTest.class'
 }

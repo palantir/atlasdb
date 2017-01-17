@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -25,10 +26,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.math.BigInteger;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
@@ -37,8 +41,10 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.mutable.MutableInt;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.Sequence;
@@ -47,6 +53,8 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -57,9 +65,12 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbTestCase;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -81,6 +92,7 @@ import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.base.AbortingVisitor;
@@ -94,10 +106,15 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockCollections;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
+import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
+import com.palantir.lock.SimpleTimeDuration;
+import com.palantir.lock.TimeDuration;
 
 public class SnapshotTransactionTest extends AtlasDbTestCase {
+    protected final TimestampCache timestampCache = new TimestampCache();
+
     private class UnstableKeyValueService extends ForwardingKeyValueService {
         private final KeyValueService delegate;
         private final Random random;
@@ -271,7 +288,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 transactionTs,
                 ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                TransactionReadSentinelBehavior.THROW_EXCEPTION);
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                timestampCache);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -325,7 +343,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 transactionTs,
                 ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                TransactionReadSentinelBehavior.THROW_EXCEPTION);
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                timestampCache);
         snapshot.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY));
         snapshot.commit();
 
@@ -537,46 +556,95 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         t2.commit();
     }
 
-    @Test(expected = TransactionFailedRetriableException.class)
-    public void testValidateExternalAndCommitLocksForGet() throws Exception {
-        testValidateExternalAndCommitLocks(
-                new LockAwareTransactionTask<Void, Exception>() {
-                        @Override
-                        public Void execute(Transaction t, Iterable<HeldLocksToken> heldLocks)
-                                throws Exception {
-                            t.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(Cell.create("row1".getBytes(),
-                                            "column1".getBytes())));
-                            return null;
-                        }
-                    });
+    @Test
+    public void readsFromThoroughlySweptTableShouldFailWhenLocksAreInvalid() throws Exception {
+        keyValueService.createTable(
+                TABLE_SWEPT_THOROUGH,
+                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH).persistToBytes());
+        List<String> successfulTasks = getThoroughTableReadTasks().stream()
+                .map(this::runTaskWithInvalidLocks)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
+        if (!successfulTasks.isEmpty()) {
+            Assert.fail("Expected read to fail with TransactionFailedRetriableException, but it succeeded for: " +
+                            Joiner.on(", ").join(successfulTasks));
+        }
     }
 
-    @Test(expected = TransactionFailedRetriableException.class)
-    public void testValidateExternalAndCommitLocksForGetRanges() throws Exception {
-        final RangeRequest rangeRequest = RangeRequest.builder().batchHint(1).build();
-        testValidateExternalAndCommitLocks(
-                new LockAwareTransactionTask<Void, Exception>() {
-                        @Override
-                        public Void execute(Transaction t, Iterable<HeldLocksToken> heldLocks)
-                                throws Exception {
-                            Iterables.getLast(t.getRanges(TABLE_SWEPT_THOROUGH, ImmutableList.of(rangeRequest)));
-                            return null;
-                        }
-                    });
+    /**
+     * Given Pair.of("label", task), return task label iff task succeeds.
+     */
+    private Optional<String> runTaskWithInvalidLocks(Pair<String, LockAwareTransactionTask<Void, Exception>> task) {
+        try {
+            txManager.runTaskWithLocksThrowOnConflict(ImmutableList.of(getExpiredHeldLocksToken()), task.getRight());
+            return Optional.of(task.getLeft());
+        } catch (TransactionFailedRetriableException expected) {
+            return Optional.empty();
+        } catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
     }
 
-    @Test(expected = TransactionFailedRetriableException.class)
-    public void testValidateExternalAndCommitLocksForGetRows() throws Exception {
-        testValidateExternalAndCommitLocks(
-                new LockAwareTransactionTask<Void, Exception>() {
-                        @Override
-                        public Void execute(Transaction t, Iterable<HeldLocksToken> heldLocks)
-                                throws Exception {
-                            t.getRows(TABLE_SWEPT_THOROUGH, ImmutableSet.of("row1".getBytes()),
-                                    ColumnSelection.all());
-                            return null;
-                        }
-                    });
+    private List<Pair<String, LockAwareTransactionTask<Void, Exception>>> getThoroughTableReadTasks() {
+        ImmutableList.Builder<Pair<String, LockAwareTransactionTask<Void, Exception>>> tasks = ImmutableList.builder();
+        final int batchHint = 1;
+
+        tasks.add(Pair.of("get", (t, heldLocks) -> {
+            t.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(Cell.create("row1".getBytes(), "column1".getBytes())));
+            return null;
+        }));
+
+        tasks.add(Pair.of("getRange", (t, heldLocks) -> {
+            t.getRange(TABLE_SWEPT_THOROUGH, RangeRequest.all()).batchAccept(batchHint, AbortingVisitors.alwaysTrue());
+            return null;
+        }));
+
+        tasks.add(Pair.of("getRanges", (t, heldLocks) -> {
+            Iterables.getLast(t.getRanges(TABLE_SWEPT_THOROUGH, Collections.singleton(RangeRequest.all())));
+            return null;
+        }));
+
+        tasks.add(Pair.of("getRows", (t, heldLocks) -> {
+            t.getRows(TABLE_SWEPT_THOROUGH, ImmutableSet.of("row1".getBytes()), ColumnSelection.all());
+            return null;
+        }));
+
+        tasks.add(Pair.of("getRowsColumnRange(TableReference, Iterable<byte[]>, BatchColumnRangeSelection)",
+                (t, heldLocks) -> {
+                    Collection<BatchingVisitable<Map.Entry<Cell, byte[]>>> results =
+                            t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton("row1".getBytes()),
+                                    BatchColumnRangeSelection.create(new ColumnRangeSelection(null, null), batchHint))
+                                    .values();
+                    results.forEach(result -> result.batchAccept(batchHint, AbortingVisitors.alwaysTrue()));
+                    return null;
+                }));
+
+        tasks.add(Pair.of("getRowsColumnRange(TableReference, Iterable<byte[]>, ColumnRangeSelection, int)",
+                (t, heldLocks) -> {
+                    t.getRowsColumnRange(TABLE_SWEPT_THOROUGH, Collections.singleton("row1".getBytes()),
+                            new ColumnRangeSelection(null, null), batchHint);
+                    return null;
+                }));
+
+        tasks.add(Pair.of("getRowsIgnoringLocalWrites",
+                (t, heldLocks) -> {
+                    SnapshotTransaction snapshotTx = unwrapSnapshotTransaction(t);
+                    snapshotTx.getRowsIgnoringLocalWrites(
+                            TABLE_SWEPT_THOROUGH,
+                            Collections.singleton("row1".getBytes()));
+                    return null;
+                }));
+
+        tasks.add(Pair.of("getIgnoringLocalWrites",
+                (t, heldLocks) -> {
+                    SnapshotTransaction snapshotTx = unwrapSnapshotTransaction(t);
+                    snapshotTx.getIgnoringLocalWrites(TABLE_SWEPT_THOROUGH,
+                            Collections.singleton(Cell.create("row1".getBytes(), "column1".getBytes())));
+                    return null;
+                }));
+
+        return tasks.build();
     }
 
     @Test
@@ -682,6 +750,22 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThat(rowResult.getCellSet(), not(hasItem(emptyCell)));
     }
 
+    @Test
+    public void noRetryOnExpiredLockTokens() throws InterruptedException {
+        Cell cell = Cell.create("row1".getBytes(), "column1".getBytes());
+        HeldLocksToken expiredLockToken = getExpiredHeldLocksToken();
+        try {
+            txManager.runTaskWithLocksWithRetry(ImmutableList.of(expiredLockToken), () -> null, (tx, locks) -> {
+                tx.put(TABLE, ImmutableMap.of(cell, PtBytes.toBytes("value")));
+                return null;
+            });
+        } catch (TransactionLockTimeoutException e) {
+            Set<LockRefreshToken> expectedTokens = ImmutableSet.of(expiredLockToken.getLockRefreshToken());
+            assertThat(e.getMessage(), containsString(expectedTokens.toString()));
+            assertThat(e.getMessage(), containsString("Retry is not possible."));
+        }
+    }
+
     private void writeCells(TableReference table, ImmutableMap<Cell, byte[]> cellsToWrite) {
         Transaction writeTransaction = txManager.createNewTransaction();
         writeTransaction.put(table, cellsToWrite);
@@ -692,17 +776,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction readTransaction = txManager.createNewTransaction();
         SortedMap<byte[], RowResult<byte[]>> allRows = readTransaction.getRows(TABLE, ImmutableSet.of(defaultRow), ColumnSelection.all());
         return allRows.get(defaultRow);
-    }
-
-    private HeldLocksToken getFakeHeldLocksToken() {
-        ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder =
-                ImmutableSortedMap.naturalOrder();
-        builder.put(AtlasRowLockDescriptor.of(TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
-                TransactionConstants.getValueForTimestamp(0L)), LockMode.WRITE);
-        return new HeldLocksToken(new BigInteger("0"), lockClient,
-                System.currentTimeMillis(), System.currentTimeMillis(),
-                LockCollections.of(builder.build()),
-                LockRequest.DEFAULT_LOCK_TIMEOUT, 0L);
     }
 
     private TableMetadata getTableMetadataForSweepStrategy(SweepStrategy sweepStrategy) {
@@ -720,13 +793,35 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 false);
     }
 
-    private void testValidateExternalAndCommitLocks(final LockAwareTransactionTask<Void, Exception>
-            lockAwareTransactionTask) throws Exception {
-        keyValueService.createTable(TABLE_SWEPT_THOROUGH, getTableMetadataForSweepStrategy(
-                SweepStrategy.THOROUGH).persistToBytes());
-        txManager.runTaskWithLocksThrowOnConflict(
-                ImmutableList.of(getFakeHeldLocksToken()),
-                lockAwareTransactionTask);
+    private HeldLocksToken getExpiredHeldLocksToken() {
+        ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder = ImmutableSortedMap.naturalOrder();
+        builder.put(
+                AtlasRowLockDescriptor.of(
+                        TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
+                        TransactionConstants.getValueForTimestamp(0L)),
+                LockMode.WRITE);
+        long creationDateMs = System.currentTimeMillis();
+        long expirationDateMs = creationDateMs - 1;
+        TimeDuration lockTimeout = SimpleTimeDuration.of(0, TimeUnit.SECONDS);
+        long versionId = 0L;
+        return new HeldLocksToken(
+                BigInteger.ZERO,
+                lockClient,
+                creationDateMs,
+                expirationDateMs,
+                LockCollections.of(builder.build()),
+                lockTimeout,
+                versionId);
+    }
+
+
+    /**
+     * Hack to get reference to underlying {@link SnapshotTransaction}. See how transaction managers are composed at
+     * {@link AtlasDbTestCase#setUp()}.
+     */
+    private static SnapshotTransaction unwrapSnapshotTransaction(Transaction cachingTransaction) {
+        Transaction unwrapped = ((CachingTransaction) cachingTransaction).delegate();
+        return ((RawTransaction) unwrapped).delegate();
     }
 
 }

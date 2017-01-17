@@ -37,12 +37,15 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.testing.DockerProxyRule;
 import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerMachine;
 import com.palantir.docker.compose.execution.DockerComposeRunArgument;
 import com.palantir.docker.compose.execution.DockerComposeRunOption;
 import com.palantir.docker.compose.logging.LogDirectory;
 
+// **** Important: Some internal tests depend on this class,
+// please recompile them if any breaking changes are made to the setup ***
 public class EteSetup {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
@@ -89,6 +92,7 @@ public class EteSetup {
                 .file(composeFile)
                 .machine(machine)
                 .saveLogsTo(LogDirectory.circleAwareLogDirectory(logDirectory))
+                .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
                 .build();
 
         DockerProxyRule dockerProxyRule = new DockerProxyRule(docker.projectName(), eteClass);

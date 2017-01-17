@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbDdlTable;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableSize;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.ExceptionCheck;
@@ -72,7 +72,7 @@ public class PostgresDdlTable implements DbDdlTable {
                             "INSERT INTO %s (table_name, table_size) VALUES (?, ?)",
                             config.metadataTable().getQualifiedName()),
                     tableName.getQualifiedName(),
-                    TableSize.RAW.getId());
+                    TableValueStyle.RAW.getId());
         }, ExceptionCheck::isUniqueConstraintViolation);
     }
 
@@ -94,10 +94,10 @@ public class PostgresDdlTable implements DbDdlTable {
         AgnosticResultSet result = conns.get().selectResultSetUnregisteredQuery("SHOW server_version");
         String version = result.get(0).getString("server_version");
         if (!version.matches("^[\\.0-9]+$") || VersionStrings.compareVersions(version, MIN_POSTGRES_VERSION) < 0) {
-            log.error("Your key value service currently uses version " + version + " of postgres."
-                    + " The minimum supported version is " + MIN_POSTGRES_VERSION + "."
+            log.error("Your key value service currently uses version {} of postgres."
+                    + " The minimum supported version is {}."
                     + " If you absolutely need to use an older version of postgres,"
-                    + " please contact Palantir support for assistance.");
+                    + " please contact Palantir support for assistance.", version, MIN_POSTGRES_VERSION);
         }
     }
 
@@ -120,7 +120,7 @@ public class PostgresDdlTable implements DbDdlTable {
             fn.run();
         } catch (PalantirSqlException e) {
             if (!shouldIgnoreException.test(e)) {
-                log.error(e.getMessage(), e);
+                log.error("Error occurred trying to run function", e);
                 throw e;
             }
         }

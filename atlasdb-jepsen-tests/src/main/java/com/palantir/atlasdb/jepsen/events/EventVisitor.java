@@ -16,7 +16,19 @@
 package com.palantir.atlasdb.jepsen.events;
 
 public interface EventVisitor {
-    void visit(InfoEvent event);
-    void visit(InvokeEvent event);
-    void visit(OkEvent event);
+    default void visit(InfoEvent event) {
+        // Do nothing
+    }
+
+    default void visit(InvokeEvent event) {
+        // Do nothing
+    }
+
+    default void visit(OkEvent event) {
+        // Do nothing
+    }
+
+    default void visit(FailEvent event) {
+        // Do nothing
+    }
 }

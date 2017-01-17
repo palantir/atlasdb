@@ -28,7 +28,6 @@ import javax.ws.rs.ServiceUnavailableException;
 import org.immutables.value.Value;
 
 import com.google.common.reflect.AbstractInvocationHandler;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import io.atomix.group.LocalMember;
@@ -100,7 +99,7 @@ public final class InvalidatingLeaderProxy<T> extends AbstractInvocationHandler 
 
     private LeaderAndTerm getLeaderInfo() {
         try {
-            return Futures.getUnchecked(leaderInfo.get());
+            return AtomixRetryer.getWithRetry(leaderInfo::get);
         } catch (UncheckedExecutionException e) {
             if (e.getCause() instanceof IOException) {
                 throw new ServiceUnavailableException(

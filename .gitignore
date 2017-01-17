@@ -11,6 +11,7 @@ Thumbs.db
 *.iml
 *.ipr
 *.iws
+*.pyc
 fix-ivy.py
 .idea
 .checkstyle
@@ -29,6 +30,7 @@ generated_testSrc/
 .factorypath
 out/
 atlasdb-cli/var/data/
+*.hprof
 
 # Common text-editor temp files
 # emacs

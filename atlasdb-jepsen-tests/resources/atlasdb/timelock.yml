@@ -1,0 +1,11 @@
+clients:
+  - test
+
+cluster:
+  localServer: <HOSTNAME>:8700
+  servers:
+    - n1:8700
+    - n2:8700
+    - n3:8700
+    - n4:8700
+    - n5:8700

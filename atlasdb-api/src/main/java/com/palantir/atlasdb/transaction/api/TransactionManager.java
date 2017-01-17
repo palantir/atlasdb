@@ -120,4 +120,10 @@ public interface TransactionManager extends AutoCloseable {
      * @throws IllegalStateException if the transaction manager has been closed.
      */
     long getUnreadableTimestamp();
+
+    /**
+     * Clear the timestamp cache. This is mostly useful for tests that perform operations that would invalidate
+     * the cache, although this can also be used to free up some memory.
+     */
+    void clearTimestampCache();
 }

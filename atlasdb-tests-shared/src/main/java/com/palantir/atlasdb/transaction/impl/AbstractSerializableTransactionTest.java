@@ -97,7 +97,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                true) {
+                true,
+                timestampCache) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, new Function<byte[], byte[]>() {
@@ -108,6 +109,23 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 });
             }
         };
+    }
+
+    @Test
+    public void testReadOnlySerializableTransactionsIgnoreReadWriteConflicts() {
+        Transaction t0 = startTransaction();
+        put(t0, "row1", "col1", "100");
+        t0.commit();
+
+        Transaction t1 = startTransaction();
+        get(t1, "row1", "col1");
+
+        Transaction t2 = startTransaction();
+        put(t2, "row1", "col1", "101");
+        t2.commit();
+
+        // Succeeds, even though t1 is serializable, because it's read-only.
+        t1.commit();
     }
 
     @Test

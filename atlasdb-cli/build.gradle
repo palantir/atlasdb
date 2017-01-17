@@ -1,18 +1,12 @@
-apply plugin: 'org.inferred.processors'
-
+apply from: "../gradle/publish-jars.gradle"
 apply from: '../gradle/shared.gradle'
 
-apply plugin: 'application'
-mainClassName = 'com.palantir.atlasdb.cli.AtlasCli'
-applicationName = 'atlasdb'
+apply plugin: 'org.inferred.processors'
 
 dependencies {
     compile project(':atlasdb-cassandra')
     compile project(path: ':atlasdb-dagger', configuration: 'shadow')
     compile 'io.airlift:airline:0.7'
 
-    runtime project(':atlasdb-rocksdb')
-
-    testCompile project(':atlasdb-rocksdb')
     testCompile group: 'org.assertj', name: 'assertj-core', version: libVersions.assertj
 }

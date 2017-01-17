@@ -1,3 +1,4 @@
+apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
 schemas = [
@@ -17,6 +18,7 @@ dependencies {
   compile group: 'junit', name: 'junit'
   compile group: 'org.hamcrest', name: 'hamcrest-core'
   compile group: 'org.hamcrest', name: 'hamcrest-library'
+  compile group: 'org.assertj', name: 'assertj-core'
 
   testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
 }

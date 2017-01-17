@@ -21,46 +21,48 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.EventVisitor;
-import com.palantir.atlasdb.jepsen.events.InfoEvent;
-import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 
-public class MonotonicChecker implements EventVisitor {
-    private final List<Event> errors = new ArrayList<>();
-    private final Map<Integer, OkEvent> latestEventPerProcess = new HashMap<>();
-
-    private boolean valid = true;
-
+public class MonotonicChecker implements Checker {
     @Override
-    public void visit(InfoEvent event) {
+    public CheckerResult check(List<Event> events) {
+        Visitor visitor = new Visitor();
+        events.forEach(event -> event.accept(visitor));
+        return ImmutableCheckerResult.builder()
+                .valid(visitor.valid())
+                .errors(visitor.errors())
+                .build();
     }
 
-    @Override
-    public void visit(InvokeEvent event) {
-    }
+    private static class Visitor implements EventVisitor {
+        private final List<Event> errors = new ArrayList<>();
+        private final Map<Integer, OkEvent> latestEventPerProcess = new HashMap<>();
 
-    @Override
-    public void visit(OkEvent event) {
-        int process = event.process();
+        @Override
+        public void visit(OkEvent event) {
+            int process = event.process();
 
-        if (latestEventPerProcess.containsKey(process)) {
-            OkEvent previousEvent = latestEventPerProcess.get(process);
-            if (event.value() <= previousEvent.value()) {
-                valid = false;
-                errors.add(previousEvent);
-                errors.add(event);
+            if (latestEventPerProcess.containsKey(process)) {
+                OkEvent previousEvent = latestEventPerProcess.get(process);
+                long previousTimestamp = Long.parseLong(previousEvent.value());
+                long timestamp = Long.parseLong(event.value());
+                if (timestamp <= previousTimestamp) {
+                    errors.add(previousEvent);
+                    errors.add(event);
+                }
             }
+            latestEventPerProcess.put(process, event);
         }
-        latestEventPerProcess.put(process, event);
-    }
 
-    public boolean valid() {
-        return valid;
-    }
+        public boolean valid() {
+            return errors.isEmpty();
+        }
 
-    public List<Event> errors() {
-        return ImmutableList.copyOf(errors);
+        public List<Event> errors() {
+            return ImmutableList.copyOf(errors);
+        }
     }
 }

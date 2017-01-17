@@ -1,2 +1,7 @@
-/resources/atlasdb/atlasdb-ete.tgz
+/.lein-failures
+/.lein-repl-history
+/.nrepl-port
+/resources/atlasdb/atlasdb-jepsen-tests-all.jar
+/resources/atlasdb/atlasdb-timelock-server.tgz
 /store
+/target/

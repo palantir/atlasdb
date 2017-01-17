@@ -1,3 +1,4 @@
+apply from: "../gradle/publish-jars.gradle"
 apply from: "${rootProject.projectDir}/gradle/shared.gradle"
 
 buildscript {
@@ -9,6 +10,7 @@ buildscript {
     }
 }
 
+apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'docker-compose'
 apply plugin: 'org.inferred.processors'
 apply plugin: 'org.unbroken-dome.test-sets'
@@ -24,9 +26,13 @@ jacocoTestReport {
 check.dependsOn integTest
 
 dependencies {
+    compile project(':atlasdb-config')
+
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+    compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jdk8'
     compile group: 'com.google.guava', name: 'guava'
+    compile group: 'com.jayway.awaitility', name: 'awaitility'
     compile group: 'one.util', name: 'streamex'
     compile group: 'org.clojure', name: 'clojure'
     compile group: 'org.slf4j', name: 'slf4j-api'
@@ -34,21 +40,28 @@ dependencies {
     processor group: 'org.immutables', name: 'value'
 
     testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'org.mockito', name: 'mockito-core'
 }
 
-task prepareForJepsen(type: Copy, dependsOn: ':atlasdb-ete-tests:distTar') {
-    from tasks.getByPath(':atlasdb-ete-tests:distTar').outputs
+shadowJar {
+    dependencies {
+        exclude(dependency(group: 'org.clojure', name: 'clojure'))
+    }
+}
+
+task copyShadowJar(type: Copy, dependsOn: 'shadowJar') {
+    from tasks.getByPath('shadowJar').outputs
     into 'resources/atlasdb/'
-
-    rename { filename -> 'atlasdb-ete.tgz' }
+    rename { filename -> 'atlasdb-jepsen-tests-all.jar' }
 }
 
-task composeBuild(type: Exec, dependsOn: 'prepareForJepsen') {
-    environment = project.dockerCompose.environment
-    commandLine project.dockerCompose.composeCommand('build', '--force-rm')
+task copyTimelockServer(type: Copy, dependsOn: ':atlasdb-timelock-server:distTar') {
+    from tasks.getByPath(':atlasdb-timelock-server:distTar').outputs
+    into 'resources/atlasdb/'
+    rename { filename -> 'atlasdb-timelock-server.tgz' }
 }
 
-task jepsenTest(type: Exec, dependsOn: 'composeBuild') {
+task jepsenTest(type: Exec, dependsOn: ['copyShadowJar', 'copyTimelockServer']) {
     environment = project.dockerCompose.environment
     commandLine project.dockerCompose.composeCommand('run', '--rm', 'jepsen')
 }

@@ -35,6 +35,9 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.exception.PalantirRuntimeException;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 final class ColumnFamilyDefinitions {
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class); // did this on purpose
 

@@ -40,7 +40,6 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.ByteArrayIOStream;
-import com.palantir.util.file.DeleteOnCloseFileInputStream;
 
 public abstract class AbstractGenericStreamStore<ID> implements GenericStreamStore<ID> {
     protected static final Logger log = LoggerFactory.getLogger(AbstractGenericStreamStore.class);
@@ -66,13 +65,13 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     protected abstract long getInMemoryThreshold();
 
     @Override
-    public final InputStream loadStream(Transaction transaction, final ID id) {
+    public InputStream loadStream(Transaction transaction, final ID id) {
         StreamMetadata metadata = getMetadata(transaction, id);
         return getStream(transaction, id, metadata);
     }
 
     @Override
-    public final Map<ID, InputStream> loadStreams(Transaction transaction, Set<ID> ids) {
+    public Map<ID, InputStream> loadStreams(Transaction transaction, Set<ID> ids) {
         Map<ID, InputStream> ret = Maps.newHashMap();
         Map<ID, StreamMetadata> idsToMetadata = getMetadata(transaction, ids);
         for (Map.Entry<ID, StreamMetadata> entry : idsToMetadata.entrySet()) {
@@ -101,9 +100,42 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
             loadSingleBlockToOutputStream(transaction, id, 0, ios);
             return ios.getInputStream();
         } else {
-            File file = loadToNewTempFile(transaction, id, metadata);
-            return new DeleteOnCloseFileInputStream(file);
+            return makeStream(id, metadata);
         }
+    }
+
+    protected InputStream makeStream(ID id, StreamMetadata metadata) {
+        long totalBlocks = getNumberOfBlocksFromMetadata(metadata);
+        int blocksInMemory = getNumberOfBlocksThatFitInMemory();
+
+        BlockGetter pageRefresher = new BlockGetter() {
+            @Override
+            public void get(long firstBlock, long numBlocks, OutputStream destination) {
+                txnMgr.runTaskReadOnly(txn -> {
+                    for (long i = 0; i < numBlocks; i++) {
+                        loadSingleBlockToOutputStream(txn, id, firstBlock + i, destination);
+                    }
+                    return null;
+                });
+            }
+
+            @Override
+            public int expectedBlockLength() {
+                return BLOCK_SIZE_IN_BYTES;
+            }
+        };
+
+        try {
+            return BlockConsumingInputStream.create(pageRefresher, totalBlocks, blocksInMemory);
+        } catch (IOException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+    }
+
+    private int getNumberOfBlocksThatFitInMemory() {
+        int inMemoryThreshold = (int) getInMemoryThreshold(); // safe; actually defined as an int in generated code.
+        int blocksInMemory = inMemoryThreshold / BLOCK_SIZE_IN_BYTES;
+        return Math.max(1, blocksInMemory);
     }
 
     @Override
@@ -151,7 +183,8 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         }
     }
 
-    private void tryWriteStreamToFile(Transaction transaction, ID id, StreamMetadata metadata, FileOutputStream fos)
+    // This method is overridden in generated code. Changes to this method may have unintended consequences.
+    protected void tryWriteStreamToFile(Transaction transaction, ID id, StreamMetadata metadata, FileOutputStream fos)
             throws IOException {
         long numBlocks = getNumberOfBlocksFromMetadata(metadata);
         for (long i = 0; i < numBlocks; i++) {

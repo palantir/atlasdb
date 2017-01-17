@@ -49,7 +49,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         super(txManager);
     }
 
-    private final void storeMetadataAndIndex(final long streamId, final StreamMetadata metadata){
+    protected final void storeMetadataAndIndex(final long streamId, final StreamMetadata metadata) {
         Preconditions.checkNotNull(txnMgr);
         txnMgr.runTaskThrowOnConflict(new TxTask() {
             @Override
@@ -97,7 +97,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         markStreamsAsUsedInternal(t, streamIdsToReference);
     }
 
-    private long storeEmptyMetadata() {
+    protected long storeEmptyMetadata() {
         Preconditions.checkNotNull(txnMgr);
         return txnMgr.runTaskThrowOnConflict(new TransactionTask<Long, RuntimeException>() {
             @Override
@@ -109,7 +109,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
     }
 
     @Override
-    public final Pair<Long, Sha256Hash> storeStream(InputStream stream) {
+    public Pair<Long, Sha256Hash> storeStream(InputStream stream) {
         // Store empty metadata before doing anything
         long id = storeEmptyMetadata();
 
@@ -144,13 +144,23 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         return hashes;
     }
 
-    protected final StreamMetadata storeBlocksAndGetFinalMetadata(@Nullable Transaction t, long id, InputStream stream) {
-        // Set up for finding hash and length
+    // This method is overridden in generated code. Changes to this method may have unintended consequences.
+    protected StreamMetadata storeBlocksAndGetFinalMetadata(@Nullable Transaction t, long id, InputStream stream) {
         MessageDigest digest = Sha256Hash.getMessageDigest();
-        stream = new DigestInputStream(stream, digest);
+        try (InputStream hashingStream = new DigestInputStream(stream, digest)) {
+            StreamMetadata metadata = storeBlocksAndGetHashlessMetadata(t, id, hashingStream);
+            return StreamMetadata.newBuilder(metadata)
+                    .setHash(ByteString.copyFrom(digest.digest()))
+                    .build();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected final StreamMetadata storeBlocksAndGetHashlessMetadata(@Nullable Transaction t, long id, InputStream stream) {
         CountingInputStream countingStream = new CountingInputStream(stream);
 
-        // Try to store the bytes to the stream and get length
+        // Try to store the bytes in the stream and get length
         try {
             storeBlocksFromStream(t, id, countingStream);
         } catch (IOException e) {
@@ -161,23 +171,17 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
                 .setHash(com.google.protobuf.ByteString.EMPTY)
                 .build();
             storeMetadataAndIndex(id, metadata);
-            log.error("Could not store stream " + id + ". Failed after " + length + " bytes.", e);
+            log.error("Could not store stream {}. Failed after {} bytes.", id, length, e);
             throw Throwables.rewrapAndThrowUncheckedException("Failed to store stream.", e);
         }
 
-        // Get hash and length
-        ByteString hashByteString = ByteString.copyFrom(digest.digest());
         long length = countingStream.getCount();
-
-        // Return the final metadata.
-        StreamMetadata metadata = StreamMetadata.newBuilder()
-            .setStatus(Status.STORED)
-            .setLength(length)
-            .setHash(hashByteString)
-            .build();
-        return metadata;
+        return StreamMetadata.newBuilder()
+                .setStatus(Status.STORED)
+                .setLength(length)
+                .setHash(com.google.protobuf.ByteString.EMPTY)
+                .build();
     }
-
 
     private void storeBlocksFromStream(@Nullable Transaction t, long id, InputStream stream) throws IOException {
         long blockNumber = 0;

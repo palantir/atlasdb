@@ -130,6 +130,8 @@ public class CassandraClientPoolIntegrationTest {
         assertTrue(CassandraClientPool.isRetriableWithBackoffException(new NoSuchElementException()));
         assertTrue(CassandraClientPool.isRetriableWithBackoffException(new UnavailableException()));
         assertTrue(CassandraClientPool.isRetriableWithBackoffException(
+                new TTransportException(new SocketTimeoutException())));
+        assertTrue(CassandraClientPool.isRetriableWithBackoffException(
                 new TTransportException(new UnavailableException())));
     }
 

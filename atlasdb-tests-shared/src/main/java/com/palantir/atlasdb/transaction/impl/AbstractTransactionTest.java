@@ -48,6 +48,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -81,6 +82,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
+    protected final TimestampCache timestampCache = new TimestampCache();
     protected boolean supportsReverse() {
         return true;
     }
@@ -99,7 +101,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                         TransactionConstants.TRANSACTION_TABLE,
                         ConflictHandler.IGNORE_ALL),
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                TransactionReadSentinelBehavior.THROW_EXCEPTION);
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                timestampCache);
     }
 
     @Test
@@ -1167,6 +1170,9 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
     @Test
     public void testTableMetadata() {
+        keyValueService.dropTable(TEST_TABLE);
+        keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
         byte[] metadataForTable = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(metadataForTable == null || Arrays.equals(AtlasDbConstants.GENERIC_TABLE_METADATA, metadataForTable));
         byte[] bytes = new TableMetadata().persistToBytes();

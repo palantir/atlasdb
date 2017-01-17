@@ -1,3 +1,4 @@
+apply from: "../gradle/publish-jars.gradle"
 apply plugin: 'org.inferred.processors'
 
 apply from: "../gradle/shared.gradle"
@@ -15,7 +16,6 @@ dependencies {
   compile project(":atlasdb-client")
   compile project(":atlasdb-lock-api")
   compile project(":timestamp-api")
-  compile project(":timestamp-impl")
   compile project(":atlasdb-commons")
   compile project(":lock-impl")
 
@@ -26,4 +26,5 @@ dependencies {
 
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.mockito', name: 'mockito-core'
+  testCompile group: 'org.hamcrest', name: 'hamcrest-library'
 }

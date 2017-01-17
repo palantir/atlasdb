@@ -1,8 +1,9 @@
-apply from: "../gradle/shared.gradle"
-
 apply plugin: 'com.palantir.java-distribution'
 apply plugin: 'org.inferred.processors'
 apply plugin: 'org.unbroken-dome.test-sets'
+
+apply from: "../gradle/publish-dists.gradle"
+apply from: "../gradle/shared.gradle"
 
 testSets {
     integTest
@@ -18,11 +19,13 @@ dependencies {
     compile project(":timestamp-api")
     compile project(":lock-impl")
 
+    compile group: 'com.github.rholder', name: 'guava-retrying'
     compile group: 'com.palantir.remoting1', name: 'jersey-servers'
     compile group: 'com.palantir.remoting1', name: 'ssl-config'
     compile group: 'io.atomix', name: 'atomix'
     compile group: 'io.atomix.catalyst', name: 'catalyst-netty'
     compile group: 'io.dropwizard', name: 'dropwizard-core'
+    compile group: 'io.dropwizard.modules', name: 'dropwizard-java8'
 
     processor group: 'org.immutables', name: 'value'
 
@@ -30,12 +33,13 @@ dependencies {
 
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile group: 'org.mockito', name: 'mockito-core'
+    testCompile project(":atlasdb-tests-shared")
 
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing'
 }
 
 distribution {
-    serviceName 'atlasdb-timelock-server'
+    serviceName "atlasdb-timelock-server"
     mainClass 'com.palantir.atlasdb.timelock.TimeLockServer'
     args 'server', 'var/conf/timelock.yml'
 }

@@ -1,5 +1,6 @@
 jepsen:
-  build: .
-  privileged: true
+  image: tjake/jepsen:latest
   volumes:
-    - ./store:/jepsen/atlasdb/store
+    - ./:/jepsen/atlasdb
+    - /var/run/docker.sock:/var/run/docker.sock
+  command: "bash -lc 'cd /jepsen/atlasdb && lein test'"
