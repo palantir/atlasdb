@@ -4,7 +4,7 @@ Timelock Server Configuration
 =============================
 
 The Timelock Server configuration file is written in YAML and is located at ``var/conf/timelock.yml``.
-It has three main configuration blocks: ``clients``, ``cluster``, and ``atomix``. We will discuss how each of
+It has three main configuration blocks: ``clients``, ``cluster``, and ``algorithm``. We will discuss how each of
 these may be configured in turn, as well as additional configuration parameters.
 
 .. contents::
@@ -63,18 +63,29 @@ follows:
      - A list of strings following the form ``protocol://hostname:port`` identifying the hosts in this Timelock
        Service cluster. Note that this list must include the ``localServer``.
 
-Atomix
-------
+Algorithm
+---------
 
-The Timelock Servers use the `Atomix <http://atomix.io>`__ library, and allow for some configuration as to
-Atomix-related communication and persistence. Note that unlike the ``clients`` and ``cluster`` blocks, this block is
-optional.
+We have currently implemented the consensus algorithm required by the Timelock Server using the Paxos algorithm.
+Currently, this is the only supported implementation, though there may be more in the future.
+We first identify an algorithm by its ``type`` field.
+
+Paxos Configuration
+~~~~~~~~~~~~~~~~~~~
+
+The algorithm has several configurable parameters; all parameters (apart from ``type``) are optional and have
+default values.
 
    .. code:: yaml
 
-      atomix:
-        storageLevel: DISK
-        storageDirectory: /var/data/atomix
+      algorithm:
+        type: paxos
+        paxosDataDir: var/log/paxos
+        sslConfiguration:
+          trustStorePath: var/security/trustStore.jks
+        pingRateMs: 5000
+        maximumWaitBeforeProposalMs: 1000
+        leaderPingResponseWaitMs: 5000
 
 .. list-table::
    :widths: 5 40
@@ -83,22 +94,30 @@ optional.
    * - Property
      - Description
 
-   * - storageLevel
-     - One of ``DISK``, ``MEMORY`` or ``MAPPED`` (default: ``DISK``). These correspond to the level of persistence
-       Atomix uses to store the timestamps and leader state.
+   * - type
+     - The type of algorithm to use; currently only ``paxos`` is supported.
 
-       .. warning::
-          If you use the ``MEMORY`` storage level, system failures may result in irrecoverable data loss. This setting
-          is thus highly discouraged outside of test purposes.
+   * - paxosDataDir
+     - A path corresponding to the location in which Paxos will store its logs (of accepted promises and learned
+       values) (default: ``var/data/paxos``). The Timelock Server will fail to start if this directory does not
+       exist and cannot be created.
 
-   * - storageDirectory
-     - A path corresponding to the location in which Atomix will store its state machine (default: ``var/data/atomix``
-       relative to the root directory that the timelock server was unpacked at).
-
-   * - security
-     - Security settings for communication between Atomix nodes, following the
+   * - sslConfiguration
+     - Security settings for communication between Timelock Servers, following the
        `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java>`__
        library (default: no SSL).
+
+   * - pingRateMs
+     - The interval between followers pinging leaders to check if they are still alive, in ms (default: ``5000``).
+       The server will fail to start if this is not positive.
+
+   * - maximumWaitBeforeProposalMs
+     - The maximum wait before a follower proposes leadership if it believes the leader is down, or before
+       a leader attempts to propose a value again if it couldn't obtain a quorum, in ms (default: ``1000``).
+
+   * - leaderPingWaitResponseMs
+     - The length of time between a follower initiating a ping to a leader and, if it hasn't received a response,
+       believing the leader is down, in ms (default: ``5000``).
 
 Further Configuration Parameters
 --------------------------------
