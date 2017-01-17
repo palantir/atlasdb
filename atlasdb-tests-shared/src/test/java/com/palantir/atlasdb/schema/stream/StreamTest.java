@@ -44,6 +44,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -74,7 +75,6 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
@@ -305,9 +305,9 @@ public class StreamTest extends AtlasDbTestCase {
         txManager.runTaskThrowOnConflict(t -> {
             InputStream stream = store.loadStream(t, id);
             try {
-                int read = stream.read();
+                stream.read();
             } catch (IOException e) {
-                fail("unexpected IOException!");
+                throw Throwables.propagate(e);
             }
             return null;
         });
@@ -609,7 +609,7 @@ public class StreamTest extends AtlasDbTestCase {
         try {
             secondLatch.await();
         } catch (InterruptedException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
+            throw Throwables.propagate(e);
         }
     }
 
