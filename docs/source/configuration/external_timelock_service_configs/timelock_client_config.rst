@@ -17,7 +17,7 @@ single ``timelock`` block. If your product uses the Timelock Server, you must sp
 block and the timestamp/lock blocks must be absent from the config.
 
 Timelock
-========
+--------
 
 Required parameters:
 
@@ -55,7 +55,7 @@ Optional parameters:
 .. _timelock-config-examples:
 
 Timelock Configuration Examples
-===============================
+-------------------------------
 
 Here is an example of an AtlasDB configuration with the timelock block.
 
