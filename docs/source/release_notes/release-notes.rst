@@ -50,6 +50,12 @@ develop
          - AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1378>`__)
 
+    *    - |new|
+         - Added a new ``KeyValueService`` API method, ``checkAndSet``.
+           This is supported for Cassandra, Postgres, and Oracle, but in the latter case support is only provided for tables which are not overflow tables.
+           ``checkAndSet`` is **not** supported for RocksDB or JDBC. However, it will only be used in a future release.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1435>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

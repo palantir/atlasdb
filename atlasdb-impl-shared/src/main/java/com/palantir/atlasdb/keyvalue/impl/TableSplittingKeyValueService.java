@@ -33,6 +33,7 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -304,6 +305,11 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
         getDelegate(tableRef).putUnlessExists(tableRef, values);
+    }
+
+    @Override
+    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
+        getDelegate(checkAndSetRequest.table()).checkAndSet(checkAndSetRequest);
     }
 
     @Override
