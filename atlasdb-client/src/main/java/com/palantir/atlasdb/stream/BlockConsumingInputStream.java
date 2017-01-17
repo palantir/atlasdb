@@ -38,9 +38,7 @@ public final class BlockConsumingInputStream extends InputStream {
             long numBlocks,
             int blocksInMemory) throws IOException {
         ensureExpectedArraySizeDoesNotOverflow(blockGetter, blocksInMemory);
-        BlockConsumingInputStream stream = new BlockConsumingInputStream(blockGetter, numBlocks, blocksInMemory);
-        stream.refillBuffer();
-        return stream;
+        return new BlockConsumingInputStream(blockGetter, numBlocks, blocksInMemory);
     }
 
     // we don't want to actually create a very large array in tests, as the external test VM would run out of memory.
@@ -65,6 +63,7 @@ public final class BlockConsumingInputStream extends InputStream {
         this.blocksInMemory = blocksInMemory;
         this.nextBlockToRead = 0L;
         this.positionInBuffer = 0;
+        this.buffer = new byte[0];
     }
 
     @Override

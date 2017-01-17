@@ -52,9 +52,29 @@ develop
            Atlas users should use ``AtlasDbMetrics.setMetricRegistry`` to set a ``MetricRegistry``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1429>`__)
 
+    *    - |new|
+         - There is now a ``TimestampMigrationService`` with the ``fast-forward`` method that can be used to migrate between timestamp services.
+           You will simply need to fast-forward the new timestamp service using the latest timestamp from the old service.
+           This can be done using the :ref:`timestamp forward cli <offline-clis>` when your AtlasDB services are offline.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1445>`__)
+
+    *    - |devbreak|
+         - The ``DebugLogger`` class was moved from package ``com.palantir.timestamp`` in project ``timestamp-impl``
+           to ``com.palantir.util`` in project ``atlasdb-commons``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1445>`__)
+
     *    - |fixed|
          - Allow tables declared with ``SweepStrategy.THOROUGH`` to be migrated.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1410>`__)
+
+    *    - |fixed|
+         - Fix an issue with stream store, where pre-loading the first block of an input stream caused us to create a transaction inside another transaction.
+           To avoid this issue, it is now the caller's responsibility to ensure that ``InputStream.read()`` is not called within the transaction used to fetch the stream.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1447>`__)
+
+    *    - |improved|
+         - Added metrics in Cassandra clients to record connection pool statistics and exception rates.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1380>`__)
 
     *    - |improved|
          - ``atlasdb-rocksdb`` is no longer required by ``atlasdb-cli`` and therefore will no longer be packaged with AtlasDB clients

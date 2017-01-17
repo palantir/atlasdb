@@ -107,9 +107,10 @@ public class AtomixTimeLockServer implements TimeLockServer {
     public TimeLockServices createInvalidatingTimeLockServices(String client) {
         DistributedValue<LeaderAndTerm> leaderInfo = DistributedValues.getLeaderInfo(replica);
         DistributedLong timestamp = DistributedValues.getTimestampForClient(replica, client);
-        Supplier<TimeLockServices> timeLockSupplier = () -> TimeLockServices.create(
-                new AtomixTimestampService(timestamp),
-                LockServiceImpl.create());
+        Supplier<TimeLockServices> timeLockSupplier = () -> {
+            AtomixTimestampService atomixTimestampService = new AtomixTimestampService(timestamp);
+            return TimeLockServices.create(atomixTimestampService, LockServiceImpl.create(), atomixTimestampService);
+        };
         return InvalidatingLeaderProxy.create(
                 localMember,
                 leaderInfo,

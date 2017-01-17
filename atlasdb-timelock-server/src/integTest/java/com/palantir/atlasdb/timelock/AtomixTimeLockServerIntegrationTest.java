@@ -44,6 +44,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 import io.atomix.Atomix;
@@ -53,8 +54,7 @@ import io.atomix.variables.DistributedValue;
 import io.dropwizard.testing.ResourceHelpers;
 import io.dropwizard.testing.junit.DropwizardAppRule;
 
-@Ignore("Observed ConcurrentModificationException-related flakes (e.g. build #611 on internal CircleCI)."
-        + "Fixed in atomix/copycat#231, but not part of Copycat 1.1.4 which we use.")
+@Ignore("Observed ConcurrentModificationException-related flakes (e.g. build #611 on internal CircleCI).")
 public class AtomixTimeLockServerIntegrationTest {
     private static final String NOT_FOUND_CODE = "404";
     private static final String SERVICE_NOT_AVAILABLE_CODE = "503";
@@ -63,6 +63,7 @@ public class AtomixTimeLockServerIntegrationTest {
     private static final String CLIENT_2 = "test2";
     private static final String NONEXISTENT_CLIENT = "nonexistent-client";
     private static final String INVALID_CLIENT = "invalid-client-with-symbol-$";
+    private static final long ONE_MILLION = 1_000_000;
 
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
     private static final String LOCK_CLIENT_NAME = "lock-client-name";
@@ -153,10 +154,35 @@ public class AtomixTimeLockServerIntegrationTest {
     }
 
     @Test
+    public void timestampMigrationServiceShouldThrowIfQueryingNonexistentClient() {
+        TimestampManagementService nonexistent = getTimestampMigrationService(NONEXISTENT_CLIENT);
+        assertThatThrownBy(() -> nonexistent.fastForwardTimestamp(ONE_MILLION))
+                .hasMessageContaining(NOT_FOUND_CODE);
+    }
+
+    @Test
     public void timestampServiceShouldThrowIfQueryingInvalidClient() {
         TimestampService nonexistent = getTimestampService(INVALID_CLIENT);
         assertThatThrownBy(nonexistent::getFreshTimestamp)
                 .hasMessageContaining(NOT_FOUND_CODE);
+    }
+
+    @Test
+    public void timestampMigrationServiceShouldThrowIfQueryingInvalidClient() {
+        TimestampManagementService nonexistent = getTimestampMigrationService(INVALID_CLIENT);
+        assertThatThrownBy(() -> nonexistent.fastForwardTimestamp(ONE_MILLION))
+                .hasMessageContaining(NOT_FOUND_CODE);
+    }
+
+    @Test
+    public void timestampMigrationShouldFastForwardForClientNamespaces() {
+        TimestampService timestampServiceForClient1 = getTimestampService(CLIENT_1);
+        TimestampManagementService timestampManagementServiceForClient2 = getTimestampMigrationService(CLIENT_2);
+
+        long firstTimestampForClient1 = timestampServiceForClient1.getFreshTimestamp();
+        timestampManagementServiceForClient2.fastForwardTimestamp(ONE_MILLION);
+        long secondTimestampForClient1 = timestampServiceForClient1.getFreshTimestamp();
+        assertThat(secondTimestampForClient1).isGreaterThan(firstTimestampForClient1).isLessThan(ONE_MILLION);
     }
 
     @Test
@@ -166,6 +192,19 @@ public class AtomixTimeLockServerIntegrationTest {
         try {
             setLeader(null);
             assertThatThrownBy(timestampService::getFreshTimestamp)
+                    .hasMessageContaining(SERVICE_NOT_AVAILABLE_CODE);
+        } finally {
+            setLeader(leader);
+        }
+    }
+
+    @Test
+    public void timestampMigrationServiceShouldNotFastForwardTimestampsIfNotLeader() {
+        String leader = getLeader();
+        TimestampManagementService timestampService = getTimestampMigrationService(CLIENT_1);
+        try {
+            setLeader(null);
+            assertThatThrownBy(() -> timestampService.fastForwardTimestamp(ONE_MILLION))
                     .hasMessageContaining(SERVICE_NOT_AVAILABLE_CODE);
         } finally {
             setLeader(leader);
@@ -224,5 +263,12 @@ public class AtomixTimeLockServerIntegrationTest {
                 NO_SSL,
                 String.format("http://localhost:%d/%s", APP.getLocalPort(), client),
                 TimestampService.class);
+    }
+
+    private TimestampManagementService getTimestampMigrationService(String client) {
+        return AtlasDbHttpClients.createProxy(
+                NO_SSL,
+                String.format("http://localhost:%d/%s", APP.getLocalPort(), client),
+                TimestampManagementService.class);
     }
 }

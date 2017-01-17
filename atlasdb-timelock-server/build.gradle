@@ -36,6 +36,7 @@ dependencies {
 
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile group: 'org.mockito', name: 'mockito-core'
+    testCompile project(":atlasdb-tests-shared")
 
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing'
 }
