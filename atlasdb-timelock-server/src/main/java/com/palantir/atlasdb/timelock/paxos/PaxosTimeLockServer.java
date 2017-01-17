@@ -85,27 +85,32 @@ public class PaxosTimeLockServer implements TimeLockServer {
         remoteServers = getRemotePaths(configuration);
 
         LeaderConfig leaderConfig = getLeaderConfig(configuration);
-        Leaders.LocalPaxosServices localPaxosServices = Leaders.createLocalServices(leaderConfig);
+
+        Set<String> paxosSubresourceUris =
+                getNamespacedUris(remoteServers, PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE);
+
+        Leaders.LocalPaxosServices localPaxosServices = Leaders.createLocalServices(
+                leaderConfig,
+                paxosSubresourceUris,
+                paxosSubresourceUris);
         leaderElectionService = localPaxosServices.leaderElectionService();
 
+        environment.jersey().register(leaderElectionService);
         environment.jersey().register(new LeadershipResource(
                 localPaxosServices.ourAcceptor(),
-                localPaxosServices.ourLearner(),
-                localPaxosServices.pingableLeader()));
+                localPaxosServices.ourLearner()));
         environment.jersey().register(new NotCurrentLeaderExceptionMapper());
     }
 
     private LeaderConfig getLeaderConfig(TimeLockServerConfiguration configuration) {
         return ImmutableLeaderConfig.builder()
-                    .leaders(getNamespacedUris(configuration.cluster().servers(),
-                            PaxosTimeLockConstants.LEADER_NAMESPACE))
-                    .localServer(addNamespace(configuration.cluster().localServer(),
-                            PaxosTimeLockConstants.LEADER_NAMESPACE))
+                    .leaders(addProtocols(configuration.cluster().servers()))
+                    .localServer(addProtocol(configuration.cluster().localServer()))
                     .acceptorLogDir(Paths.get(paxosConfiguration.paxosDataDir().toString(),
-                            PaxosTimeLockConstants.LEADER_NAMESPACE,
+                            PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE,
                             PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH).toFile())
                     .learnerLogDir(Paths.get(paxosConfiguration.paxosDataDir().toString(),
-                            PaxosTimeLockConstants.LEADER_NAMESPACE,
+                            PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE,
                             PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH).toFile())
                     .pingRateMs(paxosConfiguration.pingRateMs())
                     .quorumSize(getQuorumSize(configuration.cluster().servers()))
@@ -178,10 +183,18 @@ public class PaxosTimeLockServer implements TimeLockServer {
     }
 
     private Set<String> getRemotePaths(TimeLockServerConfiguration configuration) {
+        return addProtocols(getRemoteServerAddresses(configuration));
+    }
+
+    private String addProtocol(String address) {
         String protocolPrefix = paxosConfiguration.sslConfiguration().isPresent()
                 ? "https://" : "http://";
-        return getRemoteServerAddresses(configuration).stream()
-                .map(address -> protocolPrefix + address)
+        return protocolPrefix + address;
+    }
+
+    private Set<String> addProtocols(Set<String> addresses) {
+        return addresses.stream()
+                .map(this::addProtocol)
                 .collect(Collectors.toSet());
     }
 

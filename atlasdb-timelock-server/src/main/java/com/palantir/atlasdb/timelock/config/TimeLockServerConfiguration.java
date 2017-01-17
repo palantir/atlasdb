@@ -20,6 +20,7 @@ import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 
 import io.dropwizard.Configuration;
 
@@ -49,6 +50,10 @@ public class TimeLockServerConfiguration extends Configuration {
                 !client.startsWith("__"),
                 String.format("Names starting with two or more underscores are reserved for internal use; found "
                         + "'%s' specified as a client. Please rename it.", client)));
+        Preconditions.checkState(!clientNames.contains(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
+                String.format("The namespace '%s' is reserved for the leader election service. Please use a different"
+                        + " name.", PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE));
+
     }
 
     public TimeLockAlgorithmConfiguration algorithm() {

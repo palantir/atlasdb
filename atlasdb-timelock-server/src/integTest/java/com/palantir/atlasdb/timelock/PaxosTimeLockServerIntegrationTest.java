@@ -158,7 +158,6 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void supportsClientNamesMatchingPaxosRoles() throws InterruptedException {
-        getTimestampService("leader").getFreshTimestamp();
         getTimestampService("learner").getFreshTimestamp();
         getTimestampService("acceptor").getFreshTimestamp();
     }

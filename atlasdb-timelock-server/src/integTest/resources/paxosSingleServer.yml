@@ -10,6 +10,5 @@ cluster:
 clients:
   - test
   - test2
-  - leader
   - learner
   - acceptor

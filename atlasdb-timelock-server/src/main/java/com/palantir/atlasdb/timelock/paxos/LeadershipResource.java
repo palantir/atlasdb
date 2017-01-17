@@ -17,23 +17,19 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import javax.ws.rs.Path;
 
-import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 
-@Path("/" + PaxosTimeLockConstants.LEADER_NAMESPACE)
+@Path("/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE)
 public class LeadershipResource {
     private final PaxosAcceptor acceptor;
     private final PaxosLearner learner;
-    private final PingableLeader pingableLeader;
 
     public LeadershipResource(
             PaxosAcceptor acceptor,
-            PaxosLearner learner,
-            PingableLeader pingableLeader) {
+            PaxosLearner learner) {
         this.acceptor = acceptor;
         this.learner = learner;
-        this.pingableLeader = pingableLeader;
     }
 
     @Path("/acceptor")
@@ -44,10 +40,5 @@ public class LeadershipResource {
     @Path("/learner")
     public PaxosLearner getLearner() {
         return learner;
-    }
-
-    @Path("/leader")
-    public PingableLeader getPingableLeader() {
-        return pingableLeader;
     }
 }

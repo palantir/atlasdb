@@ -56,7 +56,12 @@ public class TimeLockServerConfigurationTest {
         assertThatThrownBy(() -> new TimeLockServerConfiguration(
                 null,
                 CLUSTER,
-                ImmutableSet.of(PaxosTimeLockConstants.LEADER_NAMESPACE)))
+                ImmutableSet.of(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE)))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new TimeLockServerConfiguration(
+                null,
+                CLUSTER,
+                ImmutableSet.of(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE)))
                 .isInstanceOf(IllegalStateException.class);
     }
 
