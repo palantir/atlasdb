@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -32,6 +33,12 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 public abstract class OkEvent implements Event {
     public static final String TYPE = "ok";
 
+    public static final String UNLOCK_SUCCESS = "true";
+    public static final String UNLOCK_FAILURE = "false";
+    public static final String SUCCESS = "Dummy tokens";
+    public static final String FAILURE = "";
+
+    @Override
     public abstract long time();
 
     public abstract int process();
@@ -39,8 +46,20 @@ public abstract class OkEvent implements Event {
     @Nullable
     public abstract String value();
 
+    @JsonProperty("f")
+    public abstract String function();
+
     @Override
     public void accept(EventVisitor visitor) {
         visitor.visit(this);
     }
+
+    public boolean isFailure() {
+        return value() == null || value().isEmpty() || value().equals("false");
+    }
+
+    public boolean isSuccessful() {
+        return !isFailure();
+    }
+
 }

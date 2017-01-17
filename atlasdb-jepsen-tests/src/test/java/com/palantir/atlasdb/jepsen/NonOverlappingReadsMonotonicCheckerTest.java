@@ -25,6 +25,9 @@ import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.ImmutableFailEvent;
 import com.palantir.atlasdb.jepsen.events.ImmutableInvokeEvent;
 import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
+import com.palantir.atlasdb.jepsen.events.RequestType;
+import com.palantir.atlasdb.jepsen.events.TestEventUtil;
+import com.palantir.atlasdb.jepsen.timestamp.NonOverlappingReadsMonotonicChecker;
 
 public class NonOverlappingReadsMonotonicCheckerTest {
     private static final int PROCESS_0 = 0;
@@ -156,18 +159,11 @@ public class NonOverlappingReadsMonotonicCheckerTest {
     }
 
     private ImmutableInvokeEvent createInvokeEvent(long time, int process) {
-        return ImmutableInvokeEvent.builder()
-                .time(time)
-                .process(process)
-                .build();
+        return TestEventUtil.invokeTimestamp(time, process);
     }
 
     private ImmutableOkEvent createOkEvent(long time, int process, String value) {
-        return ImmutableOkEvent.builder()
-                .time(time)
-                .process(process)
-                .value(value)
-                .build();
+        return TestEventUtil.timestampOk(time, process, value);
     }
 
     private ImmutableFailEvent createFailEvent(long time, int process) {
@@ -175,11 +171,13 @@ public class NonOverlappingReadsMonotonicCheckerTest {
                 .time(time)
                 .process(process)
                 .error("unknown")
+                .function(RequestType.TIMESTAMP)
                 .build();
     }
 
     private static CheckerResult runChecker(Event... events) {
-        NonOverlappingReadsMonotonicChecker checker = new NonOverlappingReadsMonotonicChecker();
+        com.palantir.atlasdb.jepsen.timestamp.NonOverlappingReadsMonotonicChecker checker =
+                new com.palantir.atlasdb.jepsen.timestamp.NonOverlappingReadsMonotonicChecker();
         return checker.check(ImmutableList.copyOf(events));
     }
 }

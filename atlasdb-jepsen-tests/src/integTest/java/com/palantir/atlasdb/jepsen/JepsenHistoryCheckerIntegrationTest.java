@@ -49,6 +49,17 @@ public class JepsenHistoryCheckerIntegrationTest {
     }
 
     @Test
+    public void correctLockTestHistoryShouldReturnValidAndNoErrors() throws IOException {
+        List<Map<Keyword, ?>> convertedAllEvents = getClojureMapFromFile("lock_test_without_nemesis.json");
+
+        Map<Keyword, Object> results = JepsenHistoryCheckers.createWithLockCheckers()
+                .checkClojureHistory(convertedAllEvents);
+
+        assertThat(results).containsEntry(Keyword.intern("valid?"), true);
+        assertThat(results).containsEntry(Keyword.intern("errors"), ImmutableList.of());
+    }
+
+    @Test
     public void livenessFailingHistoryShouldReturnInvalidWithNemesisErrors() throws IOException {
         List<Map<Keyword, ?>> convertedAllEvents = getClojureMapFromFile("liveness_failing_history.json");
 
