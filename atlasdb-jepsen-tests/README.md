@@ -41,7 +41,7 @@ We then use `docker-compose` to start up a container that we will run the Jepsen
 
 We then run `lein test` inside the Jepsen container, which starts the test(s). Follow the code through from `test/jepsen/atlasdb_test.clj` to understand this.
 
-To avoid including too much Clojure in this project we've chosen to write a lot of the logic in Java. In particular: how to create a client and wait until it is ready (`TimestampClient.java`), and how to check the validity of the history (`JepsenHistoryChecker.java`).
+To avoid including too much Clojure in this project we've chosen to write a lot of the logic in Java. In particular: how to create a client (`TimestampClient.java`) and how to check the validity of the history (`JepsenHistoryChecker.java`).
 
 ## Common problems
 
