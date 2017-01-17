@@ -44,10 +44,10 @@ follows:
    .. code:: yaml
 
       cluster:
-        localServer: http://palantir.com:8700
+        localServer: palantir.com:8700
         servers:
-          - http://palantir.com:8700
-          - http://palantir.com:8701
+          - palantir.com:8700
+          - palantir.com:8701
 
 .. list-table::
    :widths: 5 40
@@ -57,10 +57,10 @@ follows:
      - Description
 
    * - localServer
-     - A string following the form ``protocol://hostname:port`` which matches the host on which this config exists.
+     - A string following the form ``hostname:port`` which matches the host on which this config exists.
 
    * - servers
-     - A list of strings following the form ``protocol://hostname:port`` identifying the hosts in this Timelock
+     - A list of strings following the form ``hostname:port`` identifying the hosts in this Timelock
        Service cluster. Note that this list must include the ``localServer``.
 
 Algorithm
