@@ -103,14 +103,13 @@ The steps for invalidating the old AtlasDB timestamp will vary, depending on you
         ALTER TABLE atlasdb_timestamp RENAME last_allocated TO LEGACY_last_allocated;
 
 - If using Cassandra, one method of invalidating the table is to overwrite the timestamp bound record with the
-  empty byte array (consider using ``cqlsh`` to do this). We suggest that you save the old value of the timestamp,
-  in the event that rollback is desired (because our invalidation method in this case is more destructive).
+  empty byte array (consider using ``cqlsh`` to do this).
 
      .. code:: bash
 
         SELECT * FROM atlasdb."timestamp";
         <note the value returned by this - call this K>
-        INSERT INTO atlasdb."_timestamp" (key, column1, column2, value) VALEUS (0x7472, 0x7472, -1, K);
+        INSERT INTO atlasdb."_timestamp" (key, column1, column2, value) VALUES (0x7472, 0x7472, -1, K);
         INSERT INTO atlasdb."_timestamp" (key, column1, column2, value) VALUES (0x7473, 0x7473, -1, 0x);
 
 - Dropping the table, generally speaking, will *not* work (on the next startup of an embedded Timestamp Service,
