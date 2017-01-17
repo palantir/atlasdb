@@ -208,7 +208,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
     private static Set<String> getNamespacedUris(Set<String> addresses, String suffix) {
         return addresses.stream()
-                .map(address -> addNamespace(address, suffix))
+                .map(address -> String.join("/", address, suffix))
                 .collect(Collectors.toSet());
     }
 
@@ -227,9 +227,5 @@ public class PaxosTimeLockServer implements TimeLockServer {
                         PaxosTimeLockConstants.INTERNAL_NAMESPACE,
                         PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,
                         client));
-    }
-
-    private static String addNamespace(String address, String namespace) {
-        return address + "/" + namespace;
     }
 }
