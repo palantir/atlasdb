@@ -285,6 +285,34 @@ public class StreamTest extends AtlasDbTestCase {
         stream.close();
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void readFromStreamWhenTransactionOpenThrowsException() throws IOException {
+        readFromGivenStreamWhenTransactionOpenThrowsException(defaultStore);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void readFromCompressedStreamWhenTransactionOpenThrowsException() throws IOException {
+        readFromGivenStreamWhenTransactionOpenThrowsException(compressedStore);
+    }
+
+    private void readFromGivenStreamWhenTransactionOpenThrowsException(PersistentStreamStore store) {
+        byte[] reference = PtBytes.toBytes("ref");
+
+        final long id = storeStream(store,
+                getIncompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 3),
+                reference);
+
+        txManager.runTaskThrowOnConflict(t -> {
+            InputStream stream = store.loadStream(t, id);
+            try {
+                int read = stream.read();
+            } catch (IOException e) {
+                fail("unexpected IOException!");
+            }
+            return null;
+        });
+    }
+
     @Test
     public void testOverwrite() throws IOException {
         Random rand = new Random();
