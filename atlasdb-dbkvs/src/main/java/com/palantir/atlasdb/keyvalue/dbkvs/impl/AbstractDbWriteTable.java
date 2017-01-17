@@ -147,7 +147,6 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
             // right now we don't know what's actually in the db :-(
             throw new CheckAndSetException(cell, tableRef, oldValue, ImmutableList.of());
         }
-        // TODO check > 1
     }
 
     @Override
