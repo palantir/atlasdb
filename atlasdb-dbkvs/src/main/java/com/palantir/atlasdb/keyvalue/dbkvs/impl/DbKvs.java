@@ -224,10 +224,10 @@ public class DbKvs extends AbstractKeyValueService {
     @SuppressWarnings("deprecation")
     private Map<Cell, Value> extractResults(
             DbReadTable table,
-            ClosableIterator<AgnosticLightResultRow> iter) {
+            ClosableIterator<AgnosticLightResultRow> rows) {
         Map<Cell, Value> results = Maps.newHashMap();
         Map<Cell, OverflowValue> overflowResults = Maps.newHashMap();
-        try {
+        try (ClosableIterator<AgnosticLightResultRow> iter = rows) {
             boolean hasOverflow = table.hasOverflowValues();
             while (iter.hasNext()) {
                 AgnosticLightResultRow row = iter.next();
@@ -247,8 +247,6 @@ public class DbKvs extends AbstractKeyValueService {
                     }
                 }
             }
-        } finally {
-            iter.close();
         }
         fillOverflowValues(table, overflowResults, results);
         return results;
