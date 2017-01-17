@@ -10,7 +10,7 @@
             [knossos.history :as history]
             [clojure.data.json :as json]
             [clojure.java.io :refer [writer]])
-  (:import com.palantir.atlasdb.jepsen.JepsenHistoryChecker)
+  (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
   (:import com.palantir.atlasdb.http.LockClient))
 
 (def lock-names ["bob" "sarah" "alfred" "shelly"])
@@ -110,7 +110,7 @@
                     (gen/nemesis
                     (gen/seq (cycle [(gen/sleep 5)
                                      {:type :info, :f :start}
-                                     (gen/sleep 30)
+                                     (gen/sleep 15)
                                      {:type :info, :f :stop}])))
                     (gen/time-limit 360))
     :db (timelock/create-db)

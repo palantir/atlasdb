@@ -68,7 +68,7 @@
                     (gen/nemesis
                     (gen/seq (cycle [(gen/sleep 5)
                                      {:type :info, :f :start}
-                                     (gen/sleep 85)
+                                     (gen/sleep 15)
                                      {:type :info, :f :stop}])))
                     (gen/time-limit 360))
     :db (timelock/create-db)

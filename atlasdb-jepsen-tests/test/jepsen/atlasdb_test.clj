@@ -7,8 +7,8 @@
 ;; Using Clojure's testing framework, we initiate our test runs
 ;; Tests successful iff the value for the key ":valid?" is truthy
 
-;;(deftest timestamp-test
-;;   (is (:valid? (:results (jepsen/run! (timestamp/timestamp-test))))))
+(deftest timestamp-test
+   (is (:valid? (:results (jepsen/run! (timestamp/timestamp-test))))))
 
 (deftest lock-test
    (is (:valid? (:results (jepsen/run! (lock/lock-test))))))
