@@ -88,8 +88,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
         LeaderConfig leaderConfig = getLeaderConfig(configuration);
 
-        Set<String> paxosSubresourceUris =
-                getNamespacedUris(remoteServers, PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE);
+        Set<String> paxosSubresourceUris = getLeaderPaxosUris(remoteServers);
 
         Leaders.LocalPaxosServices localPaxosServices = Leaders.createLocalServices(
                 leaderConfig,
@@ -157,7 +156,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 .setDaemon(true)
                 .build());
 
-        Set<String> namespacedUris = getNamespacedUris(remoteServers, client);
+        Set<String> namespacedUris = getClientPaxosUris(remoteServers, client);
         List<PaxosAcceptor> acceptors = Leaders.createAcceptorList(
                 paxosResource.getPaxosAcceptor(client),
                 namespacedUris,
@@ -211,6 +210,23 @@ public class PaxosTimeLockServer implements TimeLockServer {
         return addresses.stream()
                 .map(address -> addNamespace(address, suffix))
                 .collect(Collectors.toSet());
+    }
+
+    private static Set<String> getLeaderPaxosUris(Set<String> addresses) {
+        return getNamespacedUris(
+                addresses,
+                String.join("/",
+                        PaxosTimeLockConstants.INTERNAL_NAMESPACE,
+                        PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE));
+    }
+
+    private static Set<String> getClientPaxosUris(Set<String> addresses, String client) {
+        return getNamespacedUris(
+                addresses,
+                String.join("/",
+                        PaxosTimeLockConstants.INTERNAL_NAMESPACE,
+                        PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,
+                        client));
     }
 
     private static String addNamespace(String address, String namespace) {

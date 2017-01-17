@@ -25,6 +25,8 @@ import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import io.dropwizard.Configuration;
 
 public class TimeLockServerConfiguration extends Configuration {
+    public static final String CLIENT_NAME_REGEX = "[a-zA-Z0-9_-]+";
+
     private final TimeLockAlgorithmConfiguration algorithm;
     private final ClusterConfiguration cluster;
     private final Set<String> clients;
@@ -43,13 +45,9 @@ public class TimeLockServerConfiguration extends Configuration {
 
     private void checkClientNames(Set<String> clientNames) {
         clientNames.forEach(client -> Preconditions.checkState(
-                client.matches("[a-zA-Z0-9_-]+"),
+                client.matches(CLIENT_NAME_REGEX),
                 String.format("Client names must consist of alphanumeric characters, underscores or dashes only; "
                         + "'%s' does not.", client)));
-        clientNames.forEach(client -> Preconditions.checkState(
-                !client.startsWith("__"),
-                String.format("Names starting with two or more underscores are reserved for internal use; found "
-                        + "'%s' specified as a client. Please rename it.", client)));
         Preconditions.checkState(!clientNames.contains(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
                 String.format("The namespace '%s' is reserved for the leader election service. Please use a different"
                         + " name.", PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE));

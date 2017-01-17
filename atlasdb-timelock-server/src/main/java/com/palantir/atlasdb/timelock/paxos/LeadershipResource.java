@@ -20,7 +20,8 @@ import javax.ws.rs.Path;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 
-@Path("/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE)
+@Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
+        + "/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE)
 public class LeadershipResource {
     private final PaxosAcceptor acceptor;
     private final PaxosLearner learner;

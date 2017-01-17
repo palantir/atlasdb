@@ -21,8 +21,11 @@ public final class PaxosTimeLockConstants {
     public static final String ACCEPTOR_SUBDIRECTORY_PATH = "/acceptor";
 
     // This is not great, but needed to preserve backwards compatibility for Leader Election Service
-    public static final String LEADER_PAXOS_NAMESPACE = "__leader";
     public static final String LEADER_ELECTION_NAMESPACE = "leader";
+
+    public static final String INTERNAL_NAMESPACE = ".internal";
+    public static final String LEADER_PAXOS_NAMESPACE = "leaderPaxos";
+    public static final String CLIENT_PAXOS_NAMESPACE = "clientPaxos";
 
     private PaxosTimeLockConstants() {
     }

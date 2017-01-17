@@ -28,7 +28,9 @@ import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 
-@Path("/{client: [a-zA-Z0-9_-]+}")
+@Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
+        + "/" + PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE
+        + "/{client: [a-zA-Z0-9_-]+}")
 public final class PaxosResource {
     private final String logDirectory;
     private final Map<String, PaxosLearner> paxosLearners;
