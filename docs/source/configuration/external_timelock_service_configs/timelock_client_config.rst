@@ -25,18 +25,18 @@ Required parameters:
     :widths: 5 40
     :header-rows: 1
 
-       *    - Property
-            - Description
+    *    - Property
+         - Description
 
-       *    - client
-            - The name of your client, generally the same as your application name. This client
-              must also be on the ``clients`` list of the Timelock Server, as discussed in
-              :ref:`timelock-server-configuration`.
+    *    - client
+         - The name of your client, generally the same as your application name. This client
+           must also be on the ``clients`` list of the Timelock Server, as discussed in
+           :ref:`timelock-server-configuration`.
 
-       *    - serversList::servers
-            - A list of all hosts. The hosts must be specified as addresses i.e. ``host:port``.
-              At least one server must be specified. AtlasDB assumes that the Timelock Servers being pointed at
-              are part of the same Timelock cluster.
+    *    - serversList::servers
+         - A list of all hosts. The hosts must be specified as addresses i.e. ``host:port``.
+           At least one server must be specified. AtlasDB assumes that the Timelock Servers being pointed at
+           are part of the same Timelock cluster.
 
 Optional parameters:
 
@@ -44,13 +44,13 @@ Optional parameters:
     :widths: 5 40
     :header-rows: 1
 
-       *    - Property
-            - Description
+    *    - Property
+         - Description
 
-       *    - serversList::sslConfiguration
-            - The SSL configuration of the service. This should follow the
-              `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java>`__
-              library. This should also be in alignment with the protocol used when configuring the servers.
+    *    - serversList::sslConfiguration
+         - The SSL configuration of the service. This should follow the
+           `palantir/http-remoting <https://github.com/palantir/http-remoting/blob/develop/ssl-config/src/main/java/com/palantir/remoting1/config/ssl/SslConfiguration.java>`__
+           library. This should also be in alignment with the protocol used when configuring the servers.
 
 .. _timelock-config-examples:
 
