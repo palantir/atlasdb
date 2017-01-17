@@ -58,7 +58,8 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
             TimeLockServer serverImpl) {
         Map<String, TimeLockServices> clientToServices = createTimeLockServicesForClients(
                 serverImpl,
-                configuration.clients());
+                configuration.clients(),
+                environment);
 
         environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
         environment.jersey().register(new TimeLockResource(clientToServices));
@@ -66,11 +67,26 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
 
     private static Map<String, TimeLockServices> createTimeLockServicesForClients(
             TimeLockServer serverImpl,
-            Set<String> clients) {
+            Set<String> clients,
+            Environment environment) {
         ImmutableMap.Builder<String, TimeLockServices> clientToServices = ImmutableMap.builder();
         for (String client : clients) {
-            clientToServices.put(client, serverImpl.createInvalidatingTimeLockServices(client));
+            TimeLockServices invalidatingTimeLockServices = serverImpl.createInvalidatingTimeLockServices(client);
+
+            registerHealthChecks(environment, client, invalidatingTimeLockServices);
+
+            clientToServices.put(client, invalidatingTimeLockServices);
         }
         return clientToServices.build();
+    }
+
+    private static void registerHealthChecks(Environment environment, String client,
+            TimeLockServices invalidatingTimeLockServices) {
+        environment.healthChecks().register(
+                client + "-timestamp-service",
+                new TimestampServiceHealthCheck(invalidatingTimeLockServices.getTimestampService()));
+        environment.healthChecks().register(
+                client + "-lock-service",
+                new LockServiceHealthCheck(invalidatingTimeLockServices.getLockService()));
     }
 }
