@@ -46,6 +46,8 @@ import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata.Builder;
 import com.palantir.atlasdb.stream.AbstractPersistentStreamStore;
+import com.palantir.atlasdb.stream.BlockConsumingInputStream;
+import com.palantir.atlasdb.stream.BlockGetter;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.stream.StreamCleanedException;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -367,6 +369,8 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
+     * {@link BlockConsumingInputStream}
+     * {@link BlockGetter}
      * {@link BufferedInputStream}
      * {@link Builder}
      * {@link ByteArrayIOStream}

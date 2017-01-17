@@ -136,7 +136,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         }
     }
 
-    private int getNumberOfBlocksThatFitInMemory() {
+    protected int getNumberOfBlocksThatFitInMemory() {
         int inMemoryThreshold = (int) getInMemoryThreshold(); // safe; actually defined as an int in generated code.
         int blocksInMemory = inMemoryThreshold / BLOCK_SIZE_IN_BYTES;
         return Math.max(1, blocksInMemory);

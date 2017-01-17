@@ -59,6 +59,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.stream.AbstractPersistentStreamStore;
+import com.palantir.atlasdb.stream.BlockConsumingInputStream;
+import com.palantir.atlasdb.stream.BlockGetter;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.stream.StreamCleanedException;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -173,7 +175,7 @@ public class StreamStoreRenderer {
                         line();
                         tryWriteStreamToFile();
                         line();
-                        eagerlyLoadStream();
+                        makeStreamUsingTransaction();
                         line();
                     }
                     getMetadata();
@@ -573,7 +575,7 @@ public class StreamStoreRenderer {
             private void tryWriteStreamToFile() {
                 line("@Override");
                 line("protected void tryWriteStreamToFile(Transaction transaction, ", StreamId, " id, StreamMetadata metadata, FileOutputStream fos) throws IOException {"); {
-                    line("try (InputStream blockStream = eagerlyLoadStream(transaction, id, metadata);");
+                    line("try (InputStream blockStream = makeStreamUsingTransaction(transaction, id, metadata);");
                     line("        InputStream decompressingStream = new LZ4BlockInputStream(blockStream);");
                     line("        OutputStream fileStream = fos;) {"); {
                         line("ByteStreams.copy(decompressingStream, fileStream);");
@@ -581,14 +583,30 @@ public class StreamStoreRenderer {
                 } line("}");
             }
 
-            private void eagerlyLoadStream() {
-                line("private InputStream eagerlyLoadStream(Transaction parent, ", StreamId, " id, StreamMetadata metadata) {"); {
+            private void makeStreamUsingTransaction() {
+                line("private InputStream makeStreamUsingTransaction(Transaction parent, ", StreamId, " id, StreamMetadata metadata) {"); {
                     line("long totalBlocks = getNumberOfBlocksFromMetadata(metadata);");
-                    line("ByteArrayIOStream destination = new ByteArrayIOStream();");
-                    line("for (long i = 0; i < totalBlocks; i++) {"); {
-                        line("loadSingleBlockToOutputStream(parent, id, i, destination);");
+                    line("int blocksInMemory = getNumberOfBlocksThatFitInMemory();");
+                    line();
+                    line("BlockGetter pageRefresher = new BlockGetter() {"); {
+                        line("@Override");
+                        line("public void get(long firstBlock, long numBlocks, OutputStream destination) {"); {
+                            line("for (long i = 0; i < numBlocks; i++) {"); {
+                                line("loadSingleBlockToOutputStream(parent, id, firstBlock + i, destination);");
+                            } line("}");
+                        } line("}");
+                        line();
+                        line("@Override");
+                        line("public int expectedBlockLength() {"); {
+                            line("return BLOCK_SIZE_IN_BYTES;");
+                        } line("}");
+                    } line("};");
+                    line();
+                    line("try {"); {
+                        line("return BlockConsumingInputStream.create(pageRefresher, totalBlocks, blocksInMemory);");
+                    } line("} catch(IOException e) {"); {
+                        line("throw Throwables.throwUncheckedException(e);");
                     } line("}");
-                    line("return destination.getInputStream();");
                 } line("}");
             }
 
@@ -786,6 +804,8 @@ public class StreamStoreRenderer {
         TransactionFailedRetriableException.class,
         StreamCleanedException.class,
         AbstractPersistentStreamStore.class,
+        BlockConsumingInputStream.class,
+        BlockGetter.class,
         List.class,
         CheckForNull.class,
         Generated.class,
