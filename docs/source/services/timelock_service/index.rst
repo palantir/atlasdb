@@ -20,8 +20,8 @@ The AtlasDB Timelock Service is an external implementation of the Timestamp and 
 Timelock Service (as opposed to running timestamp and lock services embedded within one's clients) provides several
 benefits:
 
-- Additional reliability; we rely on the `Atomix <http://atomix.io>`__ open-source distributed coordination library,
-  which has been Jepsen tested for fault tolerance.
+- Additional reliability; we have subjected our new implementation to Jepsen testing, and do not rely on the
+  consistency of the user's key-value services.
 - The number of AtlasDB clients can scale independently of AtlasDB's timestamp and lock services, and an odd number of
   AtlasDB clients is no longer required. An odd number of Timelock servers is still required.
 - Resource contention between your AtlasDB clients and the timestamp and lock services can be better managed,

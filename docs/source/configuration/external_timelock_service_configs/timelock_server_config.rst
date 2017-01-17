@@ -38,6 +38,13 @@ requests from each of these clients would need to all be synchronized.
 Cluster
 -------
 
+.. note::
+
+   You will probably want to use an odd number of servers; using an even number of servers increases the overhead
+   of distributed consensus while not actually providing any additional fault tolerance as far as obtaining a quorum
+   is concerned. Using more servers leads to improved fault tolerance at the expense of additional overhead incurred
+   in leader election and consensus.
+
 The ``cluster`` block is used to identify the servers which make up a Timelock Service cluster. An example is as
 follows:
 
@@ -48,6 +55,7 @@ follows:
         servers:
           - palantir.com:8700
           - palantir.com:8701
+          - palantir.com:8702
 
 .. list-table::
    :widths: 5 40
