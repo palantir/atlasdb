@@ -171,13 +171,20 @@
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Returned <cite>RemotingKeyValueService</cite> and associated remoting classes to the AtlasDB code base.  These now live
-in <cite>atlasdb-remoting</cite>.  This KVS will pass remote calls to a local delegate KVS.</td>
+in <cite>atlasdb-remoting</cite>.  This KVS will pass remote calls to a local delegate KVS.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1304">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Stream store compression, introduced in 0.27.0, no longer creates a transaction inside a transaction when streaming directly to a file.
+Additionally, a check was added to enforce the condition imposed in 0.28.0, namely that the caller of <code class="docutils literal"><span class="pre">AbstractGenericStreamStore.loadStream</span></code> should not
+call <code class="docutils literal"><span class="pre">InputStream.read()</span></code> within the transaction that was used to fetch the stream.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1460">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1378">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Added a new <code class="docutils literal"><span class="pre">KeyValueService</span></code> API method, <code class="docutils literal"><span class="pre">checkAndSet</span></code>.
 This is supported for Cassandra, Postgres, and Oracle, but in the latter case support is only provided for tables which are not overflow tables.
 <code class="docutils literal"><span class="pre">checkAndSet</span></code> is <strong>not</strong> supported for RocksDB or JDBC. However, it will only be used in a future release.
