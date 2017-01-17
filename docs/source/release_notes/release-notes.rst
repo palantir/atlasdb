@@ -79,11 +79,6 @@ v0.28.0
            This can be done using the :ref:`timestamp forward cli <offline-clis>` when your AtlasDB services are offline.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1445>`__)
 
-    *    - |devbreak|
-         - The ``DebugLogger`` class was moved from package ``com.palantir.timestamp`` in project ``timestamp-impl``
-           to ``com.palantir.util`` in project ``atlasdb-commons``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1445>`__)
-
     *    - |fixed|
          - Allow tables declared with ``SweepStrategy.THOROUGH`` to be migrated.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1410>`__)
