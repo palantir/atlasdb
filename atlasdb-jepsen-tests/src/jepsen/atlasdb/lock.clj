@@ -3,10 +3,12 @@
             [jepsen.checker :as checker]
             [jepsen.client :as client]
             [jepsen.generator :as gen]
+            [jepsen.nemesis :as nemesis]
             [jepsen.tests :as tests]
             [jepsen.os.debian :as debian]
             [jepsen.util :refer [timeout]]
             [knossos.history :as history]
+            [clojure.data.json :as json]
             [clojure.java.io :refer [writer]])
   (:import com.palantir.atlasdb.jepsen.JepsenHistoryChecker)
   (:import com.palantir.atlasdb.http.LockClient))
@@ -76,7 +78,9 @@
 (def checker
   (reify checker/Checker
     (check [this test model history opts]
-      {:valid? true})))
+      (with-open [wrtr (writer "history.json")]
+        (json/write history wrtr))
+      (.checkClojureHistory (JepsenHistoryCheckers/createWithLockCheckers) history))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; How to generate test events. We randomly mix refreshes, locks, and unlocks.
@@ -100,9 +104,14 @@
   []
   (assoc tests/noop-test
     :client (create-client nil nil nil)
+    :nemesis (nemesis/partition-random-halves)
     :generator (->> generator
                     (gen/stagger 0.1)
-                    (gen/clients)
-                    (gen/time-limit 30))
+                    (gen/nemesis
+                    (gen/seq (cycle [(gen/sleep 5)
+                                     {:type :info, :f :start}
+                                     (gen/sleep 30)
+                                     {:type :info, :f :stop}])))
+                    (gen/time-limit 360))
     :db (timelock/create-db)
     :checker checker))
