@@ -66,6 +66,12 @@ develop
            Previously, a validation check was omitted for ``getRowsColumnRange``, ``getRowsIgnoringLocalWrites``, and ``getIgnoringLocalWrites``, which in very rare cases could have resulted in deleted values being returned by a long-running read transaction.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1421>`__)
 
+    *    - |userbreak|
+         - Users must not create a client named ``leader``, or one beginning with two underscores. AtlasDB Timelock Server will fail to start if this is found.
+           Previously, using ``leader`` would have silently failed, since the JAXRS 3.7.2 algorithm does not include backtracking over
+           root resource classes (so either leader election or timestamp requests would have failed).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1442>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
