@@ -171,7 +171,6 @@ public class NonOverlappingReadsMonotonicCheckerTest {
                 .time(time)
                 .process(process)
                 .error("unknown")
-                .function(RequestType.TIMESTAMP)
                 .build();
     }
 
