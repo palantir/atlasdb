@@ -1994,10 +1994,14 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     }
 
     /**
-     * Does whatever can be done to compact or cleanup a table. Intended to be called after many
-     * deletions are performed.
+     * Performs a check-and-set into the key-value store.
+     * Please see {@link CheckAndSetRequest} for information about how to create this request,
+     * and {@link com.palantir.atlasdb.keyvalue.api.KeyValueService} for more detailed documentation.
+     * <p>
+     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
      *
-     * @param tableRef the name of the table to compact.
+     * @param request the request, including table, cell, old value and new value.
+     * @throws CheckAndSetException if the stored value for the cell was not as expected.
      */
     @Override
     public void checkAndSet(final CheckAndSetRequest request) throws CheckAndSetException {
@@ -2060,6 +2064,12 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
         return newColumn;
     }
 
+    /**
+     * Does whatever can be done to compact or cleanup a table. Intended to be called after many
+     * deletions are performed.
+     *
+     * @param tableRef the name of the table to compact.
+     */
     @Override
     public void compactInternally(TableReference tableRef) {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(tableRef.getQualifiedName()),
