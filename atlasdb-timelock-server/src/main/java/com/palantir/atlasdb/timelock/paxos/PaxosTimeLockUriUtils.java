@@ -18,7 +18,7 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class PaxosTimeLockUriUtils {
+public final class PaxosTimeLockUriUtils {
     private PaxosTimeLockUriUtils() {
     }
 
