@@ -41,7 +41,6 @@ public class LockServiceHealthCheck extends HealthCheck {
     private final RemoteLockService service;
 
     public LockServiceHealthCheck(RemoteLockService service) {
-        super();
         this.service = service;
     }
 

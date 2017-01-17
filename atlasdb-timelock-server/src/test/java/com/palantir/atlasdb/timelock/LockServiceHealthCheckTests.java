@@ -31,7 +31,7 @@ import org.junit.Test;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.RemoteLockService;
 
-public class LockServiceHealthCheckTest {
+public class LockServiceHealthCheckTests {
     private static final LockRefreshToken LOCK_REFRESH_TOKEN = new LockRefreshToken(BigInteger.ZERO, 0);
     public static final String HEALTHCHECK_LOCK = "lock-service-healthcheck";
 

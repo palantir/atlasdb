@@ -22,7 +22,6 @@ public class TimestampServiceHealthCheck extends HealthCheck {
     private final TimestampService timestampService;
 
     public TimestampServiceHealthCheck(TimestampService timestampService) {
-        super();
         this.timestampService = timestampService;
     }
 
