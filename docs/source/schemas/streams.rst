@@ -1,3 +1,5 @@
+.. _schemas-streams:
+
 =======
 Streams
 =======
@@ -43,6 +45,12 @@ stored on different media than regular tables. One simple way to handle
 this is to write a ``KeyValueService`` implementation that just
 delegates to 2 other ``KeyValueService`` impls and sends COLD tables to
 one and other tables to another.
+
+Streams can be optionally compressed to boost performance via the 
+``compressStreamsInClient`` option on the ``StreamStoreDefinitionBuilder``.
+This transparently decompresses and compresses the stream via the LZ4 
+algorithm upon reads and writes, respectively. Compression is performed client 
+side before any network communication to the underlying database.
 
 Transactionality
 ================

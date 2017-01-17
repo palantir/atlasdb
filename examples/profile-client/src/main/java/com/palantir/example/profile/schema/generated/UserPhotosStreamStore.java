@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Generated;
@@ -24,6 +25,7 @@ import javax.annotation.Generated;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -36,6 +38,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
+import com.google.common.io.ByteStreams;
 import com.google.common.io.CountingInputStream;
 import com.google.common.primitives.Ints;
 import com.google.protobuf.ByteString;
@@ -44,6 +47,9 @@ import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata.Builder;
 import com.palantir.atlasdb.stream.AbstractPersistentStreamStore;
+import com.palantir.atlasdb.stream.BlockConsumingInputStream;
+import com.palantir.atlasdb.stream.BlockGetter;
+import com.palantir.atlasdb.stream.BlockLoader;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.stream.StreamCleanedException;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -52,12 +58,16 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.compression.LZ4CompressingInputStream;
 import com.palantir.common.io.ConcatenatedInputStream;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.ByteArrayIOStream;
+import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 import com.palantir.util.file.DeleteOnCloseFileInputStream;
 import com.palantir.util.file.TempFileUtils;
+
+import net.jpountz.lz4.LZ4BlockInputStream;
 
 @Generated("com.palantir.atlasdb.table.description.render.StreamStoreRenderer")
 public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
@@ -361,10 +371,15 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
+     * {@link BiConsumer}
+     * {@link BlockConsumingInputStream}
+     * {@link BlockGetter}
+     * {@link BlockLoader}
      * {@link BufferedInputStream}
      * {@link Builder}
      * {@link ByteArrayIOStream}
      * {@link ByteArrayInputStream}
+     * {@link ByteStreams}
      * {@link ByteString}
      * {@link Cell}
      * {@link CheckForNull}
@@ -378,6 +393,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
      * {@link File}
      * {@link FileNotFoundException}
      * {@link FileOutputStream}
+     * {@link Functions}
      * {@link Generated}
      * {@link HashMultimap}
      * {@link IOException}
@@ -385,6 +401,8 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
      * {@link ImmutableSet}
      * {@link InputStream}
      * {@link Ints}
+     * {@link LZ4BlockInputStream}
+     * {@link LZ4CompressingInputStream}
      * {@link List}
      * {@link Lists}
      * {@link Logger}
@@ -395,6 +413,7 @@ public final class UserPhotosStreamStore extends AbstractPersistentStreamStore {
      * {@link Multimap}
      * {@link Multimaps}
      * {@link OutputStream}
+     * {@link Pair}
      * {@link PersistentStreamStore}
      * {@link Preconditions}
      * {@link Set}

@@ -332,7 +332,7 @@ public class DbKvsGetRanges {
     }
 
     private String getPrefixedTableName(TableReference tableRef) {
-        return new PrefixedTableNames(config).get(tableRef);
+        return prefixedTableNames.get(tableRef);
     }
 
     private static final String SIMPLE_ROW_SELECT_TEMPLATE =

@@ -112,7 +112,7 @@ public class OneNodeDownGetTest {
         ClosableIterator<RowResult<Set<Long>>> it = OneNodeDownTestSuite.db.getRangeOfTimestamps(
                 OneNodeDownTestSuite.TEST_TABLE, range, Long.MAX_VALUE);
         assertThatThrownBy(() -> it.next())
-                .isInstanceOf(InsufficientConsistencyException.class)
+                .isExactlyInstanceOf(InsufficientConsistencyException.class)
                 .hasMessage("This operation requires all Cassandra nodes to be up and available.");
     }
 
@@ -120,6 +120,6 @@ public class OneNodeDownGetTest {
     public void getAllTimestampsThrows() {
         assertThatThrownBy(() -> OneNodeDownTestSuite.db.getAllTimestamps(OneNodeDownTestSuite.TEST_TABLE,
                 ImmutableSet.of(OneNodeDownTestSuite.CELL_1_1), Long.MAX_VALUE))
-                .isInstanceOf(PalantirRuntimeException.class);
+                .isExactlyInstanceOf(PalantirRuntimeException.class);
     }
 }

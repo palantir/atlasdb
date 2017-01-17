@@ -44,7 +44,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     @Value.Default
     public int poolSize() {
-        return 20;
+        return 30;
     }
 
     /**
@@ -54,7 +54,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      */
     @Value.Default
     public int maxConnectionBurstSize() {
-        return 5 * poolSize();
+        return 100;
     }
 
     /**
@@ -208,7 +208,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         }
         Preconditions.checkNotNull(keyspace(), "'keyspace' must be specified");
         double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();
-        Preconditions.checkArgument(evictionCheckProportion > 0 && evictionCheckProportion <= 1,
-                "'proportionConnectionsToCheckPerEvictionRun' must be between 0 and 1");
+        Preconditions.checkArgument(evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,
+                "'proportionConnectionsToCheckPerEvictionRun' must be between 0.01 and 1");
     }
 }

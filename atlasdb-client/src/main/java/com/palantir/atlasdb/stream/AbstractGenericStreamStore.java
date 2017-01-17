@@ -30,6 +30,7 @@ import javax.annotation.CheckForNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -65,13 +66,13 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     protected abstract long getInMemoryThreshold();
 
     @Override
-    public final InputStream loadStream(Transaction transaction, final ID id) {
+    public InputStream loadStream(Transaction transaction, final ID id) {
         StreamMetadata metadata = getMetadata(transaction, id);
         return getStream(transaction, id, metadata);
     }
 
     @Override
-    public final Map<ID, InputStream> loadStreams(Transaction transaction, Set<ID> ids) {
+    public Map<ID, InputStream> loadStreams(Transaction transaction, Set<ID> ids) {
         Map<ID, InputStream> ret = Maps.newHashMap();
         Map<ID, StreamMetadata> idsToMetadata = getMetadata(transaction, ids);
         for (Map.Entry<ID, StreamMetadata> entry : idsToMetadata.entrySet()) {
@@ -100,17 +101,20 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
             loadSingleBlockToOutputStream(transaction, id, 0, ios);
             return ios.getInputStream();
         } else {
-            return makeStream(id, metadata);
+            return makeStream(transaction, id, metadata);
         }
     }
 
-    private InputStream makeStream(ID id, StreamMetadata metadata) {
+    private InputStream makeStream(Transaction parent, ID id, StreamMetadata metadata) {
         long totalBlocks = getNumberOfBlocksFromMetadata(metadata);
         int blocksInMemory = getNumberOfBlocksThatFitInMemory();
 
         BlockGetter pageRefresher = new BlockGetter() {
             @Override
             public void get(long firstBlock, long numBlocks, OutputStream destination) {
+                Preconditions.checkState(!parent.isUncommitted(),
+                        "Tried to read from a stream while the transaction used to fetch the stream was still open. "
+                                + "This is forbidden, because it would cause a transaction to run inside another one.");
                 txnMgr.runTaskReadOnly(txn -> {
                     for (long i = 0; i < numBlocks; i++) {
                         loadSingleBlockToOutputStream(txn, id, firstBlock + i, destination);
@@ -120,8 +124,8 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
             }
 
             @Override
-            public int expectedLength() {
-                return BLOCK_SIZE_IN_BYTES * blocksInMemory;
+            public int expectedBlockLength() {
+                return BLOCK_SIZE_IN_BYTES;
             }
         };
 
@@ -132,7 +136,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         }
     }
 
-    private int getNumberOfBlocksThatFitInMemory() {
+    protected int getNumberOfBlocksThatFitInMemory() {
         int inMemoryThreshold = (int) getInMemoryThreshold(); // safe; actually defined as an int in generated code.
         int blocksInMemory = inMemoryThreshold / BLOCK_SIZE_IN_BYTES;
         return Math.max(1, blocksInMemory);
@@ -183,7 +187,8 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         }
     }
 
-    private void tryWriteStreamToFile(Transaction transaction, ID id, StreamMetadata metadata, FileOutputStream fos)
+    // This method is overridden in generated code. Changes to this method may have unintended consequences.
+    protected void tryWriteStreamToFile(Transaction transaction, ID id, StreamMetadata metadata, FileOutputStream fos)
             throws IOException {
         long numBlocks = getNumberOfBlocksFromMetadata(metadata);
         for (long i = 0; i < numBlocks; i++) {

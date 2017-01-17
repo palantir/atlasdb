@@ -15,6 +15,7 @@
  */
 package com.palantir.cassandra.multinode;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
@@ -31,29 +32,48 @@ public class OneNodeDownTableManipulationTest {
 
     @Test
     public void createTableThrows() {
+        assertThat(OneNodeDownTestSuite.db.getAllTableNames()).doesNotContain(NEW_TABLE);
         assertThatThrownBy(
                 () -> OneNodeDownTestSuite.db.createTable(NEW_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA))
-                .isExactlyInstanceOf(IllegalStateException.class);
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("At schema version UNREACHABLE");
+        // This documents and verifies the current behaviour, creating the table in spite of the exception
+        // Seems to be inconsistent with the API
+        assertThat(OneNodeDownTestSuite.db.getAllTableNames()).contains(NEW_TABLE);
     }
 
     @Test
     public void createTablesThrows() {
+        assertThat(OneNodeDownTestSuite.db.getAllTableNames()).doesNotContain(NEW_TABLE2);
         assertThatThrownBy(() -> OneNodeDownTestSuite.db.createTables(
                 ImmutableMap.of(NEW_TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA)))
-                .isExactlyInstanceOf(IllegalStateException.class);
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("At schema version UNREACHABLE");
+        // This documents and verifies the current behaviour, creating the table in spite of the exception
+        // Seems to be inconsistent with the API
+        assertThat(OneNodeDownTestSuite.db.getAllTableNames()).contains(NEW_TABLE2);
     }
 
     @Test
     public void dropTableThrows() {
+        assertThat(OneNodeDownTestSuite.db.getAllTableNames()).contains(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
         assertThatThrownBy(() -> OneNodeDownTestSuite.db.dropTable(OneNodeDownTestSuite.TEST_TABLE_TO_DROP))
                 .isExactlyInstanceOf(IllegalStateException.class);
+        // This documents and verifies the current behaviour, dropping the table in spite of the exception
+        // Seems to be inconsistent with the API
+        assertThat(OneNodeDownTestSuite.db.getAllTableNames()).doesNotContain(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
     }
 
     @Test
     public void dropTablesThrows() {
-        ImmutableSet<TableReference> tablesToDrop = ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2);
-        assertThatThrownBy(() -> OneNodeDownTestSuite.db.dropTables(tablesToDrop))
+        assertThat(OneNodeDownTestSuite.db.getAllTableNames()).contains(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2);
+        assertThatThrownBy(() -> OneNodeDownTestSuite.db.dropTables(
+                ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2)))
                 .isExactlyInstanceOf(IllegalStateException.class);
+        // This documents and verifies the current behaviour, dropping the table in spite of the exception
+        // Seems to be inconsistent with the API
+        assertThat(OneNodeDownTestSuite.db.getAllTableNames())
+                .doesNotContain(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2);
     }
 
     @Test

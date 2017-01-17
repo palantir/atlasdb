@@ -40,11 +40,11 @@ public class UniquenessChecker implements Checker {
 
     private static class Visitor implements EventVisitor {
         private final List<Event> errors = new ArrayList<>();
-        private final Map<Long, OkEvent> valuesAlreadySeen = new HashMap<>();
+        private final Map<String, OkEvent> valuesAlreadySeen = new HashMap<>();
 
         @Override
         public void visit(OkEvent event) {
-            long value = event.value();
+            String value = event.value();
 
             if (valuesAlreadySeen.containsKey(value)) {
                 OkEvent previousEvent = valuesAlreadySeen.get(value);

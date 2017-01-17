@@ -28,4 +28,9 @@ public class JdbcKeyValueSharedTest extends AbstractKeyValueServiceTest {
     protected boolean reverseRangesSupported() {
         return true;
     }
+
+    @Override
+    protected boolean checkAndSetSupported() {
+        return false;
+    }
 }
