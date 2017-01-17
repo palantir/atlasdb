@@ -55,9 +55,7 @@ public final class Leaders {
      * Creates a LeaderElectionService using the supplied configuration and
      * registers appropriate endpoints for that service.
      */
-    public static LeaderElectionService create(
-            Environment env,
-            LeaderConfig config) {
+    public static LeaderElectionService create(Environment env, LeaderConfig config) {
         LocalPaxosServices localPaxosServices = createLocalServices(config);
 
         env.register(localPaxosServices.ourAcceptor());
