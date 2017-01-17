@@ -87,7 +87,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1421>`__)
 
     *    - |userbreak|
-         - Users must not create a client named ``leader``, or one beginning with two underscores. AtlasDB Timelock Server will fail to start if this is found.
+         - Users must not create a client named ``leader``. AtlasDB Timelock Server will fail to start if this is found.
            Previously, using ``leader`` would have silently failed, since the JAXRS 3.7.2 algorithm does not include backtracking over
            root resource classes (so either leader election or timestamp requests would have failed).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1442>`__)
