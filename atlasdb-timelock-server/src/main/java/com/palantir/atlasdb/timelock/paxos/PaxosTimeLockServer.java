@@ -88,7 +88,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
         LeaderConfig leaderConfig = getLeaderConfig(configuration);
 
-        Set<String> paxosSubresourceUris = getLeaderPaxosUris(remoteServers);
+        Set<String> paxosSubresourceUris = PaxosTimeLockUriUtils.getLeaderPaxosUris(remoteServers);
 
         Leaders.LocalPaxosServices localPaxosServices = Leaders.createLocalServices(
                 leaderConfig,
@@ -156,7 +156,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 .setDaemon(true)
                 .build());
 
-        Set<String> namespacedUris = getClientPaxosUris(remoteServers, client);
+        Set<String> namespacedUris = PaxosTimeLockUriUtils.getClientPaxosUris(remoteServers, client);
         List<PaxosAcceptor> acceptors = Leaders.createAcceptorList(
                 paxosResource.getPaxosAcceptor(client),
                 namespacedUris,
@@ -204,28 +204,5 @@ public class PaxosTimeLockServer implements TimeLockServer {
         return addresses.stream()
                 .map(this::addProtocol)
                 .collect(Collectors.toSet());
-    }
-
-    private static Set<String> getNamespacedUris(Set<String> addresses, String suffix) {
-        return addresses.stream()
-                .map(address -> String.join("/", address, suffix))
-                .collect(Collectors.toSet());
-    }
-
-    private static Set<String> getLeaderPaxosUris(Set<String> addresses) {
-        return getNamespacedUris(
-                addresses,
-                String.join("/",
-                        PaxosTimeLockConstants.INTERNAL_NAMESPACE,
-                        PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE));
-    }
-
-    private static Set<String> getClientPaxosUris(Set<String> addresses, String client) {
-        return getNamespacedUris(
-                addresses,
-                String.join("/",
-                        PaxosTimeLockConstants.INTERNAL_NAMESPACE,
-                        PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,
-                        client));
     }
 }

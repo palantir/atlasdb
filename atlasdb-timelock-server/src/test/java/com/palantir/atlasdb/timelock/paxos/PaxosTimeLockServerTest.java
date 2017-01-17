@@ -92,9 +92,9 @@ public class PaxosTimeLockServerTest {
 
     @Test
     public void verifyLargeQuorumsAreCorrect() {
-        int largeClusterSize = 84;
-        verifyQuorumSize(largeClusterSize * 2, largeClusterSize + 1);
-        verifyQuorumSize(largeClusterSize * 2 + 1, largeClusterSize + 1);
+        int halfOfLargeCluster = 84;
+        verifyQuorumSize(halfOfLargeCluster * 2, halfOfLargeCluster + 1);
+        verifyQuorumSize(halfOfLargeCluster * 2 + 1, halfOfLargeCluster + 1);
     }
 
     @After
