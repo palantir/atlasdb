@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Generated;
@@ -61,6 +62,7 @@ import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.stream.AbstractPersistentStreamStore;
 import com.palantir.atlasdb.stream.BlockConsumingInputStream;
 import com.palantir.atlasdb.stream.BlockGetter;
+import com.palantir.atlasdb.stream.BlockLoader;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.stream.StreamCleanedException;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -585,22 +587,12 @@ public class StreamStoreRenderer {
 
             private void makeStreamUsingTransaction() {
                 line("private InputStream makeStreamUsingTransaction(Transaction parent, ", StreamId, " id, StreamMetadata metadata) {"); {
+                    line("BiConsumer<Long, OutputStream> singleBlockLoader = (index, destination) ->");
+                    line("        loadSingleBlockToOutputStream(parent, id, index, destination);");
+                    line();
+                    line("BlockGetter pageRefresher = new BlockLoader(singleBlockLoader, BLOCK_SIZE_IN_BYTES);");
                     line("long totalBlocks = getNumberOfBlocksFromMetadata(metadata);");
                     line("int blocksInMemory = getNumberOfBlocksThatFitInMemory();");
-                    line();
-                    line("BlockGetter pageRefresher = new BlockGetter() {"); {
-                        line("@Override");
-                        line("public void get(long firstBlock, long numBlocks, OutputStream destination) {"); {
-                            line("for (long i = 0; i < numBlocks; i++) {"); {
-                                line("loadSingleBlockToOutputStream(parent, id, firstBlock + i, destination);");
-                            } line("}");
-                        } line("}");
-                        line();
-                        line("@Override");
-                        line("public int expectedBlockLength() {"); {
-                            line("return BLOCK_SIZE_IN_BYTES;");
-                        } line("}");
-                    } line("};");
                     line();
                     line("try {"); {
                         line("return BlockConsumingInputStream.create(pageRefresher, totalBlocks, blocksInMemory);");
@@ -767,6 +759,7 @@ public class StreamStoreRenderer {
         Entry.class,
         Set.class,
         TimeUnit.class,
+        BiConsumer.class,
         Logger.class,
         LoggerFactory.class,
         Preconditions.class,
@@ -806,6 +799,7 @@ public class StreamStoreRenderer {
         AbstractPersistentStreamStore.class,
         BlockConsumingInputStream.class,
         BlockGetter.class,
+        BlockLoader.class,
         List.class,
         CheckForNull.class,
         Generated.class,
