@@ -17,6 +17,7 @@ package com.palantir.atlasdb.stream;
 
 import java.io.OutputStream;
 import java.util.function.BiConsumer;
+import java.util.stream.LongStream;
 
 public class BlockLoader implements BlockGetter {
     private final BiConsumer<Long, OutputStream> singleBlockLoader;
@@ -29,9 +30,8 @@ public class BlockLoader implements BlockGetter {
 
     @Override
     public void get(long firstBlock, long numBlocks, OutputStream destination) {
-        for (long i = 0; i < numBlocks; i++) {
-            singleBlockLoader.accept(firstBlock + i, destination);
-        }
+        LongStream.range(firstBlock, firstBlock + numBlocks)
+                .forEach(i -> singleBlockLoader.accept(i, destination));
     }
 
     @Override
