@@ -71,17 +71,15 @@ public final class Leaders {
     public static LocalPaxosServices createLocalServices(LeaderConfig config) {
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
         remoteLeaderUris.remove(config.localServer());
-        return createLocalServices(config, remoteLeaderUris, remoteLeaderUris);
+        return createLocalServices(config, remoteLeaderUris, remoteLeaderUris, remoteLeaderUris);
     }
 
     public static LocalPaxosServices createLocalServices(LeaderConfig config,
+            Set<String> remoteLeaderUris,
             Set<String> remoteLearnerUris,
             Set<String> remoteAcceptorUris) {
         PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor(config.acceptorLogDir().getPath());
         PaxosLearner ourLearner = PaxosLearnerImpl.newLearner(config.learnerLogDir().getPath());
-
-        Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
-        remoteLeaderUris.remove(config.localServer());
 
         Optional<SSLSocketFactory> sslSocketFactory =
                 TransactionManagers.createSslSocketFactory(config.sslConfiguration());

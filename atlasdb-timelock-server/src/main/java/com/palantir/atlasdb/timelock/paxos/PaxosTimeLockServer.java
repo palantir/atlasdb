@@ -91,6 +91,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
         Leaders.LocalPaxosServices localPaxosServices = Leaders.createLocalServices(
                 leaderConfig,
+                remoteServers,
                 paxosSubresourceUris,
                 paxosSubresourceUris);
         leaderElectionService = localPaxosServices.leaderElectionService();
