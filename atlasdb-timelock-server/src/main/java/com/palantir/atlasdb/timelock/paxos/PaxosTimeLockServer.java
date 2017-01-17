@@ -48,6 +48,7 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.remoting.ssl.SslSocketFactories;
 import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 import io.dropwizard.setup.Environment;
@@ -137,8 +138,12 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 LockService.class,
                 LockServiceImpl::create,
                 leaderElectionService);
+        TimestampManagementService managementService = currentTimestamp -> {
+            throw new UnsupportedOperationException(
+                    "Paxos timestamp server doesn't currently support fast forward");
+        };
 
-        return TimeLockServices.create(timestampService, lockService);
+        return TimeLockServices.create(timestampService, lockService, managementService);
     }
 
     private TimestampService createPaxosBackedTimestampService(String client) {
