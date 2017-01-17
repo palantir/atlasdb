@@ -73,9 +73,13 @@ public abstract class AbstractLockAwareTransactionManager
 
             try {
                 if (lockToken == null) {
-                    return runTaskWithLocksThrowOnConflict(lockTokens, task);
+                    T result = runTaskWithLocksThrowOnConflict(lockTokens, task);
+                    logSuccess(runId, failureCount);
+                    return result;
                 } else {
-                    return runTaskWithLocksThrowOnConflict(IterableUtils.append(lockTokens, lockToken), task);
+                    T result = runTaskWithLocksThrowOnConflict(IterableUtils.append(lockTokens, lockToken), task);
+                    logSuccess(runId, failureCount);
+                    return result;
                 }
             } catch (TransactionFailedException e) {
                 if (!e.canTransactionBeRetried()) {
@@ -102,6 +106,10 @@ public abstract class AbstractLockAwareTransactionManager
 
             sleepForBackoff(failureCount);
         }
+    }
+
+    private void logSuccess(UUID runId, int failureCount) {
+        log.info("[{}] Successfully completed transaction after {} retries.", runId, failureCount);
     }
 
     @Override
