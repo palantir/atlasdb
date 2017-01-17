@@ -47,7 +47,7 @@ public final class BatchingStrategies {
         }
     }
 
-    private static IterableBatchingStrategy<?> iterableBatchingStrategy = new IterableBatchingStrategy<>();
+    private static final IterableBatchingStrategy<?> iterableBatchingStrategy = new IterableBatchingStrategy<>();
 
     private static class ListBatchingStrategy<T> implements BatchingTaskRunner.BatchingStrategy<List<T>> {
         @Override
@@ -56,7 +56,7 @@ public final class BatchingStrategies {
         }
     }
 
-    private static ListBatchingStrategy<?> listBatchingStrategy = new ListBatchingStrategy<>();
+    private static final ListBatchingStrategy<?> listBatchingStrategy = new ListBatchingStrategy<>();
 
     private static class MapBatchingStrategy<K, V> implements BatchingTaskRunner.BatchingStrategy<Map<K, V>> {
         @Override
@@ -67,6 +67,6 @@ public final class BatchingStrategies {
         }
     }
 
-    private static MapBatchingStrategy<?, ?> mapBatchingStrategy = new MapBatchingStrategy<>();
+    private static final MapBatchingStrategy<?, ?> mapBatchingStrategy = new MapBatchingStrategy<>();
 
 }

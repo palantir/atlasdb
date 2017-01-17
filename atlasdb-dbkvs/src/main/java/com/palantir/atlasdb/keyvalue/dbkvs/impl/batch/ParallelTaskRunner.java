@@ -55,7 +55,10 @@ public class ParallelTaskRunner implements BatchingTaskRunner {
     private static <T> T getFutureUnchecked(Future<T> future) {
         try {
             return future.get();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw Throwables.propagate(e);
+        } catch (ExecutionException e) {
             throw Throwables.propagate(e);
         }
     }

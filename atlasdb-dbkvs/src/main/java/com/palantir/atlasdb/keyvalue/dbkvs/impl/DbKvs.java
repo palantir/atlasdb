@@ -81,7 +81,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.AccumulatorStrageties;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.AccumulatorStrategies;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.BatchingStrategies;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.BatchingTaskRunner;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.batch.ImmediateSingleBatchTaskRunner;
@@ -153,7 +153,7 @@ public class DbKvs extends AbstractKeyValueService {
         ThreadPoolExecutor pool = PTExecutors.newThreadPoolExecutor(maxPoolSize, maxPoolSize,
                 15L, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>(),
-                new NamedThreadFactory("Atlas postgres reader", true /* daemon */));
+                new NamedThreadFactory("Atlas DbKvs reader", true /* daemon */));
 
         pool.allowCoreThreadTimeOut(false);
         return pool;
@@ -200,7 +200,7 @@ public class DbKvs extends AbstractKeyValueService {
         return batchingQueryRunner.runTask(
                 rows,
                 BatchingStrategies.forIterable(),
-                AccumulatorStrageties.forMap(),
+                AccumulatorStrategies.forMap(),
                 rowBatch -> runReadAndExtractResults(tableRef, table ->
                     table.getLatestRows(rowBatch, columnSelection, timestamp, true)));
     }
@@ -210,7 +210,7 @@ public class DbKvs extends AbstractKeyValueService {
         return batchingQueryRunner.runTask(
                 timestampByCell,
                 BatchingStrategies.forMap(),
-                AccumulatorStrageties.forMap(),
+                AccumulatorStrategies.forMap(),
                 cellBatch -> runReadAndExtractResults(tableRef, table ->
                         table.getLatestCells(cellBatch, true)));
     }
@@ -259,7 +259,7 @@ public class DbKvs extends AbstractKeyValueService {
         return batchingQueryRunner.runTask(
                 timestampByCell,
                 BatchingStrategies.forMap(),
-                AccumulatorStrageties.forMap(),
+                AccumulatorStrategies.forMap(),
                 cellBatch -> runRead(tableRef, table -> doGetLatestTimestamps(table, cellBatch)));
     }
 
@@ -938,7 +938,7 @@ public class DbKvs extends AbstractKeyValueService {
         Map<Sha256Hash, Integer> countsByRow = batchingQueryRunner.runTask(
                 rowList,
                 BatchingStrategies.forList(),
-                AccumulatorStrageties.forMap(),
+                AccumulatorStrategies.forMap(),
                 partition -> getColumnCountsUnordered(tableRef, partition, columnRangeSelection, timestamp));
         // Make iteration order of the returned map match the provided list.
         Map<Sha256Hash, Integer> ordered = new LinkedHashMap<>(countsByRow.size());
@@ -1073,7 +1073,7 @@ public class DbKvs extends AbstractKeyValueService {
         return batchingQueryRunner.runTask(
                 cells,
                 BatchingStrategies.forIterable(),
-                AccumulatorStrageties.forListMultimap(),
+                AccumulatorStrategies.forListMultimap(),
                 cellBatch -> runRead(tableRef, table -> doGetAllTimestamps(table, cellBatch, timestamp)));
     }
 

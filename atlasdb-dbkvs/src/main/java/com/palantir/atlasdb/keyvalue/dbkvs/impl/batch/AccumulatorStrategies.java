@@ -21,9 +21,9 @@ import java.util.Map;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
-public final class AccumulatorStrageties {
+public final class AccumulatorStrategies {
 
-    private AccumulatorStrageties() {}
+    private AccumulatorStrategies() {}
 
     @SuppressWarnings("unchecked")
     public static <K, V> BatchingTaskRunner.ResultAccumulatorStrategy<Map<K, V>> forMap() {
@@ -48,7 +48,7 @@ public final class AccumulatorStrageties {
         }
     }
 
-    private static MapAccumulatorStrategy<?, ?> mapAccumulatorStrategy = new MapAccumulatorStrategy<>();
+    private static final MapAccumulatorStrategy<?, ?> mapAccumulatorStrategy = new MapAccumulatorStrategy<>();
 
     private static class ListMultimapAccumulatorStrategy<K, V>
                 implements BatchingTaskRunner.ResultAccumulatorStrategy<Multimap<K, V>> {
@@ -63,7 +63,7 @@ public final class AccumulatorStrageties {
         }
     }
 
-    private static ListMultimapAccumulatorStrategy<?, ?> listMultimapAccumulatorStrategy
+    private static final ListMultimapAccumulatorStrategy<?, ?> listMultimapAccumulatorStrategy
             = new ListMultimapAccumulatorStrategy<>();
 
 }
