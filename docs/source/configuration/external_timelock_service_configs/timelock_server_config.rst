@@ -74,7 +74,7 @@ follows:
 Algorithm
 ---------
 
-We have currently implemented the consensus algorithm required by the Timelock Server using the Paxos algorithm.
+We have implemented the consensus algorithm required by the Timelock Server using the Paxos algorithm.
 Currently, this is the only supported implementation, though there may be more in the future.
 We identify an algorithm by its ``type`` field first; algorithms can have additional algorithmic-specific
 customisable parameters as well.

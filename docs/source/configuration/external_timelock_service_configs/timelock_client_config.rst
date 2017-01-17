@@ -12,9 +12,9 @@ You will need to update your AtlasDB configuration in order to have said clients
 external Timelock Servers as opposed to their embedded services. This is an extension of the leader block configuration
 options discussed at :ref:`leader-config`.
 
-Instead of configuring a ``leader`` block, or both a ``timestamp`` and ``lock`` block, one may instead specify a
-single ``timelock`` block. If your product uses the Timelock Server, you must specify the ``timelock`` block. The leader
-block and the timestamp/lock blocks must be absent from the config.
+Instead of configuring a ``leader`` block, or both a ``timestamp`` and ``lock`` block, one must instead specify a
+single ``timelock`` block if your product uses the Timelock Server. The ``leader`` block and the ``timestamp``/``lock``
+blocks must be absent from the config if you are using the Timelock Server.
 
 Timelock
 --------
@@ -34,7 +34,7 @@ Required parameters:
            :ref:`timelock-server-configuration`.
 
     *    - serversList::servers
-         - A list of all hosts. The hosts must be specified as addresses i.e. ``host:port``.
+         - A list of all hosts. The hosts must be specified as addresses, i.e. ``host:port``.
            At least one server must be specified. AtlasDB assumes that the Timelock Servers being pointed at
            are part of the same Timelock cluster.
 
@@ -57,9 +57,9 @@ Optional parameters:
 Timelock Configuration Examples
 -------------------------------
 
-Here is an example of an AtlasDB configuration with the timelock block.
+Here is an example of an AtlasDB configuration with the ``timelock`` block.
 
-You must ensure that you have migrated to the Timelock Server before adding a timelock block to the config.
+You must ensure that you have migrated to the Timelock Server before adding a ``timelock`` block to the config.
 
 .. code-block:: yaml
 
