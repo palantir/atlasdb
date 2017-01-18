@@ -15,13 +15,13 @@
  */
 package com.palantir.atlasdb.factory;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 import java.util.List;
 import java.util.Set;
 
+import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 
 import com.google.common.base.Optional;
@@ -38,7 +38,7 @@ public class LeadersTest {
                 remoteServices,
                 Optional.absent(),
                 PaxosLearner.class);
-        assertThat(proxyAndLocalList.size(), is(remoteServices.size() + 1));
-        assertThat(proxyAndLocalList.contains(localService), is(true));
+        MatcherAssert.assertThat(proxyAndLocalList.size(), is(remoteServices.size() + 1));
+        MatcherAssert.assertThat(proxyAndLocalList.contains(localService), is(true));
     }
 }
