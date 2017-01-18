@@ -63,6 +63,9 @@ develop
            ``checkAndSet`` is **not** supported for RocksDB or JDBC. However, it will only be used in a future release.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1435>`__)
 
+    *    - |fixed|
+         - Fixed the |devbreak| below by returning the ``DebugLogger`` to it's original location.
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -77,7 +80,8 @@ v0.28.0
          - Change
 
     *    - |devbreak|
-         - The ``DebugLogger`` class was moved from package ``com.palantir.timestamp`` in project ``timestamp-impl`` to ``com.palantir.util`` in project ``atlasdb-commons``.
+         - The ``DebugLogger`` class was moved from package ``com.palantir.timestamp`` in project ``timestamp-impl`` to ``com.palantir.util`` in project ``atlasdb-commons``.  This is
+           fixed in the next release 0.29.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1445>`__)
 
     *    - |improved|
