@@ -65,6 +65,7 @@ v0.29.0
 
     *    - |new|
          - Added a new ``KeyValueService`` API method, ``checkAndSet``.
+           This is to be used in upcoming backup lock changes, and is not intended for other usage. If you think your application would benefit from using this directly, please contact the AtlasDB dev team.
            This is supported for Cassandra, Postgres, and Oracle, but in the latter case support is only provided for tables which are not overflow tables.
            ``checkAndSet`` is **not** supported for RocksDB or JDBC.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1435>`__)
