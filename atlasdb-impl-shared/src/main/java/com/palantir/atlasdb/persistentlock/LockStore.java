@@ -21,7 +21,8 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -31,21 +32,41 @@ public final class LockStore {
     private static final String ROW_NAME = "DeletionLock";
     private final KeyValueService keyValueService;
 
+    public static final LockEntry LOCK_OPEN = ImmutableLockEntry.builder()
+            .rowName(ROW_NAME)
+            .lockId("-1")
+            .reason("Available")
+            .build();
+
     private LockStore(KeyValueService kvs) {
         this.keyValueService = kvs;
     }
 
     public static LockStore create(KeyValueService kvs) {
         kvs.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        return new LockStore(kvs);
+        LockStore lockStore = new LockStore(kvs);
+
+        // Populate if empty
+        if (lockStore.allLockEntries().isEmpty()) {
+            CheckAndSetRequest request = CheckAndSetRequest.newCell(AtlasDbConstants.PERSISTED_LOCKS_TABLE,
+                    LOCK_OPEN.cell(),
+                    LOCK_OPEN.value());
+            kvs.checkAndSet(request);
+        }
+
+        return lockStore;
     }
 
     public LockEntry acquireLock(String reason) throws PersistentLockIsTakenException {
         LockEntry lockEntry = generateUniqueLockEntry(reason);
+        CheckAndSetRequest request = CheckAndSetRequest.singleCell(AtlasDbConstants.PERSISTED_LOCKS_TABLE,
+                lockEntry.cell(),
+                LOCK_OPEN.value(),
+                lockEntry.value());
 
         try {
-            keyValueService.putUnlessExists(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.insertionMap());
-        } catch (KeyAlreadyExistsException e) {
+            keyValueService.checkAndSet(request);
+        } catch (CheckAndSetException e) {
             Set<LockEntry> heldLocks = allLockEntries();
             throw new PersistentLockIsTakenException(lockEntry, heldLocks, e);
         }
@@ -53,17 +74,18 @@ public final class LockStore {
         return lockEntry;
     }
 
-    public void releaseLock(LockEntry lockEntry) {
-        Set<LockEntry> lockEntries = allLockEntries();
-        if (!lockEntries.contains(lockEntry)) {
-            String msg = "Failed to release the provided lock (%s), because it is not being held. "
-                    + "It is possible that this lock was cleaned up."
-                    + "Currently held locks: %s";
-            String formatted = String.format(msg, lockEntry, lockEntries);
-            throw new IllegalArgumentException(formatted);
-        }
+    public void releaseLock(LockEntry lockEntry) throws PersistentLockIsTakenException {
+        CheckAndSetRequest request = CheckAndSetRequest.singleCell(AtlasDbConstants.PERSISTED_LOCKS_TABLE,
+                lockEntry.cell(),
+                lockEntry.value(),
+                LOCK_OPEN.value());
 
-        keyValueService.delete(AtlasDbConstants.PERSISTED_LOCKS_TABLE, lockEntry.deletionMap());
+        try {
+            keyValueService.checkAndSet(request);
+        } catch (CheckAndSetException e) {
+            Set<LockEntry> heldLocks = allLockEntries();
+            throw new PersistentLockIsTakenException(lockEntry, heldLocks, e);
+        }
     }
 
     public Set<LockEntry> allLockEntries() {

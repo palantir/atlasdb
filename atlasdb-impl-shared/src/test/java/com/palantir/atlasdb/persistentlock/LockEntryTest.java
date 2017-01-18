@@ -44,21 +44,42 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
 public class LockEntryTest {
-    public static final String LOCK_ID = "12345";
-    public static final String REASON = "test";
+    private static final String ROW = "row";
+    private static final String LOCK_ID = "12345";
+    private static final String REASON = "test";
+
+    private static final byte[] ROW_BYTES = asUtf8Bytes(ROW);
+    private static final byte[] LOCK_BYTES = asUtf8Bytes(LockEntry.LOCK_COLUMN);
+
     private static final LockEntry LOCK_ENTRY = ImmutableLockEntry.builder()
             .rowName("row")
             .lockId(LOCK_ID)
             .reason(REASON)
             .build();
-    public static final TableReference TEST_TABLE = TableReference.createWithEmptyNamespace("lockEntryTestTable");
+    private static final TableReference TEST_TABLE = TableReference.createWithEmptyNamespace("lockEntryTestTable");
+
+    @Test
+    public void cellContainsRowAndColumn() {
+        Cell cell = LOCK_ENTRY.cell();
+        assertArrayEquals(ROW_BYTES, cell.getRowName());
+        assertArrayEquals(LOCK_BYTES, cell.getColumnName());
+    }
+
+    @Test
+    public void valueContainsLockIdAndReason() {
+        String lockAndReason = LOCK_ID + "_" + REASON;
+        byte[] expectedValue = asUtf8Bytes(lockAndReason);
+        byte[] value = LOCK_ENTRY.value();
+
+        assertArrayEquals(expectedValue, value);
+    }
 
     @Test
     public void insertionMapUsesRowName() {
         Map<Cell, byte[]> insertionMap = LOCK_ENTRY.insertionMap();
 
         Set<Cell> cellsWithWrongRowName = insertionMap.keySet().stream()
-                .filter(cell -> !Arrays.equals(cell.getRowName(), "row".getBytes(StandardCharsets.UTF_8)))
+                .filter(cell -> !Arrays.equals(cell.getRowName(), ROW_BYTES))
                 .collect(Collectors.toSet());
 
         assertThat(cellsWithWrongRowName, empty());
@@ -76,7 +97,7 @@ public class LockEntryTest {
         Set<String> reasonsInMap = insertionMap.entrySet().stream()
                 .filter(entry -> Arrays.equals(
                         entry.getKey().getColumnName(),
-                        "lock".getBytes(StandardCharsets.UTF_8)))
+                        LOCK_BYTES))
                 .map(entry -> new String(entry.getValue(), StandardCharsets.UTF_8))
                 .collect(Collectors.toSet());
 
@@ -103,7 +124,7 @@ public class LockEntryTest {
         Multimap<Cell, Long> insertionMap = LOCK_ENTRY.deletionMap();
 
         Set<Cell> cellsWithWrongRowName = insertionMap.keySet().stream()
-                .filter(cell -> !Arrays.equals(cell.getRowName(), "row".getBytes(StandardCharsets.UTF_8)))
+                .filter(cell -> !Arrays.equals(cell.getRowName(), ROW_BYTES))
                 .collect(Collectors.toSet());
 
         assertThat(cellsWithWrongRowName, empty());
@@ -116,13 +137,16 @@ public class LockEntryTest {
         List<Map.Entry<Cell, Long>> matchingEntries = deletionMap.entries().stream()
                 .filter(entry -> Arrays.equals(
                         entry.getKey().getColumnName(),
-                        "lock".getBytes(StandardCharsets.UTF_8)))
+                        LOCK_BYTES))
                 .collect(Collectors.toList());
 
         Map.Entry<Cell, Long> entry = Iterables.getOnlyElement(matchingEntries);
 
-        assertArrayEquals("lock".getBytes(StandardCharsets.UTF_8), entry.getKey().getColumnName());
+        assertArrayEquals(LOCK_BYTES, entry.getKey().getColumnName());
         assertEquals(AtlasDbConstants.TRANSACTION_TS, (long) entry.getValue());
     }
 
+    private static byte[] asUtf8Bytes(String lockAndReason) {
+        return lockAndReason.getBytes(StandardCharsets.UTF_8);
+    }
 }

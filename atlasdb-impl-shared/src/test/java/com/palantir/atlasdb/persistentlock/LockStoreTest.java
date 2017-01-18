@@ -16,13 +16,14 @@
 package com.palantir.atlasdb.persistentlock;
 
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -47,6 +48,13 @@ public class LockStoreTest {
     public void createsPersistedLocksTable() {
         LockStore.create(kvs);
         verify(kvs, atLeastOnce()).createTable(eq(AtlasDbConstants.PERSISTED_LOCKS_TABLE), any(byte[].class));
+    }
+
+    @Test
+    public void lockIsInitiallyOpen() {
+        Set<LockEntry> lockEntries = lockStore.allLockEntries();
+
+        assertThat(lockEntries, contains(LockStore.LOCK_OPEN));
     }
 
     @Test
@@ -77,14 +85,14 @@ public class LockStoreTest {
     }
 
     @Test
-    public void releaseLockRemovesItFromEntryList() throws Exception {
+    public void releaseLockPopulatesStoreWithOpenValue() throws Exception {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
         lockStore.releaseLock(lockEntry);
 
-        assertThat(lockStore.allLockEntries(), empty());
+        assertThat(lockStore.allLockEntries(), contains(LockStore.LOCK_OPEN));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = PersistentLockIsTakenException.class)
     public void canNotReleaseNonExistentLock() throws Exception {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
 

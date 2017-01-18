@@ -23,6 +23,7 @@ import java.util.SortedMap;
 import org.apache.commons.lang3.StringUtils;
 import org.immutables.value.Value;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
@@ -32,9 +33,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 
 @Value.Immutable
 public abstract class LockEntry {
-    private static final String LOCK_COLUMN = "lock";
-    private static final String REASON_FOR_LOCK_COLUMN = "reasonForLock";
-    private static final String LOCK_ID_COLUMN = "lockId";
+    @VisibleForTesting
+    protected static final String LOCK_COLUMN = "lock";
 
     public abstract String rowName();
     public abstract String lockId();
@@ -55,8 +55,15 @@ public abstract class LockEntry {
     }
 
     public Map<Cell, byte[]> insertionMap() {
-        return ImmutableMap.of(
-                makeCell(LOCK_COLUMN), asUtf8Bytes(lockAndReason()));
+        return ImmutableMap.of(makeCell(LOCK_COLUMN), value());
+    }
+
+    public Cell cell() {
+        return Cell.create(asUtf8Bytes(rowName()), asUtf8Bytes(LOCK_COLUMN));
+    }
+
+    public byte[] value() {
+        return asUtf8Bytes(lockAndReason());
     }
 
     private String lockAndReason() {
