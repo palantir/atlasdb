@@ -199,12 +199,7 @@ public class DbKvs extends AbstractKeyValueService {
             Iterable<byte[]> rows,
             ColumnSelection columnSelection,
             long timestamp) {
-        return batchingQueryRunner.runTask(
-                rows,
-                BatchingStrategies.forIterable(),
-                AccumulatorStrategies.forMap(),
-                rowBatch -> runReadAndExtractResults(tableRef, table ->
-                    table.getLatestRows(rowBatch, columnSelection, timestamp, true)));
+        return getRowsBatching(tableRef, rows, columnSelection, timestamp);
     }
 
     @Override
@@ -215,6 +210,18 @@ public class DbKvs extends AbstractKeyValueService {
                 AccumulatorStrategies.forMap(),
                 cellBatch -> runReadAndExtractResults(tableRef, table ->
                         table.getLatestCells(cellBatch, true)));
+    }
+
+    private Map<Cell, Value> getRowsBatching(TableReference tableRef,
+                                             Iterable<byte[]> rows,
+                                             ColumnSelection columnSelection,
+                                             long timestamp) {
+        return batchingQueryRunner.runTask(
+                rows,
+                BatchingStrategies.forIterable(),
+                AccumulatorStrategies.forMap(),
+                rowBatch -> runReadAndExtractResults(tableRef, table ->
+                        table.getLatestRows(rowBatch, columnSelection, timestamp, true)));
     }
 
     private Map<Cell, Value> runReadAndExtractResults(
@@ -489,40 +496,23 @@ public class DbKvs extends AbstractKeyValueService {
             long timestamp) {
         Stopwatch watch = Stopwatch.createStarted();
         try {
-            return runRead(tableRef, table -> getPageInternal(table, range, timestamp));
+            return getPageInternal(tableRef, range, timestamp);
         } finally {
             log.debug("Call to KVS.getPage on table {} took {} ms.", tableRef, watch.elapsed(TimeUnit.MILLISECONDS));
         }
     }
 
     @SuppressWarnings("deprecation")
-    private TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getPageInternal(DbReadTable table,
+    private TokenBackedBasicResultsPage<RowResult<Value>, byte[]> getPageInternal(TableReference tableRef,
                                                                                   RangeRequest range,
                                                                                   long timestamp) {
-        Comparator<byte[]> comp = UnsignedBytes.lexicographicalComparator();
-        SortedSet<byte[]> rows = Sets.newTreeSet(comp);
         int maxRows = getMaxRowsFromBatchHint(range.getBatchHint());
-
-        try (ClosableIterator<AgnosticLightResultRow> rangeResults = table.getRange(range, timestamp, maxRows)) {
-            while (rows.size() < maxRows && rangeResults.hasNext()) {
-                byte[] rowName = rangeResults.next().getBytes("row_name");
-                if (rowName != null) {
-                    rows.add(rowName);
-                }
-            }
-            if (rows.isEmpty()) {
-                return SimpleTokenBackedResultsPage.create(null, ImmutableList.<RowResult<Value>>of(), false);
-            }
+        SortedSet<byte[]> rows = runRead(tableRef, table -> getRowKeysForRange(table, range, timestamp, maxRows));
+        if (rows.isEmpty()) {
+            return SimpleTokenBackedResultsPage.create(null, ImmutableList.of(), false);
         }
 
-        ColumnSelection columns;
-        if (!range.getColumnNames().isEmpty()) {
-            columns = ColumnSelection.create(range.getColumnNames());
-        } else {
-            columns = ColumnSelection.all();
-        }
-
-        Map<Cell, Value> results = extractResults(table, table.getLatestRows(rows, columns, timestamp, true));
+        Map<Cell, Value> results = getRowsBatching(tableRef, rows, getColumnSelectionForRange(range), timestamp);
         NavigableMap<byte[], SortedMap<byte[], Value>> cellsByRow = Cells.breakCellsUpByRow(results);
         if (range.isReverse()) {
             cellsByRow = cellsByRow.descendingMap();
@@ -541,6 +531,31 @@ public class DbKvs extends AbstractKeyValueService {
             mayHaveMoreResults = rows.size() == maxRows;
         }
         return SimpleTokenBackedResultsPage.create(nextRow, finalResults, mayHaveMoreResults);
+    }
+
+    private ColumnSelection getColumnSelectionForRange(RangeRequest range) {
+        if (!range.getColumnNames().isEmpty()) {
+            return ColumnSelection.create(range.getColumnNames());
+        } else {
+            return ColumnSelection.all();
+        }
+    }
+
+    private SortedSet<byte[]> getRowKeysForRange(DbReadTable table,
+                                                 RangeRequest range,
+                                                 long timestamp,
+                                                 int maxRows) {
+        Comparator<byte[]> comp = UnsignedBytes.lexicographicalComparator();
+        SortedSet<byte[]> rows = Sets.newTreeSet(comp);
+        try (ClosableIterator<AgnosticLightResultRow> rangeResults = table.getRange(range, timestamp, maxRows)) {
+            while (rows.size() < maxRows && rangeResults.hasNext()) {
+                byte[] rowName = rangeResults.next().getBytes("row_name");
+                if (rowName != null) {
+                    rows.add(rowName);
+                }
+            }
+        }
+        return rows;
     }
 
     @Override
