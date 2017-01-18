@@ -74,7 +74,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     }
 
     @Override
-    public final Optional<InputStream> loadSingleStream(Transaction transaction, final ID id) {
+    public Optional<InputStream> loadSingleStream(Transaction transaction, final ID id) {
         Map<ID, StreamMetadata> idToMetadata = getMetadata(transaction, ImmutableSet.of(id));
         if (idToMetadata.isEmpty()) {
             return Optional.empty();
@@ -85,7 +85,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
     }
 
     @Override
-    public final Map<ID, InputStream> loadStreams(Transaction transaction, Set<ID> ids) {
+    public Map<ID, InputStream> loadStreams(Transaction transaction, Set<ID> ids) {
         Map<ID, StreamMetadata> idsToMetadata = getMetadata(transaction, ids);
 
         return idsToMetadata.entrySet().stream()

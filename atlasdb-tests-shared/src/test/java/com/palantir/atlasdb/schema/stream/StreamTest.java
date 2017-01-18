@@ -18,6 +18,7 @@ package com.palantir.atlasdb.schema.stream;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -41,7 +42,6 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -279,13 +279,13 @@ public class StreamTest extends AtlasDbTestCase {
         assertStreamHasBytes(stream, bytesToStore);
     }
 
-    private void verifyLoadSingleStream(long id, byte[] toStore, GenericStreamStore<Long> store) throws IOException {
+    private void verifyLoadSingleStream(PersistentStreamStore store, long id, byte[] toStore) throws IOException {
         Optional<InputStream> stream = txManager.runTaskThrowOnConflict(t -> store.loadSingleStream(t, id));
         assertTrue(stream.isPresent());
         assertStreamHasBytes(stream.get(), toStore);
     }
 
-    private void verifyLoadStreams(long id, byte[] bytesToStore, GenericStreamStore<Long> store) throws IOException {
+    private void verifyLoadStreams(PersistentStreamStore store, long id, byte[] bytesToStore) throws IOException {
         Map<Long, InputStream> streams = txManager.runTaskThrowOnConflict(t ->
                 store.loadStreams(t, ImmutableSet.of(id)));
         assertStreamHasBytes(streams.get(id), bytesToStore);
@@ -293,12 +293,12 @@ public class StreamTest extends AtlasDbTestCase {
 
     private void verifyLoadStreamAsFile(PersistentStreamStore store, long id, byte[] bytesToStore) throws IOException {
         File file = txManager.runTaskThrowOnConflict(t -> store.loadStreamAsFile(t, id));
-        Assert.assertArrayEquals(bytesToStore, FileUtils.readFileToByteArray(file));
+        assertArrayEquals(bytesToStore, FileUtils.readFileToByteArray(file));
     }
 
     private void assertStreamHasBytes(InputStream stream, byte[] bytes) throws IOException {
         byte[] streamAsBytes = IOUtils.toByteArray(stream);
-        Assert.assertArrayEquals(bytes, streamAsBytes);
+        assertArrayEquals(bytes, streamAsBytes);
         stream.close();
     }
 

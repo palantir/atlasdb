@@ -173,6 +173,8 @@ public class StreamStoreRenderer {
                         line();
                         loadStreamWithCompression();
                         line();
+                        loadSingleStreamWithCompression();
+                        line();
                         loadStreamsWithCompression();
                         line();
                         tryWriteStreamToFile();
@@ -561,6 +563,14 @@ public class StreamStoreRenderer {
                 line("@Override");
                 line("public InputStream loadStream(Transaction t, final ", StreamId, " id) {"); {
                     line("return new LZ4BlockInputStream(super.loadStream(t, id));");
+                } line("}");
+            }
+
+            private void loadSingleStreamWithCompression() {
+                line("@Override");
+                line("public Optional<InputStream> loadSingleStream(Transaction t, final ", StreamId, " id) {"); {
+                    line("Optional<InputStream> inputStream = super.loadSingleStream(t, id);");
+                    line("return inputStream.map(LZ4BlockInputStream::new);");
                 } line("}");
             }
 
