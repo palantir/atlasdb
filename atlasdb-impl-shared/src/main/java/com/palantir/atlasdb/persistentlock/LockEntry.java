@@ -29,7 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 @Value.Immutable
 public abstract class LockEntry {
     @VisibleForTesting
-    protected static final String LOCK_COLUMN = "lock";
+    static final String LOCK_COLUMN = "lock";
 
     public abstract String rowName();
     public abstract String lockId();
