@@ -108,6 +108,7 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
     private LeaderConfig getLeaderConfig(TimeLockServerConfiguration configuration) {
         return ImmutableLeaderConfig.builder()
+                    .sslConfiguration(paxosConfiguration.sslConfiguration())
                     .leaders(addProtocols(configuration.cluster().servers()))
                     .localServer(addProtocol(configuration.cluster().localServer()))
                     .acceptorLogDir(Paths.get(paxosConfiguration.paxosDataDir().toString(),
