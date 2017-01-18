@@ -105,7 +105,7 @@ public class DbReadTable {
         FullQuery query = queryFactory.getRowsColumnRangeCountsQuery(rows, ts, columnRangeSelection);
         AgnosticLightResultSet results = conns.get()
                 .selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
-        results.setFetchSize(Math.max(rows.size(), MAX_ROW_COLUMN_RANGES_FETCH_SIZE));
+        results.setFetchSize(Math.min(rows.size(), MAX_ROW_COLUMN_RANGES_FETCH_SIZE));
         return ClosableIterators.wrap(results.iterator(), results);
     }
 
@@ -117,7 +117,7 @@ public class DbReadTable {
                 conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
         int totalSize =
                 columnRangeSelectionsByRow.values().stream().mapToInt(BatchColumnRangeSelection::getBatchHint).sum();
-        results.setFetchSize(Math.max(totalSize, MAX_ROW_COLUMN_RANGES_FETCH_SIZE));
+        results.setFetchSize(Math.min(totalSize, MAX_ROW_COLUMN_RANGES_FETCH_SIZE));
         return ClosableIterators.wrap(results.iterator(), results);
     }
 

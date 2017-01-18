@@ -43,6 +43,10 @@ develop
          - Change
 
     *    - |fixed|
+         - Make fetch size bounded from above in ``DbKvs.getRowsColumnRange()``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1478>`__)
+
+    *    - |fixed|
          - Prevent deadlocks during parallel reads from DB KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1468>`__)
 
