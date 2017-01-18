@@ -35,8 +35,12 @@ public abstract class OkEvent implements Event {
 
     public static final String UNLOCK_SUCCESS = "true";
     public static final String UNLOCK_FAILURE = "false";
-    public static final String SUCCESS = "Dummy tokens";
-    public static final String FAILURE = "";
+    public static final String LOCK_SUCCESS = "Some Token";
+    public static final String LOCK_FAILURE = "";
+    public static final String REFRESH_SUCCESS = "Some Token";
+    public static final String REFRESH_FAILURE = "";
+    public static final String TIMESTAMP_SUCCESS = "1337";
+    public static final String TIMESTAMP_FAILURE = "";
 
     @Override
     public abstract long time();
@@ -52,16 +56,5 @@ public abstract class OkEvent implements Event {
     @Override
     public void accept(EventVisitor visitor) {
         visitor.visit(this);
-    }
-
-    public boolean isFailure() {
-        return value() == null
-                || (function().equals(RequestType.UNLOCK) && value().equals(UNLOCK_FAILURE))
-                || value().equals(FAILURE);
-    }
-
-    public boolean isSuccessful() {
-        return value().equals(SUCCESS)
-                || (function().equals(RequestType.UNLOCK) && value().equals(UNLOCK_SUCCESS));
     }
 }

@@ -43,11 +43,6 @@ public class JepsenHistoryChecker {
         return checkers;
     }
 
-    public static JepsenHistoryChecker createWithStandardCheckersForLock() {
-        return new JepsenHistoryChecker(
-                new LockCorrectnessChecker());
-    }
-
     /**
      * Parses a history of events from a Jepsen test of the timestamp service, and verifies that it fits the model.
      * In particular, the timestamp values should be monotonically increasing for each process. See MonotonicChecker for

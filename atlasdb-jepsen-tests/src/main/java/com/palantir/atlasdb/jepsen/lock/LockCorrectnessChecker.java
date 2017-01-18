@@ -37,6 +37,7 @@ import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
 
+import com.palantir.atlasdb.jepsen.utils.EventUtils;
 import com.palantir.util.Pair;
 
 /**
@@ -125,7 +126,7 @@ public class LockCorrectnessChecker implements Checker {
                  * 2) Remember the new value for the most recent successful lock
                  */
                 case RequestType.LOCK:
-                    if (event.isSuccessful()) {
+                    if (EventUtils.isSuccessful(event)) {
                         locksAtSomePoint.get(lockName).add(new Pair(invokeEvent, event));
                         lastHeldLock.put(processLock, event);
                     }
@@ -138,7 +139,7 @@ public class LockCorrectnessChecker implements Checker {
                  */
                 case RequestType.REFRESH:
                 case RequestType.UNLOCK:
-                    if (event.isSuccessful() && lastHeldLock.containsKey(processLock)) {
+                    if (EventUtils.isSuccessful(event) && lastHeldLock.containsKey(processLock)) {
                         long lastLockTime = lastHeldLock.get(processLock).time();
                         if (lastLockTime < invokeEvent.time()) {
                             locksHeld.get(lockName).add(

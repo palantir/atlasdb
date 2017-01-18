@@ -17,8 +17,10 @@ package com.palantir.atlasdb.jepsen.lock;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.CheckerResult;
@@ -32,6 +34,7 @@ import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
 
+import com.palantir.atlasdb.jepsen.utils.EventUtils;
 import com.palantir.util.Pair;
 
 /**
@@ -50,10 +53,10 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
     }
 
     private static class Visitor implements EventVisitor {
-        private final Map<Pair<Integer, String>, Boolean> refreshAllowed = new HashMap<>();
+        private final Set<Pair<Integer, String>> refreshAllowed = new HashSet<>();
         private final Map<Pair<Integer, String>, OkEvent> lastEvent = new HashMap<>();
         private final List<Event> errors = new ArrayList<>();
-        private final Map<Integer, String> resourceName = new HashMap<>();
+        private final Map<Integer, String> lockNameFromPreviousInvoke = new HashMap<>();
 
         @Override
         public void visit(InfoEvent event) {
@@ -61,7 +64,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
 
         @Override
         public void visit(InvokeEvent event) {
-            resourceName.put(event.process(), event.value());
+            lockNameFromPreviousInvoke.put(event.process(), event.value());
         }
 
         /**
@@ -80,47 +83,41 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
         @Override
         public void visit(OkEvent event) {
             int currentProcess = event.process();
-            String lockName = resourceName.get(currentProcess);
+            String lockName = lockNameFromPreviousInvoke.get(currentProcess);
             Pair processLock = new Pair(currentProcess, lockName);
-
-            if (!refreshAllowed.containsKey(processLock)) {
-                refreshAllowed.put(processLock, false);
-                lastEvent.put(processLock, event);
-            }
 
             switch (event.function()) {
                 case RequestType.LOCK:
-                    if (event.isFailure()) {
-                        refreshAllowed.put(processLock, false);
+                    if (EventUtils.isFailure(event)) {
+                        refreshAllowed.remove(processLock);
                     }
-                    if (event.isSuccessful()) {
-                        refreshAllowed.put(processLock, true);
+                    if (EventUtils.isSuccessful(event)) {
+                        refreshAllowed.add(processLock);
                     }
                     break;
                 case RequestType.REFRESH:
-                    if (event.isFailure()) {
-                        refreshAllowed.put(processLock, false);
+                    if (EventUtils.isFailure(event)) {
+                        refreshAllowed.remove(processLock);
                     }
-                    if (event.isSuccessful()) {
-                        if (!refreshAllowed.get(processLock)) {
-                            errors.add(lastEvent.get(processLock));
-                            errors.add(event);
-                            refreshAllowed.put(processLock, true);
-                        }
-                    }
+                    verifyRefreshAllowed(event, processLock);
                     break;
                 case RequestType.UNLOCK:
-                    if (event.isSuccessful()) {
-                        if (!refreshAllowed.get(processLock)) {
-                            errors.add(lastEvent.get(processLock));
-                            errors.add(event);
-                        }
-                    }
-                    refreshAllowed.put(processLock, false);
+                    verifyRefreshAllowed(event, processLock);
+                    refreshAllowed.remove(processLock);
                     break;
-                default: break;
+                default:
             }
             lastEvent.put(processLock, event);
+        }
+
+        private void verifyRefreshAllowed(OkEvent event, Pair processLock) {
+            if (EventUtils.isSuccessful(event)) {
+                if (!refreshAllowed.contains(processLock)) {
+                    errors.add(lastEvent.get(processLock));
+                    errors.add(event);
+                    refreshAllowed.add(processLock);
+                }
+            }
         }
 
         @Override

@@ -36,11 +36,11 @@ public abstract class TestEventUtils {
     }
 
     public static ImmutableOkEvent lockSuccess(long time, int process) {
-        return createOkEvent(time, process, OkEvent.SUCCESS, RequestType.LOCK);
+        return createOkEvent(time, process, OkEvent.LOCK_SUCCESS, RequestType.LOCK);
     }
 
     public static ImmutableOkEvent lockFailure(long time, int process) {
-        return createOkEvent(time, process, OkEvent.FAILURE, RequestType.LOCK);
+        return createOkEvent(time, process, OkEvent.LOCK_FAILURE, RequestType.LOCK);
     }
 
     public static ImmutableInvokeEvent invokeRefresh(long time, int process, String lockname) {
@@ -52,11 +52,11 @@ public abstract class TestEventUtils {
     }
 
     public static ImmutableOkEvent refreshSuccess(long time, int process) {
-        return createOkEvent(time, process, OkEvent.SUCCESS, RequestType.REFRESH);
+        return createOkEvent(time, process, OkEvent.REFRESH_SUCCESS, RequestType.REFRESH);
     }
 
     public static ImmutableOkEvent refreshFailure(long time, int process) {
-        return createOkEvent(time, process, OkEvent.FAILURE, RequestType.REFRESH);
+        return createOkEvent(time, process, OkEvent.REFRESH_FAILURE, RequestType.REFRESH);
     }
 
     public static ImmutableInvokeEvent invokeUnlock(long time, int process, String lockname) {
