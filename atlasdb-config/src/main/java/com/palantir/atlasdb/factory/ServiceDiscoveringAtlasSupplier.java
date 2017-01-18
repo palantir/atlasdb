@@ -71,8 +71,8 @@ public class ServiceDiscoveringAtlasSupplier {
     }
 
     public synchronized TimestampService getTimestampService() {
-        log.info("Fetching timestamp service from thread {}. This should only happen once.",
-                Thread.currentThread().getName());
+        log.info("[timestamp-service-creation] Fetching timestamp service from "
+                        + "thread {}. This should only happen once.", Thread.currentThread().getName());
 
         if (timestampServiceCreationInfo == null) {
             timestampServiceCreationInfo = ThreadDumps.programmaticThreadDump();
@@ -88,8 +88,8 @@ public class ServiceDiscoveringAtlasSupplier {
             String threadDumpFile = saveThreadDumps();
             reportMultipleTimestampFetch(threadDumpFile);
         } catch (IOException e) {
-            log.error("The timestamp service was fetched for a second time. We tried to output thread "
-                    + "dumps to a temporary file, but encountered an error.", e);
+            log.error("[timestamp-service-creation] The timestamp service was fetched for a second time. "
+                    + "We tried to output thread dumps to a temporary file, but encountered an error.", e);
         }
     }
 
@@ -121,14 +121,14 @@ public class ServiceDiscoveringAtlasSupplier {
 
     private void reportMultipleTimestampFetch(String path) {
         if (!leaderConfig.isPresent()) {
-            log.warn("Timestamp service fetched for a second time, and there is no leader config. "
-                    + "This means that you may soon encounter the MultipleRunningTimestampServices error. "
+            log.warn("[timestamp-service-creation] Timestamp service fetched for a second time, and there is no leader "
+                    + "config. This means that you may soon encounter the MultipleRunningTimestampServices error. "
                     + "Thread dumps from both fetches of the timestamp service have been outputted to {}. "
                     + "If you encounter a MultipleRunningTimestampServices error, please send this file to "
                     + "support.", path);
         } else {
-            log.warn("Timestamp service fetched for a second time. This is only OK if you are "
-                    + "running in an HA configuration and have just had a leadership election. "
+            log.warn("[timestamp-service-creation] Timestamp service fetched for a second time. This is only OK if "
+                    + "you are running in an HA configuration and have just had a leadership election. "
                     + "You do have a leader config, but we're outputting thread dumps from both fetches of the "
                     + "timestamp service, in case this second service was created in error. "
                     + "Thread dumps from both fetches of the timestamp service have been outputted to {}. "
