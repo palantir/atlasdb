@@ -22,7 +22,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.events.Event;
-import com.palantir.atlasdb.jepsen.events.TestEventUtil;
+import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
 
 public class LockCorrectnessCheckerTest {
     private static final int process1 = 1;
@@ -39,10 +39,10 @@ public class LockCorrectnessCheckerTest {
     @Test
     public void shouldSucceedWhenNoRefreshes() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtil.invokeLock(0, process1))
-                .add(TestEventUtil.invokeLock(1, process2))
-                .add(TestEventUtil.lockSuccess(2, process2))
-                .add(TestEventUtil.lockSuccess(3, process1))
+                .add(TestEventUtils.invokeLock(0, process1))
+                .add(TestEventUtils.invokeLock(1, process2))
+                .add(TestEventUtils.lockSuccess(2, process2))
+                .add(TestEventUtils.lockSuccess(3, process1))
                 .build();
         CheckerResult result = runLockCorrectnessChecker(eventList);
         assertThat(result.valid()).isTrue();
@@ -52,10 +52,10 @@ public class LockCorrectnessCheckerTest {
     @Test
     public void allowSimultaneousLockAndRefresh() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtil.invokeLock(0, process1))
-                .add(TestEventUtil.lockSuccess(0, process1))
-                .add(TestEventUtil.invokeRefresh(0, process1))
-                .add(TestEventUtil.refreshSuccess(0, process1))
+                .add(TestEventUtils.invokeLock(0, process1))
+                .add(TestEventUtils.lockSuccess(0, process1))
+                .add(TestEventUtils.invokeRefresh(0, process1))
+                .add(TestEventUtils.refreshSuccess(0, process1))
                 .build();
         CheckerResult result = runLockCorrectnessChecker(eventList);
         assertThat(result.valid()).isTrue();
@@ -65,12 +65,12 @@ public class LockCorrectnessCheckerTest {
     @Test
     public void cannotRefreshWhenAnotherProcessHasLock() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtil.invokeLock(0, process1))
-                .add(TestEventUtil.lockSuccess(1, process1))
-                .add(TestEventUtil.invokeLock(2, process2))
-                .add(TestEventUtil.lockSuccess(3, process2))
-                .add(TestEventUtil.invokeRefresh(4, process1))
-                .add(TestEventUtil.refreshSuccess(5, process1))
+                .add(TestEventUtils.invokeLock(0, process1))
+                .add(TestEventUtils.lockSuccess(1, process1))
+                .add(TestEventUtils.invokeLock(2, process2))
+                .add(TestEventUtils.lockSuccess(3, process2))
+                .add(TestEventUtils.invokeRefresh(4, process1))
+                .add(TestEventUtils.refreshSuccess(5, process1))
                 .build();
         CheckerResult result = runLockCorrectnessChecker(eventList);
         assertThat(result.valid()).isFalse();
@@ -80,12 +80,12 @@ public class LockCorrectnessCheckerTest {
     @Test
     public void cannotUnlockWhenAnotherProcessHasLock() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtil.invokeLock(0, process1))
-                .add(TestEventUtil.lockSuccess(1, process1))
-                .add(TestEventUtil.invokeLock(2, process2))
-                .add(TestEventUtil.lockSuccess(3, process2))
-                .add(TestEventUtil.invokeUnlock(4, process1))
-                .add(TestEventUtil.unlockSuccess(5, process1))
+                .add(TestEventUtils.invokeLock(0, process1))
+                .add(TestEventUtils.lockSuccess(1, process1))
+                .add(TestEventUtils.invokeLock(2, process2))
+                .add(TestEventUtils.lockSuccess(3, process2))
+                .add(TestEventUtils.invokeUnlock(4, process1))
+                .add(TestEventUtils.unlockSuccess(5, process1))
                 .build();
         CheckerResult result = runLockCorrectnessChecker(eventList);
         assertThat(result.valid()).isFalse();
@@ -95,12 +95,12 @@ public class LockCorrectnessCheckerTest {
     @Test
     public void failedLockIntervalCoveredByAnotherProcessSucceeds() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtil.invokeLock(0, process1))
-                .add(TestEventUtil.lockSuccess(1, process1))
-                .add(TestEventUtil.invokeLock(2, process2))
-                .add(TestEventUtil.lockFailure(3, process2))
-                .add(TestEventUtil.invokeRefresh(4, process1))
-                .add(TestEventUtil.refreshSuccess(5, process1))
+                .add(TestEventUtils.invokeLock(0, process1))
+                .add(TestEventUtils.lockSuccess(1, process1))
+                .add(TestEventUtils.invokeLock(2, process2))
+                .add(TestEventUtils.lockFailure(3, process2))
+                .add(TestEventUtils.invokeRefresh(4, process1))
+                .add(TestEventUtils.refreshSuccess(5, process1))
                 .build();
         CheckerResult result = runLockCorrectnessChecker(eventList);
         assertThat(result.valid()).isTrue();
@@ -110,16 +110,16 @@ public class LockCorrectnessCheckerTest {
     @Test
     public void shouldSucceedWhenThereIsASmallWindow() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtil.invokeLock(0, process1))
-                .add(TestEventUtil.lockSuccess(1, process1))
-                .add(TestEventUtil.invokeLock(2, process2))
-                .add(TestEventUtil.invokeLock(2, process3))
-                .add(TestEventUtil.invokeRefresh(3, process1))
-                .add(TestEventUtil.refreshSuccess(3, process1))
-                .add(TestEventUtil.lockSuccess(3, process3))
-                .add(TestEventUtil.lockSuccess(4, process2))
-                .add(TestEventUtil.invokeRefresh(5, process3))
-                .add(TestEventUtil.refreshSuccess(6, process3))
+                .add(TestEventUtils.invokeLock(0, process1))
+                .add(TestEventUtils.lockSuccess(1, process1))
+                .add(TestEventUtils.invokeLock(2, process2))
+                .add(TestEventUtils.invokeLock(2, process3))
+                .add(TestEventUtils.invokeRefresh(3, process1))
+                .add(TestEventUtils.refreshSuccess(3, process1))
+                .add(TestEventUtils.lockSuccess(3, process3))
+                .add(TestEventUtils.lockSuccess(4, process2))
+                .add(TestEventUtils.invokeRefresh(5, process3))
+                .add(TestEventUtils.refreshSuccess(6, process3))
                 .build();
         CheckerResult result = runLockCorrectnessChecker(eventList);
         assertThat(result.valid()).isTrue();
@@ -129,14 +129,14 @@ public class LockCorrectnessCheckerTest {
     @Test
     public void shouldSucceedForIntervalEdgeCases() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtil.invokeLock(0, process1))
-                .add(TestEventUtil.lockSuccess(1, process1))
-                .add(TestEventUtil.invokeLock(1, process2))
-                .add(TestEventUtil.lockSuccess(2, process2))
-                .add(TestEventUtil.invokeLock(3, process3))
-                .add(TestEventUtil.lockSuccess(4, process3))
-                .add(TestEventUtil.invokeRefresh(4, process1))
-                .add(TestEventUtil.refreshSuccess(5, process1))
+                .add(TestEventUtils.invokeLock(0, process1))
+                .add(TestEventUtils.lockSuccess(1, process1))
+                .add(TestEventUtils.invokeLock(1, process2))
+                .add(TestEventUtils.lockSuccess(2, process2))
+                .add(TestEventUtils.invokeLock(3, process3))
+                .add(TestEventUtils.lockSuccess(4, process3))
+                .add(TestEventUtils.invokeRefresh(4, process1))
+                .add(TestEventUtils.refreshSuccess(5, process1))
                 .build();
         CheckerResult result = runLockCorrectnessChecker(eventList);
         assertThat(result.valid()).isTrue();

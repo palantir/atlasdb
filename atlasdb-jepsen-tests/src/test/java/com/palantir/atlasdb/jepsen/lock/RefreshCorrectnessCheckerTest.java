@@ -22,7 +22,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.events.Event;
-import com.palantir.atlasdb.jepsen.events.TestEventUtil;
+import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
 
 public class RefreshCorrectnessCheckerTest {
     private static final int process1 = 1;
@@ -38,14 +38,14 @@ public class RefreshCorrectnessCheckerTest {
     @Test
     public void simpleNonOverlappingRefreshesShouldSucceed() {
         ImmutableList<Event> list = ImmutableList.<Event>builder()
-                .add(TestEventUtil.invokeLock(0, process1))
-                .add(TestEventUtil.lockSuccess(1, process1))
-                .add(TestEventUtil.invokeRefresh(2, process1))
-                .add(TestEventUtil.invokeLock(2, process2))
-                .add(TestEventUtil.lockSuccess(3, process2))
-                .add(TestEventUtil.refreshSuccess(3, process1))
-                .add(TestEventUtil.invokeRefresh(4, process2))
-                .add(TestEventUtil.refreshSuccess(5, process2))
+                .add(TestEventUtils.invokeLock(0, process1))
+                .add(TestEventUtils.lockSuccess(1, process1))
+                .add(TestEventUtils.invokeRefresh(2, process1))
+                .add(TestEventUtils.invokeLock(2, process2))
+                .add(TestEventUtils.lockSuccess(3, process2))
+                .add(TestEventUtils.refreshSuccess(3, process1))
+                .add(TestEventUtils.invokeRefresh(4, process2))
+                .add(TestEventUtils.refreshSuccess(5, process2))
                 .build();
         CheckerResult result = runRefreshCorrectnessChecker(list);
         assertThat(result.valid()).isTrue();
@@ -55,14 +55,14 @@ public class RefreshCorrectnessCheckerTest {
     @Test
     public void simpleOverlappingRefreshesShouldFail() {
         ImmutableList<Event> list = ImmutableList.<Event>builder()
-                .add(TestEventUtil.invokeLock(0, process1))
-                .add(TestEventUtil.lockSuccess(1, process1))
-                .add(TestEventUtil.invokeLock(2, process2))
-                .add(TestEventUtil.lockSuccess(3, process2))
-                .add(TestEventUtil.invokeRefresh(4, process1))
-                .add(TestEventUtil.invokeRefresh(4, process2))
-                .add(TestEventUtil.refreshSuccess(5, process1))
-                .add(TestEventUtil.refreshSuccess(5, process2))
+                .add(TestEventUtils.invokeLock(0, process1))
+                .add(TestEventUtils.lockSuccess(1, process1))
+                .add(TestEventUtils.invokeLock(2, process2))
+                .add(TestEventUtils.lockSuccess(3, process2))
+                .add(TestEventUtils.invokeRefresh(4, process1))
+                .add(TestEventUtils.invokeRefresh(4, process2))
+                .add(TestEventUtils.refreshSuccess(5, process1))
+                .add(TestEventUtils.refreshSuccess(5, process2))
                 .build();
         CheckerResult result = runRefreshCorrectnessChecker(list);
         assertThat(result.valid()).isFalse();
@@ -72,12 +72,12 @@ public class RefreshCorrectnessCheckerTest {
     @Test
     public void successiveRefreshesShouldSucceed() {
         ImmutableList<Event> list = ImmutableList.<Event>builder()
-                .add(TestEventUtil.invokeLock(0, process1))
-                .add(TestEventUtil.lockSuccess(1, process1))
-                .add(TestEventUtil.invokeRefresh(2, process1))
-                .add(TestEventUtil.refreshSuccess(3, process1))
-                .add(TestEventUtil.invokeRefresh(4, process1))
-                .add(TestEventUtil.refreshSuccess(5, process1))
+                .add(TestEventUtils.invokeLock(0, process1))
+                .add(TestEventUtils.lockSuccess(1, process1))
+                .add(TestEventUtils.invokeRefresh(2, process1))
+                .add(TestEventUtils.refreshSuccess(3, process1))
+                .add(TestEventUtils.invokeRefresh(4, process1))
+                .add(TestEventUtils.refreshSuccess(5, process1))
                 .build();
         CheckerResult result = runRefreshCorrectnessChecker(list);
         assertThat(result.valid()).isTrue();
@@ -87,16 +87,16 @@ public class RefreshCorrectnessCheckerTest {
     @Test
     public void anotherProcessCannotRefreshBetweenSuccessiveRefreshes() {
         ImmutableList<Event> list = ImmutableList.<Event>builder()
-                .add(TestEventUtil.invokeLock(0, process1))
-                .add(TestEventUtil.lockSuccess(1, process1))
-                .add(TestEventUtil.invokeRefresh(2, process1))
-                .add(TestEventUtil.invokeLock(2, process2))
-                .add(TestEventUtil.lockSuccess(2, process2))
-                .add(TestEventUtil.invokeRefresh(3, process2))
-                .add(TestEventUtil.refreshSuccess(4, process2))
-                .add(TestEventUtil.refreshSuccess(4, process1))
-                .add(TestEventUtil.invokeRefresh(4, process1))
-                .add(TestEventUtil.refreshSuccess(5, process1))
+                .add(TestEventUtils.invokeLock(0, process1))
+                .add(TestEventUtils.lockSuccess(1, process1))
+                .add(TestEventUtils.invokeRefresh(2, process1))
+                .add(TestEventUtils.invokeLock(2, process2))
+                .add(TestEventUtils.lockSuccess(2, process2))
+                .add(TestEventUtils.invokeRefresh(3, process2))
+                .add(TestEventUtils.refreshSuccess(4, process2))
+                .add(TestEventUtils.refreshSuccess(4, process1))
+                .add(TestEventUtils.invokeRefresh(4, process1))
+                .add(TestEventUtils.refreshSuccess(5, process1))
                 .build();
         CheckerResult result = runRefreshCorrectnessChecker(list);
         assertThat(result.valid()).isFalse();
@@ -106,14 +106,14 @@ public class RefreshCorrectnessCheckerTest {
     @Test
     public void anotherProcessCanGrabLockAtLastRefreshInvoke() {
         ImmutableList<Event> list = ImmutableList.<Event>builder()
-                .add(TestEventUtil.invokeLock(0, process1))
-                .add(TestEventUtil.lockSuccess(1, process1))
-                .add(TestEventUtil.invokeRefresh(2, process1))
-                .add(TestEventUtil.invokeLock(2, process2))
-                .add(TestEventUtil.lockSuccess(2, process2))
-                .add(TestEventUtil.invokeRefresh(3, process2))
-                .add(TestEventUtil.refreshSuccess(4, process2))
-                .add(TestEventUtil.refreshSuccess(4, process1))
+                .add(TestEventUtils.invokeLock(0, process1))
+                .add(TestEventUtils.lockSuccess(1, process1))
+                .add(TestEventUtils.invokeRefresh(2, process1))
+                .add(TestEventUtils.invokeLock(2, process2))
+                .add(TestEventUtils.lockSuccess(2, process2))
+                .add(TestEventUtils.invokeRefresh(3, process2))
+                .add(TestEventUtils.refreshSuccess(4, process2))
+                .add(TestEventUtils.refreshSuccess(4, process1))
                 .build();
         CheckerResult result = runRefreshCorrectnessChecker(list);
         assertThat(result.valid()).isTrue();
@@ -123,14 +123,14 @@ public class RefreshCorrectnessCheckerTest {
     @Test
     public void successfulUnlockImpliesHoldingLock() {
         ImmutableList<Event> list = ImmutableList.<Event>builder()
-                .add(TestEventUtil.invokeLock(0, process1))
-                .add(TestEventUtil.lockSuccess(1, process1))
-                .add(TestEventUtil.invokeLock(2, process2))
-                .add(TestEventUtil.lockSuccess(3, process2))
-                .add(TestEventUtil.invokeUnlock(4, process1))
-                .add(TestEventUtil.invokeRefresh(4, process2))
-                .add(TestEventUtil.unlockSuccess(5, process1))
-                .add(TestEventUtil.refreshSuccess(5, process2))
+                .add(TestEventUtils.invokeLock(0, process1))
+                .add(TestEventUtils.lockSuccess(1, process1))
+                .add(TestEventUtils.invokeLock(2, process2))
+                .add(TestEventUtils.lockSuccess(3, process2))
+                .add(TestEventUtils.invokeUnlock(4, process1))
+                .add(TestEventUtils.invokeRefresh(4, process2))
+                .add(TestEventUtils.unlockSuccess(5, process1))
+                .add(TestEventUtils.refreshSuccess(5, process2))
                 .build();
         CheckerResult result = runRefreshCorrectnessChecker(list);
         assertThat(result.valid()).isFalse();

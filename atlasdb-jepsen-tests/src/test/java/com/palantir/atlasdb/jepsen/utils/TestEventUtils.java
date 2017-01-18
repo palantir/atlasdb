@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Palantir Technologies
+ * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,9 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.jepsen.events;
+package com.palantir.atlasdb.jepsen.utils;
 
-public abstract class TestEventUtil {
+import com.palantir.atlasdb.jepsen.events.ImmutableFailEvent;
+import com.palantir.atlasdb.jepsen.events.ImmutableInfoEvent;
+import com.palantir.atlasdb.jepsen.events.ImmutableInvokeEvent;
+import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
+import com.palantir.atlasdb.jepsen.events.OkEvent;
+import com.palantir.atlasdb.jepsen.events.RequestType;
+
+public abstract class TestEventUtils {
 
     private static final String LOCKNAME = "default_lockname";
     private static final String TIMESTAMP = "timestamp";
@@ -76,7 +83,6 @@ public abstract class TestEventUtil {
         return createOkEvent(time, process, value, RequestType.TIMESTAMP);
     }
 
-
     public static ImmutableInvokeEvent createInvokeEvent(long time, int process, String requestType,
             String resourceName) {
         return ImmutableInvokeEvent.builder()
@@ -91,8 +97,37 @@ public abstract class TestEventUtil {
         return ImmutableOkEvent.builder()
                 .time(time)
                 .process(process)
-                .value(value)
                 .function(requestType)
+                .value(value)
+                .build();
+    }
+
+    public static ImmutableFailEvent createFailEvent(long time, int process) {
+        return createFailEvent(time, process, "unknown");
+    }
+
+    public static ImmutableFailEvent createFailEvent(long time, int process, String error) {
+        return ImmutableFailEvent.builder()
+                .time(time)
+                .process(process)
+                .error(error)
+                .build();
+    }
+
+    public static ImmutableInfoEvent createInfoEvent(long time, String process, String requestType) {
+        return ImmutableInfoEvent.builder()
+                .time(time)
+                .process(process)
+                .function(requestType)
+                .build();
+    }
+
+    public static ImmutableInfoEvent createInfoEvent(long time, String process, String requestType, String value) {
+        return ImmutableInfoEvent.builder()
+                .time(time)
+                .process(process)
+                .function(requestType)
+                .value(value)
                 .build();
     }
 }

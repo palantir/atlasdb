@@ -55,11 +55,13 @@ public abstract class OkEvent implements Event {
     }
 
     public boolean isFailure() {
-        return value() == null || value().isEmpty() || value().equals("false");
+        return value() == null
+                || (function().equals(RequestType.UNLOCK) && value().equals(UNLOCK_FAILURE))
+                || value().equals(FAILURE);
     }
 
     public boolean isSuccessful() {
-        return !isFailure();
+        return value().equals(SUCCESS)
+                || (function().equals(RequestType.UNLOCK) && value().equals(UNLOCK_SUCCESS));
     }
-
 }

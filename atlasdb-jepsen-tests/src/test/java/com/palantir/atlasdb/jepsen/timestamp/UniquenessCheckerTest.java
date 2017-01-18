@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Palantir Technologies
+ * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,16 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.jepsen;
+package com.palantir.atlasdb.jepsen.timestamp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.events.Event;
-import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
-import com.palantir.atlasdb.jepsen.timestamp.UniquenessChecker;
+import com.palantir.atlasdb.jepsen.utils.CheckerTestUtils;
+import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
 
 public class UniquenessCheckerTest {
     private static final long ZERO_TIME = 0L;
@@ -41,39 +42,18 @@ public class UniquenessCheckerTest {
 
     @Test
     public void shouldSucceedOnUniqueValues() {
-        Event event1 = ImmutableOkEvent.builder()
-                .time(ZERO_TIME)
-                .process(PROCESS_0)
-                .value(VALUE_A)
-                .build();
-        Event event2 = ImmutableOkEvent.builder()
-                .time(ZERO_TIME)
-                .process(PROCESS_0)
-                .value(VALUE_B)
-                .build();
+        Event event1 = TestEventUtils.timestampOk(ZERO_TIME, PROCESS_0, VALUE_A);
+        Event event2 = TestEventUtils.timestampOk(ZERO_TIME, PROCESS_0, VALUE_B);
 
-        CheckerTestUtils.assertNoErrors(UniquenessChecker::new,
-                event1, event2);
+        CheckerTestUtils.assertNoErrors(UniquenessChecker::new, event1, event2);
     }
 
     @Test
     public void shouldRecordFourEventsIfThreeEqualValues() {
         long time = 0;
-        Event event1 = ImmutableOkEvent.builder()
-                .time(time++)
-                .process(PROCESS_0)
-                .value(VALUE_A)
-                .build();
-        Event event2 = ImmutableOkEvent.builder()
-                .time(time++)
-                .process(PROCESS_0)
-                .value(VALUE_A)
-                .build();
-        Event event3 = ImmutableOkEvent.builder()
-                .time(time++)
-                .process(PROCESS_0)
-                .value(VALUE_A)
-                .build();
+        Event event1 = TestEventUtils.timestampOk(time++, PROCESS_0, VALUE_A);
+        Event event2 = TestEventUtils.timestampOk(time++, PROCESS_0, VALUE_A);
+        Event event3 = TestEventUtils.timestampOk(time++, PROCESS_0, VALUE_A);
 
         CheckerResult result = runUniquenessChecker(event1, event2, event3);
 
@@ -83,16 +63,8 @@ public class UniquenessCheckerTest {
 
     @Test
     public void shouldFailIfSameValueAppearsOnTwoProcesses() {
-        Event event1 = ImmutableOkEvent.builder()
-                .time(ZERO_TIME)
-                .process(PROCESS_0)
-                .value(VALUE_A)
-                .build();
-        Event event2 = ImmutableOkEvent.builder()
-                .time(ZERO_TIME)
-                .process(PROCESS_1)
-                .value(VALUE_A)
-                .build();
+        Event event1 = TestEventUtils.timestampOk(ZERO_TIME, PROCESS_0, VALUE_A);
+        Event event2 = TestEventUtils.timestampOk(ZERO_TIME, PROCESS_1, VALUE_A);
 
         CheckerResult result = runUniquenessChecker(event1, event2);
 
@@ -103,21 +75,9 @@ public class UniquenessCheckerTest {
     @Test
     public void shouldFailIfSameValueAppearsAfterDifferentValue() {
         long time = 0;
-        Event event1 = ImmutableOkEvent.builder()
-                .time(time++)
-                .process(PROCESS_0)
-                .value(VALUE_A)
-                .build();
-        Event event2 = ImmutableOkEvent.builder()
-                .time(time++)
-                .process(PROCESS_1)
-                .value(VALUE_B)
-                .build();
-        Event event3 = ImmutableOkEvent.builder()
-                .time(time++)
-                .process(PROCESS_1)
-                .value(VALUE_A)
-                .build();
+        Event event1 = TestEventUtils.timestampOk(time++, PROCESS_0, VALUE_A);
+        Event event2 = TestEventUtils.timestampOk(time++, PROCESS_1, VALUE_B);
+        Event event3 = TestEventUtils.timestampOk(time++, PROCESS_1, VALUE_A);
 
         CheckerResult result = runUniquenessChecker(event1, event2, event3);
 
@@ -126,8 +86,7 @@ public class UniquenessCheckerTest {
     }
 
     private static CheckerResult runUniquenessChecker(Event... events) {
-        com.palantir.atlasdb.jepsen.timestamp.UniquenessChecker uniquenessChecker =
-                new com.palantir.atlasdb.jepsen.timestamp.UniquenessChecker();
+        UniquenessChecker uniquenessChecker = new UniquenessChecker();
         return uniquenessChecker.check(ImmutableList.copyOf(events));
     }
 }

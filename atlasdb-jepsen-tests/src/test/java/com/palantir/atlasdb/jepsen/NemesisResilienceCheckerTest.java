@@ -21,10 +21,9 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Event;
-import com.palantir.atlasdb.jepsen.events.ImmutableFailEvent;
-import com.palantir.atlasdb.jepsen.events.ImmutableInfoEvent;
-import com.palantir.atlasdb.jepsen.events.ImmutableInvokeEvent;
-import com.palantir.atlasdb.jepsen.events.ImmutableOkEvent;
+
+import com.palantir.atlasdb.jepsen.utils.CheckerTestUtils;
+import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
 
 public class NemesisResilienceCheckerTest {
     private static final long ZERO_TIME = 0L;
@@ -35,67 +34,31 @@ public class NemesisResilienceCheckerTest {
     private static final String VALUE_1 = "value1";
     private static final String VALUE_2 = "value2";
 
-    private static final Event INVOKE_1 = ImmutableInvokeEvent.builder()
-            .time(ZERO_TIME)
-            .process(PROCESS_1)
-            .build();
-    private static final Event INVOKE_2 = ImmutableInvokeEvent.builder()
-            .time(ZERO_TIME)
-            .process(PROCESS_2)
-            .build();
+    private static final Event INVOKE_1 = TestEventUtils.invokeTimestamp(ZERO_TIME, PROCESS_1);
+    private static final Event INVOKE_2 = TestEventUtils.invokeTimestamp(ZERO_TIME, PROCESS_2);
 
-    private static final Event OK_1 = ImmutableOkEvent.builder()
-            .time(ZERO_TIME)
-            .process(PROCESS_1)
-            .value("0")
-            .build();
-    private static final Event OK_2 = ImmutableOkEvent.builder()
-            .time(ZERO_TIME)
-            .process(PROCESS_2)
-            .value("0")
-            .build();
+    private static final Event OK_1 = TestEventUtils.timestampOk(ZERO_TIME, PROCESS_1, "0");
+    private static final Event OK_2 = TestEventUtils.timestampOk(ZERO_TIME, PROCESS_2, "0");
 
-    private static final Event ERROR_1 = ImmutableFailEvent.builder()
-            .time(ZERO_TIME)
-            .process(PROCESS_1)
-            .error("timeout")
-            .build();
+    private static final Event ERROR_1 = TestEventUtils.createFailEvent(ZERO_TIME, PROCESS_1, "timeout");
 
-    private static final Event NEMESIS_START = ImmutableInfoEvent.builder()
-            .time(ZERO_TIME)
-            .process(JepsenConstants.NEMESIS_PROCESS)
-            .function(JepsenConstants.START_FUNCTION)
-            .value(VALUE_1)
-            .build();
-    private static final Event NEMESIS_START_2 = ImmutableInfoEvent.builder()
-            .time(ZERO_TIME)
-            .process(JepsenConstants.NEMESIS_PROCESS)
-            .function(JepsenConstants.START_FUNCTION)
-            .value(VALUE_2)
-            .build();
-    private static final Event NEMESIS_STOP = ImmutableInfoEvent.builder()
-            .time(ZERO_TIME)
-            .process(JepsenConstants.NEMESIS_PROCESS)
-            .function(JepsenConstants.STOP_FUNCTION)
-            .value(VALUE_1)
-            .build();
-    private static final Event NEMESIS_STOP_2 = ImmutableInfoEvent.builder()
-            .time(ZERO_TIME)
-            .process(JepsenConstants.NEMESIS_PROCESS)
-            .function(JepsenConstants.STOP_FUNCTION)
-            .value(VALUE_2)
-            .build();
+    private static final Event NEMESIS_START = TestEventUtils
+            .createInfoEvent(ZERO_TIME, JepsenConstants.NEMESIS_PROCESS, JepsenConstants.START_FUNCTION, VALUE_1);
 
-    private static final Event IMPOSTOR_START = ImmutableInfoEvent.builder()
-            .time(ZERO_TIME)
-            .process(IMPOSTOR_PROCESS)
-            .function(JepsenConstants.START_FUNCTION)
-            .build();
-    private static final Event IMPOSTOR_STOP = ImmutableInfoEvent.builder()
-            .time(ZERO_TIME)
-            .process(IMPOSTOR_PROCESS)
-            .function(JepsenConstants.STOP_FUNCTION)
-            .build();
+    private static final Event NEMESIS_START_2 = TestEventUtils
+            .createInfoEvent(ZERO_TIME, JepsenConstants.NEMESIS_PROCESS, JepsenConstants.START_FUNCTION, VALUE_2);
+
+    private static final Event NEMESIS_STOP = TestEventUtils
+            .createInfoEvent(ZERO_TIME, JepsenConstants.NEMESIS_PROCESS, JepsenConstants.STOP_FUNCTION, VALUE_1);
+
+    private static final Event NEMESIS_STOP_2 = TestEventUtils
+            .createInfoEvent(ZERO_TIME, JepsenConstants.NEMESIS_PROCESS, JepsenConstants.STOP_FUNCTION, VALUE_2);
+
+    private static final Event IMPOSTOR_START = TestEventUtils
+            .createInfoEvent(ZERO_TIME, IMPOSTOR_PROCESS, JepsenConstants.START_FUNCTION);
+
+    private static final Event IMPOSTOR_STOP = TestEventUtils
+            .createInfoEvent(ZERO_TIME, IMPOSTOR_PROCESS, JepsenConstants.STOP_FUNCTION);
 
     @Test
     public void succeedsWithNoEvents() {
