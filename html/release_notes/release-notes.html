@@ -158,6 +158,9 @@
 </div>
 <div class="section" id="develop">
 <h2>develop<a class="headerlink" href="#develop" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="v0-29-0">
+<h2>v0.29.0<a class="headerlink" href="#v0-29-0" title="Permalink to this headline">¶</a></h2>
 <table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="11%" />
@@ -170,28 +173,30 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
-<td>Returned <cite>RemotingKeyValueService</cite> and associated remoting classes to the AtlasDB code base.  These now live
-in <cite>atlasdb-remoting</cite>.  This KVS will pass remote calls to a local delegate KVS.
+<td>Returned <code class="docutils literal"><span class="pre">RemotingKeyValueService</span></code> and associated remoting classes to the AtlasDB code base.
+These now live in <cite>atlasdb-remoting</cite>.
+This KVS will pass remote calls to a local delegate KVS.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1304">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Stream store compression, introduced in 0.27.0, no longer creates a transaction inside a transaction when streaming directly to a file.
-Additionally, a check was added to enforce the condition imposed in 0.28.0, namely that the caller of <code class="docutils literal"><span class="pre">AbstractGenericStreamStore.loadStream</span></code> should not
-call <code class="docutils literal"><span class="pre">InputStream.read()</span></code> within the transaction that was used to fetch the stream.
+Additionally, a check was added to enforce the condition imposed in 0.28.0, namely that the caller of <code class="docutils literal"><span class="pre">AbstractGenericStreamStore.loadStream</span></code> should not call <code class="docutils literal"><span class="pre">InputStream.read()</span></code> within the transaction that was used to fetch the stream.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1460">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM
+<td>AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1378">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Added a new <code class="docutils literal"><span class="pre">KeyValueService</span></code> API method, <code class="docutils literal"><span class="pre">checkAndSet</span></code>.
+This is to be used in upcoming backup lock changes, and is not intended for other usage. If you think your application would benefit from using this directly, please contact the AtlasDB dev team.
 This is supported for Cassandra, Postgres, and Oracle, but in the latter case support is only provided for tables which are not overflow tables.
-<code class="docutils literal"><span class="pre">checkAndSet</span></code> is <strong>not</strong> supported for RocksDB or JDBC. However, it will only be used in a future release.
+<code class="docutils literal"><span class="pre">checkAndSet</span></code> is <strong>not</strong> supported for RocksDB or JDBC.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1435">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed the <span class="changetype changetype-breaking">DEV BREAK</span> below by returning the <code class="docutils literal"><span class="pre">DebugLogger</span></code> to it&#8217;s original location.</td>
+<td>Reverted the <code class="docutils literal"><span class="pre">devbreak</span></code> in AtlasDB 0.28.0 by returning the <code class="docutils literal"><span class="pre">DebugLogger</span></code> to its original location.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1469">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -210,8 +215,8 @@ This is supported for Cassandra, Postgres, and Oracle, but in the latter case su
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>The <code class="docutils literal"><span class="pre">DebugLogger</span></code> class was moved from package <code class="docutils literal"><span class="pre">com.palantir.timestamp</span></code> in project <code class="docutils literal"><span class="pre">timestamp-impl</span></code> to <code class="docutils literal"><span class="pre">com.palantir.util</span></code> in project <code class="docutils literal"><span class="pre">atlasdb-commons</span></code>.  This is
-fixed in the next release 0.29.0.
+<td>The <code class="docutils literal"><span class="pre">DebugLogger</span></code> class was moved from package <code class="docutils literal"><span class="pre">com.palantir.timestamp</span></code> in project <code class="docutils literal"><span class="pre">timestamp-impl</span></code> to <code class="docutils literal"><span class="pre">com.palantir.util</span></code> in project <code class="docutils literal"><span class="pre">atlasdb-commons</span></code>.
+This break is reverted in the next release (AtlasDB 0.29.0) and will not affect services who skip this release.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1445">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
