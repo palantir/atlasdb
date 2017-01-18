@@ -61,7 +61,7 @@ v0.29.0
 
     *    - |new|
          - Returned ``RemotingKeyValueService`` and associated remoting classes to the AtlasDB code base.
-           These now live in `atlasdb-remoting`.
+           These now live in ``atlasdb-remoting``.
            This KVS will pass remote calls to a local delegate KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1304>`__)
 
