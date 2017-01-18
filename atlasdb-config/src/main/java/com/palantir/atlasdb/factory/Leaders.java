@@ -86,10 +86,10 @@ public final class Leaders {
         Optional<SSLSocketFactory> sslSocketFactory =
                 TransactionManagers.createSslSocketFactory(config.sslConfiguration());
 
-        List<PaxosLearner> learners = createLearnerList(
-                ourLearner, remotePaxosServerSpec.remoteLearnerUris(), sslSocketFactory);
-        List<PaxosAcceptor> acceptors = createAcceptorList(
-                ourAcceptor, remotePaxosServerSpec.remoteAcceptorUris(), sslSocketFactory);
+        List<PaxosLearner> learners = createProxyAndLocalList(
+                ourLearner, remotePaxosServerSpec.remoteLearnerUris(), sslSocketFactory, PaxosLearner.class);
+        List<PaxosAcceptor> acceptors = createProxyAndLocalList(
+                ourAcceptor, remotePaxosServerSpec.remoteAcceptorUris(), sslSocketFactory, PaxosAcceptor.class);
 
         Map<PingableLeader, HostAndPort> otherLeaders = generatePingables(
                 remotePaxosServerSpec.remoteLeaderUris(), sslSocketFactory);
@@ -134,24 +134,15 @@ public final class Leaders {
                     executor);
     }
 
-    public static List<PaxosAcceptor> createAcceptorList(
-            PaxosAcceptor ourAcceptor,
-            Set<String> remoteLeaderUris,
-            Optional<SSLSocketFactory> sslSocketFactory) {
-        List<PaxosAcceptor> acceptors =
-                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosAcceptor.class);
-        acceptors.add(ourAcceptor);
-        return acceptors;
-    }
-
-    public static List<PaxosLearner> createLearnerList(
-            PaxosLearner ourLearner,
-            Set<String> remoteLeaderUris,
-            Optional<SSLSocketFactory> sslSocketFactory) {
-        List<PaxosLearner> learners =
-                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosLearner.class);
-        learners.add(ourLearner);
-        return learners;
+    public static <T> List<T> createProxyAndLocalList(
+            T localObject,
+            Set<String> remoteUris,
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Class<T> clazz) {
+        List<T> objects =
+                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, clazz);
+        objects.add(localObject);
+        return objects;
     }
 
     public static Map<PingableLeader, HostAndPort> generatePingables(
