@@ -42,6 +42,40 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - Returned `RemotingKeyValueService` and associated remoting classes to the AtlasDB code base.  These now live
+           in `atlasdb-remoting`.  This KVS will pass remote calls to a local delegate KVS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1304>`__)
+
+    *    - |fixed|
+         - Stream store compression, introduced in 0.27.0, no longer creates a transaction inside a transaction when streaming directly to a file.
+           Additionally, a check was added to enforce the condition imposed in 0.28.0, namely that the caller of ``AbstractGenericStreamStore.loadStream`` should not
+           call ``InputStream.read()`` within the transaction that was used to fetch the stream.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1460>`__)
+
+    *    - |improved|
+         - AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1378>`__)
+
+    *    - |new|
+         - Added a new ``KeyValueService`` API method, ``checkAndSet``.
+           This is supported for Cassandra, Postgres, and Oracle, but in the latter case support is only provided for tables which are not overflow tables.
+           ``checkAndSet`` is **not** supported for RocksDB or JDBC. However, it will only be used in a future release.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1435>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.28.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |devbreak|
          - The ``DebugLogger`` class was moved from package ``com.palantir.timestamp`` in project ``timestamp-impl`` to ``com.palantir.util`` in project ``atlasdb-commons``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1445>`__)
@@ -104,8 +138,6 @@ v0.27.2
            This caused an issue when the in-memory threshold was many times larger than the default (47MB for the default block size),
            or when the block size was many times smaller (7KB for the default in-memory threshold).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1422>`__)
-
-
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
