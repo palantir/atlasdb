@@ -35,6 +35,17 @@ Changelog
 develop
 =======
 
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Prevent deadlocks during parallel reads from DB KVS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1468>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
@@ -47,10 +58,6 @@ v0.29.0
 
     *    - Type
          - Change
-
-    *    - |fixed|
-         - Prevent deadlocks during parallel reads from ``DbKvs``.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1468>`__)
 
     *    - |new|
          - Returned ``RemotingKeyValueService`` and associated remoting classes to the AtlasDB code base.
