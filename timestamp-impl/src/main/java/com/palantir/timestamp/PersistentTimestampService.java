@@ -21,7 +21,6 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.util.DebugLogger;
 
 @ThreadSafe
 public class PersistentTimestampService implements TimestampService, TimestampManagementService {
