@@ -13,7 +13,7 @@
   (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
   (:import com.palantir.atlasdb.http.LockClient))
 
-(def lock-names ["bob" "sarah" "alfred" "shelly"])
+(def lock-names ["bob" "sarah"])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Client creation and invocations (i.e. locking, unlocking refreshing)
@@ -106,7 +106,7 @@
     :client (create-client nil nil nil)
     :nemesis (nemesis/partition-random-halves)
     :generator (->> generator
-                    (gen/stagger 0.1)
+                    (gen/stagger 0.01)
                     (gen/nemesis
                     (gen/seq (cycle [(gen/sleep 5)
                                      {:type :info, :f :start}
