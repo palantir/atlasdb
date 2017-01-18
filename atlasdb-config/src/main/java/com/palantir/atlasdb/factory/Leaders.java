@@ -139,8 +139,7 @@ public final class Leaders {
             Set<String> remoteUris,
             Optional<SSLSocketFactory> sslSocketFactory,
             Class<T> clazz) {
-        List<T> objects =
-                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, clazz);
+        List<T> objects = AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, clazz);
         objects.add(localObject);
         return objects;
     }

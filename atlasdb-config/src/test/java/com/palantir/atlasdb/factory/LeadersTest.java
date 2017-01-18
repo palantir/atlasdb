@@ -15,9 +15,14 @@
  */
 package com.palantir.atlasdb.factory;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Set;
 
@@ -26,19 +31,77 @@ import org.junit.Test;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 
 public class LeadersTest {
-    @Test
-    public void canCreateProxyAndLocalList() {
-        Set<String> remoteServices = ImmutableSet.of("foo:1234", "bar:5678");
-        PaxosLearner localService = mock(PaxosLearner.class);
 
-        List<PaxosLearner> proxyAndLocalList = Leaders.createProxyAndLocalList(localService,
-                remoteServices,
+    public static final Set<String> REMOTE_SERVICE_ADDRESSES = ImmutableSet.of("foo:1234", "bar:5678");
+
+    @Test
+    public void canCreateProxyAndLocalListOfPaxosLearners() {
+        PaxosLearner localLearner = mock(PaxosLearner.class);
+
+        List<PaxosLearner> paxosLearners = Leaders.createProxyAndLocalList(
+                localLearner,
+                REMOTE_SERVICE_ADDRESSES,
                 Optional.absent(),
                 PaxosLearner.class);
-        MatcherAssert.assertThat(proxyAndLocalList.size(), is(remoteServices.size() + 1));
-        MatcherAssert.assertThat(proxyAndLocalList.contains(localService), is(true));
+
+        MatcherAssert.assertThat(paxosLearners.size(), is(REMOTE_SERVICE_ADDRESSES.size() + 1));
+        MatcherAssert.assertThat(paxosLearners.contains(localLearner), is(true));
+        paxosLearners.forEach(object -> MatcherAssert.assertThat(object, not(nullValue())));
+    }
+
+    @Test
+    public void canCreateProxyAndLocalListOfPaxosAcceptors() {
+        PaxosAcceptor localAcceptor = mock(PaxosAcceptor.class);
+
+        List<PaxosAcceptor> paxosAcceptors = Leaders.createProxyAndLocalList(
+                localAcceptor,
+                REMOTE_SERVICE_ADDRESSES,
+                Optional.absent(),
+                PaxosAcceptor.class);
+
+        MatcherAssert.assertThat(paxosAcceptors.size(), is(REMOTE_SERVICE_ADDRESSES.size() + 1));
+        MatcherAssert.assertThat(paxosAcceptors.contains(localAcceptor), is(true));
+        paxosAcceptors.forEach(object -> MatcherAssert.assertThat(object, not(nullValue())));
+    }
+
+    @Test
+    public void createProxyAndLocalListCreatesSingletonListIfNoRemoteAddressesProvided() {
+        PaxosAcceptor localAcceptor = mock(PaxosAcceptor.class);
+
+        List<PaxosAcceptor> paxosAcceptors = Leaders.createProxyAndLocalList(
+                localAcceptor,
+                ImmutableSet.of(),
+                Optional.absent(),
+                PaxosAcceptor.class);
+
+        MatcherAssert.assertThat(paxosAcceptors, contains(localAcceptor));
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void createProxyAndLocalListThrowsIfCreatingObjectsWithoutHttpMethodAnnotatedMethods() {
+        BigInteger localBigInteger = new BigInteger("0");
+
+        Leaders.createProxyAndLocalList(
+                localBigInteger,
+                REMOTE_SERVICE_ADDRESSES,
+                Optional.absent(),
+                BigInteger.class);
+        fail();
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void createProxyAndLocalListThrowsIfNullClassProvided() {
+        PaxosAcceptor localAcceptor = mock(PaxosAcceptor.class);
+
+        Leaders.createProxyAndLocalList(
+                localAcceptor,
+                REMOTE_SERVICE_ADDRESSES,
+                Optional.absent(),
+                null);
+        fail();
     }
 }
