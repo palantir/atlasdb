@@ -99,6 +99,8 @@ v0.28.0
          - There is now a ``TimestampMigrationService`` with the ``fast-forward`` method that can be used to migrate between timestamp services.
            You will simply need to fast-forward the new timestamp service using the latest timestamp from the old service.
            This can be done using the :ref:`timestamp forward cli <offline-clis>` when your AtlasDB services are offline.
+
+           This capability was added so we can automate the migration to an external Timelock service in a future release.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1445>`__)
 
     *    - |fixed|
