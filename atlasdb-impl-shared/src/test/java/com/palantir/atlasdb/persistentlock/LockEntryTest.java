@@ -23,6 +23,7 @@ import static org.junit.Assert.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,17 +31,27 @@ import java.util.stream.Collectors;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
 public class LockEntryTest {
+    public static final String LOCK_ID = "12345";
+    public static final String REASON = "test";
     private static final LockEntry LOCK_ENTRY = ImmutableLockEntry.builder()
             .rowName("row")
-            .lockId("12345")
-            .reason("test")
+            .lockId(LOCK_ID)
+            .reason(REASON)
             .build();
+    public static final TableReference TEST_TABLE = TableReference.createWithEmptyNamespace("lockEntryTestTable");
 
     @Test
     public void insertionMapUsesRowName() {
@@ -54,31 +65,37 @@ public class LockEntryTest {
     }
 
     @Test
-    public void insertionMapContainsReason() {
+    public void insertionMapContainsSingleEntry() {
+        assertEquals(1, LOCK_ENTRY.insertionMap().size());
+    }
+
+    @Test
+    public void insertionMapContainsLockIdAndReason() {
         Map<Cell, byte[]> insertionMap = LOCK_ENTRY.insertionMap();
 
         Set<String> reasonsInMap = insertionMap.entrySet().stream()
                 .filter(entry -> Arrays.equals(
                         entry.getKey().getColumnName(),
-                        "reasonForLock".getBytes(StandardCharsets.UTF_8)))
+                        "lock".getBytes(StandardCharsets.UTF_8)))
                 .map(entry -> new String(entry.getValue(), StandardCharsets.UTF_8))
                 .collect(Collectors.toSet());
 
-        assertThat(reasonsInMap, contains("test"));
+        assertThat(reasonsInMap, contains(LOCK_ID + "_" + REASON));
     }
 
     @Test
-    public void insertionMapContainsLockId() {
-        Map<Cell, byte[]> insertionMap = LOCK_ENTRY.insertionMap();
+    public void fromRowResultProducesLockEntry() {
+        KeyValueService kvs = new InMemoryKeyValueService(false);
+        kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.putUnlessExists(TEST_TABLE, LOCK_ENTRY.insertionMap());
 
-        Set<byte[]> lockIdsInMap = insertionMap.entrySet().stream()
-                .filter(entry -> Arrays.equals(
-                        entry.getKey().getColumnName(),
-                        "lockId".getBytes(StandardCharsets.UTF_8)))
-                .map(Map.Entry::getValue)
-                .collect(Collectors.toSet());
+        Iterator<RowResult<Value>> range = kvs.getRange(TEST_TABLE,
+                RangeRequest.all(),
+                AtlasDbConstants.TRANSACTION_TS + 1);
+        RowResult<Value> onlyEntry = Iterables.getOnlyElement(ImmutableSet.copyOf(range));
 
-        assertThat(lockIdsInMap, contains("12345".getBytes(StandardCharsets.UTF_8)));
+        LockEntry lockEntry = LockEntry.fromRowResult(onlyEntry);
+        assertEquals(LOCK_ENTRY, lockEntry);
     }
 
     @Test
@@ -93,34 +110,18 @@ public class LockEntryTest {
     }
 
     @Test
-    public void deletionMapContainsReason() {
+    public void deletionMapContainsLock() {
         Multimap<Cell, Long> deletionMap = LOCK_ENTRY.deletionMap();
 
         List<Map.Entry<Cell, Long>> matchingEntries = deletionMap.entries().stream()
                 .filter(entry -> Arrays.equals(
                         entry.getKey().getColumnName(),
-                        "reasonForLock".getBytes(StandardCharsets.UTF_8)))
+                        "lock".getBytes(StandardCharsets.UTF_8)))
                 .collect(Collectors.toList());
 
         Map.Entry<Cell, Long> entry = Iterables.getOnlyElement(matchingEntries);
 
-        assertArrayEquals("reasonForLock".getBytes(StandardCharsets.UTF_8), entry.getKey().getColumnName());
-        assertEquals(AtlasDbConstants.TRANSACTION_TS, (long) entry.getValue());
-    }
-
-    @Test
-    public void deletionMapContainsLockId() {
-        Multimap<Cell, Long> deletionMap = LOCK_ENTRY.deletionMap();
-
-        List<Map.Entry<Cell, Long>> matchingEntries = deletionMap.entries().stream()
-                .filter(entry -> Arrays.equals(
-                        entry.getKey().getColumnName(),
-                        "lockId".getBytes(StandardCharsets.UTF_8)))
-                .collect(Collectors.toList());
-
-        Map.Entry<Cell, Long> entry = Iterables.getOnlyElement(matchingEntries);
-
-        assertArrayEquals("lockId".getBytes(StandardCharsets.UTF_8), entry.getKey().getColumnName());
+        assertArrayEquals("lock".getBytes(StandardCharsets.UTF_8), entry.getKey().getColumnName());
         assertEquals(AtlasDbConstants.TRANSACTION_TS, (long) entry.getValue());
     }
 

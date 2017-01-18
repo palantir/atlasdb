@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
 
+import org.apache.commons.lang3.StringUtils;
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableMap;
@@ -31,6 +32,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 
 @Value.Immutable
 public abstract class LockEntry {
+    private static final String LOCK_COLUMN = "lock";
     private static final String REASON_FOR_LOCK_COLUMN = "reasonForLock";
     private static final String LOCK_ID_COLUMN = "lockId";
 
@@ -40,8 +42,10 @@ public abstract class LockEntry {
 
     public static LockEntry fromRowResult(RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
         String rowName = asString(rowResult.getRowName());
-        String lockId = valueOfColumnInRow(LOCK_ID_COLUMN, rowResult).get();
-        String reason = valueOfColumnInRow(REASON_FOR_LOCK_COLUMN, rowResult).get();
+        String lockAndReason = valueOfColumnInRow(LOCK_COLUMN, rowResult).get();
+        String[] split = StringUtils.split(lockAndReason, '_');
+        String lockId = split[0];
+        String reason = split[1];
 
         return ImmutableLockEntry.builder()
                 .rowName(rowName)
@@ -52,15 +56,17 @@ public abstract class LockEntry {
 
     public Map<Cell, byte[]> insertionMap() {
         return ImmutableMap.of(
-                makeCell(LOCK_ID_COLUMN), asUtf8Bytes(lockId()),
-                makeCell(REASON_FOR_LOCK_COLUMN), asUtf8Bytes(reason()));
+                makeCell(LOCK_COLUMN), asUtf8Bytes(lockAndReason()));
+    }
+
+    private String lockAndReason() {
+        return lockId() + "_" + reason();
     }
 
     public Multimap<Cell, Long> deletionMap() {
         Long timestamp = AtlasDbConstants.TRANSACTION_TS;
         return ImmutableMultimap.of(
-                makeCell(LOCK_ID_COLUMN), timestamp,
-                makeCell(REASON_FOR_LOCK_COLUMN), timestamp);
+                makeCell(LOCK_COLUMN), timestamp);
     }
 
     private static Optional<String> valueOfColumnInRow(
