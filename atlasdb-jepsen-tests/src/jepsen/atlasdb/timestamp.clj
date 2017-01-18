@@ -7,7 +7,9 @@
             [jepsen.os.debian :as debian]
             [jepsen.tests :as tests]
             [jepsen.util :refer [timeout]]
-            [knossos.history :as history])
+            [knossos.history :as history]
+            [clojure.data.json :as json]
+            [clojure.java.io :refer [writer]])
     ;; We can import any Java objects, since Clojure runs on the JVM
     (:import com.palantir.atlasdb.jepsen.JepsenHistoryCheckers)
     (:import com.palantir.atlasdb.http.TimestampClient))
@@ -52,6 +54,8 @@
 (def checker
   (reify checker/Checker
     (check [this test model history opts]
+      (with-open [wrtr (writer "history.json")]
+        (json/write history wrtr))
       (.checkClojureHistory (JepsenHistoryCheckers/createWithTimestampCheckers) history))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -62,7 +66,7 @@
   (assoc tests/noop-test
     :os debian/os
     :client (create-client nil)
-    :nemesis (nemesis/partition-random-halves)
+    :nemesis timelock/crash-nemesis
     :generator (->> read-operation
                     (gen/stagger 0.05)
                     (gen/nemesis
