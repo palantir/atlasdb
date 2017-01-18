@@ -35,6 +35,12 @@ Changelog
 develop
 =======
 
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.29.0
+=======
+
 .. list-table::
     :widths: 5 40
     :header-rows: 1
@@ -43,24 +49,24 @@ develop
          - Change
 
     *    - |new|
-         - Returned `RemotingKeyValueService` and associated remoting classes to the AtlasDB code base.  These now live
-           in `atlasdb-remoting`.  This KVS will pass remote calls to a local delegate KVS.
+         - Returned ``RemotingKeyValueService`` and associated remoting classes to the AtlasDB code base.
+           These now live in `atlasdb-remoting`.
+           This KVS will pass remote calls to a local delegate KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1304>`__)
 
     *    - |fixed|
          - Stream store compression, introduced in 0.27.0, no longer creates a transaction inside a transaction when streaming directly to a file.
-           Additionally, a check was added to enforce the condition imposed in 0.28.0, namely that the caller of ``AbstractGenericStreamStore.loadStream`` should not
-           call ``InputStream.read()`` within the transaction that was used to fetch the stream.
+           Additionally, a check was added to enforce the condition imposed in 0.28.0, namely that the caller of ``AbstractGenericStreamStore.loadStream`` should not call ``InputStream.read()`` within the transaction that was used to fetch the stream.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1460>`__)
 
     *    - |improved|
-         - AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM
+         - AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1378>`__)
 
     *    - |new|
          - Added a new ``KeyValueService`` API method, ``checkAndSet``.
            This is supported for Cassandra, Postgres, and Oracle, but in the latter case support is only provided for tables which are not overflow tables.
-           ``checkAndSet`` is **not** supported for RocksDB or JDBC. However, it will only be used in a future release.
+           ``checkAndSet`` is **not** supported for RocksDB or JDBC.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1435>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
