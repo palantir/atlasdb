@@ -15,7 +15,8 @@ Clients
 
 The ``clients`` block is a list of strings which corresponds to client namespaces that the server will respond to.
 At least one client must be configured for the Timelock Server to work. Querying an endpoint for a client that does not
-exist will result in a 404.
+exist will result in a 404. Note that client names must consist of only alphanumeric characters, dashes and
+underscores (succinctly, ``[a-zA-Z0-9_-]+``) and for backwards compatibility cannot be the reserved word ``leader``.
 
    .. code:: yaml
 
