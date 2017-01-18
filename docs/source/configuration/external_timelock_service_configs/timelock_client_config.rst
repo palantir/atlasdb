@@ -86,8 +86,8 @@ You must ensure that you have migrated to the Timelock Server before adding a ``
         client: yourapp
         serversList:
           servers:
-            - "host1:3828"
-            - "host2:3828"
-            - "host3:3828"
+            - palantir-1.com:8080
+            - palantir-2.com:8080
+            - palantir-3.com:8080
           sslConfiguration:
             trustStorePath: var/security/truststore.jks

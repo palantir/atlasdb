@@ -52,11 +52,11 @@ follows:
    .. code:: yaml
 
       cluster:
-        localServer: palantir.com:8700
+        localServer: palantir-1.com:8080
         servers:
-          - palantir.com:8700
-          - palantir.com:8701
-          - palantir.com:8702
+          - palantir-1.com:8080
+          - palantir-2.com:8080
+          - palantir-3.com:8080
 
 .. list-table::
    :widths: 5 40
