@@ -15,27 +15,19 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -75,40 +67,10 @@ public class LockEntryTest {
     }
 
     @Test
-    public void insertionMapUsesRowName() {
-        Map<Cell, byte[]> insertionMap = LOCK_ENTRY.insertionMap();
-
-        Set<Cell> cellsWithWrongRowName = insertionMap.keySet().stream()
-                .filter(cell -> !Arrays.equals(cell.getRowName(), ROW_BYTES))
-                .collect(Collectors.toSet());
-
-        assertThat(cellsWithWrongRowName, empty());
-    }
-
-    @Test
-    public void insertionMapContainsSingleEntry() {
-        assertEquals(1, LOCK_ENTRY.insertionMap().size());
-    }
-
-    @Test
-    public void insertionMapContainsLockIdAndReason() {
-        Map<Cell, byte[]> insertionMap = LOCK_ENTRY.insertionMap();
-
-        Set<String> reasonsInMap = insertionMap.entrySet().stream()
-                .filter(entry -> Arrays.equals(
-                        entry.getKey().getColumnName(),
-                        LOCK_BYTES))
-                .map(entry -> new String(entry.getValue(), StandardCharsets.UTF_8))
-                .collect(Collectors.toSet());
-
-        assertThat(reasonsInMap, contains(LOCK_ID + "_" + REASON));
-    }
-
-    @Test
     public void fromRowResultProducesLockEntry() {
         KeyValueService kvs = new InMemoryKeyValueService(false);
         kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        kvs.putUnlessExists(TEST_TABLE, LOCK_ENTRY.insertionMap());
+        kvs.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, LOCK_ENTRY.cell(), LOCK_ENTRY.value()));
 
         Iterator<RowResult<Value>> range = kvs.getRange(TEST_TABLE,
                 RangeRequest.all(),
@@ -117,33 +79,6 @@ public class LockEntryTest {
 
         LockEntry lockEntry = LockEntry.fromRowResult(onlyEntry);
         assertEquals(LOCK_ENTRY, lockEntry);
-    }
-
-    @Test
-    public void deletionMapUsesRowName() {
-        Multimap<Cell, Long> insertionMap = LOCK_ENTRY.deletionMap();
-
-        Set<Cell> cellsWithWrongRowName = insertionMap.keySet().stream()
-                .filter(cell -> !Arrays.equals(cell.getRowName(), ROW_BYTES))
-                .collect(Collectors.toSet());
-
-        assertThat(cellsWithWrongRowName, empty());
-    }
-
-    @Test
-    public void deletionMapContainsLock() {
-        Multimap<Cell, Long> deletionMap = LOCK_ENTRY.deletionMap();
-
-        List<Map.Entry<Cell, Long>> matchingEntries = deletionMap.entries().stream()
-                .filter(entry -> Arrays.equals(
-                        entry.getKey().getColumnName(),
-                        LOCK_BYTES))
-                .collect(Collectors.toList());
-
-        Map.Entry<Cell, Long> entry = Iterables.getOnlyElement(matchingEntries);
-
-        assertArrayEquals(LOCK_BYTES, entry.getKey().getColumnName());
-        assertEquals(AtlasDbConstants.TRANSACTION_TS, (long) entry.getValue());
     }
 
     private static byte[] asUtf8Bytes(String lockAndReason) {

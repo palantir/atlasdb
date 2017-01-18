@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.persistentlock;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
 
@@ -24,10 +23,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.immutables.value.Value;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Multimap;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 
@@ -54,10 +49,6 @@ public abstract class LockEntry {
                 .build();
     }
 
-    public Map<Cell, byte[]> insertionMap() {
-        return ImmutableMap.of(makeCell(LOCK_COLUMN), value());
-    }
-
     public Cell cell() {
         return Cell.create(asUtf8Bytes(rowName()), asUtf8Bytes(LOCK_COLUMN));
     }
@@ -68,12 +59,6 @@ public abstract class LockEntry {
 
     private String lockAndReason() {
         return lockId() + "_" + reason();
-    }
-
-    public Multimap<Cell, Long> deletionMap() {
-        Long timestamp = AtlasDbConstants.TRANSACTION_TS;
-        return ImmutableMultimap.of(
-                makeCell(LOCK_COLUMN), timestamp);
     }
 
     private static Optional<String> valueOfColumnInRow(
