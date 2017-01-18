@@ -70,7 +70,8 @@ v0.29.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1435>`__)
 
     *    - |fixed|
-         - Fixed the |devbreak| below by returning the ``DebugLogger`` to it's original location.
+         - Reverted the ``devbreak`` in AtlasDB 0.28.0 by returning the ``DebugLogger`` to its original location.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1469>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -86,8 +87,8 @@ v0.28.0
          - Change
 
     *    - |devbreak|
-         - The ``DebugLogger`` class was moved from package ``com.palantir.timestamp`` in project ``timestamp-impl`` to ``com.palantir.util`` in project ``atlasdb-commons``.  This is
-           fixed in the next release 0.29.0.
+         - The ``DebugLogger`` class was moved from package ``com.palantir.timestamp`` in project ``timestamp-impl`` to ``com.palantir.util`` in project ``atlasdb-commons``.
+           This break is reverted in the next release (AtlasDB 0.29.0) and will not affect services who skip this release.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1445>`__)
 
     *    - |improved|
