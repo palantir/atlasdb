@@ -19,7 +19,6 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 import java.math.BigInteger;
@@ -90,7 +89,6 @@ public class LeadersTest {
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.absent(),
                 BigInteger.class);
-        fail();
     }
 
     @Test(expected = NullPointerException.class)
@@ -102,6 +100,5 @@ public class LeadersTest {
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.absent(),
                 null);
-        fail();
     }
 }
