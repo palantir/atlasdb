@@ -24,7 +24,6 @@ import javax.annotation.concurrent.GuardedBy;
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
 import com.palantir.exception.PalantirInterruptedException;
-import com.palantir.util.DebugLogger;
 
 public class PersistentUpperLimit {
     private final TimestampBoundStore tbs;
