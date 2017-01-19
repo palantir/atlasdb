@@ -65,7 +65,7 @@ public abstract class KeyValueServiceInstrumentation {
         }
     }
 
-    public static KeyValueServiceInstrumentation forDatabase(String backend) {
+    public static KeyValueServiceInstrumentation forDatabase(String backend) throws IllegalArgumentException {
         if (classNames.containsKey(backend)) {
             return backendMap.get(classNames.get(backend));
         } else {
@@ -73,23 +73,23 @@ public abstract class KeyValueServiceInstrumentation {
         }
     }
 
-    private static KeyValueServiceInstrumentation forClass(String className) {
+    private static KeyValueServiceInstrumentation forClass(String className) throws IllegalArgumentException {
         if (!backendMap.containsKey(className)) {
             addBackendFromClassName(className);
         }
         return backendMap.get(className);
     }
 
-    private static void addBackendFromClassName(String className) {
+    private static void addBackendFromClassName(String className) throws IllegalArgumentException {
         try {
             Class<?> clazz = Class.forName(className);
             Constructor<?> constructor = clazz.getConstructor();
             KeyValueServiceInstrumentation instance = (KeyValueServiceInstrumentation) constructor.newInstance();
             addNewBackendType(instance);
         } catch (Exception e) {
-            log.error("Exception trying to instantiate class {}:", className, e);
-            System.exit(1);
+            throw new IllegalArgumentException("Exception trying to instantiate class " + className, e);
         }
+
     }
 
     public static Set<String> getBackends() {
