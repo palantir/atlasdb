@@ -29,6 +29,11 @@ public class RocksDbKeyValueSharedTest extends AbstractKeyValueServiceTest {
     }
 
     @Override
+    protected boolean checkAndSetSupported() {
+        return false;
+    }
+
+    @Override
     protected KeyValueService getKeyValueService() {
         KeyValueService db = RocksDbKeyValueService.create("testdb");
         cleanup(db);

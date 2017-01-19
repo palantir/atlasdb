@@ -31,6 +31,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -362,6 +363,17 @@ public class ProfilingKeyValueService implements KeyValueService {
             logCellsAndSize("putUnlessExists", tableRef.getQualifiedName(), values.keySet().size(), byteSize(values), stopwatch);
         } else {
             delegate.putUnlessExists(tableRef, values);
+        }
+    }
+
+    @Override
+    public void checkAndSet(CheckAndSetRequest request) {
+        if (log.isTraceEnabled()) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            delegate.checkAndSet(request);
+            logCellsAndSize("checkAndSet", request.table().getQualifiedName(), 1, request.newValue().length, stopwatch);
+        } else {
+            delegate.checkAndSet(request);
         }
     }
 

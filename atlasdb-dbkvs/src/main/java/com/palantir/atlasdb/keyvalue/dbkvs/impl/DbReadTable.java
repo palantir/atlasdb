@@ -16,45 +16,183 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Supplier;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Queues;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.base.ClosableIterators;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
+import com.palantir.nexus.db.sql.AgnosticLightResultSet;
+import com.palantir.nexus.db.sql.SqlConnection;
 
-public interface DbReadTable {
-    ClosableIterator<AgnosticLightResultRow> getLatestRows(
-            Iterable<byte[]> rows, ColumnSelection columns, long ts, boolean includeValue);
-    ClosableIterator<AgnosticLightResultRow> getLatestRows(
-            Map<byte[], Long> rows, ColumnSelection columns, boolean includeValue);
-    ClosableIterator<AgnosticLightResultRow> getAllRows(
-            Iterable<byte[]> rows, ColumnSelection columns, long ts, boolean includeValue);
-    ClosableIterator<AgnosticLightResultRow> getAllRows(
-            Map<byte[], Long> rows, ColumnSelection columns, boolean includeValue);
+public class DbReadTable {
+    private static final int MAX_ROW_COLUMN_RANGES_FETCH_SIZE = 1000;
 
-    ClosableIterator<AgnosticLightResultRow> getLatestCells(Iterable<Cell> cells, long ts, boolean includeValue);
-    ClosableIterator<AgnosticLightResultRow> getLatestCells(Map<Cell, Long> cells, boolean includeValue);
-    ClosableIterator<AgnosticLightResultRow> getAllCells(Iterable<Cell> cells, long ts, boolean includeValue);
-    ClosableIterator<AgnosticLightResultRow> getAllCells(Map<Cell, Long> cells, boolean includeValue);
-    ClosableIterator<AgnosticLightResultRow> getRange(RangeRequest range, long ts, int maxRows);
+    private final Supplier<SqlConnection> conns;
+    private final DbQueryFactory queryFactory;
 
-    ClosableIterator<AgnosticLightResultRow> getRowsColumnRangeCounts(
+    public DbReadTable(ConnectionSupplier conns, DbQueryFactory queryFactory) {
+        this.conns = conns;
+        this.queryFactory = queryFactory;
+    }
+
+    public ClosableIterator<AgnosticLightResultRow> getLatestRows(
+            Iterable<byte[]> rows, ColumnSelection columns, long ts, boolean includeValues) {
+        if (columns.noColumnsSelected()) {
+            return ClosableIterators.emptyImmutableClosableIterator();
+        } else if (isSingleton(rows)) {
+            byte[] row = Iterables.getOnlyElement(rows);
+            return run(queryFactory.getLatestRowQuery(row, ts, columns, includeValues));
+        } else {
+            return run(queryFactory.getLatestRowsQuery(rows, ts, columns, includeValues));
+        }
+    }
+
+    public ClosableIterator<AgnosticLightResultRow> getAllRows(
+            Iterable<byte[]> rows, ColumnSelection columns, long ts, boolean includeValues) {
+        if (columns.noColumnsSelected()) {
+            return ClosableIterators.emptyImmutableClosableIterator();
+        } else if (isSingleton(rows)) {
+            byte[] row = Iterables.getOnlyElement(rows);
+            return run(queryFactory.getAllRowQuery(row, ts, columns, includeValues));
+        } else {
+            return run(queryFactory.getAllRowsQuery(rows, ts, columns, includeValues));
+        }
+    }
+
+    public ClosableIterator<AgnosticLightResultRow> getLatestCells(Map<Cell, Long> cells, boolean includeValue) {
+        if (cells.size() == 1) {
+            Map.Entry<Cell, Long> onlyEntry = Iterables.getOnlyElement(cells.entrySet());
+            return run(queryFactory.getLatestCellQuery(onlyEntry.getKey(), onlyEntry.getValue(), includeValue));
+        } else {
+            return run(queryFactory.getLatestCellsQuery(cells.entrySet(), includeValue));
+        }
+    }
+
+    public ClosableIterator<AgnosticLightResultRow> getAllCells(Iterable<Cell> cells, long ts, boolean includeValue) {
+        if (isSingleton(cells)) {
+            Cell cell = Iterables.getOnlyElement(cells);
+            return run(queryFactory.getAllCellQuery(cell, ts, includeValue));
+        } else {
+            return run(queryFactory.getAllCellsQuery(cells, ts, includeValue));
+        }
+    }
+
+    public ClosableIterator<AgnosticLightResultRow> getRange(RangeRequest range, long ts, int maxRows) {
+        FullQuery query = queryFactory.getRangeQuery(range, ts, maxRows);
+        AgnosticLightResultSet results = conns.get().selectLightResultSetUnregisteredQuery(
+                query.getQuery(), query.getArgs());
+        results.setFetchSize(maxRows);
+        return ClosableIterators.wrap(results.iterator(), results);
+    }
+
+    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRangeCounts(
             List<byte[]> rows,
             long ts,
-            ColumnRangeSelection columnRangeSelection);
+            ColumnRangeSelection columnRangeSelection) {
+        if (rows.isEmpty()) {
+            return ClosableIterators.emptyImmutableClosableIterator();
+        } else {
+            FullQuery query = queryFactory.getRowsColumnRangeCountsQuery(rows, ts, columnRangeSelection);
+            AgnosticLightResultSet results = conns.get()
+                    .selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
+            results.setFetchSize(Math.min(rows.size(), MAX_ROW_COLUMN_RANGES_FETCH_SIZE));
+            return ClosableIterators.wrap(results.iterator(), results);
+        }
+    }
 
-    ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(
+    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(
             Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow,
-            long ts);
-    ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(
-            RowsColumnRangeBatchRequest rowsColumnRangeBatch,
-            long ts);
+            long ts) {
+        if (columnRangeSelectionsByRow.isEmpty()) {
+            return ClosableIterators.emptyImmutableClosableIterator();
+        } else {
+            FullQuery query = queryFactory.getRowsColumnRangeQuery(columnRangeSelectionsByRow, ts);
+            AgnosticLightResultSet results =
+                    conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
+            int totalSize =
+                    columnRangeSelectionsByRow.values().stream().mapToInt(
+                            BatchColumnRangeSelection::getBatchHint).sum();
+            results.setFetchSize(Math.min(totalSize, MAX_ROW_COLUMN_RANGES_FETCH_SIZE));
+            return ClosableIterators.wrap(results.iterator(), results);
+        }
+    }
 
-    boolean hasOverflowValues();
-    ClosableIterator<AgnosticLightResultRow> getOverflow(Collection<OverflowValue> overflowIds);
+    public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(
+            RowsColumnRangeBatchRequest rowsColumnRangeBatch,
+            long ts) {
+        FullQuery query = queryFactory.getRowsColumnRangeQuery(rowsColumnRangeBatch, ts);
+        AgnosticLightResultSet results =
+                conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
+        results.setFetchSize(MAX_ROW_COLUMN_RANGES_FETCH_SIZE);
+        return ClosableIterators.wrap(results.iterator(), results);
+    }
+
+    public boolean hasOverflowValues() {
+        return queryFactory.hasOverflowValues();
+    }
+
+    public ClosableIterator<AgnosticLightResultRow> getOverflow(Collection<OverflowValue> overflowIds) {
+        Collection<FullQuery> queries = queryFactory.getOverflowQueries(overflowIds);
+        if (queries.size() == 1) {
+            return run(Iterables.getOnlyElement(queries));
+        }
+        Queue<Future<ClosableIterator<AgnosticLightResultRow>>> futures = Queues.newArrayDeque();
+        for (FullQuery query : queries) {
+            futures.add(getSupplierFuture(() -> run(query)));
+        }
+        return new LazyClosableIterator<>(futures);
+    }
+
+    private static <T> Future<T> getSupplierFuture(Supplier<T> supplier) {
+        return new Future<T>() {
+            @Override
+            public boolean cancel(boolean mayInterruptIfRunning) {
+                return false;
+            }
+            @Override
+            public boolean isCancelled() {
+                return false;
+            }
+            @Override
+            public boolean isDone() {
+                return true;
+            }
+            @Override
+            public T get() {
+                return supplier.get();
+            }
+            @Override
+            public T get(long timeout, TimeUnit unit) {
+                return get();
+            }
+        };
+    }
+
+    private boolean isSingleton(Iterable<?> iterable) {
+        Iterator<?> iter = iterable.iterator();
+        if (!iter.hasNext()) {
+            return false;
+        }
+        iter.next();
+        return !iter.hasNext();
+    }
+
+    private ClosableIterator<AgnosticLightResultRow> run(FullQuery query) {
+        AgnosticLightResultSet results = conns.get().selectLightResultSetUnregisteredQuery(
+                query.getQuery(), query.getArgs());
+        return ClosableIterators.wrap(results.iterator(), results);
+    }
 }

@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Generated;
@@ -59,6 +60,9 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.stream.AbstractPersistentStreamStore;
+import com.palantir.atlasdb.stream.BlockConsumingInputStream;
+import com.palantir.atlasdb.stream.BlockGetter;
+import com.palantir.atlasdb.stream.BlockLoader;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.stream.StreamCleanedException;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -172,6 +176,8 @@ public class StreamStoreRenderer {
                         loadStreamsWithCompression();
                         line();
                         tryWriteStreamToFile();
+                        line();
+                        makeStreamUsingTransaction();
                         line();
                     }
                     getMetadata();
@@ -571,10 +577,27 @@ public class StreamStoreRenderer {
             private void tryWriteStreamToFile() {
                 line("@Override");
                 line("protected void tryWriteStreamToFile(Transaction transaction, ", StreamId, " id, StreamMetadata metadata, FileOutputStream fos) throws IOException {"); {
-                    line("try (InputStream blockStream = makeStream(id, metadata);");
+                    line("try (InputStream blockStream = makeStreamUsingTransaction(transaction, id, metadata);");
                     line("        InputStream decompressingStream = new LZ4BlockInputStream(blockStream);");
                     line("        OutputStream fileStream = fos;) {"); {
                         line("ByteStreams.copy(decompressingStream, fileStream);");
+                    } line("}");
+                } line("}");
+            }
+
+            private void makeStreamUsingTransaction() {
+                line("private InputStream makeStreamUsingTransaction(Transaction parent, ", StreamId, " id, StreamMetadata metadata) {"); {
+                    line("BiConsumer<Long, OutputStream> singleBlockLoader = (index, destination) ->");
+                    line("        loadSingleBlockToOutputStream(parent, id, index, destination);");
+                    line();
+                    line("BlockGetter pageRefresher = new BlockLoader(singleBlockLoader, BLOCK_SIZE_IN_BYTES);");
+                    line("long totalBlocks = getNumberOfBlocksFromMetadata(metadata);");
+                    line("int blocksInMemory = getNumberOfBlocksThatFitInMemory();");
+                    line();
+                    line("try {"); {
+                        line("return BlockConsumingInputStream.create(pageRefresher, totalBlocks, blocksInMemory);");
+                    } line("} catch(IOException e) {"); {
+                        line("throw Throwables.throwUncheckedException(e);");
                     } line("}");
                 } line("}");
             }
@@ -736,6 +759,7 @@ public class StreamStoreRenderer {
         Entry.class,
         Set.class,
         TimeUnit.class,
+        BiConsumer.class,
         Logger.class,
         LoggerFactory.class,
         Preconditions.class,
@@ -773,6 +797,9 @@ public class StreamStoreRenderer {
         TransactionFailedRetriableException.class,
         StreamCleanedException.class,
         AbstractPersistentStreamStore.class,
+        BlockConsumingInputStream.class,
+        BlockGetter.class,
+        BlockLoader.class,
         List.class,
         CheckForNull.class,
         Generated.class,

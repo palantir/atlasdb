@@ -71,7 +71,7 @@ public class OracleDbTableFactory implements DbTableFactory {
             default:
                 throw new EnumConstantNotPresentException(TableValueStyle.class, tableValueStyle.name());
         }
-        return new UnbatchedDbReadTable(connectionSupplier, queryFactory);
+        return new DbReadTable(connectionSupplier, queryFactory);
     }
 
     private String getTableName(ConnectionSupplier connectionSupplier, TableReference tableRef) {
