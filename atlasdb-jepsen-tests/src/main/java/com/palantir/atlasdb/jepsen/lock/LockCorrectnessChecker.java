@@ -60,12 +60,13 @@ import com.palantir.util.Pair;
  * a is the InvokeEvent.time() of the lock request, and
  * b is its OkEvent.time()
  *
- * We mantain a set L of all intervals where we know there was a lock, and a separate list U of all intervals where
- * there was a lock at some point. In the latter list, we purposefully do not merge intervals, to ensure no information
- * is lost.
+ * We mantain a map locksHeld mapping each lock name to the set of all intervals where we know the lock was granted to
+ * a process, and a separate list map locksAtSomePoint tracking all intervals during which the lock was granted at some
+ * point. Note that in the latter list, we purposefully do not merge intervals, to ensure no loss of information.
  *
- * To verify locks were correctly granted, it is necessary and sufficient to verify that none of the uncertain
- * intervals in U are fully covered by the intervals in the set of lock intervals L.
+ * To verify locks were correctly granted, it is necessary and sufficient to verify that, for each lockName, none of
+ * the uncertain intervals in locksAtSomePoint.get(lockName) are fully covered by the intervals in the set of lock
+ * intervals locksHeld.get(lockName).
  */
 public class LockCorrectnessChecker implements Checker {
 
@@ -92,7 +93,7 @@ public class LockCorrectnessChecker implements Checker {
         private final ArrayList<String> allLockNames = new ArrayList<>();
 
         private final List<Event> errors = new ArrayList<>();
-        private final Map<Integer, String> resourceName = new HashMap<>();
+        private final Map<Integer, String> processLockName = new HashMap<>();
 
         @Override
         public void visit(InfoEvent event) {
@@ -102,7 +103,7 @@ public class LockCorrectnessChecker implements Checker {
         public void visit(InvokeEvent event) {
             Integer process = event.process();
             String lockName = event.value();
-            resourceName.put(process, lockName);
+            processLockName.put(process, lockName);
 
             pendingForProcessAndLock.put(new Pair(process, lockName), event);
             if (!allLockNames.contains(lockName)) {
@@ -115,7 +116,7 @@ public class LockCorrectnessChecker implements Checker {
         @Override
         public void visit(OkEvent event) {
             Integer process = event.process();
-            String lockName = resourceName.get(process);
+            String lockName = processLockName.get(process);
             Pair processLock = new Pair(process, lockName);
             InvokeEvent invokeEvent = pendingForProcessAndLock.get(processLock);
 

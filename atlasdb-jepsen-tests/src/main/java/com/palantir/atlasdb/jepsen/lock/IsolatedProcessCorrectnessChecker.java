@@ -56,7 +56,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
         private final Set<Pair<Integer, String>> refreshAllowed = new HashSet<>();
         private final Map<Pair<Integer, String>, OkEvent> lastEvent = new HashMap<>();
         private final List<Event> errors = new ArrayList<>();
-        private final Map<Integer, String> lockNameFromPreviousInvoke = new HashMap<>();
+        private final Map<Integer, InvokeEvent> previousInvoke = new HashMap<>();
 
         @Override
         public void visit(InfoEvent event) {
@@ -64,7 +64,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
 
         @Override
         public void visit(InvokeEvent event) {
-            lockNameFromPreviousInvoke.put(event.process(), event.value());
+            previousInvoke.put(event.process(), event);
         }
 
         /**
@@ -83,7 +83,7 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
         @Override
         public void visit(OkEvent event) {
             int currentProcess = event.process();
-            String lockName = lockNameFromPreviousInvoke.get(currentProcess);
+            String lockName = previousInvoke.get(currentProcess).value();
             Pair processLock = new Pair(currentProcess, lockName);
 
             switch (event.function()) {
@@ -110,18 +110,24 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
             lastEvent.put(processLock, event);
         }
 
+        @Override
+        public void visit(FailEvent event) {
+        }
+
         private void verifyRefreshAllowed(OkEvent event, Pair processLock) {
             if (EventUtils.isSuccessful(event)) {
                 if (!refreshAllowed.contains(processLock)) {
-                    errors.add(lastEvent.get(processLock));
+                    Event previousEvent;
+                    if (lastEvent.containsKey(processLock)) {
+                        previousEvent = lastEvent.get(processLock);
+                    } else {
+                        previousEvent = previousInvoke.get(event.process());
+                    }
+                    errors.add(previousEvent);
                     errors.add(event);
                     refreshAllowed.add(processLock);
                 }
             }
-        }
-
-        @Override
-        public void visit(FailEvent event) {
         }
 
         public boolean valid() {

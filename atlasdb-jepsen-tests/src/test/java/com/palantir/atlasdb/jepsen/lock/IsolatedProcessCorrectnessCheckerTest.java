@@ -25,7 +25,7 @@ import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
 
 public class IsolatedProcessCorrectnessCheckerTest {
-    private static final int process1 = 1;
+    private static final int PROCESS_1 = 1;
 
     @Test
     public void shouldSucceedOnNoEvents() {
@@ -37,10 +37,10 @@ public class IsolatedProcessCorrectnessCheckerTest {
     @Test
     public void onlyLocksSucceeds() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeLock(0, process1))
-                .add(TestEventUtils.lockSuccess(1, process1))
-                .add(TestEventUtils.invokeLock(2, process1, "alternate_lock"))
-                .add(TestEventUtils.lockFailure(3, process1))
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeLock(2, PROCESS_1, "alternate_lock"))
+                .add(TestEventUtils.lockFailure(3, PROCESS_1))
                 .build();
         CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
         assertThat(result.valid()).isTrue();
@@ -50,36 +50,49 @@ public class IsolatedProcessCorrectnessCheckerTest {
     @Test
     public void cannotRefreshWithoutLock() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeRefresh(0, process1))
-                .add(TestEventUtils.refreshSuccess(1, process1))
-                .add(TestEventUtils.invokeRefresh(2, process1, "alternate_lock"))
-                .add(TestEventUtils.refreshFailure(3, process1))
+                .add(TestEventUtils.invokeRefresh(0, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(2, PROCESS_1, "alternate_lock"))
+                .add(TestEventUtils.refreshFailure(3, PROCESS_1))
                 .build();
         CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
         assertThat(result.valid()).isFalse();
-        assertThat(result.errors()).containsExactly(eventList.get(1), eventList.get(1));
+        assertThat(result.errors()).containsExactly(eventList.get(0), eventList.get(1));
+    }
+
+    @Test
+    public void cannotRefreshWithWrongLock() {
+        ImmutableList<Event> eventList = ImmutableList.<Event>builder()
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(2, PROCESS_1, "alternate_lock"))
+                .add(TestEventUtils.refreshSuccess(3, PROCESS_1))
+                .build();
+        CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).containsExactly(eventList.get(2), eventList.get(3));
     }
 
     @Test
     public void cannotUnlockWithoutLock() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeUnlock(0, process1))
-                .add(TestEventUtils.unlockSuccess(1, process1))
-                .add(TestEventUtils.invokeUnlock(2, process1, "alternate_lock"))
-                .add(TestEventUtils.unlockFailure(3, process1))
+                .add(TestEventUtils.invokeUnlock(0, PROCESS_1))
+                .add(TestEventUtils.unlockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeUnlock(2, PROCESS_1, "alternate_lock"))
+                .add(TestEventUtils.unlockFailure(3, PROCESS_1))
                 .build();
         CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
         assertThat(result.valid()).isFalse();
-        assertThat(result.errors()).containsExactly(eventList.get(1), eventList.get(1));
+        assertThat(result.errors()).containsExactly(eventList.get(0), eventList.get(1));
     }
 
     @Test
     public void canRefreshAfterLockSuccess() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeLock(0, process1))
-                .add(TestEventUtils.lockSuccess(1, process1))
-                .add(TestEventUtils.invokeRefresh(2, process1))
-                .add(TestEventUtils.refreshSuccess(3, process1))
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(2, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(3, PROCESS_1))
                 .build();
         CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
         assertThat(result.valid()).isTrue();
@@ -89,10 +102,10 @@ public class IsolatedProcessCorrectnessCheckerTest {
     @Test
     public void cannotRefreshAfterLockFailure() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeLock(0, process1))
-                .add(TestEventUtils.lockFailure(1, process1))
-                .add(TestEventUtils.invokeRefresh(2, process1))
-                .add(TestEventUtils.refreshSuccess(3, process1))
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockFailure(1, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(2, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(3, PROCESS_1))
                 .build();
         CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
         assertThat(result.valid()).isFalse();
@@ -102,12 +115,12 @@ public class IsolatedProcessCorrectnessCheckerTest {
     @Test
     public void cannotRefreshAfterUnlockSuccess() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeLock(0, process1))
-                .add(TestEventUtils.lockSuccess(1, process1))
-                .add(TestEventUtils.invokeUnlock(2, process1))
-                .add(TestEventUtils.unlockSuccess(3, process1))
-                .add(TestEventUtils.invokeRefresh(4, process1))
-                .add(TestEventUtils.refreshSuccess(5, process1))
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeUnlock(2, PROCESS_1))
+                .add(TestEventUtils.unlockSuccess(3, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(4, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(5, PROCESS_1))
                 .build();
         CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
         assertThat(result.valid()).isFalse();
@@ -117,12 +130,12 @@ public class IsolatedProcessCorrectnessCheckerTest {
     @Test
     public void cannotRefreshAfterUnlockFailure() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeLock(0, process1))
-                .add(TestEventUtils.lockSuccess(1, process1))
-                .add(TestEventUtils.invokeUnlock(2, process1))
-                .add(TestEventUtils.unlockFailure(3, process1))
-                .add(TestEventUtils.invokeRefresh(4, process1))
-                .add(TestEventUtils.refreshSuccess(5, process1))
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeUnlock(2, PROCESS_1))
+                .add(TestEventUtils.unlockFailure(3, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(4, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(5, PROCESS_1))
                 .build();
         CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
         assertThat(result.valid()).isFalse();
@@ -132,12 +145,12 @@ public class IsolatedProcessCorrectnessCheckerTest {
     @Test
     public void canRefreshAfterRefreshSuccess() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeLock(0, process1))
-                .add(TestEventUtils.lockSuccess(1, process1))
-                .add(TestEventUtils.invokeRefresh(2, process1))
-                .add(TestEventUtils.refreshSuccess(3, process1))
-                .add(TestEventUtils.invokeRefresh(4, process1))
-                .add(TestEventUtils.refreshSuccess(5, process1))
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(2, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(3, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(4, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(5, PROCESS_1))
                 .build();
         CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
         assertThat(result.valid()).isTrue();
@@ -147,12 +160,12 @@ public class IsolatedProcessCorrectnessCheckerTest {
     @Test
     public void cannotRefreshAfterRefreshFailure() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeLock(0, process1))
-                .add(TestEventUtils.lockSuccess(1, process1))
-                .add(TestEventUtils.invokeRefresh(2, process1))
-                .add(TestEventUtils.refreshFailure(3, process1))
-                .add(TestEventUtils.invokeRefresh(4, process1))
-                .add(TestEventUtils.refreshSuccess(5, process1))
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(2, PROCESS_1))
+                .add(TestEventUtils.refreshFailure(3, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(4, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(5, PROCESS_1))
                 .build();
         CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
         assertThat(result.valid()).isFalse();
@@ -162,12 +175,12 @@ public class IsolatedProcessCorrectnessCheckerTest {
     @Test
     public void cannotUnlockAfterRefreshFailure() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeLock(0, process1))
-                .add(TestEventUtils.lockSuccess(1, process1))
-                .add(TestEventUtils.invokeRefresh(2, process1))
-                .add(TestEventUtils.refreshFailure(3, process1))
-                .add(TestEventUtils.invokeUnlock(4, process1))
-                .add(TestEventUtils.unlockSuccess(5, process1))
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(2, PROCESS_1))
+                .add(TestEventUtils.refreshFailure(3, PROCESS_1))
+                .add(TestEventUtils.invokeUnlock(4, PROCESS_1))
+                .add(TestEventUtils.unlockSuccess(5, PROCESS_1))
                 .build();
         CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
         assertThat(result.valid()).isFalse();
@@ -177,12 +190,12 @@ public class IsolatedProcessCorrectnessCheckerTest {
     @Test
     public void cannotUnlockTwice() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeLock(0, process1))
-                .add(TestEventUtils.lockSuccess(1, process1))
-                .add(TestEventUtils.invokeUnlock(2, process1))
-                .add(TestEventUtils.unlockSuccess(3, process1))
-                .add(TestEventUtils.invokeUnlock(4, process1))
-                .add(TestEventUtils.unlockSuccess(5, process1))
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeUnlock(2, PROCESS_1))
+                .add(TestEventUtils.unlockSuccess(3, PROCESS_1))
+                .add(TestEventUtils.invokeUnlock(4, PROCESS_1))
+                .add(TestEventUtils.unlockSuccess(5, PROCESS_1))
                 .build();
         CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
         assertThat(result.valid()).isFalse();
@@ -192,14 +205,14 @@ public class IsolatedProcessCorrectnessCheckerTest {
     @Test
     public void canResetLockAfterUnlock() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeLock(0, process1))
-                .add(TestEventUtils.lockSuccess(1, process1))
-                .add(TestEventUtils.invokeUnlock(2, process1))
-                .add(TestEventUtils.unlockSuccess(3, process1))
-                .add(TestEventUtils.invokeLock(4, process1))
-                .add(TestEventUtils.lockSuccess(5, process1))
-                .add(TestEventUtils.invokeRefresh(6, process1))
-                .add(TestEventUtils.refreshSuccess(7, process1))
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeUnlock(2, PROCESS_1))
+                .add(TestEventUtils.unlockSuccess(3, PROCESS_1))
+                .add(TestEventUtils.invokeLock(4, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(5, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(6, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(7, PROCESS_1))
                 .build();
         CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
         assertThat(result.valid()).isTrue();

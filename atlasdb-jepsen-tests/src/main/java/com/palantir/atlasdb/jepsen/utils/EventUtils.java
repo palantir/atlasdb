@@ -24,7 +24,7 @@ public final class EventUtils {
     }
 
     public static boolean isFailure(OkEvent event) {
-        switch(event.function()){
+        switch (event.function()) {
             case RequestType.UNLOCK:
                 return event.value().equals(OkEvent.UNLOCK_FAILURE);
             case RequestType.LOCK:

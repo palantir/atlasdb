@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
-import com.palantir.atlasdb.jepsen.lock.LockCorrectnessChecker;
 
 import clojure.lang.Keyword;
 
