@@ -88,6 +88,42 @@ public class LockCorrectnessCheckerTest {
     }
 
     @Test
+    public void cannotRefreshWhileAnotherProcessHasLockWithDoubleRefresh() {
+        ImmutableList<Event> eventList = ImmutableList.<Event>builder()
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeLock(2, PROCESS_2))
+                .add(TestEventUtils.invokeRefresh(3, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(4, PROCESS_2))
+                .add(TestEventUtils.refreshSuccess(4, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(5, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(6, PROCESS_1))
+                .build();
+        CheckerResult result = runLockCorrectnessChecker(eventList);
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).containsExactly(eventList.get(2), eventList.get(4));
+    }
+
+    @Test
+    public void cannotRefreshWhileLockHeldByOneOfTwoOtherProcesses() {
+        ImmutableList<Event> eventList = ImmutableList.<Event>builder()
+                .add(TestEventUtils.invokeLock(0, PROCESS_2))
+                .add(TestEventUtils.invokeLock(1, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(2, PROCESS_1))
+                .add(TestEventUtils.invokeLock(3, PROCESS_3))
+                .add(TestEventUtils.lockSuccess(4, PROCESS_2))
+                .add(TestEventUtils.invokeRefresh(5, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(6, PROCESS_3))
+                .add(TestEventUtils.refreshSuccess(7, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(8, PROCESS_2))
+                .add(TestEventUtils.refreshSuccess(9, PROCESS_2))
+                .build();
+        CheckerResult result = runLockCorrectnessChecker(eventList);
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).containsExactly(eventList.get(3), eventList.get(6));
+    }
+
+    @Test
     public void cannotUnlockWhenAnotherProcessHasLock() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
                 .add(TestEventUtils.invokeLock(0, PROCESS_1))
