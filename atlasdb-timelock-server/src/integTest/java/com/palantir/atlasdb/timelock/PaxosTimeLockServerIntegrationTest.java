@@ -213,24 +213,21 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static RemoteLockService getLockService(String client) {
-        return AtlasDbHttpClients.createProxy(
-                NO_SSL,
-                String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client),
-                RemoteLockService.class);
+        return getProxyForService(client, RemoteLockService.class);
     }
 
     private static TimestampService getTimestampService(String client) {
-        return AtlasDbHttpClients.createProxy(
-                NO_SSL,
-                String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client),
-                TimestampService.class);
+        return getProxyForService(client, TimestampService.class);
     }
 
-    // TODO jkong Refactor the 3 methods to one
     private static TimestampManagementService getTimestampManagementService(String client) {
+        return getProxyForService(client, TimestampManagementService.class);
+    }
+
+    private static <T> T getProxyForService(String client, Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
                 NO_SSL,
                 String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client),
-                TimestampManagementService.class);
+                clazz);
     }
 }
