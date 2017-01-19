@@ -39,6 +39,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.RemoteLockService;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 import io.dropwizard.testing.ResourceHelpers;
@@ -50,6 +51,9 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final String CLIENT_2 = "test2";
     private static final String NONEXISTENT_CLIENT = "nonexistent";
     private static final String INVALID_CLIENT = "test2\b";
+
+    private static final long ONE_MILLION = 1000000;
+    private static final int FORTY_TWO = 42;
 
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
     private static final String LOCK_CLIENT_NAME = "lock-client-name";
@@ -143,6 +147,30 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
+    public void timestampServiceRespectsTimestampManagementService() {
+        TimestampService timestampService = getTimestampService(CLIENT_1);
+        TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
+
+        long newTimestamp = timestampService.getFreshTimestamp() + ONE_MILLION;
+        timestampManagementService.fastForwardTimestamp(newTimestamp);
+        assertThat(timestampService.getFreshTimestamp()).isGreaterThan(newTimestamp);
+    }
+
+    @Test
+    public void timestampManagementServiceRespectsTimestampService() {
+        TimestampService timestampService = getTimestampService(CLIENT_1);
+        TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
+
+        long newTimestamp = timestampService.getFreshTimestamp() + ONE_MILLION;
+        timestampManagementService.fastForwardTimestamp(newTimestamp);
+        for (int i = 0; i < FORTY_TWO; i++) {
+            timestampService.getFreshTimestamp();
+        }
+        timestampManagementService.fastForwardTimestamp(newTimestamp + 1);
+        assertThat(timestampService.getFreshTimestamp()).isGreaterThan(newTimestamp + FORTY_TWO);
+    }
+
+    @Test
     public void returnsNotFoundOnQueryingNonexistentClient() {
         RemoteLockService lockService = getLockService(NONEXISTENT_CLIENT);
         assertThatThrownBy(lockService::currentTimeMillis)
@@ -174,5 +202,13 @@ public class PaxosTimeLockServerIntegrationTest {
                 NO_SSL,
                 String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client),
                 TimestampService.class);
+    }
+
+    // TODO jkong Refactor the 3 methods to one
+    private static TimestampManagementService getTimestampManagementService(String client) {
+        return AtlasDbHttpClients.createProxy(
+                NO_SSL,
+                String.format("http://localhost:%d/%s", TIMELOCK_SERVER_HOLDER.getTimelockPort(), client),
+                TimestampManagementService.class);
     }
 }

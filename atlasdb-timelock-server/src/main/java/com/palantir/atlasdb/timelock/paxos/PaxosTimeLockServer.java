@@ -49,8 +49,6 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.remoting.ssl.SslSocketFactories;
 import com.palantir.timestamp.PersistentTimestampService;
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
 
 import io.dropwizard.setup.Environment;
 
@@ -136,20 +134,15 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
     @Override
     public TimeLockServices createInvalidatingTimeLockServices(String client) {
-        TimestampService timestampService = createPaxosBackedTimestampService(client);
+        ManagedTimestampService timestampService = createPaxosBackedTimestampService(client);
         LockService lockService = AwaitingLeadershipProxy.newProxyInstance(
                 LockService.class,
                 LockServiceImpl::create,
                 leaderElectionService);
-        TimestampManagementService managementService = currentTimestamp -> {
-            throw new UnsupportedOperationException(
-                    "Paxos timestamp server doesn't currently support fast forward");
-        };
-
-        return TimeLockServices.create(timestampService, lockService, managementService);
+        return TimeLockServices.create(timestampService, lockService, timestampService);
     }
 
-    private TimestampService createPaxosBackedTimestampService(String client) {
+    private ManagedTimestampService createPaxosBackedTimestampService(String client) {
         paxosResource.addClient(client);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
@@ -177,14 +170,19 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 executor);
 
         return AwaitingLeadershipProxy.newProxyInstance(
-                TimestampService.class,
-                () -> PersistentTimestampService.create(
-                        new PaxosTimestampBoundStore(
-                                proposer,
-                                paxosResource.getPaxosLearner(client),
-                                ImmutableList.copyOf(acceptors),
-                                ImmutableList.copyOf(learners),
-                                paxosConfiguration.maximumWaitBeforeProposalMs())),
+                ManagedTimestampService.class,
+                () -> {
+                    PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(
+                            new PaxosTimestampBoundStore(
+                                    proposer,
+                                    paxosResource.getPaxosLearner(client),
+                                    ImmutableList.copyOf(acceptors),
+                                    ImmutableList.copyOf(learners),
+                                    paxosConfiguration.maximumWaitBeforeProposalMs()));
+                    return new DelegatingManagedTimestampService(
+                            persistentTimestampService,
+                            persistentTimestampService);
+                },
                 leaderElectionService);
     }
 
