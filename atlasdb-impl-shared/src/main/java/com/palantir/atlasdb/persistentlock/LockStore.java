@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -127,7 +128,8 @@ public final class LockStore {
         }
     }
 
-    public Set<LockEntry> allLockEntries() {
+    @VisibleForTesting
+    Set<LockEntry> allLockEntries() {
         Set<RowResult<Value>> results = ImmutableSet.copyOf(keyValueService.getRange(
                 AtlasDbConstants.PERSISTED_LOCKS_TABLE,
                 RangeRequest.all(),
