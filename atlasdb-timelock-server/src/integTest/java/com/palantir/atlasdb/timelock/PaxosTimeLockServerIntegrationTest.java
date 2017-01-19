@@ -53,6 +53,7 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final String INVALID_CLIENT = "test2\b";
 
     private static final long ONE_MILLION = 1000000;
+    private static final long TWO_MILLION = 2000000;
     private static final int FORTY_TWO = 42;
 
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.absent();
@@ -168,6 +169,27 @@ public class PaxosTimeLockServerIntegrationTest {
         }
         timestampManagementService.fastForwardTimestamp(newTimestamp + 1);
         assertThat(timestampService.getFreshTimestamp()).isGreaterThan(newTimestamp + FORTY_TWO);
+    }
+
+    @Test
+    public void fastForwardRespectsDistinctClients() {
+        TimestampService timestampService = getTimestampService(CLIENT_1);
+        TimestampManagementService differentClientTimestampManagementService = getTimestampManagementService(CLIENT_2);
+
+        long currentTimestamp = timestampService.getFreshTimestamp();
+        differentClientTimestampManagementService.fastForwardTimestamp(currentTimestamp + ONE_MILLION);
+        assertEquals(currentTimestamp + 1, timestampService.getFreshTimestamp());
+    }
+
+    @Test
+    public void fastForwardToThePastDoesNothing() {
+        TimestampService timestampService = getTimestampService(CLIENT_1);
+        TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
+
+        long currentTimestamp = timestampService.getFreshTimestamp();
+        timestampManagementService.fastForwardTimestamp(currentTimestamp + TWO_MILLION);
+        timestampManagementService.fastForwardTimestamp(currentTimestamp + ONE_MILLION);
+        assertThat(timestampService.getFreshTimestamp()).isGreaterThan(currentTimestamp + TWO_MILLION);
     }
 
     @Test
