@@ -20,25 +20,27 @@ import java.util.Set;
 import com.codahale.metrics.health.HealthCheck;
 import com.palantir.leader.PingableLeader;
 
-public class LeaderPingQuorumHealthCheck extends HealthCheck {
+public class LeaderPingHealthCheck extends HealthCheck {
     private Set<PingableLeader> leaders;
 
-    public LeaderPingQuorumHealthCheck(Set<PingableLeader> leaders) {
+    public LeaderPingHealthCheck(Set<PingableLeader> leaders) {
         this.leaders = leaders;
     }
 
     @Override
     protected Result check() throws Exception {
-        long successfulPingCount = leaders.stream()
+        long numLeaders = leaders.stream()
                 .map(PingableLeader::ping)
                 .filter(pingResult -> pingResult == Boolean.TRUE)
                 .count();
 
-        long quorumSize = leaders.size() / 2 + 1;
-        if (successfulPingCount >= quorumSize) {
-            return Result.healthy("The server could successfully ping a quorum of servers.");
+        if (numLeaders == 1) {
+            return Result.healthy("There is exactly one leader in the Paxos cluster.");
+        } else if (numLeaders == 0) {
+            return Result.unhealthy("There are no leaders in the Paxos cluster.");
         } else {
-            return Result.unhealthy("The server could not successfully ping a quorum of servers.");
+            return Result.unhealthy(
+                    String.format("There are multiple leaders in the Paxos cluster. Found %s leaders", numLeaders));
         }
     }
 }

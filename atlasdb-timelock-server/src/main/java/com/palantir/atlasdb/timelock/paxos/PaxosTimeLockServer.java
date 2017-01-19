@@ -78,6 +78,8 @@ public class PaxosTimeLockServer implements TimeLockServer {
         optionalSecurity = constructOptionalSslSocketFactory(paxosConfiguration);
 
         registerLeaderElectionService(configuration);
+
+        registerHealthCheck(configuration);
     }
 
     private void registerPaxosResource() {
@@ -106,15 +108,13 @@ public class PaxosTimeLockServer implements TimeLockServer {
                 localPaxosServices.ourAcceptor(),
                 localPaxosServices.ourLearner()));
         environment.jersey().register(new NotCurrentLeaderExceptionMapper());
-
-        registerHealthCheck(configuration);
     }
 
     private void registerHealthCheck(TimeLockServerConfiguration configuration) {
         Set<PingableLeader> pingableLeaders = Leaders.generatePingables(
                 getAllServerPaths(configuration),
                 TransactionManagers.createSslSocketFactory(paxosConfiguration.sslConfiguration())).keySet();
-        environment.healthChecks().register("leader-ping-quorum", new LeaderPingQuorumHealthCheck(pingableLeaders));
+        environment.healthChecks().register("leader-ping", new LeaderPingHealthCheck(pingableLeaders));
     }
 
     private LeaderConfig getLeaderConfig(TimeLockServerConfiguration configuration) {
