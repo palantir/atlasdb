@@ -15,9 +15,14 @@
  */
 package com.palantir.atlasdb.persistentlock;
 
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -28,7 +33,28 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 
+/**
+ * LockStore manages {@link LockEntry} objects, specifically for the "Deletion Lock" (to be taken out by backup and
+ * sweep).
+ *
+ * The PERSISTED_LOCKS_TABLE contains exactly one element, either LOCK_OPEN or (lock taken for some REASON), giving
+ * rise to a state machine where we hop between the central "OPEN" state and some "taken because REASON" state:
+ *
+ * "taken for SWEEP (uuid1)" <- - - - -> OPEN < - - - -> "taken for BACKUP (uuid2)"
+ *
+ * acquireLock(REASON) attempts to move the lock state from "OPEN" to "taken because REASON", returning a LockEntry
+ * that holds a unique identifier for that occasion of taking the lock.
+ *
+ * releaseLock(LockEntry) attempts to move the state from "taken because REASON" to "OPEN", but only succeeds if the
+ * LockEntry currently stored matches the one passed in, ensuring that nobody released the lock when we weren't looking.
+ *
+ * Upon creating the PERSISTED_LOCKS_TABLE, we attempt to enter this state machine by populating the table.
+ * If we fail to do this, it's because someone else also created the table, and populated it before we did.
+ * This is actually OK - all we care about is that we're in the state machine _somewhere_.
+ */
 public final class LockStore {
+    private static final Logger log = LoggerFactory.getLogger(LockStore.class);
+
     private static final String ROW_NAME = "DeletionLock";
     private final KeyValueService keyValueService;
 
@@ -45,16 +71,29 @@ public final class LockStore {
     public static LockStore create(KeyValueService kvs) {
         kvs.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         LockStore lockStore = new LockStore(kvs);
+        ensurePersistedLocksTableIsPopulated(kvs, lockStore);
+        return lockStore;
+    }
 
-        // Populate if empty
+    private static void ensurePersistedLocksTableIsPopulated(KeyValueService kvs, LockStore lockStore) {
         if (lockStore.allLockEntries().isEmpty()) {
             CheckAndSetRequest request = CheckAndSetRequest.newCell(AtlasDbConstants.PERSISTED_LOCKS_TABLE,
                     LOCK_OPEN.cell(),
                     LOCK_OPEN.value());
-            kvs.checkAndSet(request);
+            try {
+                kvs.checkAndSet(request);
+            } catch (CheckAndSetException e) {
+                // This can happen if multiple LockStores are started at once. We don't actually mind.
+                // All we care about is that we're in the state machine of "LOCK_OPEN"/"LOCK_TAKEN".
+                // It still might be interesting, so we'll log it.
+                List<String> values = e.getActualValues().stream()
+                        .map(v -> new String(v, StandardCharsets.UTF_8))
+                        .collect(Collectors.toList());
+                log.warn("Encountered a CheckAndSetException when creating the LockStore. This means that two "
+                        + "LockStore objects were created near-simultaneously, and is probably not a problem. "
+                        + "For the record, we observed these values: {}", values);
+            }
         }
-
-        return lockStore;
     }
 
     public LockEntry acquireLock(String reason) throws PersistentLockIsTakenException {
