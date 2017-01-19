@@ -78,22 +78,32 @@ public final class LockStore {
 
     private static void ensurePersistedLocksTableIsPopulated(KeyValueService kvs, LockStore lockStore) {
         if (lockStore.allLockEntries().isEmpty()) {
-            CheckAndSetRequest request = CheckAndSetRequest.newCell(AtlasDbConstants.PERSISTED_LOCKS_TABLE,
-                    LOCK_OPEN.cell(),
-                    LOCK_OPEN.value());
-            try {
-                kvs.checkAndSet(request);
-            } catch (CheckAndSetException e) {
-                // This can happen if multiple LockStores are started at once. We don't actually mind.
-                // All we care about is that we're in the state machine of "LOCK_OPEN"/"LOCK_TAKEN".
-                // It still might be interesting, so we'll log it.
-                List<String> values = e.getActualValues().stream()
-                        .map(v -> new String(v, StandardCharsets.UTF_8))
-                        .collect(Collectors.toList());
-                log.warn("Encountered a CheckAndSetException when creating the LockStore. This means that two "
-                        + "LockStore objects were created near-simultaneously, and is probably not a problem. "
-                        + "For the record, we observed these values: {}", values);
-            }
+            populateTable(kvs);
+        }
+    }
+
+    @VisibleForTesting
+    void populateTable() {
+        populateTable(keyValueService);
+    }
+
+    private static void populateTable(KeyValueService kvs) {
+        CheckAndSetRequest request = CheckAndSetRequest.newCell(
+                AtlasDbConstants.PERSISTED_LOCKS_TABLE,
+                LOCK_OPEN.cell(),
+                LOCK_OPEN.value());
+        try {
+            kvs.checkAndSet(request);
+        } catch (CheckAndSetException e) {
+            // This can happen if multiple LockStores are started at once. We don't actually mind.
+            // All we care about is that we're in the state machine of "LOCK_OPEN"/"LOCK_TAKEN".
+            // It still might be interesting, so we'll log it.
+            List<String> values = e.getActualValues().stream()
+                    .map(v -> new String(v, StandardCharsets.UTF_8))
+                    .collect(Collectors.toList());
+            log.warn("Encountered a CheckAndSetException when creating the LockStore. This means that two "
+                    + "LockStore objects were created near-simultaneously, and is probably not a problem. "
+                    + "For the record, we observed these values: {}", values);
         }
     }
 

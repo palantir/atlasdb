@@ -18,8 +18,10 @@ package com.palantir.atlasdb.persistentlock;
 import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
@@ -28,14 +30,15 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
 public class LockStoreTest {
     private static final String REASON = "reason";
 
-    private KeyValueService kvs;
+    private InMemoryKeyValueService kvs;
     private LockStore lockStore;
 
     @Before
@@ -55,6 +58,14 @@ public class LockStoreTest {
         Set<LockEntry> lockEntries = lockStore.allLockEntries();
 
         assertThat(lockEntries, contains(LockStore.LOCK_OPEN));
+    }
+
+    @Test
+    public void noErrorIfLockOpenedWhileCreatingTable() {
+        doThrow(new CheckAndSetException("foo", null, null, ImmutableList.of())).when(kvs).checkAndSet(anyObject());
+
+        System.out.println("test");
+        lockStore.populateTable(); // should not throw
     }
 
     @Test
