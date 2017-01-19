@@ -212,6 +212,19 @@ public class IsolatedProcessCorrectnessCheckerTest {
         assertNoError(eventList);
     }
 
+    @Test
+    public void invalidRefreshResetsState() {
+        ImmutableList<Event> eventList = ImmutableList.<Event>builder()
+                .add(TestEventUtils.invokeRefresh(0, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(3, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(4, PROCESS_1))
+                .build();
+        CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).containsExactly(eventList.get(0), eventList.get(1));
+    }
+
     private static CheckerResult runIsolatedProcessRefreshSuccessChecker(List<Event> events) {
         IsolatedProcessCorrectnessChecker isolatedProcessCorrectnessChecker = new IsolatedProcessCorrectnessChecker();
         return isolatedProcessCorrectnessChecker.check(events);

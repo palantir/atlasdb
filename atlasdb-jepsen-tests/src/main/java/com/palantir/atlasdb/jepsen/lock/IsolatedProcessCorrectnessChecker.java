@@ -104,19 +104,21 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
         }
 
         private void verifyRefreshAllowed(OkEvent event, Pair<Integer, String> processLock) {
-            if (!EventUtils.isFailure(event)) {
-                if (!refreshAllowed.contains(processLock)) {
-                    Event previousEvent;
-                    if (lastEvent.containsKey(processLock)) {
-                        previousEvent = lastEvent.get(processLock);
-                    } else {
-                        previousEvent = previousInvoke.get(event.process());
-                    }
-                    errors.add(previousEvent);
-                    errors.add(event);
-                    refreshAllowed.add(processLock);
-                }
+            if (!EventUtils.isFailure(event) && !refreshAllowed.contains(processLock)) {
+                addEventsToErrors(event, processLock);
+                refreshAllowed.add(processLock);
             }
+        }
+
+        private void addEventsToErrors(OkEvent event, Pair<Integer, String> processLock) {
+            Event previousEvent;
+            if (lastEvent.containsKey(processLock)) {
+                previousEvent = lastEvent.get(processLock);
+            } else {
+                previousEvent = previousInvoke.get(event.process());
+            }
+            errors.add(previousEvent);
+            errors.add(event);
         }
 
         public boolean valid() {
