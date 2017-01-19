@@ -31,8 +31,6 @@ import com.palantir.atlasdb.jepsen.ImmutableCheckerResult;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.EventVisitor;
-import com.palantir.atlasdb.jepsen.events.FailEvent;
-import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
@@ -45,11 +43,11 @@ import com.palantir.util.Pair;
  * acknowledge when the lock was actually free to be granted. This is tricky due to the existence of refreshes
  * and the uncertainty of the exact times because of the latency between requests and replies.
  *
- * A successful refresh means the lock was held in the (open) interval
+ * A successful refresh means the lock was continuously held in the (open) interval
  * (a, b), where
  * a is the OkEvent.time() of the last successful lock,
  * b is the InvokeEvent.time() of the refresh,
- * <i>>assuming</i> a successful refresh guarantees holding the lock since the last time the lock was granted. This will
+ * <i>assuming</i> a successful refresh guarantees holding the lock since the last time the lock was granted. This will
  * be verified by another checker.
  *
  * A successful unlock can be treated the same as a refresh, except that it has implications for further refreshes
@@ -64,9 +62,9 @@ import com.palantir.util.Pair;
  * a process, and a separate list map locksAtSomePoint tracking all intervals during which the lock was granted at some
  * point. Note that in the latter list, we purposefully do not merge intervals, to ensure no loss of information.
  *
- * To verify locks were correctly granted, it is necessary and sufficient to verify that, for each lockName, none of
- * the uncertain intervals in locksAtSomePoint.get(lockName) are fully covered by the intervals in the set of lock
- * intervals locksHeld.get(lockName).
+ * To verify locks were correctly granted, it is necessary (though not sufficient -- we just don't have enough
+ * information) to verify that, for each lockName, none of the uncertain intervals in locksAtSomePoint.get(lockName)
+ * are fully covered by the intervals in the set of lock intervals locksHeld.get(lockName).
  */
 public class LockCorrectnessChecker implements Checker {
 
@@ -96,10 +94,6 @@ public class LockCorrectnessChecker implements Checker {
         private final Map<Integer, String> processLockName = new HashMap<>();
 
         @Override
-        public void visit(InfoEvent event) {
-        }
-
-        @Override
         public void visit(InvokeEvent event) {
             Integer process = event.process();
             String lockName = event.value();
@@ -115,24 +109,26 @@ public class LockCorrectnessChecker implements Checker {
 
         @Override
         public void visit(OkEvent event) {
+            if (EventUtils.isFailure(event)) {
+                return;
+            }
+
             Integer process = event.process();
             String lockName = processLockName.get(process);
-            Pair processLock = new Pair(process, lockName);
+            Pair<Integer, String> processLock = new Pair(process, lockName);
             InvokeEvent invokeEvent = pendingForProcessAndLock.get(processLock);
 
             switch (event.function()) {
-                /**
+                /*
                  * Successful LOCK:
                  * 1) Add a new uncertain interval to verify at the end,
                  * 2) Remember the new value for the most recent successful lock
                  */
                 case RequestType.LOCK:
-                    if (EventUtils.isSuccessful(event)) {
-                        locksAtSomePoint.get(lockName).add(new Pair(invokeEvent, event));
-                        lastHeldLock.put(processLock, event);
-                    }
+                    locksAtSomePoint.get(lockName).add(new Pair(invokeEvent, event));
+                    lastHeldLock.put(processLock, event);
                     break;
-                /**
+                /*
                  * Successful REFRESH/UNLOCK:
                  * Add the new interval (a, b) to the set of known locks, possibly absorbing a previously
                  * existing interval (a, b'). In this checker, we are assuming correctness of refreshes and unlocks
@@ -140,7 +136,7 @@ public class LockCorrectnessChecker implements Checker {
                  */
                 case RequestType.REFRESH:
                 case RequestType.UNLOCK:
-                    if (EventUtils.isSuccessful(event) && lastHeldLock.containsKey(processLock)) {
+                    if (lastHeldLock.containsKey(processLock)) {
                         long lastLockTime = lastHeldLock.get(processLock).time();
                         if (lastLockTime < invokeEvent.time()) {
                             locksHeld.get(lockName).add(
@@ -148,13 +144,8 @@ public class LockCorrectnessChecker implements Checker {
                         }
                     }
                     break;
-                default:
-                    break;
+                default: throw new IllegalStateException("Not an OkEvent type supported by this checker!");
             }
-        }
-
-        @Override
-        public void visit(FailEvent event) {
         }
 
         public boolean valid() {

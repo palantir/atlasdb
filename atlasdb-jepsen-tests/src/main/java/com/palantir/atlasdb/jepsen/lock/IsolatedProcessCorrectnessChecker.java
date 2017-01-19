@@ -28,8 +28,6 @@ import com.palantir.atlasdb.jepsen.ImmutableCheckerResult;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.EventVisitor;
-import com.palantir.atlasdb.jepsen.events.FailEvent;
-import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
@@ -59,10 +57,6 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
         private final Map<Integer, InvokeEvent> previousInvoke = new HashMap<>();
 
         @Override
-        public void visit(InfoEvent event) {
-        }
-
-        @Override
         public void visit(InvokeEvent event) {
             previousInvoke.put(event.process(), event);
         }
@@ -84,14 +78,13 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
         public void visit(OkEvent event) {
             int currentProcess = event.process();
             String lockName = previousInvoke.get(currentProcess).value();
-            Pair processLock = new Pair(currentProcess, lockName);
+            Pair<Integer, String> processLock = new Pair(currentProcess, lockName);
 
             switch (event.function()) {
                 case RequestType.LOCK:
                     if (EventUtils.isFailure(event)) {
                         refreshAllowed.remove(processLock);
-                    }
-                    if (EventUtils.isSuccessful(event)) {
+                    } else {
                         refreshAllowed.add(processLock);
                     }
                     break;
@@ -105,17 +98,13 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
                     verifyRefreshAllowed(event, processLock);
                     refreshAllowed.remove(processLock);
                     break;
-                default:
+                default: throw new IllegalStateException("Not an OkEvent type supported by this checker!");
             }
             lastEvent.put(processLock, event);
         }
 
-        @Override
-        public void visit(FailEvent event) {
-        }
-
-        private void verifyRefreshAllowed(OkEvent event, Pair processLock) {
-            if (EventUtils.isSuccessful(event)) {
+        private void verifyRefreshAllowed(OkEvent event, Pair<Integer, String> processLock) {
+            if (!EventUtils.isFailure(event)) {
                 if (!refreshAllowed.contains(processLock)) {
                     Event previousEvent;
                     if (lastEvent.containsKey(processLock)) {

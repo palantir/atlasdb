@@ -37,8 +37,4 @@ public final class EventUtils {
                 return false;
         }
     }
-
-    public static boolean isSuccessful(OkEvent event) {
-        return !isFailure(event);
-    }
 }

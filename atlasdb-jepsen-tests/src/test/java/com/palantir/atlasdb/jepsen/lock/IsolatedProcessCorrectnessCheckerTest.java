@@ -17,11 +17,14 @@ package com.palantir.atlasdb.jepsen.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.events.Event;
+import com.palantir.atlasdb.jepsen.utils.CheckerTestUtils;
 import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
 
 public class IsolatedProcessCorrectnessCheckerTest {
@@ -29,9 +32,7 @@ public class IsolatedProcessCorrectnessCheckerTest {
 
     @Test
     public void shouldSucceedOnNoEvents() {
-        CheckerResult result = runIsolatedProcessRefreshSuccessChecker(ImmutableList.<Event>of());
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        assertNoError(ImmutableList.<Event>of());
     }
 
     @Test
@@ -42,9 +43,7 @@ public class IsolatedProcessCorrectnessCheckerTest {
                 .add(TestEventUtils.invokeLock(2, PROCESS_1, "alternate_lock"))
                 .add(TestEventUtils.lockFailure(3, PROCESS_1))
                 .build();
-        CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        assertNoError(eventList);
     }
 
     @Test
@@ -94,9 +93,7 @@ public class IsolatedProcessCorrectnessCheckerTest {
                 .add(TestEventUtils.invokeRefresh(2, PROCESS_1))
                 .add(TestEventUtils.refreshSuccess(3, PROCESS_1))
                 .build();
-        CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        assertNoError(eventList);
     }
 
     @Test
@@ -152,9 +149,7 @@ public class IsolatedProcessCorrectnessCheckerTest {
                 .add(TestEventUtils.invokeRefresh(4, PROCESS_1))
                 .add(TestEventUtils.refreshSuccess(5, PROCESS_1))
                 .build();
-        CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        assertNoError(eventList);
     }
 
     @Test
@@ -214,13 +209,15 @@ public class IsolatedProcessCorrectnessCheckerTest {
                 .add(TestEventUtils.invokeRefresh(6, PROCESS_1))
                 .add(TestEventUtils.refreshSuccess(7, PROCESS_1))
                 .build();
-        CheckerResult result = runIsolatedProcessRefreshSuccessChecker(eventList);
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        assertNoError(eventList);
     }
 
-    private static CheckerResult runIsolatedProcessRefreshSuccessChecker(ImmutableList<Event> events) {
+    private static CheckerResult runIsolatedProcessRefreshSuccessChecker(List<Event> events) {
         IsolatedProcessCorrectnessChecker isolatedProcessCorrectnessChecker = new IsolatedProcessCorrectnessChecker();
         return isolatedProcessCorrectnessChecker.check(events);
+    }
+
+    private static void assertNoError(List<Event> events) {
+        CheckerTestUtils.assertNoErrors(IsolatedProcessCorrectnessChecker::new, events);
     }
 }

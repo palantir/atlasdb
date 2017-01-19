@@ -17,11 +17,14 @@ package com.palantir.atlasdb.jepsen.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.events.Event;
+import com.palantir.atlasdb.jepsen.utils.CheckerTestUtils;
 import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
 
 public class RefreshCorrectnessCheckerTest {
@@ -30,9 +33,7 @@ public class RefreshCorrectnessCheckerTest {
 
     @Test
     public void shouldSucceedOnNoEvents() {
-        CheckerResult result = runRefreshCorrectnessChecker(ImmutableList.<Event>of());
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        assertNoError(ImmutableList.<Event>of());
     }
 
     @Test
@@ -47,9 +48,7 @@ public class RefreshCorrectnessCheckerTest {
                 .add(TestEventUtils.invokeRefresh(4, process2))
                 .add(TestEventUtils.refreshSuccess(5, process2))
                 .build();
-        CheckerResult result = runRefreshCorrectnessChecker(list);
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        assertNoError(list);
     }
 
     @Test
@@ -79,9 +78,7 @@ public class RefreshCorrectnessCheckerTest {
                 .add(TestEventUtils.invokeRefresh(4, process1))
                 .add(TestEventUtils.refreshSuccess(5, process1))
                 .build();
-        CheckerResult result = runRefreshCorrectnessChecker(list);
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        assertNoError(list);
     }
 
     @Test
@@ -115,9 +112,7 @@ public class RefreshCorrectnessCheckerTest {
                 .add(TestEventUtils.refreshSuccess(4, process2))
                 .add(TestEventUtils.refreshSuccess(4, process1))
                 .build();
-        CheckerResult result = runRefreshCorrectnessChecker(list);
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        assertNoError(list);
     }
 
     @Test
@@ -140,5 +135,9 @@ public class RefreshCorrectnessCheckerTest {
     private static CheckerResult runRefreshCorrectnessChecker(ImmutableList<Event> events) {
         RefreshCorrectnessChecker refreshCorrectnessChecker = new RefreshCorrectnessChecker();
         return refreshCorrectnessChecker.check(events);
+    }
+
+    private static void assertNoError(List<Event> events) {
+        CheckerTestUtils.assertNoErrors(RefreshCorrectnessChecker::new, events);
     }
 }

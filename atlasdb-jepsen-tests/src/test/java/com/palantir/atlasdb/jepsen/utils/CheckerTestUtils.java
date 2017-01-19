@@ -17,6 +17,7 @@ package com.palantir.atlasdb.jepsen.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
@@ -30,7 +31,11 @@ public final class CheckerTestUtils {
     }
 
     public static void assertNoErrors(Supplier<Checker> checker, Event... events) {
-        CheckerResult result = checker.get().check(ImmutableList.copyOf(events));
+        assertNoErrors(checker, ImmutableList.copyOf(events));
+    }
+
+    public static void assertNoErrors(Supplier<Checker> checker, List<Event> events) {
+        CheckerResult result = checker.get().check(events);
 
         assertThat(result.valid()).isTrue();
         assertThat(result.errors()).isEmpty();

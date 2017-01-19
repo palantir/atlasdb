@@ -17,11 +17,14 @@ package com.palantir.atlasdb.jepsen.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.events.Event;
+import com.palantir.atlasdb.jepsen.utils.CheckerTestUtils;
 import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
 
 public class LockCorrectnessCheckerTest {
@@ -31,9 +34,7 @@ public class LockCorrectnessCheckerTest {
 
     @Test
     public void shouldSucceedOnNoEvents() {
-        CheckerResult result = runLockCorrectnessChecker(ImmutableList.<Event>of());
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        assertNoError(ImmutableList.<Event>of());
     }
 
     @Test
@@ -44,9 +45,7 @@ public class LockCorrectnessCheckerTest {
                 .add(TestEventUtils.lockSuccess(2, PROCESS_2))
                 .add(TestEventUtils.lockSuccess(3, PROCESS_1))
                 .build();
-        CheckerResult result = runLockCorrectnessChecker(eventList);
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        assertNoError(eventList);
     }
 
     @Test
@@ -57,9 +56,7 @@ public class LockCorrectnessCheckerTest {
                 .add(TestEventUtils.invokeRefresh(0, PROCESS_1))
                 .add(TestEventUtils.refreshSuccess(0, PROCESS_1))
                 .build();
-        CheckerResult result = runLockCorrectnessChecker(eventList);
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        assertNoError(eventList);
     }
 
     @Test
@@ -87,9 +84,7 @@ public class LockCorrectnessCheckerTest {
                 .add(TestEventUtils.invokeRefresh(4, PROCESS_1))
                 .add(TestEventUtils.refreshSuccess(5, PROCESS_1))
                 .build();
-        CheckerResult result = runLockCorrectnessChecker(eventList);
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        assertNoError(eventList);
     }
 
     @Test
@@ -117,11 +112,15 @@ public class LockCorrectnessCheckerTest {
                 .add(TestEventUtils.invokeRefresh(4, PROCESS_1))
                 .add(TestEventUtils.refreshSuccess(5, PROCESS_1))
                 .build();
-        CheckerResult result = runLockCorrectnessChecker(eventList);
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        assertNoError(eventList);
     }
 
+    /**
+     * The following test should succeed because it is theoretically possible for PROCESS_1 to hold the lock,
+     * refresh it at time 3, then immediately lose the lock, the lock being granted to PROCESS_2 at time 3, then
+     * again immediately lose it, the lock being granted to PROCESS_3, still at time 3. Then, a delayed response
+     * informs PROCESS_2 that it was granted the lock, but it is actually PROCESS_3 that holds the lock.
+     */
     @Test
     public void shouldSucceedWhenThereIsASmallWindow() {
         ImmutableList<Event> eventList = ImmutableList.<Event>builder()
@@ -136,9 +135,7 @@ public class LockCorrectnessCheckerTest {
                 .add(TestEventUtils.invokeRefresh(5, PROCESS_3))
                 .add(TestEventUtils.refreshSuccess(6, PROCESS_3))
                 .build();
-        CheckerResult result = runLockCorrectnessChecker(eventList);
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        assertNoError(eventList);
     }
 
     @Test
@@ -153,13 +150,15 @@ public class LockCorrectnessCheckerTest {
                 .add(TestEventUtils.invokeRefresh(4, PROCESS_1))
                 .add(TestEventUtils.refreshSuccess(5, PROCESS_1))
                 .build();
-        CheckerResult result = runLockCorrectnessChecker(eventList);
-        assertThat(result.valid()).isTrue();
-        assertThat(result.errors()).isEmpty();
+        assertNoError(eventList);
     }
 
     private static CheckerResult runLockCorrectnessChecker(ImmutableList<Event> events) {
         LockCorrectnessChecker lockCorrectnessChecker = new LockCorrectnessChecker();
         return lockCorrectnessChecker.check(events);
+    }
+
+    private static void assertNoError(List<Event> events) {
+        CheckerTestUtils.assertNoErrors(LockCorrectnessChecker::new, events);
     }
 }

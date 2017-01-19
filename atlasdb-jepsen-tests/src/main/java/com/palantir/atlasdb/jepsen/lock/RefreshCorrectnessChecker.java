@@ -31,8 +31,6 @@ import com.palantir.atlasdb.jepsen.ImmutableCheckerResult;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.events.EventVisitor;
-import com.palantir.atlasdb.jepsen.events.FailEvent;
-import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
@@ -67,10 +65,6 @@ public class RefreshCorrectnessChecker implements Checker {
         private final Map<Integer, String> resourceName = new HashMap<>();
 
         @Override
-        public void visit(InfoEvent event) {
-        }
-
-        @Override
         public void visit(InvokeEvent event) {
             Integer process = event.process();
             String lockName = event.value();
@@ -85,36 +79,47 @@ public class RefreshCorrectnessChecker implements Checker {
 
         @Override
         public void visit(OkEvent event) {
+            if (EventUtils.isFailure(event)) {
+                return;
+            }
+
             Integer process = event.process();
             String lockName = resourceName.get(process);
-            Pair processLock = new Pair(process, lockName);
+            Pair<Integer, String> processLock = new Pair(process, lockName);
             InvokeEvent invokeEvent = pendingForProcessAndLock.get(processLock);
 
             switch (event.function()) {
-                /**
+                /*
                  * Successful LOCK:
                  * Remember the new value for the most recent successful lock
                  */
                 case RequestType.LOCK:
-                    if (EventUtils.isSuccessful(event)) {
-                        lastHeldLock.put(processLock, event);
-                    }
+                    lastHeldLock.put(processLock, event);
                     break;
-                /**
+                /*
                  * Successful REFRESH/UNLOCK:
                  * Add the new interval [a, b) to the set of known locks, where
-                 * a is the OkEvent.time() of the last successful lock or the InvokeEvent.time() of refresh, and
+                 *
+                 * a is the last time for which we know the lock was held, the greater value of:
+                 *      - the InvokeEvent.time() of a successful refresh, or
+                 *      - the OkEvent.time() of a successful lock.
                  * b is the InvokeEvent.time() of the current request, if and only if b > a.
+                 *
+                 * Note that including a is an overapproximation of the size of the interval, as in the case where
+                 * a is the OkEvent.time() of a lock, we should instead take (a, b). This is, however, OK because in
+                 * this checker we only look for intersecting intervals and all intervals are open from the right so
+                 * including a does not affect the result.
+                 *
                  * Also verify that the whole interval was free. Unlock can be treated as refresh, as the correctness
                  * of their mutual interaction is verified by IsolatedProcessCorrectnessChecker
                  */
                 case RequestType.REFRESH:
                 case RequestType.UNLOCK:
-                    if (EventUtils.isSuccessful(event) && lastHeldLock.containsKey(processLock)) {
+                    if (lastHeldLock.containsKey(processLock)) {
                         long lastLockTime = lastHeldLock.get(processLock).time();
                         if (lastLockTime < invokeEvent.time()) {
                             Range<Long> newRange = Range.closedOpen(lastLockTime, invokeEvent.time());
-                            if (!locksHeld.get(lockName).complement().encloses(newRange)) {
+                            if (!locksHeld.get(lockName).subRangeSet(newRange).isEmpty()) {
                                 log.error("A {} request for lock {} by process {} invoked at time {} was granted at "
                                         + "time {}, but another process was granted the lock between {} and {} "
                                         + "(last known time the lock was held by {})",
@@ -129,12 +134,8 @@ public class RefreshCorrectnessChecker implements Checker {
                         }
                     }
                     break;
-                default : break;
+                default: throw new IllegalStateException("Not an OkEvent type supported by this checker!");
             }
-        }
-
-        @Override
-        public void visit(FailEvent event) {
         }
 
         public boolean valid() {
