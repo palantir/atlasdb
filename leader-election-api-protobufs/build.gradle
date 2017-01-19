@@ -13,7 +13,7 @@ protobuf {
 sourceSets {
   main {
     proto {
-      srcDir '../leader-election-api/src/main/java'
+      srcDir '../leader-election-api/src/main/resources'
     }
   }
 }
