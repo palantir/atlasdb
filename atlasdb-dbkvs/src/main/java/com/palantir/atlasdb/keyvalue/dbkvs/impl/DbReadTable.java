@@ -102,23 +102,32 @@ public class DbReadTable {
             List<byte[]> rows,
             long ts,
             ColumnRangeSelection columnRangeSelection) {
-        FullQuery query = queryFactory.getRowsColumnRangeCountsQuery(rows, ts, columnRangeSelection);
-        AgnosticLightResultSet results = conns.get()
-                .selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
-        results.setFetchSize(Math.max(rows.size(), MAX_ROW_COLUMN_RANGES_FETCH_SIZE));
-        return ClosableIterators.wrap(results.iterator(), results);
+        if (rows.isEmpty()) {
+            return ClosableIterators.emptyImmutableClosableIterator();
+        } else {
+            FullQuery query = queryFactory.getRowsColumnRangeCountsQuery(rows, ts, columnRangeSelection);
+            AgnosticLightResultSet results = conns.get()
+                    .selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
+            results.setFetchSize(Math.min(rows.size(), MAX_ROW_COLUMN_RANGES_FETCH_SIZE));
+            return ClosableIterators.wrap(results.iterator(), results);
+        }
     }
 
     public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(
             Map<byte[], BatchColumnRangeSelection> columnRangeSelectionsByRow,
             long ts) {
-        FullQuery query = queryFactory.getRowsColumnRangeQuery(columnRangeSelectionsByRow, ts);
-        AgnosticLightResultSet results =
-                conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
-        int totalSize =
-                columnRangeSelectionsByRow.values().stream().mapToInt(BatchColumnRangeSelection::getBatchHint).sum();
-        results.setFetchSize(Math.max(totalSize, MAX_ROW_COLUMN_RANGES_FETCH_SIZE));
-        return ClosableIterators.wrap(results.iterator(), results);
+        if (columnRangeSelectionsByRow.isEmpty()) {
+            return ClosableIterators.emptyImmutableClosableIterator();
+        } else {
+            FullQuery query = queryFactory.getRowsColumnRangeQuery(columnRangeSelectionsByRow, ts);
+            AgnosticLightResultSet results =
+                    conns.get().selectLightResultSetUnregisteredQuery(query.getQuery(), query.getArgs());
+            int totalSize =
+                    columnRangeSelectionsByRow.values().stream().mapToInt(
+                            BatchColumnRangeSelection::getBatchHint).sum();
+            results.setFetchSize(Math.min(totalSize, MAX_ROW_COLUMN_RANGES_FETCH_SIZE));
+            return ClosableIterators.wrap(results.iterator(), results);
+        }
     }
 
     public ClosableIterator<AgnosticLightResultRow> getRowsColumnRange(
