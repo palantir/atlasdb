@@ -39,6 +39,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -742,8 +743,7 @@ public class DbKvs extends AbstractKeyValueService {
                         getBatchColumnRangeSelectionsByRow(currentBatch, columnCountByRowHash);
 
                 Map<byte[], List<Map.Entry<Cell, Value>>> resultsByRow =
-                        runRead(tableRef, dbReadTable ->
-                            extractRowColumnRangePage(dbReadTable, columnRangeSelectionsByRow, timestamp));
+                            extractRowColumnRangePage(tableRef, columnRangeSelectionsByRow, timestamp);
                 int totalEntries = resultsByRow.values().stream().mapToInt(List::size).sum();
                 if (totalEntries == 0) {
                     return Collections.emptyIterator();
@@ -824,8 +824,8 @@ public class DbKvs extends AbstractKeyValueService {
                                 startCol,
                                 batchColumnRangeSelection.getEndCol(),
                                 batchColumnRangeSelection.getBatchHint());
-                List<Map.Entry<Cell, Value>> nextPage = runRead(tableRef, table -> Iterables.getOnlyElement(
-                        extractRowColumnRangePage(table, range, timestamp, rowList).values()));
+                List<Map.Entry<Cell, Value>> nextPage = Iterables.getOnlyElement(
+                        extractRowColumnRangePage(tableRef, range, timestamp, rowList).values());
                 if (nextPage.isEmpty()) {
                     return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.<Entry<Cell, Value>>of(), false);
                 }
@@ -852,7 +852,7 @@ public class DbKvs extends AbstractKeyValueService {
             long ts) {
         Stopwatch watch = Stopwatch.createStarted();
         try {
-            return runRead(tableRef, table -> extractRowColumnRangePage(table, columnRangeSelection, ts, rows));
+            return extractRowColumnRangePage(tableRef, columnRangeSelection, ts, rows);
         } finally {
             log.debug("Call to KVS.getFirstRowColumnRangePage on table {} took {} ms.",
                     tableRef, watch.elapsed(TimeUnit.MILLISECONDS));
@@ -860,40 +860,50 @@ public class DbKvs extends AbstractKeyValueService {
     }
 
     private Map<byte[], List<Entry<Cell, Value>>> extractRowColumnRangePage(
-            DbReadTable table,
+            TableReference tableRef,
             BatchColumnRangeSelection columnRangeSelection,
             long ts,
             List<byte[]> rows) {
-        return extractRowColumnRangePage(table, Maps.toMap(rows, Functions.constant(columnRangeSelection)), ts);
+        return extractRowColumnRangePage(tableRef, Maps.toMap(rows, Functions.constant(columnRangeSelection)), ts);
     }
 
     private Map<byte[], List<Entry<Cell, Value>>> extractRowColumnRangePage(
-            DbReadTable dbReadTable,
+            TableReference tableRef,
             Map<byte[], BatchColumnRangeSelection> columnRangeSelection,
             long ts) {
-        return extractRowColumnRangePageInternal(
-            dbReadTable,
-            table -> table.getRowsColumnRange(columnRangeSelection, ts),
-            columnRangeSelection.keySet());
+        return batchingQueryRunner.runTask(
+            columnRangeSelection,
+            BatchingStrategies.forMap(),
+            AccumulatorStrategies.forMap(),
+            batch -> runRead(tableRef, table ->
+                    extractRowColumnRangePageInternal(
+                        table,
+                        () -> table.getRowsColumnRange(batch, ts),
+                        batch.keySet())));
     }
 
     private Map<byte[], List<Entry<Cell, Value>>> extractRowColumnRangePage(
-            DbReadTable dbReadTable,
+            TableReference tableRef,
             RowsColumnRangeBatchRequest rowsColumnRangeBatch,
             long ts) {
-        return extractRowColumnRangePageInternal(
-            dbReadTable,
-            table -> table.getRowsColumnRange(rowsColumnRangeBatch, ts),
-            RowsColumnRangeBatchRequests.getAllRowsInOrder(rowsColumnRangeBatch));
+        return batchingQueryRunner.runTask(
+            rowsColumnRangeBatch,
+            RowsColumnRangeBatchRequests::partition,
+            AccumulatorStrategies.forMap(),
+            batch -> runRead(tableRef, table ->
+                    extractRowColumnRangePageInternal(
+                        table,
+                        () -> table.getRowsColumnRange(batch, ts),
+                        RowsColumnRangeBatchRequests.getAllRowsInOrder(batch))));
     }
 
     private Map<byte[], List<Map.Entry<Cell, Value>>> extractRowColumnRangePageInternal(
             DbReadTable table,
-            Function<DbReadTable, ClosableIterator<AgnosticLightResultRow>> rowLoader,
-            Collection<byte[]> allRowsInOrder) {
-        Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMapWithExpectedSize(allRowsInOrder.size());
+            Supplier<ClosableIterator<AgnosticLightResultRow>> rowLoader,
+            Collection<byte[]> allRows) {
+        Map<Sha256Hash, byte[]> hashesToBytes = Maps.newHashMapWithExpectedSize(allRows.size());
         Map<Sha256Hash, List<Cell>> cellsByRow = Maps.newHashMap();
-        for (byte[] row : allRowsInOrder) {
+        for (byte[] row : allRows) {
             Sha256Hash rowHash = Sha256Hash.computeHash(row);
             hashesToBytes.put(rowHash, row);
             cellsByRow.put(rowHash, Lists.newArrayList());
@@ -903,7 +913,7 @@ public class DbKvs extends AbstractKeyValueService {
         Map<Cell, Value> values = Maps.newHashMap();
         Map<Cell, OverflowValue> overflowValues = Maps.newHashMap();
 
-        try (ClosableIterator<AgnosticLightResultRow> iter = rowLoader.apply(table)) {
+        try (ClosableIterator<AgnosticLightResultRow> iter = rowLoader.get()) {
             while (iter.hasNext()) {
                 AgnosticLightResultRow row = iter.next();
                 Cell cell = Cell.create(row.getBytes("row_name"), row.getBytes("col_name"));
@@ -929,7 +939,7 @@ public class DbKvs extends AbstractKeyValueService {
         fillOverflowValues(table, overflowValues, values);
 
         Map<byte[], List<Map.Entry<Cell, Value>>> results =
-                Maps.newHashMapWithExpectedSize(allRowsInOrder.size());
+                Maps.newHashMapWithExpectedSize(allRows.size());
         for (Entry<Sha256Hash, List<Cell>> e : cellsByRow.entrySet()) {
             List<Map.Entry<Cell, Value>> fullResults = Lists.newArrayListWithExpectedSize(e.getValue().size());
             for (Cell c : e.getValue()) {

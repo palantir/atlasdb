@@ -15,9 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.batch;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
@@ -44,6 +46,8 @@ public final class AccumulatorStrategies {
 
         @Override
         public void accumulateResult(Map<K, V> result, Map<K, V> toAdd) {
+            Preconditions.checkArgument(Collections.disjoint(result.keySet(), toAdd.keySet()),
+                "Attempted to merge non-disjoint maps. This is a programming error");
             result.putAll(toAdd);
         }
     }
