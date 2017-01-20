@@ -17,7 +17,10 @@ check.dependsOn integTest
 
 dependencies {
     compile project(":timestamp-api")
-    compile project(":lock-impl")
+    compile(project(":lock-impl")) {
+        // dropwizard-core gives us a different version of these libs
+        exclude group: 'com.codahale.metrics'
+    }
 
     compile group: 'com.github.rholder', name: 'guava-retrying'
     compile group: 'com.palantir.remoting1', name: 'jersey-servers'

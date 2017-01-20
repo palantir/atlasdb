@@ -5,12 +5,27 @@ apply plugin: 'com.palantir.java-distribution'
 apply plugin: 'org.inferred.processors'
 
 dependencies {
-    compile project(':lock-impl')
-    compile project(':leader-election-impl')
-    compile project(':atlasdb-config')
+    compile(project(':lock-impl')) {
+        // dropwizard-core gives us a different version of these libs
+        exclude group: 'com.codahale.metrics'
+    }
+    compile(project(':leader-election-impl')) {
+        // dropwizard-core gives us a different version of these libs
+        exclude group: 'com.codahale.metrics'
+    }
+    compile(project(':atlasdb-config')) {
+        // dropwizard-core gives us a different version of these libs
+        exclude group: 'com.codahale.metrics'
+    }
     compile project(':atlasdb-dropwizard-bundle')
-    compile project(':atlasdb-hikari')
-    compile project(':atlasdb-rocksdb')
+    compile(project(':atlasdb-hikari')) {
+        // dropwizard-core gives us a different version of these libs
+        exclude group: 'com.codahale.metrics'
+    }
+    compile(project(':atlasdb-rocksdb')) {
+        // dropwizard-core gives us a different version of these libs
+        exclude group: 'com.codahale.metrics'
+    }
 
     compile group: 'io.dropwizard', name: 'dropwizard-core'
 
