@@ -285,27 +285,30 @@ public class StreamTest extends AtlasDbTestCase {
         stream.close();
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void readFromStreamWhenTransactionOpenThrowsException() throws IOException {
-        readFromGivenStreamWhenTransactionOpenThrowsException(defaultStore);
+    @Test()
+    public void readFromStreamWhenTransactionOpen() throws IOException {
+        readFromGivenStreamWhenTransactionOpen(defaultStore);
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void readFromCompressedStreamWhenTransactionOpenThrowsException() throws IOException {
-        readFromGivenStreamWhenTransactionOpenThrowsException(compressedStore);
+    @Test()
+    public void readFromCompressedStreamWhenTransactionOpen() throws IOException {
+        readFromGivenStreamWhenTransactionOpen(compressedStore);
     }
 
-    private void readFromGivenStreamWhenTransactionOpenThrowsException(PersistentStreamStore store) {
+    private void readFromGivenStreamWhenTransactionOpen(PersistentStreamStore store) {
         byte[] reference = PtBytes.toBytes("ref");
+        byte[] data = getIncompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 3);
 
         final long id = storeStream(store,
-                getIncompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 3),
+                data,
                 reference);
 
         txManager.runTaskThrowOnConflict(t -> {
-            InputStream stream = store.loadStream(t, id);
-            try {
-                stream.read();
+            // using the stream inside the transaction is not only reasonable,
+            // it is probably the behavior we should expect people to use
+            // otherwise if the transaction was run with retry, the stream itself could leak
+            try (InputStream stream = store.loadStream(t, id)) {
+                assertStreamHasBytes(stream, data);
             } catch (IOException e) {
                 throw Throwables.propagate(e);
             }
