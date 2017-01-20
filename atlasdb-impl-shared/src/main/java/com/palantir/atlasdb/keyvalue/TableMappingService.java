@@ -26,5 +26,5 @@ public interface TableMappingService {
     void removeTable(TableReference tableRef);
     TableReference getMappedTableName(TableReference tableRef);
     <T> Map<TableReference, T> mapToShortTableNames(Map<TableReference, T> tableMap);
-    Set<TableReference> mapToFullTableNames(Set<TableReference> tableNames);
+    Map<TableReference, TableReference> generateMapToFullTableNames(Set<TableReference> tableNames);
 }
