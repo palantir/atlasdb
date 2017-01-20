@@ -14,6 +14,9 @@ sourceSets {
   main {
     proto {
       srcDir '../leader-election-api/src/main/java'
+
+      exclude '**/PaxosPingablePersistence.proto'
+      exclude '**/PaxosLearnerPersistence.proto'
     }
   }
 }
