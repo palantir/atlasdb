@@ -14,8 +14,6 @@ sourceSets {
   main {
     proto {
       srcDir '../atlasdb-client/src'
-
-      exclude '**/UpgradePersistence.proto'
     }
   }
 }
