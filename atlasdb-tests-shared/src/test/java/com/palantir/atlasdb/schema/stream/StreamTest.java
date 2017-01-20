@@ -295,7 +295,7 @@ public class StreamTest extends AtlasDbTestCase {
         readFromGivenStreamWhenTransactionOpen(compressedStore);
     }
 
-    private void readFromGivenStreamWhenTransactionOpen(PersistentStreamStore store) {
+    private void readFromGivenStreamWhenTransactionOpen(PersistentStreamStore store) throws IOException {
         byte[] reference = PtBytes.toBytes("ref");
         byte[] data = getIncompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 3);
 
@@ -304,13 +304,9 @@ public class StreamTest extends AtlasDbTestCase {
                 reference);
 
         txManager.runTaskThrowOnConflict(t -> {
-            // using the stream inside the transaction is not only reasonable,
-            // it is probably the behavior we should expect people to use
-            // otherwise if the transaction was run with retry, the stream itself could leak
+            // use the stream (read from it) inside the same transaction
             try (InputStream stream = store.loadStream(t, id)) {
                 assertStreamHasBytes(stream, data);
-            } catch (IOException e) {
-                throw Throwables.propagate(e);
             }
             return null;
         });
