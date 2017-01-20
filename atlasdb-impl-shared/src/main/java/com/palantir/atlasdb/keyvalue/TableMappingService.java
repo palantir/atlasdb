@@ -28,4 +28,5 @@ public interface TableMappingService {
     <T> Map<TableReference, T> mapToShortTableNames(Map<TableReference, T> tableMap)
             throws TableMappingNotFoundException;
     Set<TableReference> mapToFullTableNames(Set<TableReference> tableNames);
+    Map<TableReference, TableReference> generateMapToFullTableNames(Set<TableReference> tableNames);
 }

@@ -31,8 +31,18 @@ Changelog
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
-develop
+v0.25.1
 =======
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Improve performance by preventing excessive reads from the _namespace table when initializing SweepStrategyManager.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1486>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
