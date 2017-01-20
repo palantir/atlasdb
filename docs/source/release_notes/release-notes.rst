@@ -50,6 +50,10 @@ develop
          - Prevent deadlocks during parallel reads from DB KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1468>`__)
 
+    *    - |improved|
+         - Improve performance by preventing excessive reads from the _namespace table when initializing SweepStrategyManager.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1486>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======

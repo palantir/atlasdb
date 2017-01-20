@@ -94,31 +94,32 @@ public abstract class AbstractTableMappingService implements TableMappingService
     private final ConcurrentHashMap<TableReference, Boolean> unmappedTables = new ConcurrentHashMap<>();
 
     @Override
-    public Set<TableReference> mapToFullTableNames(Set<TableReference> tableRefs) {
-        Set<TableReference> newSet = Sets.newHashSet();
+    public Map<TableReference, TableReference> generateMapToFullTableNames(Set<TableReference> tableRefs) {
+        Map<TableReference, TableReference> inputNameToFullTableName = Maps.newHashMapWithExpectedSize(
+                tableRefs.size());
         Set<TableReference> tablesToReload = Sets.newHashSet();
-        for (TableReference name : tableRefs) {
-            if (name.isFullyQualifiedName()) {
-                newSet.add(name);
-            } else if (tableMap.get().containsValue(name)) {
-                newSet.add(getFullTableName(name));
-            } else if (unmappedTables.containsKey(name)) {
-                newSet.add(name);
+        for (TableReference inputName : tableRefs) {
+            if (inputName.isFullyQualifiedName()) {
+                inputNameToFullTableName.put(inputName, inputName);
+            } else if (tableMap.get().containsValue(inputName)) {
+                inputNameToFullTableName.put(inputName, getFullTableName(inputName));
+            } else if (unmappedTables.containsKey(inputName)) {
+                inputNameToFullTableName.put(inputName, inputName);
             } else {
-                tablesToReload.add(name);
+                tablesToReload.add(inputName);
             }
         }
         if (!tablesToReload.isEmpty()) {
             updateTableMap();
             for (TableReference tableRef : Sets.difference(tablesToReload, tableMap.get().values())) {
                 unmappedTables.put(tableRef, true);
-                newSet.add(tableRef);
+                inputNameToFullTableName.put(tableRef, tableRef);
             }
             for (TableReference tableRef : Sets.intersection(tablesToReload, tableMap.get().values())) {
-                newSet.add(getFullTableName(tableRef));
+                inputNameToFullTableName.put(tableRef, getFullTableName(tableRef));
             }
         }
-        return newSet;
+        return inputNameToFullTableName;
     }
 
 }
