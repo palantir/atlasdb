@@ -185,7 +185,11 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         }
     }
 
-    private void loadNBlocksToOutputStream(Transaction tx, ID streamId, long firstBlock, long numBlocks,
+    private void loadNBlocksToOutputStream(
+            Transaction tx,
+            ID streamId,
+            long firstBlock,
+            long numBlocks,
             OutputStream os) {
         for (long i = 0; i < numBlocks; i++) {
             loadSingleBlockToOutputStream(tx, streamId, firstBlock + i, os);

@@ -19,18 +19,17 @@ streams outside the transaction.
    also closed inside the transaction. This makes it safe to run with retries
    (since the retries can also close the stream they load).
 
-2. You risk having a transaction succeed (commit) where the stream is loaded,
-   but at some time later when the actual steam data is read that read can
-   fail (for example if the stream was then deleted). If instead the read is
+2. When the actual stream data is read outside of the transaction, that read
+   can fail (for example if the stream was then deleted). If instead the read is
    performed inside the transaction, any failed reads would also cause the
-   transaction to fail, which could be desired. For example, if as a result
-   of reading the stream you want to perform some writes based on the read
-   data, it makes sense to perform all of that in a single transaction.
+   transaction to fail, which could be desired. For example, if as a result of
+   reading the stream you want to perform some writes based on the read data, it
+   makes sense to perform all of that in a single transaction.
 
 ## Decision
 
 Reading from a stream inside the same transaction that calls loadStream()
-should be the prefered method unless you have a specific reason that the reads
+should be the preferred method unless you have a specific reason that the reads
 must be performed later outside the transaction. Reading from a stream should
 be supported both inside the same transaction where it was loaded and outside
 (after the transaction commits or aborts).
