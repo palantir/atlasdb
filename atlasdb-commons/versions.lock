@@ -1,5 +1,8 @@
 {
     "compileClasspath": {
+        "com.codahale.metrics:metrics-core": {
+            "locked": "3.0.2"
+        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.6.7"
         },
@@ -18,9 +21,6 @@
         "com.palantir.atlasdb:commons-executors": {
             "project": true
         },
-        "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1"
-        },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1",
             "requested": "2.0.1"
@@ -31,11 +31,14 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
-                "io.dropwizard.metrics:metrics-core"
+                "com.codahale.metrics:metrics-core"
             ]
         }
     },
     "runtime": {
+        "com.codahale.metrics:metrics-core": {
+            "locked": "3.0.2"
+        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.6.7"
         },
@@ -54,9 +57,6 @@
         "com.palantir.atlasdb:commons-executors": {
             "project": true
         },
-        "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1"
-        },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1",
             "requested": "2.0.1"
@@ -67,7 +67,7 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
-                "io.dropwizard.metrics:metrics-core"
+                "com.codahale.metrics:metrics-core"
             ]
         }
     }

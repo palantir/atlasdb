@@ -9,7 +9,8 @@
         "com.codahale.metrics:metrics-core": {
             "locked": "3.0.2",
             "transitive": [
-                "com.datastax.cassandra:cassandra-driver-core"
+                "com.datastax.cassandra:cassandra-driver-core",
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
@@ -238,12 +239,6 @@
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
-        "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-            ]
-        },
         "io.netty:netty-buffer": {
             "locked": "4.0.27.Final",
             "transitive": [
@@ -395,7 +390,6 @@
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.docker.compose:docker-compose-rule",
-                "io.dropwizard.metrics:metrics-core",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",
                 "org.slf4j:jcl-over-slf4j",
@@ -419,7 +413,8 @@
         "com.codahale.metrics:metrics-core": {
             "locked": "3.0.2",
             "transitive": [
-                "com.datastax.cassandra:cassandra-driver-core"
+                "com.datastax.cassandra:cassandra-driver-core",
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
@@ -648,12 +643,6 @@
                 "com.palantir.atlasdb:atlasdb-client"
             ]
         },
-        "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-            ]
-        },
         "io.netty:netty-buffer": {
             "locked": "4.0.27.Final",
             "transitive": [
@@ -805,7 +794,6 @@
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.docker.compose:docker-compose-rule",
-                "io.dropwizard.metrics:metrics-core",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",
                 "org.slf4j:jcl-over-slf4j",

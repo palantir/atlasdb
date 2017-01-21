@@ -1,7 +1,10 @@
 {
     "compileClasspath": {
         "com.codahale.metrics:metrics-core": {
-            "locked": "3.0.2"
+            "locked": "3.0.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.6.7",
@@ -105,12 +108,6 @@
                 "com.palantir.atlasdb:commons-db"
             ]
         },
-        "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-            ]
-        },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1",
             "transitive": [
@@ -153,14 +150,16 @@
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-proxy",
-                "com.zaxxer:HikariCP",
-                "io.dropwizard.metrics:metrics-core"
+                "com.zaxxer:HikariCP"
             ]
         }
     },
     "runtime": {
         "com.codahale.metrics:metrics-core": {
-            "locked": "3.0.2"
+            "locked": "3.0.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.6.7",
@@ -264,12 +263,6 @@
                 "com.palantir.atlasdb:commons-db"
             ]
         },
-        "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-            ]
-        },
         "javax.ws.rs:javax.ws.rs-api": {
             "locked": "2.0.1",
             "transitive": [
@@ -312,8 +305,7 @@
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:commons-proxy",
-                "com.zaxxer:HikariCP",
-                "io.dropwizard.metrics:metrics-core"
+                "com.zaxxer:HikariCP"
             ]
         }
     }
