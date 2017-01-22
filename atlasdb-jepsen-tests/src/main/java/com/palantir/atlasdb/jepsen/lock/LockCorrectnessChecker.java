@@ -82,29 +82,21 @@ public class LockCorrectnessChecker implements Checker {
     }
 
     private static class Visitor implements EventVisitor {
-        private final Map<Pair<Integer, String>, InvokeEvent> pendingForProcessAndLock = new HashMap<>();
-        private final Map<Pair<Integer, String>, OkEvent> lastHeldLock = new HashMap<>();
+        private final Map<Integer, InvokeEvent> pendingForProcess = new HashMap<>();
+        private final Map<Integer, OkEvent> lastHeldLock = new HashMap<>();
 
-        private final Map<String, TreeRangeSet<Long>> locksHeld = new HashMap<>();
-        private final Map<String, List<Pair<InvokeEvent, OkEvent>>> locksAtSomePoint = new HashMap<>();
-
-        private final ArrayList<String> allLockNames = new ArrayList<>();
+        private final TreeRangeSet<Long> locksHeld = TreeRangeSet.create();
+        private final List<Pair<InvokeEvent, OkEvent>> locksAtSomePoint = new ArrayList<>();
 
         private final List<Event> errors = new ArrayList<>();
-        private final Map<Integer, String> processLockName = new HashMap<>();
+
+        private String lockName = null;
 
         @Override
         public void visit(InvokeEvent event) {
             Integer process = event.process();
-            String lockName = event.value();
-            processLockName.put(process, lockName);
-
-            pendingForProcessAndLock.put(new Pair(process, lockName), event);
-            if (!allLockNames.contains(lockName)) {
-                allLockNames.add(lockName);
-                locksHeld.put(lockName, TreeRangeSet.create());
-                locksAtSomePoint.put(lockName, new ArrayList<>());
-            }
+            pendingForProcess.put(process, event);
+            this.lockName = event.value();
         }
 
         @Override
@@ -114,9 +106,7 @@ public class LockCorrectnessChecker implements Checker {
             }
 
             Integer process = event.process();
-            String lockName = processLockName.get(process);
-            Pair<Integer, String> processLock = new Pair(process, lockName);
-            InvokeEvent invokeEvent = pendingForProcessAndLock.get(processLock);
+            InvokeEvent invokeEvent = pendingForProcess.get(process);
 
             switch (event.function()) {
                 /*
@@ -125,8 +115,8 @@ public class LockCorrectnessChecker implements Checker {
                  * 2) Remember the new value for the most recent successful lock
                  */
                 case RequestType.LOCK:
-                    locksAtSomePoint.get(lockName).add(new Pair(invokeEvent, event));
-                    lastHeldLock.put(processLock, event);
+                    locksAtSomePoint.add(new Pair(invokeEvent, event));
+                    lastHeldLock.put(process, event);
                     break;
                 /*
                  * Successful REFRESH/UNLOCK:
@@ -136,10 +126,10 @@ public class LockCorrectnessChecker implements Checker {
                  */
                 case RequestType.REFRESH:
                 case RequestType.UNLOCK:
-                    if (lastHeldLock.containsKey(processLock)) {
-                        long lastLockTime = lastHeldLock.get(processLock).time();
+                    if (lastHeldLock.containsKey(process)) {
+                        long lastLockTime = lastHeldLock.get(process).time();
                         if (lastLockTime < invokeEvent.time()) {
-                            locksHeld.get(lockName).add(
+                            locksHeld.add(
                                     Range.open(lastLockTime, invokeEvent.time()));
                         }
                     }
@@ -157,24 +147,22 @@ public class LockCorrectnessChecker implements Checker {
         }
 
         private void verifyLockCorrectness() {
-            locksAtSomePoint.entrySet().forEach(entry ->
-                    entry.getValue().forEach(eventPair -> {
-                        String lockName = entry.getKey();
-                        InvokeEvent invokeEvent = eventPair.getLhSide();
-                        OkEvent okEvent = eventPair.getRhSide();
-                        if (intervalCovered(lockName, invokeEvent, okEvent)) {
-                            log.error("Lock {} granted to process {} between {} and {}, but lock was already held by "
+            for (Pair<InvokeEvent, OkEvent> eventPair : locksAtSomePoint) {
+                InvokeEvent invokeEvent = eventPair.getLhSide();
+                OkEvent okEvent = eventPair.getRhSide();
+                if (intervalCovered(invokeEvent, okEvent)) {
+                    log.error("Lock {} granted to process {} between {} and {}, but lock was already held by "
                                     + "another process.",
-                                    lockName, invokeEvent.process(), invokeEvent.time(), okEvent.time());
-                            errors.add(invokeEvent);
-                            errors.add(okEvent);
-                        }
-                    }));
+                            lockName, invokeEvent.process(), invokeEvent.time(), okEvent.time());
+                    errors.add(invokeEvent);
+                    errors.add(okEvent);
+                }
+            }
         }
 
-        private boolean intervalCovered(String lockName, InvokeEvent invokeEvent, OkEvent okEvent) {
+        private boolean intervalCovered(InvokeEvent invokeEvent, OkEvent okEvent) {
             Range<Long> interval = Range.closed(invokeEvent.time(), okEvent.time());
-            return locksHeld.get(lockName).encloses(interval);
+            return locksHeld.encloses(interval);
         }
 
     }

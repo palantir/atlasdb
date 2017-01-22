@@ -1,0 +1,78 @@
+/**
+ * Copyright 2017 Palantir Technologies
+ *
+ * Licensed under the BSD-3 License (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.palantir.atlasdb.jepsen;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import com.palantir.atlasdb.jepsen.events.Checker;
+import com.palantir.atlasdb.jepsen.events.Event;
+import com.palantir.atlasdb.jepsen.events.InvokeEvent;
+
+public class PartitionByInvokeNameCheckerHelper implements Checker {
+
+    private Supplier<Checker> checkerSupplier;
+
+    PartitionByInvokeNameCheckerHelper(Supplier<Checker> checkerSupplier) {
+        this.checkerSupplier = checkerSupplier;
+    }
+
+    @Override
+    public CheckerResult check(List<Event> events) {
+        Map<String, List<Event>> histories = partitionEventsByInvokeValue(events);
+        List<CheckerResult> results = runCheckerOnEachHistory(histories.values());
+        return combineResults(results);
+    }
+
+    private Map<String, List<Event>> partitionEventsByInvokeValue(List<Event> events) {
+        Map<String, List<Event>> partitionedEvents = new HashMap<>();
+        Map<Integer, String> lastInvokeValueForProcess = new HashMap<>();
+        for (Event event : events) {
+            int process = event.process();
+            if (event instanceof InvokeEvent) {
+                InvokeEvent invokeEvent = (InvokeEvent) event;
+                lastInvokeValueForProcess.put(process, invokeEvent.value());
+            }
+            String key = lastInvokeValueForProcess.getOrDefault(process, null);
+            List<Event> history = partitionedEvents.getOrDefault(key, new ArrayList<>());
+            history.add(event);
+        }
+        return partitionedEvents;
+    }
+
+    private List<CheckerResult> runCheckerOnEachHistory(Collection<List<Event>> histories) {
+        return histories.stream().map(this::runChecker).collect(Collectors.toList());
+    }
+
+    private CheckerResult runChecker(List<Event> history) {
+        Checker checker = checkerSupplier.get();
+        return checker.check(history);
+    }
+
+    private CheckerResult combineResults(List<CheckerResult> results) {
+        List<Event> allErrors = results.stream().flatMap(r -> r.errors().stream()).collect(Collectors.toList());
+        boolean allValid = results.stream().allMatch(CheckerResult::valid);
+        return ImmutableCheckerResult.builder()
+                .valid(allValid)
+                .errors(allErrors)
+                .build();
+    }
+}

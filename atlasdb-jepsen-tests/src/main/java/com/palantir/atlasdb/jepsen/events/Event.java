@@ -60,5 +60,7 @@ public interface Event {
 
     long time();
 
+    int process();
+
     void accept(EventVisitor visitor);
 }

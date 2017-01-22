@@ -46,7 +46,7 @@ public final class JepsenHistoryCheckers {
     @VisibleForTesting
     static final List<Supplier<Checker>> LOCK_CHECKERS = ImmutableList.of(
             IsolatedProcessCorrectnessChecker::new,
-            LockCorrectnessChecker::new,
+            () -> new PartitionByInvokeNameCheckerHelper(LockCorrectnessChecker::new),
             RefreshCorrectnessChecker::new);
 
     public static JepsenHistoryChecker createWithTimestampCheckers() {

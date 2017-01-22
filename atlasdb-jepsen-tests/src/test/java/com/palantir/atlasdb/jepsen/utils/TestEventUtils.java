@@ -105,11 +105,11 @@ public abstract class TestEventUtils {
                 .build();
     }
 
-    public static FailEvent createFailEvent(long time, int process) {
+    public static FailEvent createFailEvent(long time, String process) {
         return createFailEvent(time, process, "unknown");
     }
 
-    public static FailEvent createFailEvent(long time, int process, String error) {
+    public static FailEvent createFailEvent(long time, String process, String error) {
         return ImmutableFailEvent.builder()
                 .time(time)
                 .process(process)
