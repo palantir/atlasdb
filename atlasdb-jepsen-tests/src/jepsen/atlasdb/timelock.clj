@@ -46,7 +46,7 @@
     (log-files [_ test node]
       ["/atlasdb-timelock-server/var/log/atlasdb-timelock-server-startup.log"])))
 
-(defn mostly-small-nonempty-subset-at-most-three
+(defn mostly-small-nonempty-subset-at-most-two
   "Returns a subset of the given collection, with a logarithmically decreasing
   probability of selecting more elements. Always selects at least one element.
       (->> #(mostly-small-nonempty-subset [1 2 3 4 5])
@@ -64,12 +64,13 @@
       rand
       Math/exp
       long
+      (min 2)
       (take (shuffle xs))))
 
 (def crash-nemesis
   "A nemesis that crashes a random subset of nodes."
   (nemesis/node-start-stopper
-    mostly-small-nonempty-subset-at-most-three
+    mostly-small-nonempty-subset-at-most-two
     (fn start [test node] (c/su
                             (c/exec :killall :-9 :java)
                             (c/exec :rm :-r "/atlasdb-timelock-server/var/data/paxos"))
