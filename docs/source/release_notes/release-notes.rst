@@ -58,6 +58,10 @@ develop
          - Don't retry interrupted remote calls, shut down the scrubber immediately when interrupted.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1488>`__)
 
+    *    - |improved|
+         - Added request and exception rates metrics in CassandraClientPool. This will provide access to 1-, 5-, and 15-minute moving averages.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1497>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
