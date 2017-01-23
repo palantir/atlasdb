@@ -125,7 +125,6 @@ public final class TransactionManagers {
             boolean allowHiddenTableAccess) {
         ServiceDiscoveringAtlasSupplier atlasFactory =
                 new ServiceDiscoveringAtlasSupplier(config.keyValueService(), config.leader());
-        KeyValueService rawKvs = atlasFactory.getKeyValueService();
 
         LockAndTimestampServices lts = createLockAndTimestampServices(
                 config,
@@ -133,12 +132,9 @@ public final class TransactionManagers {
                 () -> LockServiceImpl.create(lockServerOptions),
                 atlasFactory::getTimestampService);
 
-        KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
-        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
-        kvs = ProfilingKeyValueService.create(kvs);
-        kvs = SweepStatsKeyValueService.create(kvs, lts.time());
+        KeyValueService kvs = getKeyValueService(atlasFactory, lts);
 
-        TransactionTables.createTables(kvs);
+        // getPersistentLockService(kvs)
 
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(kvs);
@@ -200,6 +196,18 @@ public final class TransactionManagers {
         backgroundSweeper.runInBackground();
 
         return transactionManager;
+    }
+
+    private static KeyValueService getKeyValueService(ServiceDiscoveringAtlasSupplier atlasFactory,
+            LockAndTimestampServices lts) {
+        KeyValueService rawKvs = atlasFactory.getKeyValueService();
+        KeyValueService kvs = NamespacedKeyValueServices.wrapWithStaticNamespaceMappingKvs(rawKvs);
+        kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
+        kvs = ProfilingKeyValueService.create(kvs);
+        kvs = SweepStatsKeyValueService.create(kvs, lts.time());
+
+        TransactionTables.createTables(kvs);
+        return kvs;
     }
 
     private static Supplier<Long> getImmutableTsSupplier(final TransactionManager txManager) {
