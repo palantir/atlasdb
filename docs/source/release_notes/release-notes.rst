@@ -42,26 +42,56 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Make fetch size bounded from above in ``DbKvs.getRowsColumnRange()``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1478>`__)
+
+    *    - |fixed|
+         - Prevent deadlocks during parallel reads from DB KVS.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1468>`__)
+           
+    *    - |improved|
+         - Added support for benchmarking custom Key Value Stores; see `documentation <http://palantir.github.io/atlasdb/html/performance/writing.html>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1459>`__)
+
+.. <<<<------------------------------------------------------------------------------------------------------------->>>>
+
+=======
+v0.29.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |new|
-         - Returned `RemotingKeyValueService` and associated remoting classes to the AtlasDB code base.  These now live
-           in `atlasdb-remoting`.  This KVS will pass remote calls to a local delegate KVS.
+         - Returned ``RemotingKeyValueService`` and associated remoting classes to the AtlasDB code base.
+           These now live in ``atlasdb-remoting``.
+           This KVS will pass remote calls to a local delegate KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1304>`__)
 
     *    - |fixed|
          - Stream store compression, introduced in 0.27.0, no longer creates a transaction inside a transaction when streaming directly to a file.
-           Additionally, a check was added to enforce the condition imposed in 0.28.0, namely that the caller of ``AbstractGenericStreamStore.loadStream`` should not
-           call ``InputStream.read()`` within the transaction that was used to fetch the stream.
+           Additionally, a check was added to enforce the condition imposed in 0.28.0, namely that the caller of ``AbstractGenericStreamStore.loadStream`` should not call ``InputStream.read()`` within the transaction that was used to fetch the stream.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1460>`__)
 
     *    - |improved|
-         - AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM
+         - AtlasDB timestamp and lock HTTPS communication now use JVM optimized cipher suite CBC over the slower GCM.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1378>`__)
 
     *    - |new|
          - Added a new ``KeyValueService`` API method, ``checkAndSet``.
+           This is to be used in upcoming backup lock changes, and is not intended for other usage. If you think your application would benefit from using this directly, please contact the AtlasDB dev team.
            This is supported for Cassandra, Postgres, and Oracle, but in the latter case support is only provided for tables which are not overflow tables.
-           ``checkAndSet`` is **not** supported for RocksDB or JDBC. However, it will only be used in a future release.
+           ``checkAndSet`` is **not** supported for RocksDB or JDBC.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1435>`__)
+
+    *    - |fixed|
+         - Reverted the ``devbreak`` in AtlasDB 0.28.0 by returning the ``DebugLogger`` to its original location.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1469>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
@@ -76,47 +106,49 @@ v0.28.0
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - The ``DebugLogger`` class was moved from package ``com.palantir.timestamp`` in project ``timestamp-impl`` to ``com.palantir.util`` in project ``atlasdb-commons``.
+           This break is reverted in the next release (AtlasDB 0.29.0) and will not affect services who skip this release.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1445>`__)
+
     *    - |improved|
          - Increase default Cassandra pool size from minimum of 20 and maximum of 5x the minimum (100 if minimum not modified) connections to minimum of 30 and maximum of 100 connections.
-           This allows for better handling of bursts of requests that would otherwise require creating many new connections to Cassandra from the clients.
+           This has empirically shown better handling of bursts of requests that would otherwise require creating many new connections to Cassandra from the clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1402>`__)
 
     *    - |new|
          - Added metrics to SnapshotTransaction to monitor durations of various operations such as ``get``, ``getRows``, ``commit``, etc.
-           Atlas users should use ``AtlasDbMetrics.setMetricRegistry`` to set a ``MetricRegistry``.
+           AtlasDB users should use ``AtlasDbMetrics.setMetricRegistry`` to set a ``MetricRegistry``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1429>`__)
+
+    *    - |new|
+         - Added metrics in Cassandra clients to record connection pool statistics and exception rates.
+           These metrics use the global ``AtlasDbRegistry`` metrics.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1380>`__)
 
     *    - |new|
          - There is now a ``TimestampMigrationService`` with the ``fast-forward`` method that can be used to migrate between timestamp services.
            You will simply need to fast-forward the new timestamp service using the latest timestamp from the old service.
            This can be done using the :ref:`timestamp forward cli <offline-clis>` when your AtlasDB services are offline.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1445>`__)
 
-    *    - |devbreak|
-         - The ``DebugLogger`` class was moved from package ``com.palantir.timestamp`` in project ``timestamp-impl``
-           to ``com.palantir.util`` in project ``atlasdb-commons``.
+           This capability was added so we can automate the migration to an external Timelock service in a future release.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1445>`__)
 
     *    - |fixed|
-         - Allow tables declared with ``SweepStrategy.THOROUGH`` to be migrated.
+         - Allow tables declared with ``SweepStrategy.THOROUGH`` to be migrated during a KVS migration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1410>`__)
 
     *    - |fixed|
-         - Fix an issue with stream store, where pre-loading the first block of an input stream caused us to create a transaction inside another transaction.
+         - Fix an issue with stream store where pre-loading the first block of an input stream caused us to create a transaction inside another transaction.
            To avoid this issue, it is now the caller's responsibility to ensure that ``InputStream.read()`` is not called within the transaction used to fetch the stream.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1447>`__)
 
     *    - |improved|
-         - Added metrics in Cassandra clients to record connection pool statistics and exception rates.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/1380>`__)
-
-    *    - |improved|
-         - ``atlasdb-rocksdb`` is no longer required by ``atlasdb-cli`` and therefore will no longer be packaged with AtlasDB clients
-           pulling in ``atlasdb-dropwizard-bundle``.
+         - ``atlasdb-rocksdb`` is no longer required by ``atlasdb-cli`` and therefore will no longer be packaged with AtlasDB clients pulling in ``atlasdb-dropwizard-bundle``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1439>`__)
 
     *    - |fixed|
-         - All SnapshotTransaction get methods are now safe for tables declared with SweepStrategy.THOROUGH.
+         - All SnapshotTransaction ``get`` methods are now safe for tables declared with SweepStrategy.THOROUGH.
            Previously, a validation check was omitted for ``getRowsColumnRange``, ``getRowsIgnoringLocalWrites``, and ``getIgnoringLocalWrites``, which in very rare cases could have resulted in deleted values being returned by a long-running read transaction.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1421>`__)
 
