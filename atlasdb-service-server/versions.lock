@@ -367,7 +367,6 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard.metrics:metrics-jetty9",
                 "io.dropwizard.metrics:metrics-json",
@@ -818,7 +817,6 @@
             "transitive": [
                 "com.palantir.atlasdb:atlasdb-commons",
                 "io.dropwizard.metrics:metrics-annotation",
-                "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-lifecycle",
                 "io.dropwizard:dropwizard-logging",
@@ -861,7 +859,8 @@
         "com.codahale.metrics:metrics-core": {
             "locked": "3.0.2",
             "transitive": [
-                "com.datastax.cassandra:cassandra-driver-core"
+                "com.datastax.cassandra:cassandra-driver-core",
+                "com.palantir.atlasdb:atlasdb-commons"
             ]
         },
         "com.datastax.cassandra:cassandra-driver-core": {
@@ -1268,7 +1267,6 @@
         "io.dropwizard.metrics:metrics-core": {
             "locked": "3.1.1",
             "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons",
                 "io.dropwizard.metrics:metrics-jersey2",
                 "io.dropwizard.metrics:metrics-jetty9",
                 "io.dropwizard.metrics:metrics-json",
@@ -1805,7 +1803,6 @@
                 "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
                 "io.dropwizard.metrics:metrics-annotation",
-                "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",
                 "io.dropwizard:dropwizard-lifecycle",
                 "io.dropwizard:dropwizard-logging",

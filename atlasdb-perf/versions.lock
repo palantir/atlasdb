@@ -22,6 +22,7 @@
             "locked": "3.0.2",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
+                "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-dbkvs-hikari"
             ]
         },
@@ -483,12 +484,6 @@
             "locked": "0.7",
             "requested": "0.7"
         },
-        "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-            ]
-        },
         "io.dropwizard:dropwizard-jackson": {
             "locked": "0.9.3",
             "transitive": [
@@ -701,7 +696,6 @@
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.docker.compose:docker-compose-rule",
                 "com.zaxxer:HikariCP",
-                "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",
@@ -745,6 +739,7 @@
             "locked": "3.0.2",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
+                "com.palantir.atlasdb:atlasdb-commons",
                 "com.palantir.atlasdb:atlasdb-dbkvs-hikari"
             ]
         },
@@ -1206,12 +1201,6 @@
             "locked": "0.7",
             "requested": "0.7"
         },
-        "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-            ]
-        },
         "io.dropwizard:dropwizard-jackson": {
             "locked": "0.9.3",
             "transitive": [
@@ -1424,7 +1413,6 @@
                 "com.palantir.atlasdb:commons-proxy",
                 "com.palantir.docker.compose:docker-compose-rule",
                 "com.zaxxer:HikariCP",
-                "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",

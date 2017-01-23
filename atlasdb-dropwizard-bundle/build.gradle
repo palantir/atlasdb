@@ -2,9 +2,18 @@ apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-    compile project(':atlasdb-cli')
-    compile project(':atlasdb-config')
-    compile project(':atlasdb-console')
+    compile(project(':atlasdb-cli')) {
+        // dropwizard-core gives us a different version of these libs
+        exclude group: 'com.codahale.metrics'
+    }
+    compile(project(':atlasdb-config')) {
+        // dropwizard-core gives us a different version of these libs
+        exclude group: 'com.codahale.metrics'
+    }
+    compile(project(':atlasdb-console')) {
+        // dropwizard-core gives us a different version of these libs
+        exclude group: 'com.codahale.metrics'
+    }
 
     compile group: 'io.dropwizard', name: 'dropwizard-core'
 

@@ -12,6 +12,12 @@
                 "ch.qos.logback:logback-classic"
             ]
         },
+        "com.codahale.metrics:metrics-core": {
+            "locked": "3.0.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.6.7",
             "transitive": [
@@ -319,12 +325,6 @@
                 "com.palantir.atlasdb:leader-election-impl"
             ]
         },
-        "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-            ]
-        },
         "io.dropwizard:dropwizard-jackson": {
             "locked": "0.9.3",
             "transitive": [
@@ -381,8 +381,8 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
+                "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },
@@ -412,6 +412,12 @@
                 "ch.qos.logback:logback-classic"
             ]
         },
+        "com.codahale.metrics:metrics-core": {
+            "locked": "3.0.2",
+            "transitive": [
+                "com.palantir.atlasdb:atlasdb-commons"
+            ]
+        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.6.7",
             "transitive": [
@@ -719,12 +725,6 @@
                 "com.palantir.atlasdb:leader-election-impl"
             ]
         },
-        "io.dropwizard.metrics:metrics-core": {
-            "locked": "3.1.1",
-            "transitive": [
-                "com.palantir.atlasdb:atlasdb-commons"
-            ]
-        },
         "io.dropwizard:dropwizard-jackson": {
             "locked": "0.9.3",
             "transitive": [
@@ -781,8 +781,8 @@
         "org.slf4j:slf4j-api": {
             "locked": "1.7.5",
             "transitive": [
+                "com.codahale.metrics:metrics-core",
                 "com.palantir.atlasdb:atlasdb-commons",
-                "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard:dropwizard-jackson"
             ]
         },

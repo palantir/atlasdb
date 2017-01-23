@@ -6,10 +6,22 @@ mainClassName = 'com.palantir.atlasdb.server.AtlasDbServiceServer'
 applicationName = 'atlas-service-server'
 
 dependencies {
-    compile project(':atlasdb-service')
-    compile project(':lock-impl')
-    compile project(':leader-election-impl')
-    compile project(':atlasdb-config')
+    compile(project(':atlasdb-service')) {
+        // dropwizard-core gives us a different version of these libs
+        exclude group: 'com.codahale.metrics'
+    }
+    compile(project(':lock-impl')) {
+        // dropwizard-core gives us a different version of these libs
+        exclude group: 'com.codahale.metrics'
+    }
+    compile(project(':leader-election-impl')) {
+        // dropwizard-core gives us a different version of these libs
+        exclude group: 'com.codahale.metrics'
+    }
+    compile(project(':atlasdb-config')) {
+        // dropwizard-core gives us a different version of these libs
+        exclude group: 'com.codahale.metrics'
+    }
     runtime project(':atlasdb-rocksdb')
     runtime project(':atlasdb-cassandra')
 
