@@ -54,6 +54,10 @@ develop
          - Added support for benchmarking custom Key Value Stores; see `documentation <http://palantir.github.io/atlasdb/html/performance/writing.html>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1459>`__)
 
+    *    - |fixed|
+         - Don't retry interrupted remote calls, shut down the scrubber immediately when interrupted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1488>`__)
+
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
 =======
