@@ -171,19 +171,23 @@ public class PaxosTimeLockServer implements TimeLockServer {
 
         return AwaitingLeadershipProxy.newProxyInstance(
                 ManagedTimestampService.class,
-                () -> {
-                    PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(
-                            new PaxosTimestampBoundStore(
-                                    proposer,
-                                    paxosResource.getPaxosLearner(client),
-                                    ImmutableList.copyOf(acceptors),
-                                    ImmutableList.copyOf(learners),
-                                    paxosConfiguration.maximumWaitBeforeProposalMs()));
-                    return new DelegatingManagedTimestampService(
-                            persistentTimestampService,
-                            persistentTimestampService);
-                },
+                () -> createManagedPaxosTimestampService(proposer, client, acceptors, learners),
                 leaderElectionService);
+    }
+
+    private ManagedTimestampService createManagedPaxosTimestampService(
+            PaxosProposer proposer,
+            String client,
+            List<PaxosAcceptor> acceptors,
+            List<PaxosLearner> learners) {
+        PersistentTimestampService persistentTimestampService = PersistentTimestampService.create(
+                new PaxosTimestampBoundStore(
+                        proposer,
+                        paxosResource.getPaxosLearner(client),
+                        ImmutableList.copyOf(acceptors),
+                        ImmutableList.copyOf(learners),
+                        paxosConfiguration.maximumWaitBeforeProposalMs()));
+        return new DelegatingManagedTimestampService(persistentTimestampService, persistentTimestampService);
     }
 
     private static Set<String> getRemoteServerAddresses(TimeLockServerConfiguration configuration) {
