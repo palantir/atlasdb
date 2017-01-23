@@ -49,6 +49,10 @@ develop
     *    - |fixed|
          - Prevent deadlocks during parallel reads from DB KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1468>`__)
+           
+    *    - |improved|
+         - Added support for benchmarking custom Key Value Stores; see `documentation <http://palantir.github.io/atlasdb/html/performance/writing.html>`__.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1459>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
