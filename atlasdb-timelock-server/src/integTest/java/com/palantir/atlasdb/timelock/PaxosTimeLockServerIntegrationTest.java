@@ -69,6 +69,9 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
             new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation);
 
+    private final TimestampService timestampService = getTimestampService(CLIENT_1);
+    private final TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
+
     @ClassRule
     public static final RuleChain ruleChain = RuleChain.outerRule(TEMPORARY_FOLDER)
             .around(TEMPORARY_CONFIG_HOLDER)
@@ -124,8 +127,6 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void timestampServiceShouldGiveUsIncrementalTimestamps() {
-        TimestampService timestampService = getTimestampService(CLIENT_1);
-
         long timestamp1 = timestampService.getFreshTimestamp();
         long timestamp2 = timestampService.getFreshTimestamp();
 
@@ -149,9 +150,6 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void timestampServiceRespectsTimestampManagementService() {
-        TimestampService timestampService = getTimestampService(CLIENT_1);
-        TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
-
         long currentTimestampIncrementedByOneMillion = timestampService.getFreshTimestamp() + ONE_MILLION;
         timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
         assertThat(timestampService.getFreshTimestamp()).isGreaterThan(currentTimestampIncrementedByOneMillion);
@@ -159,9 +157,6 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void timestampManagementServiceRespectsTimestampService() {
-        TimestampService timestampService = getTimestampService(CLIENT_1);
-        TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
-
         long currentTimestampIncrementedByOneMillion = timestampService.getFreshTimestamp() + ONE_MILLION;
         timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
         getFortyTwoFreshTimestamps(timestampService);
@@ -170,7 +165,7 @@ public class PaxosTimeLockServerIntegrationTest {
                 .isGreaterThan(currentTimestampIncrementedByOneMillion + FORTY_TWO);
     }
 
-    private void getFortyTwoFreshTimestamps(TimestampService timestampService) {
+    private static void getFortyTwoFreshTimestamps(TimestampService timestampService) {
         for (int i = 0; i < FORTY_TWO; i++) {
             timestampService.getFreshTimestamp();
         }
@@ -178,7 +173,6 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void fastForwardRespectsDistinctClients() {
-        TimestampService timestampService = getTimestampService(CLIENT_1);
         TimestampManagementService anotherClientTimestampManagementService = getTimestampManagementService(CLIENT_2);
 
         long currentTimestamp = timestampService.getFreshTimestamp();
@@ -188,9 +182,6 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void fastForwardToThePastDoesNothing() {
-        TimestampService timestampService = getTimestampService(CLIENT_1);
-        TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
-
         long currentTimestamp = timestampService.getFreshTimestamp();
         long currentTimestampIncrementedByOneMillion = currentTimestamp + ONE_MILLION;
         long currentTimestampIncrementedByTwoMillion = currentTimestamp + TWO_MILLION;
@@ -209,8 +200,8 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Test
     public void returnsNotFoundOnQueryingClientWithInvalidName() {
-        TimestampService timestampService = getTimestampService(INVALID_CLIENT);
-        assertThatThrownBy(timestampService::getFreshTimestamp)
+        TimestampService invalidTimestampService = getTimestampService(INVALID_CLIENT);
+        assertThatThrownBy(invalidTimestampService::getFreshTimestamp)
                 .hasMessageContaining(NOT_FOUND_CODE);
     }
 
