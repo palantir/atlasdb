@@ -201,6 +201,15 @@ Validation that does not include client/server calls generally has a negligible 
 <p class="last">Pass the name of the benchmark you&#8217;re working on to the CLI in order to avoid running all benchmarks during development.</p>
 </div>
 </div>
+<div class="section" id="benchmarking-with-a-custom-key-value-store-kvs">
+<h2>Benchmarking With a Custom Key Value Store (KVS)<a class="headerlink" href="#benchmarking-with-a-custom-key-value-store-kvs" title="Permalink to this headline">¶</a></h2>
+<p>To run the benchmark suite on a custom KVS, simply follow these steps:</p>
+<ol class="arabic simple">
+<li>Extend <code class="docutils literal"><span class="pre">KeyValueServiceInstrumentation</span></code> with the proper configurations, e.g., see <code class="docutils literal"><span class="pre">CassandraKeyValueServiceInstrumentation.java</span></code>.</li>
+<li>Register the new backend: <code class="docutils literal"><span class="pre">KeyValueServiceInstrumentation.addNewBackendType(new</span> <span class="pre">YourKeyValueServiceInstrumentation())</span></code>.</li>
+<li>Run the <code class="docutils literal"><span class="pre">AtlasDbPerfCli.main</span></code> function with the desired arguments.</li>
+</ol>
+</div>
 </div>
 
 

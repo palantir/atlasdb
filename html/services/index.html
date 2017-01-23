@@ -97,6 +97,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Services</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="key_value_services/index.html">Key Value Services</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lock_service/index.html">Lock Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="timelock_service/index.html">External Timelock Service</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../performance/index.html">Performance Testing</a></li>
@@ -150,8 +151,10 @@
   <div class="section" id="services">
 <h1>Services<a class="headerlink" href="#services" title="Permalink to this headline">¶</a></h1>
 <p>AtlasDB relies on three distinct services. They are the Key Value Service, the Lock Service, and the Timestamp Service.
-Each of the services is described in detail below.  The intention of this documentation is to provide a high level overview of the architecture of
-each of the services as well as the guarentees they uphold.</p>
+Each of the services is described in detail below.  The intention of this documentation is to provide a high level
+overview of the architecture of each of the services as well as the guarantees they uphold.</p>
+<p>AtlasDB typically runs an embedded timestamp and lock service. However, we are currently developing an
+external timestamp and lock service. Please consult the relevant section of the documentation for more detail.</p>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="key_value_services/index.html">Key Value Services</a></li>
@@ -159,6 +162,11 @@ each of the services as well as the guarentees they uphold.</p>
 <li class="toctree-l2"><a class="reference internal" href="lock_service/overview.html">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lock_service/installation.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lock_service/leader_election.html">Palantir Leader Election</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="timelock_service/index.html">External Timelock Service</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="timelock_service/installation.html">Timelock Server Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="timelock_service/migration.html">Migration to External Timelock Services</a></li>
 </ul>
 </li>
 </ul>

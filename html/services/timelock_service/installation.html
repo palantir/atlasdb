@@ -1,0 +1,278 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Timelock Server Installation &mdash; OSS AtlasDB develop documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+    <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
+  
+    <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="OSS AtlasDB develop documentation" href="../../index.html"/>
+        <link rel="up" title="External Timelock Service" href="index.html"/>
+        <link rel="next" title="Migration to External Timelock Services" href="migration.html"/>
+        <link rel="prev" title="External Timelock Service" href="index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> OSS AtlasDB
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                develop
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../overview/index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../schemas/index.html">Schemas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../transactions/index.html">Transactions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../configuration/index.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cluster_management/index.html">Cluster Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Services</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../key_value_services/index.html">Key Value Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lock_service/index.html">Lock Service</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">External Timelock Service</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Timelock Server Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="migration.html">Migration to External Timelock Services</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../performance/index.html">Performance Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../miscellaneous/index.html">Miscellaneous</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../troubleshooting/index.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release_notes/index.html">Releases</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">OSS AtlasDB</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+ 
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../index.html">Services</a> &raquo;</li>
+      
+          <li><a href="index.html">External Timelock Service</a> &raquo;</li>
+      
+    <li>Timelock Server Installation</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/services/timelock_service/installation.rst" class="fa fa-github"> Edit on GitHub</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="timelock-server-installation">
+<span id="timelock-installation"></span><h1>Timelock Server Installation<a class="headerlink" href="#timelock-server-installation" title="Permalink to this headline">¶</a></h1>
+<ol class="arabic">
+<li><p class="first">Clone the git repository.</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">palantir</span><span class="o">/</span><span class="n">atlasdb</span><span class="o">.</span><span class="n">git</span><span class="p">;</span> <span class="n">cd</span> <span class="n">atlasdb</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Generate a tar file with Gradle:</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">gradlew</span> <span class="n">atlasdb</span><span class="o">-</span><span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="p">:</span><span class="n">distTar</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<blockquote>
+<div>This will place a tar file in the <code class="docutils literal"><span class="pre">build/distributions</span></code> directory of the <code class="docutils literal"><span class="pre">atlasdb-timelock-server</span></code> project. The
+tar file follows semantic versioning.</div></blockquote>
+<ol class="arabic" start="3">
+<li><p class="first">Copy this tar file to the server on which you want to deploy Timelock Server.
+(If you wish to run Timelock Server locally, this step may be omitted.)</p>
+</li>
+<li><p class="first">On the server which you intend to deploy Timelock Server, untar the archive.</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">tar</span> <span class="o">-</span><span class="n">zxvf</span> <span class="n">atlasdb</span><span class="o">-</span><span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="mf">0.25</span><span class="o">.</span><span class="mf">0.</span><span class="n">sls</span><span class="o">.</span><span class="n">tgz</span><span class="p">;</span> <span class="n">cd</span> <span class="n">atlasdb</span><span class="o">-</span><span class="n">timelock</span><span class="o">-</span><span class="n">server</span><span class="o">-</span><span class="mf">0.25</span><span class="o">.</span><span class="mi">0</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Configure the Timelock Server - see <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_server_config.html#timelock-server-configuration"><span class="std std-ref">Timelock Server Configuration</span></a> for a guide on this. The configuration file
+is at <code class="docutils literal"><span class="pre">var/conf/timelock.yml</span></code> relative to the root directory of the Timelock Server.</p>
+</li>
+<li><p class="first">Start the Timelock Server with <code class="docutils literal"><span class="pre">service/bin/init.sh</span> <span class="pre">start</span></code>.
+This should output the process ID of the Timelock Server. You can view the logs in the (by default) <code class="docutils literal"><span class="pre">var/log</span></code>
+directory.</p>
+</li>
+<li><p class="first">It may be useful to run a health-check to verify that the Timelock Server is running. To do this, you can curl
+the server&#8217;s <code class="docutils literal"><span class="pre">healthcheck</span></code> endpoint on its admin port (default: 8081).</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="n">localhost</span><span class="p">:</span><span class="mi">8081</span><span class="o">/</span><span class="n">healthcheck</span>
+</pre></div>
+</div>
+<p>The output should indicate that the Timelock Server is healthy. The output should resemble the following:</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;deadlocks&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;healthy&quot;</span><span class="p">:</span> <span class="n">true</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="migration.html" class="btn btn-neutral float-right" title="Migration to External Timelock Services" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="External Timelock Service" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Palantir Technologies.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'develop',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

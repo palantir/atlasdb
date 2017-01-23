@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Palantir Leader Election &mdash; OSS AtlasDB develop documentation</title>
+  <title>External Timelock Service &mdash; OSS AtlasDB develop documentation</title>
   
 
   
@@ -38,9 +38,9 @@
               href="../../genindex.html"/>
         <link rel="search" title="Search" href="../../search.html"/>
     <link rel="top" title="OSS AtlasDB develop documentation" href="../../index.html"/>
-        <link rel="up" title="Lock Service" href="index.html"/>
-        <link rel="next" title="External Timelock Service" href="../timelock_service/index.html"/>
-        <link rel="prev" title="Installation" href="installation.html"/> 
+        <link rel="up" title="Services" href="../index.html"/>
+        <link rel="next" title="Timelock Server Installation" href="installation.html"/>
+        <link rel="prev" title="Palantir Leader Election" href="../lock_service/leader_election.html"/> 
 
   
   <script src="../../_static/js/modernizr.min.js"></script>
@@ -97,13 +97,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../../cluster_management/index.html">Cluster Management</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">Services</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../key_value_services/index.html">Key Value Services</a></li>
-<li class="toctree-l2 current"><a class="reference internal" href="index.html">Lock Service</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="overview.html">Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">Palantir Leader Election</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lock_service/index.html">Lock Service</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">External Timelock Service</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="installation.html">Timelock Server Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="migration.html">Migration to External Timelock Services</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../timelock_service/index.html">External Timelock Service</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../performance/index.html">Performance Testing</a></li>
@@ -142,13 +141,11 @@
       
           <li><a href="../index.html">Services</a> &raquo;</li>
       
-          <li><a href="index.html">Lock Service</a> &raquo;</li>
-      
-    <li>Palantir Leader Election</li>
+    <li>External Timelock Service</li>
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/services/lock_service/leader_election.rst" class="fa fa-github"> Edit on GitHub</a>
+            <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/services/timelock_service/index.rst" class="fa fa-github"> Edit on GitHub</a>
           
         
       </li>
@@ -158,33 +155,36 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="palantir-leader-election">
-<h1>Palantir Leader Election<a class="headerlink" href="#palantir-leader-election" title="Permalink to this headline">¶</a></h1>
-<p>Palantir Leader Election is an implementation of paxos.</p>
-<p><code class="docutils literal"><span class="pre">leader-election-api</span></code> and <code class="docutils literal"><span class="pre">leader-election-impl</span></code> projects contains the relevant java classes.
-A good starting point to read how paxos is implemented is AwaitingLeadershipProxy.java</p>
-<p>Although we will not discuss paxos here, we will discuss how it is used by the lock service.
-Paxos is a distributed consensus algorithm, which allows our services to agree on values.
-An example would be agreeing on a lock service to be the leader lock service, which would then serve requests.</p>
-<p>Lock clients invoke methods on the lock leader.
-If a lock client invokes a method on a non-leader, the lock service will indicate to the client that it does not believe it is the leader by returning a NotCurrentLeader exception.</p>
-<div class="section" id="first-guarantee-of-the-lock-service">
-<h2>First guarantee of the lock service<a class="headerlink" href="#first-guarantee-of-the-lock-service" title="Permalink to this headline">¶</a></h2>
-<p>Our implementation of paxos guarantees that we do not have two lock services that are acting as leader at the same time.
-If the lock client invokes a method on a node which believes it is the leader, it will call a <code class="docutils literal"><span class="pre">quorum</span></code> to ensure it is still the leader prior to method invocation.
-A <code class="docutils literal"><span class="pre">quorum</span></code> is a meeting of nodes to agree on a single value.
-If the <code class="docutils literal"><span class="pre">quorum</span></code> resolves to indicate that the invocation target is still the leader, then the method will be invoked.
-If the <code class="docutils literal"><span class="pre">quorum</span></code> resolves to indicate that the invocation target is not the leader, the method invocation will fail.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">This behavior is clear from AwaitingLeadershipProxy::invoke()</p>
+  <div class="section" id="external-timelock-service">
+<span id="id1"></span><h1>External Timelock Service<a class="headerlink" href="#external-timelock-service" title="Permalink to this headline">¶</a></h1>
+<div class="admonition danger">
+<p class="first admonition-title">Danger</p>
+<p class="last">Running external timestamp and lock services is currently an experimental feature.
+Improperly configuring one&#8217;s cluster to use external timestamp and lock services can result in <strong>SEVERE DATA
+CORRUPTION</strong>! Please contact the AtlasDB team if you wish to try this feature.</p>
 </div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Timelock Server Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migration to External Timelock Services</a></li>
+</ul>
 </div>
-<div class="section" id="second-guarantee-of-the-lock-service">
-<h2>Second guarantee of the lock service<a class="headerlink" href="#second-guarantee-of-the-lock-service" title="Permalink to this headline">¶</a></h2>
-<p>Although it is unrelated to paxos, the other property that our implementation of paxos guarantees for the lock service is that if the lock leader fails, the other lock services will learn this information and elect a new leader, assuming that greater than N / 2 nodes are still active. The node which has failed will attempt to restart. Thus, if you send SIGTERM to the JVM running the lock service with leader election enabled, the service should restart.</p>
-<p>Although we have not discussed how paxos ensures these two properties (and, in fact, the second property is not related to paxos) we claim that these two properties enable a highly available solution for the lock service.</p>
-</div>
+<p>The AtlasDB Timelock Service is an external implementation of the Timestamp and Lock services. Running an external
+Timelock Service (as opposed to running timestamp and lock services embedded within one&#8217;s clients) provides several
+benefits:</p>
+<ul class="simple">
+<li>Additional reliability; we have subjected our new implementation to Jepsen testing, and do not rely on the
+consistency of the user&#8217;s key-value services.</li>
+<li>The number of AtlasDB clients can scale independently of AtlasDB&#8217;s timestamp and lock services, and an odd number of
+AtlasDB clients is no longer required. An odd number of Timelock servers is still required.</li>
+<li>Resource contention between your AtlasDB clients and the timestamp and lock services can be better managed,
+because external timestamp services may be run on separate servers and/or JVMs (while the old embedded services
+had to be run on the same server, and within the same JVM).</li>
+<li>Timestamp and Lock endpoints are no longer mounted on AtlasDB clients and can be hidden from users, making abuse more
+difficult.</li>
+<li>Timelock Services can be run in clustered mode, allowing for high availability as long as a majority quorum of nodes
+exists.</li>
+</ul>
 </div>
 
 
@@ -194,10 +194,10 @@ If the <code class="docutils literal"><span class="pre">quorum</span></code> res
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../timelock_service/index.html" class="btn btn-neutral float-right" title="External Timelock Service" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="installation.html" class="btn btn-neutral float-right" title="Timelock Server Installation" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="installation.html" class="btn btn-neutral" title="Installation" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="../lock_service/leader_election.html" class="btn btn-neutral" title="Palantir Leader Election" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
