@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Generated;
@@ -46,6 +47,9 @@ import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata.Builder;
 import com.palantir.atlasdb.stream.AbstractPersistentStreamStore;
+import com.palantir.atlasdb.stream.BlockConsumingInputStream;
+import com.palantir.atlasdb.stream.BlockGetter;
+import com.palantir.atlasdb.stream.BlockLoader;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.stream.StreamCleanedException;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -214,10 +218,25 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
 
     @Override
     protected void tryWriteStreamToFile(Transaction transaction, Long id, StreamMetadata metadata, FileOutputStream fos) throws IOException {
-        try (InputStream blockStream = makeStream(id, metadata);
+        try (InputStream blockStream = makeStreamUsingTransaction(transaction, id, metadata);
                 InputStream decompressingStream = new LZ4BlockInputStream(blockStream);
                 OutputStream fileStream = fos;) {
             ByteStreams.copy(decompressingStream, fileStream);
+        }
+    }
+
+    private InputStream makeStreamUsingTransaction(Transaction parent, Long id, StreamMetadata metadata) {
+        BiConsumer<Long, OutputStream> singleBlockLoader = (index, destination) ->
+                loadSingleBlockToOutputStream(parent, id, index, destination);
+
+        BlockGetter pageRefresher = new BlockLoader(singleBlockLoader, BLOCK_SIZE_IN_BYTES);
+        long totalBlocks = getNumberOfBlocksFromMetadata(metadata);
+        int blocksInMemory = getNumberOfBlocksThatFitInMemory();
+
+        try {
+            return BlockConsumingInputStream.create(pageRefresher, totalBlocks, blocksInMemory);
+        } catch(IOException e) {
+            throw Throwables.throwUncheckedException(e);
         }
     }
 
@@ -404,6 +423,10 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
      * {@link ArrayListMultimap}
      * {@link Arrays}
      * {@link AssertUtils}
+     * {@link BiConsumer}
+     * {@link BlockConsumingInputStream}
+     * {@link BlockGetter}
+     * {@link BlockLoader}
      * {@link BufferedInputStream}
      * {@link Builder}
      * {@link ByteArrayIOStream}

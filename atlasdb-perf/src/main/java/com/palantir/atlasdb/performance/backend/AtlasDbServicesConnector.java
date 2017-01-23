@@ -43,6 +43,7 @@ public class AtlasDbServicesConnector implements Closeable {
         if (services != null) {
             throw new IllegalStateException("connect() has already been called");
         }
+
         DockerizedDatabaseUri dburi = DockerizedDatabaseUri.fromUriString(uri);
         KeyValueServiceConfig config = dburi.getKeyValueServiceInstrumentation()
                 .getKeyValueServiceConfig(dburi.getAddress());
