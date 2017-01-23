@@ -64,7 +64,6 @@ public class LockStoreTest {
     public void noErrorIfLockOpenedWhileCreatingTable() {
         doThrow(new CheckAndSetException("foo", null, null, ImmutableList.of())).when(kvs).checkAndSet(anyObject());
 
-        System.out.println("test");
         lockStore.populateTable(); // should not throw
     }
 
