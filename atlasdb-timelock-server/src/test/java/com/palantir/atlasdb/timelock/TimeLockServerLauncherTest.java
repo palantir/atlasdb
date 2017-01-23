@@ -32,6 +32,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.codahale.metrics.health.HealthCheckRegistry;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.config.ImmutableClusterConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockAlgorithmConfiguration;
@@ -73,6 +74,7 @@ public class TimeLockServerLauncherTest {
         when(environment.lifecycle()).thenReturn(lifecycle);
         doAnswer(invocation -> listeners.add((LifeCycle.Listener) invocation.getArguments()[0]))
                 .when(lifecycle).addLifeCycleListener(any());
+        when(environment.healthChecks()).thenReturn(new HealthCheckRegistry());
     }
 
     @After
