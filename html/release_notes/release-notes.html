@@ -285,6 +285,12 @@ To avoid this issue, it is now the caller&#8217;s responsibility to ensure that 
 Previously, a validation check was omitted for <code class="docutils literal"><span class="pre">getRowsColumnRange</span></code>, <code class="docutils literal"><span class="pre">getRowsIgnoringLocalWrites</span></code>, and <code class="docutils literal"><span class="pre">getIgnoringLocalWrites</span></code>, which in very rare cases could have resulted in deleted values being returned by a long-running read transaction.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1421">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<td>Users must not create a client named <code class="docutils literal"><span class="pre">leader</span></code>. AtlasDB Timelock Server will fail to start if this is found.
+Previously, using <code class="docutils literal"><span class="pre">leader</span></code> would have silently failed, since the JAXRS 3.7.2 algorithm does not include backtracking over
+root resource classes (so either leader election or timestamp requests would have failed).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1442">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
