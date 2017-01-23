@@ -152,9 +152,9 @@ public class PaxosTimeLockServerIntegrationTest {
         TimestampService timestampService = getTimestampService(CLIENT_1);
         TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
 
-        long newTimestamp = timestampService.getFreshTimestamp() + ONE_MILLION;
-        timestampManagementService.fastForwardTimestamp(newTimestamp);
-        assertThat(timestampService.getFreshTimestamp()).isGreaterThan(newTimestamp);
+        long currentTimestampIncrementedByOneMillion = timestampService.getFreshTimestamp() + ONE_MILLION;
+        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
+        assertThat(timestampService.getFreshTimestamp()).isGreaterThan(currentTimestampIncrementedByOneMillion);
     }
 
     @Test
@@ -162,22 +162,27 @@ public class PaxosTimeLockServerIntegrationTest {
         TimestampService timestampService = getTimestampService(CLIENT_1);
         TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
 
-        long newTimestamp = timestampService.getFreshTimestamp() + ONE_MILLION;
-        timestampManagementService.fastForwardTimestamp(newTimestamp);
+        long currentTimestampIncrementedByOneMillion = timestampService.getFreshTimestamp() + ONE_MILLION;
+        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
+        getFortyTwoFreshTimestamps(timestampService);
+        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion + 1);
+        assertThat(timestampService.getFreshTimestamp())
+                .isGreaterThan(currentTimestampIncrementedByOneMillion + FORTY_TWO);
+    }
+
+    private void getFortyTwoFreshTimestamps(TimestampService timestampService) {
         for (int i = 0; i < FORTY_TWO; i++) {
             timestampService.getFreshTimestamp();
         }
-        timestampManagementService.fastForwardTimestamp(newTimestamp + 1);
-        assertThat(timestampService.getFreshTimestamp()).isGreaterThan(newTimestamp + FORTY_TWO);
     }
 
     @Test
     public void fastForwardRespectsDistinctClients() {
         TimestampService timestampService = getTimestampService(CLIENT_1);
-        TimestampManagementService differentClientTimestampManagementService = getTimestampManagementService(CLIENT_2);
+        TimestampManagementService anotherClientTimestampManagementService = getTimestampManagementService(CLIENT_2);
 
         long currentTimestamp = timestampService.getFreshTimestamp();
-        differentClientTimestampManagementService.fastForwardTimestamp(currentTimestamp + ONE_MILLION);
+        anotherClientTimestampManagementService.fastForwardTimestamp(currentTimestamp + ONE_MILLION);
         assertEquals(currentTimestamp + 1, timestampService.getFreshTimestamp());
     }
 
@@ -187,9 +192,12 @@ public class PaxosTimeLockServerIntegrationTest {
         TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
 
         long currentTimestamp = timestampService.getFreshTimestamp();
-        timestampManagementService.fastForwardTimestamp(currentTimestamp + TWO_MILLION);
-        timestampManagementService.fastForwardTimestamp(currentTimestamp + ONE_MILLION);
-        assertThat(timestampService.getFreshTimestamp()).isGreaterThan(currentTimestamp + TWO_MILLION);
+        long currentTimestampIncrementedByOneMillion = currentTimestamp + ONE_MILLION;
+        long currentTimestampIncrementedByTwoMillion = currentTimestamp + TWO_MILLION;
+
+        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByTwoMillion);
+        timestampManagementService.fastForwardTimestamp(currentTimestampIncrementedByOneMillion);
+        assertThat(timestampService.getFreshTimestamp()).isGreaterThan(currentTimestampIncrementedByTwoMillion);
     }
 
     @Test
