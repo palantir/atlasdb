@@ -70,5 +70,8 @@
   "A nemesis that crashes a random subset of nodes."
   (nemesis/node-start-stopper
     mostly-small-nonempty-subset-at-most-three
-    (fn start [test node] (c/su (c/exec :killall :-9 :java)) [:killed node])
+    (fn start [test node] (c/su
+                            (c/exec :killall :-9 :java)
+                            (c/exec :rm :-r "/atlasdb-timelock-server/var/data/paxos"))
+                          [:killed node])
     (fn stop  [test node] (start! node) [:restarted node])))
