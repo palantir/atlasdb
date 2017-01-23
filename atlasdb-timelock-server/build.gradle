@@ -16,8 +16,10 @@ jacocoTestReport {
 check.dependsOn integTest
 
 dependencies {
-    compile project(":timestamp-api")
+    compile project(":timestamp-impl")
     compile project(":lock-impl")
+    compile project(":leader-election-impl")
+    compile project(":atlasdb-config")
 
     compile group: 'com.github.rholder', name: 'guava-retrying'
     compile group: 'com.palantir.remoting1', name: 'jersey-servers'
@@ -29,7 +31,8 @@ dependencies {
 
     processor group: 'org.immutables', name: 'value'
 
-    testCompile project(':atlasdb-config')
+    testCompile project(":atlasdb-config")
+    testCompile project(path: ":leader-election-impl", configuration: "testArtifacts")
 
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile group: 'org.mockito', name: 'mockito-core'
@@ -40,6 +43,6 @@ dependencies {
 
 distribution {
     serviceName "atlasdb-timelock-server"
-    mainClass 'com.palantir.atlasdb.timelock.TimeLockServer'
+    mainClass 'com.palantir.atlasdb.timelock.TimeLockServerLauncher'
     args 'server', 'var/conf/timelock.yml'
 }

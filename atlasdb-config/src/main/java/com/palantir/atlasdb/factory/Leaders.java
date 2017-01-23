@@ -25,6 +25,8 @@ import java.util.concurrent.Executors;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import org.immutables.value.Value;
+
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -53,40 +55,51 @@ public final class Leaders {
      * Creates a LeaderElectionService using the supplied configuration and
      * registers appropriate endpoints for that service.
      */
-    public static LeaderElectionService create(
-            Environment env,
-            LeaderConfig config) {
+    public static LeaderElectionService create(Environment env, LeaderConfig config) {
+        LocalPaxosServices localPaxosServices = createLocalServices(config);
 
-        PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor(config.acceptorLogDir().getPath());
-        PaxosLearner ourLearner = PaxosLearnerImpl.newLearner(config.learnerLogDir().getPath());
+        env.register(localPaxosServices.ourAcceptor());
+        env.register(localPaxosServices.ourLearner());
+        env.register(localPaxosServices.leaderElectionService());
+        env.register(new NotCurrentLeaderExceptionMapper());
 
+        return localPaxosServices.leaderElectionService();
+    }
+
+    public static LocalPaxosServices createLocalServices(LeaderConfig config) {
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
         remoteLeaderUris.remove(config.localServer());
+
+        RemotePaxosServerSpec remotePaxosServerSpec = ImmutableRemotePaxosServerSpec.builder()
+                .remoteLeaderUris(remoteLeaderUris)
+                .remoteAcceptorUris(remoteLeaderUris)
+                .remoteLearnerUris(remoteLeaderUris)
+                .build();
+        return createLocalServices(config, remotePaxosServerSpec);
+    }
+
+    public static LocalPaxosServices createLocalServices(LeaderConfig config,
+            RemotePaxosServerSpec remotePaxosServerSpec) {
+        PaxosAcceptor ourAcceptor = PaxosAcceptorImpl.newAcceptor(config.acceptorLogDir().getPath());
+        PaxosLearner ourLearner = PaxosLearnerImpl.newLearner(config.learnerLogDir().getPath());
 
         Optional<SSLSocketFactory> sslSocketFactory =
                 TransactionManagers.createSslSocketFactory(config.sslConfiguration());
 
-        List<PaxosLearner> learners =
-                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosLearner.class);
-        learners.add(ourLearner);
+        List<PaxosLearner> learners = createProxyAndLocalList(
+                ourLearner, remotePaxosServerSpec.remoteLearnerUris(), sslSocketFactory, PaxosLearner.class);
+        List<PaxosAcceptor> acceptors = createProxyAndLocalList(
+                ourAcceptor, remotePaxosServerSpec.remoteAcceptorUris(), sslSocketFactory, PaxosAcceptor.class);
 
-        List<PaxosAcceptor> acceptors =
-                AtlasDbHttpClients.createProxies(sslSocketFactory, remoteLeaderUris, PaxosAcceptor.class);
-        acceptors.add(ourAcceptor);
-
-        Map<PingableLeader, HostAndPort> otherLeaders = generatePingables(remoteLeaderUris, sslSocketFactory);
+        Map<PingableLeader, HostAndPort> otherLeaders = generatePingables(
+                remotePaxosServerSpec.remoteLeaderUris(), sslSocketFactory);
 
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
                 .setNameFormat("atlas-leaders-%d")
                 .setDaemon(true)
                 .build());
 
-        PaxosProposer proposer = PaxosProposerImpl.newProposer(
-                ourLearner,
-                ImmutableList.copyOf(acceptors),
-                ImmutableList.copyOf(learners),
-                config.quorumSize(),
-                executor);
+        PaxosProposer proposer = createPaxosProposer(ourLearner, acceptors, learners, config.quorumSize(), executor);
 
         PaxosLeaderElectionService leader = new PaxosLeaderElectionService(
                 proposer,
@@ -99,13 +112,36 @@ public final class Leaders {
                 config.randomWaitBeforeProposingLeadershipMs(),
                 config.leaderPingResponseWaitMs());
 
-        env.register(ourAcceptor);
-        env.register(ourLearner);
+        return ImmutableLocalPaxosServices.builder()
+                .ourAcceptor(ourAcceptor)
+                .ourLearner(ourLearner)
+                .leaderElectionService(leader)
+                .pingableLeader(leader)
+                .build();
+    }
 
-        env.register(leader);
-        env.register(new NotCurrentLeaderExceptionMapper());
+    public static PaxosProposer createPaxosProposer(
+            PaxosLearner ourLearner,
+            List<PaxosAcceptor> acceptors,
+            List<PaxosLearner> learners,
+            int quorumSize,
+            ExecutorService executor) {
+        return PaxosProposerImpl.newProposer(
+                    ourLearner,
+                    ImmutableList.copyOf(acceptors),
+                    ImmutableList.copyOf(learners),
+                    quorumSize,
+                    executor);
+    }
 
-        return leader;
+    public static <T> List<T> createProxyAndLocalList(
+            T localObject,
+            Set<String> remoteUris,
+            Optional<SSLSocketFactory> sslSocketFactory,
+            Class<T> clazz) {
+        List<T> objects = AtlasDbHttpClients.createProxies(sslSocketFactory, remoteUris, clazz);
+        objects.add(localObject);
+        return objects;
     }
 
     public static Map<PingableLeader, HostAndPort> generatePingables(
@@ -122,5 +158,20 @@ public final class Leaders {
             pingables.put(remoteInterface, hostAndPort);
         }
         return pingables;
+    }
+
+    @Value.Immutable
+    public interface LocalPaxosServices {
+        PaxosAcceptor ourAcceptor();
+        PaxosLearner ourLearner();
+        LeaderElectionService leaderElectionService();
+        PingableLeader pingableLeader();
+    }
+
+    @Value.Immutable
+    public interface RemotePaxosServerSpec {
+        Set<String> remoteLeaderUris();
+        Set<String> remoteAcceptorUris();
+        Set<String> remoteLearnerUris();
     }
 }

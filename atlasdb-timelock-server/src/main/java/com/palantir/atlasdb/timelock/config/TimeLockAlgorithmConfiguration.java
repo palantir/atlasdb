@@ -17,13 +17,16 @@ package com.palantir.atlasdb.timelock.config;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.palantir.atlasdb.timelock.ServerImplementation;
+import com.palantir.atlasdb.timelock.TimeLockServer;
+
+import io.dropwizard.setup.Environment;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.PROPERTY,
         property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = AtomixConfiguration.class, name = "atomix")})
+        @JsonSubTypes.Type(value = AtomixConfiguration.class, name = "atomix"),
+        @JsonSubTypes.Type(value = PaxosConfiguration.class, name = "paxos")})
 public interface TimeLockAlgorithmConfiguration {
-    ServerImplementation createServerImpl();
+    TimeLockServer createServerImpl(Environment environment);
 }

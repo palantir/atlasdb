@@ -55,7 +55,7 @@ import io.dropwizard.testing.ResourceHelpers;
 import io.dropwizard.testing.junit.DropwizardAppRule;
 
 @Ignore("Observed ConcurrentModificationException-related flakes (e.g. build #611 on internal CircleCI).")
-public class TimeLockServerIntegrationTest {
+public class AtomixTimeLockServerIntegrationTest {
     private static final String NOT_FOUND_CODE = "404";
     private static final String SERVICE_NOT_AVAILABLE_CODE = "503";
 
@@ -74,8 +74,8 @@ public class TimeLockServerIntegrationTest {
 
     @ClassRule
     public static final DropwizardAppRule<TimeLockServerConfiguration> APP = new DropwizardAppRule<>(
-            TimeLockServer.class,
-            ResourceHelpers.resourceFilePath("singleTestServer.yml"));
+            TimeLockServerLauncher.class,
+            ResourceHelpers.resourceFilePath("atomixSingleServer.yml"));
 
     @BeforeClass
     public static void setupAtomixClient() {

@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Palantir Technologies
+ * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,15 +41,15 @@ import io.dropwizard.jersey.setup.JerseyEnvironment;
 import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
 import io.dropwizard.setup.Environment;
 
-public class TimeLockServerTest {
+public class TimeLockServerLauncherTest {
     private static final String LOCAL_ADDRESS = "localhost:8080";
     private static final String TEST_CLIENT = "test";
 
     private final Environment environment = mock(Environment.class);
     private final List<LifeCycle.Listener> listeners = new ArrayList<>();
-    private final TimeLockServer server = new TimeLockServer();
+    private final TimeLockServerLauncher server = new TimeLockServerLauncher();
 
-    private ServerImplementation serverImplementation;
+    private TimeLockServer timeLockServer;
     private TimeLockAlgorithmConfiguration algorithmConfiguration;
 
     @Before
@@ -60,9 +60,10 @@ public class TimeLockServerTest {
 
     private void setUpMockServerImplementation() {
         algorithmConfiguration = mock(TimeLockAlgorithmConfiguration.class);
-        serverImplementation = mock(ServerImplementation.class);
-        when(algorithmConfiguration.createServerImpl()).thenReturn(serverImplementation);
-        when(serverImplementation.createInvalidatingTimeLockServices(any())).thenReturn(mock(TimeLockServices.class));
+        timeLockServer = mock(TimeLockServer.class);
+        when(algorithmConfiguration.createServerImpl(environment)).thenReturn(timeLockServer);
+        when(timeLockServer.createInvalidatingTimeLockServices(any()))
+                .thenReturn(mock(TimeLockServices.class));
     }
 
     private void setUpEnvironment() {
@@ -84,19 +85,19 @@ public class TimeLockServerTest {
     @Test
     public void verifyOnStartupIsCalledExactlyOnceOnSuccessfulStartup() {
         server.run(getConfiguration(), environment);
-        verify(serverImplementation, times(1)).onStartup(any());
+        verify(timeLockServer, times(1)).onStartup(any());
     }
 
     @Test
     public void verifyOnStartupFailureIsCalledExactlyOnceIfStartupFails() {
         causeFailedStartup();
-        verify(serverImplementation, times(1)).onStartupFailure();
+        verify(timeLockServer, times(1)).onStartupFailure();
     }
 
     @Test
     public void verifyOnStopIsNeverCalledIfStartupFails() {
         causeFailedStartup();
-        verify(serverImplementation, never()).onStop();
+        verify(timeLockServer, never()).onStop();
     }
 
     private void causeFailedStartup() {
@@ -113,7 +114,7 @@ public class TimeLockServerTest {
 
         sendShutdownToListeners();
         listeners.clear();
-        verify(serverImplementation, times(1)).onStop();
+        verify(timeLockServer, times(1)).onStop();
     }
 
     private TimeLockServerConfiguration getConfiguration() {
