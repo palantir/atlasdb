@@ -15,11 +15,10 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
-
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -28,33 +27,38 @@ import com.palantir.leader.PingableLeader;
 public class LeaderPingHealthCheckTest {
 
     @Test
+    public void shouldBeUnhealthyIfAllNodesPingedSuccessfully() throws Exception {
+        ImmutableSet<PingableLeader> leaders = getPingableLeaders(true, true, true);
+        assertThat(new LeaderPingHealthCheck(leaders).check().isHealthy()).isFalse();
+    }
+
+    @Test
+    public void shouldBeUnhealthyIfMultipleNodesPingedSuccessfully() throws Exception {
+        ImmutableSet<PingableLeader> leaders = getPingableLeaders(true, true, false);
+        assertThat(new LeaderPingHealthCheck(leaders).check().isHealthy()).isFalse();
+    }
+
+    @Test
     public void shouldBeHealthyIfExactlyOneNodePingedSuccessfully() throws Exception {
-        PingableLeader leader1 = getMockOfPingableLeaderWherePingReturns(true);
-        PingableLeader leader2 = getMockOfPingableLeaderWherePingReturns(false);
-        PingableLeader leader3 = getMockOfPingableLeaderWherePingReturns(false);
-        ImmutableSet<PingableLeader> leaders = ImmutableSet.of(leader1, leader2, leader3);
-
-        Assertions.assertThat(new LeaderPingHealthCheck(leaders).check().isHealthy()).isTrue();
+        ImmutableSet<PingableLeader> leaders = getPingableLeaders(true, false, false);
+        assertThat(new LeaderPingHealthCheck(leaders).check().isHealthy()).isTrue();
     }
 
     @Test
-    public void shouldBeUnHealthyIfNoNodesPingedSuccessfully() throws Exception {
-        PingableLeader leader1 = getMockOfPingableLeaderWherePingReturns(false);
-        PingableLeader leader2 = getMockOfPingableLeaderWherePingReturns(false);
-        PingableLeader leader3 = getMockOfPingableLeaderWherePingReturns(false);
-        ImmutableSet<PingableLeader> leaders = ImmutableSet.of(leader1, leader2, leader3);
-
-        Assertions.assertThat(new LeaderPingHealthCheck(leaders).check().isHealthy()).isFalse();
+    public void shouldBeUnhealthyIfNoNodesPingedSuccessfully() throws Exception {
+        ImmutableSet<PingableLeader> leaders = getPingableLeaders(false, false, false);
+        assertThat(new LeaderPingHealthCheck(leaders).check().isHealthy()).isFalse();
     }
 
-    @Test
-    public void shouldBeUnHealthyIfMultipleNodesPingedSuccessfully() throws Exception {
-        PingableLeader leader1 = getMockOfPingableLeaderWherePingReturns(true);
-        PingableLeader leader2 = getMockOfPingableLeaderWherePingReturns(true);
-        PingableLeader leader3 = getMockOfPingableLeaderWherePingReturns(true);
-        ImmutableSet<PingableLeader> leaders = ImmutableSet.of(leader1, leader2, leader3);
 
-        Assertions.assertThat(new LeaderPingHealthCheck(leaders).check().isHealthy()).isFalse();
+    private ImmutableSet<PingableLeader> getPingableLeaders(
+            boolean pingResultForLeader1,
+            boolean pingResultForLeader2,
+            boolean pingResultForLeader3) {
+        PingableLeader leader1 = getMockOfPingableLeaderWherePingReturns(pingResultForLeader1);
+        PingableLeader leader2 = getMockOfPingableLeaderWherePingReturns(pingResultForLeader2);
+        PingableLeader leader3 = getMockOfPingableLeaderWherePingReturns(pingResultForLeader3);
+        return ImmutableSet.of(leader1, leader2, leader3);
     }
 
     private PingableLeader getMockOfPingableLeaderWherePingReturns(boolean pingResult) {

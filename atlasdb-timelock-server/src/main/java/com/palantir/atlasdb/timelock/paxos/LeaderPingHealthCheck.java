@@ -39,8 +39,7 @@ public class LeaderPingHealthCheck extends HealthCheck {
         } else if (numLeaders == 0) {
             return Result.unhealthy("There are no leaders in the Paxos cluster.");
         } else {
-            return Result.unhealthy(
-                    String.format("There are multiple leaders in the Paxos cluster. Found %s leaders", numLeaders));
+            return Result.unhealthy("There are multiple leaders in the Paxos cluster. Found %s leaders", numLeaders);
         }
     }
 }
