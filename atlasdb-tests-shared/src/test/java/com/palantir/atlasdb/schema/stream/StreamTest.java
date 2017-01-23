@@ -44,6 +44,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -74,7 +75,6 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
@@ -283,6 +283,33 @@ public class StreamTest extends AtlasDbTestCase {
         byte[] streamAsBytes = IOUtils.toByteArray(stream);
         Assert.assertArrayEquals(bytes, streamAsBytes);
         stream.close();
+    }
+
+    @Test()
+    public void readFromStreamWhenTransactionOpen() throws IOException {
+        readFromGivenStreamWhenTransactionOpen(defaultStore);
+    }
+
+    @Test()
+    public void readFromCompressedStreamWhenTransactionOpen() throws IOException {
+        readFromGivenStreamWhenTransactionOpen(compressedStore);
+    }
+
+    private void readFromGivenStreamWhenTransactionOpen(PersistentStreamStore store) throws IOException {
+        byte[] reference = PtBytes.toBytes("ref");
+        byte[] data = getIncompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 3);
+
+        final long id = storeStream(store,
+                data,
+                reference);
+
+        txManager.runTaskThrowOnConflict(t -> {
+            // use the stream (read from it) inside the same transaction
+            try (InputStream stream = store.loadStream(t, id)) {
+                assertStreamHasBytes(stream, data);
+            }
+            return null;
+        });
     }
 
     @Test
@@ -581,7 +608,7 @@ public class StreamTest extends AtlasDbTestCase {
         try {
             secondLatch.await();
         } catch (InterruptedException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
+            throw Throwables.propagate(e);
         }
     }
 

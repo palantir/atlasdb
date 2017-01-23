@@ -23,6 +23,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -87,6 +88,12 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
     public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
         tablesWrittenTo.add(tableRef);
         super.putUnlessExists(tableRef, values);
+    }
+
+    @Override
+    public void checkAndSet(CheckAndSetRequest request) {
+        tablesWrittenTo.add(request.table());
+        super.checkAndSet(request);
     }
 
     public Set<TableReference> getTablesWrittenTo() {

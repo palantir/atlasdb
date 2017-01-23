@@ -17,7 +17,10 @@ package com.palantir.atlasdb.stream;
 
 import java.io.OutputStream;
 
-interface BlockGetter {
+/**
+ * An interface intended for creating a way to fill some OutputStream. Used in {@link BlockConsumingInputStream}.
+ */
+public interface BlockGetter {
     /**
      * Fills the OutputStream with data from some source.
      * The source should be divisible into an ordered set of blocks.

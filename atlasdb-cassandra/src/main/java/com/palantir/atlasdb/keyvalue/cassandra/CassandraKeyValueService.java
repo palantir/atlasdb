@@ -86,6 +86,8 @@ import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -1974,40 +1976,92 @@ public class CassandraKeyValueService extends AbstractKeyValueService {
     @Override
     public void putUnlessExists(final TableReference tableRef, final Map<Cell, byte[]> values)
             throws KeyAlreadyExistsException {
-        String tableName = internalTableName(tableRef);
         try {
-            clientPool.runWithRetry(new FunctionCheckedException<Client, Void, Exception>() {
-                @Override
-                public Void apply(Client client) throws Exception {
-                    for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
-                        ByteBuffer rowName = ByteBuffer.wrap(e.getKey().getRowName());
-                        byte[] contents = e.getValue();
-                        long timestamp = AtlasDbConstants.TRANSACTION_TS;
-                        byte[] colName = CassandraKeyValueServices
-                                .makeCompositeBuffer(e.getKey().getColumnName(), timestamp)
-                                .array();
-                        Column col = new Column();
-                        col.setName(colName);
-                        col.setValue(contents);
-                        col.setTimestamp(timestamp);
-                        CASResult casResult = queryRunner.run(client, tableRef, () -> client.cas(
-                                rowName,
-                                tableName,
-                                ImmutableList.of(),
-                                ImmutableList.of(col),
-                                ConsistencyLevel.SERIAL,
-                                writeConsistency));
-                        if (!casResult.isSuccess()) {
-                            throw new KeyAlreadyExistsException("This transaction row already exists.",
-                                    ImmutableList.of(e.getKey()));
-                        }
+            clientPool.runWithRetry(client -> {
+                for (Entry<Cell, byte[]> e : values.entrySet()) {
+                    CheckAndSetRequest request = CheckAndSetRequest.newCell(tableRef, e.getKey(), e.getValue());
+                    CASResult casResult = executeCheckAndSet(client, request);
+                    if (!casResult.isSuccess()) {
+                        throw new KeyAlreadyExistsException("This transaction row already exists.",
+                                ImmutableList.of(e.getKey()));
                     }
-                    return null;
                 }
+                return null;
             });
         } catch (Exception e) {
             throw Throwables.throwUncheckedException(e);
         }
+    }
+
+    /**
+     * Performs a check-and-set into the key-value store.
+     * Please see {@link CheckAndSetRequest} for information about how to create this request,
+     * and {@link com.palantir.atlasdb.keyvalue.api.KeyValueService} for more detailed documentation.
+     * <p>
+     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
+     *
+     * @param request the request, including table, cell, old value and new value.
+     * @throws CheckAndSetException if the stored value for the cell was not as expected.
+     */
+    @Override
+    public void checkAndSet(final CheckAndSetRequest request) throws CheckAndSetException {
+        try {
+            clientPool.runWithRetry(client -> {
+                CASResult casResult = executeCheckAndSet(client, request);
+
+                if (!casResult.isSuccess()) {
+                    List<byte[]> currentValues = casResult.current_values.stream()
+                            .map(Column::getValue)
+                            .collect(Collectors.toList());
+
+                    throw new CheckAndSetException(
+                            request.cell(),
+                            request.table(),
+                            request.oldValue().orElse(null),
+                            currentValues);
+                }
+                return null;
+            });
+        } catch (TException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+    }
+
+    private CASResult executeCheckAndSet(Client client, CheckAndSetRequest request)
+            throws TException {
+        TableReference table = request.table();
+        Cell cell = request.cell();
+        long timestamp = AtlasDbConstants.TRANSACTION_TS;
+
+        ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());
+        byte[] colName = CassandraKeyValueServices
+                .makeCompositeBuffer(cell.getColumnName(), timestamp)
+                .array();
+
+        List<Column> oldColumns;
+        java.util.Optional<byte[]> oldValue = request.oldValue();
+        if (oldValue.isPresent()) {
+            oldColumns = ImmutableList.of(makeColumn(colName, oldValue.get(), timestamp));
+        } else {
+            oldColumns = ImmutableList.of();
+        }
+
+        Column newColumn = makeColumn(colName, request.newValue(), timestamp);
+        return queryRunner.run(client, table, () -> client.cas(
+                rowName,
+                internalTableName(table),
+                oldColumns,
+                ImmutableList.of(newColumn),
+                ConsistencyLevel.SERIAL,
+                writeConsistency));
+    }
+
+    private Column makeColumn(byte[] colName, byte[] contents, long timestamp) {
+        Column newColumn = new Column();
+        newColumn.setName(colName);
+        newColumn.setValue(contents);
+        newColumn.setTimestamp(timestamp);
+        return newColumn;
     }
 
     /**
