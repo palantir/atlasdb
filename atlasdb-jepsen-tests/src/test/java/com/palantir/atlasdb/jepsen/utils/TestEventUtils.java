@@ -105,11 +105,11 @@ public abstract class TestEventUtils {
                 .build();
     }
 
-    public static FailEvent createFailEvent(long time, String process) {
+    public static FailEvent createFailEvent(long time, int process) {
         return createFailEvent(time, process, "unknown");
     }
 
-    public static FailEvent createFailEvent(long time, String process, String error) {
+    public static FailEvent createFailEvent(long time, int process, String error) {
         return ImmutableFailEvent.builder()
                 .time(time)
                 .process(process)
@@ -117,7 +117,7 @@ public abstract class TestEventUtils {
                 .build();
     }
 
-    public static InfoEvent createInfoEvent(long time, String process, String requestType) {
+    public static InfoEvent createInfoEvent(long time, int process, String requestType) {
         return ImmutableInfoEvent.builder()
                 .time(time)
                 .process(process)
@@ -125,7 +125,7 @@ public abstract class TestEventUtils {
                 .build();
     }
 
-    public static InfoEvent createInfoEvent(long time, String process, String requestType, String value) {
+    public static InfoEvent createInfoEvent(long time, int process, String requestType, String value) {
         return ImmutableInfoEvent.builder()
                 .time(time)
                 .process(process)

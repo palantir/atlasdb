@@ -30,7 +30,7 @@ public class NemesisResilienceCheckerTest {
     private static final int PROCESS_1 = 1;
     private static final int PROCESS_2 = 2;
 
-    private static final String IMPOSTOR_PROCESS = "impostor";
+    private static final int IMPOSTOR_PROCESS = -2;
     private static final String VALUE_1 = "value1";
     private static final String VALUE_2 = "value2";
 

@@ -15,8 +15,14 @@
  */
 package com.palantir.atlasdb.jepsen.utils;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import com.palantir.atlasdb.jepsen.JepsenConstants;
 import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
+
+import clojure.lang.Keyword;
 
 public final class EventUtils {
     private EventUtils() {
@@ -36,5 +42,18 @@ public final class EventUtils {
             default:
                 return false;
         }
+    }
+
+    public static Map<Keyword, ?> encodeNemesis(Map<Keyword, ?> clojureEvent) {
+        Map<Keyword, Object> convertedEvent = new HashMap<>();
+        for (Map.Entry<Keyword, ?> entry : clojureEvent.entrySet()) {
+            if (entry.getKey().equals(Keyword.intern("process"))
+                    && entry.getValue().equals(Keyword.intern(JepsenConstants.NEMESIS_PROCESS_NAME))) {
+                convertedEvent.put(entry.getKey(), -1);
+            } else {
+                convertedEvent.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return convertedEvent;
     }
 }

@@ -25,13 +25,14 @@ import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
+import com.palantir.atlasdb.jepsen.events.InfoEvent;
 import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 
 public class PartitionByInvokeNameCheckerHelper implements Checker {
 
     private Supplier<Checker> checkerSupplier;
 
-    PartitionByInvokeNameCheckerHelper(Supplier<Checker> checkerSupplier) {
+    public PartitionByInvokeNameCheckerHelper(Supplier<Checker> checkerSupplier) {
         this.checkerSupplier = checkerSupplier;
     }
 
@@ -52,8 +53,12 @@ public class PartitionByInvokeNameCheckerHelper implements Checker {
                 lastInvokeValueForProcess.put(process, invokeEvent.value());
             }
             String key = lastInvokeValueForProcess.getOrDefault(process, null);
+            if (event instanceof InfoEvent) {
+                key = null;
+            }
             List<Event> history = partitionedEvents.getOrDefault(key, new ArrayList<>());
             history.add(event);
+            partitionedEvents.put(key, history);
         }
         return partitionedEvents;
     }

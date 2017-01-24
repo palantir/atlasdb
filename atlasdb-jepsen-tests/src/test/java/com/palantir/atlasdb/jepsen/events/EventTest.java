@@ -40,7 +40,7 @@ public class EventTest {
         Map<Keyword, Object> keywordMap = new HashMap<>();
         keywordMap.put(Keyword.intern("type"), Keyword.intern("info"));
         keywordMap.put(Keyword.intern("f"), Keyword.intern(JepsenConstants.START_FUNCTION));
-        keywordMap.put(Keyword.intern("process"), Keyword.intern(JepsenConstants.NEMESIS_PROCESS));
+        keywordMap.put(Keyword.intern("process"), Keyword.intern(JepsenConstants.NEMESIS_PROCESS_NAME));
         keywordMap.put(Keyword.intern("time"), SOME_TIME);
         keywordMap.put(Keyword.intern("value"), null);
 
@@ -55,7 +55,7 @@ public class EventTest {
         Map<Keyword, Object> keywordMap = new HashMap<>();
         keywordMap.put(Keyword.intern("type"), Keyword.intern("info"));
         keywordMap.put(Keyword.intern("f"), Keyword.intern(JepsenConstants.START_FUNCTION));
-        keywordMap.put(Keyword.intern("process"), Keyword.intern(JepsenConstants.NEMESIS_PROCESS));
+        keywordMap.put(Keyword.intern("process"), Keyword.intern(JepsenConstants.NEMESIS_PROCESS_NAME));
         keywordMap.put(Keyword.intern("time"), SOME_TIME);
 
         Event event = Event.fromKeywordMap(keywordMap);
@@ -68,7 +68,7 @@ public class EventTest {
         Map<Keyword, Object> keywordMap = new HashMap<>();
         keywordMap.put(Keyword.intern("type"), Keyword.intern("info"));
         keywordMap.put(Keyword.intern("f"), Keyword.intern(JepsenConstants.START_FUNCTION));
-        keywordMap.put(Keyword.intern("process"), Keyword.intern(JepsenConstants.NEMESIS_PROCESS));
+        keywordMap.put(Keyword.intern("process"), Keyword.intern(JepsenConstants.NEMESIS_PROCESS_NAME));
         keywordMap.put(Keyword.intern("time"), SOME_TIME);
         keywordMap.put(Keyword.intern("value"), Keyword.intern(SOME_LONG_AS_STRING));
 
@@ -237,7 +237,7 @@ public class EventTest {
     public void canSerialiseInfoEventWithValue() {
         Event infoEvent = ImmutableInfoEvent.builder()
                 .function("foo")
-                .process(String.valueOf(SOME_PROCESS))
+                .process(SOME_PROCESS)
                 .time(SOME_TIME)
                 .value("bar")
                 .build();
@@ -245,7 +245,7 @@ public class EventTest {
         Map<Keyword, Object> expected = ImmutableMap.of(
                 Keyword.intern("type"), "info",
                 Keyword.intern("f"), "foo",
-                Keyword.intern("process"), String.valueOf(SOME_PROCESS),
+                Keyword.intern("process"), SOME_PROCESS,
                 Keyword.intern("time"), SOME_TIME,
                 Keyword.intern("value"), "bar");
 
@@ -256,14 +256,14 @@ public class EventTest {
     public void canSerialiseInfoEventWithoutValue() {
         Event infoEvent = ImmutableInfoEvent.builder()
                 .function("foo")
-                .process(String.valueOf(SOME_PROCESS))
+                .process(SOME_PROCESS)
                 .time(SOME_TIME)
                 .build();
 
         Map<Keyword, Object> expected = ImmutableMap.of(
                 Keyword.intern("type"), "info",
                 Keyword.intern("f"), "foo",
-                Keyword.intern("process"), String.valueOf(SOME_PROCESS),
+                Keyword.intern("process"), SOME_PROCESS,
                 Keyword.intern("time"), SOME_TIME);
 
         assertThat(Event.toKeywordMap(infoEvent)).isEqualTo(expected);
