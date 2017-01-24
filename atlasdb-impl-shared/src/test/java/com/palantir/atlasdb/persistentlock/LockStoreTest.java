@@ -103,6 +103,12 @@ public class LockStoreTest {
     }
 
     @Test(expected = PersistentLockIsTakenException.class)
+    public void cannotReleaseLockWhenLockIsOpen() throws Exception {
+        LockEntry otherLockEntry = ImmutableLockEntry.builder().rowName("name").lockId("42").reason("other").build();
+        lockStore.releaseLock(otherLockEntry);
+    }
+
+    @Test(expected = PersistentLockIsTakenException.class)
     public void canNotReleaseNonExistentLock() throws Exception {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
 
