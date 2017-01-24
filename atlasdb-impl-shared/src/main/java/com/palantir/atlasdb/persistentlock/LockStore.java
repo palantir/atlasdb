@@ -107,35 +107,24 @@ public final class LockStore {
         }
     }
 
-    public LockEntry acquireLock(String reason) throws PersistentLockIsTakenException {
+    public LockEntry acquireLock(String reason) throws CheckAndSetException {
         LockEntry lockEntry = generateUniqueLockEntry(reason);
         CheckAndSetRequest request = CheckAndSetRequest.singleCell(AtlasDbConstants.PERSISTED_LOCKS_TABLE,
                 lockEntry.cell(),
                 LOCK_OPEN.value(),
                 lockEntry.value());
 
-        try {
-            keyValueService.checkAndSet(request);
-        } catch (CheckAndSetException e) {
-            Set<LockEntry> heldLocks = allLockEntries();
-            throw new PersistentLockIsTakenException(lockEntry, heldLocks, e);
-        }
-
+        keyValueService.checkAndSet(request);
         return lockEntry;
     }
 
-    public void releaseLock(LockEntry lockEntry) throws PersistentLockIsTakenException {
+    public void releaseLock(LockEntry lockEntry) throws CheckAndSetException {
         CheckAndSetRequest request = CheckAndSetRequest.singleCell(AtlasDbConstants.PERSISTED_LOCKS_TABLE,
                 lockEntry.cell(),
                 lockEntry.value(),
                 LOCK_OPEN.value());
 
-        try {
-            keyValueService.checkAndSet(request);
-        } catch (CheckAndSetException e) {
-            Set<LockEntry> heldLocks = allLockEntries();
-            throw new PersistentLockIsTakenException(lockEntry, heldLocks, e);
-        }
+        keyValueService.checkAndSet(request);
     }
 
     @VisibleForTesting

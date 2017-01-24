@@ -74,19 +74,19 @@ public class LockStoreTest {
         assertThat(lockStore.allLockEntries(), contains(lockEntry));
     }
 
-    @Test(expected = PersistentLockIsTakenException.class)
+    @Test(expected = CheckAndSetException.class)
     public void canNotAcquireLockTwice() throws Exception {
         lockStore.acquireLock(REASON);
         lockStore.acquireLock(REASON);
     }
 
-    @Test(expected = PersistentLockIsTakenException.class)
+    @Test(expected = CheckAndSetException.class)
     public void canNotAcquireLockTwiceForDifferentReasons() throws Exception {
         lockStore.acquireLock(REASON);
         lockStore.acquireLock("other-reason");
     }
 
-    @Test(expected = PersistentLockIsTakenException.class)
+    @Test(expected = CheckAndSetException.class)
     public void canNotAcquireLockThatWasTakenOutByAnotherStore() throws Exception {
         LockStore otherLockStore = LockStore.create(kvs);
         otherLockStore.acquireLock("grabbed by other store");
@@ -102,13 +102,13 @@ public class LockStoreTest {
         assertThat(lockStore.allLockEntries(), contains(LockStore.LOCK_OPEN));
     }
 
-    @Test(expected = PersistentLockIsTakenException.class)
+    @Test(expected = CheckAndSetException.class)
     public void cannotReleaseLockWhenLockIsOpen() throws Exception {
         LockEntry otherLockEntry = ImmutableLockEntry.builder().rowName("name").lockId("42").reason("other").build();
         lockStore.releaseLock(otherLockEntry);
     }
 
-    @Test(expected = PersistentLockIsTakenException.class)
+    @Test(expected = CheckAndSetException.class)
     public void canNotReleaseNonExistentLock() throws Exception {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
 
@@ -124,14 +124,14 @@ public class LockStoreTest {
         lockStore.acquireLock(REASON);
     }
 
-    @Test(expected = PersistentLockIsTakenException.class)
+    @Test(expected = CheckAndSetException.class)
     public void canNotReacquireAfterReleasingDifferentLock() throws Exception {
         LockEntry lockEntry = lockStore.acquireLock(REASON);
 
         LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).lockId("42").reason("other").build();
         try {
             lockStore.releaseLock(otherLockEntry);
-        } catch (PersistentLockIsTakenException e) {
+        } catch (CheckAndSetException e) {
             // expected
         }
 
