@@ -16,13 +16,14 @@
 package com.palantir.atlasdb.persistentlock;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 import java.util.SortedMap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.immutables.value.Value;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 
@@ -37,8 +38,9 @@ public abstract class LockEntry {
 
     public static LockEntry fromRowResult(RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
         String rowName = asString(rowResult.getRowName());
-        String lockAndReason = valueOfColumnInRow(LOCK_COLUMN, rowResult).get();
+        String lockAndReason = valueOfColumnInRow(LOCK_COLUMN, rowResult);
         String[] split = StringUtils.split(lockAndReason, '_');
+        Preconditions.checkState(split.length == 2, "The stored lock was in the wrong format; found %s", lockAndReason);
         String lockId = split[0];
         String reason = split[1];
 
@@ -61,23 +63,19 @@ public abstract class LockEntry {
         return lockId() + "_" + reason();
     }
 
-    private static Optional<String> valueOfColumnInRow(
+    private static String valueOfColumnInRow(
             String columnName,
             RowResult<com.palantir.atlasdb.keyvalue.api.Value> rowResult) {
         byte[] columnNameBytes = asUtf8Bytes(columnName);
         SortedMap<byte[], com.palantir.atlasdb.keyvalue.api.Value> columns = rowResult.getColumns();
         if (columns.containsKey(columnNameBytes)) {
             byte[] contents = columns.get(columnNameBytes).getContents();
-            return Optional.of(asString(contents));
+            return asString(contents);
         } else {
-            return Optional.empty();
+            throw new IllegalStateException(String.format("Couldn't find column %s in the %s table!",
+                    LOCK_COLUMN,
+                    AtlasDbConstants.PERSISTED_LOCKS_TABLE));
         }
-    }
-
-    private Cell makeCell(String columnName) {
-        byte[] rowBytes = asUtf8Bytes(rowName());
-        byte[] columnBytes = asUtf8Bytes(columnName);
-        return Cell.create(rowBytes, columnBytes);
     }
 
     private static byte[] asUtf8Bytes(String value) {

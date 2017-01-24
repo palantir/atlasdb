@@ -55,16 +55,21 @@ public class CheckAndSetException extends RuntimeException {
     }
 
     public CheckAndSetException(Cell key, TableReference table, byte[] expected, List<byte[]> actual) {
-        super(getExceptionMessage(key, table, expected, actual));
+        super(createAndLogExceptionMessage(key, table, expected, actual));
         this.key = key;
         this.expectedValue = expected;
         this.actualValues = actual;
     }
 
-    private static String getExceptionMessage(Cell key, TableReference table, byte[] expected, List<byte[]> actual) {
+    private static String createAndLogExceptionMessage(
+            Cell key,
+            TableReference table,
+            byte[] expected,
+            List<byte[]> actual) {
         String repeatWarning = "If this is happening repeatedly, your program may be out of sync with the database.";
-        log.error("The cell {} in table {} has an unexpected value. Expected '{}' but got '{}'. {}",
-                key, table, PtBytes.encodeHexString(expected), encodeHexStrings(actual), repeatWarning);
+        String formatStr = "The cell {} in table {} has an unexpected value. Expected '{}' but got '{}'. "
+                + repeatWarning;
+        log.error(formatStr, key, table, PtBytes.encodeHexString(expected), encodeHexStrings(actual));
         return String.format("Unexpected value observed in table %s. %s", table, repeatWarning);
     }
 

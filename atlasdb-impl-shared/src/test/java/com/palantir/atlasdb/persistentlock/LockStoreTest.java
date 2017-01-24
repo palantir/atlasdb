@@ -131,7 +131,7 @@ public class LockStoreTest {
         LockEntry otherLockEntry = ImmutableLockEntry.builder().from(lockEntry).lockId("42").reason("other").build();
         try {
             lockStore.releaseLock(otherLockEntry);
-        } catch (IllegalArgumentException e) {
+        } catch (PersistentLockIsTakenException e) {
             // expected
         }
 

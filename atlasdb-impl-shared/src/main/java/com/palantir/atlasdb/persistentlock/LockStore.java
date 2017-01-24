@@ -101,7 +101,7 @@ public final class LockStore {
             List<String> values = e.getActualValues().stream()
                     .map(v -> new String(v, StandardCharsets.UTF_8))
                     .collect(Collectors.toList());
-            log.warn("Encountered a CheckAndSetException when creating the LockStore. This means that two "
+            log.info("Encountered a CheckAndSetException when creating the LockStore. This means that two "
                     + "LockStore objects were created near-simultaneously, and is probably not a problem. "
                     + "For the record, we observed these values: {}", values);
         }
@@ -149,7 +149,7 @@ public final class LockStore {
     }
 
     private LockEntry generateUniqueLockEntry(String reason) {
-        UUID uuid = UUID.randomUUID();
-        return ImmutableLockEntry.builder().rowName(ROW_NAME).lockId(uuid.toString()).reason(reason).build();
+        String randomLockId = UUID.randomUUID().toString();
+        return ImmutableLockEntry.builder().rowName(ROW_NAME).lockId(randomLockId).reason(reason).build();
     }
 }
