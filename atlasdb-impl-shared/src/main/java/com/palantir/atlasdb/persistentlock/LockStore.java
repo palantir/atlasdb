@@ -53,7 +53,8 @@ import com.palantir.atlasdb.keyvalue.api.Value;
  * If we fail to do this, it's because someone else also created the table, and populated it before we did.
  * This is actually OK - all we care about is that we're in the state machine _somewhere_.
  */
-public final class LockStore {
+@SuppressWarnings("checkstyle:FinalClass") // Non-final as we'd like to mock it.
+public class LockStore {
     private static final Logger log = LoggerFactory.getLogger(LockStore.class);
 
     private static final String ROW_NAME = "DeletionLock";
