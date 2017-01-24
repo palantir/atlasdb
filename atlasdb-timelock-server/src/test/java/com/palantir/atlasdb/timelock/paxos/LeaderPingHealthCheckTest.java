@@ -27,36 +27,37 @@ import com.palantir.leader.PingableLeader;
 import feign.FeignException;
 
 public class LeaderPingHealthCheckTest {
+    private static final String MULTIPLE_LEADERS_MESSAGE = "There are multiple leaders in the Paxos cluster.";
+    private static final String EXACTLY_ONE_LEADER_MESSAGE = "There is exactly one leader in the Paxos cluster.";
+    private static final String NO_LEADER_MESSAGE = "There are no leaders in the Paxos cluster";
+    private static final String QUORUM_NODES_DOWN_MESSAGE = "Less than a quorum of nodes responded to a ping request.";
+
     @Test
     public void shouldBeUnhealthyIfAllNodesPingedSuccessfully() throws Exception {
         ImmutableSet<PingableLeader> leaders = getPingableLeaders(true, true, true);
         assertThat(new LeaderPingHealthCheck(leaders).check().isHealthy()).isFalse();
-        assertThat(new LeaderPingHealthCheck(leaders).check().getMessage())
-                .startsWith("There are multiple leaders in the Paxos cluster.");
+        assertThat(new LeaderPingHealthCheck(leaders).check().getMessage()).startsWith(MULTIPLE_LEADERS_MESSAGE);
     }
 
     @Test
     public void shouldBeUnhealthyIfMultipleNodesPingedSuccessfully() throws Exception {
         ImmutableSet<PingableLeader> leaders = getPingableLeaders(true, true, false);
         assertThat(new LeaderPingHealthCheck(leaders).check().isHealthy()).isFalse();
-        assertThat(new LeaderPingHealthCheck(leaders).check().getMessage())
-                .startsWith("There are multiple leaders in the Paxos cluster.");
+        assertThat(new LeaderPingHealthCheck(leaders).check().getMessage()).startsWith(MULTIPLE_LEADERS_MESSAGE);
     }
 
     @Test
     public void shouldBeHealthyIfExactlyOneNodePingedSuccessfully() throws Exception {
         ImmutableSet<PingableLeader> leaders = getPingableLeaders(true, false, false);
         assertThat(new LeaderPingHealthCheck(leaders).check().isHealthy()).isTrue();
-        assertThat(new LeaderPingHealthCheck(leaders).check().getMessage())
-                .startsWith("There is exactly one leader in the Paxos cluster.");
+        assertThat(new LeaderPingHealthCheck(leaders).check().getMessage()).startsWith(EXACTLY_ONE_LEADER_MESSAGE);
     }
 
     @Test
     public void shouldBeUnhealthyIfNoNodesPingedSuccessfully() throws Exception {
         ImmutableSet<PingableLeader> leaders = getPingableLeaders(false, false, false);
         assertThat(new LeaderPingHealthCheck(leaders).check().isHealthy()).isFalse();
-        assertThat(new LeaderPingHealthCheck(leaders).check().getMessage())
-                .startsWith("There are no leaders in the Paxos cluster");
+        assertThat(new LeaderPingHealthCheck(leaders).check().getMessage()).startsWith(NO_LEADER_MESSAGE);
     }
 
     @Test
@@ -66,8 +67,7 @@ public class LeaderPingHealthCheckTest {
         PingableLeader leader3 = getMockOfPingableLeaderWherePingThrows();
         ImmutableSet<PingableLeader> leaders = ImmutableSet.of(leader1, leader2, leader3);
         assertThat(new LeaderPingHealthCheck(leaders).check().isHealthy()).isTrue();
-        assertThat(new LeaderPingHealthCheck(leaders).check().getMessage())
-                .startsWith("There is exactly one leader in the Paxos cluster.");
+        assertThat(new LeaderPingHealthCheck(leaders).check().getMessage()).startsWith(EXACTLY_ONE_LEADER_MESSAGE);
     }
 
     @Test
@@ -77,8 +77,7 @@ public class LeaderPingHealthCheckTest {
         PingableLeader leader3 = getMockOfPingableLeaderWherePingThrows();
         ImmutableSet<PingableLeader> leaders = ImmutableSet.of(leader1, leader2, leader3);
         assertThat(new LeaderPingHealthCheck(leaders).check().isHealthy()).isFalse();
-        assertThat(new LeaderPingHealthCheck(leaders).check().getMessage())
-                .startsWith("There are no leaders in the Paxos cluster.");
+        assertThat(new LeaderPingHealthCheck(leaders).check().getMessage()).startsWith(NO_LEADER_MESSAGE);
     }
 
     @Test
@@ -88,8 +87,7 @@ public class LeaderPingHealthCheckTest {
         PingableLeader leader3 = getMockOfPingableLeaderWherePingThrows();
         ImmutableSet<PingableLeader> leaders = ImmutableSet.of(leader1, leader2, leader3);
         assertThat(new LeaderPingHealthCheck(leaders).check().isHealthy()).isFalse();
-        assertThat(new LeaderPingHealthCheck(leaders).check().getMessage())
-                .startsWith("Less than a quorum of nodes responded to a ping request.");
+        assertThat(new LeaderPingHealthCheck(leaders).check().getMessage()).startsWith(QUORUM_NODES_DOWN_MESSAGE);
     }
 
     @Test
@@ -99,8 +97,7 @@ public class LeaderPingHealthCheckTest {
         PingableLeader leader3 = getMockOfPingableLeaderWherePingThrows();
         ImmutableSet<PingableLeader> leaders = ImmutableSet.of(leader1, leader2, leader3);
         assertThat(new LeaderPingHealthCheck(leaders).check().isHealthy()).isFalse();
-        assertThat(new LeaderPingHealthCheck(leaders).check().getMessage())
-                .startsWith("Less than a quorum of nodes responded to a ping request.");
+        assertThat(new LeaderPingHealthCheck(leaders).check().getMessage()).startsWith(QUORUM_NODES_DOWN_MESSAGE);
     }
 
     private ImmutableSet<PingableLeader> getPingableLeaders(

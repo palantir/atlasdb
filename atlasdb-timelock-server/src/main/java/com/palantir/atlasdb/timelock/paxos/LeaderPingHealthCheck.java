@@ -64,10 +64,7 @@ public class LeaderPingHealthCheck extends HealthCheck {
     }
 
     private int getCountPingResults(PingResult value, Map<PingResult, Long> pingResults) {
-        if (pingResults.containsKey(value)) {
-            return Math.toIntExact(pingResults.get(value));
-        }
-        return 0;
+        return Math.toIntExact(pingResults.getOrDefault(value, 0L));
     }
 
     private PingResult pingRecordingException(PingableLeader leader) {
