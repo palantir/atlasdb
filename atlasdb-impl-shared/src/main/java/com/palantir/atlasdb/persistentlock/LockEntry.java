@@ -21,12 +21,16 @@ import java.util.SortedMap;
 import org.apache.commons.lang3.StringUtils;
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 
+@JsonSerialize(as = ImmutableLockEntry.class)
+@JsonDeserialize(as = ImmutableLockEntry.class)
 @Value.Immutable
 public abstract class LockEntry {
     @VisibleForTesting

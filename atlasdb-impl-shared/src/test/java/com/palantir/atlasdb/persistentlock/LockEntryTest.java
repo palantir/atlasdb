@@ -18,11 +18,13 @@ package com.palantir.atlasdb.persistentlock;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -36,6 +38,8 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
 public class LockEntryTest {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private static final String ROW = "row";
     private static final String LOCK_ID = "12345";
     private static final String REASON = "test";
@@ -49,6 +53,15 @@ public class LockEntryTest {
             .reason(REASON)
             .build();
     private static final TableReference TEST_TABLE = TableReference.createWithEmptyNamespace("lockEntryTestTable");
+
+    @Test
+    public void testSerialisation() throws IOException {
+        LockEntry deserialisedLockEntry = MAPPER.readValue(MAPPER.writeValueAsString(LOCK_ENTRY), LockEntry.class);
+
+        assertEquals(LOCK_ENTRY.rowName(), deserialisedLockEntry.rowName());
+        assertEquals(LOCK_ENTRY.lockId(), deserialisedLockEntry.lockId());
+        assertEquals(LOCK_ENTRY.reason(), deserialisedLockEntry.reason());
+    }
 
     @Test
     public void cellContainsRowAndColumn() {
