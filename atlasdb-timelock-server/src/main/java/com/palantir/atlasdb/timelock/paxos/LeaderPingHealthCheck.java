@@ -15,12 +15,21 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.codahale.metrics.health.HealthCheck;
 import com.palantir.leader.PingableLeader;
 
 public class LeaderPingHealthCheck extends HealthCheck {
+    private enum PingResult {
+        SUCCESS,
+        FAILURE,
+        EXCEPTION
+    }
+
     private Set<PingableLeader> leaders;
 
     public LeaderPingHealthCheck(Set<PingableLeader> leaders) {
@@ -29,17 +38,43 @@ public class LeaderPingHealthCheck extends HealthCheck {
 
     @Override
     protected Result check() throws Exception {
-        long numLeaders = leaders.stream()
-                .map(PingableLeader::ping)
-                .filter(pingResult -> pingResult == Boolean.TRUE)
-                .count();
+        Map<PingResult, Long> pingResults = leaders.stream()
+                .map(this::pingRecordingException)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
 
+        int nonExceptionResponses = leaders.size() - getCountPingResults(PingResult.EXCEPTION, pingResults);
+        if (nonExceptionResponses < getQuorumSize()) {
+            return Result.unhealthy("Less than a quorum of nodes responded to a ping request. "
+                    + "We received a response from %s nodes after pinging %s nodes",
+                    nonExceptionResponses, leaders.size());
+        }
+
+        int numLeaders = getCountPingResults(PingResult.SUCCESS, pingResults);
         if (numLeaders == 1) {
             return Result.healthy("There is exactly one leader in the Paxos cluster.");
         } else if (numLeaders == 0) {
             return Result.unhealthy("There are no leaders in the Paxos cluster.");
         } else {
             return Result.unhealthy("There are multiple leaders in the Paxos cluster. Found %s leaders", numLeaders);
+        }
+    }
+
+    private int getQuorumSize() {
+        return (leaders.size() + 1) / 2;
+    }
+
+    private int getCountPingResults(PingResult value, Map<PingResult, Long> pingResults) {
+        if (pingResults.containsKey(value)) {
+            return Math.toIntExact(pingResults.get(value));
+        }
+        return 0;
+    }
+
+    private PingResult pingRecordingException(PingableLeader leader) {
+        try {
+            return leader.ping() ? PingResult.SUCCESS : PingResult.FAILURE;
+        } catch (Exception ex) {
+            return PingResult.EXCEPTION;
         }
     }
 }
