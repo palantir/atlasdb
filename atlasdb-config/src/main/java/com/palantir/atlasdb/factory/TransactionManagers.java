@@ -46,6 +46,7 @@ import com.palantir.atlasdb.keyvalue.impl.NamespacedKeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
+import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -134,7 +135,7 @@ public final class TransactionManagers {
 
         KeyValueService kvs = getKeyValueService(atlasFactory, lts);
 
-        // getPersistentLockService(kvs)
+        createAndRegisterPersistentLockService(kvs, env);
 
         TransactionService transactionService = TransactionServices.createTransactionService(kvs);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.createDefault(kvs);
@@ -196,6 +197,11 @@ public final class TransactionManagers {
         backgroundSweeper.runInBackground();
 
         return transactionManager;
+    }
+
+    private static void createAndRegisterPersistentLockService(KeyValueService kvs, Environment env) {
+        PersistentLockService pls = PersistentLockService.create(kvs);
+        env.register(pls);
     }
 
     private static KeyValueService getKeyValueService(ServiceDiscoveringAtlasSupplier atlasFactory,
