@@ -36,7 +36,6 @@ import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
 
 import com.palantir.atlasdb.jepsen.utils.EventUtils;
-import com.palantir.util.Pair;
 
 /**
  * This checker verifies that refreshes of locks do not cause two processes to simultaneously hold the same lock.
@@ -57,24 +56,17 @@ public class RefreshCorrectnessChecker implements Checker {
     }
 
     private static class Visitor implements EventVisitor {
-        private final Map<Pair<Integer, String>, InvokeEvent> pendingForProcessAndLock = new HashMap<>();
-        private final Map<Pair<Integer, String>, Event> lastHeldLock = new HashMap<>();
-        private final Map<String, TreeRangeSet<Long>> locksHeld = new HashMap<>();
-        private final ArrayList<String> allLockNames = new ArrayList<>();
+        private final Map<Integer, InvokeEvent> pendingForProcess = new HashMap<>();
+        private final Map<Integer, Event> lastHeldLock = new HashMap<>();
+
+        private final TreeRangeSet<Long> locksHeld = TreeRangeSet.create();
+
         private final List<Event> errors = new ArrayList<>();
-        private final Map<Integer, String> resourceName = new HashMap<>();
 
         @Override
         public void visit(InvokeEvent event) {
-            Integer process = event.process();
-            String lockName = event.value();
-            resourceName.put(process, lockName);
-            pendingForProcessAndLock.put(new Pair(process, lockName), event);
-
-            if (!allLockNames.contains(lockName)) {
-                allLockNames.add(lockName);
-                locksHeld.put(lockName, TreeRangeSet.create());
-            }
+            int process = event.process();
+            pendingForProcess.put(process, event);
         }
 
         @Override
@@ -83,10 +75,8 @@ public class RefreshCorrectnessChecker implements Checker {
                 return;
             }
 
-            Integer process = event.process();
-            String lockName = resourceName.get(process);
-            Pair<Integer, String> processLock = new Pair(process, lockName);
-            InvokeEvent invokeEvent = pendingForProcessAndLock.get(processLock);
+            int process = event.process();
+            InvokeEvent invokeEvent = pendingForProcess.get(process);
 
             switch (event.function()) {
                 /*
@@ -94,7 +84,7 @@ public class RefreshCorrectnessChecker implements Checker {
                  * Remember the new value for the most recent successful lock
                  */
                 case RequestType.LOCK:
-                    lastHeldLock.put(processLock, event);
+                    lastHeldLock.put(process, event);
                     break;
                 /*
                  * Successful REFRESH/UNLOCK:
@@ -115,11 +105,11 @@ public class RefreshCorrectnessChecker implements Checker {
                  */
                 case RequestType.REFRESH:
                 case RequestType.UNLOCK:
-                    if (lastHeldLock.containsKey(processLock)) {
-                        long lastLockTime = lastHeldLock.get(processLock).time();
+                    if (lastHeldLock.containsKey(process)) {
+                        long lastLockTime = lastHeldLock.get(process).time();
                         if (lastLockTime < invokeEvent.time()) {
                             Range<Long> newRange = Range.closedOpen(lastLockTime, invokeEvent.time());
-                            if (!locksHeld.get(lockName).subRangeSet(newRange).isEmpty()) {
+                            if (!locksHeld.subRangeSet(newRange).isEmpty()) {
                                 log.error("A {} request for lock {} by process {} invoked at time {} was granted at "
                                         + "time {}, but another process was granted the lock between {} and {} "
                                         + "(last known time the lock was held by {})",
@@ -129,8 +119,8 @@ public class RefreshCorrectnessChecker implements Checker {
                                 errors.add(invokeEvent);
                                 errors.add(event);
                             }
-                            locksHeld.get(lockName).add(newRange);
-                            lastHeldLock.put(processLock, invokeEvent);
+                            locksHeld.add(newRange);
+                            lastHeldLock.put(process, invokeEvent);
                         }
                     }
                     break;

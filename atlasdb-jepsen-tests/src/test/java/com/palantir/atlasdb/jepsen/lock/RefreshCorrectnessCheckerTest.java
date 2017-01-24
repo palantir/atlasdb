@@ -23,13 +23,17 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.CheckerResult;
+import com.palantir.atlasdb.jepsen.PartitionByInvokeNameCheckerHelper;
+import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.utils.CheckerTestUtils;
 import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
 
 public class RefreshCorrectnessCheckerTest {
-    private static final int process1 = 1;
-    private static final int process2 = 2;
+    private static final int PROCESS_1 = 1;
+    private static final int PROCESS_2 = 2;
+
+    private static final String ALT_LOCK = "alternative_lock";
 
     @Test
     public void shouldSucceedOnNoEvents() {
@@ -39,14 +43,14 @@ public class RefreshCorrectnessCheckerTest {
     @Test
     public void simpleNonOverlappingRefreshesShouldSucceed() {
         ImmutableList<Event> list = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeLock(0, process1))
-                .add(TestEventUtils.lockSuccess(1, process1))
-                .add(TestEventUtils.invokeRefresh(2, process1))
-                .add(TestEventUtils.invokeLock(2, process2))
-                .add(TestEventUtils.lockSuccess(3, process2))
-                .add(TestEventUtils.refreshSuccess(3, process1))
-                .add(TestEventUtils.invokeRefresh(4, process2))
-                .add(TestEventUtils.refreshSuccess(5, process2))
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(2, PROCESS_1))
+                .add(TestEventUtils.invokeLock(2, PROCESS_2))
+                .add(TestEventUtils.lockSuccess(3, PROCESS_2))
+                .add(TestEventUtils.refreshSuccess(3, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(4, PROCESS_2))
+                .add(TestEventUtils.refreshSuccess(5, PROCESS_2))
                 .build();
         assertNoError(list);
     }
@@ -54,14 +58,14 @@ public class RefreshCorrectnessCheckerTest {
     @Test
     public void simpleOverlappingRefreshesShouldFail() {
         ImmutableList<Event> list = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeLock(0, process1))
-                .add(TestEventUtils.lockSuccess(1, process1))
-                .add(TestEventUtils.invokeLock(2, process2))
-                .add(TestEventUtils.lockSuccess(3, process2))
-                .add(TestEventUtils.invokeRefresh(4, process1))
-                .add(TestEventUtils.invokeRefresh(4, process2))
-                .add(TestEventUtils.refreshSuccess(5, process1))
-                .add(TestEventUtils.refreshSuccess(5, process2))
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeLock(2, PROCESS_2))
+                .add(TestEventUtils.lockSuccess(3, PROCESS_2))
+                .add(TestEventUtils.invokeRefresh(4, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(4, PROCESS_2))
+                .add(TestEventUtils.refreshSuccess(5, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(5, PROCESS_2))
                 .build();
         CheckerResult result = runRefreshCorrectnessChecker(list);
         assertThat(result.valid()).isFalse();
@@ -69,14 +73,29 @@ public class RefreshCorrectnessCheckerTest {
     }
 
     @Test
+    public void simpleOverlappingRefreshesOnDifferentLocksShouldSucceed() {
+        ImmutableList<Event> list = ImmutableList.<Event>builder()
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeLock(2, PROCESS_2, ALT_LOCK))
+                .add(TestEventUtils.lockSuccess(3, PROCESS_2))
+                .add(TestEventUtils.invokeRefresh(4, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(4, PROCESS_2, ALT_LOCK))
+                .add(TestEventUtils.refreshSuccess(5, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(5, PROCESS_2))
+                .build();
+        assertNoError(list);
+    }
+
+    @Test
     public void successiveRefreshesShouldSucceed() {
         ImmutableList<Event> list = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeLock(0, process1))
-                .add(TestEventUtils.lockSuccess(1, process1))
-                .add(TestEventUtils.invokeRefresh(2, process1))
-                .add(TestEventUtils.refreshSuccess(3, process1))
-                .add(TestEventUtils.invokeRefresh(4, process1))
-                .add(TestEventUtils.refreshSuccess(5, process1))
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(2, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(3, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(4, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(5, PROCESS_1))
                 .build();
         assertNoError(list);
     }
@@ -84,16 +103,16 @@ public class RefreshCorrectnessCheckerTest {
     @Test
     public void anotherProcessCannotRefreshBetweenSuccessiveRefreshes() {
         ImmutableList<Event> list = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeLock(0, process1))
-                .add(TestEventUtils.lockSuccess(1, process1))
-                .add(TestEventUtils.invokeRefresh(2, process1))
-                .add(TestEventUtils.invokeLock(2, process2))
-                .add(TestEventUtils.lockSuccess(2, process2))
-                .add(TestEventUtils.invokeRefresh(3, process2))
-                .add(TestEventUtils.refreshSuccess(4, process2))
-                .add(TestEventUtils.refreshSuccess(4, process1))
-                .add(TestEventUtils.invokeRefresh(4, process1))
-                .add(TestEventUtils.refreshSuccess(5, process1))
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(2, PROCESS_1))
+                .add(TestEventUtils.invokeLock(2, PROCESS_2))
+                .add(TestEventUtils.lockSuccess(2, PROCESS_2))
+                .add(TestEventUtils.invokeRefresh(3, PROCESS_2))
+                .add(TestEventUtils.refreshSuccess(4, PROCESS_2))
+                .add(TestEventUtils.refreshSuccess(4, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(4, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(5, PROCESS_1))
                 .build();
         CheckerResult result = runRefreshCorrectnessChecker(list);
         assertThat(result.valid()).isFalse();
@@ -103,14 +122,14 @@ public class RefreshCorrectnessCheckerTest {
     @Test
     public void anotherProcessCanGrabLockAtLastRefreshInvoke() {
         ImmutableList<Event> list = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeLock(0, process1))
-                .add(TestEventUtils.lockSuccess(1, process1))
-                .add(TestEventUtils.invokeRefresh(2, process1))
-                .add(TestEventUtils.invokeLock(2, process2))
-                .add(TestEventUtils.lockSuccess(2, process2))
-                .add(TestEventUtils.invokeRefresh(3, process2))
-                .add(TestEventUtils.refreshSuccess(4, process2))
-                .add(TestEventUtils.refreshSuccess(4, process1))
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(2, PROCESS_1))
+                .add(TestEventUtils.invokeLock(2, PROCESS_2))
+                .add(TestEventUtils.lockSuccess(2, PROCESS_2))
+                .add(TestEventUtils.invokeRefresh(3, PROCESS_2))
+                .add(TestEventUtils.refreshSuccess(4, PROCESS_2))
+                .add(TestEventUtils.refreshSuccess(4, PROCESS_1))
                 .build();
         assertNoError(list);
     }
@@ -118,14 +137,14 @@ public class RefreshCorrectnessCheckerTest {
     @Test
     public void successfulUnlockImpliesHoldingLock() {
         ImmutableList<Event> list = ImmutableList.<Event>builder()
-                .add(TestEventUtils.invokeLock(0, process1))
-                .add(TestEventUtils.lockSuccess(1, process1))
-                .add(TestEventUtils.invokeLock(2, process2))
-                .add(TestEventUtils.lockSuccess(3, process2))
-                .add(TestEventUtils.invokeUnlock(4, process1))
-                .add(TestEventUtils.invokeRefresh(4, process2))
-                .add(TestEventUtils.unlockSuccess(5, process1))
-                .add(TestEventUtils.refreshSuccess(5, process2))
+                .add(TestEventUtils.invokeLock(0, PROCESS_1))
+                .add(TestEventUtils.lockSuccess(1, PROCESS_1))
+                .add(TestEventUtils.invokeLock(2, PROCESS_2))
+                .add(TestEventUtils.lockSuccess(3, PROCESS_2))
+                .add(TestEventUtils.invokeUnlock(4, PROCESS_1))
+                .add(TestEventUtils.invokeRefresh(4, PROCESS_2))
+                .add(TestEventUtils.unlockSuccess(5, PROCESS_1))
+                .add(TestEventUtils.refreshSuccess(5, PROCESS_2))
                 .build();
         CheckerResult result = runRefreshCorrectnessChecker(list);
         assertThat(result.valid()).isFalse();
@@ -133,11 +152,12 @@ public class RefreshCorrectnessCheckerTest {
     }
 
     private static CheckerResult runRefreshCorrectnessChecker(ImmutableList<Event> events) {
-        RefreshCorrectnessChecker refreshCorrectnessChecker = new RefreshCorrectnessChecker();
+        Checker refreshCorrectnessChecker = new PartitionByInvokeNameCheckerHelper(RefreshCorrectnessChecker::new);
         return refreshCorrectnessChecker.check(events);
     }
 
     private static void assertNoError(List<Event> events) {
-        CheckerTestUtils.assertNoErrors(RefreshCorrectnessChecker::new, events);
+        CheckerTestUtils.assertNoErrors(() ->
+                new PartitionByInvokeNameCheckerHelper(RefreshCorrectnessChecker::new), events);
     }
 }

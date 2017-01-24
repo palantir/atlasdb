@@ -33,7 +33,6 @@ import com.palantir.atlasdb.jepsen.events.OkEvent;
 import com.palantir.atlasdb.jepsen.events.RequestType;
 
 import com.palantir.atlasdb.jepsen.utils.EventUtils;
-import com.palantir.util.Pair;
 
 /**
  * This checker verifies that the sequence of events is correct for each process in isolation. Since we know that no
@@ -51,14 +50,15 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
     }
 
     private static class Visitor implements EventVisitor {
-        private final Set<Pair<Integer, String>> refreshAllowed = new HashSet<>();
-        private final Map<Pair<Integer, String>, OkEvent> lastEvent = new HashMap<>();
+        private final Map<Integer, InvokeEvent> pendingForProcess = new HashMap<>();
+        private final Map<Integer, OkEvent> lastOkEvent = new HashMap<>();
+        private final Set<Integer> refreshAllowed = new HashSet<>();
+
         private final List<Event> errors = new ArrayList<>();
-        private final Map<Integer, InvokeEvent> previousInvoke = new HashMap<>();
 
         @Override
         public void visit(InvokeEvent event) {
-            previousInvoke.put(event.process(), event);
+            pendingForProcess.put(event.process(), event);
         }
 
         /**
@@ -77,45 +77,45 @@ public class IsolatedProcessCorrectnessChecker implements Checker {
         @Override
         public void visit(OkEvent event) {
             int currentProcess = event.process();
-            String lockName = previousInvoke.get(currentProcess).value();
-            Pair<Integer, String> processLock = new Pair(currentProcess, lockName);
+            //String lockName = pendingForProcess.get(currentProcess).value();
+            //Pair<Integer, String> processLock = new Pair(currentProcess, lockName);
 
             switch (event.function()) {
                 case RequestType.LOCK:
                     if (EventUtils.isFailure(event)) {
-                        refreshAllowed.remove(processLock);
+                        refreshAllowed.remove(currentProcess);
                     } else {
-                        refreshAllowed.add(processLock);
+                        refreshAllowed.add(currentProcess);
                     }
                     break;
                 case RequestType.REFRESH:
                     if (EventUtils.isFailure(event)) {
-                        refreshAllowed.remove(processLock);
+                        refreshAllowed.remove(currentProcess);
                     }
-                    verifyRefreshAllowed(event, processLock);
+                    verifyRefreshAllowed(event, currentProcess);
                     break;
                 case RequestType.UNLOCK:
-                    verifyRefreshAllowed(event, processLock);
-                    refreshAllowed.remove(processLock);
+                    verifyRefreshAllowed(event, currentProcess);
+                    refreshAllowed.remove(currentProcess);
                     break;
                 default: throw new IllegalStateException("Not an OkEvent type supported by this checker!");
             }
-            lastEvent.put(processLock, event);
+            lastOkEvent.put(currentProcess, event);
         }
 
-        private void verifyRefreshAllowed(OkEvent event, Pair<Integer, String> processLock) {
-            if (!EventUtils.isFailure(event) && !refreshAllowed.contains(processLock)) {
-                addEventsToErrors(event, processLock);
-                refreshAllowed.add(processLock);
+        private void verifyRefreshAllowed(OkEvent event, Integer process) {
+            if (!EventUtils.isFailure(event) && !refreshAllowed.contains(process)) {
+                addEventsToErrors(event, process);
+                refreshAllowed.add(process);
             }
         }
 
-        private void addEventsToErrors(OkEvent event, Pair<Integer, String> processLock) {
+        private void addEventsToErrors(OkEvent event, Integer process) {
             Event previousEvent;
-            if (lastEvent.containsKey(processLock)) {
-                previousEvent = lastEvent.get(processLock);
+            if (lastOkEvent.containsKey(process)) {
+                previousEvent = lastOkEvent.get(process);
             } else {
-                previousEvent = previousInvoke.get(event.process());
+                previousEvent = pendingForProcess.get(event.process());
             }
             errors.add(previousEvent);
             errors.add(event);

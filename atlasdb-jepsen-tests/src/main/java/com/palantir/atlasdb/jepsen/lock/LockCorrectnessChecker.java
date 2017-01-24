@@ -94,7 +94,7 @@ public class LockCorrectnessChecker implements Checker {
 
         @Override
         public void visit(InvokeEvent event) {
-            Integer process = event.process();
+            int process = event.process();
             pendingForProcess.put(process, event);
             this.lockName = event.value();
         }
@@ -105,7 +105,7 @@ public class LockCorrectnessChecker implements Checker {
                 return;
             }
 
-            Integer process = event.process();
+            int process = event.process();
             InvokeEvent invokeEvent = pendingForProcess.get(process);
 
             switch (event.function()) {
@@ -137,14 +137,6 @@ public class LockCorrectnessChecker implements Checker {
             }
         }
 
-        public boolean valid() {
-            return errors.isEmpty();
-        }
-
-        public List<Event> errors() {
-            return ImmutableList.copyOf(errors);
-        }
-
         private void verifyLockCorrectness() {
             for (Pair<InvokeEvent, OkEvent> eventPair : locksAtSomePoint) {
                 InvokeEvent invokeEvent = eventPair.getLhSide();
@@ -162,6 +154,14 @@ public class LockCorrectnessChecker implements Checker {
         private boolean intervalCovered(InvokeEvent invokeEvent, OkEvent okEvent) {
             Range<Long> interval = Range.closed(invokeEvent.time(), okEvent.time());
             return locksHeld.encloses(interval);
+        }
+
+        public boolean valid() {
+            return errors.isEmpty();
+        }
+
+        public List<Event> errors() {
+            return ImmutableList.copyOf(errors);
         }
 
     }

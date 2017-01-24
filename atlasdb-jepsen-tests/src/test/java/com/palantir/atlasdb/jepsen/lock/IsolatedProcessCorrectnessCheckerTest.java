@@ -23,6 +23,8 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.CheckerResult;
+import com.palantir.atlasdb.jepsen.PartitionByInvokeNameCheckerHelper;
+import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.utils.CheckerTestUtils;
 import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
@@ -226,11 +228,13 @@ public class IsolatedProcessCorrectnessCheckerTest {
     }
 
     private static CheckerResult runIsolatedProcessRefreshSuccessChecker(List<Event> events) {
-        IsolatedProcessCorrectnessChecker isolatedProcessCorrectnessChecker = new IsolatedProcessCorrectnessChecker();
+        Checker isolatedProcessCorrectnessChecker =
+                new PartitionByInvokeNameCheckerHelper(IsolatedProcessCorrectnessChecker::new);
         return isolatedProcessCorrectnessChecker.check(events);
     }
 
     private static void assertNoError(List<Event> events) {
-        CheckerTestUtils.assertNoErrors(IsolatedProcessCorrectnessChecker::new, events);
+        CheckerTestUtils.assertNoErrors(() ->
+                new PartitionByInvokeNameCheckerHelper(IsolatedProcessCorrectnessChecker::new), events);
     }
 }

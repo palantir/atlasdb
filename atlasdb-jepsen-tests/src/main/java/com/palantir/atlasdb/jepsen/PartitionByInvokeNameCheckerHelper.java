@@ -73,7 +73,8 @@ public class PartitionByInvokeNameCheckerHelper implements Checker {
     }
 
     private CheckerResult combineResults(List<CheckerResult> results) {
-        List<Event> allErrors = results.stream().flatMap(result -> result.errors().stream()).collect(Collectors.toList());
+        List<Event> allErrors = results.stream().flatMap(result ->
+                result.errors().stream()).collect(Collectors.toList());
         boolean allValid = results.stream().allMatch(CheckerResult::valid);
         return ImmutableCheckerResult.builder()
                 .valid(allValid)
