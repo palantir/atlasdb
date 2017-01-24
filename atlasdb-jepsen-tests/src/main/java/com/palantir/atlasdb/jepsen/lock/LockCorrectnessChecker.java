@@ -129,8 +129,7 @@ public class LockCorrectnessChecker implements Checker {
                     if (lastHeldLock.containsKey(process)) {
                         long lastLockTime = lastHeldLock.get(process).time();
                         if (lastLockTime < invokeEvent.time()) {
-                            locksHeld.add(
-                                    Range.open(lastLockTime, invokeEvent.time()));
+                            locksHeld.add(Range.open(lastLockTime, invokeEvent.time()));
                         }
                     }
                     break;

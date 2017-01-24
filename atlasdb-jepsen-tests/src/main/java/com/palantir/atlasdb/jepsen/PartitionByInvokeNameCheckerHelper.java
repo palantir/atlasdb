@@ -30,7 +30,7 @@ import com.palantir.atlasdb.jepsen.events.InvokeEvent;
 
 public class PartitionByInvokeNameCheckerHelper implements Checker {
 
-    private Supplier<Checker> checkerSupplier;
+    private final Supplier<Checker> checkerSupplier;
 
     public PartitionByInvokeNameCheckerHelper(Supplier<Checker> checkerSupplier) {
         this.checkerSupplier = checkerSupplier;
@@ -73,7 +73,7 @@ public class PartitionByInvokeNameCheckerHelper implements Checker {
     }
 
     private CheckerResult combineResults(List<CheckerResult> results) {
-        List<Event> allErrors = results.stream().flatMap(r -> r.errors().stream()).collect(Collectors.toList());
+        List<Event> allErrors = results.stream().flatMap(result -> result.errors().stream()).collect(Collectors.toList());
         boolean allValid = results.stream().allMatch(CheckerResult::valid);
         return ImmutableCheckerResult.builder()
                 .valid(allValid)
