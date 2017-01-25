@@ -25,7 +25,7 @@ import com.palantir.util.DebugLogger;
 
 @ThreadSafe
 public class PersistentTimestampService implements TimestampService, TimestampManagementService {
-    private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000;
+    private static final int MAX_REQUEST_RANGE_SIZE = 10 * 1000 * 1000;
 
     private final ExecutorService executor;
     private final AvailableTimestamps availableTimestamps;
@@ -55,7 +55,7 @@ public class PersistentTimestampService implements TimestampService, TimestampMa
 
     @Override
     public long getFreshTimestamp() {
-        return getFreshTimestamps(1).getLowerBound();
+        return getFreshTimestamps(1000000).getLowerBound();
     }
 
     @Override
