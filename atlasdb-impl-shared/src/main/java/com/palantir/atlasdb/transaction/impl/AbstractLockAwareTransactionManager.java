@@ -108,10 +108,6 @@ public abstract class AbstractLockAwareTransactionManager
         }
     }
 
-    private void logSuccess(UUID runId, int failureCount) {
-        log.info("[{}] Successfully completed transaction after {} retries.", runId, failureCount);
-    }
-
     @Override
     public <T, E extends Exception> T runTaskWithLocksWithRetry(
             Supplier<LockRequest> lockSupplier,
@@ -119,6 +115,16 @@ public abstract class AbstractLockAwareTransactionManager
             throws E, InterruptedException {
         checkOpen();
         return runTaskWithLocksWithRetry(ImmutableList.of(), lockSupplier, task);
+    }
+
+    @Override
+    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E {
+        checkOpen();
+        return runTaskWithLocksThrowOnConflict(ImmutableList.of(), LockAwareTransactionTasks.asLockAware(task));
+    }
+
+    private void logSuccess(UUID runId, int failureCount) {
+        log.info("[{}] Successfully completed transaction after {} retries.", runId, failureCount);
     }
 
     private void refreshAfterLockTimeout(Iterable<HeldLocksToken> lockTokens, TransactionLockTimeoutException ex) {
@@ -135,11 +141,5 @@ public abstract class AbstractLockAwareTransactionManager
                     + failedTokens,
                     ex);
         }
-    }
-
-    @Override
-    public <T, E extends Exception> T runTaskThrowOnConflict(TransactionTask<T, E> task) throws E {
-        checkOpen();
-        return runTaskWithLocksThrowOnConflict(ImmutableList.of(), LockAwareTransactionTasks.asLockAware(task));
     }
 }
