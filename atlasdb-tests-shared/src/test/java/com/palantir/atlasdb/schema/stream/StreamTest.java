@@ -42,6 +42,7 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -73,7 +74,6 @@ import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamMeta
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow;
-import com.palantir.atlasdb.stream.GenericStreamStore;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -187,7 +187,8 @@ public class StreamTest extends AtlasDbTestCase {
 
     @Test
     public void testStoreByteStreamJustAboveInMemoryThreshold() throws IOException {
-        storeAndCheckByteStreams(defaultStore, getIncompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 4 + 1));
+        storeAndCheckByteStreams(defaultStore,
+                getIncompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 4 + 1));
     }
 
     @Test
@@ -302,12 +303,12 @@ public class StreamTest extends AtlasDbTestCase {
         stream.close();
     }
 
-    @Test()
+    @Test
     public void readFromStreamWhenTransactionOpen() throws IOException {
         readFromGivenStreamWhenTransactionOpen(defaultStore);
     }
 
-    @Test()
+    @Test
     public void readFromCompressedStreamWhenTransactionOpen() throws IOException {
         readFromGivenStreamWhenTransactionOpen(compressedStore);
     }
