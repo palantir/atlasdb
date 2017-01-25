@@ -72,39 +72,10 @@ public final class LockStore {
     public static LockStore create(KeyValueService kvs) {
         kvs.createTable(AtlasDbConstants.PERSISTED_LOCKS_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         LockStore lockStore = new LockStore(kvs);
-        ensurePersistedLocksTableIsPopulated(kvs, lockStore);
-        return lockStore;
-    }
-
-    private static void ensurePersistedLocksTableIsPopulated(KeyValueService kvs, LockStore lockStore) {
         if (lockStore.allLockEntries().isEmpty()) {
-            populateTable(kvs);
+            new LockStorePopulator(kvs).populate();
         }
-    }
-
-    @VisibleForTesting
-    void populateTable() {
-        populateTable(keyValueService);
-    }
-
-    private static void populateTable(KeyValueService kvs) {
-        CheckAndSetRequest request = CheckAndSetRequest.newCell(
-                AtlasDbConstants.PERSISTED_LOCKS_TABLE,
-                LOCK_OPEN.cell(),
-                LOCK_OPEN.value());
-        try {
-            kvs.checkAndSet(request);
-        } catch (CheckAndSetException e) {
-            // This can happen if multiple LockStores are started at once. We don't actually mind.
-            // All we care about is that we're in the state machine of "LOCK_OPEN"/"LOCK_TAKEN".
-            // It still might be interesting, so we'll log it.
-            List<String> values = e.getActualValues().stream()
-                    .map(v -> new String(v, StandardCharsets.UTF_8))
-                    .collect(Collectors.toList());
-            log.info("Encountered a CheckAndSetException when creating the LockStore. This means that two "
-                    + "LockStore objects were created near-simultaneously, and is probably not a problem. "
-                    + "For the record, we observed these values: {}", values);
-        }
+        return lockStore;
     }
 
     public LockEntry acquireLock(String reason) throws CheckAndSetException {
@@ -140,5 +111,33 @@ public final class LockStore {
     private LockEntry generateUniqueLockEntry(String reason) {
         String randomLockId = UUID.randomUUID().toString();
         return ImmutableLockEntry.builder().rowName(ROW_NAME).lockId(randomLockId).reason(reason).build();
+    }
+
+    static class LockStorePopulator {
+        private KeyValueService kvs;
+
+        LockStorePopulator(KeyValueService kvs) {
+            this.kvs = kvs;
+        }
+
+        void populate() {
+            CheckAndSetRequest request = CheckAndSetRequest.newCell(
+                    AtlasDbConstants.PERSISTED_LOCKS_TABLE,
+                    LOCK_OPEN.cell(),
+                    LOCK_OPEN.value());
+            try {
+                kvs.checkAndSet(request);
+            } catch (CheckAndSetException e) {
+                // This can happen if multiple LockStores are started at once. We don't actually mind.
+                // All we care about is that we're in the state machine of "LOCK_OPEN"/"LOCK_TAKEN".
+                // It still might be interesting, so we'll log it.
+                List<String> values = e.getActualValues().stream()
+                        .map(v -> new String(v, StandardCharsets.UTF_8))
+                        .collect(Collectors.toList());
+                log.info("Encountered a CheckAndSetException when creating the LockStore. This means that two "
+                        + "LockStore objects were created near-simultaneously, and is probably not a problem. "
+                        + "For the record, we observed these values: {}", values);
+            }
+        }
     }
 }
