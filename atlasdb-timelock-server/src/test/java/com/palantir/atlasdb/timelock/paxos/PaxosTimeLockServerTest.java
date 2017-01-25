@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.isA;
+import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -30,8 +32,8 @@ import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
+import com.codahale.metrics.health.HealthCheckRegistry;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
@@ -66,14 +68,22 @@ public class PaxosTimeLockServerTest {
     @Before
     public void setUp() {
         when(environment.jersey()).thenReturn(mock(JerseyEnvironment.class));
+        when(environment.healthChecks()).thenReturn(mock(HealthCheckRegistry.class));
     }
 
     @Test
     public void verifyPaxosResourcesAreRegisteredAfterStartup() throws IOException {
         implementation.onStartup(TIMELOCK_CONFIG);
-        verify(environment.jersey(), times(1)).register(Mockito.isA(LeadershipResource.class));
-        verify(environment.jersey(), times(1)).register(Mockito.isA(PaxosResource.class));
-        verify(environment.jersey(), times(1)).register(Mockito.isA(NotCurrentLeaderExceptionMapper.class));
+        verify(environment.jersey(), times(1)).register(isA(LeadershipResource.class));
+        verify(environment.jersey(), times(1)).register(isA(PaxosResource.class));
+        verify(environment.jersey(), times(1)).register(isA(NotCurrentLeaderExceptionMapper.class));
+    }
+
+    @Test
+    public void verifyHealthCheckIsRegisteredAfterStartup() throws IOException {
+        implementation.onStartup(TIMELOCK_CONFIG);
+        verify(environment.healthChecks(), times(1))
+                .register(startsWith("leader-ping"), isA(LeaderPingHealthCheck.class));
     }
 
     @Test

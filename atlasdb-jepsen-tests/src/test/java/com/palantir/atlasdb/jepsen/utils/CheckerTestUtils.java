@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Palantir Technologies
+ * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,13 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.jepsen;
+package com.palantir.atlasdb.jepsen.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import com.palantir.atlasdb.jepsen.events.Event;
 
@@ -29,7 +31,11 @@ public final class CheckerTestUtils {
     }
 
     public static void assertNoErrors(Supplier<Checker> checker, Event... events) {
-        CheckerResult result = checker.get().check(ImmutableList.copyOf(events));
+        assertNoErrors(checker, ImmutableList.copyOf(events));
+    }
+
+    public static void assertNoErrors(Supplier<Checker> checker, List<Event> events) {
+        CheckerResult result = checker.get().check(events);
 
         assertThat(result.valid()).isTrue();
         assertThat(result.errors()).isEmpty();

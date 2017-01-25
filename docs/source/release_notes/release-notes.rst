@@ -49,7 +49,7 @@ develop
     *    - |fixed|
          - Prevent deadlocks during parallel reads from DB KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1468>`__)
-           
+
     *    - |improved|
          - Added support for benchmarking custom Key Value Stores; see `documentation <http://palantir.github.io/atlasdb/html/performance/writing.html>`__.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1459>`__)
@@ -63,6 +63,11 @@ develop
            If a transaction succeeds after being retried, we log the success (at the INFO level).
            If a transaction failed, but will be retried, we now also log the number of failures so far (at INFO).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1376>`__)
+
+    *    - |improved|
+         - Updated our dependency on ``gradle-java-distribution`` from 1.2.0 to 1.3.0.
+           See gradle-java-distribution `release notes <https://github.com/palantir/gradle-java-distribution/releases>`__ for details.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1500>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>
 
