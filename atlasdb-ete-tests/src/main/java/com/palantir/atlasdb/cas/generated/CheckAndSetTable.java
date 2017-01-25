@@ -471,12 +471,10 @@ public final class CheckAndSetTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<CheckAndSetRowResult> getRow(CheckAndSetRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<CheckAndSetRowResult> getRow(CheckAndSetRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);

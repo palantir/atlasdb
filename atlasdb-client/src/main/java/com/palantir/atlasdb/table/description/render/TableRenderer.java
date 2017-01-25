@@ -1043,12 +1043,10 @@ public class TableRenderer {
         }
 
         private void renderNamedGetRow() {
-            line("@Override");
             line("public ", "Optional<", RowResult, ">", " getRow(", Row, " row) {"); {
                 line("return getRow(row, allColumns);");
             } line("}");
             line();
-            line("@Override");
             line("public ", "Optional<", RowResult, ">", " getRow(", Row, " row, ColumnSelection columns) {"); {
                 line("byte[] bytes = row.persistToBytes();");
                 line("RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);");

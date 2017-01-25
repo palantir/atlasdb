@@ -495,12 +495,10 @@ public final class StreamTestMaxMemStreamMetadataTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<StreamTestMaxMemStreamMetadataRowResult> getRow(StreamTestMaxMemStreamMetadataRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<StreamTestMaxMemStreamMetadataRowResult> getRow(StreamTestMaxMemStreamMetadataRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -743,5 +741,5 @@ public final class StreamTestMaxMemStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Y8NItHMaLM/2KnItdzyQ7A==";
+    static String __CLASS_HASH = "ovKBuFSKXhb5ELOhaS04Gw==";
 }

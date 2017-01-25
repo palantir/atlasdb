@@ -495,12 +495,10 @@ public final class UserPhotosStreamMetadataTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<UserPhotosStreamMetadataRowResult> getRow(UserPhotosStreamMetadataRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<UserPhotosStreamMetadataRowResult> getRow(UserPhotosStreamMetadataRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -743,5 +741,5 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "gDn9bIqWsbm3u8PlbY7obQ==";
+    static String __CLASS_HASH = "UQj42m9mYJTK6OKcxim6nQ==";
 }

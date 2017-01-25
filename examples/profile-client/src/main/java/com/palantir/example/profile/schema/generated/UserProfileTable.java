@@ -1009,12 +1009,10 @@ public final class UserProfileTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<UserProfileRowResult> getRow(UserProfileRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<UserProfileRowResult> getRow(UserProfileRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -3388,5 +3386,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "BAWiFRjPo3iiz4ifhWSE8g==";
+    static String __CLASS_HASH = "Gnev0ttdbs293RjM7Vexew==";
 }
