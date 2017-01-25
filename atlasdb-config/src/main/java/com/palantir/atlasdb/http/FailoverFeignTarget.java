@@ -110,7 +110,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
         checkAndHandleFailure(ex);
         if (!isFastFailoverException) {
-            pauseForBackOff();
+            pauseForBackOff(ex);
         }
     }
 
@@ -137,7 +137,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     }
 
 
-    private void pauseForBackOff() {
+    private void pauseForBackOff(RetryableException ex) {
         double pow = Math.pow(
                 GOLDEN_RATIO,
                 numSwitches.get() * failuresBeforeSwitching + failuresSinceLastSwitch.get());
@@ -148,6 +148,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
             Thread.sleep(timeout);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw ex;
         }
     }
 

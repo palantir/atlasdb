@@ -28,7 +28,9 @@
 
     (teardown! [_ _ node]
       (c/su
-        (try (c/exec "/atlasdb-timelock-server/service/bin/init.sh" "stop") (catch Exception _))
+        (info node "Forcibly killing all Java processes")
+        (try (c/exec :pkill "-9" "java") (catch Exception _))
+        (info node "Removing any timelock server files")
         (try (c/exec :rm :-rf "/atlasdb-timelock-server") (catch Exception _))
         (try (c/exec :rm :-f "/atlasdb-timelock-server.tgz") (catch Exception _))))
 

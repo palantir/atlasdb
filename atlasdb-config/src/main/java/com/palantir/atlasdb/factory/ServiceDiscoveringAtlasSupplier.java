@@ -26,6 +26,9 @@ import java.util.ServiceLoader;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
@@ -34,11 +37,11 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.debug.ThreadDumps;
 
 public class ServiceDiscoveringAtlasSupplier {
+    private static final Logger log = LoggerFactory.getLogger(ServiceDiscoveringAtlasSupplier.class);
     private static final ServiceLoader<AtlasDbFactory> loader = ServiceLoader.load(AtlasDbFactory.class);
 
     private static String timestampServiceCreationInfo = null;
@@ -68,8 +71,8 @@ public class ServiceDiscoveringAtlasSupplier {
     }
 
     public synchronized TimestampService getTimestampService() {
-        DebugLogger.logger.info("Fetching timestamp service from thread {}. This should only happen once.",
-                Thread.currentThread().getName());
+        log.info("[timestamp-service-creation] Fetching timestamp service from "
+                        + "thread {}. This should only happen once.", Thread.currentThread().getName());
 
         if (timestampServiceCreationInfo == null) {
             timestampServiceCreationInfo = ThreadDumps.programmaticThreadDump();
@@ -85,8 +88,8 @@ public class ServiceDiscoveringAtlasSupplier {
             String threadDumpFile = saveThreadDumps();
             reportMultipleTimestampFetch(threadDumpFile);
         } catch (IOException e) {
-            DebugLogger.logger.error("The timestamp service was fetched for a second time. We tried to output thread "
-                    + "dumps to a temporary file, but encountered an error.", e);
+            log.error("[timestamp-service-creation] The timestamp service was fetched for a second time. "
+                    + "We tried to output thread dumps to a temporary file, but encountered an error.", e);
         }
     }
 
@@ -118,14 +121,14 @@ public class ServiceDiscoveringAtlasSupplier {
 
     private void reportMultipleTimestampFetch(String path) {
         if (!leaderConfig.isPresent()) {
-            DebugLogger.logger.warn("Timestamp service fetched for a second time, and there is no leader config. "
-                    + "This means that you may soon encounter the MultipleRunningTimestampServices error. "
+            log.warn("[timestamp-service-creation] Timestamp service fetched for a second time, and there is no leader "
+                    + "config. This means that you may soon encounter the MultipleRunningTimestampServices error. "
                     + "Thread dumps from both fetches of the timestamp service have been outputted to {}. "
                     + "If you encounter a MultipleRunningTimestampServices error, please send this file to "
                     + "support.", path);
         } else {
-            DebugLogger.logger.warn("Timestamp service fetched for a second time. This is only OK if you are "
-                    + "running in an HA configuration and have just had a leadership election. "
+            log.warn("[timestamp-service-creation] Timestamp service fetched for a second time. This is only OK if "
+                    + "you are running in an HA configuration and have just had a leadership election. "
                     + "You do have a leader config, but we're outputting thread dumps from both fetches of the "
                     + "timestamp service, in case this second service was created in error. "
                     + "Thread dumps from both fetches of the timestamp service have been outputted to {}. "

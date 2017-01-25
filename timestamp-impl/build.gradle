@@ -8,6 +8,7 @@ dependencies {
   compile group: 'org.hamcrest', name: 'hamcrest-core'
   compile group: 'org.hamcrest', name: 'hamcrest-library'
 
+  testCompile project(":atlasdb-tests-shared")
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.jmock', name: 'jmock', version: libVersions.jmock
   testCompile group: 'com.jayway.awaitility', name: 'awaitility'

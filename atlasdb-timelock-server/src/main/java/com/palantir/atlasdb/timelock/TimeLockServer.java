@@ -1,5 +1,5 @@
 /**
- * Copyright 2016 Palantir Technologies
+ * Copyright 2017 Palantir Technologies
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,164 +15,35 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Supplier;
-
-import org.eclipse.jetty.util.component.AbstractLifeCycle;
-import org.eclipse.jetty.util.component.LifeCycle;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.timelock.atomix.AtomixRetryer;
-import com.palantir.atlasdb.timelock.atomix.AtomixTimestampService;
-import com.palantir.atlasdb.timelock.atomix.DistributedValues;
-import com.palantir.atlasdb.timelock.atomix.ImmutableLeaderAndTerm;
-import com.palantir.atlasdb.timelock.atomix.InvalidatingLeaderProxy;
-import com.palantir.atlasdb.timelock.atomix.LeaderAndTerm;
-import com.palantir.atlasdb.timelock.config.AtomixSslConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
-import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.remoting1.config.ssl.SslConfiguration;
-import com.palantir.remoting1.servers.jersey.HttpRemotingJerseyFeature;
 
-import io.atomix.AtomixReplica;
-import io.atomix.catalyst.transport.Transport;
-import io.atomix.catalyst.transport.netty.NettyTransport;
-import io.atomix.copycat.server.storage.Storage;
-import io.atomix.group.DistributedGroup;
-import io.atomix.group.LocalMember;
-import io.atomix.variables.DistributedLong;
-import io.atomix.variables.DistributedValue;
-import io.dropwizard.Application;
-import io.dropwizard.java8.Java8Bundle;
-import io.dropwizard.setup.Bootstrap;
-import io.dropwizard.setup.Environment;
+public interface TimeLockServer {
+    /**
+     * Called when the Timelock Server is started up, and is guaranteed to run before any requests
+     * are accepted from clients.
+     * @param configuration Timelock Server configuration; may be useful for initialisation
+     */
+    void onStartup(TimeLockServerConfiguration configuration);
 
-public class TimeLockServer extends Application<TimeLockServerConfiguration> {
-    private static final Logger log = LoggerFactory.getLogger(TimeLockServer.class);
-
-    public static void main(String[] args) throws Exception {
-        new TimeLockServer().run(args);
+    /**
+     * Called when the Timelock Server is shut down after a successful start, whether normally or because
+     * of an exception. In the event the server fails to start, onStartupFailure() will be called, not this method.
+     */
+    default void onStop() {
     }
 
-    @Override
-    public void initialize(Bootstrap<TimeLockServerConfiguration> bootstrap) {
-        bootstrap.addBundle(new Java8Bundle());
+    /**
+     * Called when the Timelock Server fails to start up. Note that this only applies to startup failures;
+     * in the event the Timelock Server is shut down due to an exception, onStop() will be called, not this method.
+     */
+    default void onStartupFailure() {
     }
 
-    @Override
-    public void run(TimeLockServerConfiguration configuration, Environment environment) {
-        AtomixReplica replica = AtomixReplica.builder(configuration.cluster().localServer())
-                .withStorage(Storage.builder()
-                        .withDirectory(configuration.atomix().storageDirectory())
-                        .withStorageLevel(configuration.atomix().storageLevel())
-                        .build())
-                .withTransport(createTransport(configuration.atomix().security()))
-                .build();
-        try {
-            AtomixRetryer.getWithRetry(() -> replica.bootstrap(configuration.cluster().servers()));
-            run(configuration, environment, replica);
-        } catch (Exception e) {
-            AtomixRetryer.getWithRetry(replica::shutdown);
-            throw e;
-        }
-
-        environment.lifecycle().addLifeCycleListener(new AbstractLifeCycle.AbstractLifeCycleListener() {
-            @Override
-            public void lifeCycleStopped(LifeCycle event) {
-                AtomixRetryer.getWithRetry(replica::shutdown);
-            }
-        });
-    }
-
-    private static void run(TimeLockServerConfiguration configuration, Environment environment, AtomixReplica replica) {
-        DistributedGroup timeLockGroup = DistributedValues.getTimeLockGroup(replica);
-        LocalMember localMember = AtomixRetryer.getWithRetry(timeLockGroup::join);
-
-        DistributedValue<LeaderAndTerm> leaderInfo = DistributedValues.getLeaderInfo(replica);
-        timeLockGroup.election().onElection(term -> {
-            LeaderAndTerm newLeaderInfo = ImmutableLeaderAndTerm.of(term.term(), term.leader().id());
-            while (true) {
-                LeaderAndTerm currentLeaderInfo = AtomixRetryer.getWithRetry(leaderInfo::get);
-                if (currentLeaderInfo != null && newLeaderInfo.term() <= currentLeaderInfo.term()) {
-                    log.info("Not setting the leader to {} since it is not newer than the current leader {}",
-                            newLeaderInfo, currentLeaderInfo);
-                    break;
-                }
-                log.debug("Updating the leader from {} to {}", currentLeaderInfo, newLeaderInfo);
-                if (leaderInfo.compareAndSet(currentLeaderInfo, newLeaderInfo).join()) {
-                    log.info("Leader has been set to {}", newLeaderInfo);
-                    break;
-                }
-            }
-        });
-
-        Map<String, TimeLockServices> clientToServices = createTimeLockServicesForClients(
-                replica,
-                configuration.clients(),
-                localMember,
-                leaderInfo);
-
-        environment.jersey().register(HttpRemotingJerseyFeature.DEFAULT);
-        environment.jersey().register(new TimeLockResource(clientToServices));
-    }
-
-    private static Map<String, TimeLockServices> createTimeLockServicesForClients(
-            AtomixReplica replica,
-            Set<String> clients,
-            LocalMember localMember,
-            DistributedValue<LeaderAndTerm> leaderInfo) {
-        ImmutableMap.Builder<String, TimeLockServices> clientToServices = ImmutableMap.builder();
-        for (String client : clients) {
-            DistributedLong timestamp = DistributedValues.getTimestampForClient(replica, client);
-            TimeLockServices timeLockServices = createInvalidatingTimeLockServices(
-                    localMember,
-                    leaderInfo,
-                    timestamp);
-            clientToServices.put(client, timeLockServices);
-        }
-        return clientToServices.build();
-    }
-
-    private static TimeLockServices createInvalidatingTimeLockServices(
-            LocalMember localMember,
-            DistributedValue<LeaderAndTerm> leaderInfo,
-            DistributedLong timestamp) {
-        Supplier<TimeLockServices> timeLockSupplier = () -> TimeLockServices.create(
-                new AtomixTimestampService(timestamp),
-                LockServiceImpl.create());
-        return InvalidatingLeaderProxy.create(
-                localMember,
-                leaderInfo,
-                timeLockSupplier,
-                TimeLockServices.class);
-    }
-
-    private static Transport createTransport(Optional<AtomixSslConfiguration> optionalSecurity) {
-        NettyTransport.Builder transport = NettyTransport.builder();
-
-        if (!optionalSecurity.isPresent()) {
-            return transport.build();
-        }
-
-        AtomixSslConfiguration security = optionalSecurity.get();
-        SslConfiguration baseSslConfiguration = security.sslConfiguration();
-        transport.withSsl()
-                .withTrustStorePath(baseSslConfiguration.trustStorePath().toString())
-                .withTrustStorePassword(security.trustStorePassword());
-
-        if (isKeystoreSpecified(baseSslConfiguration)) {
-            transport.withKeyStorePath(baseSslConfiguration.keyStorePath().get().toString());
-            transport.withKeyStorePassword(baseSslConfiguration.keyStorePassword().get());
-        }
-
-        return transport.build();
-    }
-
-    private static boolean isKeystoreSpecified(SslConfiguration baseSslConfiguration) {
-        return baseSslConfiguration.keyStorePath().isPresent() && baseSslConfiguration.keyStorePassword().isPresent();
-    }
+    /**
+     * Creates timestamp and lock services for the given client. It is expected that for each client there should
+     * only be (up to) one active timestamp service, and one active lock service at any time.
+     * @param client Client namespace to create the services for
+     * @return Invalidating timestamp and lock services
+     */
+    TimeLockServices createInvalidatingTimeLockServices(String client);
 }

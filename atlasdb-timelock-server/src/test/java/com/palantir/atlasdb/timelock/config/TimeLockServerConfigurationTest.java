@@ -23,13 +23,12 @@ import java.util.Set;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
-
-import io.atomix.catalyst.transport.Address;
+import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 
 public class TimeLockServerConfigurationTest {
-    private static final Address ADDRESS = new Address("localhost:8700");
+    private static final String ADDRESS = "localhost:8701";
     private static final ClusterConfiguration CLUSTER = ImmutableClusterConfiguration.builder()
-            .localServer(new Address(ADDRESS))
+            .localServer(ADDRESS)
             .addServers(ADDRESS)
             .build();
     private static final Set<String> CLIENTS = ImmutableSet.of("client1", "client2");
@@ -37,12 +36,33 @@ public class TimeLockServerConfigurationTest {
     @Test
     public void shouldAddDefaultConfigurationIfNotIncluded() {
         TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS);
-        assertThat(configuration.atomix()).isEqualTo(ImmutableAtomixConfiguration.DEFAULT);
+        assertThat(configuration.algorithm()).isEqualTo(ImmutableAtomixConfiguration.DEFAULT);
     }
 
     @Test
     public void shouldRequireAtLeastOneClient() {
         assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of()))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void shouldRejectClientsWithInvalidCharacters() {
+        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of("/")))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void shouldRejectClientsConflictingWithInternalClients() {
+        assertThatThrownBy(() -> new TimeLockServerConfiguration(
+                null,
+                CLUSTER,
+                ImmutableSet.of(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE)))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void shouldRejectClientsWithEmptyName() {
+        assertThatThrownBy(() -> new TimeLockServerConfiguration(null, CLUSTER, ImmutableSet.of("")))
                 .isInstanceOf(IllegalStateException.class);
     }
 }

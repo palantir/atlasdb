@@ -20,27 +20,42 @@ import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 
 import io.dropwizard.Configuration;
 
 public class TimeLockServerConfiguration extends Configuration {
-    private final AtomixConfiguration atomix;
+    public static final String CLIENT_NAME_REGEX = "[a-zA-Z0-9_-]+";
+
+    private final TimeLockAlgorithmConfiguration algorithm;
     private final ClusterConfiguration cluster;
     private final Set<String> clients;
 
     public TimeLockServerConfiguration(
-            @JsonProperty(value = "atomix", required = false) AtomixConfiguration atomix,
+            @JsonProperty(value = "algorithm", required = false) TimeLockAlgorithmConfiguration algorithm,
             @JsonProperty(value = "cluster", required = true) ClusterConfiguration cluster,
             @JsonProperty(value = "clients", required = true) Set<String> clients) {
         Preconditions.checkState(!clients.isEmpty(), "'clients' should have at least one entry");
+        checkClientNames(clients);
 
-        this.atomix = MoreObjects.firstNonNull(atomix, AtomixConfiguration.DEFAULT);
+        this.algorithm = MoreObjects.firstNonNull(algorithm, AtomixConfiguration.DEFAULT);
         this.cluster = cluster;
         this.clients = clients;
     }
 
-    public AtomixConfiguration atomix() {
-        return atomix;
+    private void checkClientNames(Set<String> clientNames) {
+        clientNames.forEach(client -> Preconditions.checkState(
+                client.matches(CLIENT_NAME_REGEX),
+                String.format("Client names must consist of alphanumeric characters, underscores or dashes only; "
+                        + "'%s' does not.", client)));
+        Preconditions.checkState(!clientNames.contains(PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE),
+                String.format("The namespace '%s' is reserved for the leader election service. Please use a different"
+                        + " name.", PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE));
+
+    }
+
+    public TimeLockAlgorithmConfiguration algorithm() {
+        return algorithm;
     }
 
     public ClusterConfiguration cluster() {

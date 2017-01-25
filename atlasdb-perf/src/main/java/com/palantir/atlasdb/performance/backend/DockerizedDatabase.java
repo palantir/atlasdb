@@ -36,7 +36,7 @@ public final class DockerizedDatabase implements Closeable {
 
     private static final String DOCKER_LOGS_DIR = "container-logs";
 
-    public static DockerizedDatabase start(KeyValueServiceType type) {
+    public static DockerizedDatabase start(KeyValueServiceInstrumentation type) {
         DockerComposeRule docker = DockerComposeRule.builder()
                 .file(getDockerComposeFileAbsolutePath(type.getDockerComposeResourceFileName()))
                 .waitingForHostNetworkedPort(type.getKeyValueServicePort(), toBeOpen())

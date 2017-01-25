@@ -1,0 +1,12 @@
+algorithm:
+  type: atomix
+  storageLevel: memory
+
+cluster:
+  localServer: localhost:8700
+  servers:
+    - localhost:8700
+
+clients:
+  - test
+  - test2

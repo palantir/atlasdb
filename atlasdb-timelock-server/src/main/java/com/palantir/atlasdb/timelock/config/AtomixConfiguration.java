@@ -21,13 +21,16 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.timelock.TimeLockServer;
+import com.palantir.atlasdb.timelock.atomix.AtomixTimeLockServer;
 
 import io.atomix.copycat.server.storage.StorageLevel;
+import io.dropwizard.setup.Environment;
 
 @JsonSerialize(as = ImmutableAtomixConfiguration.class)
 @JsonDeserialize(as = ImmutableAtomixConfiguration.class)
 @Value.Immutable
-public abstract class AtomixConfiguration {
+public abstract class AtomixConfiguration implements TimeLockAlgorithmConfiguration {
     public static final AtomixConfiguration DEFAULT = ImmutableAtomixConfiguration.builder().build();
 
     public abstract Optional<AtomixSslConfiguration> security();
@@ -40,5 +43,10 @@ public abstract class AtomixConfiguration {
     @Value.Default
     public String storageDirectory() {
         return "var/data/atomix";
+    }
+
+    @Override
+    public TimeLockServer createServerImpl(Environment environment) {
+        return new AtomixTimeLockServer();
     }
 }

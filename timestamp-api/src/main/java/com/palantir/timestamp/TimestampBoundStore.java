@@ -24,10 +24,11 @@ public interface TimestampBoundStore {
     long getUpperLimit();
 
     /**
-     * Persists a new timestamp upper limit.
+     * Persists a new timestamp upper limit. No timestamps greater than the stored upper limit should ever be
+     * handed out.
      *
      * @param limit the new upper limit to be stored
-     * @throws MultipleRunningTimestampServiceError if the timestamp has changed out from under us.
+     * @throws MultipleRunningTimestampServiceError if the timestamp limit has changed out from under us
      */
     void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError;
 }

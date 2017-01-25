@@ -44,6 +44,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -58,6 +59,7 @@ import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.schema.stream.generated.DeletingStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.KeyValueTable;
+import com.palantir.atlasdb.schema.stream.generated.StreamTestMaxMemStreamStore;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamHashAidxTable;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamMetadataTable;
 import com.palantir.atlasdb.schema.stream.generated.StreamTestStreamStore;
@@ -73,7 +75,6 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
@@ -81,6 +82,7 @@ import com.palantir.util.crypto.Sha256Hash;
 public class StreamTest extends AtlasDbTestCase {
     private PersistentStreamStore defaultStore;
     private PersistentStreamStore compressedStore;
+    private PersistentStreamStore maxMemStore;
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -92,6 +94,7 @@ public class StreamTest extends AtlasDbTestCase {
 
         defaultStore = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
         compressedStore = StreamTestWithHashStreamStore.of(txManager, StreamTestTableFactory.of());
+        maxMemStore = StreamTestMaxMemStreamStore.of(txManager, StreamTestTableFactory.of());
     }
 
     @Test
@@ -220,6 +223,16 @@ public class StreamTest extends AtlasDbTestCase {
         storeAndCheckByteStreams(compressedStore, getIncompressibleBytes(5_000_000));
     }
 
+    @Test
+    public void testStoreToMaxMemStream() throws IOException {
+        storeAndCheckByteStreams(maxMemStore, getIncompressibleBytes(100));
+    }
+
+    @Test
+    public void testStoreHugeToMaxMemStream() throws IOException {
+        storeAndCheckByteStreams(maxMemStore, getIncompressibleBytes(20_000_000));
+    }
+
     private long storeAndCheckByteStreams(PersistentStreamStore store, byte[] bytesToStore) throws IOException {
         byte[] reference = PtBytes.toBytes("ref");
 
@@ -270,6 +283,33 @@ public class StreamTest extends AtlasDbTestCase {
         byte[] streamAsBytes = IOUtils.toByteArray(stream);
         Assert.assertArrayEquals(bytes, streamAsBytes);
         stream.close();
+    }
+
+    @Test()
+    public void readFromStreamWhenTransactionOpen() throws IOException {
+        readFromGivenStreamWhenTransactionOpen(defaultStore);
+    }
+
+    @Test()
+    public void readFromCompressedStreamWhenTransactionOpen() throws IOException {
+        readFromGivenStreamWhenTransactionOpen(compressedStore);
+    }
+
+    private void readFromGivenStreamWhenTransactionOpen(PersistentStreamStore store) throws IOException {
+        byte[] reference = PtBytes.toBytes("ref");
+        byte[] data = getIncompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 3);
+
+        final long id = storeStream(store,
+                data,
+                reference);
+
+        txManager.runTaskThrowOnConflict(t -> {
+            // use the stream (read from it) inside the same transaction
+            try (InputStream stream = store.loadStream(t, id)) {
+                assertStreamHasBytes(stream, data);
+            }
+            return null;
+        });
     }
 
     @Test
@@ -568,7 +608,7 @@ public class StreamTest extends AtlasDbTestCase {
         try {
             secondLatch.await();
         } catch (InterruptedException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
+            throw Throwables.propagate(e);
         }
     }
 

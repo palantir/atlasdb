@@ -73,6 +73,10 @@ afterEvaluate {
 }
 
 tasks.withType(Test) {
+    if (System.env.CIRCLE_TEST_REPORTS) {
+        reports.junitXml.destination = new File(System.env.CIRCLE_TEST_REPORTS, it.getName())
+    }
+
     testLogging {
         showExceptions true
         exceptionFormat "full"
@@ -86,3 +90,25 @@ tasks.withType(Test) {
 task allCompileDeps(type: DependencyReportTask) {
     configurations = [project.configurations.getByName("compile")]
 }
+
+apply plugin: 'nebula.dependency-lock'
+dependencyLock {
+    includeTransitives = true
+    lockFile = 'versions.lock'
+    configurationNames = ['runtime', 'compileClasspath']
+}
+
+task verifyDependencyLocksAreCurrent << {
+    def expectedDependencies = tasks.saveLock.getOutputLock()
+    def actualDependencies = tasks.saveLock.getGeneratedLock()
+
+    def digester = java.security.MessageDigest.getInstance('SHA')
+    logger.info("Verifying integrity of dependency locks: {} vs {}", expectedDependencies, actualDependencies)
+    if (digester.digest(expectedDependencies.bytes) != digester.digest(actualDependencies.bytes)) {
+        throw new Exception("The dependencies of project " + project.name + " do not match the expected "
+                + "dependencies recorded in " + expectedDependencies + ". "
+                + "Run `./gradlew generateLock saveLock` and commit the updated version.lock files")
+    }
+}
+
+check.dependsOn generateLock, verifyDependencyLocksAreCurrent

@@ -100,28 +100,30 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
             loadSingleBlockToOutputStream(transaction, id, 0, ios);
             return ios.getInputStream();
         } else {
-            return makeStream(id, metadata);
+            return makeStream(transaction, id, metadata);
         }
     }
 
-    protected InputStream makeStream(ID id, StreamMetadata metadata) {
+    private InputStream makeStream(Transaction parent, ID id, StreamMetadata metadata) {
         long totalBlocks = getNumberOfBlocksFromMetadata(metadata);
         int blocksInMemory = getNumberOfBlocksThatFitInMemory();
 
         BlockGetter pageRefresher = new BlockGetter() {
             @Override
             public void get(long firstBlock, long numBlocks, OutputStream destination) {
-                txnMgr.runTaskReadOnly(txn -> {
-                    for (long i = 0; i < numBlocks; i++) {
-                        loadSingleBlockToOutputStream(txn, id, firstBlock + i, destination);
-                    }
-                    return null;
-                });
+                if (parent.isUncommitted()) {
+                    loadNBlocksToOutputStream(parent, id, firstBlock, numBlocks, destination);
+                } else {
+                    txnMgr.runTaskReadOnly(txn -> {
+                        loadNBlocksToOutputStream(txn, id, firstBlock, numBlocks, destination);
+                        return null;
+                    });
+                }
             }
 
             @Override
-            public int expectedLength() {
-                return BLOCK_SIZE_IN_BYTES * blocksInMemory;
+            public int expectedBlockLength() {
+                return BLOCK_SIZE_IN_BYTES;
             }
         };
 
@@ -132,7 +134,7 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
         }
     }
 
-    private int getNumberOfBlocksThatFitInMemory() {
+    protected int getNumberOfBlocksThatFitInMemory() {
         int inMemoryThreshold = (int) getInMemoryThreshold(); // safe; actually defined as an int in generated code.
         int blocksInMemory = inMemoryThreshold / BLOCK_SIZE_IN_BYTES;
         return Math.max(1, blocksInMemory);
@@ -180,6 +182,17 @@ public abstract class AbstractGenericStreamStore<ID> implements GenericStreamSto
             } catch (IOException e) {
                 // Do nothing
             }
+        }
+    }
+
+    private void loadNBlocksToOutputStream(
+            Transaction tx,
+            ID streamId,
+            long firstBlock,
+            long numBlocks,
+            OutputStream os) {
+        for (long i = 0; i < numBlocks; i++) {
+            loadSingleBlockToOutputStream(tx, streamId, firstBlock + i, os);
         }
     }
 

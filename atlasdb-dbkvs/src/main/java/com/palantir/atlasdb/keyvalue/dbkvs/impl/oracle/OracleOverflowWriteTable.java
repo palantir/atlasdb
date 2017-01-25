@@ -176,6 +176,12 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     @Override
+    public void update(Cell row, long ts, byte[] oldValue, byte[] newValue) {
+        throw new UnsupportedOperationException(
+                "Update is not supported for Oracle tables with table style 'overflow'.");
+    }
+
+    @Override
     public void delete(List<Entry<Cell, Long>> entries) {
         List<Object[]> args = Lists.newArrayListWithCapacity(entries.size());
         for (Map.Entry<Cell, Long> entry : entries) {

@@ -25,6 +25,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,6 +38,7 @@ import org.apache.commons.lang.ArrayUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -55,6 +57,8 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -88,12 +92,17 @@ public abstract class AbstractKeyValueServiceTest {
     protected static final byte[] value0_t1 = "value1_t1".getBytes();
     protected static final byte[] value0_t5 = "value5_t5".getBytes();
 
-    protected static final long TEST_TIMESTAMP = 1000000l;
+    protected static final Cell TEST_CELL = Cell.create(row0, column0);
+    protected static final long TEST_TIMESTAMP = 1000000L;
     private static final long MAX_TIMESTAMP = Long.MAX_VALUE;
 
     protected static KeyValueService keyValueService = null;
 
     protected boolean reverseRangesSupported() {
+        return true;
+    }
+
+    protected boolean checkAndSetSupported() {
         return true;
     }
 
@@ -238,7 +247,7 @@ public abstract class AbstractKeyValueServiceTest {
         assertEquals(1, values.size());
         Map<Cell, Value> batchValues = getValuesForRow(values, row0, 1);
         assertEquals(1, batchValues.size());
-        assertArrayEquals(value0_t1, batchValues.get(Cell.create(row0, column0)).getContents());
+        assertArrayEquals(value0_t1, batchValues.get(TEST_CELL).getContents());
         values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row0),
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1),
@@ -246,7 +255,7 @@ public abstract class AbstractKeyValueServiceTest {
         assertEquals(1, values.size());
         batchValues = getValuesForRow(values, row0, 1);
         assertEquals(1, batchValues.size());
-        assertArrayEquals(value0_t0, batchValues.get(Cell.create(row0, column0)).getContents());
+        assertArrayEquals(value0_t0, batchValues.get(TEST_CELL).getContents());
     }
 
     @Test
@@ -282,7 +291,7 @@ public abstract class AbstractKeyValueServiceTest {
                 TEST_TIMESTAMP + 1);
         assertEquals(ImmutableSet.of(row0, row1, row2), values.keySet());
         Map<Cell, Value> row0Values = getValuesForRow(values, row0, 2);
-        assertArrayEquals(value00, row0Values.get(Cell.create(row0, column0)).getContents());
+        assertArrayEquals(value00, row0Values.get(TEST_CELL).getContents());
         assertArrayEquals(value01, row0Values.get(Cell.create(row0, column1)).getContents());
         Map<Cell, Value> row1Values = getValuesForRow(values, row1, 2);
         assertArrayEquals(value10, row1Values.get(Cell.create(row1, column0)).getContents());
@@ -342,7 +351,7 @@ public abstract class AbstractKeyValueServiceTest {
                 TEST_TIMESTAMP + 1);
         assertNextElementMatches(values, Cell.create(row1, column0), value10);
         assertNextElementMatches(values, Cell.create(row1, column2), value12);
-        assertNextElementMatches(values, Cell.create(row0, column0), value00);
+        assertNextElementMatches(values, TEST_CELL, value00);
         assertNextElementMatches(values, Cell.create(row0, column1), value01);
         assertNextElementMatches(values, Cell.create(row2, column1), value21);
         assertNextElementMatches(values, Cell.create(row2, column2), value22);
@@ -357,14 +366,14 @@ public abstract class AbstractKeyValueServiceTest {
                 new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
                 1,
                 TEST_TIMESTAMP + 2);
-        assertNextElementMatches(values, Cell.create(row0, column0), value0_t1);
+        assertNextElementMatches(values, TEST_CELL, value0_t1);
         assertFalse(values.hasNext());
         values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row0),
                 new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
                 1,
                 TEST_TIMESTAMP + 1);
-        assertNextElementMatches(values, Cell.create(row0, column0), value0_t0);
+        assertNextElementMatches(values, TEST_CELL, value0_t0);
         assertFalse(values.hasNext());
     }
 
@@ -407,7 +416,7 @@ public abstract class AbstractKeyValueServiceTest {
                 ColumnSelection.all(),
                 TEST_TIMESTAMP + 1);
         assertEquals(1, result.size());
-        assertTrue(result.containsKey(Cell.create(row0, column0)));
+        assertTrue(result.containsKey(TEST_CELL));
         assertTrue(result.containsValue(Value.create(value0_t0, TEST_TIMESTAMP)));
 
         result = keyValueService.getRows(
@@ -416,7 +425,7 @@ public abstract class AbstractKeyValueServiceTest {
                 ColumnSelection.all(),
                 TEST_TIMESTAMP + 2);
         assertEquals(1, result.size());
-        assertTrue(result.containsKey(Cell.create(row0, column0)));
+        assertTrue(result.containsKey(TEST_CELL));
         assertTrue(result.containsValue(Value.create(value0_t1, TEST_TIMESTAMP + 1)));
     }
 
@@ -429,7 +438,7 @@ public abstract class AbstractKeyValueServiceTest {
                 ColumnSelection.create(ImmutableSet.of(column0)),
                 TEST_TIMESTAMP + 1);
         assertEquals(1, result.size());
-        assertTrue(result.containsKey(Cell.create(row0, column0)));
+        assertTrue(result.containsKey(TEST_CELL));
         assertTrue(result.containsValue(Value.create(value0_t0, TEST_TIMESTAMP)));
 
         result = keyValueService.getRows(
@@ -438,36 +447,35 @@ public abstract class AbstractKeyValueServiceTest {
                 ColumnSelection.create(ImmutableSet.of(column0)),
                 TEST_TIMESTAMP + 2);
         assertEquals(1, result.size());
-        assertTrue(result.containsKey(Cell.create(row0, column0)));
+        assertTrue(result.containsKey(TEST_CELL));
         assertTrue(result.containsValue(Value.create(value0_t1, TEST_TIMESTAMP + 1)));
     }
 
     @Test
     public void testGetWhenMultipleVersions() {
         putTestDataForMultipleTimestamps();
-        Cell cell = Cell.create(row0, column0);
         Value val0 = Value.create(value0_t0, TEST_TIMESTAMP);
         Value val1 = Value.create(value0_t1, TEST_TIMESTAMP + 1);
 
-        assertTrue(keyValueService.get(TEST_TABLE, ImmutableMap.of(cell, TEST_TIMESTAMP)).isEmpty());
+        assertTrue(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP)).isEmpty());
 
         Map<Cell, Value> result = keyValueService.get(
                 TEST_TABLE,
-                ImmutableMap.of(cell, TEST_TIMESTAMP + 1));
-        assertTrue(result.containsKey(cell));
+                ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP + 1));
+        assertTrue(result.containsKey(TEST_CELL));
         assertEquals(1, result.size());
         assertTrue(result.containsValue(val0));
 
-        result = keyValueService.get(TEST_TABLE, ImmutableMap.of(cell, TEST_TIMESTAMP + 2));
+        result = keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP + 2));
 
         assertEquals(1, result.size());
-        assertTrue(result.containsKey(cell));
+        assertTrue(result.containsKey(TEST_CELL));
         assertTrue(result.containsValue(val1));
 
-        result = keyValueService.get(TEST_TABLE, ImmutableMap.of(cell, TEST_TIMESTAMP + 3));
+        result = keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP + 3));
 
         assertEquals(1, result.size());
-        assertTrue(result.containsKey(cell));
+        assertTrue(result.containsKey(TEST_CELL));
         assertTrue(result.containsValue(val1));
     }
 
@@ -490,20 +498,20 @@ public abstract class AbstractKeyValueServiceTest {
     public void testGetLatestTimestamps() {
         putTestDataForMultipleTimestamps();
         Map<Cell, Long> timestamps = keyValueService.getLatestTimestamps(TEST_TABLE,
-                ImmutableMap.of(Cell.create(row0, column0), TEST_TIMESTAMP + 2));
+                ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP + 2));
         assertTrue("Incorrect number of values returned.", timestamps.size() == 1);
         assertEquals("Incorrect value returned.", new Long(TEST_TIMESTAMP + 1),
-                timestamps.get(Cell.create(row0, column0)));
+                timestamps.get(TEST_CELL));
     }
 
     @Test
     public void testGetWithMultipleVersions() {
         putTestDataForMultipleTimestamps();
         Map<Cell, Value> values = keyValueService.get(TEST_TABLE,
-                ImmutableMap.of(Cell.create(row0, column0), TEST_TIMESTAMP + 2));
+                ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP + 2));
         assertTrue("Incorrect number of values returned.", values.size() == 1);
         assertEquals("Incorrect value returned.", Value.create(value0_t1, TEST_TIMESTAMP + 1),
-                values.get(Cell.create(row0, column0)));
+                values.get(TEST_CELL));
     }
 
     @Test
@@ -651,8 +659,7 @@ public abstract class AbstractKeyValueServiceTest {
     @Test
     public void testGetAllTimestamps() {
         putTestDataForMultipleTimestamps();
-        final Cell cell = Cell.create(row0, column0);
-        final Set<Cell> cellSet = ImmutableSet.of(cell);
+        final Set<Cell> cellSet = ImmutableSet.of(TEST_CELL);
         Multimap<Cell, Long> timestamps = keyValueService.getAllTimestamps(
                 TEST_TABLE,
                 cellSet,
@@ -661,12 +668,12 @@ public abstract class AbstractKeyValueServiceTest {
 
         timestamps = keyValueService.getAllTimestamps(TEST_TABLE, cellSet, TEST_TIMESTAMP + 1);
         assertEquals(1, timestamps.size());
-        assertTrue(timestamps.containsEntry(cell, TEST_TIMESTAMP));
+        assertTrue(timestamps.containsEntry(TEST_CELL, TEST_TIMESTAMP));
 
         timestamps = keyValueService.getAllTimestamps(TEST_TABLE, cellSet, TEST_TIMESTAMP + 2);
         assertEquals(2, timestamps.size());
-        assertTrue(timestamps.containsEntry(cell, TEST_TIMESTAMP));
-        assertTrue(timestamps.containsEntry(cell, TEST_TIMESTAMP + 1));
+        assertTrue(timestamps.containsEntry(TEST_CELL, TEST_TIMESTAMP));
+        assertTrue(timestamps.containsEntry(TEST_CELL, TEST_TIMESTAMP + 1));
 
         assertEquals(
                 timestamps,
@@ -682,7 +689,7 @@ public abstract class AbstractKeyValueServiceTest {
                 TEST_TIMESTAMP + 1)));
         keyValueService.delete(
                 TEST_TABLE,
-                ImmutableMultimap.of(Cell.create(row0, column0), TEST_TIMESTAMP));
+                ImmutableMultimap.of(TEST_CELL, TEST_TIMESTAMP));
         assertEquals(3, Iterators.size(keyValueService.getRange(
                 TEST_TABLE,
                 RangeRequest.all(),
@@ -713,14 +720,13 @@ public abstract class AbstractKeyValueServiceTest {
     @Test
     public void testDeleteMultipleVersions() {
         putTestDataForMultipleTimestamps();
-        Cell cell = Cell.create(row0, column0);
         ClosableIterator<RowResult<Value>> result = keyValueService.getRange(
                 TEST_TABLE,
                 RangeRequest.all(),
                 TEST_TIMESTAMP + 1);
         assertTrue(result.hasNext());
 
-        keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(cell, TEST_TIMESTAMP));
+        keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(TEST_CELL, TEST_TIMESTAMP));
 
         result = keyValueService.getRange(TEST_TABLE, RangeRequest.all(), TEST_TIMESTAMP + 1);
         assertTrue(!result.hasNext());
@@ -732,17 +738,16 @@ public abstract class AbstractKeyValueServiceTest {
     @Test
     public void testPutWithTimestamps() {
         putTestDataForMultipleTimestamps();
-        final Cell cell = Cell.create(row0, column0);
         final Value val1 = Value.create(value0_t1, TEST_TIMESTAMP + 1);
         final Value val5 = Value.create(value0_t5, TEST_TIMESTAMP + 5);
-        keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(cell, val5));
+        keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(TEST_CELL, val5));
         assertEquals(
                 val5,
-                keyValueService.get(TEST_TABLE, ImmutableMap.of(cell, TEST_TIMESTAMP + 6)).get(cell));
+                keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP + 6)).get(TEST_CELL));
         assertEquals(
                 val1,
-                keyValueService.get(TEST_TABLE, ImmutableMap.of(cell, TEST_TIMESTAMP + 5)).get(cell));
-        keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(cell, TEST_TIMESTAMP + 5));
+                keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP + 5)).get(TEST_CELL));
+        keyValueService.delete(TEST_TABLE, ImmutableMultimap.of(TEST_CELL, TEST_TIMESTAMP + 5));
     }
 
     @Test
@@ -787,13 +792,13 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.putWithTimestamps(
                 TEST_TABLE,
                 ImmutableMultimap.of(
-                        Cell.create(row0, column0),
+                        TEST_CELL,
                         Value.create(value00, TEST_TIMESTAMP + 1)));
         try {
             keyValueService.putWithTimestamps(
                     TEST_TABLE,
                     ImmutableMultimap.of(
-                            Cell.create(row0, column0),
+                            TEST_CELL,
                             Value.create(value00, TEST_TIMESTAMP + 1)));
             // Legal
         } catch (KeyAlreadyExistsException e) {
@@ -801,7 +806,8 @@ public abstract class AbstractKeyValueServiceTest {
         }
 
         try {
-            keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(Cell.create(row0, column0), Value.create(value01, TEST_TIMESTAMP + 1)));
+            keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(
+                    TEST_CELL, Value.create(value01, TEST_TIMESTAMP + 1)));
             // Legal
         } catch (KeyAlreadyExistsException e) {
             // Legal
@@ -809,14 +815,14 @@ public abstract class AbstractKeyValueServiceTest {
 
         // The first try might not throw as putUnlessExists must only be exclusive with other putUnlessExists.
         try {
-            keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(Cell.create(row0, column0), value00));
+            keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, value00));
             // Legal
         } catch (KeyAlreadyExistsException e) {
             // Legal
         }
 
         try {
-            keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(Cell.create(row0, column0), value00));
+            keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, value00));
             Assert.fail("putUnlessExists must throw when overwriting the same cell!");
         } catch (KeyAlreadyExistsException e) {
             // Legal
@@ -824,25 +830,106 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void testCheckAndSetFromEmpty() {
+        Assume.assumeTrue(checkAndSetSupported());
+
+        CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, value00);
+        keyValueService.checkAndSet(request);
+
+        verifyCheckAndSet(TEST_CELL, value00);
+    }
+
+    @Test
+    public void testCheckAndSetFromOtherValue() {
+        Assume.assumeTrue(checkAndSetSupported());
+
+        CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, value00);
+        keyValueService.checkAndSet(request);
+
+        CheckAndSetRequest secondRequest = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, value00, value01);
+        keyValueService.checkAndSet(secondRequest);
+
+        verifyCheckAndSet(TEST_CELL, value01);
+    }
+
+    @Test
+    public void testCheckAndSetAndBackAgain() {
+        testCheckAndSetFromOtherValue();
+
+        CheckAndSetRequest thirdRequest = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, value01, value00);
+        keyValueService.checkAndSet(thirdRequest);
+
+        verifyCheckAndSet(TEST_CELL, value00);
+    }
+
+    private void verifyCheckAndSet(Cell key, byte[] expectedValue) {
+        Multimap<Cell, Long> timestamps = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(key), 1L);
+
+        assertEquals(1, timestamps.size());
+        assertTrue(timestamps.containsEntry(key, AtlasDbConstants.TRANSACTION_TS));
+
+        ClosableIterator<RowResult<Value>> result = keyValueService.getRange(TEST_TABLE, RangeRequest.all(),
+                AtlasDbConstants.TRANSACTION_TS + 1);
+
+        // Check first result is right
+        byte[] actual = result.next().getOnlyColumnValue().getContents();
+        assertArrayEquals(String.format("Value \"%s\" different from expected \"%s\"",
+                new String(actual, StandardCharsets.UTF_8),
+                new String(expectedValue, StandardCharsets.UTF_8)),
+                expectedValue,
+                actual);
+
+        // Check no more results
+        assertFalse(result.hasNext());
+    }
+
+    @Test(expected = CheckAndSetException.class)
+    public void testCheckAndSetFromWrongValue() {
+        Assume.assumeTrue(checkAndSetSupported());
+
+        CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, value00);
+        keyValueService.checkAndSet(request);
+
+        CheckAndSetRequest secondRequest = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, value01, value00);
+        keyValueService.checkAndSet(secondRequest);
+    }
+
+    @Test(expected = CheckAndSetException.class)
+    public void testCheckAndSetFromValueWhenNoValue() {
+        Assume.assumeTrue(checkAndSetSupported());
+
+        CheckAndSetRequest request = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, value00, value01);
+        keyValueService.checkAndSet(request);
+    }
+
+    @Test(expected = CheckAndSetException.class)
+    public void testCheckAndSetFromNoValueWhenValueIsPresent() {
+        Assume.assumeTrue(checkAndSetSupported());
+
+        CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, value00);
+        keyValueService.checkAndSet(request);
+        keyValueService.checkAndSet(request);
+    }
+
+    @Test
     public void testAddGCSentinelValues() {
         putTestDataForMultipleTimestamps();
-        Cell cell = Cell.create(row0, column0);
 
-        Multimap<Cell, Long> timestampsBefore = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(cell), MAX_TIMESTAMP);
+        Multimap<Cell, Long> timestampsBefore = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(TEST_CELL), MAX_TIMESTAMP);
         assertEquals(2, timestampsBefore.size());
-        assertTrue(!timestampsBefore.containsEntry(cell, Value.INVALID_VALUE_TIMESTAMP));
+        assertTrue(!timestampsBefore.containsEntry(TEST_CELL, Value.INVALID_VALUE_TIMESTAMP));
 
-        keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(cell));
+        keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(TEST_CELL));
 
-        Multimap<Cell, Long> timestampsAfter1 = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(cell), MAX_TIMESTAMP);
+        Multimap<Cell, Long> timestampsAfter1 = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(TEST_CELL), MAX_TIMESTAMP);
         assertEquals(3, timestampsAfter1.size());
-        assertTrue(timestampsAfter1.containsEntry(cell, Value.INVALID_VALUE_TIMESTAMP));
+        assertTrue(timestampsAfter1.containsEntry(TEST_CELL, Value.INVALID_VALUE_TIMESTAMP));
 
-        keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(cell));
+        keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(TEST_CELL));
 
-        Multimap<Cell, Long> timestampsAfter2 = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(cell), MAX_TIMESTAMP);
+        Multimap<Cell, Long> timestampsAfter2 = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(TEST_CELL), MAX_TIMESTAMP);
         assertEquals(3, timestampsAfter2.size());
-        assertTrue(timestampsAfter2.containsEntry(cell, Value.INVALID_VALUE_TIMESTAMP));
+        assertTrue(timestampsAfter2.containsEntry(TEST_CELL, Value.INVALID_VALUE_TIMESTAMP));
     }
 
     @Test
@@ -867,43 +954,39 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testCannotModifyValuesAfterWrite() {
-        Cell cell = Cell.create(row0, column0);
         byte[] data = new byte[1];
         byte[] originalData = copyOf(data);
-        writeToCell(cell, data);
+        writeToCell(TEST_CELL, data);
 
         modifyValue(data);
 
-        assertThat(getForCell(cell), is(originalData));
+        assertThat(getForCell(TEST_CELL), is(originalData));
     }
 
     @Test
     public void testCannotModifyValuesAfterGetRows() {
-        Cell cell = Cell.create(row0, column0);
         byte[] originalData = new byte[1];
-        writeToCell(cell, originalData);
+        writeToCell(TEST_CELL, originalData);
 
-        modifyValue(getRowsForCell(cell));
+        modifyValue(getRowsForCell(TEST_CELL));
 
-        assertThat(getRowsForCell(cell), is(originalData));
+        assertThat(getRowsForCell(TEST_CELL), is(originalData));
     }
 
     @Test
     public void testCannotModifyValuesAfterGet() {
-        Cell cell = Cell.create(row0, column0);
         byte[] originalData = new byte[1];
-        writeToCell(cell, originalData);
+        writeToCell(TEST_CELL, originalData);
 
-        modifyValue(getForCell(cell));
+        modifyValue(getForCell(TEST_CELL));
 
-        assertThat(getForCell(cell), is(originalData));
+        assertThat(getForCell(TEST_CELL), is(originalData));
     }
 
     @Test
     public void testCannotModifyValuesAfterGetRange() {
-        Cell cell = Cell.create(row0, column0);
         byte[] originalData = new byte[1];
-        writeToCell(cell, originalData);
+        writeToCell(TEST_CELL, originalData);
 
         modifyValue(getOnlyItemInTableRange());
 
@@ -1046,9 +1129,9 @@ public abstract class AbstractKeyValueServiceTest {
 
     protected void putTestDataForMultipleTimestamps() {
         keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(Cell.create(row0, column0), value0_t0), TEST_TIMESTAMP);
+                ImmutableMap.of(TEST_CELL, value0_t0), TEST_TIMESTAMP);
         keyValueService.put(TEST_TABLE,
-                ImmutableMap.of(Cell.create(row0, column0), value0_t1), TEST_TIMESTAMP + 1);
+                ImmutableMap.of(TEST_CELL, value0_t1), TEST_TIMESTAMP + 1);
     }
 
     protected void putTestDataForSingleTimestamp() {
@@ -1059,7 +1142,7 @@ public abstract class AbstractKeyValueServiceTest {
          * row2 | -           "value21"   "value22"
          */
         Map<Cell, byte[]> values = new HashMap<Cell, byte[]>();
-        values.put(Cell.create(row0, column0), value00);
+        values.put(TEST_CELL, value00);
         values.put(Cell.create(row0, column1), value01);
         values.put(Cell.create(row1, column0), value10);
         values.put(Cell.create(row1, column2), value12);
