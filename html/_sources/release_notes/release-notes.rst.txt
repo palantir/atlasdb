@@ -43,6 +43,15 @@ develop
          - Change
 
     *    - |fixed|
+         - Fixed schema generation with Java 8 optionals.
+           To use Java8 optionals, supply ``OptionalType.JAVA8`` as an additional constructor argument when creating your ``Schema`` object.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1501>`__)
+
+    *    - |devbreak|
+         - The above fix requires all projects to regenerate their schemas, even if not using Java 8 optionals.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/1501>`__)
+
+    *    - |fixed|
          - Make fetch size bounded from above in ``DbKvs.getRowsColumnRange()``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/1478>`__)
 

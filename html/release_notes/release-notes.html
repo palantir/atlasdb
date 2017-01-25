@@ -170,6 +170,15 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed schema generation with Java 8 optionals.
+To use Java8 optionals, supply <code class="docutils literal"><span class="pre">OptionalType.JAVA8</span></code> as an additional constructor argument when creating your <code class="docutils literal"><span class="pre">Schema</span></code> object.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1501">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>The above fix requires all projects to regenerate their schemas, even if not using Java 8 optionals.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1501">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Make fetch size bounded from above in <code class="docutils literal"><span class="pre">DbKvs.getRowsColumnRange()</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/1478">Pull Request</a>)</td>
 </tr>
