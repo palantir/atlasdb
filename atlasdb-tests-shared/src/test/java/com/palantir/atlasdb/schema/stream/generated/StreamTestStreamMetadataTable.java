@@ -60,7 +60,6 @@ import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
-import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
@@ -90,10 +89,7 @@ import com.palantir.util.crypto.Sha256Hash;
 public final class StreamTestStreamMetadataTable implements
         AtlasDbMutablePersistentTable<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow,
                                          StreamTestStreamMetadataTable.StreamTestStreamMetadataNamedColumnValue<?>,
-                                         StreamTestStreamMetadataTable.StreamTestStreamMetadataRowResult>,
-        AtlasDbNamedMutableTable<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow,
-                                    StreamTestStreamMetadataTable.StreamTestStreamMetadataNamedColumnValue<?>,
-                                    StreamTestStreamMetadataTable.StreamTestStreamMetadataRowResult> {
+                                         StreamTestStreamMetadataTable.StreamTestStreamMetadataRowResult> {
     private final Transaction t;
     private final List<StreamTestStreamMetadataTrigger> triggers;
     private final static String rawTableName = "stream_test_stream_metadata";
@@ -482,12 +478,10 @@ public final class StreamTestStreamMetadataTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public void delete(StreamTestStreamMetadataRow row) {
         delete(ImmutableSet.of(row));
     }
 
-    @Override
     public void delete(Iterable<StreamTestStreamMetadataRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
@@ -495,12 +489,10 @@ public final class StreamTestStreamMetadataTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<StreamTestStreamMetadataRowResult> getRow(StreamTestStreamMetadataRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<StreamTestStreamMetadataRowResult> getRow(StreamTestStreamMetadataRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -511,12 +503,10 @@ public final class StreamTestStreamMetadataTable implements
         }
     }
 
-    @Override
     public List<StreamTestStreamMetadataRowResult> getRows(Iterable<StreamTestStreamMetadataRow> rows) {
         return getRows(rows, allColumns);
     }
 
-    @Override
     public List<StreamTestStreamMetadataRowResult> getRows(Iterable<StreamTestStreamMetadataRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         List<StreamTestStreamMetadataRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
@@ -526,12 +516,10 @@ public final class StreamTestStreamMetadataTable implements
         return rowResults;
     }
 
-    @Override
     public List<StreamTestStreamMetadataRowResult> getAsyncRows(Iterable<StreamTestStreamMetadataRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
-    @Override
     public List<StreamTestStreamMetadataRowResult> getAsyncRows(final Iterable<StreamTestStreamMetadataRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<List<StreamTestStreamMetadataRowResult>> c =
                 new Callable<List<StreamTestStreamMetadataRowResult>>() {
@@ -671,7 +659,6 @@ public final class StreamTestStreamMetadataTable implements
      * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
      * {@link AtlasDbNamedExpiringSet}
-     * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
@@ -743,5 +730,5 @@ public final class StreamTestStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "jp+VE/Vn2d/3IzCP3P5OVA==";
+    static String __CLASS_HASH = "mGmarmne4laa1CZ3zaPNYw==";
 }

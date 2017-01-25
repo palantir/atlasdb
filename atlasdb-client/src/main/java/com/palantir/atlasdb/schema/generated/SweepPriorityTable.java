@@ -60,7 +60,6 @@ import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
-import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
@@ -90,10 +89,7 @@ import com.palantir.util.crypto.Sha256Hash;
 public final class SweepPriorityTable implements
         AtlasDbMutablePersistentTable<SweepPriorityTable.SweepPriorityRow,
                                          SweepPriorityTable.SweepPriorityNamedColumnValue<?>,
-                                         SweepPriorityTable.SweepPriorityRowResult>,
-        AtlasDbNamedMutableTable<SweepPriorityTable.SweepPriorityRow,
-                                    SweepPriorityTable.SweepPriorityNamedColumnValue<?>,
-                                    SweepPriorityTable.SweepPriorityRowResult> {
+                                         SweepPriorityTable.SweepPriorityRowResult> {
     private final Transaction t;
     private final List<SweepPriorityTrigger> triggers;
     private final static String rawTableName = "priority";
@@ -1010,12 +1006,10 @@ public final class SweepPriorityTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public void delete(SweepPriorityRow row) {
         delete(ImmutableSet.of(row));
     }
 
-    @Override
     public void delete(Iterable<SweepPriorityRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size() * 5);
@@ -1027,12 +1021,10 @@ public final class SweepPriorityTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<SweepPriorityRowResult> getRow(SweepPriorityRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<SweepPriorityRowResult> getRow(SweepPriorityRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -1043,12 +1035,10 @@ public final class SweepPriorityTable implements
         }
     }
 
-    @Override
     public List<SweepPriorityRowResult> getRows(Iterable<SweepPriorityRow> rows) {
         return getRows(rows, allColumns);
     }
 
-    @Override
     public List<SweepPriorityRowResult> getRows(Iterable<SweepPriorityRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         List<SweepPriorityRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
@@ -1058,12 +1048,10 @@ public final class SweepPriorityTable implements
         return rowResults;
     }
 
-    @Override
     public List<SweepPriorityRowResult> getAsyncRows(Iterable<SweepPriorityRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
-    @Override
     public List<SweepPriorityRowResult> getAsyncRows(final Iterable<SweepPriorityRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<List<SweepPriorityRowResult>> c =
                 new Callable<List<SweepPriorityRowResult>>() {
@@ -1203,7 +1191,6 @@ public final class SweepPriorityTable implements
      * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
      * {@link AtlasDbNamedExpiringSet}
-     * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
@@ -1275,5 +1262,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "vCEOH0g8QatgT/jpEZEk5w==";
+    static String __CLASS_HASH = "n64pfZrQKmTjm8fRqe+fYQ==";
 }

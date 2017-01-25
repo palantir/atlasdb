@@ -60,7 +60,6 @@ import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
-import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
@@ -90,10 +89,7 @@ import com.palantir.util.crypto.Sha256Hash;
 public final class StreamTestMaxMemStreamValueTable implements
         AtlasDbMutablePersistentTable<StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueRow,
                                          StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueNamedColumnValue<?>,
-                                         StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueRowResult>,
-        AtlasDbNamedMutableTable<StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueRow,
-                                    StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueNamedColumnValue<?>,
-                                    StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueRowResult> {
+                                         StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueRowResult> {
     private final Transaction t;
     private final List<StreamTestMaxMemStreamValueTrigger> triggers;
     private final static String rawTableName = "stream_test_max_mem_stream_value";
@@ -470,12 +466,10 @@ public final class StreamTestMaxMemStreamValueTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public void delete(StreamTestMaxMemStreamValueRow row) {
         delete(ImmutableSet.of(row));
     }
 
-    @Override
     public void delete(Iterable<StreamTestMaxMemStreamValueRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
@@ -483,12 +477,10 @@ public final class StreamTestMaxMemStreamValueTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<StreamTestMaxMemStreamValueRowResult> getRow(StreamTestMaxMemStreamValueRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<StreamTestMaxMemStreamValueRowResult> getRow(StreamTestMaxMemStreamValueRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -499,12 +491,10 @@ public final class StreamTestMaxMemStreamValueTable implements
         }
     }
 
-    @Override
     public List<StreamTestMaxMemStreamValueRowResult> getRows(Iterable<StreamTestMaxMemStreamValueRow> rows) {
         return getRows(rows, allColumns);
     }
 
-    @Override
     public List<StreamTestMaxMemStreamValueRowResult> getRows(Iterable<StreamTestMaxMemStreamValueRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         List<StreamTestMaxMemStreamValueRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
@@ -514,12 +504,10 @@ public final class StreamTestMaxMemStreamValueTable implements
         return rowResults;
     }
 
-    @Override
     public List<StreamTestMaxMemStreamValueRowResult> getAsyncRows(Iterable<StreamTestMaxMemStreamValueRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
-    @Override
     public List<StreamTestMaxMemStreamValueRowResult> getAsyncRows(final Iterable<StreamTestMaxMemStreamValueRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<List<StreamTestMaxMemStreamValueRowResult>> c =
                 new Callable<List<StreamTestMaxMemStreamValueRowResult>>() {
@@ -659,7 +647,6 @@ public final class StreamTestMaxMemStreamValueTable implements
      * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
      * {@link AtlasDbNamedExpiringSet}
-     * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
@@ -731,5 +718,5 @@ public final class StreamTestMaxMemStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "2j377xCs8IEMzZtkvEqrKw==";
+    static String __CLASS_HASH = "w5WjNr84si+QvaVH/GEqsA==";
 }

@@ -60,7 +60,6 @@ import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
-import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
@@ -90,10 +89,7 @@ import com.palantir.util.crypto.Sha256Hash;
 public final class StreamTestWithHashStreamValueTable implements
         AtlasDbMutablePersistentTable<StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow,
                                          StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueNamedColumnValue<?>,
-                                         StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRowResult>,
-        AtlasDbNamedMutableTable<StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow,
-                                    StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueNamedColumnValue<?>,
-                                    StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRowResult> {
+                                         StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRowResult> {
     private final Transaction t;
     private final List<StreamTestWithHashStreamValueTrigger> triggers;
     private final static String rawTableName = "stream_test_with_hash_stream_value";
@@ -479,12 +475,10 @@ public final class StreamTestWithHashStreamValueTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public void delete(StreamTestWithHashStreamValueRow row) {
         delete(ImmutableSet.of(row));
     }
 
-    @Override
     public void delete(Iterable<StreamTestWithHashStreamValueRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
@@ -492,12 +486,10 @@ public final class StreamTestWithHashStreamValueTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<StreamTestWithHashStreamValueRowResult> getRow(StreamTestWithHashStreamValueRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<StreamTestWithHashStreamValueRowResult> getRow(StreamTestWithHashStreamValueRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -508,12 +500,10 @@ public final class StreamTestWithHashStreamValueTable implements
         }
     }
 
-    @Override
     public List<StreamTestWithHashStreamValueRowResult> getRows(Iterable<StreamTestWithHashStreamValueRow> rows) {
         return getRows(rows, allColumns);
     }
 
-    @Override
     public List<StreamTestWithHashStreamValueRowResult> getRows(Iterable<StreamTestWithHashStreamValueRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         List<StreamTestWithHashStreamValueRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
@@ -523,12 +513,10 @@ public final class StreamTestWithHashStreamValueTable implements
         return rowResults;
     }
 
-    @Override
     public List<StreamTestWithHashStreamValueRowResult> getAsyncRows(Iterable<StreamTestWithHashStreamValueRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
-    @Override
     public List<StreamTestWithHashStreamValueRowResult> getAsyncRows(final Iterable<StreamTestWithHashStreamValueRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<List<StreamTestWithHashStreamValueRowResult>> c =
                 new Callable<List<StreamTestWithHashStreamValueRowResult>>() {
@@ -668,7 +656,6 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
      * {@link AtlasDbNamedExpiringSet}
-     * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
@@ -740,5 +727,5 @@ public final class StreamTestWithHashStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "8IRhcqBIePRPBqc0EBPnRw==";
+    static String __CLASS_HASH = "QEd8vCBySaXzzT3QB1iOZA==";
 }

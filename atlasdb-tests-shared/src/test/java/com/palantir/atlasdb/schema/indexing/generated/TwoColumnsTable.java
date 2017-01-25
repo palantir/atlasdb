@@ -60,7 +60,6 @@ import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
-import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
@@ -90,10 +89,7 @@ import com.palantir.util.crypto.Sha256Hash;
 public final class TwoColumnsTable implements
         AtlasDbMutablePersistentTable<TwoColumnsTable.TwoColumnsRow,
                                          TwoColumnsTable.TwoColumnsNamedColumnValue<?>,
-                                         TwoColumnsTable.TwoColumnsRowResult>,
-        AtlasDbNamedMutableTable<TwoColumnsTable.TwoColumnsRow,
-                                    TwoColumnsTable.TwoColumnsNamedColumnValue<?>,
-                                    TwoColumnsTable.TwoColumnsRowResult> {
+                                         TwoColumnsTable.TwoColumnsRowResult> {
     private final Transaction t;
     private final List<TwoColumnsTrigger> triggers;
     private final static String rawTableName = "two_columns";
@@ -661,12 +657,10 @@ public final class TwoColumnsTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public void delete(TwoColumnsRow row) {
         delete(ImmutableSet.of(row));
     }
 
-    @Override
     public void delete(Iterable<TwoColumnsRow> rows) {
         Multimap<TwoColumnsRow, TwoColumnsNamedColumnValue<?>> result = getRowsMultimap(rows);
         deleteFooToIdCondIdx(result);
@@ -678,12 +672,10 @@ public final class TwoColumnsTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<TwoColumnsRowResult> getRow(TwoColumnsRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<TwoColumnsRowResult> getRow(TwoColumnsRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -694,12 +686,10 @@ public final class TwoColumnsTable implements
         }
     }
 
-    @Override
     public List<TwoColumnsRowResult> getRows(Iterable<TwoColumnsRow> rows) {
         return getRows(rows, allColumns);
     }
 
-    @Override
     public List<TwoColumnsRowResult> getRows(Iterable<TwoColumnsRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         List<TwoColumnsRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
@@ -709,12 +699,10 @@ public final class TwoColumnsTable implements
         return rowResults;
     }
 
-    @Override
     public List<TwoColumnsRowResult> getAsyncRows(Iterable<TwoColumnsRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
-    @Override
     public List<TwoColumnsRowResult> getAsyncRows(final Iterable<TwoColumnsRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<List<TwoColumnsRowResult>> c =
                 new Callable<List<TwoColumnsRowResult>>() {
@@ -1312,12 +1300,10 @@ public final class TwoColumnsTable implements
             }
         }
 
-        @Override
         public void delete(FooToIdCondIdxRow row, FooToIdCondIdxColumn column) {
             delete(ImmutableMultimap.of(row, column));
         }
 
-        @Override
         public void delete(Iterable<FooToIdCondIdxRow> rows) {
             Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumn> toRemove = HashMultimap.create();
             Multimap<FooToIdCondIdxRow, FooToIdCondIdxColumnValue> result = getRowsMultimap(rows);
@@ -1974,12 +1960,10 @@ public final class TwoColumnsTable implements
             }
         }
 
-        @Override
         public void delete(FooToIdIdxRow row, FooToIdIdxColumn column) {
             delete(ImmutableMultimap.of(row, column));
         }
 
-        @Override
         public void delete(Iterable<FooToIdIdxRow> rows) {
             Multimap<FooToIdIdxRow, FooToIdIdxColumn> toRemove = HashMultimap.create();
             Multimap<FooToIdIdxRow, FooToIdIdxColumnValue> result = getRowsMultimap(rows);
@@ -2221,7 +2205,6 @@ public final class TwoColumnsTable implements
      * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
      * {@link AtlasDbNamedExpiringSet}
-     * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
@@ -2293,5 +2276,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "CoGTujrSWASTbNC1oi69+w==";
+    static String __CLASS_HASH = "hNWhGTtFb4Paj27/TennkQ==";
 }

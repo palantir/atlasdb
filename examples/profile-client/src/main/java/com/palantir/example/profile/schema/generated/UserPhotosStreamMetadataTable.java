@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
@@ -20,7 +21,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -60,7 +60,6 @@ import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
-import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
@@ -90,10 +89,7 @@ import com.palantir.util.crypto.Sha256Hash;
 public final class UserPhotosStreamMetadataTable implements
         AtlasDbMutablePersistentTable<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow,
                                          UserPhotosStreamMetadataTable.UserPhotosStreamMetadataNamedColumnValue<?>,
-                                         UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRowResult>,
-        AtlasDbNamedMutableTable<UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRow,
-                                    UserPhotosStreamMetadataTable.UserPhotosStreamMetadataNamedColumnValue<?>,
-                                    UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRowResult> {
+                                         UserPhotosStreamMetadataTable.UserPhotosStreamMetadataRowResult> {
     private final Transaction t;
     private final List<UserPhotosStreamMetadataTrigger> triggers;
     private final static String rawTableName = "user_photos_stream_metadata";
@@ -482,12 +478,10 @@ public final class UserPhotosStreamMetadataTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public void delete(UserPhotosStreamMetadataRow row) {
         delete(ImmutableSet.of(row));
     }
 
-    @Override
     public void delete(Iterable<UserPhotosStreamMetadataRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
@@ -495,28 +489,24 @@ public final class UserPhotosStreamMetadataTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<UserPhotosStreamMetadataRowResult> getRow(UserPhotosStreamMetadataRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<UserPhotosStreamMetadataRowResult> getRow(UserPhotosStreamMetadataRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
-            return Optional.absent();
+            return Optional.empty();
         } else {
             return Optional.of(UserPhotosStreamMetadataRowResult.of(rowResult));
         }
     }
 
-    @Override
     public List<UserPhotosStreamMetadataRowResult> getRows(Iterable<UserPhotosStreamMetadataRow> rows) {
         return getRows(rows, allColumns);
     }
 
-    @Override
     public List<UserPhotosStreamMetadataRowResult> getRows(Iterable<UserPhotosStreamMetadataRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         List<UserPhotosStreamMetadataRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
@@ -526,12 +516,10 @@ public final class UserPhotosStreamMetadataTable implements
         return rowResults;
     }
 
-    @Override
     public List<UserPhotosStreamMetadataRowResult> getAsyncRows(Iterable<UserPhotosStreamMetadataRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
-    @Override
     public List<UserPhotosStreamMetadataRowResult> getAsyncRows(final Iterable<UserPhotosStreamMetadataRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<List<UserPhotosStreamMetadataRowResult>> c =
                 new Callable<List<UserPhotosStreamMetadataRowResult>>() {
@@ -671,7 +659,6 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
      * {@link AtlasDbNamedExpiringSet}
-     * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
@@ -743,5 +730,5 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "gDn9bIqWsbm3u8PlbY7obQ==";
+    static String __CLASS_HASH = "EyF03zDWT2AZM4i9zJaQ9A==";
 }

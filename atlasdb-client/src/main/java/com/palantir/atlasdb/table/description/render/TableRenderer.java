@@ -82,7 +82,6 @@ import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
-import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
@@ -136,6 +135,7 @@ public class TableRenderer {
         return new ClassRenderer(rawTableName, table, indices).render();
     }
 
+    @SuppressWarnings("CheckStyle")
     private class ClassRenderer extends Renderer {
         private final String tableName;
         private final TableMetadata table;
@@ -229,11 +229,8 @@ public class TableRenderer {
                 } else {
                     line("        AtlasDbMutablePersistentTable<", Table, ".", Row, ",");
                     line("                                         ", Table, ".", ColumnValue, ",");
-                    line("                                         ", Table, ".", RowResult, ">,");
+                    line("                                         ", Table, ".", RowResult, "> {");
                 }
-                line("        AtlasDbNamedMutableTable<", Table, ".", Row, ",");
-                line("                                    ", Table, ".", ColumnValue, ",");
-                line("                                    ", Table, ".", RowResult, "> {");
             } {
                 fields(isDynamic(table));
                 line();
@@ -459,12 +456,10 @@ public class TableRenderer {
         }
 
         private void renderDynamicDelete() {
-            line("@Override");
             line("public void delete(", Row, " row, ", Column, " column) {"); {
                 line("delete(ImmutableMultimap.of(row, column));");
             } line("}");
             line();
-            line("@Override");
             line("public void delete(Iterable<", Row, "> rows) {"); {
                 line("Multimap<", Row, ", ", Column, "> toRemove = HashMultimap.create();");
                 line("Multimap<", Row, ", ", ColumnValue, "> result = getRowsMultimap(rows);");
@@ -930,12 +925,10 @@ public class TableRenderer {
         }
 
         private void renderNamedDelete() {
-            line("@Override");
             line("public void delete(", Row, " row) {"); {
                 line("delete(ImmutableSet.of(row));");
             } line("}");
             line();
-            line("@Override");
             line("public void delete(Iterable<", Row, "> rows) {"); {
 
                 if (!cellReferencingIndices.isEmpty()) {
@@ -1043,12 +1036,10 @@ public class TableRenderer {
         }
 
         private void renderNamedGetRow() {
-            line("@Override");
             line("public ", "Optional<", RowResult, ">", " getRow(", Row, " row) {"); {
                 line("return getRow(row, allColumns);");
             } line("}");
             line();
-            line("@Override");
             line("public ", "Optional<", RowResult, ">", " getRow(", Row, " row, ColumnSelection columns) {"); {
                 line("byte[] bytes = row.persistToBytes();");
                 line("RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);");
@@ -1069,12 +1060,10 @@ public class TableRenderer {
         }
 
         private void renderNamedGetRows() {
-            line("@Override");
             line("public List<", RowResult, "> getRows(Iterable<", Row, "> rows) {"); {
                 line("return getRows(rows, allColumns);");
             } line("}");
             line();
-            line("@Override");
             line("public List<", RowResult, "> getRows(Iterable<", Row, "> rows, ColumnSelection columns) {"); {
                 line("SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);");
                 line("List<", RowResult, "> rowResults = Lists.newArrayListWithCapacity(results.size());");
@@ -1084,12 +1073,10 @@ public class TableRenderer {
                 line("return rowResults;");
             } line("}");
             line();
-            line("@Override");
             line("public List<", RowResult, "> getAsyncRows(Iterable<", Row, "> rows, ExecutorService exec) {"); {
                 line("return getAsyncRows(rows, allColumns, exec);");
             } line("}");
             line();
-            line("@Override");
             line("public List<", RowResult, "> getAsyncRows(final Iterable<", Row, "> rows, final ColumnSelection columns, ExecutorService exec) {"); {
                 line("Callable<List<", RowResult, ">> c =");
                 line("        new Callable<List<", RowResult, ">>() {"); {
@@ -1285,7 +1272,9 @@ public class TableRenderer {
 
     private static boolean isNamedSet(TableMetadata table) {
         Set<NamedColumnDescription> namedColumns = table.getColumns().getNamedColumns();
-        return namedColumns != null && namedColumns.size() == 1 && Iterables.getOnlyElement(namedColumns).getLongName().equals("exists");
+        return namedColumns != null
+                && namedColumns.size() == 1
+                && Iterables.getOnlyElement(namedColumns).getLongName().equals("exists");
     }
 
     private static boolean isDynamic(TableMetadata table) {
@@ -1322,87 +1311,86 @@ public class TableRenderer {
     }
 
     private static final Class<?>[] IMPORTS_WITHOUT_OPTIONAL = {
-        Set.class,
-        List.class,
-        Map.class,
-        SortedMap.class,
-        Callable.class,
-        ExecutorService.class,
-        Multimap.class,
-        Multimaps.class,
-        Collection.class,
-        Function.class,
-        Persistable.class,
-        Hydrator.class,
-        Transaction.class,
-        NamedColumnValue.class,
-        ColumnValue.class,
-        BatchingVisitable.class,
-        RangeRequest.class,
-        Prefix.class,
-        BatchingVisitables.class,
-        BatchingVisitableView.class,
-        IterableView.class,
-        ColumnValues.class,
-        RowResult.class,
-        Persistables.class,
-        AsyncProxy.class,
-        Maps.class,
-        Lists.class,
-        ImmutableMap.class,
-        ImmutableSet.class,
-        Sets.class,
-        HashSet.class,
-        HashMultimap.class,
-        ArrayListMultimap.class,
-        ImmutableMultimap.class,
-        Cell.class,
-        Cells.class,
-        EncodingUtils.class,
-        PtBytes.class,
-        MoreObjects.class,
-        Objects.class,
-        ComparisonChain.class,
-        Sha256Hash.class,
-        EnumSet.class,
-        Descending.class,
-        AbortingVisitor.class,
-        AbortingVisitors.class,
-        AssertUtils.class,
-        AtlasDbConstraintCheckingMode.class,
-        ConstraintCheckingTransaction.class,
-        AtlasDbDynamicMutableExpiringTable.class,
-        AtlasDbDynamicMutablePersistentTable.class,
-        AtlasDbNamedPersistentSet.class,
-        AtlasDbNamedExpiringSet.class,
-        AtlasDbMutablePersistentTable.class,
-        AtlasDbMutableExpiringTable.class,
-        AtlasDbNamedMutableTable.class,
-        ColumnSelection.class,
-        Joiner.class,
-        Entry.class,
-        Iterator.class,
-        Iterables.class,
-        Supplier.class,
-        InvalidProtocolBufferException.class,
-        Throwables.class,
-        ImmutableList.class,
-        UnsignedBytes.class,
-        Collections2.class,
-        Arrays.class,
-        Bytes.class,
-        TypedRowResult.class,
-        TimeUnit.class,
-        CompressionUtils.class,
-        Compression.class,
-        Namespace.class,
-        Hashing.class,
-        ValueType.class,
-        Generated.class,
-        TableReference.class,
-        BatchColumnRangeSelection.class,
-        ColumnRangeSelections.class,
-        ColumnRangeSelection.class,
-        Iterators.class,
+            Set.class,
+            List.class,
+            Map.class,
+            SortedMap.class,
+            Callable.class,
+            ExecutorService.class,
+            Multimap.class,
+            Multimaps.class,
+            Collection.class,
+            Function.class,
+            Persistable.class,
+            Hydrator.class,
+            Transaction.class,
+            NamedColumnValue.class,
+            ColumnValue.class,
+            BatchingVisitable.class,
+            RangeRequest.class,
+            Prefix.class,
+            BatchingVisitables.class,
+            BatchingVisitableView.class,
+            IterableView.class,
+            ColumnValues.class,
+            RowResult.class,
+            Persistables.class,
+            AsyncProxy.class,
+            Maps.class,
+            Lists.class,
+            ImmutableMap.class,
+            ImmutableSet.class,
+            Sets.class,
+            HashSet.class,
+            HashMultimap.class,
+            ArrayListMultimap.class,
+            ImmutableMultimap.class,
+            Cell.class,
+            Cells.class,
+            EncodingUtils.class,
+            PtBytes.class,
+            MoreObjects.class,
+            Objects.class,
+            ComparisonChain.class,
+            Sha256Hash.class,
+            EnumSet.class,
+            Descending.class,
+            AbortingVisitor.class,
+            AbortingVisitors.class,
+            AssertUtils.class,
+            AtlasDbConstraintCheckingMode.class,
+            ConstraintCheckingTransaction.class,
+            AtlasDbDynamicMutableExpiringTable.class,
+            AtlasDbDynamicMutablePersistentTable.class,
+            AtlasDbNamedPersistentSet.class,
+            AtlasDbNamedExpiringSet.class,
+            AtlasDbMutablePersistentTable.class,
+            AtlasDbMutableExpiringTable.class,
+            ColumnSelection.class,
+            Joiner.class,
+            Entry.class,
+            Iterator.class,
+            Iterables.class,
+            Supplier.class,
+            InvalidProtocolBufferException.class,
+            Throwables.class,
+            ImmutableList.class,
+            UnsignedBytes.class,
+            Collections2.class,
+            Arrays.class,
+            Bytes.class,
+            TypedRowResult.class,
+            TimeUnit.class,
+            CompressionUtils.class,
+            Compression.class,
+            Namespace.class,
+            Hashing.class,
+            ValueType.class,
+            Generated.class,
+            TableReference.class,
+            BatchColumnRangeSelection.class,
+            ColumnRangeSelections.class,
+            ColumnRangeSelection.class,
+            Iterators.class,
     };
 }

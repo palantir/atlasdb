@@ -60,7 +60,6 @@ import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
-import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
@@ -449,12 +448,10 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
         }
     }
 
-    @Override
     public void delete(StreamTestMaxMemStreamHashAidxRow row, StreamTestMaxMemStreamHashAidxColumn column) {
         delete(ImmutableMultimap.of(row, column));
     }
 
-    @Override
     public void delete(Iterable<StreamTestMaxMemStreamHashAidxRow> rows) {
         Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumn> toRemove = HashMultimap.create();
         Multimap<StreamTestMaxMemStreamHashAidxRow, StreamTestMaxMemStreamHashAidxColumnValue> result = getRowsMultimap(rows);
@@ -694,7 +691,6 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
      * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
      * {@link AtlasDbNamedExpiringSet}
-     * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
@@ -766,5 +762,5 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6KjHR4/i7R8TPVeWh0VB6Q==";
+    static String __CLASS_HASH = "gDH9BXy2jlHQREMCg+e/Nw==";
 }

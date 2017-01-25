@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
@@ -20,7 +21,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -60,7 +60,6 @@ import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
-import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
@@ -90,10 +89,7 @@ import com.palantir.util.crypto.Sha256Hash;
 public final class UserProfileTable implements
         AtlasDbMutablePersistentTable<UserProfileTable.UserProfileRow,
                                          UserProfileTable.UserProfileNamedColumnValue<?>,
-                                         UserProfileTable.UserProfileRowResult>,
-        AtlasDbNamedMutableTable<UserProfileTable.UserProfileRow,
-                                    UserProfileTable.UserProfileNamedColumnValue<?>,
-                                    UserProfileTable.UserProfileRowResult> {
+                                         UserProfileTable.UserProfileRowResult> {
     private final Transaction t;
     private final List<UserProfileTrigger> triggers;
     private final static String rawTableName = "user_profile";
@@ -989,12 +985,10 @@ public final class UserProfileTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public void delete(UserProfileRow row) {
         delete(ImmutableSet.of(row));
     }
 
-    @Override
     public void delete(Iterable<UserProfileRow> rows) {
         Multimap<UserProfileRow, UserProfileNamedColumnValue<?>> result = getRowsMultimap(rows);
         deleteCookiesIdx(result);
@@ -1009,28 +1003,24 @@ public final class UserProfileTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<UserProfileRowResult> getRow(UserProfileRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<UserProfileRowResult> getRow(UserProfileRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
-            return Optional.absent();
+            return Optional.empty();
         } else {
             return Optional.of(UserProfileRowResult.of(rowResult));
         }
     }
 
-    @Override
     public List<UserProfileRowResult> getRows(Iterable<UserProfileRow> rows) {
         return getRows(rows, allColumns);
     }
 
-    @Override
     public List<UserProfileRowResult> getRows(Iterable<UserProfileRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         List<UserProfileRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
@@ -1040,12 +1030,10 @@ public final class UserProfileTable implements
         return rowResults;
     }
 
-    @Override
     public List<UserProfileRowResult> getAsyncRows(Iterable<UserProfileRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
-    @Override
     public List<UserProfileRowResult> getAsyncRows(final Iterable<UserProfileRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<List<UserProfileRowResult>> c =
                 new Callable<List<UserProfileRowResult>>() {
@@ -1661,12 +1649,10 @@ public final class UserProfileTable implements
             }
         }
 
-        @Override
         public void delete(CookiesIdxRow row, CookiesIdxColumn column) {
             delete(ImmutableMultimap.of(row, column));
         }
 
-        @Override
         public void delete(Iterable<CookiesIdxRow> rows) {
             Multimap<CookiesIdxRow, CookiesIdxColumn> toRemove = HashMultimap.create();
             Multimap<CookiesIdxRow, CookiesIdxColumnValue> result = getRowsMultimap(rows);
@@ -2348,12 +2334,10 @@ public final class UserProfileTable implements
             }
         }
 
-        @Override
         public void delete(CreatedIdxRow row, CreatedIdxColumn column) {
             delete(ImmutableMultimap.of(row, column));
         }
 
-        @Override
         public void delete(Iterable<CreatedIdxRow> rows) {
             Multimap<CreatedIdxRow, CreatedIdxColumn> toRemove = HashMultimap.create();
             Multimap<CreatedIdxRow, CreatedIdxColumnValue> result = getRowsMultimap(rows);
@@ -3035,12 +3019,10 @@ public final class UserProfileTable implements
             }
         }
 
-        @Override
         public void delete(UserBirthdaysIdxRow row, UserBirthdaysIdxColumn column) {
             delete(ImmutableMultimap.of(row, column));
         }
 
-        @Override
         public void delete(Iterable<UserBirthdaysIdxRow> rows) {
             Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumn> toRemove = HashMultimap.create();
             Multimap<UserBirthdaysIdxRow, UserBirthdaysIdxColumnValue> result = getRowsMultimap(rows);
@@ -3316,7 +3298,6 @@ public final class UserProfileTable implements
      * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
      * {@link AtlasDbNamedExpiringSet}
-     * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
@@ -3388,5 +3369,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "BAWiFRjPo3iiz4ifhWSE8g==";
+    static String __CLASS_HASH = "15dtzm2/NaZeWh0OlgRp9w==";
 }

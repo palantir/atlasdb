@@ -60,7 +60,6 @@ import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
-import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
@@ -90,10 +89,7 @@ import com.palantir.util.crypto.Sha256Hash;
 public final class SweepProgressTable implements
         AtlasDbMutablePersistentTable<SweepProgressTable.SweepProgressRow,
                                          SweepProgressTable.SweepProgressNamedColumnValue<?>,
-                                         SweepProgressTable.SweepProgressRowResult>,
-        AtlasDbNamedMutableTable<SweepProgressTable.SweepProgressRow,
-                                    SweepProgressTable.SweepProgressNamedColumnValue<?>,
-                                    SweepProgressTable.SweepProgressRowResult> {
+                                         SweepProgressTable.SweepProgressRowResult> {
     private final Transaction t;
     private final List<SweepProgressTrigger> triggers;
     private final static String rawTableName = "progress";
@@ -1010,12 +1006,10 @@ public final class SweepProgressTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public void delete(SweepProgressRow row) {
         delete(ImmutableSet.of(row));
     }
 
-    @Override
     public void delete(Iterable<SweepProgressRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size() * 5);
@@ -1027,12 +1021,10 @@ public final class SweepProgressTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<SweepProgressRowResult> getRow(SweepProgressRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<SweepProgressRowResult> getRow(SweepProgressRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -1043,12 +1035,10 @@ public final class SweepProgressTable implements
         }
     }
 
-    @Override
     public List<SweepProgressRowResult> getRows(Iterable<SweepProgressRow> rows) {
         return getRows(rows, allColumns);
     }
 
-    @Override
     public List<SweepProgressRowResult> getRows(Iterable<SweepProgressRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         List<SweepProgressRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
@@ -1058,12 +1048,10 @@ public final class SweepProgressTable implements
         return rowResults;
     }
 
-    @Override
     public List<SweepProgressRowResult> getAsyncRows(Iterable<SweepProgressRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
-    @Override
     public List<SweepProgressRowResult> getAsyncRows(final Iterable<SweepProgressRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<List<SweepProgressRowResult>> c =
                 new Callable<List<SweepProgressRowResult>>() {
@@ -1203,7 +1191,6 @@ public final class SweepProgressTable implements
      * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
      * {@link AtlasDbNamedExpiringSet}
-     * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
@@ -1275,5 +1262,5 @@ public final class SweepProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "/I2gV/xLpiGWuzDf+9UF1g==";
+    static String __CLASS_HASH = "sXehnSPLVUTi/Gkszo/AOg==";
 }

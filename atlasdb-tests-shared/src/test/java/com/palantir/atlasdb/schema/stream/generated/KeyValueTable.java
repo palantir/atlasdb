@@ -60,7 +60,6 @@ import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
-import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
@@ -90,10 +89,7 @@ import com.palantir.util.crypto.Sha256Hash;
 public final class KeyValueTable implements
         AtlasDbMutablePersistentTable<KeyValueTable.KeyValueRow,
                                          KeyValueTable.KeyValueNamedColumnValue<?>,
-                                         KeyValueTable.KeyValueRowResult>,
-        AtlasDbNamedMutableTable<KeyValueTable.KeyValueRow,
-                                    KeyValueTable.KeyValueNamedColumnValue<?>,
-                                    KeyValueTable.KeyValueRowResult> {
+                                         KeyValueTable.KeyValueRowResult> {
     private final Transaction t;
     private final List<KeyValueTrigger> triggers;
     private final static String rawTableName = "lookup";
@@ -458,12 +454,10 @@ public final class KeyValueTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public void delete(KeyValueRow row) {
         delete(ImmutableSet.of(row));
     }
 
-    @Override
     public void delete(Iterable<KeyValueRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
@@ -471,12 +465,10 @@ public final class KeyValueTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<KeyValueRowResult> getRow(KeyValueRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<KeyValueRowResult> getRow(KeyValueRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -487,12 +479,10 @@ public final class KeyValueTable implements
         }
     }
 
-    @Override
     public List<KeyValueRowResult> getRows(Iterable<KeyValueRow> rows) {
         return getRows(rows, allColumns);
     }
 
-    @Override
     public List<KeyValueRowResult> getRows(Iterable<KeyValueRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         List<KeyValueRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
@@ -502,12 +492,10 @@ public final class KeyValueTable implements
         return rowResults;
     }
 
-    @Override
     public List<KeyValueRowResult> getAsyncRows(Iterable<KeyValueRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
-    @Override
     public List<KeyValueRowResult> getAsyncRows(final Iterable<KeyValueRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<List<KeyValueRowResult>> c =
                 new Callable<List<KeyValueRowResult>>() {
@@ -647,7 +635,6 @@ public final class KeyValueTable implements
      * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
      * {@link AtlasDbNamedExpiringSet}
-     * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
@@ -719,5 +706,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "SMiJwwtb7UOGyQ5QanH9sg==";
+    static String __CLASS_HASH = "7YXoUvV/3BGO5Z1yIC5A3A==";
 }

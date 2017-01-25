@@ -60,7 +60,6 @@ import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
-import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
@@ -90,10 +89,7 @@ import com.palantir.util.crypto.Sha256Hash;
 public final class DataTable implements
         AtlasDbMutablePersistentTable<DataTable.DataRow,
                                          DataTable.DataNamedColumnValue<?>,
-                                         DataTable.DataRowResult>,
-        AtlasDbNamedMutableTable<DataTable.DataRow,
-                                    DataTable.DataNamedColumnValue<?>,
-                                    DataTable.DataRowResult> {
+                                         DataTable.DataRowResult> {
     private final Transaction t;
     private final List<DataTrigger> triggers;
     private final static String rawTableName = "data";
@@ -592,12 +588,10 @@ public final class DataTable implements
         t.delete(TableReference.createFromFullyQualifiedName("default.index4_idx"), indexCells);
     }
 
-    @Override
     public void delete(DataRow row) {
         delete(ImmutableSet.of(row));
     }
 
-    @Override
     public void delete(Iterable<DataRow> rows) {
         Multimap<DataRow, DataNamedColumnValue<?>> result = getRowsMultimap(rows);
         deleteIndex1Idx(result);
@@ -610,12 +604,10 @@ public final class DataTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<DataRowResult> getRow(DataRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<DataRowResult> getRow(DataRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -626,12 +618,10 @@ public final class DataTable implements
         }
     }
 
-    @Override
     public List<DataRowResult> getRows(Iterable<DataRow> rows) {
         return getRows(rows, allColumns);
     }
 
-    @Override
     public List<DataRowResult> getRows(Iterable<DataRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         List<DataRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
@@ -641,12 +631,10 @@ public final class DataTable implements
         return rowResults;
     }
 
-    @Override
     public List<DataRowResult> getAsyncRows(Iterable<DataRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
-    @Override
     public List<DataRowResult> getAsyncRows(final Iterable<DataRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<List<DataRowResult>> c =
                 new Callable<List<DataRowResult>>() {
@@ -1282,12 +1270,10 @@ public final class DataTable implements
             }
         }
 
-        @Override
         public void delete(Index1IdxRow row, Index1IdxColumn column) {
             delete(ImmutableMultimap.of(row, column));
         }
 
-        @Override
         public void delete(Iterable<Index1IdxRow> rows) {
             Multimap<Index1IdxRow, Index1IdxColumn> toRemove = HashMultimap.create();
             Multimap<Index1IdxRow, Index1IdxColumnValue> result = getRowsMultimap(rows);
@@ -1957,12 +1943,10 @@ public final class DataTable implements
             }
         }
 
-        @Override
         public void delete(Index2IdxRow row, Index2IdxColumn column) {
             delete(ImmutableMultimap.of(row, column));
         }
 
-        @Override
         public void delete(Iterable<Index2IdxRow> rows) {
             Multimap<Index2IdxRow, Index2IdxColumn> toRemove = HashMultimap.create();
             Multimap<Index2IdxRow, Index2IdxColumnValue> result = getRowsMultimap(rows);
@@ -2610,12 +2594,10 @@ public final class DataTable implements
             }
         }
 
-        @Override
         public void delete(Index3IdxRow row, Index3IdxColumn column) {
             delete(ImmutableMultimap.of(row, column));
         }
 
-        @Override
         public void delete(Iterable<Index3IdxRow> rows) {
             Multimap<Index3IdxRow, Index3IdxColumn> toRemove = HashMultimap.create();
             Multimap<Index3IdxRow, Index3IdxColumnValue> result = getRowsMultimap(rows);
@@ -3285,12 +3267,10 @@ public final class DataTable implements
             }
         }
 
-        @Override
         public void delete(Index4IdxRow row, Index4IdxColumn column) {
             delete(ImmutableMultimap.of(row, column));
         }
 
-        @Override
         public void delete(Iterable<Index4IdxRow> rows) {
             Multimap<Index4IdxRow, Index4IdxColumn> toRemove = HashMultimap.create();
             Multimap<Index4IdxRow, Index4IdxColumnValue> result = getRowsMultimap(rows);
@@ -3566,7 +3546,6 @@ public final class DataTable implements
      * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
      * {@link AtlasDbNamedExpiringSet}
-     * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
@@ -3638,5 +3617,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6v6D3OWztYAGUBd3y4QSBw==";
+    static String __CLASS_HASH = "F/dfPOhrJ/rT9gX+ondZ5g==";
 }

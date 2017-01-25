@@ -60,7 +60,6 @@ import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
-import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.atlasdb.table.api.TypedRowResult;
@@ -90,10 +89,7 @@ import com.palantir.util.crypto.Sha256Hash;
 public final class CheckAndSetTable implements
         AtlasDbMutablePersistentTable<CheckAndSetTable.CheckAndSetRow,
                                          CheckAndSetTable.CheckAndSetNamedColumnValue<?>,
-                                         CheckAndSetTable.CheckAndSetRowResult>,
-        AtlasDbNamedMutableTable<CheckAndSetTable.CheckAndSetRow,
-                                    CheckAndSetTable.CheckAndSetNamedColumnValue<?>,
-                                    CheckAndSetTable.CheckAndSetRowResult> {
+                                         CheckAndSetTable.CheckAndSetRowResult> {
     private final Transaction t;
     private final List<CheckAndSetTrigger> triggers;
     private final static String rawTableName = "check_and_set";
@@ -458,12 +454,10 @@ public final class CheckAndSetTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public void delete(CheckAndSetRow row) {
         delete(ImmutableSet.of(row));
     }
 
-    @Override
     public void delete(Iterable<CheckAndSetRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
@@ -471,12 +465,10 @@ public final class CheckAndSetTable implements
         t.delete(tableRef, cells);
     }
 
-    @Override
     public Optional<CheckAndSetRowResult> getRow(CheckAndSetRow row) {
         return getRow(row, allColumns);
     }
 
-    @Override
     public Optional<CheckAndSetRowResult> getRow(CheckAndSetRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
@@ -487,12 +479,10 @@ public final class CheckAndSetTable implements
         }
     }
 
-    @Override
     public List<CheckAndSetRowResult> getRows(Iterable<CheckAndSetRow> rows) {
         return getRows(rows, allColumns);
     }
 
-    @Override
     public List<CheckAndSetRowResult> getRows(Iterable<CheckAndSetRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         List<CheckAndSetRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
@@ -502,12 +492,10 @@ public final class CheckAndSetTable implements
         return rowResults;
     }
 
-    @Override
     public List<CheckAndSetRowResult> getAsyncRows(Iterable<CheckAndSetRow> rows, ExecutorService exec) {
         return getAsyncRows(rows, allColumns, exec);
     }
 
-    @Override
     public List<CheckAndSetRowResult> getAsyncRows(final Iterable<CheckAndSetRow> rows, final ColumnSelection columns, ExecutorService exec) {
         Callable<List<CheckAndSetRowResult>> c =
                 new Callable<List<CheckAndSetRowResult>>() {
@@ -647,7 +635,6 @@ public final class CheckAndSetTable implements
      * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
      * {@link AtlasDbNamedExpiringSet}
-     * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
